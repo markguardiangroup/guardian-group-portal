@@ -194,6 +194,17 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     },
   });
 
+  // Required template IDs grouped by company (for the current module).
+  // Drives "Missing" on the Group and Company tiles: required templates
+  // that have no document uploaded at the matching scope.
+  const { data: requiredTemplateIdsByCompany = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["/api/required-template-ids-by-company", module],
+    queryFn: async () => {
+      const res = await fetch(`/api/required-template-ids-by-company?module=${module}`, { credentials: "include" });
+      return res.json();
+    },
+  });
+
   const isLoading = isLoadingSites || isLoadingDocs;
 
   const filteredSites = useMemo(() => {
@@ -412,13 +423,19 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupRequired = groupDocs.filter((d) => d.isRequired);
               const groupCompliant = groupRequired.filter((d) => d.status === "compliant").length;
               const groupReview = groupRequired.filter((d) => d.status === "review_required").length;
-              // "Missing" at the group level = required template slots with no document
-              // uploaded across any site in any company belonging to this group.
-              const groupCompanyIdSet = new Set(selectedGroupCompanies.map((c) => c.id));
-              const groupMissing = missingRequiredDetails.filter((m) =>
-                m.companyId ? groupCompanyIdSet.has(m.companyId) : false
+              // "Missing" at the group level = required templates (defined on the
+              // group-owner company) that have no document uploaded at the group scope
+              // (i.e. no doc with scope="group" and entityId === selectedGroup that
+              // matches that templateId). This is intentionally NOT aggregated from
+              // sites or member companies — it reflects the group's own required slots.
+              const groupRequiredTemplateIds = requiredTemplateIdsByCompany[selectedGroup] ?? [];
+              const groupDocTemplateIds = new Set(
+                groupDocs.map((d) => d.templateId).filter((id): id is string => !!id)
+              );
+              const groupMissing = groupRequiredTemplateIds.filter(
+                (tid) => !groupDocTemplateIds.has(tid)
               ).length;
-              const groupDenom = groupCompliant + groupReview + groupMissing;
+              const groupDenom = groupRequiredTemplateIds.length;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
               const groupHasIssues = groupMissing > 0 || groupReview > 0;
 
@@ -548,10 +565,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     const cReq = companyDocs.filter((d) => d.isRequired);
                     const cCompliant = cReq.filter((d) => d.status === "compliant").length;
                     const cReview = cReq.filter((d) => d.status === "review_required").length;
-                    // "Missing" at the company level = required template slots with no
-                    // document uploaded across any site belonging to this company.
-                    const cMissing = missingRequiredDetails.filter((m) => m.companyId === company.id).length;
-                    const cDenom = cCompliant + cReview + cMissing;
+                    // "Missing" at the company level = required templates (defined on
+                    // this company) that have no document uploaded at the company scope
+                    // (i.e. no doc with scope="company" and entityId === company.id that
+                    // matches that templateId). Site-level missing is shown on All Sites.
+                    const companyRequiredTemplateIds = requiredTemplateIdsByCompany[company.id] ?? [];
+                    const companyDocTemplateIds = new Set(
+                      companyDocs.map((d) => d.templateId).filter((id): id is string => !!id)
+                    );
+                    const cMissing = companyRequiredTemplateIds.filter(
+                      (tid) => !companyDocTemplateIds.has(tid)
+                    ).length;
+                    const cDenom = companyRequiredTemplateIds.length;
                     const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
                     const cHasIssues = cMissing > 0 || cReview > 0;
 

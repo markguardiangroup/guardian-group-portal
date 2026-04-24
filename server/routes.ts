@@ -1632,6 +1632,60 @@ export async function registerRoutes(
     }
   });
 
+  // Returns required template IDs grouped by company (for accessible companies).
+  // Used by Module Sites tiles to compute "Missing" at the group/company scope —
+  // i.e. required templates with no document uploaded at that scope.
+  // Filters to active, private templates and (if `module` provided) the given module,
+  // matching the same rules used by getMissingRequiredTemplateDetails.
+  app.get("/api/required-template-ids-by-company", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const moduleParam = req.query.module as ModuleType | undefined;
+
+      const allSites = await storage.getSites();
+      const accessChecks = await Promise.all(allSites.map(s => canUserAccessSite(user, s.id)));
+      const accessibleCompanyIds = new Set(
+        allSites.filter((_, i) => accessChecks[i]).map(s => s.companyId).filter((id): id is string => !!id)
+      );
+
+      // Also include group-owner companies whose owned companies the user can access,
+      // so the Group tile can resolve required templates for the group owner even when
+      // the owner company itself has no directly-accessible sites.
+      const allCompanies = await storage.getCompanies();
+      for (const c of allCompanies) {
+        if (accessibleCompanyIds.has(c.id) && c.groupOwnerId) {
+          accessibleCompanyIds.add(c.groupOwnerId);
+        }
+      }
+
+      const templates = await storage.getDocumentTemplates();
+      const allowedTemplateIds = new Set(
+        templates
+          .filter(t => t.isActive && t.visibility === "private" && (!moduleParam || t.module === moduleParam))
+          .map(t => t.id)
+      );
+
+      const companyIds = [...accessibleCompanyIds];
+      const reqLists = await Promise.all(
+        companyIds.map(cid => storage.getCompanyRequiredTemplates(cid))
+      );
+
+      const result: Record<string, string[]> = {};
+      companyIds.forEach((cid, i) => {
+        result[cid] = reqLists[i]
+          .map(r => r.templateId)
+          .filter(id => allowedTemplateIds.has(id));
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching required template IDs by company:", error);
+      res.status(500).json({ error: "Failed to fetch required template IDs by company" });
+    }
+  });
+
   app.get("/api/missing-required-templates", async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);

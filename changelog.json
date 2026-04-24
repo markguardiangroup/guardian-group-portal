@@ -938,6 +938,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-24T14:47:32.513Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "80b91b5e-2161-4ba6-be85-7b9a20cdf6ca",
+          "patch": 6,
+          "message": "Module Sites: corrected the 'Missing' count on Group and Company tiles. It now reports required templates with no document uploaded at THAT scope only — Group Missing = required templates from the group-owner company that lack a group-scoped doc, Company Missing = required templates that lack a company-scoped doc — instead of aggregating site-level missing across the group/company. Added a new GET /api/required-template-ids-by-company endpoint (filterable by module) that returns required template IDs grouped by accessible company; the tiles consume it to compute the count and the compliance % denominator.",
+          "category": "bug",
+          "createdAt": "2026-04-24T15:38:33.800Z",
+          "createdBy": "agent"
         }
       ]
     }
