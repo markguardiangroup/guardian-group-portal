@@ -1018,6 +1018,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-27T14:11:16.765Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "eecf08ae-784f-4d63-874e-4636c8a79d6e",
+          "patch": 6,
+          "message": "Soft-removed inherited requirements on a company can now be re-enabled. The X button on a struck-through (soft-removed) row in a company's Required Documents list is replaced with a Restore button (counter-clockwise arrow) — clicking it reactivates the requirement (clears the soft-removed flag) and counts toward compliance again. Previously, clicking the X on an already-soft-removed row would permanently delete the entry, leaving no in-place way to bring it back; now the only way to permanently delete from the list is via the group level.",
+          "category": "enhancement",
+          "createdAt": "2026-04-27T14:41:05.642Z",
+          "createdBy": "agent"
         }
       ]
     }

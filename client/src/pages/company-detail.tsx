@@ -728,23 +728,35 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                         Inherited
                       </Badge>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeMutation.mutate(templateId)}
-                      disabled={isPending}
-                      title={
-                        isSoftRemoved
-                          ? "Permanently delete this entry"
-                          : isInherited
+                    {isSoftRemoved ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => addMutation.mutate(templateId)}
+                        disabled={isPending}
+                        title="Re-enable this requirement for this company"
+                        data-testid={`button-restore-requirement-${templateId}`}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeMutation.mutate(templateId)}
+                        disabled={isPending}
+                        title={
+                          isInherited
                             ? "Mark as no longer required for this company (struck-through)"
                             : "Remove requirement"
-                      }
-                      data-testid={`button-remove-requirement-${templateId}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                        }
+                        data-testid={`button-remove-requirement-${templateId}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
