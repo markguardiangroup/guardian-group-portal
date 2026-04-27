@@ -986,6 +986,14 @@
           "category": "bug",
           "createdAt": "2026-04-27T11:26:00.794Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "0721dc8b-14fd-4d04-addf-f8ef18859373",
+          "patch": 6,
+          "message": "Fix: Site tile on Module Sites was over-counting Compliant when group/company-shared docs whose template wasn't in the site's required set were visible to the site (e.g. a group-scope compliant doc whose template the company never inherited because of a cascade gap, or a doc the site explicitly excludes via a site_template_override). Result: Compliant + Review + Overdue + Missing could exceed the site's effective required count. Now constrained: for each templateId in the site's effective required set we pick the best-status covering doc (compliant > review_required > overdue) and bucket once. Docs whose template isn't required at the site are ignored for slot accounting (they remain visible elsewhere). Added a new endpoint /api/effective-required-template-ids-by-site?module=X returning Record<siteId, string[]> after applying site-level overrides; uses getEffectiveCompanyRequiredTemplateIds + getSiteTemplateOverrides server-side, mirrors the active+private+module template filter from getMissingRequiredTemplateDetails. Module Sites Site tile now consumes that map and computes Compliant/Review/Overdue from per-template best-status; Missing remains driven by /api/missing-required-templates. With current data this changes Recreation Site 1 from 2C/0R/4M (total 6) to 1C/0R/4M (total 5), matching the site's effective required count of 5. Group and Company tiles unchanged.",
+          "category": "bug",
+          "createdAt": "2026-04-27T12:57:53.049Z",
+          "createdBy": "agent"
         }
       ]
     }

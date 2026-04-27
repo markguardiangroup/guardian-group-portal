@@ -1694,6 +1694,67 @@ export async function registerRoutes(
     }
   });
 
+  // Returns the effective required template IDs grouped by site, after applying
+  // site-level template overrides (action="exclude") to the company's effective
+  // required template set. Used by the Module Sites Site tile so its
+  // Compliant/Review/Overdue counts can be constrained to docs whose template is
+  // actually required at the site (otherwise group/company-shared docs whose
+  // template isn't part of the site's required set would inflate Compliant
+  // beyond the site's effective required count).
+  // Filters templates the same way as getMissingRequiredTemplateDetails:
+  // active + private + (if `module` is provided) matching module.
+  app.get("/api/effective-required-template-ids-by-site", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const moduleParam = req.query.module as ModuleType | undefined;
+
+      const allSites = await storage.getSites();
+      const accessChecks = await Promise.all(allSites.map(s => canUserAccessSite(user, s.id)));
+      const accessibleSites = allSites.filter((_, i) => accessChecks[i]);
+
+      const templates = await storage.getDocumentTemplates();
+      const allowedTemplateIds = new Set(
+        templates
+          .filter(t => t.isActive && t.visibility === "private" && (!moduleParam || t.module === moduleParam))
+          .map(t => t.id)
+      );
+
+      // Cache per-company effective required sets — many sites share a company.
+      const companyEffectiveCache = new Map<string, Set<string>>();
+      const result: Record<string, string[]> = {};
+
+      await Promise.all(accessibleSites.map(async (site) => {
+        if (!site.companyId) {
+          result[site.id] = [];
+          return;
+        }
+        if (!companyEffectiveCache.has(site.companyId)) {
+          companyEffectiveCache.set(
+            site.companyId,
+            await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId),
+          );
+        }
+        const companyRequired = companyEffectiveCache.get(site.companyId)!;
+        const overrides = await storage.getSiteTemplateOverrides(site.id);
+        const excluded = new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId));
+        const effective: string[] = [];
+        for (const tid of companyRequired) {
+          if (excluded.has(tid)) continue;
+          if (!allowedTemplateIds.has(tid)) continue;
+          effective.push(tid);
+        }
+        result[site.id] = effective;
+      }));
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching effective required template IDs by site:", error);
+      res.status(500).json({ error: "Failed to fetch effective required template IDs by site" });
+    }
+  });
+
   app.get("/api/missing-required-templates", async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);

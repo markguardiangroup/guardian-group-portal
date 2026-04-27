@@ -194,6 +194,20 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     },
   });
 
+  // Effective required template IDs per site (after site-level overrides),
+  // used to constrain the Site tile's Compliant/Review/Overdue counts so they
+  // only credit docs whose template is actually required at that site. Without
+  // this, a group/company-shared compliant doc whose template is not required
+  // at the site (e.g. cascade missed propagating it down) inflates Compliant
+  // beyond the site's effective required count.
+  const { data: effectiveRequiredBySite = {} } = useQuery<Record<string, string[]>>({
+    queryKey: ["/api/effective-required-template-ids-by-site", module],
+    queryFn: async () => {
+      const res = await fetch(`/api/effective-required-template-ids-by-site?module=${module}`, { credentials: "include" });
+      return res.json();
+    },
+  });
+
   const isLoading = isLoadingSites || isLoadingDocs;
 
   const filteredSites = useMemo(() => {
@@ -852,10 +866,42 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   )
               );
               const total = siteDocs.length;
-              const requiredSiteDocs = siteDocs.filter((d) => d.isRequired);
-              const compliant = requiredSiteDocs.filter((d) => d.status === "compliant").length;
-              const overdue = requiredSiteDocs.filter((d) => d.status === "overdue").length;
-              const reviewRequired = requiredSiteDocs.filter((d) => d.status === "review_required").length;
+              // Compliant / Review / Overdue at the site reflect the site's
+              // effective required slots — i.e. for each template required at
+              // this site (after site-level overrides), look at the best
+              // covering doc visible to the site (own / shared / group-cascaded)
+              // and bucket by status. This keeps the tile internally consistent:
+              // Compliant + Review + Overdue + Missing always equals the site's
+              // effective required count. Crucially, group/company-shared docs
+              // whose template is NOT in the site's required set do not count
+              // toward Compliant — without this guard, a stray cascaded doc can
+              // inflate Compliant beyond the actual number of required slots.
+              const siteEffectiveRequired = new Set(effectiveRequiredBySite[site.id] ?? []);
+              // Status priority (lower = better). Non-required docs and docs
+              // for templates outside the effective set are ignored.
+              const statusRank: Record<string, number> = {
+                compliant: 0,
+                review_required: 1,
+                overdue: 2,
+              };
+              const bestStatusByTemplate = new Map<string, string>();
+              for (const d of siteDocs) {
+                if (!d.isRequired || !d.templateId) continue;
+                if (!siteEffectiveRequired.has(d.templateId)) continue;
+                const rank = statusRank[d.status as string];
+                if (rank === undefined) continue;
+                const cur = bestStatusByTemplate.get(d.templateId);
+                const curRank = cur === undefined ? Infinity : statusRank[cur] ?? Infinity;
+                if (rank < curRank) bestStatusByTemplate.set(d.templateId, d.status as string);
+              }
+              let compliant = 0;
+              let reviewRequired = 0;
+              let overdue = 0;
+              for (const status of bestStatusByTemplate.values()) {
+                if (status === "compliant") compliant++;
+                else if (status === "review_required") reviewRequired++;
+                else if (status === "overdue") overdue++;
+              }
               const pending = siteDocs.filter((d) => d.approvalStatus === "pending").length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
