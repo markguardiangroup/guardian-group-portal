@@ -1560,6 +1560,14 @@ export const companyRequiredTemplates = pgTable("company_required_templates", {
   // this column holds the parent group's company id. Null for rows added
   // directly at this company level (or for the group's own rows).
   inheritedFromCompanyId: varchar("inherited_from_company_id"),
+  // Soft-remove timestamp. When the parent group removes a required template,
+  // the cascade sets this on every member's inherited row instead of deleting,
+  // so the row stays visible in the member's (and its sites') Required
+  // Documents lists as a struck-through "previously inherited, no longer
+  // required" entry. Cleared (set to NULL) when the group re-adds the template
+  // (cascade reactivation). Never set on group-owner rows or member-owned
+  // (non-inherited) rows — those are still hard-deleted on removal.
+  removedAt: timestamp("removed_at"),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [

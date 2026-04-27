@@ -705,15 +705,29 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                 if (!tmpl) return null;
                 const ModIcon = MODULE_ICON[tmpl.module] || FileText;
                 const isInherited = !!rt.inheritedFromCompanyId;
+                // Soft-removed inherited rows: the parent group dropped this
+                // template, so we keep the row visible as a struck-through
+                // "previously inherited, no longer required" entry rather
+                // than deleting it. No remove (X) button — re-adding at the
+                // group level reactivates it automatically.
+                const isSoftRemoved = !!rt.removedAt;
                 return (
-                  <div key={templateId} className="flex items-center gap-3 px-4 py-3" data-testid={`row-required-${templateId}`}>
+                  <div
+                    key={templateId}
+                    className={`flex items-center gap-3 px-4 py-3 ${isSoftRemoved ? "opacity-60" : ""}`}
+                    data-testid={`row-required-${templateId}`}
+                  >
                     <div className="p-1.5 rounded-md bg-muted shrink-0">
                       <ModIcon className={`h-4 w-4 ${MODULE_COLOR[tmpl.module] || ""}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{tmpl.name}</p>
-                      <p className={`text-xs ${MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
-                        {MODULE_LABELS[tmpl.module] || tmpl.module}
+                      <p className={`text-sm font-medium truncate ${isSoftRemoved ? "line-through text-muted-foreground" : ""}`}>
+                        {tmpl.name}
+                      </p>
+                      <p className={`text-xs ${isSoftRemoved ? "text-muted-foreground" : MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
+                        {isSoftRemoved
+                          ? "No longer required by parent group"
+                          : MODULE_LABELS[tmpl.module] || tmpl.module}
                       </p>
                     </div>
                     {isInherited && (
@@ -726,28 +740,30 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                         Inherited
                       </Badge>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => {
-                        // Inherited group requirements cannot be removed at the
-                        // member level — the only way to drop them is at the
-                        // parent group, which then cascades the removal down to
-                        // every member company and their sites.
-                        if (isInherited) return;
-                        removeMutation.mutate(templateId);
-                      }}
-                      disabled={isPending || isInherited}
-                      title={
-                        isInherited
-                          ? "Inherited from the parent group. Remove it at the group level to cascade the change to all member companies and their sites."
-                          : "Remove requirement"
-                      }
-                      data-testid={`button-remove-requirement-${templateId}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {!isSoftRemoved && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          // Inherited group requirements cannot be removed at the
+                          // member level — the only way to drop them is at the
+                          // parent group, which then cascades the removal down to
+                          // every member company and their sites.
+                          if (isInherited) return;
+                          removeMutation.mutate(templateId);
+                        }}
+                        disabled={isPending || isInherited}
+                        title={
+                          isInherited
+                            ? "Inherited from the parent group. Remove it at the group level to cascade the change to all member companies and their sites."
+                            : "Remove requirement"
+                        }
+                        data-testid={`button-remove-requirement-${templateId}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}

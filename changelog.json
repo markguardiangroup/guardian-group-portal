@@ -1002,6 +1002,14 @@
           "category": "bug",
           "createdAt": "2026-04-27T13:21:55.571Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "663428e3-18dc-44df-979f-342049318401",
+          "patch": 6,
+          "message": "Soft-removed group-required cascade: when a parent group drops a required template, member companies and their sites now keep that template visible in their Required Documents lists as a struck-through 'No longer required by parent group' entry (with the Inherited badge), instead of silently disappearing — so users can see what was removed without losing context. The soft-removed rows do not count toward compliance or Missing tiles, and re-adding the template at the group level cleanly reactivates them everywhere. Group-owner own rows and member-managed (non-inherited) rows still hard-delete on removal as before.",
+          "category": "feature",
+          "createdAt": "2026-04-27T14:02:02.702Z",
+          "createdBy": "agent"
         }
       ]
     }

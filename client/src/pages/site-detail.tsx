@@ -942,7 +942,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     companyModuleAccess?.employmentLaw && "employment_law",
   ].filter(Boolean) as string[];
 
-  const { data: companyRequired = [] } = useQuery<Array<{ id: string; templateId: string; companyId: string }>>({
+  const { data: companyRequired = [] } = useQuery<Array<{ id: string; templateId: string; companyId: string; inheritedFromCompanyId?: string | null; removedAt?: string | null }>>({
     queryKey: ["/api/companies", companyId, "required-templates"],
     queryFn: async () => {
       if (!companyId) return [];
@@ -962,14 +962,26 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     },
   });
 
-  const companyRequiredIds = new Set(companyRequired.map(r => r.templateId));
+  // Active vs soft-removed company requirements:
+  // - Active rows drive compliance and show normally.
+  // - Soft-removed inherited rows (parent group dropped them) stay visible
+  //   here as struck-through "previously inherited, no longer required"
+  //   entries so users can see what was removed without losing context.
+  const activeCompanyRequired = companyRequired.filter(r => !r.removedAt);
+  const softRemovedCompanyRequired = companyRequired.filter(r => !!r.removedAt);
+  const companyRequiredIds = new Set(activeCompanyRequired.map(r => r.templateId));
   const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
   const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
   const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
-  const effectiveRows: Array<{ templateId: string; source: "company" | "site" }> = [
+  const effectiveRows: Array<{ templateId: string; source: "company" | "site" | "company-removed" }> = [
     ...[...companyRequiredIds].filter(id => !excludedIds.has(id)).map(id => ({ templateId: id, source: "company" as const })),
     ...[...includedIds].filter(id => !companyRequiredIds.has(id)).map(id => ({ templateId: id, source: "site" as const })),
+    // Append soft-removed inherited rows last so the active list stays at
+    // the top. Skip ones already site-excluded to avoid double-display.
+    ...softRemovedCompanyRequired
+      .filter(r => !excludedIds.has(r.templateId))
+      .map(r => ({ templateId: r.templateId, source: "company-removed" as const })),
   ];
 
   const invalidateSiteData = () => {
@@ -1177,18 +1189,30 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                 if (!tmpl) return null;
                 const ModIcon = MODULE_ICON[tmpl.module] || FileText;
                 const isPending = addOverrideMutation.isPending || removeOverrideMutation.isPending;
+                // Soft-removed inherited rows: parent group dropped this
+                // template. Render struck-through with no remove button —
+                // re-adding at the group level reactivates it automatically.
+                const isSoftRemoved = source === "company-removed";
                 return (
-                  <div key={templateId} className="flex items-center gap-3 px-4 py-3" data-testid={`row-required-${templateId}`}>
+                  <div
+                    key={templateId}
+                    className={`flex items-center gap-3 px-4 py-3 ${isSoftRemoved ? "opacity-60" : ""}`}
+                    data-testid={`row-required-${templateId}`}
+                  >
                     <div className="p-1.5 rounded-md bg-muted shrink-0">
                       <ModIcon className={`h-4 w-4 ${MODULE_COLOR[tmpl.module] || ""}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{tmpl.name}</p>
-                      <p className={`text-xs ${MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
-                        {MODULE_LABELS[tmpl.module] || tmpl.module}
+                      <p className={`text-sm font-medium truncate ${isSoftRemoved ? "line-through text-muted-foreground" : ""}`}>
+                        {tmpl.name}
+                      </p>
+                      <p className={`text-xs ${isSoftRemoved ? "text-muted-foreground" : MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
+                        {isSoftRemoved
+                          ? "No longer required by parent group"
+                          : MODULE_LABELS[tmpl.module] || tmpl.module}
                       </p>
                     </div>
-                    {source === "company" ? (
+                    {(source === "company" || source === "company-removed") ? (
                       <Badge
                         variant="outline"
                         className="text-xs shrink-0 flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
@@ -1206,17 +1230,19 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                         Site Only
                       </Badge>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemove(templateId, source)}
-                      disabled={isPending}
-                      title={source === "company" ? "Remove from this site" : "Remove requirement"}
-                      data-testid={`button-remove-requirement-${templateId}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {!isSoftRemoved && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemove(templateId, source as "company" | "site")}
+                        disabled={isPending}
+                        title={source === "company" ? "Remove from this site" : "Remove requirement"}
+                        data-testid={`button-remove-requirement-${templateId}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}

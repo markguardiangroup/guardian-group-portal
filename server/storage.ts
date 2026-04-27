@@ -622,15 +622,20 @@ export class MemStorage implements IStorage {
   private computeComplianceSummaryInMemory(
     siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null }[],
     siteOverrides: { templateId: string; action: string }[],
-    companyRequired: { templateId: string }[],
+    companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null }>,
   ): ComplianceSummary {
     const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
     const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
 
+    // Filter out soft-removed inherited rows — they remain visible in the
+    // company/site Required Documents UI as struck-through "previously
+    // inherited, no longer required" entries but must not count as required
+    // slots for compliance.
+    const activeCompanyRequired = companyRequired.filter(r => !r.removedAt);
     const effectiveTemplateIds = [
-      ...companyRequired.map(r => r.templateId).filter(id => !excludedIds.has(id)),
-      ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
+      ...activeCompanyRequired.map(r => r.templateId).filter(id => !excludedIds.has(id)),
+      ...[...includedIds].filter(id => !activeCompanyRequired.some(r => r.templateId === id)),
     ];
 
     let slotTotal = 0;
@@ -1020,10 +1025,22 @@ export class MemStorage implements IStorage {
     const groupReqs = await db.select().from(companyRequiredTemplatesTable)
       .where(eq(companyRequiredTemplatesTable.companyId, groupOwnerId));
     if (groupReqs.length === 0) return;
+    const templateIds = groupReqs.map(r => r.templateId);
+    // Reactivate any soft-removed inherited rows on this member for templates
+    // currently required by the group — covers the case where a company is
+    // (re-)assigned to a group it previously belonged to and still carries
+    // the old soft-removed inherited rows.
+    await db.update(companyRequiredTemplatesTable)
+      .set({ removedAt: null, inheritedFromCompanyId: groupOwnerId })
+      .where(and(
+        eq(companyRequiredTemplatesTable.companyId, memberCompanyId),
+        inArray(companyRequiredTemplatesTable.templateId, templateIds),
+      ));
     const values = groupReqs.map(r => ({
       companyId: memberCompanyId,
       templateId: r.templateId,
       createdBy: r.createdBy,
+      inheritedFromCompanyId: groupOwnerId,
     }));
     await db.insert(companyRequiredTemplatesTable).values(values).onConflictDoNothing();
   }
@@ -1049,10 +1066,13 @@ export class MemStorage implements IStorage {
     const consumedTemplateIds = new Set<string>();
 
     if (site?.companyId) {
-      const [companyRequired, siteOverrides] = await Promise.all([
+      const [companyRequiredAll, siteOverrides] = await Promise.all([
         this.getCompanyRequiredTemplates(site.companyId),
         this.getSiteTemplateOverrides(siteId),
       ]);
+      // Soft-removed inherited rows stay visible in the UI but must not count
+      // as required slots for compliance.
+      const companyRequired = companyRequiredAll.filter(r => !r.removedAt);
       const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
       const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
 
@@ -1552,7 +1572,10 @@ export class MemStorage implements IStorage {
       if (!companyReqCache.has(site.companyId)) {
         companyReqCache.set(site.companyId, await this.getCompanyRequiredTemplates(site.companyId));
       }
-      const companyRequired = companyReqCache.get(site.companyId)!;
+      // Filter out soft-removed inherited rows (parent group dropped them) —
+      // they remain visible in the Required Documents UI but must not count
+      // as required slots for compliance.
+      const companyRequired = companyReqCache.get(site.companyId)!.filter(r => !r.removedAt);
       const siteOverrides = await this.getSiteTemplateOverrides(sid);
       const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
       const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
@@ -4361,7 +4384,16 @@ export class MemStorage implements IStorage {
     const members = await db.select({ id: companiesTable.id }).from(companiesTable)
       .where(eq(companiesTable.groupOwnerId, companyId));
     if (members.length > 0) {
+      const memberIds = members.map(m => m.id);
       if (toAdd.length > 0) {
+        // Reactivate any previously soft-removed inherited rows on members
+        // before inserting — covers re-tick after un-tick at group level.
+        await db.update(companyRequiredTemplatesTable)
+          .set({ removedAt: null, inheritedFromCompanyId: companyId })
+          .where(and(
+            inArray(companyRequiredTemplatesTable.companyId, memberIds),
+            inArray(companyRequiredTemplatesTable.templateId, toAdd),
+          ));
         const memberValues = members.flatMap(m => toAdd.map(templateId => ({
           companyId: m.id,
           templateId,
@@ -4371,13 +4403,18 @@ export class MemStorage implements IStorage {
         await db.insert(companyRequiredTemplatesTable).values(memberValues).onConflictDoNothing();
       }
       if (toRemove.length > 0) {
-        // Only cascade-remove rows that were inherited from this group; leave
-        // member-managed rows untouched.
-        await db.delete(companyRequiredTemplatesTable).where(and(
-          inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
-          inArray(companyRequiredTemplatesTable.templateId, toRemove),
-          eq(companyRequiredTemplatesTable.inheritedFromCompanyId, companyId),
-        ));
+        // Soft-remove (instead of delete) inherited rows so they remain
+        // visible at the company/site level as struck-through "previously
+        // inherited, no longer required" entries. Member-managed rows
+        // (inheritedFromCompanyId IS NULL or differs) are untouched.
+        await db.update(companyRequiredTemplatesTable)
+          .set({ removedAt: new Date() })
+          .where(and(
+            inArray(companyRequiredTemplatesTable.companyId, memberIds),
+            inArray(companyRequiredTemplatesTable.templateId, toRemove),
+            eq(companyRequiredTemplatesTable.inheritedFromCompanyId, companyId),
+            isNull(companyRequiredTemplatesTable.removedAt),
+          ));
       }
     }
     return inserted;
@@ -4387,7 +4424,17 @@ export class MemStorage implements IStorage {
     const [existing] = await db.select().from(companyRequiredTemplatesTable)
       .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
     let result = existing;
-    if (!result) {
+    if (result) {
+      // If the existing row was soft-removed (i.e. the parent group had
+      // dropped this template and we're now re-adding it), reactivate it.
+      if (result.removedAt) {
+        const [reactivated] = await db.update(companyRequiredTemplatesTable)
+          .set({ removedAt: null })
+          .where(eq(companyRequiredTemplatesTable.id, result.id))
+          .returning();
+        result = reactivated;
+      }
+    } else {
       const [inserted] = await db.insert(companyRequiredTemplatesTable)
         .values({ companyId, templateId, createdBy })
         .returning();
@@ -4395,10 +4442,20 @@ export class MemStorage implements IStorage {
     }
     // Cascade: if this company is a group owner (has member companies),
     // copy the requirement into each member company so it shows up at the
-    // company level and can then be managed independently.
+    // company level and can then be managed independently. Reactivate any
+    // soft-removed inherited rows on members first so a re-add at group
+    // level cleanly restores the requirement everywhere it was previously
+    // dropped (no orphan struck-through entries).
     const members = await db.select({ id: companiesTable.id }).from(companiesTable)
       .where(eq(companiesTable.groupOwnerId, companyId));
     if (members.length > 0) {
+      const memberIds = members.map(m => m.id);
+      await db.update(companyRequiredTemplatesTable)
+        .set({ removedAt: null, inheritedFromCompanyId: companyId })
+        .where(and(
+          inArray(companyRequiredTemplatesTable.companyId, memberIds),
+          eq(companyRequiredTemplatesTable.templateId, templateId),
+        ));
       const memberValues = members.map(m => ({
         companyId: m.id,
         templateId,
@@ -4437,16 +4494,22 @@ export class MemStorage implements IStorage {
     }
     const result = await db.delete(companyRequiredTemplatesTable)
       .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
-    // Cascade removal to member companies — but only rows that were inherited
-    // from this group, so independently-managed member entries are preserved.
+    // Cascade to member companies: SOFT-remove (set removedAt) inherited rows
+    // instead of deleting, so the row stays visible at the company/site level
+    // as a struck-through "previously inherited, no longer required" entry.
+    // Independently-managed member entries (different inheritedFromCompanyId
+    // or NULL) are untouched.
     const members = await db.select({ id: companiesTable.id }).from(companiesTable)
       .where(eq(companiesTable.groupOwnerId, companyId));
     if (members.length > 0) {
-      await db.delete(companyRequiredTemplatesTable).where(and(
-        inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
-        eq(companyRequiredTemplatesTable.templateId, templateId),
-        eq(companyRequiredTemplatesTable.inheritedFromCompanyId, companyId),
-      ));
+      await db.update(companyRequiredTemplatesTable)
+        .set({ removedAt: new Date() })
+        .where(and(
+          inArray(companyRequiredTemplatesTable.companyId, members.map(m => m.id)),
+          eq(companyRequiredTemplatesTable.templateId, templateId),
+          eq(companyRequiredTemplatesTable.inheritedFromCompanyId, companyId),
+          isNull(companyRequiredTemplatesTable.removedAt),
+        ));
     }
     return (result.rowCount ?? 0) > 0;
   }
@@ -4480,6 +4543,17 @@ export class MemStorage implements IStorage {
       const groupReqs = await db.select().from(companyRequiredTemplatesTable)
         .where(eq(companyRequiredTemplatesTable.companyId, groupOwnerId));
       if (groupReqs.length === 0) continue;
+      const groupTemplateIds = groupReqs.map(r => r.templateId);
+      // Reactivate any soft-removed inherited rows for templates currently
+      // required at the group — covers historical removes that ran while
+      // the soft-remove logic was incomplete or out-of-sync.
+      await db.update(companyRequiredTemplatesTable)
+        .set({ removedAt: null, inheritedFromCompanyId: groupOwnerId })
+        .where(and(
+          inArray(companyRequiredTemplatesTable.companyId, memberIds),
+          inArray(companyRequiredTemplatesTable.templateId, groupTemplateIds),
+          eq(companyRequiredTemplatesTable.inheritedFromCompanyId, groupOwnerId),
+        ));
       const values = memberIds.flatMap(memberId =>
         groupReqs.map(r => ({
           companyId: memberId,
@@ -4548,14 +4622,16 @@ export class MemStorage implements IStorage {
   }
 
   /**
-   * Returns the set of required template IDs for a company. Group-level
-   * requireds are physically cascaded into member companies on add (and
-   * removed on delete) by `addCompanyRequiredTemplate`/`removeCompanyRequiredTemplate`,
-   * so each company stores its own effective list and can manage it independently.
+   * Returns the set of *active* required template IDs for a company — i.e.
+   * excludes soft-removed inherited rows (rows with `removedAt` set, which
+   * the parent group has dropped from its required list). Soft-removed rows
+   * remain visible in the company's Required Documents UI as struck-through
+   * "previously inherited, no longer required" entries, but they no longer
+   * affect compliance — sites must not count them as required slots.
    */
   async getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>> {
     const ownReqs = await this.getCompanyRequiredTemplates(companyId);
-    return new Set(ownReqs.map(r => r.templateId));
+    return new Set(ownReqs.filter(r => !r.removedAt).map(r => r.templateId));
   }
 
   // Seed example pathways if none exist
