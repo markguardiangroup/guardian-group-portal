@@ -978,6 +978,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-27T10:22:45.852Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "97e6116e-e8d4-484d-9940-7138911c4923",
+          "patch": 6,
+          "message": "Fix: required documents added at a member Company were incorrectly bubbling up to the Group's Documents page (showing as Missing slots in the Group's folders/table). Requirements should only cascade DOWN (Group → member Companies → Sites), never up. The Group documents view (module-documents.tsx) was previously including missing slots from both the group entity and any member companies (filter checked m.companyId === urlEntityId || memberIds.includes(m.companyId)). Tightened the filter so the group scope only shows missing slots whose companyId matches the group owner company itself — i.e. requirements added at the Group level. Removed the now-unused groupMemberCompanyIds query (/api/companies?groupOwnerId=...) since nothing else on the page consumes it.",
+          "category": "bug",
+          "createdAt": "2026-04-27T11:26:00.794Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -568,37 +568,28 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/missing-required-templates"],
   });
 
-  // Required-but-missing slots for the current module + selected site
-  // Member companies of the current group scope (used to filter required slots).
-  const { data: groupMemberCompanyIds } = useQuery<string[]>({
-    queryKey: ["/api/companies", "group-members", urlEntityId],
-    queryFn: async () => {
-      if (!urlEntityId) return [];
-      const res = await fetch(`/api/companies?groupOwnerId=${urlEntityId}&limit=1000`, { credentials: "include" });
-      if (!res.ok) return [];
-      const data = await res.json();
-      const arr = Array.isArray(data) ? data : (data.companies ?? []);
-      return arr.map((c: any) => c.id);
-    },
-    enabled: !!urlEntityId && urlScope === "group",
-  });
-
+  // Required-but-missing slots for the current module + selected site.
+  //
+  // Requirements only cascade DOWNWARDS (Group → member Companies → Sites),
+  // never upwards. So at the Group scope we only show missing slots whose
+  // companyId matches the group owner company itself — i.e. requirements added
+  // at the Group level (which sit at the group's own sites). Requirements that
+  // a member Company added on its own do not bubble up onto the Group view.
   const missingSlots = useMemo(() => {
     if (!allMissingTemplates) return [];
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
-      // Scope-view: include only slots under the selected entity
-      if (urlScope === "company" && urlEntityId) {
+      // Scope-view: include only slots under the selected entity.
+      // For both company and group scopes, the slot must belong to the entity
+      // itself (m.companyId === urlEntityId). Member-company requirements are
+      // intentionally excluded from the group view.
+      if ((urlScope === "company" || urlScope === "group") && urlEntityId) {
         if (m.companyId !== urlEntityId) return false;
-      } else if (urlScope === "group" && urlEntityId) {
-        const memberIds = groupMemberCompanyIds ?? [];
-        // Include the group entity itself (it can also own sites) plus any member companies.
-        if (m.companyId !== urlEntityId && !memberIds.includes(m.companyId)) return false;
       }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
       return true;
     });
-  }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId, groupMemberCompanyIds]);
+  }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
   // For the flat table view, collapse per-site duplicates of the same template
   // (a template required at group level shows once per site in `missingSlots`,
