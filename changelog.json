@@ -1010,6 +1010,14 @@
           "category": "feature",
           "createdAt": "2026-04-27T14:02:02.702Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "253520c0-6436-44e2-8e77-89ef1a0acb2e",
+          "patch": 6,
+          "message": "Inherited required documents are now removable at the member company level. Clicking the X on an active inherited row soft-removes it (struck-through with the Inherited badge and 'No longer required by parent group' subtitle) for that company and its sites; clicking X again on an already-soft-removed row permanently deletes the entry from this member only. Re-ticking in Manage Requirements (or re-adding at the group level) reactivates it. Removed the previous member-level removal block (INHERITED_REMOVAL_FORBIDDEN) and the related confirmation dialogs since the action is now reversible.",
+          "category": "enhancement",
+          "createdAt": "2026-04-27T14:11:16.765Z",
+          "createdBy": "agent"
         }
       ]
     }

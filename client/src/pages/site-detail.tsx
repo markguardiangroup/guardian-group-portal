@@ -1230,19 +1230,23 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                         Site Only
                       </Badge>
                     )}
-                    {!isSoftRemoved && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleRemove(templateId, source as "company" | "site")}
-                        disabled={isPending}
-                        title={source === "company" ? "Remove from this site" : "Remove requirement"}
-                        data-testid={`button-remove-requirement-${templateId}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemove(templateId, isSoftRemoved ? "company" : (source as "company" | "site"))}
+                      disabled={isPending}
+                      title={
+                        isSoftRemoved
+                          ? "Hide this entry from this site"
+                          : source === "company"
+                            ? "Remove from this site"
+                            : "Remove requirement"
+                      }
+                      data-testid={`button-remove-requirement-${templateId}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 );
               })}

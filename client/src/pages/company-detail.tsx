@@ -453,8 +453,6 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const [moduleFilter, setModuleFilter] = useState<string | null>(null);
   const [addSelectedIds, setAddSelectedIds] = useState<Set<string>>(new Set());
   const [isSavingReqs, setIsSavingReqs] = useState(false);
-  const [pendingRemoveInherited, setPendingRemoveInherited] = useState<{ templateId: string; templateName: string } | null>(null);
-  const [pendingBulkUntickInherited, setPendingBulkUntickInherited] = useState<string[] | null>(null);
 
   const { data: moduleAccess } = useQuery<CompanyModuleAccess>({
     queryKey: ["/api/companies", companyId, "module-access"],
@@ -542,19 +540,12 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
       toast({ title: "Failed to update requirements", variant: "destructive" });
     } finally {
       setIsSavingReqs(false);
-      setPendingBulkUntickInherited(null);
     }
   };
 
   const handleSaveSelected = async () => {
-    // If any of the rows being unticked were inherited from a parent group,
-    // confirm before applying — the change only affects this company/its sites.
-    const removingInherited = [...requiredIds]
-      .filter(id => !addSelectedIds.has(id) && inheritedTemplateIdSet.has(id));
-    if (removingInherited.length > 0) {
-      setPendingBulkUntickInherited(removingInherited);
-      return;
-    }
+    // Member-level un-tick of inherited rows is allowed and reversible
+    // (soft-remove + re-tick reactivates), so no confirmation needed.
     await performSaveSelected();
   };
 
@@ -622,18 +613,16 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                         ) : (
                           <div className="space-y-3">
                             {moduleTemplates.map(t => {
-                              // Inherited group requirements stay ticked and
-                              // disabled — they can only be removed at the
-                              // parent group, which then cascades down.
+                              // Inherited rows are tickable: unticking them
+                              // soft-removes (struck-through) at this member
+                              // company. Re-ticking reactivates the row.
                               const isInheritedRow = inheritedTemplateIdSet.has(t.id);
                               return (
                                 <div key={t.id} className="flex items-center gap-3">
                                   <Checkbox
                                     id={`req-${t.id}`}
                                     checked={addSelectedIds.has(t.id)}
-                                    disabled={isInheritedRow}
                                     onCheckedChange={(checked) => {
-                                      if (isInheritedRow) return;
                                       const newIds = new Set(addSelectedIds);
                                       if (checked) newIds.add(t.id); else newIds.delete(t.id);
                                       setAddSelectedIds(newIds);
@@ -642,8 +631,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                                   />
                                   <label
                                     htmlFor={`req-${t.id}`}
-                                    className={`text-sm font-medium leading-none flex items-center gap-2 ${isInheritedRow ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
-                                    title={isInheritedRow ? "Inherited from the parent group. Remove it at the group level to cascade the change to all member companies and their sites." : undefined}
+                                    className="text-sm font-medium leading-none flex items-center gap-2 cursor-pointer"
                                   >
                                     {t.name}
                                     {isInheritedRow && (
@@ -740,30 +728,23 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                         Inherited
                       </Badge>
                     )}
-                    {!isSoftRemoved && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => {
-                          // Inherited group requirements cannot be removed at the
-                          // member level — the only way to drop them is at the
-                          // parent group, which then cascades the removal down to
-                          // every member company and their sites.
-                          if (isInherited) return;
-                          removeMutation.mutate(templateId);
-                        }}
-                        disabled={isPending || isInherited}
-                        title={
-                          isInherited
-                            ? "Inherited from the parent group. Remove it at the group level to cascade the change to all member companies and their sites."
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => removeMutation.mutate(templateId)}
+                      disabled={isPending}
+                      title={
+                        isSoftRemoved
+                          ? "Permanently delete this entry"
+                          : isInherited
+                            ? "Mark as no longer required for this company (struck-through)"
                             : "Remove requirement"
-                        }
-                        data-testid={`button-remove-requirement-${templateId}`}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                      }
+                      data-testid={`button-remove-requirement-${templateId}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 );
               })}
@@ -772,53 +753,6 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
         </CardContent>
       </Card>
 
-      <AlertDialog open={!!pendingRemoveInherited} onOpenChange={(v) => { if (!v) setPendingRemoveInherited(null); }}>
-        <AlertDialogContent data-testid="dialog-confirm-remove-inherited">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove inherited requirement?</AlertDialogTitle>
-            <AlertDialogDescription>
-              <span className="font-medium">{pendingRemoveInherited?.templateName}</span> was inherited from a parent group. Removing it will only affect this company and its sites — the requirement will remain in place at the group level and on other member companies. Are you sure you want to continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-remove-inherited">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              data-testid="button-confirm-remove-inherited"
-              onClick={() => {
-                if (pendingRemoveInherited) {
-                  removeMutation.mutate(pendingRemoveInherited.templateId);
-                  setPendingRemoveInherited(null);
-                }
-              }}
-            >
-              Remove from this company
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!pendingBulkUntickInherited} onOpenChange={(v) => { if (!v) setPendingBulkUntickInherited(null); }}>
-        <AlertDialogContent data-testid="dialog-confirm-bulk-untick-inherited">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove inherited requirements?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {(pendingBulkUntickInherited?.length ?? 0)} of the requirements being removed
-              {(pendingBulkUntickInherited?.length ?? 0) === 1 ? " was" : " were"} inherited from a parent group.
-              Removing
-              {(pendingBulkUntickInherited?.length ?? 0) === 1 ? " it" : " them"} will only affect this company and its sites — the requirement will remain in place at the group level and on other member companies. Are you sure you want to continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-bulk-untick-inherited">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              data-testid="button-confirm-bulk-untick-inherited"
-              onClick={() => { void performSaveSelected(); }}
-            >
-              Continue
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

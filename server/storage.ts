@@ -4468,32 +4468,35 @@ export class MemStorage implements IStorage {
   }
 
   async removeCompanyRequiredTemplate(companyId: string, templateId: string): Promise<boolean> {
-    // Inspect the existing row first. Per the cascade rule "if a required
-    // document is added at group level, all companies and all sites below
-    // should require it", a member company is NOT allowed to drop an
-    // inherited requirement — the only way to remove it is to remove it
-    // from the parent group, which then cascades down. Surfaces a typed
-    // error the route can translate into a 400.
     const [existing] = await db.select().from(companyRequiredTemplatesTable)
       .where(and(
         eq(companyRequiredTemplatesTable.companyId, companyId),
         eq(companyRequiredTemplatesTable.templateId, templateId),
       ));
     if (!existing) return false;
+
     const company = await this.getCompany(companyId);
-    if (
-      company?.groupOwnerId &&
-      existing.inheritedFromCompanyId &&
-      existing.inheritedFromCompanyId === company.groupOwnerId
-    ) {
-      const err = new Error(
-        "Cannot remove an inherited required document from a member company. Remove it at the group level to cascade the change to all member companies and their sites.",
-      );
-      (err as any).code = "INHERITED_REMOVAL_FORBIDDEN";
-      throw err;
+    const isMemberInherited =
+      !!company?.groupOwnerId &&
+      !!existing.inheritedFromCompanyId &&
+      existing.inheritedFromCompanyId === company.groupOwnerId;
+
+    // Member-level removal of an inherited row is allowed but is a SOFT-
+    // remove on first click — the row stays visible at the company and its
+    // sites as a struck-through "was required, not anymore" entry instead of
+    // disappearing, so users can see what was previously inherited. A second
+    // click on an already-soft-removed row permanently deletes it from this
+    // member only (re-adding at the group level inserts a fresh inherited
+    // row by the existing add-cascade).
+    if (isMemberInherited && !existing.removedAt) {
+      await db.update(companyRequiredTemplatesTable)
+        .set({ removedAt: new Date() })
+        .where(eq(companyRequiredTemplatesTable.id, existing.id));
+      return true;
     }
+
     const result = await db.delete(companyRequiredTemplatesTable)
-      .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
+      .where(eq(companyRequiredTemplatesTable.id, existing.id));
     // Cascade to member companies: SOFT-remove (set removedAt) inherited rows
     // instead of deleting, so the row stays visible at the company/site level
     // as a struck-through "previously inherited, no longer required" entry.
