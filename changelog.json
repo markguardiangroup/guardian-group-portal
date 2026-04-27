@@ -970,6 +970,14 @@
           "category": "bug",
           "createdAt": "2026-04-24T18:09:51.551Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "72da25ef-eb4c-44b2-bc30-00b18a3849bb",
+          "patch": 6,
+          "message": "Align Group tile load behavior with Company tile so all counts populate together. Compliant/Review now count visible group-scope documents by status (instant, driven by the documents query). Missing now derives from the existing /api/missing-required-templates response (filtered by companyId === selectedGroup, deduped by templateId), so it loads in the same network round-trip as the Company tile's Missing instead of waiting for a separate /api/required-template-ids-by-company query that resolved a beat later. Removed the now-unused requiredTemplateIdsByCompany query from module-sites.tsx.",
+          "category": "enhancement",
+          "createdAt": "2026-04-27T10:22:45.852Z",
+          "createdBy": "agent"
         }
       ]
     }

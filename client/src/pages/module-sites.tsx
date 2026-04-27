@@ -194,17 +194,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     },
   });
 
-  // Required template IDs grouped by company (for the current module).
-  // Drives "Missing" on the Group and Company tiles: required templates
-  // that have no document uploaded at the matching scope.
-  const { data: requiredTemplateIdsByCompany = {} } = useQuery<Record<string, string[]>>({
-    queryKey: ["/api/required-template-ids-by-company", module],
-    queryFn: async () => {
-      const res = await fetch(`/api/required-template-ids-by-company?module=${module}`, { credentials: "include" });
-      return res.json();
-    },
-  });
-
   const isLoading = isLoadingSites || isLoadingDocs;
 
   const filteredSites = useMemo(() => {
@@ -420,33 +409,35 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   d.scope === "group" &&
                   d.entityId === selectedGroup
               );
-              // All stat counts on the Group tile are template-slot driven so they stay
-              // internally consistent: for each required template (defined on the
-              // group-owner company), we look at the doc uploaded at the group's own
-              // scope (scope="group", entityId=selectedGroup) for that templateId and
-              // bucket the slot. Shared/inherited docs from other scopes are not
-              // counted here — that's intentional, this tile reflects the group's own
-              // required slots only.
-              const groupRequiredTemplateIds = requiredTemplateIdsByCompany[selectedGroup] ?? [];
-              const groupDocByTemplate = new Map<string, typeof groupDocs[number]>();
-              for (const d of groupDocs) {
-                if (d.templateId && !groupDocByTemplate.has(d.templateId)) {
-                  groupDocByTemplate.set(d.templateId, d);
-                }
-              }
+              // The Group tile uses the same data sources as the Company tile so all
+              // three counts load together with the rest of the page (the previous
+              // implementation depended on a separate /api/required-template-ids-by-company
+              // query that resolved later than `documents` and `missingRequiredDetails`,
+              // causing the Missing badge to flicker into view a beat after the other
+              // tiles had finished rendering).
+              //   - Compliant / Review: count visible group-scope documents by status
+              //     (instant — driven by the already-loaded documents query).
+              //   - Missing: unique missing template IDs at the group-owner company's
+              //     own sites — taken from /api/missing-required-templates, which already
+              //     accounts for site-template overrides and shared/site-scope docs that
+              //     fulfil the slot. Deduped by templateId so a template required across
+              //     multiple sites only counts once.
               let groupCompliant = 0;
               let groupReview = 0;
-              let groupMissing = 0;
-              for (const tid of groupRequiredTemplateIds) {
-                const d = groupDocByTemplate.get(tid);
-                if (!d) groupMissing++;
-                else if (d.status === "compliant") groupCompliant++;
+              for (const d of groupDocs) {
+                if (d.status === "compliant") groupCompliant++;
                 else if (d.status === "review_required") groupReview++;
-                // overdue docs are intentionally not bucketed here — they have a doc
-                // uploaded so they aren't "Missing" per the user's definition, and the
-                // tile doesn't show a separate Overdue box.
+                // Overdue docs intentionally not bucketed — they have a doc uploaded
+                // so they aren't "Missing", and the tile has no Overdue box.
               }
-              const groupDenom = groupRequiredTemplateIds.length;
+              const groupMissingTemplateIds = new Set<string>();
+              for (const m of missingRequiredDetails) {
+                if (m.companyId === selectedGroup && m.module === module) {
+                  groupMissingTemplateIds.add(m.templateId);
+                }
+              }
+              const groupMissing = groupMissingTemplateIds.size;
+              const groupDenom = groupCompliant + groupReview + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
               const groupHasIssues = groupMissing > 0 || groupReview > 0;
 
