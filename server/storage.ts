@@ -4411,6 +4411,30 @@ export class MemStorage implements IStorage {
   }
 
   async removeCompanyRequiredTemplate(companyId: string, templateId: string): Promise<boolean> {
+    // Inspect the existing row first. Per the cascade rule "if a required
+    // document is added at group level, all companies and all sites below
+    // should require it", a member company is NOT allowed to drop an
+    // inherited requirement — the only way to remove it is to remove it
+    // from the parent group, which then cascades down. Surfaces a typed
+    // error the route can translate into a 400.
+    const [existing] = await db.select().from(companyRequiredTemplatesTable)
+      .where(and(
+        eq(companyRequiredTemplatesTable.companyId, companyId),
+        eq(companyRequiredTemplatesTable.templateId, templateId),
+      ));
+    if (!existing) return false;
+    const company = await this.getCompany(companyId);
+    if (
+      company?.groupOwnerId &&
+      existing.inheritedFromCompanyId &&
+      existing.inheritedFromCompanyId === company.groupOwnerId
+    ) {
+      const err = new Error(
+        "Cannot remove an inherited required document from a member company. Remove it at the group level to cascade the change to all member companies and their sites.",
+      );
+      (err as any).code = "INHERITED_REMOVAL_FORBIDDEN";
+      throw err;
+    }
     const result = await db.delete(companyRequiredTemplatesTable)
       .where(and(eq(companyRequiredTemplatesTable.companyId, companyId), eq(companyRequiredTemplatesTable.templateId, templateId)));
     // Cascade removal to member companies — but only rows that were inherited
@@ -4425,6 +4449,52 @@ export class MemStorage implements IStorage {
       ));
     }
     return (result.rowCount ?? 0) > 0;
+  }
+
+  /**
+   * Idempotent backfill ensuring every member company carries every required
+   * template defined on its parent group, with `inheritedFromCompanyId` set so
+   * future remove-cascades work. Existing rows are left alone (onConflictDoNothing),
+   * including member-owned rows whose templateId happens to match a group
+   * requirement (those remain "own"). Run on startup to repair any historical
+   * cascade gaps (e.g. requirements added before the cascade hooks existed,
+   * or rows previously removed at the member level back when that was allowed).
+   */
+  async backfillGroupRequiredTemplatesCascade(): Promise<{ inserted: number }> {
+    // Fetch all member companies (those with groupOwnerId set).
+    const members = await db.select({ id: companiesTable.id, groupOwnerId: companiesTable.groupOwnerId })
+      .from(companiesTable)
+      .where(sql`${companiesTable.groupOwnerId} IS NOT NULL`);
+    if (members.length === 0) return { inserted: 0 };
+    // Group members by their parent group owner so we fetch each group's
+    // requirements at most once.
+    const membersByGroup = new Map<string, string[]>();
+    for (const m of members) {
+      if (!m.groupOwnerId) continue;
+      const arr = membersByGroup.get(m.groupOwnerId) ?? [];
+      arr.push(m.id);
+      membersByGroup.set(m.groupOwnerId, arr);
+    }
+    let totalInserted = 0;
+    for (const [groupOwnerId, memberIds] of membersByGroup.entries()) {
+      const groupReqs = await db.select().from(companyRequiredTemplatesTable)
+        .where(eq(companyRequiredTemplatesTable.companyId, groupOwnerId));
+      if (groupReqs.length === 0) continue;
+      const values = memberIds.flatMap(memberId =>
+        groupReqs.map(r => ({
+          companyId: memberId,
+          templateId: r.templateId,
+          createdBy: r.createdBy,
+          inheritedFromCompanyId: groupOwnerId,
+        }))
+      );
+      const inserted = await db.insert(companyRequiredTemplatesTable)
+        .values(values)
+        .onConflictDoNothing()
+        .returning({ id: companyRequiredTemplatesTable.id });
+      totalInserted += inserted.length;
+    }
+    return { inserted: totalInserted };
   }
 
   async getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]> {

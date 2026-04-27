@@ -185,6 +185,18 @@ process.on("uncaughtException", (err) => {
     process.exit(1);
   }
 
+  // Repair any historical group→member required-template cascade gaps.
+  // Idempotent: only inserts missing rows. Non-fatal — if it fails we still
+  // serve, but the gap will persist until the next successful run.
+  try {
+    const { inserted } = await storage.backfillGroupRequiredTemplatesCascade();
+    if (inserted > 0) {
+      console.log(`[seed] Backfilled ${inserted} missing inherited required-template row(s) for member companies.`);
+    }
+  } catch (err) {
+    console.error("Startup required-template cascade backfill warning (non-fatal):", err);
+  }
+
   // Run expired folder cleanup on startup and then daily
   storage.cleanupExpiredFolders().catch((err) =>
     console.error("Startup folder cleanup error:", err)

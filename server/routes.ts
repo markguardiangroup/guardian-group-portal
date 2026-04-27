@@ -9914,7 +9914,17 @@ export async function registerRoutes(
       const { companyId, templateId } = req.params;
       const company = await storage.getCompany(companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
-      await storage.removeCompanyRequiredTemplate(companyId, templateId);
+      try {
+        await storage.removeCompanyRequiredTemplate(companyId, templateId);
+      } catch (innerErr: any) {
+        // Inherited group requirements cannot be dropped at the member level —
+        // they must be removed at the parent group so the change cascades to
+        // every member company and their sites.
+        if (innerErr?.code === "INHERITED_REMOVAL_FORBIDDEN") {
+          return res.status(400).json({ error: innerErr.message, code: innerErr.code });
+        }
+        throw innerErr;
+      }
       res.status(204).end();
     } catch (error) {
       console.error("Remove company required template error:", error);

@@ -621,29 +621,48 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                           </p>
                         ) : (
                           <div className="space-y-3">
-                            {moduleTemplates.map(t => (
-                              <div key={t.id} className="flex items-center gap-3">
-                                <Checkbox
-                                  id={`req-${t.id}`}
-                                  checked={addSelectedIds.has(t.id)}
-                                  onCheckedChange={(checked) => {
-                                    const newIds = new Set(addSelectedIds);
-                                    if (checked) newIds.add(t.id); else newIds.delete(t.id);
-                                    setAddSelectedIds(newIds);
-                                  }}
-                                  data-testid={`checkbox-req-${t.id}`}
-                                />
-                                <label
-                                  htmlFor={`req-${t.id}`}
-                                  className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                                >
-                                  {t.name}
-                                  {t.requiresApproval && (
-                                    <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                                  )}
-                                </label>
-                              </div>
-                            ))}
+                            {moduleTemplates.map(t => {
+                              // Inherited group requirements stay ticked and
+                              // disabled — they can only be removed at the
+                              // parent group, which then cascades down.
+                              const isInheritedRow = inheritedTemplateIdSet.has(t.id);
+                              return (
+                                <div key={t.id} className="flex items-center gap-3">
+                                  <Checkbox
+                                    id={`req-${t.id}`}
+                                    checked={addSelectedIds.has(t.id)}
+                                    disabled={isInheritedRow}
+                                    onCheckedChange={(checked) => {
+                                      if (isInheritedRow) return;
+                                      const newIds = new Set(addSelectedIds);
+                                      if (checked) newIds.add(t.id); else newIds.delete(t.id);
+                                      setAddSelectedIds(newIds);
+                                    }}
+                                    data-testid={`checkbox-req-${t.id}`}
+                                  />
+                                  <label
+                                    htmlFor={`req-${t.id}`}
+                                    className={`text-sm font-medium leading-none flex items-center gap-2 ${isInheritedRow ? "cursor-not-allowed opacity-80" : "cursor-pointer"}`}
+                                    title={isInheritedRow ? "Inherited from the parent group. Remove it at the group level to cascade the change to all member companies and their sites." : undefined}
+                                  >
+                                    {t.name}
+                                    {isInheritedRow && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                                        data-testid={`badge-inherited-checkbox-${t.id}`}
+                                      >
+                                        <Building2 className="h-3 w-3" />
+                                        Inherited
+                                      </Badge>
+                                    )}
+                                    {t.requiresApproval && (
+                                      <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                    )}
+                                  </label>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </TabsContent>
@@ -712,14 +731,19 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                       size="icon"
                       className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                       onClick={() => {
-                        if (isInherited) {
-                          setPendingRemoveInherited({ templateId, templateName: tmpl.name });
-                        } else {
-                          removeMutation.mutate(templateId);
-                        }
+                        // Inherited group requirements cannot be removed at the
+                        // member level — the only way to drop them is at the
+                        // parent group, which then cascades the removal down to
+                        // every member company and their sites.
+                        if (isInherited) return;
+                        removeMutation.mutate(templateId);
                       }}
-                      disabled={isPending}
-                      title={isInherited ? "Remove from this company only" : "Remove requirement"}
+                      disabled={isPending || isInherited}
+                      title={
+                        isInherited
+                          ? "Inherited from the parent group. Remove it at the group level to cascade the change to all member companies and their sites."
+                          : "Remove requirement"
+                      }
                       data-testid={`button-remove-requirement-${templateId}`}
                     >
                       <X className="h-4 w-4" />
