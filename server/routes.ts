@@ -12526,6 +12526,38 @@ export async function registerRoutes(
 
   // ===================== INCIDENTS =====================
 
+  /**
+   * GDPR name redaction – applied to any viewer who is not a client.
+   * Personal names on incident reports (affected person, reporting person,
+   * declaration, submitted-by, witnesses, investigation completed-by, RIDDOR
+   * responsible person, and structured witness entries in the investigation
+   * JSON) are replaced with "[Redacted]" before the data leaves the server.
+   * Clients who submitted the report can see full details; consultants and
+   * admins see anonymised data.
+   */
+  function redactIncidentNamesForNonClient(incident: any): any {
+    const REDACTED = "[Redacted]";
+    let redactedInvWitnesses = incident.invWitnesses;
+    if (incident.invWitnesses) {
+      try {
+        const parsed: any[] = JSON.parse(incident.invWitnesses);
+        redactedInvWitnesses = JSON.stringify(parsed.map((w: any) => ({ ...w, name: REDACTED })));
+      } catch { /* leave as-is if unparseable */ }
+    }
+    return {
+      ...incident,
+      affectedPersonName: incident.affectedPersonName != null ? REDACTED : incident.affectedPersonName,
+      reportingPersonName: incident.reportingPersonName != null ? REDACTED : incident.reportingPersonName,
+      declarationName: incident.declarationName != null ? REDACTED : incident.declarationName,
+      declarationSignature: incident.declarationSignature != null ? REDACTED : incident.declarationSignature,
+      reportedByName: incident.reportedByName != null ? REDACTED : incident.reportedByName,
+      witnesses: incident.witnesses != null ? REDACTED : incident.witnesses,
+      invCompletedBy: incident.invCompletedBy != null ? REDACTED : incident.invCompletedBy,
+      riddorResponsiblePerson: incident.riddorResponsiblePerson != null ? REDACTED : incident.riddorResponsiblePerson,
+      invWitnesses: redactedInvWitnesses,
+    };
+  }
+
   app.get("/api/incidents", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
@@ -12546,6 +12578,11 @@ export async function registerRoutes(
         const assignments = await storage.getConsultantSites(user.id);
         const siteIds = assignments.map((a: any) => a.siteId);
         incidents = incidents.filter((i: any) => siteIds.includes(i.siteId));
+      }
+
+      // GDPR: redact personal names for non-client users
+      if (user.role !== "client") {
+        incidents = incidents.map(redactIncidentNamesForNonClient);
       }
 
       res.json(incidents);
@@ -12940,10 +12977,12 @@ export async function registerRoutes(
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      const incident = await storage.getIncident(req.params.id);
+      let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      // GDPR: redact personal names for non-client users
+      if (user.role !== "client") incident = redactIncidentNamesForNonClient(incident);
       res.json(incident);
     } catch (error) {
       console.error("Error fetching incident:", error);
@@ -13068,8 +13107,11 @@ export async function registerRoutes(
   // ─── Investigation Report Download ────────────────────────────────────────────
   app.get("/api/incidents/:id/investigation-report", requireAuth, async (req, res) => {
     try {
-      const incident = await storage.getIncident(req.params.id);
+      const user = (req.session as any).user;
+      let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
+      // GDPR: redact personal names for non-client users before HTML generation
+      if (user.role !== "client") incident = redactIncidentNamesForNonClient(incident);
 
       const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
       const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;

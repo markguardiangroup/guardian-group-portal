@@ -1026,6 +1026,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-27T14:41:05.642Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "6ad0ea35-d52d-47fb-bb77-ce13677c8768",
+          "patch": 6,
+          "message": "GDPR name redaction for incident reports: personal names (affected person, reporting person, declaration, submitted-by, witnesses, investigation-completed-by, RIDDOR responsible person, and structured investigation witness entries) are now anonymised to '[Redacted]' server-side for any user whose role is not 'client'. Clients who submitted the report see full names. Consultants and admins see redacted names across the incident list, incident detail, and investigation report HTML endpoints. The original stored HTML report (generated at submission time) retains full names as the source-of-record document.",
+          "category": "feature",
+          "createdAt": "2026-04-29T12:30:28.554Z",
+          "createdBy": "agent"
         }
       ]
     }
