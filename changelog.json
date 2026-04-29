@@ -1186,6 +1186,14 @@
           "category": "bugfix",
           "createdAt": "2026-04-29T14:02:27.879484+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "b062cc78-1b0b-4fd1-8917-39afc8527f7a",
+          "patch": 6,
+          "message": "Fix PATCH /api/portal-messages/:id: use z.preprocess for date fields so omitted fields remain undefined (not coerced to null)",
+          "category": "bugfix",
+          "createdAt": "2026-04-29T14:04:42.966625+00:00",
+          "createdBy": "agent"
         }
       ]
     }

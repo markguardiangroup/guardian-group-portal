@@ -15471,8 +15471,9 @@ export async function registerRoutes(
         targetRoles: z.array(z.string()).optional(),
         status: z.enum(["draft", "published", "archived"]).optional(),
         pinned: z.boolean().optional(),
-        publishedAt: z.union([z.string(), z.date()]).nullable().optional().transform(v => v ? new Date(v) : null),
-        expiresAt: z.union([z.string(), z.date()]).nullable().optional().transform(v => v ? new Date(v) : null),
+        // Accept ISO strings or Date objects; coerce strings to Date; preserve undefined (field not included in patch)
+        publishedAt: z.preprocess(v => typeof v === "string" ? new Date(v) : v, z.date().nullable().optional()),
+        expiresAt: z.preprocess(v => typeof v === "string" ? new Date(v) : v, z.date().nullable().optional()),
       });
       const parsed = patchSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
