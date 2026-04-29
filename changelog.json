@@ -214,7 +214,7 @@
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
           "patch": 2,
-          "message": "Redesigned Template Library header — icon badge and action buttons always visible at top",
+          "message": "Redesigned Template Library header \u2014 icon badge and action buttons always visible at top",
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
           "createdBy": "agent"
@@ -398,7 +398,7 @@
         {
           "id": "f3c910ab7d82",
           "patch": 4,
-          "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
+          "message": "Users Report now distinguishes between Consultants and Pro Consultants \u2014 each shown with a distinct badge, colour, and separate summary count",
           "category": "enhancement",
           "createdAt": "2026-04-17T18:28:00.000Z",
           "createdBy": "agent"
@@ -422,7 +422,7 @@
         {
           "id": "d4a78e21c903",
           "patch": 4,
-          "message": "Added ACAS Conciliation as a case type in Employment Law — available in the new case form and case type filter",
+          "message": "Added ACAS Conciliation as a case type in Employment Law \u2014 available in the new case form and case type filter",
           "category": "feature",
           "createdAt": "2026-04-19T13:55:00.000Z",
           "createdBy": "agent"
@@ -430,7 +430,7 @@
         {
           "id": "e8b2f94d1c37",
           "patch": 4,
-          "message": "Admins can grant Case Advocate permission to consultants — only Case Advocates can view and manage Employment Law cases",
+          "message": "Admins can grant Case Advocate permission to consultants \u2014 only Case Advocates can view and manage Employment Law cases",
           "category": "feature",
           "createdAt": "2026-04-19T14:50:00.000Z",
           "createdBy": "agent"
@@ -582,7 +582,7 @@
         {
           "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
           "patch": 5,
-          "message": "Group Owner moved into Linked Companies panel — single unified section",
+          "message": "Group Owner moved into Linked Companies panel \u2014 single unified section",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:23:13.023Z",
           "createdBy": "user-admin"
@@ -862,7 +862,7 @@
         {
           "id": "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
           "patch": 6,
-          "message": "Simplified Changelog header — removed the 'Live: vX.Y.ZZ' badge; each card now just shows the current patch number.",
+          "message": "Simplified Changelog header \u2014 removed the 'Live: vX.Y.ZZ' badge; each card now just shows the current patch number.",
           "category": "enhancement",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -870,7 +870,7 @@
         {
           "id": "e2475826-d265-41c0-a014-ab46a461fe69",
           "patch": 6,
-          "message": "Added a User Logins admin report (Admin Reports → User Logins) showing successful sign-ins for any chosen date, defaulting to today.",
+          "message": "Added a User Logins admin report (Admin Reports \u2192 User Logins) showing successful sign-ins for any chosen date, defaulting to today.",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -902,7 +902,7 @@
         {
           "id": "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
           "patch": 6,
-          "message": "User Logins report: added date-range presets — Today (default), Last 3 days, Last 7 days, Last 30 days, plus a Custom range with From/To date pickers.",
+          "message": "User Logins report: added date-range presets \u2014 Today (default), Last 3 days, Last 7 days, Last 30 days, plus a Custom range with From/To date pickers.",
           "category": "feature",
           "createdAt": "2026-04-24T11:33:28.947Z",
           "createdBy": "agent"
@@ -942,7 +942,7 @@
         {
           "id": "80b91b5e-2161-4ba6-be85-7b9a20cdf6ca",
           "patch": 6,
-          "message": "Module Sites: corrected the 'Missing' count on Group and Company tiles. It now reports required templates with no document uploaded at THAT scope only — Group Missing = required templates from the group-owner company that lack a group-scoped doc, Company Missing = required templates that lack a company-scoped doc — instead of aggregating site-level missing across the group/company. Added a new GET /api/required-template-ids-by-company endpoint (filterable by module) that returns required template IDs grouped by accessible company; the tiles consume it to compute the count and the compliance % denominator.",
+          "message": "Module Sites: corrected the 'Missing' count on Group and Company tiles. It now reports required templates with no document uploaded at THAT scope only \u2014 Group Missing = required templates from the group-owner company that lack a group-scoped doc, Company Missing = required templates that lack a company-scoped doc \u2014 instead of aggregating site-level missing across the group/company. Added a new GET /api/required-template-ids-by-company endpoint (filterable by module) that returns required template IDs grouped by accessible company; the tiles consume it to compute the count and the compliance % denominator.",
           "category": "bug",
           "createdAt": "2026-04-24T15:38:33.800Z",
           "createdBy": "agent"
@@ -958,7 +958,7 @@
         {
           "id": "6b31e51b-28a6-4ca8-bafd-642aee95e989",
           "patch": 6,
-          "message": "Module Sites: 'Missing' on the Company tile now reflects only the company's OWN direct requirements. The /api/required-template-ids-by-company endpoint now filters companyRequiredTemplates to rows with inheritedFromCompanyId=null — so requirements that were cascaded down from a parent group are excluded from the per-company count. The Group tile is unaffected because it queries the group-owner companyId whose rows are direct (null) by construction. Site-level requirements are not (and were not) part of these counts; the All Sites tile is the place for those.",
+          "message": "Module Sites: 'Missing' on the Company tile now reflects only the company's OWN direct requirements. The /api/required-template-ids-by-company endpoint now filters companyRequiredTemplates to rows with inheritedFromCompanyId=null \u2014 so requirements that were cascaded down from a parent group are excluded from the per-company count. The Group tile is unaffected because it queries the group-owner companyId whose rows are direct (null) by construction. Site-level requirements are not (and were not) part of these counts; the All Sites tile is the place for those.",
           "category": "bug",
           "createdAt": "2026-04-24T16:04:42.744Z",
           "createdBy": "agent"
@@ -982,7 +982,7 @@
         {
           "id": "97e6116e-e8d4-484d-9940-7138911c4923",
           "patch": 6,
-          "message": "Fix: required documents added at a member Company were incorrectly bubbling up to the Group's Documents page (showing as Missing slots in the Group's folders/table). Requirements should only cascade DOWN (Group → member Companies → Sites), never up. The Group documents view (module-documents.tsx) was previously including missing slots from both the group entity and any member companies (filter checked m.companyId === urlEntityId || memberIds.includes(m.companyId)). Tightened the filter so the group scope only shows missing slots whose companyId matches the group owner company itself — i.e. requirements added at the Group level. Removed the now-unused groupMemberCompanyIds query (/api/companies?groupOwnerId=...) since nothing else on the page consumes it.",
+          "message": "Fix: required documents added at a member Company were incorrectly bubbling up to the Group's Documents page (showing as Missing slots in the Group's folders/table). Requirements should only cascade DOWN (Group \u2192 member Companies \u2192 Sites), never up. The Group documents view (module-documents.tsx) was previously including missing slots from both the group entity and any member companies (filter checked m.companyId === urlEntityId || memberIds.includes(m.companyId)). Tightened the filter so the group scope only shows missing slots whose companyId matches the group owner company itself \u2014 i.e. requirements added at the Group level. Removed the now-unused groupMemberCompanyIds query (/api/companies?groupOwnerId=...) since nothing else on the page consumes it.",
           "category": "bug",
           "createdAt": "2026-04-27T11:26:00.794Z",
           "createdBy": "agent"
@@ -998,7 +998,7 @@
         {
           "id": "b504c58f-0799-4972-abe4-737a06ffa8de",
           "patch": 6,
-          "message": "Fix: Group→Member required-template cascade was non-binding. Per the rule \"if a required document is added at group level, all companies and all sites below should require this document\", this fixes both the existing data drift AND prevents future drift. Drift fixed via a new idempotent storage method backfillGroupRequiredTemplatesCascade() that, for each group owner, ensures every member company carries every group-required template with inherited_from_company_id set so future remove-cascades work; uses ON CONFLICT DO NOTHING so existing rows (including member-owned rows that happen to match a group requirement) are preserved. Wired into server/index.ts startup right after seedToolkitRootFolders, non-fatal on failure, logs the inserted row count when > 0. On this restart it inserted exactly 1 row: \"Employee Full Time Permanent Contract\" for Recreation Limited (was missing despite Megabyte requiring it — historical gap from when member-level removal was permitted). Future drift prevented in storage.removeCompanyRequiredTemplate: now looks up the existing row first, and if the company has a groupOwnerId AND the row's inherited_from_company_id matches that group, throws an Error with code INHERITED_REMOVAL_FORBIDDEN and a clear message. The DELETE /api/companies/:companyId/required-templates/:templateId route catches that code and returns 400 with the message instead of 500/204. Group-owner-driven additions and removals continue to cascade as before. UI updated in client/src/pages/company-detail.tsx to match server contract: in the inline Required Documents list, the X button on inherited rows is now disabled with a tooltip explaining the requirement must be removed at the group level; in the Manage Requirements dialog, inherited templates show a checkbox that is checked-and-disabled with an Inherited badge and the same tooltip, so users can no longer untick them. The pre-existing AlertDialog confirmation flows for inherited removal become dead paths (kept in place for safety; they would only fire if the disabled control were bypassed, which isn't possible from the UI). Site-level overrides via site_template_overrides are unchanged: sites can still include/exclude templates including inherited ones (consistent with previous turn where Site 1 excluded Employee Part Time). Net effect end-to-end: Recreation Limited's Required Documents list now shows Employee Full Time (inherited badge); every Recreation site picks it up dynamically through getEffectiveCompanyRequiredTemplateIds; sites' missing-required and Site tile compliance counts now reflect it; and any future attempt to drop an inherited row at a member company is blocked at both the API and UI layers.",
+          "message": "Fix: Group\u2192Member required-template cascade was non-binding. Per the rule \"if a required document is added at group level, all companies and all sites below should require this document\", this fixes both the existing data drift AND prevents future drift. Drift fixed via a new idempotent storage method backfillGroupRequiredTemplatesCascade() that, for each group owner, ensures every member company carries every group-required template with inherited_from_company_id set so future remove-cascades work; uses ON CONFLICT DO NOTHING so existing rows (including member-owned rows that happen to match a group requirement) are preserved. Wired into server/index.ts startup right after seedToolkitRootFolders, non-fatal on failure, logs the inserted row count when > 0. On this restart it inserted exactly 1 row: \"Employee Full Time Permanent Contract\" for Recreation Limited (was missing despite Megabyte requiring it \u2014 historical gap from when member-level removal was permitted). Future drift prevented in storage.removeCompanyRequiredTemplate: now looks up the existing row first, and if the company has a groupOwnerId AND the row's inherited_from_company_id matches that group, throws an Error with code INHERITED_REMOVAL_FORBIDDEN and a clear message. The DELETE /api/companies/:companyId/required-templates/:templateId route catches that code and returns 400 with the message instead of 500/204. Group-owner-driven additions and removals continue to cascade as before. UI updated in client/src/pages/company-detail.tsx to match server contract: in the inline Required Documents list, the X button on inherited rows is now disabled with a tooltip explaining the requirement must be removed at the group level; in the Manage Requirements dialog, inherited templates show a checkbox that is checked-and-disabled with an Inherited badge and the same tooltip, so users can no longer untick them. The pre-existing AlertDialog confirmation flows for inherited removal become dead paths (kept in place for safety; they would only fire if the disabled control were bypassed, which isn't possible from the UI). Site-level overrides via site_template_overrides are unchanged: sites can still include/exclude templates including inherited ones (consistent with previous turn where Site 1 excluded Employee Part Time). Net effect end-to-end: Recreation Limited's Required Documents list now shows Employee Full Time (inherited badge); every Recreation site picks it up dynamically through getEffectiveCompanyRequiredTemplateIds; sites' missing-required and Site tile compliance counts now reflect it; and any future attempt to drop an inherited row at a member company is blocked at both the API and UI layers.",
           "category": "bug",
           "createdAt": "2026-04-27T13:21:55.571Z",
           "createdBy": "agent"
@@ -1006,7 +1006,7 @@
         {
           "id": "663428e3-18dc-44df-979f-342049318401",
           "patch": 6,
-          "message": "Soft-removed group-required cascade: when a parent group drops a required template, member companies and their sites now keep that template visible in their Required Documents lists as a struck-through 'No longer required by parent group' entry (with the Inherited badge), instead of silently disappearing — so users can see what was removed without losing context. The soft-removed rows do not count toward compliance or Missing tiles, and re-adding the template at the group level cleanly reactivates them everywhere. Group-owner own rows and member-managed (non-inherited) rows still hard-delete on removal as before.",
+          "message": "Soft-removed group-required cascade: when a parent group drops a required template, member companies and their sites now keep that template visible in their Required Documents lists as a struck-through 'No longer required by parent group' entry (with the Inherited badge), instead of silently disappearing \u2014 so users can see what was removed without losing context. The soft-removed rows do not count toward compliance or Missing tiles, and re-adding the template at the group level cleanly reactivates them everywhere. Group-owner own rows and member-managed (non-inherited) rows still hard-delete on removal as before.",
           "category": "feature",
           "createdAt": "2026-04-27T14:02:02.702Z",
           "createdBy": "agent"
@@ -1022,7 +1022,7 @@
         {
           "id": "eecf08ae-784f-4d63-874e-4636c8a79d6e",
           "patch": 6,
-          "message": "Soft-removed inherited requirements on a company can now be re-enabled. The X button on a struck-through (soft-removed) row in a company's Required Documents list is replaced with a Restore button (counter-clockwise arrow) — clicking it reactivates the requirement (clears the soft-removed flag) and counts toward compliance again. Previously, clicking the X on an already-soft-removed row would permanently delete the entry, leaving no in-place way to bring it back; now the only way to permanently delete from the list is via the group level.",
+          "message": "Soft-removed inherited requirements on a company can now be re-enabled. The X button on a struck-through (soft-removed) row in a company's Required Documents list is replaced with a Restore button (counter-clockwise arrow) \u2014 clicking it reactivates the requirement (clears the soft-removed flag) and counts toward compliance again. Previously, clicking the X on an already-soft-removed row would permanently delete the entry, leaving no in-place way to bring it back; now the only way to permanently delete from the list is via the group level.",
           "category": "enhancement",
           "createdAt": "2026-04-27T14:41:05.642Z",
           "createdBy": "agent"
@@ -1046,9 +1046,17 @@
         {
           "id": "b9624604-2fab-4e28-9acf-0c12aca7103d",
           "patch": 6,
-          "message": "Consultants assigned to a site now receive an automatic email notification when a client submits an incident report for that site. The email includes the incident reference, company and site name, incident type, severity (with colour-coded badge), and date — no personal names or addresses in accordance with GDPR. The notification fires in the background (fire-and-forget) so the client's form submission is never delayed.",
+          "message": "Consultants assigned to a site now receive an automatic email notification when a client submits an incident report for that site. The email includes the incident reference, company and site name, incident type, severity (with colour-coded badge), and date \u2014 no personal names or addresses in accordance with GDPR. The notification fires in the background (fire-and-forget) so the client's form submission is never delayed.",
           "category": "feature",
           "createdAt": "2026-04-29T12:55:53.172Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "9880e36a-085e-42ee-986b-601ef241f989",
+          "patch": 6,
+          "message": "After a client submits an incident report, a confirmation dialog is shown displaying the incident reference and the full names of all assigned consultants who were notified. The server now includes notifiedConsultants in the POST /api/incidents response (fast DB lookups, no delay to submission). If no consultants are assigned, the dialog still shows with a clear note.",
+          "category": "feature",
+          "createdAt": "2026-04-29T13:07:12.047869Z",
           "createdBy": "agent"
         }
       ]

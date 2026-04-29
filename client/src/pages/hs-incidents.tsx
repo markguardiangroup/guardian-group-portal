@@ -608,6 +608,7 @@ function ReportIncidentDialog({
   const [witnessEntries, setWitnessEntries] = useState<{ name: string; jobRole: string; company: string }[]>([]);
   const [firstAidGiven, setFirstAidGiven] = useState<boolean | null>(null);
   const [hospitalVisit, setHospitalVisit] = useState<boolean | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<{ incidentId: string; reference: string; notifiedConsultants: { id: string; name: string }[] } | null>(null);
 
   const addWitness = () => setWitnessEntries(prev => [...prev, { name: "", jobRole: "", company: "" }]);
   const removeWitness = (i: number) => setWitnessEntries(prev => prev.filter((_, idx) => idx !== i));
@@ -735,7 +736,6 @@ function ReportIncidentDialog({
     },
     onSuccess: (incident: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
-      toast({ title: "Incident reported", description: "The incident has been recorded successfully." });
       form.reset();
       setPhotoFiles([]);
       setDocFiles([]);
@@ -745,7 +745,12 @@ function ReportIncidentDialog({
       setFirstAidGiven(null);
       setHospitalVisit(null);
       onClose();
-      if (incident?.id) navigate(`/health-safety/incidents/${incident.id}`);
+      // Show confirmation dialog with consultant names before navigating
+      setSubmissionResult({
+        incidentId: incident?.id,
+        reference: incident?.incidentReference || "",
+        notifiedConsultants: incident?.notifiedConsultants ?? [],
+      });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to report incident.", variant: "destructive" });
@@ -765,7 +770,14 @@ function ReportIncidentDialog({
     mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson, riddorReportable: false, invFirstAidGiven: firstAidGiven, invHospitalVisit: hospitalVisit });
   };
 
+  const handleConfirmationClose = () => {
+    const id = submissionResult?.incidentId;
+    setSubmissionResult(null);
+    if (id) navigate(`/health-safety/incidents/${id}`);
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="theme-hs max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -1217,6 +1229,60 @@ function ReportIncidentDialog({
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* ── Submission confirmation dialog ── */}
+    <Dialog open={submissionResult !== null} onOpenChange={(o) => { if (!o) handleConfirmationClose(); }}>
+      <DialogContent className="theme-hs max-w-md" data-testid="dialog-incident-confirmation">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+            <CheckCircle className="h-5 w-5" />
+            Incident Report Submitted
+          </DialogTitle>
+          {submissionResult?.reference && (
+            <DialogDescription className="text-sm">
+              Reference: <span className="font-semibold text-foreground" data-testid="text-incident-reference">{submissionResult.reference}</span>
+            </DialogDescription>
+          )}
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-muted-foreground">
+            Your incident report has been recorded successfully and our team has been alerted.
+          </p>
+
+          <div className="rounded-lg border bg-muted/40 p-4 space-y-2">
+            <p className="text-sm font-medium flex items-center gap-2">
+              <span>Assigned consultant{submissionResult && submissionResult.notifiedConsultants.length !== 1 ? "s" : ""} notified</span>
+            </p>
+            {submissionResult && submissionResult.notifiedConsultants.length > 0 ? (
+              <ul className="space-y-1" data-testid="list-notified-consultants">
+                {submissionResult.notifiedConsultants.map((c) => (
+                  <li key={c.id} className="flex items-center gap-2 text-sm" data-testid={`text-consultant-name-${c.id}`}>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 flex-shrink-0" />
+                    {c.name}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground italic" data-testid="text-no-consultants">
+                No consultants are currently assigned to this site.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            className="bg-module-accent hover:bg-module-accent/90 w-full"
+            onClick={handleConfirmationClose}
+            data-testid="button-view-incident-report"
+          >
+            View Incident Report
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

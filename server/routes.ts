@@ -13030,18 +13030,29 @@ export async function registerRoutes(
       ]);
       uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company");
 
-      // Notify assigned consultants only when a client submits — fire-and-forget so response is never delayed
-      const portalUrl = process.env.APP_BASE_URL ||
-        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "https://portal.guardiangroup.co.uk");
-      if (user.role === "client") storage.getConsultantAssignments(incident.siteId)
-        .then(async (assignments) => {
-          for (const assignment of assignments) {
-            try {
-              const consultant = await storage.getUser(assignment.consultantId);
-              if (consultant?.email) {
+      // Look up consultants synchronously (fast DB queries) so we can include names in the response,
+      // then fire emails asynchronously so the response is never delayed by network I/O.
+      let notifiedConsultants: { id: string; name: string }[] = [];
+      if (user.role === "client") {
+        const assignments = await storage.getConsultantAssignments(incident.siteId).catch(() => []);
+        const consultantUsers = await Promise.all(
+          assignments.map((a: any) => storage.getUser(a.consultantId).catch(() => null))
+        );
+        notifiedConsultants = consultantUsers
+          .filter((c): c is NonNullable<typeof c> => c != null)
+          .map((c: any) => ({ id: c.id, name: c.fullName || c.email }));
+
+        // Fire email notifications — not awaited so response is returned immediately
+        const portalUrl = process.env.APP_BASE_URL ||
+          (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "https://portal.guardiangroup.co.uk");
+        Promise.resolve().then(async () => {
+          for (let i = 0; i < assignments.length; i++) {
+            const consultant = consultantUsers[i];
+            if (consultant?.email) {
+              try {
                 await sendIncidentNotificationEmail({
                   to: consultant.email,
-                  fullName: consultant.fullName || consultant.email,
+                  fullName: (consultant as any).fullName || consultant.email,
                   companyName: company?.name || "Unknown Company",
                   siteName: site?.name || "Unknown Site",
                   incidentReference: incident.incidentReference,
@@ -13051,15 +13062,15 @@ export async function registerRoutes(
                   portalUrl,
                   role: "consultant",
                 });
+              } catch (emailErr) {
+                console.error(`Failed to send incident notification to consultant ${assignments[i].consultantId}:`, emailErr);
               }
-            } catch (emailErr) {
-              console.error(`Failed to send incident notification to consultant ${assignment.consultantId}:`, emailErr);
             }
           }
-        })
-        .catch((err) => console.error("Failed to look up consultant assignments for incident notification:", err));
+        });
+      }
 
-      res.status(201).json(incident);
+      res.status(201).json({ ...incident, notifiedConsultants });
     } catch (error) {
       console.error("Error creating incident:", error);
       res.status(500).json({ error: "Failed to create incident" });
