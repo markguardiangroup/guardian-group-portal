@@ -1202,6 +1202,14 @@
           "category": "feature",
           "createdAt": "2026-04-29T14:21:21.169635+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "e1463481-0535-427c-8b5b-7356f6e4446e",
+          "patch": 6,
+          "message": "Fix portal messages: add published_at <= NOW() visibility gate so future-dated messages are not shown until their scheduled publish time",
+          "category": "fix",
+          "createdAt": "2026-04-29T14:30:25.508982+00:00",
+          "createdBy": "agent"
         }
       ]
     }

@@ -5055,6 +5055,9 @@ export class MemStorage implements IStorage {
     if (opts.publishedOnly) {
       conditions.push(eq(portalMessagesTable.status, "published"));
       conditions.push(
+        sql`(${portalMessagesTable.publishedAt} IS NULL OR ${portalMessagesTable.publishedAt} <= NOW())` as ReturnType<typeof eq>
+      );
+      conditions.push(
         sql`(${portalMessagesTable.expiresAt} IS NULL OR ${portalMessagesTable.expiresAt} > NOW())` as ReturnType<typeof eq>
       );
       if (opts.role) {
