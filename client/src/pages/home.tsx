@@ -301,7 +301,7 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
                 Clients
               </p>
               <div className="space-y-1">
-                {p.assignedCompanies.slice(0, 7).map((c) => (
+                {p.assignedCompanies.map((c) => (
                   <div
                     key={c.name}
                     className="flex items-center justify-between rounded-md px-2.5 py-1.5 hover:bg-muted/60 transition-colors"
@@ -316,9 +316,6 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
                     </span>
                   </div>
                 ))}
-                {totalCompanies > 7 && (
-                  <p className="text-xs text-muted-foreground px-2.5 pt-0.5">+{totalCompanies - 7} more</p>
-                )}
               </div>
             </div>
           )}
