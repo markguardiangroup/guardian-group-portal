@@ -37,6 +37,8 @@ import {
   TrendingUp,
   Sparkles,
   Zap,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -303,8 +305,11 @@ function UrgentActionsPanel({
   );
 }
 
+const PORTFOLIO_INITIAL_ROWS = 4;
+
 function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio"]; role: string }) {
   const isPrivileged = role === "admin" || role === "consultant";
+  const [expanded, setExpanded] = useState(false);
 
   if (!portfolio) return null;
 
@@ -317,16 +322,18 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
 
     const totalCompanies = p.assignedCompanies.length;
     const totalSites = p.assignedSites.length;
+    const hasMore = totalCompanies > PORTFOLIO_INITIAL_ROWS;
+    const visibleCompanies = expanded ? p.assignedCompanies : p.assignedCompanies.slice(0, PORTFOLIO_INITIAL_ROWS);
 
     return (
-      <Card data-testid="card-portfolio" className="h-full flex flex-col">
+      <Card data-testid="card-portfolio">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-primary" />
             My Portfolio
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4">
           {/* Summary stats */}
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-companies">
@@ -347,12 +354,12 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
 
           {/* Client list */}
           {totalCompanies > 0 && (
-            <div className="flex-1">
+            <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                 Clients
               </p>
               <div className="space-y-1">
-                {p.assignedCompanies.map((c) => (
+                {visibleCompanies.map((c) => (
                   <div
                     key={c.name}
                     className="flex items-center justify-between rounded-md px-2.5 py-1.5 hover:bg-muted/60 transition-colors"
@@ -368,16 +375,37 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
                   </div>
                 ))}
               </div>
+
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((v) => !v)}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+                  data-testid="button-toggle-companies"
+                >
+                  {expanded ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      {totalCompanies - PORTFOLIO_INITIAL_ROWS} more {totalCompanies - PORTFOLIO_INITIAL_ROWS === 1 ? "client" : "clients"}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
 
           {totalCompanies === 0 && (
-            <div className="flex-1 flex items-center justify-center text-center py-4">
+            <div className="flex items-center justify-center text-center py-4">
               <p className="text-sm text-muted-foreground">No clients assigned yet.</p>
             </div>
           )}
 
-          <Button variant="outline" size="sm" className="w-full mt-auto" asChild>
+          <Button variant="outline" size="sm" className="w-full" asChild>
             <Link href="/companies" data-testid="link-view-all-companies">
               View All Clients
               <ArrowRight className="ml-2 h-3.5 w-3.5" />
@@ -810,7 +838,7 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2 items-start">
             {/* Urgent Actions */}
             {data && (
               <UrgentActionsPanel

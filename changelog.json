@@ -1218,6 +1218,14 @@
           "category": "feature",
           "createdAt": "2026-04-29T14:46:32.418290+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "1b9d3dc4-3f1d-48e7-bd1b-701c866d27da",
+          "patch": 6,
+          "message": "Equalise Urgent Actions and My Portfolio card heights: grid items-start, portfolio shows 4 clients by default with chevron expand/collapse toggle; portal messages display higher on page",
+          "category": "ux",
+          "createdAt": "2026-04-29T14:51:12.583438+00:00",
+          "createdBy": "agent"
         }
       ]
     }
