@@ -15083,5 +15083,244 @@ export async function registerRoutes(
     }
   });
 
+  // ── Home Summary ────────────────────────────────────────────────────────────
+  app.get("/api/home-summary", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const isPrivileged = user.role === "admin" || user.role === "consultant";
+
+      // Get all documents visible to this user
+      const allDocs = await storage.getDocuments();
+      const now = new Date();
+
+      // Determine site scope for this user
+      let userSiteIds: string[] | null = null;
+      if (user.role === "client") {
+        const clientSites = await storage.getClientSites(user.id);
+        userSiteIds = clientSites.map((a) => a.siteId);
+        if (user.companyId) {
+          const companySites = await pool.query(
+            "SELECT id FROM sites WHERE entity_id = $1",
+            [user.companyId]
+          );
+          const companyIds = companySites.rows.map((r: any) => r.id);
+          userSiteIds = [...new Set([...userSiteIds, ...companyIds])];
+        }
+      } else if (user.role === "consultant") {
+        const consultantSites = await storage.getConsultantSites(user.id);
+        userSiteIds = consultantSites.map((a) => a.entityId);
+      }
+      // admins see all — userSiteIds stays null
+
+      const scopedDocs = userSiteIds
+        ? allDocs.filter((d) => d.siteId && userSiteIds!.includes(d.siteId))
+        : allDocs;
+
+      const activeDocs = scopedDocs.filter((d) => !d.isArchived);
+      const overdueCount = activeDocs.filter((d) => d.status === "overdue").length;
+      const reviewCount = activeDocs.filter((d) => d.status === "review_required").length;
+      const pendingCount = activeDocs.filter((d) => (d as any).approvalStatus === "pending").length;
+
+      // Incidents
+      const allIncidents = await pool.query("SELECT id, site_id, status FROM incidents");
+      const openIncidentRows = allIncidents.rows.filter((i: any) => {
+        if (userSiteIds && !userSiteIds.includes(i.site_id)) return false;
+        return i.status === "reported" || i.status === "under_review";
+      });
+
+      // Sign-off pending docs
+      const pendingSignOffs = activeDocs.filter((d) => (d as any).approvalStatus === "client_signed_off").length;
+
+      // Portfolio
+      let portfolio: any = null;
+      if (isPrivileged) {
+        const consultantAssignments = await storage.getConsultantSites(user.id);
+        const assignedSiteIds = user.role === "admin" ? null : consultantAssignments.map((a) => a.entityId);
+
+        let sitesData: any[] = [];
+        if (assignedSiteIds) {
+          if (assignedSiteIds.length > 0) {
+            const placeholders = assignedSiteIds.map((_: any, i: number) => `$${i + 1}`).join(",");
+            const sitesRes = await pool.query(
+              `SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id WHERE s.id IN (${placeholders})`,
+              assignedSiteIds
+            );
+            sitesData = sitesRes.rows.map((row: any) => {
+              const assignment = consultantAssignments.find((a) => a.entityId === row.id);
+              return { id: row.id, name: row.name, companyName: row.company_name, isPrimary: assignment?.isPrimary ?? false };
+            });
+          }
+        } else {
+          // admin — get all sites
+          const sitesRes = await pool.query(
+            "SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id ORDER BY c.name, s.name LIMIT 100"
+          );
+          sitesData = sitesRes.rows.map((row: any) => ({ id: row.id, name: row.name, companyName: row.company_name, isPrimary: false }));
+        }
+
+        // Unique companies from assigned sites
+        const companyMap = new Map<string, { name: string; siteCount: number }>();
+        sitesData.forEach((s: any) => {
+          if (s.companyName) {
+            const existing = companyMap.get(s.companyName) || { name: s.companyName, siteCount: 0 };
+            existing.siteCount++;
+            companyMap.set(s.companyName, existing);
+          }
+        });
+
+        // Assigned cases (for consultant) or all open cases (for admin)
+        let casesData: any[] = [];
+        if (user.role === "consultant" && assignedSiteIds) {
+          if (assignedSiteIds.length > 0) {
+            const placeholders = assignedSiteIds.map((_: any, i: number) => `$${i + 1}`).join(",");
+            const casesRes = await pool.query(
+              `SELECT ca.id, ca.case_reference, ca.employee_name, c.name as company_name, ca.status FROM cases ca LEFT JOIN sites s ON ca.site_id = s.id LEFT JOIN companies c ON s.entity_id = c.id WHERE ca.site_id IN (${placeholders}) AND ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false LIMIT 50`,
+              assignedSiteIds
+            );
+            casesData = casesRes.rows;
+          }
+        } else if (user.role === "admin") {
+          const casesRes = await pool.query(
+            "SELECT ca.id, ca.case_reference, ca.employee_name, c.name as company_name, ca.status FROM cases ca LEFT JOIN sites s ON ca.site_id = s.id LEFT JOIN companies c ON s.entity_id = c.id WHERE ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false ORDER BY ca.created_at DESC LIMIT 50"
+          );
+          casesData = casesRes.rows;
+        }
+
+        // Sources for this consultant (companies.sources is an array column)
+        let sourcesData: string[] = [];
+        try {
+          if (user.role === "consultant" && assignedSiteIds && assignedSiteIds.length > 0) {
+            const placeholders = assignedSiteIds.map((_: any, i: number) => `$${i + 1}`).join(",");
+            const sourcesRes = await pool.query(
+              `SELECT DISTINCT unnest(c.sources) as src FROM companies c JOIN sites s ON s.entity_id = c.id WHERE s.id IN (${placeholders})`,
+              assignedSiteIds
+            );
+            sourcesData = sourcesRes.rows.map((r: any) => r.src).filter(Boolean);
+          }
+        } catch { /* skip if fails */ }
+
+        portfolio = {
+          assignedCompanies: Array.from(companyMap.entries()).map(([name, v]) => ({ name, siteCount: v.siteCount })),
+          assignedSites: sitesData.slice(0, 20),
+          assignedCases: casesData.map((c: any) => ({
+            id: c.id,
+            reference: c.case_reference,
+            employeeName: c.employee_name,
+            companyName: c.company_name,
+            status: c.status,
+          })),
+          sources: sourcesData,
+        };
+      } else {
+        // Client portfolio: primary consultant + their site
+        const clientSites = await storage.getClientSites(user.id);
+        let primaryConsultant: { id: string; name: string } | null = null;
+        if (clientSites.length > 0) {
+          const siteId = clientSites[0].siteId;
+          const assignments = await storage.getConsultantAssignments(siteId);
+          const primary = assignments.find((a) => a.isPrimary) || assignments[0];
+          if (primary) {
+            const consultant = await storage.getUser(primary.consultantId);
+            if (consultant) primaryConsultant = { id: consultant.id, name: consultant.fullName };
+          }
+        }
+        let siteInfo: { id: string; name: string; companyName?: string } | null = null;
+        if (user.companyId) {
+          const companyRes = await pool.query("SELECT id, name FROM companies WHERE id = $1", [user.companyId]);
+          if (companyRes.rows.length > 0) {
+            siteInfo = { id: user.companyId, name: companyRes.rows[0].name };
+          }
+        }
+        portfolio = { site: siteInfo, primaryConsultant };
+      }
+
+      // Portal messages visible to this user
+      const messages = await storage.getPortalMessages({ publishedOnly: true, role: user.role });
+
+      res.json({
+        urgentActions: {
+          overdueDocuments: overdueCount,
+          reviewRequiredDocuments: reviewCount,
+          pendingApprovals: pendingCount,
+          openIncidents: openIncidentRows.length,
+          pendingSignOffs,
+        },
+        portfolio,
+        portalMessages: messages,
+      });
+    } catch (err) {
+      console.error("Home summary error:", err);
+      res.status(500).json({ error: "Failed to fetch home summary" });
+    }
+  });
+
+  // ── Portal Messages ──────────────────────────────────────────────────────────
+  app.get("/api/portal-messages", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      if (user.role === "admin") {
+        const messages = await storage.getPortalMessages();
+        return res.json(messages);
+      }
+      // Other roles: published only, role-filtered
+      const messages = await storage.getPortalMessages({ publishedOnly: true, role: user.role });
+      return res.json(messages);
+    } catch (err) {
+      console.error("Portal messages error:", err);
+      res.status(500).json({ error: "Failed to fetch portal messages" });
+    }
+  });
+
+  app.post("/api/portal-messages", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
+
+      const { insertPortalMessageSchema } = await import("@shared/schema");
+      const parsed = insertPortalMessageSchema.safeParse({ ...req.body, createdBy: user.id });
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+      const message = await storage.createPortalMessage(parsed.data);
+      return res.status(201).json(message);
+    } catch (err) {
+      console.error("Create portal message error:", err);
+      res.status(500).json({ error: "Failed to create portal message" });
+    }
+  });
+
+  app.patch("/api/portal-messages/:id", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
+
+      const existing = await storage.getPortalMessage(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Message not found" });
+
+      const updated = await storage.updatePortalMessage(req.params.id, req.body);
+      return res.json(updated);
+    } catch (err) {
+      console.error("Update portal message error:", err);
+      res.status(500).json({ error: "Failed to update portal message" });
+    }
+  });
+
+  app.delete("/api/portal-messages/:id", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
+
+      const ok = await storage.deletePortalMessage(req.params.id);
+      if (!ok) return res.status(404).json({ error: "Message not found" });
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("Delete portal message error:", err);
+      res.status(500).json({ error: "Failed to delete portal message" });
+    }
+  });
+
   return httpServer;
 }

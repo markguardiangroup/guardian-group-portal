@@ -74,6 +74,8 @@ const ToolkitDashboard = lazyPage(() => import("@/pages/toolkit-dashboard"));
 const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
 const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
 const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
+const HomePage = lazyPage(() => import("@/pages/home"));
+const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -159,7 +161,9 @@ function Router() {
     <CanonicalTag />
     <Suspense fallback={<RouteFallback />}>
     <Switch>
-      <Route path="/" component={Dashboard} />
+      <Route path="/" component={HomePage} />
+      <Route path="/home" component={HomePage} />
+      <Route path="/dashboard" component={Dashboard} />
       
       <Route path="/health-safety" component={HealthSafetyDashboard} />
       <Route path="/health-safety/sites" component={HealthSafetySites} />
@@ -216,6 +220,7 @@ function Router() {
       <Route path="/toolkit/browse" component={ToolkitBrowse} />
       <Route path="/admin/pathways" component={AdminPathways} />
       <Route path="/admin/sources" component={AdminSources} />
+      <Route path="/admin/portal-messages" component={AdminPortalMessages} />
       <Route component={NotFound} />
     </Switch>
     </Suspense>
@@ -318,7 +323,9 @@ function RoutePrefetcher({
       if (isAdmin) {
         AdminPathways.preload();
         AdminSources.preload();
+        AdminPortalMessages.preload();
       }
+      HomePage.preload();
 
     });
   }, [userId, role, isLoading, hasVisibleAccess, consultantPermissions]);

@@ -26,6 +26,8 @@ import {
   Cloud,
   Award,
   Tag,
+  Home,
+  Megaphone,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -186,6 +188,11 @@ const adminNavItems = [
     icon: Tag,
   },
   {
+    title: "Portal Messages",
+    url: "/admin/portal-messages",
+    icon: Megaphone,
+  },
+  {
     title: "Admin Reports",
     url: "/admin-reports",
     icon: ShieldAlert,
@@ -342,15 +349,32 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
-                  isActive={location === "/"}
+                  isActive={location === "/" || location === "/home"}
                   className={cn(
                     "transition-colors",
-                    location === "/"
+                    (location === "/" || location === "/home")
                       ? "bg-sidebar-accent font-medium"
                       : ""
                   )}
                 >
-                  <Link href="/" data-testid="nav-dashboard">
+                  <Link href="/home" data-testid="nav-home">
+                    <Home className="h-4 w-4" />
+                    <span>Home</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/dashboard"}
+                  className={cn(
+                    "transition-colors",
+                    location === "/dashboard"
+                      ? "bg-sidebar-accent font-medium"
+                      : ""
+                  )}
+                >
+                  <Link href="/dashboard" data-testid="nav-dashboard">
                     <LayoutDashboard className="h-4 w-4" />
                     <span>Dashboard</span>
                   </Link>

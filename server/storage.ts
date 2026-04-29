@@ -74,6 +74,8 @@ import {
   type DocumentScope,
   type Source, type InsertSource,
   sources as sourcesTable,
+  type PortalMessage, type InsertPortalMessage,
+  portalMessages as portalMessagesTable,
   type CaseBundle, type InsertCaseBundle,
   caseBundles as caseBundlesTable,
   trainingModules as trainingModulesTable,
@@ -507,6 +509,13 @@ export interface IStorage {
   // Group Owner
   getGroupMembers(groupOwnerId: string): Promise<Company[]>;
   setGroupOwner(companyId: string, groupOwnerId: string | null): Promise<Company | undefined>;
+
+  // Portal Messages
+  getPortalMessages(opts?: { publishedOnly?: boolean; role?: string }): Promise<PortalMessage[]>;
+  getPortalMessage(id: string): Promise<PortalMessage | undefined>;
+  createPortalMessage(data: InsertPortalMessage): Promise<PortalMessage>;
+  updatePortalMessage(id: string, updates: Partial<PortalMessage>): Promise<PortalMessage | undefined>;
+  deletePortalMessage(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -5038,6 +5047,52 @@ export class MemStorage implements IStorage {
       .where(eq(companiesTable.id, companyId))
       .returning();
     return updated;
+  }
+
+  // Portal Messages
+  async getPortalMessages(opts: { publishedOnly?: boolean; role?: string } = {}): Promise<PortalMessage[]> {
+    const conditions: any[] = [];
+    if (opts.publishedOnly) {
+      conditions.push(eq(portalMessagesTable.status, "published"));
+      conditions.push(
+        sql`(${portalMessagesTable.expiresAt} IS NULL OR ${portalMessagesTable.expiresAt} > NOW())`
+      );
+      if (opts.role) {
+        const roleVal = opts.role;
+        conditions.push(
+          sql`(array_length(${portalMessagesTable.targetRoles}, 1) IS NULL OR ${sql.raw(`'${roleVal.replace(/'/g, "''")}'`)} = ANY(${portalMessagesTable.targetRoles}))`
+        );
+      }
+    }
+    const query = db.select().from(portalMessagesTable);
+    const results = conditions.length > 0
+      ? await query.where(and(...conditions)).orderBy(desc(portalMessagesTable.pinned), desc(portalMessagesTable.publishedAt))
+      : await query.orderBy(desc(portalMessagesTable.createdAt));
+    return results;
+  }
+
+  async getPortalMessage(id: string): Promise<PortalMessage | undefined> {
+    const [row] = await db.select().from(portalMessagesTable).where(eq(portalMessagesTable.id, id));
+    return row;
+  }
+
+  async createPortalMessage(data: InsertPortalMessage): Promise<PortalMessage> {
+    const [row] = await db.insert(portalMessagesTable).values(data).returning();
+    return row;
+  }
+
+  async updatePortalMessage(id: string, updates: Partial<PortalMessage>): Promise<PortalMessage | undefined> {
+    const { id: _id, createdAt, ...safeUpdates } = updates as any;
+    const [row] = await db.update(portalMessagesTable)
+      .set({ ...safeUpdates, updatedAt: new Date() })
+      .where(eq(portalMessagesTable.id, id))
+      .returning();
+    return row;
+  }
+
+  async deletePortalMessage(id: string): Promise<boolean> {
+    const result = await db.delete(portalMessagesTable).where(eq(portalMessagesTable.id, id)).returning();
+    return result.length > 0;
   }
 
 }

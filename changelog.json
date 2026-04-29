@@ -1058,6 +1058,54 @@
           "category": "feature",
           "createdAt": "2026-04-29T13:07:12.047869Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "2463acf6-2407-4fb8-af32-94fa6e735610",
+          "patch": 6,
+          "message": "Added portal_messages table to schema and storage layer with full CRUD (create, read, update, delete); implemented getPortalMessages with publishedOnly and role-filter options",
+          "category": "backend",
+          "createdAt": "2026-04-29T13:31:30.962655+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e7ef7f1d-d116-4d77-85e6-7021977da64f",
+          "patch": 6,
+          "message": "Added GET /api/home-summary endpoint: returns urgentActions (overdue/review/pendingApprovals/openIncidents/pendingSignOffs), portfolio (assignedSites/companies/cases/sources for consultants+admins; site+primaryConsultant for clients), and portalMessages visible to user role",
+          "category": "backend",
+          "createdAt": "2026-04-29T13:31:30.962724+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "cd9bf392-ac38-4f93-8d73-a19f32a7b28c",
+          "patch": 6,
+          "message": "Added GET/POST/PATCH/DELETE /api/portal-messages routes; admins see all messages, other roles see published+non-expired+role-targeted messages only",
+          "category": "backend",
+          "createdAt": "2026-04-29T13:31:30.962775+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "2b1bf800-cd5a-436b-9bba-ab9be1d7d101",
+          "patch": 6,
+          "message": "Created /home page (portal home) with greeting, urgent actions panel, my portfolio panel (role-aware), quick links, and portal messages grid; / and /home both map to the home page",
+          "category": "feature",
+          "createdAt": "2026-04-29T13:31:30.962829+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "58c989e1-4f2d-4634-9f25-680acc367ec4",
+          "patch": 6,
+          "message": "Moved existing dashboard to /dashboard route; updated sidebar Overview section with Home link (/) and Dashboard link (/dashboard); added Portal Messages to admin navigation",
+          "category": "feature",
+          "createdAt": "2026-04-29T13:31:30.962880+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "72487e51-a6a0-430f-b978-b2b64fe64b89",
+          "patch": 6,
+          "message": "Created /admin/portal-messages page for admins to create, edit, publish/unpublish, pin/unpin, and delete portal messages broadcast to portal users",
+          "category": "feature",
+          "createdAt": "2026-04-29T13:31:30.962927+00:00",
+          "createdBy": "agent"
         }
       ]
     }

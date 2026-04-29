@@ -1747,6 +1747,30 @@ export const insertCaseBundleSchema = createInsertSchema(caseBundles).omit({
 export type InsertCaseBundle = z.infer<typeof insertCaseBundleSchema>;
 export type CaseBundle = typeof caseBundles.$inferSelect;
 
+// ==================== PORTAL MESSAGES ====================
+export const portalMessages = pgTable("portal_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  type: text("type").notNull().default("update"),
+  targetRoles: text("target_roles").array().notNull().default(sql`ARRAY[]::text[]`),
+  status: text("status").notNull().default("draft"),
+  pinned: boolean("pinned").notNull().default(false),
+  publishedAt: timestamp("published_at"),
+  expiresAt: timestamp("expires_at"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPortalMessageSchema = createInsertSchema(portalMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertPortalMessage = z.infer<typeof insertPortalMessageSchema>;
+export type PortalMessage = typeof portalMessages.$inferSelect;
+
 // ==================== SOURCES ====================
 export const sources = pgTable("sources", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
