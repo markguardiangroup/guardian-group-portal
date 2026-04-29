@@ -15438,7 +15438,14 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin access required" });
 
       const { insertPortalMessageSchema } = await import("@shared/schema");
-      const parsed = insertPortalMessageSchema.safeParse({ ...req.body, createdBy: user.id });
+      // Coerce ISO string timestamps to Date objects (frontend sends strings)
+      const coerced = {
+        ...req.body,
+        createdBy: user.id,
+        publishedAt: req.body.publishedAt ? new Date(req.body.publishedAt) : null,
+        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
+      };
+      const parsed = insertPortalMessageSchema.safeParse(coerced);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
       const message = await storage.createPortalMessage(parsed.data);
@@ -15464,8 +15471,8 @@ export async function registerRoutes(
         targetRoles: z.array(z.string()).optional(),
         status: z.enum(["draft", "published", "archived"]).optional(),
         pinned: z.boolean().optional(),
-        publishedAt: z.string().nullable().optional(),
-        expiresAt: z.string().nullable().optional(),
+        publishedAt: z.union([z.string(), z.date()]).nullable().optional().transform(v => v ? new Date(v) : null),
+        expiresAt: z.union([z.string(), z.date()]).nullable().optional().transform(v => v ? new Date(v) : null),
       });
       const parsed = patchSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });

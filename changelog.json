@@ -1178,6 +1178,14 @@
           "category": "backend",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
+          "patch": 6,
+          "message": "Fix portal message create/update: coerce ISO string timestamps to Date before schema validation to match Drizzle types",
+          "category": "bugfix",
+          "createdAt": "2026-04-29T14:02:27.879484+00:00",
+          "createdBy": "agent"
         }
       ]
     }
