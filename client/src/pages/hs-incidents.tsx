@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Progress } from "@/components/ui/progress";
@@ -1906,6 +1907,17 @@ function IncidentDetailView({ id }: { id: string }) {
     onError: () => toast({ title: "Error", description: "Failed to update incident.", variant: "destructive" }),
   });
 
+  const consultantAccessMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      apiRequest("PATCH", `/api/incidents/${id}/consultant-access`, { consultantFullAccess: enabled }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      invalidateAudit();
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update consultant access.", variant: "destructive" }),
+  });
+
   const addMilestoneMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", `/api/incidents/${id}/milestones`, data),
     onSuccess: () => {
@@ -3121,6 +3133,49 @@ function IncidentDetailView({ id }: { id: string }) {
 
           {/* Sidebar */}
           <div className="space-y-5">
+            {/* Consultant Access — client toggle / consultant banner */}
+            {user?.role === "client" ? (
+              <Card>
+                <CardHeader className="border-b pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-module-accent" />
+                    Consultant Access
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    By default, personal names are anonymised on your incident report. You can grant your assigned consultant full visibility of all personal details.
+                  </p>
+                  <div className="flex items-center justify-between gap-3 py-1">
+                    <label htmlFor="consultant-access-toggle" className="text-sm font-medium cursor-pointer select-none">
+                      Share full details with your consultant
+                    </label>
+                    <Switch
+                      id="consultant-access-toggle"
+                      checked={!!incident.consultantFullAccess}
+                      onCheckedChange={(checked) => consultantAccessMutation.mutate(checked)}
+                      disabled={consultantAccessMutation.isPending}
+                      data-testid="toggle-consultant-access"
+                    />
+                  </div>
+                  {incident.consultantFullAccess && (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <Eye className="h-3 w-3 shrink-0" />
+                      Your consultant can currently see full details on this report.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ) : isPrivileged && incident.consultantFullAccess ? (
+              <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 flex items-start gap-3">
+                <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Full details visible</p>
+                  <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">The client has granted you access to all personal details on this report.</p>
+                </div>
+              </div>
+            ) : null}
+
             {(incident.injuriesReported || incident.riddorReportable) && (
               <Card className="border-red-200 dark:border-red-900">
                 <CardHeader className="border-b border-red-200 dark:border-red-900 pb-3">

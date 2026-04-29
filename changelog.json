@@ -1226,6 +1226,14 @@
           "category": "ux",
           "createdAt": "2026-04-29T14:51:12.583438+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "282b73f5-de91-4390-9c98-88cd7914b873",
+          "patch": 6,
+          "message": "Add client-controlled toggle on incident detail page granting consultants/admins full (unredacted) access to personal info on incident reports. Includes dedicated PATCH /api/incidents/:id/consultant-access endpoint (client-only), per-incident redaction bypass in list/detail/investigation-report endpoints, consultant_full_access boolean column, sidebar toggle card for clients, and emerald access-granted banner for consultants/admins.",
+          "category": "feature",
+          "createdAt": "2026-04-29T14:56:48.061183Z",
+          "createdBy": "agent"
         }
       ]
     }

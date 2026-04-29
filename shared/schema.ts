@@ -530,6 +530,7 @@ export const incidents = pgTable("incidents", {
   invAmendments: text("inv_amendments"),
   invCompletedAt: timestamp("inv_completed_at"),
   invCompletedBy: text("inv_completed_by"),
+  consultantFullAccess: boolean("consultant_full_access").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

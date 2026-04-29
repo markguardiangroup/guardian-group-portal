@@ -12582,9 +12582,11 @@ export async function registerRoutes(
         incidents = incidents.filter((i: any) => siteIds.includes(i.siteId));
       }
 
-      // GDPR: redact personal names for non-client users
+      // GDPR: redact personal names for non-client users (skip if client has granted full access for that incident)
       if (user.role !== "client") {
-        incidents = incidents.map(redactIncidentNamesForNonClient);
+        incidents = incidents.map((inc: any) =>
+          inc.consultantFullAccess ? inc : redactIncidentNamesForNonClient(inc)
+        );
       }
 
       res.json(incidents);
@@ -12983,12 +12985,42 @@ export async function registerRoutes(
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
-      // GDPR: redact personal names for non-client users
-      if (user.role !== "client") incident = redactIncidentNamesForNonClient(incident);
+      // GDPR: redact personal names for non-client users, unless the client has granted full access
+      if (user.role !== "client" && !incident.consultantFullAccess) {
+        incident = redactIncidentNamesForNonClient(incident);
+      }
       res.json(incident);
     } catch (error) {
       console.error("Error fetching incident:", error);
       res.status(500).json({ error: "Failed to fetch incident" });
+    }
+  });
+
+  // ─── Toggle consultant full access (client only) ──────────────────────────
+  app.patch("/api/incidents/:id/consultant-access", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      if (user.role !== "client") return res.status(403).json({ error: "Only clients can change consultant access" });
+      const existing = await storage.getIncident(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, existing.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const { consultantFullAccess } = req.body;
+      if (typeof consultantFullAccess !== "boolean") return res.status(400).json({ error: "consultantFullAccess must be boolean" });
+      const updated = await storage.updateIncident(req.params.id, { consultantFullAccess });
+      await storage.createAuditLog({
+        action: consultantFullAccess ? "consultant_access_granted" : "consultant_access_revoked",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existing.entityId,
+        module: "health_safety",
+        details: `Consultant full access ${consultantFullAccess ? "granted" : "revoked"} on ${existing.incidentReference}`,
+        incidentId: existing.id,
+      } as any);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error toggling consultant access:", error);
+      res.status(500).json({ error: "Failed to update consultant access" });
     }
   });
 
@@ -13152,8 +13184,10 @@ export async function registerRoutes(
       const user = (req.session as any).user;
       let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
-      // GDPR: redact personal names for non-client users before HTML generation
-      if (user.role !== "client") incident = redactIncidentNamesForNonClient(incident);
+      // GDPR: redact personal names for non-client users before HTML generation (unless client granted access)
+      if (user.role !== "client" && !incident.consultantFullAccess) {
+        incident = redactIncidentNamesForNonClient(incident);
+      }
 
       const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
       const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;
