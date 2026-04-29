@@ -15285,6 +15285,134 @@ export async function registerRoutes(
     }
   });
 
+  // ── Home Summary Items (modal drill-down) ────────────────────────────────────
+  app.get("/api/home-summary/items", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const type = (req.query.type as string) ?? "";
+      const isPrivileged = user.role === "admin" || user.role === "consultant";
+
+      // Determine site scope
+      let userSiteIds: string[] | null = null;
+      if (user.role === "client") {
+        const clientSites = await storage.getClientSites(user.id);
+        const directSiteIds = clientSites.map((a) => a.siteId);
+        if (user.companyId) {
+          const companySitesRes = await pool.query<{ id: string }>(
+            "SELECT id FROM sites WHERE entity_id = $1",
+            [user.companyId]
+          );
+          userSiteIds = [...new Set([...directSiteIds, ...companySitesRes.rows.map((r) => r.id)])];
+        } else {
+          userSiteIds = directSiteIds;
+        }
+      } else if (user.role === "consultant") {
+        const consultantSites = await storage.getConsultantSites(user.id);
+        userSiteIds = consultantSites.map((a) => a.entityId);
+      }
+
+      type SummaryItem = { id: string; label: string; subLabel: string | null; href: string; badge: string | null; badgeColor: string | null };
+      let items: SummaryItem[] = [];
+
+      if (["overdue_documents", "review_required", "pending_approvals", "pending_sign_offs"].includes(type)) {
+        if (type === "pending_approvals" && !isPrivileged) return res.json({ type, items: [] });
+        if (userSiteIds?.length === 0) return res.json({ type, items: [] });
+
+        const filterClause =
+          type === "overdue_documents" ? "d.status = 'overdue'" :
+          type === "review_required" ? "d.status = 'review_required'" :
+          "d.approval_status = 'pending'";
+
+        const params: unknown[] = [];
+        let query = `
+          SELECT d.id, d.title, d.module, d.status, d.approval_status, d.uploaded_by, s.name as site_name
+          FROM documents d
+          LEFT JOIN sites s ON d.site_id = s.id
+          WHERE d.is_archived = false AND ${filterClause}
+        `;
+
+        if (userSiteIds && userSiteIds.length > 0) {
+          params.push(userSiteIds);
+          query += ` AND d.site_id = ANY($${params.length}::varchar[])`;
+        }
+        if (type === "pending_sign_offs") {
+          params.push(user.id);
+          query += ` AND d.uploaded_by != $${params.length}`;
+        }
+        query += " ORDER BY d.title LIMIT 50";
+
+        type DocRow = { id: string; title: string; module: string | null; status: string; site_name: string | null };
+        const result = await pool.query<DocRow>(query, params);
+
+        const badgeColorMap: Record<string, string> = {
+          overdue_documents: "red",
+          review_required: "amber",
+          pending_approvals: "blue",
+          pending_sign_offs: "violet",
+        };
+        items = result.rows.map((row) => ({
+          id: row.id,
+          label: row.title,
+          subLabel: row.site_name ?? null,
+          href: `/documents/${row.id}`,
+          badge: row.module ?? row.status ?? null,
+          badgeColor: badgeColorMap[type] ?? null,
+        }));
+
+      } else if (type === "open_incidents") {
+        if (userSiteIds?.length === 0 && user.role !== "client") return res.json({ type, items: [] });
+
+        const params: unknown[] = [];
+        let query = `
+          SELECT i.id, i.title, i.severity, i.status, i.incident_reference, s.name as site_name
+          FROM incidents i
+          LEFT JOIN sites s ON i.site_id = s.id
+          WHERE i.is_archived = false AND i.status IN ('reported','under_review')
+        `;
+        if (user.role === "client") {
+          params.push(user.id);
+          query += ` AND i.reported_by = $${params.length}`;
+        } else if (userSiteIds && userSiteIds.length > 0) {
+          params.push(userSiteIds);
+          query += ` AND i.site_id = ANY($${params.length}::varchar[])`;
+        }
+        query += " ORDER BY i.created_at DESC LIMIT 50";
+
+        type IncidentRow = { id: string; title: string; severity: string | null; status: string; incident_reference: string | null; site_name: string | null };
+        const result = await pool.query<IncidentRow>(query, params);
+        items = result.rows.map((row) => ({
+          id: row.id,
+          label: row.title,
+          subLabel: row.site_name ?? null,
+          href: `/health-safety/incidents/${row.id}`,
+          badge: row.severity ?? row.status ?? null,
+          badgeColor: row.severity === "high" || row.severity === "critical" ? "red" : "orange",
+        }));
+
+      } else if (type === "access_requests" && user.role === "admin") {
+        type RequestRow = { id: string; site_name: string; module: string; requested_by_name: string };
+        const result = await pool.query<RequestRow>(
+          "SELECT id, site_name, module, requested_by_name FROM module_access_requests WHERE status = 'pending' ORDER BY created_at DESC LIMIT 50"
+        );
+        items = result.rows.map((row) => ({
+          id: row.id,
+          label: `${row.module} — ${row.site_name}`,
+          subLabel: `Requested by ${row.requested_by_name}`,
+          href: `/companies`,
+          badge: "pending",
+          badgeColor: "indigo",
+        }));
+      }
+
+      return res.json({ type, items });
+    } catch (err) {
+      console.error("Home summary items error:", err);
+      res.status(500).json({ error: "Failed to fetch items" });
+    }
+  });
+
   // ── Portal Messages ──────────────────────────────────────────────────────────
   app.get("/api/portal-messages", async (req, res) => {
     try {
@@ -15329,7 +15457,20 @@ export async function registerRoutes(
       const existing = await storage.getPortalMessage(req.params.id);
       if (!existing) return res.status(404).json({ error: "Message not found" });
 
-      const updated = await storage.updatePortalMessage(req.params.id, req.body);
+      const patchSchema = z.object({
+        title: z.string().min(1).optional(),
+        body: z.string().min(1).optional(),
+        type: z.enum(["update", "feature", "training", "guidance", "news"]).optional(),
+        targetRoles: z.array(z.string()).optional(),
+        status: z.enum(["draft", "published", "archived"]).optional(),
+        pinned: z.boolean().optional(),
+        publishedAt: z.string().nullable().optional(),
+        expiresAt: z.string().nullable().optional(),
+      });
+      const parsed = patchSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+      const updated = await storage.updatePortalMessage(req.params.id, parsed.data);
       return res.json(updated);
     } catch (err) {
       console.error("Update portal message error:", err);

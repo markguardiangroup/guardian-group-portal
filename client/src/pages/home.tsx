@@ -1,9 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import {
@@ -17,7 +24,6 @@ import {
   Landmark,
   MapPin,
   Briefcase,
-  MessageSquare,
   Pin,
   Megaphone,
   Newspaper,
@@ -26,6 +32,9 @@ import {
   FileCheck,
   UserCheck,
   KeyRound,
+  ExternalLink,
+  Building2,
+  TrendingUp,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -59,6 +68,20 @@ interface HomeSummary {
   }[];
 }
 
+interface SummaryItem {
+  id: string;
+  label: string;
+  subLabel: string | null;
+  href: string;
+  badge: string | null;
+  badgeColor: string | null;
+}
+
+interface ItemsResponse {
+  type: string;
+  items: SummaryItem[];
+}
+
 const messageTypeConfig: Record<string, { label: string; icon: typeof Megaphone; color: string }> = {
   update: { label: "Update", icon: Megaphone, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
   feature: { label: "New Feature", icon: CheckCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
@@ -67,80 +90,101 @@ const messageTypeConfig: Record<string, { label: string; icon: typeof Megaphone;
   news: { label: "News", icon: Newspaper, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
 };
 
+const actionTypeConfig: Record<string, { label: string; listLabel: string; navHref: string }> = {
+  overdue_documents: { label: "Overdue Documents", listLabel: "overdue documents", navHref: "/documents" },
+  review_required: { label: "Review Required", listLabel: "documents requiring review", navHref: "/documents" },
+  pending_approvals: { label: "Pending Approvals", listLabel: "pending approvals", navHref: "/documents" },
+  open_incidents: { label: "Open Incidents", listLabel: "open incidents", navHref: "/health-safety/incidents" },
+  pending_sign_offs: { label: "Pending Sign-offs", listLabel: "documents awaiting your sign-off", navHref: "/documents" },
+  access_requests: { label: "Access Requests", listLabel: "pending access requests", navHref: "/companies" },
+};
+
+const badgeColorClass: Record<string, string> = {
+  red: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  amber: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  violet: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+  indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+};
+
 function UrgentActionsPanel({
   actions,
   role,
+  onActionClick,
 }: {
   actions: HomeSummary["urgentActions"];
   role: string;
+  onActionClick: (type: string) => void;
 }) {
   const isAdmin = role === "admin";
   const isPrivileged = role === "admin" || role === "consultant";
+
   const items = [
     {
       show: true,
       count: actions.overdueDocuments,
+      type: "overdue_documents",
       label: "Overdue Documents",
       icon: AlertTriangle,
       color: "text-red-600 dark:text-red-400",
       bg: "bg-red-50 dark:bg-red-950/20",
       border: "border-red-200 dark:border-red-800",
-      href: "/documents",
       severity: "high",
     },
     {
       show: true,
       count: actions.reviewRequiredDocuments,
+      type: "review_required",
       label: "Review Required",
       icon: Clock,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-950/20",
       border: "border-amber-200 dark:border-amber-800",
-      href: "/documents",
       severity: "medium",
     },
     {
       show: isPrivileged,
       count: actions.pendingApprovals,
+      type: "pending_approvals",
       label: "Pending Approvals",
       icon: FileCheck,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-50 dark:bg-blue-950/20",
       border: "border-blue-200 dark:border-blue-800",
-      href: "/documents",
       severity: "medium",
     },
     {
       show: true,
       count: actions.openIncidents,
+      type: "open_incidents",
       label: "Open Incidents",
       icon: ShieldAlert,
       color: "text-orange-600 dark:text-orange-400",
       bg: "bg-orange-50 dark:bg-orange-950/20",
       border: "border-orange-200 dark:border-orange-800",
-      href: "/health-safety/incidents",
       severity: "high",
     },
     {
       show: role === "client",
       count: actions.pendingSignOffs,
+      type: "pending_sign_offs",
       label: "Pending Sign-offs",
       icon: UserCheck,
       color: "text-violet-600 dark:text-violet-400",
       bg: "bg-violet-50 dark:bg-violet-950/20",
       border: "border-violet-200 dark:border-violet-800",
-      href: "/documents",
       severity: "medium",
     },
     {
       show: isAdmin,
       count: actions.pendingAccessRequests ?? 0,
+      type: "access_requests",
       label: "Access Requests",
       icon: KeyRound,
       color: "text-indigo-600 dark:text-indigo-400",
       bg: "bg-indigo-50 dark:bg-indigo-950/20",
       border: "border-indigo-200 dark:border-indigo-800",
-      href: "/admin/access-requests",
       severity: "medium",
     },
   ].filter((i) => i.show);
@@ -165,9 +209,16 @@ function UrgentActionsPanel({
       <CardContent className="space-y-2">
         {items.map((item) => {
           const Icon = item.icon;
-          const content = (
-            <div
-              className={`flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors ${item.bg} ${item.border} ${item.href ? "cursor-pointer hover:opacity-90" : ""}`}
+          const clickable = item.count > 0;
+          return (
+            <button
+              key={item.type}
+              type="button"
+              disabled={!clickable}
+              onClick={() => clickable && onActionClick(item.type)}
+              className={`w-full flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors text-left
+                ${item.bg} ${item.border}
+                ${clickable ? "cursor-pointer hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none" : "cursor-default opacity-70"}`}
               data-testid={`action-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
             >
               <div className="flex items-center gap-2.5">
@@ -176,18 +227,10 @@ function UrgentActionsPanel({
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-lg font-bold ${item.color}`}>{item.count}</span>
-                {item.href && item.count > 0 && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                {clickable && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
               </div>
-            </div>
+            </button>
           );
-          if (item.href && item.count > 0) {
-            return (
-              <Link key={item.label} href={item.href}>
-                {content}
-              </Link>
-            );
-          }
-          return <div key={item.label}>{content}</div>;
         })}
         {items.every((i) => i.count === 0) && (
           <div className="flex flex-col items-center gap-2 py-6 text-center">
@@ -213,97 +256,80 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
       sources: string[];
     };
 
+    const totalCompanies = p.assignedCompanies.length;
+    const totalSites = p.assignedSites.length;
+    const totalCases = p.assignedCases.length;
+
     return (
-      <Card data-testid="card-portfolio">
-        <CardHeader className="pb-3">
+      <Card data-testid="card-portfolio" className="h-full flex flex-col">
+        <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-primary" />
             My Portfolio
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Companies */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
-              <Landmark className="h-3.5 w-3.5" /> Companies ({p.assignedCompanies.length})
-            </p>
-            {p.assignedCompanies.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No companies assigned</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {p.assignedCompanies.slice(0, 6).map((c) => (
-                  <Badge key={c.name} variant="secondary" className="text-xs" data-testid={`badge-company-${c.name}`}>
-                    {c.name}
-                    <span className="ml-1 opacity-60">·{c.siteCount}</span>
-                  </Badge>
-                ))}
-                {p.assignedCompanies.length > 6 && (
-                  <Badge variant="outline" className="text-xs">+{p.assignedCompanies.length - 6} more</Badge>
-                )}
-              </div>
-            )}
+        <CardContent className="flex-1 flex flex-col gap-4">
+          {/* Summary stats */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-companies">
+              <p className="text-xl font-bold tabular-nums">{totalCompanies}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                <Landmark className="h-3 w-3" />
+                {totalCompanies === 1 ? "Company" : "Companies"}
+              </p>
+            </div>
+            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-sites">
+              <p className="text-xl font-bold tabular-nums">{totalSites}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {totalSites === 1 ? "Site" : "Sites"}
+              </p>
+            </div>
+            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-cases">
+              <p className="text-xl font-bold tabular-nums">{totalCases}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {totalCases === 1 ? "Case" : "Cases"}
+              </p>
+            </div>
           </div>
 
-          {/* Sites */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" /> Sites ({p.assignedSites.length})
-            </p>
-            {p.assignedSites.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No sites assigned</p>
-            ) : (
-              <div className="space-y-1">
-                {p.assignedSites.slice(0, 5).map((s) => (
-                  <div key={s.id} className="flex items-center justify-between text-sm" data-testid={`site-portfolio-${s.id}`}>
-                    <span className="truncate">{s.name}</span>
-                    <div className="flex items-center gap-1.5 ml-2 shrink-0">
-                      {s.companyName && <span className="text-xs text-muted-foreground">{s.companyName}</span>}
-                      {s.isPrimary && (
-                        <Badge className="text-[10px] px-1 py-0 bg-primary/10 text-primary border-primary/20">Primary</Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {p.assignedSites.length > 5 && (
-                  <p className="text-xs text-muted-foreground">+{p.assignedSites.length - 5} more</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Cases */}
-          {p.assignedCases.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 flex items-center gap-1">
-                <Briefcase className="h-3.5 w-3.5" /> Active Cases ({p.assignedCases.length})
+          {/* Client list */}
+          {totalCompanies > 0 && (
+            <div className="flex-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Clients
               </p>
               <div className="space-y-1">
-                {p.assignedCases.slice(0, 5).map((c) => (
-                  <div key={c.id} className="flex items-center justify-between text-sm" data-testid={`case-portfolio-${c.id}`}>
-                    <span className="font-mono text-xs">{c.reference}</span>
-                    <span className="text-xs text-muted-foreground truncate max-w-[140px]">{c.employeeName}</span>
+                {p.assignedCompanies.slice(0, 7).map((c) => (
+                  <div
+                    key={c.name}
+                    className="flex items-center justify-between rounded-md px-2.5 py-1.5 hover:bg-muted/60 transition-colors"
+                    data-testid={`company-portfolio-${c.name}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="text-sm truncate">{c.name}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2 tabular-nums">
+                      {c.siteCount} {c.siteCount === 1 ? "site" : "sites"}
+                    </span>
                   </div>
                 ))}
-                {p.assignedCases.length > 5 && (
-                  <p className="text-xs text-muted-foreground">+{p.assignedCases.length - 5} more</p>
+                {totalCompanies > 7 && (
+                  <p className="text-xs text-muted-foreground px-2.5 pt-0.5">+{totalCompanies - 7} more</p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Sources */}
-          {p.sources.length > 0 && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Sources</p>
-              <div className="flex flex-wrap gap-1">
-                {p.sources.map((s) => (
-                  <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
-                ))}
-              </div>
+          {totalCompanies === 0 && (
+            <div className="flex-1 flex items-center justify-center text-center py-4">
+              <p className="text-sm text-muted-foreground">No clients assigned yet.</p>
             </div>
           )}
 
-          <Button variant="outline" size="sm" className="w-full mt-1" asChild>
+          <Button variant="outline" size="sm" className="w-full mt-auto" asChild>
             <Link href="/companies" data-testid="link-view-all-companies">
               View All Clients
               <ArrowRight className="ml-2 h-3.5 w-3.5" />
@@ -314,42 +340,65 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
     );
   }
 
-  // Client view
+  // ── Client view ──────────────────────────────────────────────────────────────
   const p = portfolio as {
     site: { id: string; name: string } | null;
     primaryConsultant: { id: string; name: string } | null;
   };
 
   return (
-    <Card data-testid="card-portfolio">
-      <CardHeader className="pb-3">
+    <Card data-testid="card-portfolio" className="h-full">
+      <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" />
           Your Account
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-0 divide-y divide-border">
         {p.site && (
-          <div className="flex items-center gap-2">
-            <Landmark className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-3 py-3" data-testid="portfolio-organisation">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Landmark className="h-4 w-4 text-primary" />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Organisation</p>
-              <p className="text-sm font-medium">{p.site.name}</p>
+              <p className="text-sm font-semibold">{p.site.name}</p>
             </div>
           </div>
         )}
+
         {p.primaryConsultant && (
-          <div className="flex items-center gap-2">
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-3 py-3" data-testid="portfolio-consultant">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+              <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Your Consultant</p>
-              <p className="text-sm font-medium">{p.primaryConsultant.name}</p>
+              <p className="text-sm font-semibold">{p.primaryConsultant.name}</p>
             </div>
           </div>
         )}
+
         {!p.site && !p.primaryConsultant && (
-          <p className="text-sm text-muted-foreground">Contact support to set up your account.</p>
+          <div className="py-6 text-center">
+            <p className="text-sm text-muted-foreground">Contact support to set up your account.</p>
+          </div>
         )}
+
+        <div className="flex gap-2 pt-3">
+          <Button variant="outline" size="sm" className="flex-1" asChild>
+            <Link href="/documents" data-testid="link-client-documents">
+              <FileText className="h-3.5 w-3.5 mr-1.5" />
+              Documents
+            </Link>
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1" asChild>
+            <Link href="/health-safety/incidents" data-testid="link-client-incidents">
+              <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+              Incidents
+            </Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -392,9 +441,116 @@ function PortalMessagesPanel({ messages }: { messages: HomeSummary["portalMessag
   );
 }
 
+function UrgentActionsModal({
+  open,
+  onClose,
+  actionType,
+}: {
+  open: boolean;
+  onClose: () => void;
+  actionType: string | null;
+}) {
+  const [, navigate] = useLocation();
+
+  const { data, isLoading } = useQuery<ItemsResponse>({
+    queryKey: [`/api/home-summary/items?type=${actionType}`],
+    enabled: !!actionType && open,
+    staleTime: 30000,
+  });
+
+  const config = actionType ? actionTypeConfig[actionType] : null;
+  const items = data?.items ?? [];
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col" data-testid="modal-urgent-action">
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="text-base">
+            {config?.label ?? "Items"}
+            {!isLoading && items.length > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">({items.length})</span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto -mx-6 px-6 py-1">
+          {isLoading ? (
+            <div className="space-y-2 py-2">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-12 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <CheckCircle className="h-8 w-8 text-emerald-500" />
+              <p className="text-sm text-muted-foreground">Nothing to show right now.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 py-1">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5 hover:bg-muted/40 transition-colors"
+                  data-testid={`modal-item-${item.id}`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.label}</p>
+                    {item.subLabel && (
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{item.subLabel}</p>
+                    )}
+                    {item.badge && (
+                      <Badge
+                        variant="secondary"
+                        className={`mt-1 text-[10px] px-1.5 py-0 capitalize ${item.badgeColor ? badgeColorClass[item.badgeColor] ?? "" : ""}`}
+                      >
+                        {item.badge.replace(/_/g, " ")}
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="shrink-0 h-7 px-2 text-xs"
+                    onClick={() => {
+                      onClose();
+                      navigate(item.href);
+                    }}
+                    data-testid={`modal-item-view-${item.id}`}
+                  >
+                    View
+                    <ExternalLink className="ml-1 h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {config && (
+          <div className="shrink-0 pt-3 border-t flex justify-between items-center">
+            <p className="text-xs text-muted-foreground">Showing all {config.listLabel}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                onClose();
+                navigate(config.navHref);
+              }}
+              data-testid="modal-nav-all"
+            >
+              Go to {config.label}
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function HomePage() {
   const { user } = useAuth();
-  const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+  const [activeActionType, setActiveActionType] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
@@ -408,7 +564,7 @@ export default function HomePage() {
   const todayLabel = format(now, "EEEE, d MMMM yyyy");
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto" id="page-content">
+    <div className="p-6 space-y-6 max-w-5xl mx-auto" id="page-content">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight" data-testid="text-home-greeting">
@@ -420,8 +576,8 @@ export default function HomePage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((i) => (
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2].map((i) => (
             <Card key={i}>
               <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
               <CardContent className="space-y-3">
@@ -433,121 +589,41 @@ export default function HomePage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Left column: Urgent Actions */}
-          <div className="md:col-span-1">
-            {data && <UrgentActionsPanel actions={data.urgentActions} role={user?.role ?? "client"} />}
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Urgent Actions */}
+            {data && (
+              <UrgentActionsPanel
+                actions={data.urgentActions}
+                role={user?.role ?? "client"}
+                onActionClick={setActiveActionType}
+              />
+            )}
+
+            {/* Portfolio */}
+            {data?.portfolio && (
+              <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} />
+            )}
           </div>
 
-          {/* Middle column: Portfolio */}
-          <div className="md:col-span-1">
-            {data?.portfolio && <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} />}
-          </div>
-
-          {/* Right column: Quick links */}
-          <div className="md:col-span-1 space-y-4">
-            <Card data-testid="card-quick-links">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <ArrowRight className="h-4 w-4 text-primary" />
-                  Quick Links
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5">
-                {[
-                  { label: "Documents", href: "/documents", icon: FileText },
-                  ...(isPrivileged ? [{ label: "Companies", href: "/companies", icon: Landmark }] : []),
-                  { label: "Incidents", href: "/health-safety/incidents", icon: ShieldAlert },
-                  { label: "Employment Cases", href: "/employment-law/cases", icon: Briefcase },
-                  { label: "Support", href: "/support", icon: MessageSquare },
-                  { label: "Calendar", href: "/calendar", icon: Clock },
-                ].map(({ label, href, icon: Icon }) => (
-                  <Button key={label} variant="ghost" size="sm" className="w-full justify-start gap-2" asChild>
-                    <Link href={href} data-testid={`quicklink-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      {label}
-                    </Link>
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Portal Messages — full width row if any */}
-          {data && data.portalMessages.length > 0 && (
-            <div className="md:col-span-2 lg:col-span-3">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold flex items-center gap-2">
-                  <Megaphone className="h-4 w-4 text-primary" />
-                  Portal Messages
-                </h2>
-                {user?.role === "admin" && (
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/admin/portal-messages" data-testid="link-manage-portal-messages">
-                      Manage
-                      <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                )}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.portalMessages.slice(0, 3).map((msg) => {
-                  const config = messageTypeConfig[msg.type] ?? messageTypeConfig.update;
-                  const Icon = config.icon;
-                  return (
-                    <Card
-                      key={msg.id}
-                      className={msg.pinned ? "border-primary/40 ring-1 ring-primary/20" : ""}
-                      data-testid={`message-${msg.id}`}
-                    >
-                      <CardContent className="pt-4 pb-3 px-4">
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${config.color}`}>
-                            <Icon className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                              {msg.pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
-                              <span className="text-sm font-semibold truncate">{msg.title}</span>
-                              <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${config.color}`} data-testid={`badge-type-${msg.id}`}>
-                                {config.label}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{msg.body}</p>
-                            {msg.publishedAt && (
-                              <p className="text-xs text-muted-foreground mt-1.5">
-                                {format(new Date(msg.publishedAt), "d MMM yyyy")}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+          {/* Portal Messages — full width below */}
+          {data?.portalMessages && data.portalMessages.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Portal Messages
+              </h2>
+              <PortalMessagesPanel messages={data.portalMessages} />
             </div>
           )}
-          {user?.role === "admin" && data && data.portalMessages.length === 0 && (
-            <div className="md:col-span-2 lg:col-span-3">
-              <div className="flex items-center justify-between rounded-lg border border-dashed p-4">
-                <div className="flex items-center gap-3">
-                  <Megaphone className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">No portal messages published</p>
-                    <p className="text-xs text-muted-foreground">Create messages to broadcast updates to all users.</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/admin/portal-messages" data-testid="link-create-portal-message">
-                    Create Message
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
+
+      {/* Urgent Actions drill-down modal */}
+      <UrgentActionsModal
+        open={!!activeActionType}
+        onClose={() => setActiveActionType(null)}
+        actionType={activeActionType}
+      />
     </div>
   );
 }

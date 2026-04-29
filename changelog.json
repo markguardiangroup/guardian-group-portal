@@ -1122,6 +1122,62 @@
           "category": "fix",
           "createdAt": "2026-04-29T13:46:40.495315Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "408b7414-de3e-4768-b0f9-dcb05f5261af",
+          "patch": 6,
+          "message": "Add /api/home-summary/items endpoint for urgent action modal drill-down (overdue docs, incidents, access requests etc.)",
+          "category": "backend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "9ff018d9-efa2-49f3-910d-b8fe03c6c050",
+          "patch": 6,
+          "message": "Remove Quick Links card from home page (redundant with sidebar navigation)",
+          "category": "frontend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "769c53c6-d981-4527-8629-055a2e25b2e5",
+          "patch": 6,
+          "message": "Urgent Actions: clicking a metric now opens a modal listing specific items with View links, replacing direct navigation",
+          "category": "frontend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "08ff47cd-c613-454b-97b3-6fb144b4b5d6",
+          "patch": 6,
+          "message": "Redesign My Portfolio panel: stats row (Companies/Sites/Cases), client list with site counts, improved visual hierarchy",
+          "category": "frontend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d5257ae3-900f-4f02-a88d-52e8e93cece8",
+          "patch": 6,
+          "message": "Client Account panel redesign: avatar icons, divider layout, document/incident quick-action buttons",
+          "category": "frontend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "3ed2e20c-c651-46b3-86cf-45c2adbba5c3",
+          "patch": 6,
+          "message": "Add Zod schema validation to PATCH /api/portal-messages/:id to constrain mutable fields",
+          "category": "backend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "17052834-e17c-4c5c-8a3a-95a9a4912d20",
+          "patch": 6,
+          "message": "Add SQL migration file 0005_add_portal_messages.sql for reproducible portal_messages table creation",
+          "category": "backend",
+          "createdAt": "2026-04-29T13:58:14.383104+00:00",
+          "createdBy": "agent"
         }
       ]
     }
