@@ -1042,6 +1042,14 @@
           "category": "enhancement",
           "createdAt": "2026-04-29T12:36:28.334Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b9624604-2fab-4e28-9acf-0c12aca7103d",
+          "patch": 6,
+          "message": "Consultants assigned to a site now receive an automatic email notification when a client submits an incident report for that site. The email includes the incident reference, company and site name, incident type, severity (with colour-coded badge), and date — no personal names or addresses in accordance with GDPR. The notification fires in the background (fire-and-forget) so the client's form submission is never delayed.",
+          "category": "feature",
+          "createdAt": "2026-04-29T12:55:53.172Z",
+          "createdBy": "agent"
         }
       ]
     }

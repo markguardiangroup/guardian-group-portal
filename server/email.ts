@@ -650,6 +650,130 @@ export async function getResendEmail(id: string): Promise<{ data: ResendEmailDet
   }
 }
 
+export async function sendIncidentNotificationEmail({
+  to,
+  fullName,
+  companyName,
+  siteName,
+  incidentReference,
+  incidentType,
+  severity,
+  incidentDate,
+  portalUrl,
+  role,
+}: {
+  to: string;
+  fullName: string;
+  companyName: string;
+  siteName: string;
+  incidentReference: string;
+  incidentType: string;
+  severity: string;
+  incidentDate: Date;
+  portalUrl: string;
+  role?: string;
+}) {
+  const recipient = resolveRecipient(to, role);
+
+  const severityColors: Record<string, { bg: string; border: string; text: string; label: string }> = {
+    critical:   { bg: "#fef2f2", border: "#fca5a5", text: "#991b1b", label: "Critical" },
+    major:      { bg: "#fff7ed", border: "#fed7aa", text: "#9a3412", label: "Major" },
+    serious:    { bg: "#fff7ed", border: "#fed7aa", text: "#9a3412", label: "Serious" },
+    moderate:   { bg: "#fefce8", border: "#fde047", text: "#854d0e", label: "Moderate" },
+    minor:      { bg: "#f0fdf4", border: "#86efac", text: "#166534", label: "Minor" },
+    near_miss:  { bg: "#eff6ff", border: "#93c5fd", text: "#1e40af", label: "Near Miss" },
+  };
+  const sev = severityColors[severity.toLowerCase()] ?? { bg: "#f8fafc", border: "#e2e8f0", text: "#475569", label: severity };
+
+  const formattedDate = new Date(incidentDate).toLocaleDateString("en-GB", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `New Incident Reported — ${incidentReference} (${companyName})`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health &amp; Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <div style="background-color: #fef9c3; border-left: 4px solid #eab308; border-radius: 4px; padding: 12px 16px; margin-bottom: 24px;">
+            <p style="color: #854d0e; font-size: 14px; font-weight: 600; margin: 0;">Action may be required — a client has reported an incident.</p>
+          </div>
+
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">New Incident Reported</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName}, one of your clients has just submitted an incident report. You may wish to get in touch to offer support and advice.
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 130px;">Reference:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${incidentReference}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Company:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${companyName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Type:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${incidentType}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Date:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${formattedDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Severity:</td>
+                <td style="padding: 6px 0;">
+                  <span style="display: inline-block; background-color: ${sev.bg}; border: 1px solid ${sev.border}; color: ${sev.text}; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 12px;">${sev.label}</span>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+            No personal details about the individuals involved are included in this notification in accordance with GDPR. Please log in to the portal to view the full report.
+          </p>
+
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${portalUrl}"
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px;
+                      text-decoration: none; border-radius: 6px; font-size: 16px;
+                      font-weight: 600; display: inline-block;">
+              View in Portal
+            </a>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send incident notification email:", error);
+    throw new Error(`Failed to send incident notification email: ${error.message}`);
+  }
+
+  console.log(`Incident notification email sent to ${to} (delivered to ${recipient}) for ${incidentReference}, id: ${data?.id}`);
+  return data;
+}
+
 export async function sendBookingEnquiryEmail({
   courseName,
   courseCode,

@@ -16,7 +16,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 
@@ -13029,6 +13029,35 @@ export async function registerRoutes(
         storage.getCompany(incident.entityId).catch(() => null),
       ]);
       uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company");
+
+      // Notify assigned consultants — fire-and-forget so the client response is never delayed
+      const portalUrl = process.env.APP_BASE_URL ||
+        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "");
+      storage.getConsultantAssignments(incident.siteId)
+        .then(async (assignments) => {
+          for (const assignment of assignments) {
+            try {
+              const consultant = await storage.getUser(assignment.consultantId);
+              if (consultant?.email) {
+                await sendIncidentNotificationEmail({
+                  to: consultant.email,
+                  fullName: consultant.fullName || consultant.email,
+                  companyName: company?.name || "Unknown Company",
+                  siteName: site?.name || "Unknown Site",
+                  incidentReference: incident.incidentReference,
+                  incidentType: incident.incidentType,
+                  severity: incident.severity,
+                  incidentDate: incident.incidentDate,
+                  portalUrl,
+                  role: "consultant",
+                });
+              }
+            } catch (emailErr) {
+              console.error(`Failed to send incident notification to consultant ${assignment.consultantId}:`, emailErr);
+            }
+          }
+        })
+        .catch((err) => console.error("Failed to look up consultant assignments for incident notification:", err));
 
       res.status(201).json(incident);
     } catch (error) {
