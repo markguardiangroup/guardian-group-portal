@@ -1034,6 +1034,14 @@
           "category": "feature",
           "createdAt": "2026-04-29T12:30:28.554Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "0eeda2aa-dab5-4274-a13d-bd1fbad32fcb",
+          "patch": 6,
+          "message": "Extended GDPR redaction on incident reports to also cover address fields: affectedPersonAddress and reportingPersonAddress are now redacted to '[Redacted]' for non-client users, alongside the already-redacted name fields.",
+          "category": "enhancement",
+          "createdAt": "2026-04-29T12:36:28.334Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -12547,7 +12547,9 @@ export async function registerRoutes(
     return {
       ...incident,
       affectedPersonName: incident.affectedPersonName != null ? REDACTED : incident.affectedPersonName,
+      affectedPersonAddress: incident.affectedPersonAddress != null ? REDACTED : incident.affectedPersonAddress,
       reportingPersonName: incident.reportingPersonName != null ? REDACTED : incident.reportingPersonName,
+      reportingPersonAddress: incident.reportingPersonAddress != null ? REDACTED : incident.reportingPersonAddress,
       declarationName: incident.declarationName != null ? REDACTED : incident.declarationName,
       declarationSignature: incident.declarationSignature != null ? REDACTED : incident.declarationSignature,
       reportedByName: incident.reportedByName != null ? REDACTED : incident.reportedByName,
