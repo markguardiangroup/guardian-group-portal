@@ -5051,16 +5051,15 @@ export class MemStorage implements IStorage {
 
   // Portal Messages
   async getPortalMessages(opts: { publishedOnly?: boolean; role?: string } = {}): Promise<PortalMessage[]> {
-    const conditions: any[] = [];
+    const conditions: ReturnType<typeof eq>[] = [];
     if (opts.publishedOnly) {
       conditions.push(eq(portalMessagesTable.status, "published"));
       conditions.push(
-        sql`(${portalMessagesTable.expiresAt} IS NULL OR ${portalMessagesTable.expiresAt} > NOW())`
+        sql`(${portalMessagesTable.expiresAt} IS NULL OR ${portalMessagesTable.expiresAt} > NOW())` as ReturnType<typeof eq>
       );
       if (opts.role) {
-        const roleVal = opts.role;
         conditions.push(
-          sql`(array_length(${portalMessagesTable.targetRoles}, 1) IS NULL OR ${sql.raw(`'${roleVal.replace(/'/g, "''")}'`)} = ANY(${portalMessagesTable.targetRoles}))`
+          sql`(array_length(${portalMessagesTable.targetRoles}, 1) IS NULL OR ${opts.role} = ANY(${portalMessagesTable.targetRoles}))` as ReturnType<typeof eq>
         );
       }
     }

@@ -97,7 +97,7 @@ const emptyForm = (): MessageFormData => ({
   audience: "all",
   status: "draft",
   pinned: false,
-  publishedAt: null,
+  publishedAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   expiresAt: null,
 });
 

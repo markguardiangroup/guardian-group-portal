@@ -61,8 +61,8 @@ interface HomeSummary {
 
 const messageTypeConfig: Record<string, { label: string; icon: typeof Megaphone; color: string }> = {
   update: { label: "Update", icon: Megaphone, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-  feature: { label: "New Feature", icon: CheckCircle, color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" },
-  training: { label: "Training", icon: GraduationCap, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+  feature: { label: "New Feature", icon: CheckCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
+  training: { label: "Training", icon: GraduationCap, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" },
   guidance: { label: "Guidance", icon: BookOpen, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
   news: { label: "News", icon: Newspaper, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
 };
@@ -509,6 +509,9 @@ export default function HomePage() {
                             <div className="flex items-center gap-1.5 flex-wrap mb-1">
                               {msg.pinned && <Pin className="h-3 w-3 text-primary shrink-0" />}
                               <span className="text-sm font-semibold truncate">{msg.title}</span>
+                              <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${config.color}`} data-testid={`badge-type-${msg.id}`}>
+                                {config.label}
+                              </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{msg.body}</p>
                             {msg.publishedAt && (

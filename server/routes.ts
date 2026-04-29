@@ -15093,20 +15093,20 @@ export async function registerRoutes(
 
       // Get all documents visible to this user
       const allDocs = await storage.getDocuments();
-      const now = new Date();
 
-      // Determine site scope for this user
+      // Determine site scope for this user (documents + privileged incident filtering)
       let userSiteIds: string[] | null = null;
       if (user.role === "client") {
         const clientSites = await storage.getClientSites(user.id);
-        userSiteIds = clientSites.map((a) => a.siteId);
+        const directSiteIds = clientSites.map((a) => a.siteId);
         if (user.companyId) {
-          const companySites = await pool.query(
+          const companySitesRes = await pool.query<{ id: string }>(
             "SELECT id FROM sites WHERE entity_id = $1",
             [user.companyId]
           );
-          const companyIds = companySites.rows.map((r: any) => r.id);
-          userSiteIds = [...new Set([...userSiteIds, ...companyIds])];
+          userSiteIds = [...new Set([...directSiteIds, ...companySitesRes.rows.map((r) => r.id)])];
+        } else {
+          userSiteIds = directSiteIds;
         }
       } else if (user.role === "consultant") {
         const consultantSites = await storage.getConsultantSites(user.id);
@@ -15121,90 +15121,104 @@ export async function registerRoutes(
       const activeDocs = scopedDocs.filter((d) => !d.isArchived);
       const overdueCount = activeDocs.filter((d) => d.status === "overdue").length;
       const reviewCount = activeDocs.filter((d) => d.status === "review_required").length;
-      const pendingCount = activeDocs.filter((d) => (d as any).approvalStatus === "pending").length;
+      const pendingCount = activeDocs.filter((d) => d.approvalStatus === "pending").length;
+      const pendingSignOffs = activeDocs.filter((d) => d.approvalStatus === "client_signed_off").length;
 
-      // Incidents
-      const allIncidents = await pool.query("SELECT id, site_id, status FROM incidents");
-      const openIncidentRows = allIncidents.rows.filter((i: any) => {
-        if (userSiteIds && !userSiteIds.includes(i.site_id)) return false;
-        return i.status === "reported" || i.status === "under_review";
-      });
-
-      // Sign-off pending docs
-      const pendingSignOffs = activeDocs.filter((d) => (d as any).approvalStatus === "client_signed_off").length;
+      // Incidents — clients see only incidents they reported
+      let openIncidentCount = 0;
+      if (user.role === "client") {
+        const clientIncidentsRes = await pool.query<{ count: string }>(
+          "SELECT COUNT(*) as count FROM incidents WHERE reported_by = $1 AND status IN ('reported','under_review') AND is_archived = false",
+          [user.id]
+        );
+        openIncidentCount = parseInt(clientIncidentsRes.rows[0].count ?? "0", 10);
+      } else {
+        const incidentRes = await pool.query<{ count: string }>(
+          userSiteIds
+            ? `SELECT COUNT(*) as count FROM incidents WHERE site_id = ANY($1::varchar[]) AND status IN ('reported','under_review') AND is_archived = false`
+            : "SELECT COUNT(*) as count FROM incidents WHERE status IN ('reported','under_review') AND is_archived = false",
+          userSiteIds ? [userSiteIds] : []
+        );
+        openIncidentCount = parseInt(incidentRes.rows[0].count ?? "0", 10);
+      }
 
       // Portfolio
-      let portfolio: any = null;
+      type PortfolioPrivileged = {
+        assignedCompanies: { name: string; siteCount: number }[];
+        assignedSites: { id: string; name: string; companyName: string | null; isPrimary: boolean }[];
+        assignedCases: { id: string; reference: string; employeeName: string; companyName: string | null; status: string }[];
+        sources: string[];
+      };
+      type PortfolioClient = { site: { id: string; name: string } | null; primaryConsultant: { id: string; name: string } | null };
+      type Portfolio = PortfolioPrivileged | PortfolioClient | null;
+
+      let portfolio: Portfolio = null;
       if (isPrivileged) {
         const consultantAssignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = user.role === "admin" ? null : consultantAssignments.map((a) => a.entityId);
+        const assignedSiteIds: string[] | null = user.role === "admin" ? null : consultantAssignments.map((a) => a.entityId);
 
-        let sitesData: any[] = [];
+        type SiteRow = { id: string; name: string; company_name: string | null };
+        let sitesData: { id: string; name: string; companyName: string | null; isPrimary: boolean }[] = [];
         if (assignedSiteIds) {
           if (assignedSiteIds.length > 0) {
-            const placeholders = assignedSiteIds.map((_: any, i: number) => `$${i + 1}`).join(",");
-            const sitesRes = await pool.query(
+            const placeholders = assignedSiteIds.map((_, i) => `$${i + 1}`).join(",");
+            const sitesRes = await pool.query<SiteRow>(
               `SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id WHERE s.id IN (${placeholders})`,
               assignedSiteIds
             );
-            sitesData = sitesRes.rows.map((row: any) => {
+            sitesData = sitesRes.rows.map((row) => {
               const assignment = consultantAssignments.find((a) => a.entityId === row.id);
               return { id: row.id, name: row.name, companyName: row.company_name, isPrimary: assignment?.isPrimary ?? false };
             });
           }
         } else {
-          // admin — get all sites
-          const sitesRes = await pool.query(
+          const sitesRes = await pool.query<SiteRow>(
             "SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id ORDER BY c.name, s.name LIMIT 100"
           );
-          sitesData = sitesRes.rows.map((row: any) => ({ id: row.id, name: row.name, companyName: row.company_name, isPrimary: false }));
+          sitesData = sitesRes.rows.map((row) => ({ id: row.id, name: row.name, companyName: row.company_name, isPrimary: false }));
         }
 
-        // Unique companies from assigned sites
         const companyMap = new Map<string, { name: string; siteCount: number }>();
-        sitesData.forEach((s: any) => {
+        sitesData.forEach((s) => {
           if (s.companyName) {
-            const existing = companyMap.get(s.companyName) || { name: s.companyName, siteCount: 0 };
+            const existing = companyMap.get(s.companyName) ?? { name: s.companyName, siteCount: 0 };
             existing.siteCount++;
             companyMap.set(s.companyName, existing);
           }
         });
 
-        // Assigned cases (for consultant) or all open cases (for admin)
-        let casesData: any[] = [];
-        if (user.role === "consultant" && assignedSiteIds) {
-          if (assignedSiteIds.length > 0) {
-            const placeholders = assignedSiteIds.map((_: any, i: number) => `$${i + 1}`).join(",");
-            const casesRes = await pool.query(
-              `SELECT ca.id, ca.case_reference, ca.employee_name, c.name as company_name, ca.status FROM cases ca LEFT JOIN sites s ON ca.site_id = s.id LEFT JOIN companies c ON s.entity_id = c.id WHERE ca.site_id IN (${placeholders}) AND ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false LIMIT 50`,
-              assignedSiteIds
-            );
-            casesData = casesRes.rows;
-          }
+        type CaseRow = { id: string; case_reference: string; employee_name: string; company_name: string | null; status: string };
+        let casesData: CaseRow[] = [];
+        if (user.role === "consultant" && assignedSiteIds && assignedSiteIds.length > 0) {
+          const placeholders = assignedSiteIds.map((_, i) => `$${i + 1}`).join(",");
+          const casesRes = await pool.query<CaseRow>(
+            `SELECT ca.id, ca.case_reference, ca.employee_name, c.name as company_name, ca.status FROM cases ca LEFT JOIN sites s ON ca.site_id = s.id LEFT JOIN companies c ON s.entity_id = c.id WHERE ca.site_id IN (${placeholders}) AND ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false LIMIT 50`,
+            assignedSiteIds
+          );
+          casesData = casesRes.rows;
         } else if (user.role === "admin") {
-          const casesRes = await pool.query(
+          const casesRes = await pool.query<CaseRow>(
             "SELECT ca.id, ca.case_reference, ca.employee_name, c.name as company_name, ca.status FROM cases ca LEFT JOIN sites s ON ca.site_id = s.id LEFT JOIN companies c ON s.entity_id = c.id WHERE ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false ORDER BY ca.created_at DESC LIMIT 50"
           );
           casesData = casesRes.rows;
         }
 
-        // Sources for this consultant (companies.sources is an array column)
         let sourcesData: string[] = [];
         try {
           if (user.role === "consultant" && assignedSiteIds && assignedSiteIds.length > 0) {
-            const placeholders = assignedSiteIds.map((_: any, i: number) => `$${i + 1}`).join(",");
-            const sourcesRes = await pool.query(
+            const placeholders = assignedSiteIds.map((_, i) => `$${i + 1}`).join(",");
+            const sourcesRes = await pool.query<{ src: string }>(
               `SELECT DISTINCT unnest(c.sources) as src FROM companies c JOIN sites s ON s.entity_id = c.id WHERE s.id IN (${placeholders})`,
               assignedSiteIds
             );
-            sourcesData = sourcesRes.rows.map((r: any) => r.src).filter(Boolean);
+            sourcesData = sourcesRes.rows.map((r) => r.src).filter(Boolean);
           }
-        } catch { /* skip if fails */ }
+        } catch { /* skip if company has no sources column populated */ }
 
         portfolio = {
           assignedCompanies: Array.from(companyMap.entries()).map(([name, v]) => ({ name, siteCount: v.siteCount })),
           assignedSites: sitesData.slice(0, 20),
-          assignedCases: casesData.map((c: any) => ({
+          assignedCases: casesData.map((c) => ({
             id: c.id,
             reference: c.case_reference,
             employeeName: c.employee_name,
@@ -15214,23 +15228,25 @@ export async function registerRoutes(
           sources: sourcesData,
         };
       } else {
-        // Client portfolio: primary consultant + their site
+        // Client portfolio: primary consultant + company info
         const clientSites = await storage.getClientSites(user.id);
         let primaryConsultant: { id: string; name: string } | null = null;
         if (clientSites.length > 0) {
-          const siteId = clientSites[0].siteId;
-          const assignments = await storage.getConsultantAssignments(siteId);
-          const primary = assignments.find((a) => a.isPrimary) || assignments[0];
+          const assignments = await storage.getConsultantAssignments(clientSites[0].siteId);
+          const primary = assignments.find((a) => a.isPrimary) ?? assignments[0];
           if (primary) {
             const consultant = await storage.getUser(primary.consultantId);
             if (consultant) primaryConsultant = { id: consultant.id, name: consultant.fullName };
           }
         }
-        let siteInfo: { id: string; name: string; companyName?: string } | null = null;
+        let siteInfo: { id: string; name: string } | null = null;
         if (user.companyId) {
-          const companyRes = await pool.query("SELECT id, name FROM companies WHERE id = $1", [user.companyId]);
+          const companyRes = await pool.query<{ id: string; name: string }>(
+            "SELECT id, name FROM companies WHERE id = $1",
+            [user.companyId]
+          );
           if (companyRes.rows.length > 0) {
-            siteInfo = { id: user.companyId, name: companyRes.rows[0].name };
+            siteInfo = { id: companyRes.rows[0].id, name: companyRes.rows[0].name };
           }
         }
         portfolio = { site: siteInfo, primaryConsultant };
@@ -15242,8 +15258,8 @@ export async function registerRoutes(
       // Pending module access requests (admin only)
       let pendingAccessRequests = 0;
       if (user.role === "admin") {
-        const accessRes = await pool.query(
-          "SELECT COUNT(*) FROM module_access_requests WHERE status = 'pending'"
+        const accessRes = await pool.query<{ count: string }>(
+          "SELECT COUNT(*) as count FROM module_access_requests WHERE status = 'pending'"
         );
         pendingAccessRequests = parseInt(accessRes.rows[0].count ?? "0", 10);
       }
@@ -15253,7 +15269,7 @@ export async function registerRoutes(
           overdueDocuments: overdueCount,
           reviewRequiredDocuments: reviewCount,
           pendingApprovals: pendingCount,
-          openIncidents: openIncidentRows.length,
+          openIncidents: openIncidentCount,
           pendingSignOffs,
           pendingAccessRequests,
         },

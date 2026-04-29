@@ -1114,6 +1114,14 @@
           "category": "fix",
           "createdAt": "2026-04-29T13:40:58.560735Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "930c8661-781e-4917-aee9-7dd02aa4b1d5",
+          "patch": 6,
+          "message": "Fix home page review issues: type badge + correct colors on portal message cards, publishedAt defaults to now in admin form, typed SQL in home-summary route (remove as any), client incidents filter by reported_by, parameterized role SQL in storage",
+          "category": "fix",
+          "createdAt": "2026-04-29T13:46:40.495315Z",
+          "createdBy": "agent"
         }
       ]
     }
