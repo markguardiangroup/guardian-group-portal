@@ -1234,6 +1234,14 @@
           "category": "feature",
           "createdAt": "2026-04-29T14:56:48.061183Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "6fcd3290-aceb-423f-ad10-742bd93eb1c6",
+          "patch": 6,
+          "message": "Site-level Required Documents: inherited docs now show a strikethrough \"Not required at this site\" state (matching company-level behavior) when marked with X, with a RotateCcw restore button to reinstate them; Manage Requirements dialog updated to reflect excluded-but-inherited state correctly.",
+          "category": "feature",
+          "createdAt": "2026-04-29T15:32:35.577707Z",
+          "createdBy": "agent"
         }
       ]
     }

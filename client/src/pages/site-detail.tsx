@@ -65,6 +65,7 @@ import {
   X,
   UserCheck,
   Clock,
+  RotateCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -974,9 +975,13 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
   const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
-  const effectiveRows: Array<{ templateId: string; source: "company" | "site" | "company-removed" }> = [
+  const effectiveRows: Array<{ templateId: string; source: "company" | "site" | "company-removed" | "company-excluded" }> = [
     ...[...companyRequiredIds].filter(id => !excludedIds.has(id)).map(id => ({ templateId: id, source: "company" as const })),
     ...[...includedIds].filter(id => !companyRequiredIds.has(id)).map(id => ({ templateId: id, source: "site" as const })),
+    // Inherited docs that have been excluded at this site — show as
+    // "not required at this site" with a restore option (same pattern as
+    // company-level soft-removal, but scoped to this site only).
+    ...[...companyRequiredIds].filter(id => excludedIds.has(id)).map(id => ({ templateId: id, source: "company-excluded" as const })),
     // Append soft-removed inherited rows last so the active list stays at
     // the top. Skip ones already site-excluded to avoid double-display.
     ...softRemovedCompanyRequired
@@ -1033,6 +1038,8 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
 
   const effectiveIds = new Set(effectiveRows.map(r => r.templateId));
   const effectiveSourceMap = new Map(effectiveRows.map(r => [r.templateId, r.source]));
+  // For the manage dialog, only pre-check actively required rows (not site-excluded ones)
+  const activeEffectiveIds = new Set(effectiveRows.filter(r => r.source !== "company-excluded").map(r => r.templateId));
   const allPrivateActiveForSite = allTemplates.filter(t =>
     t.isActive && t.visibility === "private" && enabledModules.includes(t.module)
   );
@@ -1040,8 +1047,9 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   const handleSaveSelected = async () => {
     setIsSavingReqs(true);
     try {
-      const toAdd = allPrivateActiveForSite.filter(t => addSelectedIds.has(t.id) && !effectiveIds.has(t.id));
-      const toRemove = effectiveRows.filter(r => !addSelectedIds.has(r.templateId));
+      const toAdd = allPrivateActiveForSite.filter(t => addSelectedIds.has(t.id) && !activeEffectiveIds.has(t.id));
+      // Skip company-excluded rows in toRemove — they're already excluded; changing them is handled by the restore button
+      const toRemove = effectiveRows.filter(r => !addSelectedIds.has(r.templateId) && r.source !== "company-excluded");
       if (toAdd.length === 0 && toRemove.length === 0) { closeAddDialog(); return; }
       await Promise.all([
         ...toAdd.map(t => {
@@ -1081,7 +1089,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
             This list overrides the company-level requirements for this site. Adding a document here requires it only at this site; removing a company requirement excludes it from this site's compliance score only.
           </p>
         </div>
-        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else { setAddOpen(true); setAddSelectedIds(new Set(effectiveIds)); } }}>
+        <Dialog open={addOpen} onOpenChange={v => { if (!v) closeAddDialog(); else { setAddOpen(true); setAddSelectedIds(new Set(activeEffectiveIds)); } }}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-requirement">
               <Plus className="mr-2 h-4 w-4" />
@@ -1138,7 +1146,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                                     className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
                                   >
                                     {t.name}
-                                    {source === "company" && (
+                                    {(source === "company" || source === "company-excluded") && (
                                       <Badge variant="outline" className="text-xs">Company</Badge>
                                     )}
                                     {t.requiresApproval && (
@@ -1189,30 +1197,41 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                 if (!tmpl) return null;
                 const ModIcon = MODULE_ICON[tmpl.module] || FileText;
                 const isPending = addOverrideMutation.isPending || removeOverrideMutation.isPending;
-                // Soft-removed inherited rows: parent group dropped this
-                // template. Render struck-through with no remove button —
-                // re-adding at the group level reactivates it automatically.
+                // company-removed: parent group dropped this template globally
                 const isSoftRemoved = source === "company-removed";
+                // company-excluded: this site has marked the inherited requirement as not needed here
+                const isSiteExcluded = source === "company-excluded";
+                const isDimmed = isSoftRemoved || isSiteExcluded;
                 return (
                   <div
                     key={templateId}
-                    className={`flex items-center gap-3 px-4 py-3 ${isSoftRemoved ? "opacity-60" : ""}`}
+                    className={`flex items-center gap-3 px-4 py-3 ${isDimmed ? "opacity-60" : ""}`}
                     data-testid={`row-required-${templateId}`}
                   >
                     <div className="p-1.5 rounded-md bg-muted shrink-0">
                       <ModIcon className={`h-4 w-4 ${MODULE_COLOR[tmpl.module] || ""}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${isSoftRemoved ? "line-through text-muted-foreground" : ""}`}>
+                      <p className={`text-sm font-medium truncate ${isDimmed ? "line-through text-muted-foreground" : ""}`}>
                         {tmpl.name}
                       </p>
-                      <p className={`text-xs ${isSoftRemoved ? "text-muted-foreground" : MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
+                      <p className={`text-xs ${isDimmed ? "text-muted-foreground" : MODULE_COLOR[tmpl.module] || "text-muted-foreground"}`}>
                         {isSoftRemoved
                           ? "No longer required by parent group"
-                          : MODULE_LABELS[tmpl.module] || tmpl.module}
+                          : isSiteExcluded
+                            ? "Not required at this site"
+                            : MODULE_LABELS[tmpl.module] || tmpl.module}
                       </p>
                     </div>
-                    {(source === "company" || source === "company-removed") ? (
+                    {source === "site" ? (
+                      <Badge
+                        variant="outline"
+                        className="text-xs shrink-0 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                        data-testid={`badge-site-only-${templateId}`}
+                      >
+                        Site Only
+                      </Badge>
+                    ) : (
                       <Badge
                         variant="outline"
                         className="text-xs shrink-0 flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
@@ -1221,32 +1240,38 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                         <Building2 className="h-3 w-3" />
                         Inherited
                       </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-xs shrink-0 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-                        data-testid={`badge-site-only-${templateId}`}
-                      >
-                        Site Only
-                      </Badge>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemove(templateId, isSoftRemoved ? "company" : (source as "company" | "site"))}
-                      disabled={isPending}
-                      title={
-                        isSoftRemoved
-                          ? "Hide this entry from this site"
-                          : source === "company"
-                            ? "Remove from this site"
-                            : "Remove requirement"
-                      }
-                      data-testid={`button-remove-requirement-${templateId}`}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    {isSiteExcluded ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-emerald-600"
+                        onClick={() => removeOverrideMutation.mutate(templateId)}
+                        disabled={isPending}
+                        title="Restore — make required at this site again"
+                        data-testid={`button-restore-requirement-${templateId}`}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleRemove(templateId, isSoftRemoved ? "company" : (source as "company" | "site"))}
+                        disabled={isPending}
+                        title={
+                          isSoftRemoved
+                            ? "Hide this entry from this site"
+                            : source === "company"
+                              ? "Mark as not required at this site"
+                              : "Remove requirement"
+                        }
+                        data-testid={`button-remove-requirement-${templateId}`}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 );
               })}
