@@ -445,7 +445,69 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
   );
 }
 
+type PortalMessage = HomeSummary["portalMessages"][0];
+
+function PortalMessageModal({
+  message,
+  onClose,
+}: {
+  message: PortalMessage | null;
+  onClose: () => void;
+}) {
+  if (!message) return null;
+  const config = messageTypeConfig[message.type] ?? messageTypeConfig.update;
+  const Icon = config.icon;
+
+  return (
+    <Dialog open={!!message} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-xl p-0 overflow-hidden" data-testid="modal-portal-message">
+        {/* Gradient header */}
+        <div className={`relative overflow-hidden bg-gradient-to-br ${config.gradient} px-6 pt-6 pb-5 text-white`}>
+          <Icon className="absolute -right-4 -top-4 h-28 w-28 opacity-[0.08] rotate-12" />
+          <div className="relative">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
+                <Icon className="h-3.5 w-3.5 text-white" />
+              </div>
+              <span className={`text-xs font-semibold uppercase tracking-widest ${config.accentText}`}>
+                {config.label}
+              </span>
+              {message.pinned && (
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
+                  Featured
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl font-bold leading-snug pr-8">{message.title}</h2>
+            {message.publishedAt && (
+              <p className={`text-xs mt-1 ${config.accentText}`}>
+                {format(new Date(message.publishedAt), "d MMMM yyyy")}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Full body */}
+        <div className="px-6 py-5">
+          <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">
+            {message.body}
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 px-6 pb-5 pt-1 border-t">
+          <Button variant="outline" size="sm" onClick={onClose} data-testid="modal-message-close">
+            Close
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PortalMessagesPanel({ messages }: { messages: HomeSummary["portalMessages"] }) {
+  const [selectedMessage, setSelectedMessage] = useState<PortalMessage | null>(null);
+
   if (messages.length === 0) return null;
 
   const pinned = messages.filter((m) => m.pinned);
@@ -487,6 +549,7 @@ function PortalMessagesPanel({ messages }: { messages: HomeSummary["portalMessag
               <div className="flex items-center gap-3 mt-5">
                 <button
                   type="button"
+                  onClick={() => setSelectedMessage(msg)}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/30 px-4 py-2 text-sm font-medium text-white transition-colors"
                   data-testid={`message-cta-${msg.id}`}
                 >
@@ -535,6 +598,7 @@ function PortalMessagesPanel({ messages }: { messages: HomeSummary["portalMessag
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
                     <button
                       type="button"
+                      onClick={() => setSelectedMessage(msg)}
                       className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                       data-testid={`message-cta-${msg.id}`}
                     >
@@ -553,6 +617,12 @@ function PortalMessagesPanel({ messages }: { messages: HomeSummary["portalMessag
           })}
         </div>
       )}
+
+      {/* Full-content modal */}
+      <PortalMessageModal
+        message={selectedMessage}
+        onClose={() => setSelectedMessage(null)}
+      />
     </div>
   );
 }
