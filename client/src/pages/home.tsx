@@ -47,12 +47,12 @@ interface HomeSummary {
     openIncidents: number;
     pendingSignOffs: number;
     pendingAccessRequests: number;
+    openCases: number;
   };
   portfolio:
     | {
         assignedCompanies: { name: string; siteCount: number }[];
         assignedSites: { id: string; name: string; companyName?: string; isPrimary?: boolean }[];
-        assignedCases: { id: string; reference: string; employeeName: string; companyName: string; status: string }[];
         sources: string[];
       }
     | {
@@ -144,6 +144,7 @@ const actionTypeConfig: Record<string, { label: string; listLabel: string; navHr
   open_incidents: { label: "Open Incidents", listLabel: "open incidents", navHref: "/health-safety/incidents" },
   pending_sign_offs: { label: "Pending Sign-offs", listLabel: "documents awaiting your sign-off", navHref: "/documents" },
   access_requests: { label: "Access Requests", listLabel: "pending access requests", navHref: "/companies" },
+  open_cases: { label: "Open Cases", listLabel: "open cases", navHref: "/employment-law/cases" },
 };
 
 const badgeColorClass: Record<string, string> = {
@@ -153,6 +154,7 @@ const badgeColorClass: Record<string, string> = {
   orange: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
   violet: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
   indigo: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+  teal: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
 };
 
 function UrgentActionsPanel({
@@ -234,6 +236,17 @@ function UrgentActionsPanel({
       border: "border-indigo-200 dark:border-indigo-800",
       severity: "medium",
     },
+    {
+      show: isPrivileged,
+      count: actions.openCases ?? 0,
+      type: "open_cases",
+      label: "Open Cases",
+      icon: Briefcase,
+      color: "text-teal-600 dark:text-teal-400",
+      bg: "bg-teal-50 dark:bg-teal-950/20",
+      border: "border-teal-200 dark:border-teal-800",
+      severity: "medium",
+    },
   ].filter((i) => i.show);
 
   const totalUrgent = items.filter((i) => i.severity === "high").reduce((s, i) => s + i.count, 0);
@@ -299,13 +312,11 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
     const p = portfolio as {
       assignedCompanies: { name: string; siteCount: number }[];
       assignedSites: { id: string; name: string; companyName?: string; isPrimary?: boolean }[];
-      assignedCases: { id: string; reference: string; employeeName: string; companyName: string; status: string }[];
       sources: string[];
     };
 
     const totalCompanies = p.assignedCompanies.length;
     const totalSites = p.assignedSites.length;
-    const totalCases = p.assignedCases.length;
 
     return (
       <Card data-testid="card-portfolio" className="h-full flex flex-col">
@@ -317,7 +328,7 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
         </CardHeader>
         <CardContent className="flex-1 flex flex-col gap-4">
           {/* Summary stats */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-companies">
               <p className="text-xl font-bold tabular-nums">{totalCompanies}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
@@ -330,13 +341,6 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
                 <MapPin className="h-3 w-3" />
                 {totalSites === 1 ? "Site" : "Sites"}
-              </p>
-            </div>
-            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-cases">
-              <p className="text-xl font-bold tabular-nums">{totalCases}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-                <TrendingUp className="h-3 w-3" />
-                {totalCases === 1 ? "Case" : "Cases"}
               </p>
             </div>
           </div>

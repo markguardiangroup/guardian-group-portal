@@ -15221,13 +15221,6 @@ export async function registerRoutes(
         portfolio = {
           assignedCompanies: Array.from(companyMap.entries()).map(([name, v]) => ({ name, siteCount: v.siteCount })),
           assignedSites: sitesData.slice(0, 20),
-          assignedCases: casesData.map((c) => ({
-            id: c.id,
-            reference: c.case_reference,
-            employeeName: c.employee_name,
-            companyName: c.company_name,
-            status: c.status,
-          })),
           sources: sourcesData,
         };
       } else {
@@ -15267,6 +15260,28 @@ export async function registerRoutes(
         pendingAccessRequests = parseInt(accessRes.rows[0].count ?? "0", 10);
       }
 
+      // Open cases count (admin/consultant only)
+      let openCasesCount = 0;
+      if (isPrivileged) {
+        const portfolio2 = portfolio as { assignedSites?: { id: string }[] } | null;
+        const siteIds2 = user.role === "consultant" && portfolio2
+          ? (portfolio2.assignedSites ?? []).map((s) => s.id)
+          : null;
+        if (user.role === "admin") {
+          const r = await pool.query<{ count: string }>(
+            "SELECT COUNT(*) as count FROM cases WHERE status NOT IN ('closed','withdrawn') AND is_archived = false"
+          );
+          openCasesCount = parseInt(r.rows[0].count ?? "0", 10);
+        } else if (siteIds2 && siteIds2.length > 0) {
+          const placeholders = siteIds2.map((_, i) => `$${i + 1}`).join(",");
+          const r = await pool.query<{ count: string }>(
+            `SELECT COUNT(*) as count FROM cases WHERE site_id IN (${placeholders}) AND status NOT IN ('closed','withdrawn') AND is_archived = false`,
+            siteIds2
+          );
+          openCasesCount = parseInt(r.rows[0].count ?? "0", 10);
+        }
+      }
+
       res.json({
         urgentActions: {
           overdueDocuments: overdueCount,
@@ -15275,6 +15290,7 @@ export async function registerRoutes(
           openIncidents: openIncidentCount,
           pendingSignOffs,
           pendingAccessRequests,
+          openCases: openCasesCount,
         },
         portfolio,
         portalMessages: messages,
@@ -15389,6 +15405,32 @@ export async function registerRoutes(
           href: `/health-safety/incidents/${row.id}`,
           badge: row.severity ?? row.status ?? null,
           badgeColor: row.severity === "high" || row.severity === "critical" ? "red" : "orange",
+        }));
+
+      } else if (type === "open_cases" && isPrivileged) {
+        let userSiteIdsForCases: string[] | null = userSiteIds;
+        const params: unknown[] = [];
+        let query = `
+          SELECT ca.id, ca.case_reference, ca.employee_name, ca.status, c.name as company_name
+          FROM cases ca
+          LEFT JOIN sites s ON ca.site_id = s.id
+          LEFT JOIN companies c ON s.entity_id = c.id
+          WHERE ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false
+        `;
+        if (user.role === "consultant" && userSiteIdsForCases && userSiteIdsForCases.length > 0) {
+          params.push(userSiteIdsForCases);
+          query += ` AND ca.site_id = ANY($${params.length}::varchar[])`;
+        }
+        query += " ORDER BY ca.created_at DESC LIMIT 50";
+        type CaseItemRow = { id: string; case_reference: string; employee_name: string; status: string; company_name: string | null };
+        const result = await pool.query<CaseItemRow>(query, params);
+        items = result.rows.map((row) => ({
+          id: row.id,
+          label: `${row.case_reference} — ${row.employee_name}`,
+          subLabel: row.company_name ?? null,
+          href: `/employment-law/cases/${row.id}`,
+          badge: row.status.replace(/_/g, " "),
+          badgeColor: row.status === "open" || row.status === "active" ? "teal" : "amber",
         }));
 
       } else if (type === "access_requests" && user.role === "admin") {

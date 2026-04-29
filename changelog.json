@@ -1210,6 +1210,14 @@
           "category": "fix",
           "createdAt": "2026-04-29T14:30:25.508982+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "834541c6-172a-409f-96a6-0cc3f0ca2e31",
+          "patch": 6,
+          "message": "Move cases out of My Portfolio: remove Cases stat tile from portfolio card; add Open Cases urgent action row (admin/consultant) with teal styling and drill-down modal linking to /employment-law/cases",
+          "category": "feature",
+          "createdAt": "2026-04-29T14:46:32.418290+00:00",
+          "createdBy": "agent"
         }
       ]
     }
