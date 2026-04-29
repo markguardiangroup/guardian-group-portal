@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, lazy, Suspense, type ComponentType } from "react";
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -161,7 +161,7 @@ function Router() {
     <CanonicalTag />
     <Suspense fallback={<RouteFallback />}>
     <Switch>
-      <Route path="/" component={HomePage} />
+      <Route path="/">{() => <Redirect to="/home" />}</Route>
       <Route path="/home" component={HomePage} />
       <Route path="/dashboard" component={Dashboard} />
       

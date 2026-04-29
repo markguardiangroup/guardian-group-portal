@@ -4,7 +4,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -30,6 +29,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { format } from "date-fns";
 import {
   Plus,
@@ -51,17 +58,32 @@ const MESSAGE_TYPES = [
   { value: "news", label: "News" },
 ];
 
-const TARGET_ROLES = [
-  { value: "admin", label: "Admins" },
-  { value: "consultant", label: "Consultants" },
-  { value: "client", label: "Clients" },
+type AudienceOption = "all" | "clients_only" | "consultants_only";
+
+const AUDIENCE_OPTIONS: { value: AudienceOption; label: string }[] = [
+  { value: "all", label: "All users" },
+  { value: "clients_only", label: "Clients only" },
+  { value: "consultants_only", label: "Consultants only" },
 ];
+
+function audienceFromRoles(roles: string[] | null | undefined): AudienceOption {
+  if (!roles || roles.length === 0) return "all";
+  if (roles.includes("client") && !roles.includes("consultant")) return "clients_only";
+  if (roles.includes("consultant") && !roles.includes("client")) return "consultants_only";
+  return "all";
+}
+
+function rolesToAudience(audience: AudienceOption): string[] {
+  if (audience === "clients_only") return ["client"];
+  if (audience === "consultants_only") return ["consultant"];
+  return [];
+}
 
 interface MessageFormData {
   title: string;
   body: string;
   type: string;
-  targetRoles: string[];
+  audience: AudienceOption;
   status: "draft" | "published";
   pinned: boolean;
   publishedAt: string | null;
@@ -72,12 +94,18 @@ const emptyForm = (): MessageFormData => ({
   title: "",
   body: "",
   type: "update",
-  targetRoles: [],
+  audience: "all",
   status: "draft",
   pinned: false,
   publishedAt: null,
   expiresAt: null,
 });
+
+type QuickTogglePayload = {
+  status?: "draft" | "published";
+  publishedAt?: string | null;
+  pinned?: boolean;
+};
 
 export default function AdminPortalMessages() {
   const { user } = useAuth();
@@ -97,47 +125,35 @@ export default function AdminPortalMessages() {
     queryKey: ["/api/portal-messages"],
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/portal-messages"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+  };
+
   const createMutation = useMutation({
-    mutationFn: (data: MessageFormData) => apiRequest("POST", "/api/portal-messages", data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portal-messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
-      toast({ title: "Message created" });
-      setDialogOpen(false);
-    },
+    mutationFn: (data: Omit<MessageFormData, "audience"> & { targetRoles: string[] }) =>
+      apiRequest("POST", "/api/portal-messages", data),
+    onSuccess: () => { invalidate(); toast({ title: "Message created" }); setDialogOpen(false); },
     onError: () => toast({ title: "Failed to create message", variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: MessageFormData }) =>
+    mutationFn: ({ id, data }: { id: string; data: Omit<MessageFormData, "audience"> & { targetRoles: string[] } }) =>
       apiRequest("PATCH", `/api/portal-messages/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portal-messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
-      toast({ title: "Message updated" });
-      setDialogOpen(false);
-    },
+    onSuccess: () => { invalidate(); toast({ title: "Message updated" }); setDialogOpen(false); },
     onError: () => toast({ title: "Failed to update message", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/portal-messages/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portal-messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
-      toast({ title: "Message deleted" });
-      setDeleteId(null);
-    },
+    onSuccess: () => { invalidate(); toast({ title: "Message deleted" }); setDeleteId(null); },
     onError: () => toast({ title: "Failed to delete message", variant: "destructive" }),
   });
 
   const quickToggleMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<MessageFormData> }) =>
+    mutationFn: ({ id, data }: { id: string; data: QuickTogglePayload }) =>
       apiRequest("PATCH", `/api/portal-messages/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portal-messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
-    },
+    onSuccess: invalidate,
   });
 
   function openCreate() {
@@ -152,7 +168,7 @@ export default function AdminPortalMessages() {
       title: msg.title,
       body: msg.body,
       type: msg.type,
-      targetRoles: msg.targetRoles ?? [],
+      audience: audienceFromRoles(msg.targetRoles),
       status: msg.status as "draft" | "published",
       pinned: msg.pinned,
       publishedAt: msg.publishedAt ? format(new Date(msg.publishedAt), "yyyy-MM-dd'T'HH:mm") : null,
@@ -166,9 +182,13 @@ export default function AdminPortalMessages() {
       toast({ title: "Title and body are required", variant: "destructive" });
       return;
     }
+    const { audience, ...rest } = form;
     const payload = {
-      ...form,
-      publishedAt: form.publishedAt ? new Date(form.publishedAt).toISOString() : (form.status === "published" ? new Date().toISOString() : null),
+      ...rest,
+      targetRoles: rolesToAudience(audience),
+      publishedAt: form.publishedAt
+        ? new Date(form.publishedAt).toISOString()
+        : form.status === "published" ? new Date().toISOString() : null,
       expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
     };
     if (editingId) {
@@ -178,19 +198,10 @@ export default function AdminPortalMessages() {
     }
   }
 
-  const toggleRole = (role: string) => {
-    setForm((f) => ({
-      ...f,
-      targetRoles: f.targetRoles.includes(role)
-        ? f.targetRoles.filter((r) => r !== role)
-        : [...f.targetRoles, role],
-    }));
-  };
-
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="p-6 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -208,122 +219,124 @@ export default function AdminPortalMessages() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardContent className="pt-4">
-                <Skeleton className="h-5 w-48 mb-2" />
-                <Skeleton className="h-4 w-full" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>
       ) : messages.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <Megaphone className="h-10 w-10 text-muted-foreground" />
-            <p className="font-medium">No messages yet</p>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Create your first portal message to broadcast to users on the home page.
-            </p>
-            <Button onClick={openCreate} variant="outline">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Message
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center gap-3 py-16 text-center">
+          <Megaphone className="h-10 w-10 text-muted-foreground" />
+          <p className="font-medium">No messages yet</p>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            Create your first portal message to broadcast to users on the home page.
+          </p>
+          <Button onClick={openCreate} variant="outline">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Message
+          </Button>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {messages.map((msg) => (
-            <Card
-              key={msg.id}
-              className={msg.pinned ? "border-primary/40 ring-1 ring-primary/20" : ""}
-              data-testid={`card-message-${msg.id}`}
-            >
-              <CardContent className="pt-4 pb-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1">
-                      {msg.pinned && <Pin className="h-3.5 w-3.5 text-primary shrink-0" />}
-                      <span className="font-semibold text-sm">{msg.title}</span>
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[280px]">Title</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Audience</TableHead>
+                <TableHead>Pinned</TableHead>
+                <TableHead>Published</TableHead>
+                <TableHead>Expires</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {messages.map((msg) => {
+                const audience = audienceFromRoles(msg.targetRoles);
+                const audienceLabel = AUDIENCE_OPTIONS.find((o) => o.value === audience)?.label ?? "All users";
+                return (
+                  <TableRow key={msg.id} data-testid={`row-message-${msg.id}`}>
+                    <TableCell className="font-medium max-w-[280px]">
+                      <span className="line-clamp-1">{msg.title}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px] capitalize">{msg.type}</Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant={msg.status === "published" ? "default" : "secondary"}
-                        className="text-[10px] px-1.5"
+                        className="text-[10px]"
                         data-testid={`badge-status-${msg.id}`}
                       >
                         {msg.status === "published" ? "Published" : "Draft"}
                       </Badge>
-                      <Badge variant="outline" className="text-[10px] px-1.5">{msg.type}</Badge>
-                      {msg.targetRoles && msg.targetRoles.length > 0 && msg.targetRoles.map((r) => (
-                        <Badge key={r} variant="outline" className="text-[10px] px-1.5">{r}</Badge>
-                      ))}
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{msg.body}</p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      {msg.publishedAt && (
-                        <span className="text-xs text-muted-foreground">
-                          Published {format(new Date(msg.publishedAt), "d MMM yyyy")}
-                        </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{audienceLabel}</TableCell>
+                    <TableCell>
+                      {msg.pinned ? (
+                        <Pin className="h-3.5 w-3.5 text-primary" />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
-                      {msg.expiresAt && (
-                        <span className="text-xs text-muted-foreground">
-                          Expires {format(new Date(msg.expiresAt), "d MMM yyyy")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={msg.status === "published" ? "Unpublish" : "Publish"}
-                      onClick={() =>
-                        quickToggleMutation.mutate({
-                          id: msg.id,
-                          data: {
-                            status: msg.status === "published" ? "draft" : "published",
-                            publishedAt: msg.status !== "published" ? new Date().toISOString() : null,
-                          } as any,
-                        })
-                      }
-                      data-testid={`button-toggle-publish-${msg.id}`}
-                    >
-                      {msg.status === "published" ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title={msg.pinned ? "Unpin" : "Pin"}
-                      onClick={() => quickToggleMutation.mutate({ id: msg.id, data: { pinned: !msg.pinned } as any })}
-                      data-testid={`button-toggle-pin-${msg.id}`}
-                    >
-                      <Pin className={`h-4 w-4 ${msg.pinned ? "text-primary" : ""}`} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => openEdit(msg)}
-                      data-testid={`button-edit-${msg.id}`}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(msg.id)}
-                      data-testid={`button-delete-${msg.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {msg.publishedAt ? format(new Date(msg.publishedAt), "d MMM yyyy") : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                      {msg.expiresAt ? format(new Date(msg.expiresAt), "d MMM yyyy") : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title={msg.status === "published" ? "Unpublish" : "Publish"}
+                          onClick={() => {
+                            const payload: QuickTogglePayload =
+                              msg.status === "published"
+                                ? { status: "draft", publishedAt: null }
+                                : { status: "published", publishedAt: new Date().toISOString() };
+                            quickToggleMutation.mutate({ id: msg.id, data: payload });
+                          }}
+                          data-testid={`button-toggle-publish-${msg.id}`}
+                        >
+                          {msg.status === "published" ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title={msg.pinned ? "Unpin" : "Pin"}
+                          onClick={() => quickToggleMutation.mutate({ id: msg.id, data: { pinned: !msg.pinned } })}
+                          data-testid={`button-toggle-pin-${msg.id}`}
+                        >
+                          <Pin className={`h-3.5 w-3.5 ${msg.pinned ? "text-primary" : ""}`} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => openEdit(msg)}
+                          data-testid={`button-edit-${msg.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteId(msg.id)}
+                          data-testid={`button-delete-${msg.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -386,21 +399,20 @@ export default function AdminPortalMessages() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Target Roles (empty = all roles)</Label>
-              <div className="flex gap-2">
-                {TARGET_ROLES.map((r) => (
-                  <Button
-                    key={r.value}
-                    variant={form.targetRoles.includes(r.value) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => toggleRole(r.value)}
-                    type="button"
-                    data-testid={`button-role-${r.value}`}
-                  >
-                    {r.label}
-                  </Button>
-                ))}
-              </div>
+              <Label>Target Audience</Label>
+              <Select
+                value={form.audience}
+                onValueChange={(v: AudienceOption) => setForm((f) => ({ ...f, audience: v }))}
+              >
+                <SelectTrigger data-testid="select-message-audience">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUDIENCE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

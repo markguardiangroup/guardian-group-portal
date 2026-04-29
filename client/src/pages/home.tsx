@@ -25,6 +25,7 @@ import {
   GraduationCap,
   FileCheck,
   UserCheck,
+  KeyRound,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -34,6 +35,7 @@ interface HomeSummary {
     pendingApprovals: number;
     openIncidents: number;
     pendingSignOffs: number;
+    pendingAccessRequests: number;
   };
   portfolio:
     | {
@@ -72,6 +74,7 @@ function UrgentActionsPanel({
   actions: HomeSummary["urgentActions"];
   role: string;
 }) {
+  const isAdmin = role === "admin";
   const isPrivileged = role === "admin" || role === "consultant";
   const items = [
     {
@@ -82,7 +85,7 @@ function UrgentActionsPanel({
       color: "text-red-600 dark:text-red-400",
       bg: "bg-red-50 dark:bg-red-950/20",
       border: "border-red-200 dark:border-red-800",
-      href: isPrivileged ? "/documents" : null,
+      href: "/documents",
       severity: "high",
     },
     {
@@ -93,7 +96,7 @@ function UrgentActionsPanel({
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-950/20",
       border: "border-amber-200 dark:border-amber-800",
-      href: isPrivileged ? "/documents" : null,
+      href: "/documents",
       severity: "medium",
     },
     {
@@ -126,7 +129,18 @@ function UrgentActionsPanel({
       color: "text-violet-600 dark:text-violet-400",
       bg: "bg-violet-50 dark:bg-violet-950/20",
       border: "border-violet-200 dark:border-violet-800",
-      href: null,
+      href: "/documents",
+      severity: "medium",
+    },
+    {
+      show: isAdmin,
+      count: actions.pendingAccessRequests ?? 0,
+      label: "Access Requests",
+      icon: KeyRound,
+      color: "text-indigo-600 dark:text-indigo-400",
+      bg: "bg-indigo-50 dark:bg-indigo-950/20",
+      border: "border-indigo-200 dark:border-indigo-800",
+      href: "/admin/access-requests",
       severity: "medium",
     },
   ].filter((i) => i.show);
@@ -387,9 +401,11 @@ export default function HomePage() {
     staleTime: 60000,
   });
 
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || user?.username || "";
+  const todayLabel = format(now, "EEEE, d MMMM yyyy");
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto" id="page-content">
@@ -399,7 +415,7 @@ export default function HomePage() {
           {greeting}{firstName ? `, ${firstName}` : ""}
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">
-          Here's what's happening across the portal today.
+          {todayLabel} · Here's what's happening across the portal.
         </p>
       </div>
 

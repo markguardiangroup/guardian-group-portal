@@ -5082,7 +5082,7 @@ export class MemStorage implements IStorage {
   }
 
   async updatePortalMessage(id: string, updates: Partial<PortalMessage>): Promise<PortalMessage | undefined> {
-    const { id: _id, createdAt, ...safeUpdates } = updates as any;
+    const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...safeUpdates } = updates;
     const [row] = await db.update(portalMessagesTable)
       .set({ ...safeUpdates, updatedAt: new Date() })
       .where(eq(portalMessagesTable.id, id))

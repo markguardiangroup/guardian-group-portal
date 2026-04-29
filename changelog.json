@@ -1106,6 +1106,14 @@
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962927+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "5b3e9414-9095-4861-bfdb-6349370cc274",
+          "patch": 6,
+          "message": "Fix home page: / redirect to /home, date in greeting, client doc links, admin access requests count, portal messages table layout, audience selector, remove as-any casts",
+          "category": "fix",
+          "createdAt": "2026-04-29T13:40:58.560735Z",
+          "createdBy": "agent"
         }
       ]
     }

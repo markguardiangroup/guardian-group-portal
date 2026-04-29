@@ -15239,6 +15239,15 @@ export async function registerRoutes(
       // Portal messages visible to this user
       const messages = await storage.getPortalMessages({ publishedOnly: true, role: user.role });
 
+      // Pending module access requests (admin only)
+      let pendingAccessRequests = 0;
+      if (user.role === "admin") {
+        const accessRes = await pool.query(
+          "SELECT COUNT(*) FROM module_access_requests WHERE status = 'pending'"
+        );
+        pendingAccessRequests = parseInt(accessRes.rows[0].count ?? "0", 10);
+      }
+
       res.json({
         urgentActions: {
           overdueDocuments: overdueCount,
@@ -15246,6 +15255,7 @@ export async function registerRoutes(
           pendingApprovals: pendingCount,
           openIncidents: openIncidentRows.length,
           pendingSignOffs,
+          pendingAccessRequests,
         },
         portfolio,
         portalMessages: messages,
