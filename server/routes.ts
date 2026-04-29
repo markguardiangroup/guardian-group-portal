@@ -15122,7 +15122,10 @@ export async function registerRoutes(
       const overdueCount = activeDocs.filter((d) => d.status === "overdue").length;
       const reviewCount = activeDocs.filter((d) => d.status === "review_required").length;
       const pendingCount = activeDocs.filter((d) => d.approvalStatus === "pending").length;
-      const pendingSignOffs = activeDocs.filter((d) => d.approvalStatus === "client_signed_off").length;
+      // Docs awaiting THIS client's sign-off: pending status, uploaded by someone else (consultant/admin)
+      const pendingSignOffs = user.role === "client"
+        ? activeDocs.filter((d) => d.approvalStatus === "pending" && d.uploadedBy !== user.id).length
+        : 0;
 
       // Incidents — clients see only incidents they reported
       let openIncidentCount = 0;
