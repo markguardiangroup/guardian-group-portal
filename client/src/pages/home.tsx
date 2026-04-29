@@ -35,6 +35,8 @@ import {
   ExternalLink,
   Building2,
   TrendingUp,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -82,12 +84,54 @@ interface ItemsResponse {
   items: SummaryItem[];
 }
 
-const messageTypeConfig: Record<string, { label: string; icon: typeof Megaphone; color: string }> = {
-  update: { label: "Update", icon: Megaphone, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-  feature: { label: "New Feature", icon: CheckCircle, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" },
-  training: { label: "Training", icon: GraduationCap, color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" },
-  guidance: { label: "Guidance", icon: BookOpen, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-  news: { label: "News", icon: Newspaper, color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+const messageTypeConfig: Record<string, {
+  label: string;
+  icon: typeof Megaphone;
+  color: string;
+  gradient: string;
+  accentText: string;
+  cardTop: string;
+}> = {
+  update: {
+    label: "Update",
+    icon: Megaphone,
+    color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+    gradient: "from-blue-600 to-blue-800",
+    accentText: "text-blue-200",
+    cardTop: "from-blue-500 to-blue-700",
+  },
+  feature: {
+    label: "New Feature",
+    icon: Sparkles,
+    color: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+    gradient: "from-purple-600 to-violet-700",
+    accentText: "text-purple-200",
+    cardTop: "from-purple-500 to-violet-600",
+  },
+  training: {
+    label: "Training",
+    icon: GraduationCap,
+    color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    gradient: "from-teal-600 to-emerald-700",
+    accentText: "text-teal-200",
+    cardTop: "from-teal-500 to-emerald-600",
+  },
+  guidance: {
+    label: "Guidance",
+    icon: BookOpen,
+    color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    gradient: "from-amber-500 to-orange-600",
+    accentText: "text-amber-200",
+    cardTop: "from-amber-400 to-orange-500",
+  },
+  news: {
+    label: "News",
+    icon: Newspaper,
+    color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+    gradient: "from-slate-600 to-slate-800",
+    accentText: "text-slate-300",
+    cardTop: "from-slate-500 to-slate-700",
+  },
 };
 
 const actionTypeConfig: Record<string, { label: string; listLabel: string; navHref: string }> = {
@@ -404,36 +448,111 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
 function PortalMessagesPanel({ messages }: { messages: HomeSummary["portalMessages"] }) {
   if (messages.length === 0) return null;
 
+  const pinned = messages.filter((m) => m.pinned);
+  const rest = messages.filter((m) => !m.pinned);
+
   return (
-    <div className="space-y-3" data-testid="panel-portal-messages">
-      {messages.slice(0, 5).map((msg) => {
+    <div className="space-y-4" data-testid="panel-portal-messages">
+
+      {/* ── Featured / pinned messages — hero banner ───────────────────────── */}
+      {pinned.map((msg) => {
         const config = messageTypeConfig[msg.type] ?? messageTypeConfig.update;
         const Icon = config.icon;
         return (
-          <Card key={msg.id} className={msg.pinned ? "border-primary/40 ring-1 ring-primary/20" : ""} data-testid={`message-${msg.id}`}>
-            <CardContent className="pt-4 pb-3 px-4">
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${config.color}`}>
-                  <Icon className="h-3.5 w-3.5" />
+          <div
+            key={msg.id}
+            className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${config.gradient} p-6 text-white shadow-md`}
+            data-testid={`message-${msg.id}`}
+          >
+            {/* Decorative background icon */}
+            <Icon className="absolute -right-5 -top-5 h-36 w-36 opacity-[0.08] rotate-12" />
+
+            <div className="relative">
+              {/* Type label + featured badge */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20">
+                  <Icon className="h-3.5 w-3.5 text-white" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    {msg.pinned && <Pin className="h-3 w-3 text-primary" />}
-                    <span className="text-sm font-semibold">{msg.title}</span>
-                    <Badge variant="secondary" className={`text-[10px] px-1.5 py-0 ${config.color}`}>{config.label}</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{msg.body}</p>
-                  {msg.publishedAt && (
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      {format(new Date(msg.publishedAt), "d MMM yyyy")}
-                    </p>
-                  )}
-                </div>
+                <span className={`text-xs font-semibold uppercase tracking-widest ${config.accentText}`}>
+                  {config.label}
+                </span>
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white">
+                  Featured
+                </span>
               </div>
-            </CardContent>
-          </Card>
+
+              <h3 className="text-xl font-bold leading-snug mb-2 max-w-xl">{msg.title}</h3>
+              <p className="text-sm text-white/80 leading-relaxed max-w-2xl line-clamp-3">{msg.body}</p>
+
+              <div className="flex items-center gap-3 mt-5">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 border border-white/30 px-4 py-2 text-sm font-medium text-white transition-colors"
+                  data-testid={`message-cta-${msg.id}`}
+                >
+                  Find out more
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                {msg.publishedAt && (
+                  <span className={`text-xs ${config.accentText}`}>
+                    {format(new Date(msg.publishedAt), "d MMM yyyy")}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         );
       })}
+
+      {/* ── Regular messages — promotional card grid ───────────────────────── */}
+      {rest.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {rest.map((msg) => {
+            const config = messageTypeConfig[msg.type] ?? messageTypeConfig.update;
+            const Icon = config.icon;
+            return (
+              <div
+                key={msg.id}
+                className="group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow"
+                data-testid={`message-${msg.id}`}
+              >
+                {/* Coloured top strip with icon */}
+                <div className={`flex items-center gap-3 bg-gradient-to-r ${config.cardTop} px-4 py-3`}>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <Icon className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-white/90">
+                    {config.label}
+                  </span>
+                </div>
+
+                {/* Body */}
+                <div className="flex flex-1 flex-col px-4 pt-3 pb-4">
+                  <h4 className="text-sm font-bold leading-snug mb-1.5">{msg.title}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4 flex-1">
+                    {msg.body}
+                  </p>
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                      data-testid={`message-cta-${msg.id}`}
+                    >
+                      Find out more
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                    {msg.publishedAt && (
+                      <span className="text-[11px] text-muted-foreground">
+                        {format(new Date(msg.publishedAt), "d MMM yyyy")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -606,9 +725,12 @@ export default function HomePage() {
           {/* Portal Messages — full width below */}
           {data?.portalMessages && data.portalMessages.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                Portal Messages
-              </h2>
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-semibold uppercase tracking-wide">
+                  From Guardian Group
+                </h2>
+              </div>
               <PortalMessagesPanel messages={data.portalMessages} />
             </div>
           )}
