@@ -1194,6 +1194,14 @@
           "category": "bugfix",
           "createdAt": "2026-04-29T14:04:42.966625+00:00",
           "createdBy": "agent"
+        },
+        {
+          "id": "457bbe3c-63df-45bc-a070-23e00460869f",
+          "patch": 6,
+          "message": "Add CTA fields to portal_messages (cta_type, cta_url, cta_label): DB columns, schema, PATCH validation, admin UI dropdown+inputs, modal CTA button with gradient styling",
+          "category": "feature",
+          "createdAt": "2026-04-29T14:21:21.169635+00:00",
+          "createdBy": "agent"
         }
       ]
     }

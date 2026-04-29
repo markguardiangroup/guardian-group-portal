@@ -67,6 +67,9 @@ interface HomeSummary {
     type: string;
     pinned: boolean;
     publishedAt: string | null;
+    ctaType: string | null;
+    ctaUrl: string | null;
+    ctaLabel: string | null;
   }[];
 }
 
@@ -499,6 +502,33 @@ function PortalMessageModal({
           <Button variant="outline" size="sm" onClick={onClose} data-testid="modal-message-close">
             Close
           </Button>
+          {message.ctaType && message.ctaType !== "none" && (() => {
+            const defaultLabels: Record<string, string> = {
+              make_enquiry: "Make an Enquiry",
+              navigate_to_link: "Learn More",
+              book_now: "Book Now",
+              contact_consultant: "Contact Your Consultant",
+              download: "Download Now",
+            };
+            const label = message.ctaLabel || defaultLabels[message.ctaType] || "Find Out More";
+            const href =
+              message.ctaType === "make_enquiry" || message.ctaType === "contact_consultant"
+                ? (message.ctaUrl || "/support")
+                : (message.ctaUrl || "#");
+            const isExternal = href.startsWith("http");
+            return (
+              <Button
+                size="sm"
+                className={`bg-gradient-to-r ${config.gradient} text-white border-0 hover:opacity-90`}
+                asChild
+                data-testid="modal-message-cta"
+              >
+                <a href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noreferrer" : undefined} onClick={onClose}>
+                  {label}
+                </a>
+              </Button>
+            );
+          })()}
         </div>
       </DialogContent>
     </Dialog>

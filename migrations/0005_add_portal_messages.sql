@@ -19,3 +19,9 @@ CREATE TABLE IF NOT EXISTS "portal_messages" (
 CREATE INDEX IF NOT EXISTS "portal_messages_status_idx" ON "portal_messages" ("status");
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "portal_messages_published_at_idx" ON "portal_messages" ("published_at");
+--> statement-breakpoint
+
+-- CTA columns (added after initial release)
+ALTER TABLE "portal_messages" ADD COLUMN IF NOT EXISTS "cta_type" text NOT NULL DEFAULT 'none';
+ALTER TABLE "portal_messages" ADD COLUMN IF NOT EXISTS "cta_url" text;
+ALTER TABLE "portal_messages" ADD COLUMN IF NOT EXISTS "cta_label" text;

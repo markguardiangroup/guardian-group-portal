@@ -15474,6 +15474,9 @@ export async function registerRoutes(
         // Accept ISO strings or Date objects; coerce strings to Date; preserve undefined (field not included in patch)
         publishedAt: z.preprocess(v => typeof v === "string" ? new Date(v) : v, z.date().nullable().optional()),
         expiresAt: z.preprocess(v => typeof v === "string" ? new Date(v) : v, z.date().nullable().optional()),
+        ctaType: z.enum(["none", "make_enquiry", "navigate_to_link", "book_now", "contact_consultant", "download"]).optional(),
+        ctaUrl: z.string().nullable().optional(),
+        ctaLabel: z.string().nullable().optional(),
       });
       const parsed = patchSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });

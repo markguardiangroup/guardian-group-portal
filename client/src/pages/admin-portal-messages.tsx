@@ -79,6 +79,17 @@ function rolesToAudience(audience: AudienceOption): string[] {
   return [];
 }
 
+type CtaType = "none" | "make_enquiry" | "navigate_to_link" | "book_now" | "contact_consultant" | "download";
+
+const CTA_TYPES: { value: CtaType; label: string; needsUrl: boolean }[] = [
+  { value: "none", label: "No call to action", needsUrl: false },
+  { value: "make_enquiry", label: "Make an Enquiry", needsUrl: false },
+  { value: "navigate_to_link", label: "Navigate to Link", needsUrl: true },
+  { value: "book_now", label: "Book Now", needsUrl: true },
+  { value: "contact_consultant", label: "Contact Your Consultant", needsUrl: false },
+  { value: "download", label: "Download", needsUrl: true },
+];
+
 interface MessageFormData {
   title: string;
   body: string;
@@ -88,6 +99,9 @@ interface MessageFormData {
   pinned: boolean;
   publishedAt: string | null;
   expiresAt: string | null;
+  ctaType: CtaType;
+  ctaUrl: string | null;
+  ctaLabel: string | null;
 }
 
 const emptyForm = (): MessageFormData => ({
@@ -99,6 +113,9 @@ const emptyForm = (): MessageFormData => ({
   pinned: false,
   publishedAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   expiresAt: null,
+  ctaType: "none",
+  ctaUrl: null,
+  ctaLabel: null,
 });
 
 type QuickTogglePayload = {
@@ -173,6 +190,9 @@ export default function AdminPortalMessages() {
       pinned: msg.pinned,
       publishedAt: msg.publishedAt ? format(new Date(msg.publishedAt), "yyyy-MM-dd'T'HH:mm") : null,
       expiresAt: msg.expiresAt ? format(new Date(msg.expiresAt), "yyyy-MM-dd'T'HH:mm") : null,
+      ctaType: (msg.ctaType as CtaType) ?? "none",
+      ctaUrl: msg.ctaUrl ?? null,
+      ctaLabel: msg.ctaLabel ?? null,
     });
     setDialogOpen(true);
   }
@@ -342,11 +362,11 @@ export default function AdminPortalMessages() {
 
       {/* Create / Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg flex flex-col max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editingId ? "Edit Message" : "New Portal Message"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1">
             <div className="space-y-1.5">
               <Label htmlFor="msg-title">Title</Label>
               <Input
@@ -444,6 +464,55 @@ export default function AdminPortalMessages() {
                 data-testid="switch-pinned"
               />
               <Label htmlFor="msg-pinned">Pin to top of home page</Label>
+            </div>
+
+            {/* CTA Section */}
+            <div className="space-y-3 rounded-md border p-3 bg-muted/30">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Call to Action</p>
+              <div className="space-y-1.5">
+                <Label>Button action</Label>
+                <Select
+                  value={form.ctaType}
+                  onValueChange={(v: CtaType) =>
+                    setForm((f) => ({ ...f, ctaType: v, ctaUrl: CTA_TYPES.find(c => c.value === v)?.needsUrl ? f.ctaUrl : null }))
+                  }
+                >
+                  <SelectTrigger data-testid="select-cta-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CTA_TYPES.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.ctaType !== "none" && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="msg-cta-label">Button label <span className="text-muted-foreground font-normal">(optional — uses default if blank)</span></Label>
+                    <Input
+                      id="msg-cta-label"
+                      value={form.ctaLabel ?? ""}
+                      onChange={(e) => setForm((f) => ({ ...f, ctaLabel: e.target.value || null }))}
+                      placeholder={CTA_TYPES.find(c => c.value === form.ctaType)?.label ?? "Button label"}
+                      data-testid="input-cta-label"
+                    />
+                  </div>
+                  {CTA_TYPES.find(c => c.value === form.ctaType)?.needsUrl && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="msg-cta-url">Destination URL</Label>
+                      <Input
+                        id="msg-cta-url"
+                        value={form.ctaUrl ?? ""}
+                        onChange={(e) => setForm((f) => ({ ...f, ctaUrl: e.target.value || null }))}
+                        placeholder="https://..."
+                        data-testid="input-cta-url"
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
           <DialogFooter>
