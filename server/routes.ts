@@ -13030,10 +13030,10 @@ export async function registerRoutes(
       ]);
       uploadIncidentReportDocument(incident, user, site?.name || "Unknown Site", company?.name || "Unknown Company");
 
-      // Notify assigned consultants — fire-and-forget so the client response is never delayed
+      // Notify assigned consultants only when a client submits — fire-and-forget so response is never delayed
       const portalUrl = process.env.APP_BASE_URL ||
-        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "");
-      storage.getConsultantAssignments(incident.siteId)
+        (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "https://portal.guardiangroup.co.uk");
+      if (user.role === "client") storage.getConsultantAssignments(incident.siteId)
         .then(async (assignments) => {
           for (const assignment of assignments) {
             try {
