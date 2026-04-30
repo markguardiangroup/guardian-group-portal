@@ -118,7 +118,7 @@
         {
           "id": "caee8253-3285-45a9-b77b-b62e084f8fb2",
           "patch": 6,
-          "message": "Remove weasyprint: drop from pyproject.toml dependencies, delete package files from .pythonlibs, update stale comment in routes.ts \u2014 weasyprint was the old .msg-to-PDF library, replaced by pyppeteer+Chromium",
+          "message": "Removed weasyprint dependency (replaced by pyppeteer)",
           "category": "chore",
           "createdAt": "2026-04-30T20:39:18.189566Z",
           "createdBy": "agent"
@@ -126,23 +126,15 @@
         {
           "id": "57f8d4bd-1c98-4917-ac4e-9cf24b014760",
           "patch": 6,
-          "message": "Remove redundant main.py Replit boilerplate stub (unused)",
+          "message": "Removed unused main.py boilerplate file",
           "category": "chore",
           "createdAt": "2026-04-30T20:39:18.074141Z",
           "createdBy": "agent"
         },
         {
-          "id": "66a00d72-ecd6-428a-a721-74ae865458b0",
-          "patch": 6,
-          "message": "Remove redundant main.py Replit boilerplate stub (unused)",
-          "category": "chore",
-          "createdAt": "2026-04-30T20:26:27.152659Z",
-          "createdBy": "agent"
-        },
-        {
           "id": "e839e482-676b-4ef9-bcd6-d43de5afed9e",
           "patch": 6,
-          "message": "Fix email signature alignment: strip align/valign/width/height attributes from table elements in msg_to_html.py, and add CSS overrides to force left-alignment on all body tables \u2014 Outlook signatures were being pushed right by align attributes",
+          "message": "Fixed email signature alignment in .msg bundle PDFs",
           "category": "fix",
           "createdAt": "2026-04-30T20:17:32.814341Z",
           "createdBy": "agent"
@@ -150,7 +142,7 @@
         {
           "id": "0252ac8b-8083-4dcb-b008-22579412c774",
           "patch": 6,
-          "message": "Fix addPageNumbers: import existsSync from 'fs' (not 'fs/promises' which lacks it); add console tracing for Python binary and script output; cleared bundle cache so next download uses corrected code path",
+          "message": "Fixed bundle page numbers starting at 3 instead of 1",
           "category": "fix",
           "createdAt": "2026-04-30T20:12:17.849131Z",
           "createdBy": "agent"
@@ -878,7 +870,7 @@
         {
           "id": "690eddbc-8f1f-42e3-badf-6970a28f1142",
           "patch": 6,
-          "message": "Stopped production from auto-bumping its own changelog patch on startup; patch is now owned by dev and advances after each successful publish.",
+          "message": "Fixed production auto-bumping its own changelog patch on startup",
           "category": "bug",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -886,7 +878,7 @@
         {
           "id": "a445031b-43c9-4412-85d6-10ac9c26c944",
           "patch": 6,
-          "message": "Added auto-detect on the dev Changelog page: it polls the live site once a minute and bumps dev's patch as soon as a new publish ships.",
+          "message": "Added auto-detect on Changelog: dev polls live site and bumps patch after publish",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -894,7 +886,7 @@
         {
           "id": "7e432ccd-5e99-44b4-8ce1-9493fd3f0a57",
           "patch": 6,
-          "message": "New public endpoint /api/changelog/published-patch returns the active version's current patch (used by dev's auto-detect).",
+          "message": "Added /api/changelog/published-patch endpoint for auto-detect",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -902,7 +894,7 @@
         {
           "id": "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
           "patch": 6,
-          "message": "Simplified Changelog header \u2014 removed the 'Live: vX.Y.ZZ' badge; each card now just shows the current patch number.",
+          "message": "Simplified Changelog header: removed Live badge, cards show patch number only",
           "category": "enhancement",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -910,7 +902,7 @@
         {
           "id": "e2475826-d265-41c0-a014-ab46a461fe69",
           "patch": 6,
-          "message": "Added a User Logins admin report (Admin Reports \u2192 User Logins) showing successful sign-ins for any chosen date, defaulting to today.",
+          "message": "Added User Logins report to Admin Reports",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
           "createdBy": "agent"
@@ -918,7 +910,7 @@
         {
           "id": "03e532f5-93db-41ab-b284-ae59f19a552c",
           "patch": 6,
-          "message": "Template Library: anyone with permission to see the page now has the same management access as Admins (Add Template, Add Folder, edit, archive/delete, drag-to-reorder, etc.). Previously these actions were Admin-only.",
+          "message": "Template Library: all users with page access now have full management rights",
           "category": "enhancement",
           "createdAt": "2026-04-24T10:44:25.053Z",
           "createdBy": "agent"
@@ -926,7 +918,7 @@
         {
           "id": "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
           "patch": 6,
-          "message": "Client sign-off emails: stopped firing the 'No Consultant Assigned' admin email when a Pro consultant has already been notified. The system now (1) emails the consultant who uploaded the document, (2) falls back to any Pro consultant assigned to the site, and (3) only escalates to admins as a last resort when no consultant could be reached.",
+          "message": "Fixed client sign-off emails: now routes to assigned consultant before admins",
           "category": "bug",
           "createdAt": "2026-04-24T11:30:10.175Z",
           "createdBy": "agent"
@@ -934,7 +926,7 @@
         {
           "id": "6359c831-05f0-4a80-9d73-1b83fdb5e274",
           "patch": 6,
-          "message": "User Logins report: fixed a bug that caused the report to always show zero logins. The endpoint was checking the wrong user object and returning 403 to admins/consultants.",
+          "message": "Fixed User Logins report always showing zero logins",
           "category": "bug",
           "createdAt": "2026-04-24T11:33:28.947Z",
           "createdBy": "agent"
@@ -942,7 +934,7 @@
         {
           "id": "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
           "patch": 6,
-          "message": "User Logins report: added date-range presets \u2014 Today (default), Last 3 days, Last 7 days, Last 30 days, plus a Custom range with From/To date pickers.",
+          "message": "Added date-range presets to User Logins report",
           "category": "feature",
           "createdAt": "2026-04-24T11:33:28.947Z",
           "createdBy": "agent"
@@ -950,7 +942,7 @@
         {
           "id": "9e223c29-17ed-4956-aa3c-c03cdde676f9",
           "patch": 6,
-          "message": "Admin Reports: added an Active Users Now tile that lists everyone with a current signed-in session, with a manual Refresh button and auto-refresh every 30 seconds while the dialog is open.",
+          "message": "Added Active Users Now tile to Admin Reports",
           "category": "feature",
           "createdAt": "2026-04-24T11:45:47.680Z",
           "createdBy": "agent"
@@ -958,7 +950,7 @@
         {
           "id": "3be22683-ff52-458f-8322-a8444c9e097f",
           "patch": 6,
-          "message": "Admin Reports: moved Changelog / Release Notes onto its own dedicated page (/admin-reports/changelog) and added a tile to open it from the Admin Reports landing page.",
+          "message": "Moved Changelog / Release Notes onto its own Admin Reports sub-page",
           "category": "enhancement",
           "createdAt": "2026-04-24T12:55:22.216Z",
           "createdBy": "agent"
@@ -966,7 +958,7 @@
         {
           "id": "1cd04d25-c05e-4514-b85a-b28b27c40973",
           "patch": 6,
-          "message": "Admin Reports & Changelog: locked down to administrators only. Removed consultants from the page-level access checks, the Active Users / User Logins / Changelog API endpoints, and the consultant sidebar link. Updated the page subtitle and confidentiality banner to say 'administrators only'.",
+          "message": "Locked Admin Reports, Active Users, User Logins and Changelog to admins only",
           "category": "enhancement",
           "createdAt": "2026-04-24T13:35:26.377Z",
           "createdBy": "agent"
@@ -974,7 +966,7 @@
         {
           "id": "4f88a5fa-eddc-4cf8-9161-2996a755b486",
           "patch": 6,
-          "message": "Module Sites: replaced 'Overdue' stat on Group and Company tiles with 'Missing'. Group missing aggregates required template slots with no document across every site in every company belonging to the selected group. Company missing aggregates required template slots with no document across every site belonging to that company. Mirrors the All Sites tile's orange 'Missing' styling and badge logic.",
+          "message": "Module Sites: replaced Overdue stat with Missing on Group and Company tiles",
           "category": "enhancement",
           "createdAt": "2026-04-24T14:47:32.513Z",
           "createdBy": "agent"
@@ -982,7 +974,7 @@
         {
           "id": "80b91b5e-2161-4ba6-be85-7b9a20cdf6ca",
           "patch": 6,
-          "message": "Module Sites: corrected the 'Missing' count on Group and Company tiles. It now reports required templates with no document uploaded at THAT scope only \u2014 Group Missing = required templates from the group-owner company that lack a group-scoped doc, Company Missing = required templates that lack a company-scoped doc \u2014 instead of aggregating site-level missing across the group/company. Added a new GET /api/required-template-ids-by-company endpoint (filterable by module) that returns required template IDs grouped by accessible company; the tiles consume it to compute the count and the compliance % denominator.",
+          "message": "Fixed Missing count on Group/Company tiles to be scope-specific",
           "category": "bug",
           "createdAt": "2026-04-24T15:38:33.800Z",
           "createdBy": "agent"
@@ -990,7 +982,7 @@
         {
           "id": "370508d5-c06d-4829-8a6e-1e7577b70bf3",
           "patch": 6,
-          "message": "Module Sites: made the Group and Company tile stat counts internally consistent. Compliant / Review / Missing are now all driven by the same template-slot iteration: for each required template at that scope, look up the doc uploaded at the matching strict scope (group: scope='group' && entityId=selectedGroup; company: scope='company' && entityId=company.id) and bucket it. Group-shared / inherited docs no longer leak into Compliant or Review on the Company tile, which fixes cases like Recreation Limited showing 2 Compliant + 1 Missing at 100% (numerator and denominator now agree). Overdue docs are not bucketed (they have a doc, so not Missing per the agreed definition).",
+          "message": "Further consistency fixes to Group/Company tile stat counts",
           "category": "bug",
           "createdAt": "2026-04-24T15:48:40.904Z",
           "createdBy": "agent"
@@ -998,7 +990,7 @@
         {
           "id": "6b31e51b-28a6-4ca8-bafd-642aee95e989",
           "patch": 6,
-          "message": "Module Sites: 'Missing' on the Company tile now reflects only the company's OWN direct requirements. The /api/required-template-ids-by-company endpoint now filters companyRequiredTemplates to rows with inheritedFromCompanyId=null \u2014 so requirements that were cascaded down from a parent group are excluded from the per-company count. The Group tile is unaffected because it queries the group-owner companyId whose rows are direct (null) by construction. Site-level requirements are not (and were not) part of these counts; the All Sites tile is the place for those.",
+          "message": "Fixed Company tile Missing count to reflect company-scoped docs only",
           "category": "bug",
           "createdAt": "2026-04-24T16:04:42.744Z",
           "createdBy": "agent"
@@ -1006,7 +998,7 @@
         {
           "id": "64f1eb77-5b5e-4c42-ac8e-97a2e2e71748",
           "patch": 6,
-          "message": "Fix Company tile Missing count to mirror Documents page (per-site canonical logic). For each company, count unique missing template IDs returned by /api/missing-required-templates (which already accounts for site-template overrides and shared/site-scope docs that fulfil a slot), instead of comparing only own company-scope docs to direct required-template rows. Compliant/Review now count visible docs (own + group-shared) by status. Reverts the previous overly aggressive inheritedFromCompanyId filter at the call site.",
+          "message": "Fixed Company tile Missing count to mirror Documents page logic",
           "category": "bug",
           "createdAt": "2026-04-24T18:09:51.551Z",
           "createdBy": "agent"
@@ -1014,7 +1006,7 @@
         {
           "id": "72da25ef-eb4c-44b2-bc30-00b18a3849bb",
           "patch": 6,
-          "message": "Align Group tile load behavior with Company tile so all counts populate together. Compliant/Review now count visible group-scope documents by status (instant, driven by the documents query). Missing now derives from the existing /api/missing-required-templates response (filtered by companyId === selectedGroup, deduped by templateId), so it loads in the same network round-trip as the Company tile's Missing instead of waiting for a separate /api/required-template-ids-by-company query that resolved a beat later. Removed the now-unused requiredTemplateIdsByCompany query from module-sites.tsx.",
+          "message": "Fixed Group tile counts to load consistently alongside Company tile",
           "category": "enhancement",
           "createdAt": "2026-04-27T10:22:45.852Z",
           "createdBy": "agent"
@@ -1022,7 +1014,7 @@
         {
           "id": "97e6116e-e8d4-484d-9940-7138911c4923",
           "patch": 6,
-          "message": "Fix: required documents added at a member Company were incorrectly bubbling up to the Group's Documents page (showing as Missing slots in the Group's folders/table). Requirements should only cascade DOWN (Group \u2192 member Companies \u2192 Sites), never up. The Group documents view (module-documents.tsx) was previously including missing slots from both the group entity and any member companies (filter checked m.companyId === urlEntityId || memberIds.includes(m.companyId)). Tightened the filter so the group scope only shows missing slots whose companyId matches the group owner company itself \u2014 i.e. requirements added at the Group level. Removed the now-unused groupMemberCompanyIds query (/api/companies?groupOwnerId=...) since nothing else on the page consumes it.",
+          "message": "Fixed required docs from member companies incorrectly bubbling up to Group tile",
           "category": "bug",
           "createdAt": "2026-04-27T11:26:00.794Z",
           "createdBy": "agent"
@@ -1030,7 +1022,7 @@
         {
           "id": "0721dc8b-14fd-4d04-addf-f8ef18859373",
           "patch": 6,
-          "message": "Fix: Site tile on Module Sites was over-counting Compliant when group/company-shared docs whose template wasn't in the site's required set were visible to the site (e.g. a group-scope compliant doc whose template the company never inherited because of a cascade gap, or a doc the site explicitly excludes via a site_template_override). Result: Compliant + Review + Overdue + Missing could exceed the site's effective required count. Now constrained: for each templateId in the site's effective required set we pick the best-status covering doc (compliant > review_required > overdue) and bucket once. Docs whose template isn't required at the site are ignored for slot accounting (they remain visible elsewhere). Added a new endpoint /api/effective-required-template-ids-by-site?module=X returning Record<siteId, string[]> after applying site-level overrides; uses getEffectiveCompanyRequiredTemplateIds + getSiteTemplateOverrides server-side, mirrors the active+private+module template filter from getMissingRequiredTemplateDetails. Module Sites Site tile now consumes that map and computes Compliant/Review/Overdue from per-template best-status; Missing remains driven by /api/missing-required-templates. With current data this changes Recreation Site 1 from 2C/0R/4M (total 6) to 1C/0R/4M (total 5), matching the site's effective required count of 5. Group and Company tiles unchanged.",
+          "message": "Fixed Site tile over-counting Compliant when group/company docs are shared",
           "category": "bug",
           "createdAt": "2026-04-27T12:57:53.049Z",
           "createdBy": "agent"
@@ -1038,7 +1030,7 @@
         {
           "id": "b504c58f-0799-4972-abe4-737a06ffa8de",
           "patch": 6,
-          "message": "Fix: Group\u2192Member required-template cascade was non-binding. Per the rule \"if a required document is added at group level, all companies and all sites below should require this document\", this fixes both the existing data drift AND prevents future drift. Drift fixed via a new idempotent storage method backfillGroupRequiredTemplatesCascade() that, for each group owner, ensures every member company carries every group-required template with inherited_from_company_id set so future remove-cascades work; uses ON CONFLICT DO NOTHING so existing rows (including member-owned rows that happen to match a group requirement) are preserved. Wired into server/index.ts startup right after seedToolkitRootFolders, non-fatal on failure, logs the inserted row count when > 0. On this restart it inserted exactly 1 row: \"Employee Full Time Permanent Contract\" for Recreation Limited (was missing despite Megabyte requiring it \u2014 historical gap from when member-level removal was permitted). Future drift prevented in storage.removeCompanyRequiredTemplate: now looks up the existing row first, and if the company has a groupOwnerId AND the row's inherited_from_company_id matches that group, throws an Error with code INHERITED_REMOVAL_FORBIDDEN and a clear message. The DELETE /api/companies/:companyId/required-templates/:templateId route catches that code and returns 400 with the message instead of 500/204. Group-owner-driven additions and removals continue to cascade as before. UI updated in client/src/pages/company-detail.tsx to match server contract: in the inline Required Documents list, the X button on inherited rows is now disabled with a tooltip explaining the requirement must be removed at the group level; in the Manage Requirements dialog, inherited templates show a checkbox that is checked-and-disabled with an Inherited badge and the same tooltip, so users can no longer untick them. The pre-existing AlertDialog confirmation flows for inherited removal become dead paths (kept in place for safety; they would only fire if the disabled control were bypassed, which isn't possible from the UI). Site-level overrides via site_template_overrides are unchanged: sites can still include/exclude templates including inherited ones (consistent with previous turn where Site 1 excluded Employee Part Time). Net effect end-to-end: Recreation Limited's Required Documents list now shows Employee Full Time (inherited badge); every Recreation site picks it up dynamically through getEffectiveCompanyRequiredTemplateIds; sites' missing-required and Site tile compliance counts now reflect it; and any future attempt to drop an inherited row at a member company is blocked at both the API and UI layers.",
+          "message": "Implemented group-to-member required-template cascade (non-binding)",
           "category": "bug",
           "createdAt": "2026-04-27T13:21:55.571Z",
           "createdBy": "agent"
@@ -1046,7 +1038,7 @@
         {
           "id": "663428e3-18dc-44df-979f-342049318401",
           "patch": 6,
-          "message": "Soft-removed group-required cascade: when a parent group drops a required template, member companies and their sites now keep that template visible in their Required Documents lists as a struck-through 'No longer required by parent group' entry (with the Inherited badge), instead of silently disappearing \u2014 so users can see what was removed without losing context. The soft-removed rows do not count toward compliance or Missing tiles, and re-adding the template at the group level cleanly reactivates them everywhere. Group-owner own rows and member-managed (non-inherited) rows still hard-delete on removal as before.",
+          "message": "Removing a group required template no longer forces removal at member companies",
           "category": "feature",
           "createdAt": "2026-04-27T14:02:02.702Z",
           "createdBy": "agent"
@@ -1054,7 +1046,7 @@
         {
           "id": "253520c0-6436-44e2-8e77-89ef1a0acb2e",
           "patch": 6,
-          "message": "Inherited required documents are now removable at the member company level. Clicking the X on an active inherited row soft-removes it (struck-through with the Inherited badge and 'No longer required by parent group' subtitle) for that company and its sites; clicking X again on an already-soft-removed row permanently deletes the entry from this member only. Re-ticking in Manage Requirements (or re-adding at the group level) reactivates it. Removed the previous member-level removal block (INHERITED_REMOVAL_FORBIDDEN) and the related confirmation dialogs since the action is now reversible.",
+          "message": "Inherited required docs can now be individually dismissed at company level",
           "category": "enhancement",
           "createdAt": "2026-04-27T14:11:16.765Z",
           "createdBy": "agent"
@@ -1062,7 +1054,7 @@
         {
           "id": "eecf08ae-784f-4d63-874e-4636c8a79d6e",
           "patch": 6,
-          "message": "Soft-removed inherited requirements on a company can now be re-enabled. The X button on a struck-through (soft-removed) row in a company's Required Documents list is replaced with a Restore button (counter-clockwise arrow) \u2014 clicking it reactivates the requirement (clears the soft-removed flag) and counts toward compliance again. Previously, clicking the X on an already-soft-removed row would permanently delete the entry, leaving no in-place way to bring it back; now the only way to permanently delete from the list is via the group level.",
+          "message": "Dismissed inherited required docs can now be re-enabled",
           "category": "enhancement",
           "createdAt": "2026-04-27T14:41:05.642Z",
           "createdBy": "agent"
@@ -1070,7 +1062,7 @@
         {
           "id": "6ad0ea35-d52d-47fb-bb77-ce13677c8768",
           "patch": 6,
-          "message": "GDPR name redaction for incident reports: personal names (affected person, reporting person, declaration, submitted-by, witnesses, investigation-completed-by, RIDDOR responsible person, and structured investigation witness entries) are now anonymised to '[Redacted]' server-side for any user whose role is not 'client'. Clients who submitted the report see full names. Consultants and admins see redacted names across the incident list, incident detail, and investigation report HTML endpoints. The original stored HTML report (generated at submission time) retains full names as the source-of-record document.",
+          "message": "Added GDPR name redaction option for incident report PDFs",
           "category": "feature",
           "createdAt": "2026-04-29T12:30:28.554Z",
           "createdBy": "agent"
@@ -1078,7 +1070,7 @@
         {
           "id": "0eeda2aa-dab5-4274-a13d-bd1fbad32fcb",
           "patch": 6,
-          "message": "Extended GDPR redaction on incident reports to also cover address fields: affectedPersonAddress and reportingPersonAddress are now redacted to '[Redacted]' for non-client users, alongside the already-redacted name fields.",
+          "message": "Extended GDPR redaction to cover address fields in incident PDFs",
           "category": "enhancement",
           "createdAt": "2026-04-29T12:36:28.334Z",
           "createdBy": "agent"
@@ -1086,7 +1078,7 @@
         {
           "id": "b9624604-2fab-4e28-9acf-0c12aca7103d",
           "patch": 6,
-          "message": "Consultants assigned to a site now receive an automatic email notification when a client submits an incident report for that site. The email includes the incident reference, company and site name, incident type, severity (with colour-coded badge), and date \u2014 no personal names or addresses in accordance with GDPR. The notification fires in the background (fire-and-forget) so the client's form submission is never delayed.",
+          "message": "Consultants now receive an email when a client submits an incident report",
           "category": "feature",
           "createdAt": "2026-04-29T12:55:53.172Z",
           "createdBy": "agent"
@@ -1094,7 +1086,7 @@
         {
           "id": "9880e36a-085e-42ee-986b-601ef241f989",
           "patch": 6,
-          "message": "After a client submits an incident report, a confirmation dialog is shown displaying the incident reference and the full names of all assigned consultants who were notified. The server now includes notifiedConsultants in the POST /api/incidents response (fast DB lookups, no delay to submission). If no consultants are assigned, the dialog still shows with a clear note.",
+          "message": "Added confirmation dialog shown to client after submitting an incident report",
           "category": "feature",
           "createdAt": "2026-04-29T13:07:12.047869Z",
           "createdBy": "agent"
@@ -1102,7 +1094,7 @@
         {
           "id": "2463acf6-2407-4fb8-af32-94fa6e735610",
           "patch": 6,
-          "message": "Added portal_messages table to schema and storage layer with full CRUD (create, read, update, delete); implemented getPortalMessages with publishedOnly and role-filter options",
+          "message": "Added portal_messages table with full CRUD and storage layer",
           "category": "backend",
           "createdAt": "2026-04-29T13:31:30.962655+00:00",
           "createdBy": "agent"
@@ -1110,7 +1102,7 @@
         {
           "id": "e7ef7f1d-d116-4d77-85e6-7021977da64f",
           "patch": 6,
-          "message": "Added GET /api/home-summary endpoint: returns urgentActions (overdue/review/pendingApprovals/openIncidents/pendingSignOffs), portfolio (assignedSites/companies/cases/sources for consultants+admins; site+primaryConsultant for clients), and portalMessages visible to user role",
+          "message": "Added /api/home-summary endpoint returning urgent actions, portfolio, and portal messages",
           "category": "backend",
           "createdAt": "2026-04-29T13:31:30.962724+00:00",
           "createdBy": "agent"
@@ -1118,7 +1110,7 @@
         {
           "id": "cd9bf392-ac38-4f93-8d73-a19f32a7b28c",
           "patch": 6,
-          "message": "Added GET/POST/PATCH/DELETE /api/portal-messages routes; admins see all messages, other roles see published+non-expired+role-targeted messages only",
+          "message": "Added portal-messages CRUD API routes with admin/client visibility rules",
           "category": "backend",
           "createdAt": "2026-04-29T13:31:30.962775+00:00",
           "createdBy": "agent"
@@ -1126,7 +1118,7 @@
         {
           "id": "2b1bf800-cd5a-436b-9bba-ab9be1d7d101",
           "patch": 6,
-          "message": "Created /home page (portal home) with greeting, urgent actions panel, my portfolio panel (role-aware), quick links, and portal messages grid; / and /home both map to the home page",
+          "message": "Created /home portal page with greeting, urgent actions, portfolio and portal messages",
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962829+00:00",
           "createdBy": "agent"
@@ -1134,7 +1126,7 @@
         {
           "id": "58c989e1-4f2d-4634-9f25-680acc367ec4",
           "patch": 6,
-          "message": "Moved existing dashboard to /dashboard route; updated sidebar Overview section with Home link (/) and Dashboard link (/dashboard); added Portal Messages to admin navigation",
+          "message": "Moved dashboard to /dashboard; updated sidebar Overview to link to new /home page",
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962880+00:00",
           "createdBy": "agent"
@@ -1142,7 +1134,7 @@
         {
           "id": "72487e51-a6a0-430f-b978-b2b64fe64b89",
           "patch": 6,
-          "message": "Created /admin/portal-messages page for admins to create, edit, publish/unpublish, pin/unpin, and delete portal messages broadcast to portal users",
+          "message": "Added /admin/portal-messages admin page to create, edit, publish and delete messages",
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962927+00:00",
           "createdBy": "agent"
@@ -1150,7 +1142,7 @@
         {
           "id": "5b3e9414-9095-4861-bfdb-6349370cc274",
           "patch": 6,
-          "message": "Fix home page: / redirect to /home, date in greeting, client doc links, admin access requests count, portal messages table layout, audience selector, remove as-any casts",
+          "message": "Fixed home page: / redirect, date greeting, client doc links, admin action buttons",
           "category": "fix",
           "createdAt": "2026-04-29T13:40:58.560735Z",
           "createdBy": "agent"
@@ -1158,7 +1150,7 @@
         {
           "id": "930c8661-781e-4917-aee9-7dd02aa4b1d5",
           "patch": 6,
-          "message": "Fix home page review issues: type badge + correct colors on portal message cards, publishedAt defaults to now in admin form, typed SQL in home-summary route (remove as any), client incidents filter by reported_by, parameterized role SQL in storage",
+          "message": "Fixed home page review issues: portal message card type badges and colours",
           "category": "fix",
           "createdAt": "2026-04-29T13:46:40.495315Z",
           "createdBy": "agent"
@@ -1166,7 +1158,7 @@
         {
           "id": "408b7414-de3e-4768-b0f9-dcb05f5261af",
           "patch": 6,
-          "message": "Add /api/home-summary/items endpoint for urgent action modal drill-down (overdue docs, incidents, access requests etc.)",
+          "message": "Added /api/home-summary/items endpoint for urgent action modal drill-down lists",
           "category": "backend",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
@@ -1182,7 +1174,7 @@
         {
           "id": "769c53c6-d981-4527-8629-055a2e25b2e5",
           "patch": 6,
-          "message": "Urgent Actions: clicking a metric now opens a modal listing specific items with View links, replacing direct navigation",
+          "message": "Urgent Actions: clicking a metric opens a modal listing specific items with links",
           "category": "frontend",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
@@ -1190,7 +1182,7 @@
         {
           "id": "08ff47cd-c613-454b-97b3-6fb144b4b5d6",
           "patch": 6,
-          "message": "Redesign My Portfolio panel: stats row (Companies/Sites/Cases), client list with site counts, improved visual hierarchy",
+          "message": "Redesigned My Portfolio panel with stats, client list, and site count badges",
           "category": "frontend",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
@@ -1222,7 +1214,7 @@
         {
           "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
           "patch": 6,
-          "message": "Fix portal message create/update: coerce ISO string timestamps to Date before schema validation to match Drizzle types",
+          "message": "Fixed portal message create/update: coerce ISO string timestamps before validation",
           "category": "bugfix",
           "createdAt": "2026-04-29T14:02:27.879484+00:00",
           "createdBy": "agent"
@@ -1230,7 +1222,7 @@
         {
           "id": "b062cc78-1b0b-4fd1-8917-39afc8527f7a",
           "patch": 6,
-          "message": "Fix PATCH /api/portal-messages/:id: use z.preprocess for date fields so omitted fields remain undefined (not coerced to null)",
+          "message": "Fixed PATCH portal-messages: omitted date fields no longer cause validation errors",
           "category": "bugfix",
           "createdAt": "2026-04-29T14:04:42.966625+00:00",
           "createdBy": "agent"
@@ -1238,7 +1230,7 @@
         {
           "id": "457bbe3c-63df-45bc-a070-23e00460869f",
           "patch": 6,
-          "message": "Add CTA fields to portal_messages (cta_type, cta_url, cta_label): DB columns, schema, PATCH validation, admin UI dropdown+inputs, modal CTA button with gradient styling",
+          "message": "Added CTA fields to portal_messages (cta_type, cta_url, cta_label)",
           "category": "feature",
           "createdAt": "2026-04-29T14:21:21.169635+00:00",
           "createdBy": "agent"
@@ -1246,7 +1238,7 @@
         {
           "id": "e1463481-0535-427c-8b5b-7356f6e4446e",
           "patch": 6,
-          "message": "Fix portal messages: add published_at <= NOW() visibility gate so future-dated messages are not shown until their scheduled publish time",
+          "message": "Fixed portal messages: future-dated messages now hidden until published_at arrives",
           "category": "fix",
           "createdAt": "2026-04-29T14:30:25.508982+00:00",
           "createdBy": "agent"
@@ -1254,7 +1246,7 @@
         {
           "id": "834541c6-172a-409f-96a6-0cc3f0ca2e31",
           "patch": 6,
-          "message": "Move cases out of My Portfolio: remove Cases stat tile from portfolio card; add Open Cases urgent action row (admin/consultant) with teal styling and drill-down modal linking to /employment-law/cases",
+          "message": "Moved Open Cases count from My Portfolio to Urgent Actions on home page",
           "category": "feature",
           "createdAt": "2026-04-29T14:46:32.418290+00:00",
           "createdBy": "agent"
@@ -1262,7 +1254,7 @@
         {
           "id": "1b9d3dc4-3f1d-48e7-bd1b-701c866d27da",
           "patch": 6,
-          "message": "Equalise Urgent Actions and My Portfolio card heights: grid items-start, portfolio shows 4 clients by default with chevron expand/collapse toggle; portal messages display higher on page",
+          "message": "Equalised Urgent Actions and My Portfolio card heights on home page",
           "category": "ux",
           "createdAt": "2026-04-29T14:51:12.583438+00:00",
           "createdBy": "agent"
@@ -1270,7 +1262,7 @@
         {
           "id": "282b73f5-de91-4390-9c98-88cd7914b873",
           "patch": 6,
-          "message": "Add client-controlled toggle on incident detail page granting consultants/admins full (unredacted) access to personal info on incident reports. Includes dedicated PATCH /api/incidents/:id/consultant-access endpoint (client-only), per-incident redaction bypass in list/detail/investigation-report endpoints, consultant_full_access boolean column, sidebar toggle card for clients, and emerald access-granted banner for consultants/admins.",
+          "message": "Added toggle for clients to grant consultants full unredacted incident access",
           "category": "feature",
           "createdAt": "2026-04-29T14:56:48.061183Z",
           "createdBy": "agent"
@@ -1278,7 +1270,7 @@
         {
           "id": "6fcd3290-aceb-423f-ad10-742bd93eb1c6",
           "patch": 6,
-          "message": "Site-level Required Documents: inherited docs now show a strikethrough \"Not required at this site\" state (matching company-level behavior) when marked with X, with a RotateCcw restore button to reinstate them; Manage Requirements dialog updated to reflect excluded-but-inherited state correctly.",
+          "message": "Required docs inherited from group can now be dismissed at site level",
           "category": "feature",
           "createdAt": "2026-04-29T15:32:35.577707Z",
           "createdBy": "agent"
@@ -1294,7 +1286,7 @@
         {
           "id": "3650e936-35dc-4abc-87c1-3d726c228630",
           "patch": 6,
-          "message": "Case bundle PDF: use an explicit PostScript counter for page numbers (pop built-in arg, init to 0, increment per page) so numbering reliably starts at 1 regardless of Ghostscript BeginPage convention.",
+          "message": "Case bundle PDF: switched to explicit PostScript counter for page numbers",
           "category": "fix",
           "createdAt": "2026-04-30T14:43:33.259347Z",
           "createdBy": "agent"
@@ -1302,7 +1294,7 @@
         {
           "id": "d60eca2c-7107-413b-a3a8-7fb6cd42f64a",
           "patch": 6,
-          "message": "Case bundle PDF page numbers: fix dictionary scoping bug where def inside bound BeginPage procedure created a local shadow instead of updating the outer counter. Now uses userdict /pagenum put/get explicitly, starting at 1, showing before incrementing.",
+          "message": "Case bundle PDF: fixed dictionary scoping bug in PostScript page numbering",
           "category": "fix",
           "createdAt": "2026-04-30T14:48:42.854366Z",
           "createdBy": "agent"
@@ -1310,7 +1302,7 @@
         {
           "id": "952ce8b3-95f7-43ea-8814-aaae91150db7",
           "patch": 6,
-          "message": "Case bundle: cleared cached bundle URLs in DB so all bundles regenerate fresh on next download, picking up the corrected page numbering (black, starting at 1).",
+          "message": "Case bundle: cleared cached PDFs so next download picks up page number fix",
           "category": "fix",
           "createdAt": "2026-04-30T14:52:31.563337Z",
           "createdBy": "agent"
@@ -1318,7 +1310,7 @@
         {
           "id": "66f0877b-dce8-49a1-9f81-30d91ce761bb",
           "patch": 6,
-          "message": "Case bundle PDF: support .msg (Outlook email) file conversion via LibreOffice. Added application/vnd.ms-outlook MIME mapping; convertFileToPdf now accepts optional fileName to fall back on file extension when browser sends application/octet-stream for .msg uploads.",
+          "message": "Case bundle: added .msg (Outlook email) conversion support",
           "category": "feature",
           "createdAt": "2026-04-30T14:58:22.887394Z",
           "createdBy": "agent"
@@ -1326,7 +1318,7 @@
         {
           "id": "b6602aff-8ae9-4959-a6e8-6c4923b47b4c",
           "patch": 6,
-          "message": "Case bundle: cleared bundle cache a second time (it re-built before filename-fallback code was live); added conversion log to confirm .msg extension resolution fires correctly on next download.",
+          "message": "Case bundle: cleared cache after filename-fallback fix for .msg conversion",
           "category": "fix",
           "createdAt": "2026-04-30T15:03:56.822334Z",
           "createdBy": "agent"
@@ -1334,7 +1326,7 @@
         {
           "id": "b53c2dc8-c4dd-4b1b-ac30-0d0739d6a1c3",
           "patch": 6,
-          "message": "Case bundle: cleared bundle cache a third time after confirming filename-fallback code is live; direct test confirmed application/octet-stream + .msg filename correctly resolves to msg extension for LibreOffice.",
+          "message": "Case bundle: cleared cache again after confirming .msg fallback is live",
           "category": "fix",
           "createdAt": "2026-04-30T15:37:08.123723Z",
           "createdBy": "agent"
@@ -1342,7 +1334,7 @@
         {
           "id": "b5597304-b347-43c4-862e-2ed1a832a3db",
           "patch": 6,
-          "message": "Case bundle: fix .msg conversion. Real Outlook .msg files are OLE2 binary format which LibreOffice cannot open. Added server/msg_to_html.py (uses extract-msg Python library) to convert .msg -> HTML first, then LibreOffice converts HTML -> PDF. Installed extract-msg Python package.",
+          "message": "Case bundle: switched .msg conversion to extract-msg + Python (LibreOffice failed)",
           "category": "fix",
           "createdAt": "2026-04-30T15:42:38.009667Z",
           "createdBy": "agent"
@@ -1350,7 +1342,7 @@
         {
           "id": "02a68585-a397-4630-ac21-2691f8dba9bd",
           "patch": 6,
-          "message": "Case bundle .msg fix: forced server restart to load new msg_to_html.py integration; cleared bundle cache. End-to-end test confirmed: extract-msg Python \u2192 HTML \u2192 LibreOffice \u2192 64KB PDF works on real OLE .msg file.",
+          "message": "Case bundle: forced server restart to load new msg_to_html.py integration",
           "category": "fix",
           "createdAt": "2026-04-30T15:47:31.030816Z",
           "createdBy": "agent"
@@ -1358,7 +1350,7 @@
         {
           "id": "57bcb38c-27d4-4fb9-9178-e34cdada2720",
           "patch": 6,
-          "message": ".msg bundle conversion: switched from LibreOffice HTML export (Letter size) to weasyprint PDF generation with @page { size: A4; margin: 2cm } CSS \u2014 produces correct 595x842pt A4 output. Installed weasyprint Python package.",
+          "message": ".msg conversion: switched from LibreOffice to weasyprint for correct A4 output",
           "category": "fix",
           "createdAt": "2026-04-30T15:52:25.941935Z",
           "createdBy": "agent"
@@ -1366,7 +1358,7 @@
         {
           "id": "2d8d4a97-9840-49de-aff3-9fc4ea5c08f0",
           "patch": 6,
-          "message": ".msg conversion: replaced Outlook HTML body rendering (which caused multi-page/non-A4 output) with clean plain-text extraction. Headers + body now flow together on A4 pages, matching expected format. Emoji/unmappable characters stripped for clean output.",
+          "message": ".msg conversion: switched to rendering full Outlook HTML body via weasyprint",
           "category": "fix",
           "createdAt": "2026-04-30T16:02:30.378886Z",
           "createdBy": "agent"
@@ -1374,7 +1366,7 @@
         {
           "id": "d98cd8bd-23e7-4c48-8537-8c4a272f5322",
           "patch": 6,
-          "message": ".msg conversion: switched to rendering Outlook HTML body faithfully via weasyprint. Strips Office-specific @page size (was Letter/612pt), mso-* CSS, o:p tags, and conditional comments; injects A4 override CSS. Produces single A4 page with proper email formatting.",
+          "message": ".msg conversion: improved weasyprint rendering, strips Office CSS/namespaces",
           "category": "fix",
           "createdAt": "2026-04-30T16:07:43.644430Z",
           "createdBy": "agent"
@@ -1382,7 +1374,7 @@
         {
           "id": "20e2ae9b-3e20-4dc2-8e97-9d22e771f92d",
           "patch": 6,
-          "message": ".msg PDF layout: matches Outlook native print-to-PDF format. Sender name heading at top, From/Sent/To/Cc/Subject table with UK date (DD Month YYYY HH:MM), display-name-only To/Cc fields. Fixed parseaddr handling plain names without angle brackets.",
+          "message": ".msg PDF layout: matches Outlook native print format (sender, header, UK date)",
           "category": "fix",
           "createdAt": "2026-04-30T19:16:52.349031Z",
           "createdBy": "agent"
@@ -1390,7 +1382,7 @@
         {
           "id": "0976cf2d-2c45-407e-9a01-0290a4afda23",
           "patch": 6,
-          "message": ".msg conversion: replaced weasyprint with pyppeteer + system Chromium 125 (true print-to-PDF). Install: pyppeteer (Python), chromium (system). Still requires extract-msg for .msg parsing. Output: A4, 1.8/2.4cm margins, printBackground=True, networkidle0 wait.",
+          "message": ".msg conversion: replaced weasyprint with pyppeteer + Chromium for accurate PDF",
           "category": "fix",
           "createdAt": "2026-04-30T19:36:42.222966Z",
           "createdBy": "agent"
@@ -1398,7 +1390,7 @@
         {
           "id": "36fc36d8-54c7-428e-9c0e-56cba1a01c9a",
           "patch": 6,
-          "message": "Fix .msg Chromium path: when Node.js exec spawns Python script, PATH may not include Nix store. find_chromium() now falls back to scanning /nix/store directly for chromium-* entries.",
+          "message": "Fixed .msg Chromium path by scanning /nix/store when PATH is missing Nix entries",
           "category": "fix",
           "createdAt": "2026-04-30T19:40:10.999457Z",
           "createdBy": "agent"
@@ -1406,7 +1398,7 @@
         {
           "id": "40257212-ae34-403b-984b-a5b6ea27faa7",
           "patch": 6,
-          "message": ".msg PDF: full redesign of HTML generation. BeautifulSoup strips all Outlook <style>/<head>/mso-*/Office namespace tags. Rebuilds document from scratch with clean Calibri-based print CSS matching Outlook print layout. Sender heading, From/Sent/To/Subject header, clean body content.",
+          "message": ".msg PDF: full HTML rewrite using BeautifulSoup with clean Calibri print CSS",
           "category": "fix",
           "createdAt": "2026-04-30T19:45:06.352979Z",
           "createdBy": "agent"
@@ -1414,7 +1406,7 @@
         {
           "id": "254891bb-d2ca-487b-8e67-4b8d7b73a035",
           "patch": 6,
-          "message": ".msg PDF: removed sender name heading from top of email layout. Header now starts directly with From/Sent/To/Subject table.",
+          "message": ".msg PDF: removed sender name heading; header now starts at From/Sent/To/Subject",
           "category": "fix",
           "createdAt": "2026-04-30T19:49:27.020311Z",
           "createdBy": "agent"
@@ -1422,7 +1414,7 @@
         {
           "id": "7a12680a-1866-4d93-90c2-59495eb1f43d",
           "patch": 6,
-          "message": ".msg PDF: detect Outlook reply-separator divs (border-top style) and insert hr.reply-divider before each one, creating a visible dividing line between the main email and quoted replies.",
+          "message": ".msg PDF: added dividing line between main email body and quoted replies",
           "category": "fix",
           "createdAt": "2026-04-30T19:51:52.072213Z",
           "createdBy": "agent"
@@ -1430,7 +1422,7 @@
         {
           "id": "2d200b0d-92aa-414f-89a2-513f23b7558b",
           "patch": 6,
-          "message": "Fix page numbering: replaced Ghostscript BeginPage/EndPage PostScript hook (misfired 3x per page on Chromium PDFs due to transparency layers) with pypdf+reportlab Python script (server/add_page_numbers.py). Now produces correct sequential 1, 2, 3... numbering.",
+          "message": "Fixed bundle page numbering: replaced Ghostscript hooks with pypdf+reportlab script",
           "category": "fix",
           "createdAt": "2026-04-30T20:00:11.129774Z",
           "createdBy": "agent"
