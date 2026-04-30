@@ -215,31 +215,16 @@ async function countPdfPages(pdfPath: string): Promise<number> {
 }
 
 async function addPageNumbers(inputPath: string, outputPath: string): Promise<void> {
-  const psScript = `%!PS
-userdict /pagenum 1 put
-<</BeginPage {
-  pop
-  gsave
-  /Helvetica findfont 9 scalefont setfont
-  0 0 0 setrgbcolor
-  currentpagedevice /PageSize get 0 get 30 sub
-  15
-  moveto
-  userdict /pagenum get 10 string cvs show
-  userdict /pagenum userdict /pagenum get 1 add put
-  grestore
-} bind >> setpagedevice
-`;
-  const psPath = path.join(path.dirname(outputPath), `pagenums_${Date.now()}.ps`);
-  await fs.writeFile(psPath, psScript);
-  try {
-    await execAsync(
-      `gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile="${outputPath}" "${psPath}" "${inputPath}"`,
-      { timeout: 120_000 },
-    );
-  } finally {
-    await fs.unlink(psPath).catch(() => {});
-  }
+  // Uses a Python script (pypdf + reportlab) to stamp page numbers.
+  // The old Ghostscript BeginPage/EndPage hook approach misfired on Chromium-generated
+  // PDFs (transparency layers cause BeginPage to fire 3× per page → numbers 3, 6, 9 …).
+  const scriptPath = path.join(process.cwd(), "server", "add_page_numbers.py");
+  const pythonBin = fs.existsSync(path.join(process.cwd(), ".pythonlibs", "bin", "python3"))
+    ? path.join(process.cwd(), ".pythonlibs", "bin", "python3")
+    : "python3";
+  await execAsync(`"${pythonBin}" "${scriptPath}" "${inputPath}" "${outputPath}"`, {
+    timeout: 120_000,
+  });
 }
 
 const BCRYPT_SALT_ROUNDS = 12;

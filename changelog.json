@@ -1386,6 +1386,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T19:51:52.072213Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "2d200b0d-92aa-414f-89a2-513f23b7558b",
+          "patch": 6,
+          "message": "Fix page numbering: replaced Ghostscript BeginPage/EndPage PostScript hook (misfired 3x per page on Chromium PDFs due to transparency layers) with pypdf+reportlab Python script (server/add_page_numbers.py). Now produces correct sequential 1, 2, 3... numbering.",
+          "category": "fix",
+          "createdAt": "2026-04-30T20:00:11.129774Z",
+          "createdBy": "agent"
         }
       ]
     }

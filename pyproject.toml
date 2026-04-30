@@ -5,6 +5,8 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "extract-msg>=0.55.0",
+    "pypdf>=6.10.2",
     "pyppeteer>=2.0.0",
+    "reportlab>=4.5.0",
     "weasyprint>=68.1",
 ]
