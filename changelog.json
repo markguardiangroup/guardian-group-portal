@@ -1266,6 +1266,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T14:48:42.854366Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "952ce8b3-95f7-43ea-8814-aaae91150db7",
+          "patch": 6,
+          "message": "Case bundle: cleared cached bundle URLs in DB so all bundles regenerate fresh on next download, picking up the corrected page numbering (black, starting at 1).",
+          "category": "fix",
+          "createdAt": "2026-04-30T14:52:31.563337Z",
+          "createdBy": "agent"
         }
       ]
     }
