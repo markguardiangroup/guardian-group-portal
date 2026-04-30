@@ -112,9 +112,18 @@
         "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
         "9e223c29-17ed-4956-aa3c-c03cdde676f9",
         "3be22683-ff52-458f-8322-a8444c9e097f",
-        "1cd04d25-c05e-4514-b85a-b28b27c40973"
+        "1cd04d25-c05e-4514-b85a-b28b27c40973",
+        "aa67bbc3-83ba-46ec-a7dd-89773957889c"
       ],
       "entries": [
+        {
+          "id": "aa67bbc3-83ba-46ec-a7dd-89773957889c",
+          "patch": 6,
+          "message": "Investigated missing-required-templates API: confirmed Recreation Limited Site 1 correctly shows 2 missing HR templates after accounting for site exclusions and group shared docs",
+          "category": "fix",
+          "createdAt": "2026-04-30T22:20:00.000000+00:00",
+          "createdBy": "agent"
+        },
         {
           "id": "a4589046-726d-45dc-99aa-7e3635e3b2bf",
           "patch": 6,
