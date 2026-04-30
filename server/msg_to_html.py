@@ -181,10 +181,19 @@ def build_html(msg_path: str) -> str:
 
 
 def find_chromium() -> str:
+    # 1. Try PATH lookup first
     for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"):
         path = shutil.which(name)
-        if path:
+        if path and os.path.isfile(path):
             return path
+    # 2. Scan Nix store directly (handles restricted PATH in spawned subprocesses)
+    nix_store = "/nix/store"
+    if os.path.isdir(nix_store):
+        for entry in sorted(os.listdir(nix_store), reverse=True):
+            if "chromium" in entry.lower():
+                candidate = os.path.join(nix_store, entry, "bin", "chromium")
+                if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                    return candidate
     raise RuntimeError("Chromium not found — install it via system dependencies")
 
 

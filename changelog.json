@@ -1354,6 +1354,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T19:36:42.222966Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "36fc36d8-54c7-428e-9c0e-56cba1a01c9a",
+          "patch": 6,
+          "message": "Fix .msg Chromium path: when Node.js exec spawns Python script, PATH may not include Nix store. find_chromium() now falls back to scanning /nix/store directly for chromium-* entries.",
+          "category": "fix",
+          "createdAt": "2026-04-30T19:40:10.999457Z",
+          "createdBy": "agent"
         }
       ]
     }
