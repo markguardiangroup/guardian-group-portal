@@ -116,6 +116,22 @@
       ],
       "entries": [
         {
+          "id": "e5f6c32f-16d7-4edc-a2e4-5665b3ceb8bd",
+          "patch": 6,
+          "message": "Portfolio panel now shows active EL cases and source tags for consultants",
+          "category": "enhancement",
+          "createdAt": "2026-04-30T21:39:34.399693+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "45143410-ae19-4dab-8e2b-a61aab7c1b0a",
+          "patch": 6,
+          "message": "Fixed folder view: company-required template slots now counted in folder stats and compliance status",
+          "category": "bug",
+          "createdAt": "2026-04-30T21:32:25.104657+00:00",
+          "createdBy": "agent"
+        },
+        {
           "id": "2e57c991-62e3-4696-a979-2503c634ac01",
           "patch": 6,
           "message": "Changelog entries now show a date stamp and are sorted newest first within each patch",

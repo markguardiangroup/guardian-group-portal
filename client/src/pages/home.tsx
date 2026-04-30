@@ -55,6 +55,7 @@ interface HomeSummary {
     | {
         assignedCompanies: { name: string; siteCount: number }[];
         assignedSites: { id: string; name: string; companyName?: string; isPrimary?: boolean }[];
+        assignedCases: { id: string; reference: string; employeeName: string; companyName: string | null; status: string }[];
         sources: string[];
       }
     | {
@@ -317,11 +318,15 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
     const p = portfolio as {
       assignedCompanies: { name: string; siteCount: number }[];
       assignedSites: { id: string; name: string; companyName?: string; isPrimary?: boolean }[];
+      assignedCases: { id: string; reference: string; employeeName: string; companyName: string | null; status: string }[];
       sources: string[];
     };
 
+    const isConsultant = role === "consultant";
     const totalCompanies = p.assignedCompanies.length;
     const totalSites = p.assignedSites.length;
+    const activeCases = (p.assignedCases ?? []);
+    const sources = (p.sources ?? []);
     const hasMore = totalCompanies > PORTFOLIO_INITIAL_ROWS;
     const visibleCompanies = expanded ? p.assignedCompanies : p.assignedCompanies.slice(0, PORTFOLIO_INITIAL_ROWS);
 
@@ -335,7 +340,7 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {/* Summary stats */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className={`grid gap-2 ${isConsultant && activeCases.length > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
             <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-companies">
               <p className="text-xl font-bold tabular-nums">{totalCompanies}</p>
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
@@ -350,6 +355,15 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
                 {totalSites === 1 ? "Site" : "Sites"}
               </p>
             </div>
+            {isConsultant && activeCases.length > 0 && (
+              <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-cases">
+                <p className="text-xl font-bold tabular-nums">{activeCases.length}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+                  <Briefcase className="h-3 w-3" />
+                  {activeCases.length === 1 ? "Case" : "Cases"}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Client list */}
@@ -402,6 +416,55 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
           {totalCompanies === 0 && (
             <div className="flex items-center justify-center text-center py-4">
               <p className="text-sm text-muted-foreground">No clients assigned yet.</p>
+            </div>
+          )}
+
+          {/* Active cases (consultants only) */}
+          {isConsultant && activeCases.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Active Cases
+              </p>
+              <div className="space-y-1">
+                {activeCases.slice(0, 5).map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/employment-law/cases/${c.id}`}
+                    className="flex items-center justify-between rounded-md px-2.5 py-1.5 hover:bg-muted/60 transition-colors"
+                    data-testid={`case-portfolio-${c.id}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium truncate block">{c.reference}</span>
+                        <span className="text-xs text-muted-foreground truncate block">{c.employeeName}{c.companyName ? ` · ${c.companyName}` : ""}</span>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  </Link>
+                ))}
+                {activeCases.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">
+                    +{activeCases.length - 5} more cases
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Sources / areas of expertise (consultants only) */}
+          {isConsultant && sources.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Areas of Expertise
+              </p>
+              <div className="flex flex-wrap gap-1.5" data-testid="sources-portfolio">
+                {sources.map((src) => (
+                  <Badge key={src} variant="secondary" className="text-xs font-normal" data-testid={`source-badge-${src}`}>
+                    {src}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
 

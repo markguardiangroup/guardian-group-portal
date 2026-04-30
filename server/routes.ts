@@ -10160,7 +10160,9 @@ export async function registerRoutes(
           
           // Get document templates in this folder template
           const folderDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === folderTemplate.id);
-          const requiredTemplates = folderDocTemplates.filter(dt => dt.isRequired);
+          // Use getEffectiveTemplateIsRequired so company-required templates (from company_required_templates)
+          // are counted as required slots, not just templates with dt.isRequired=true on the template itself.
+          const requiredTemplates = folderDocTemplates.filter(dt => getEffectiveTemplateIsRequired(dt));
           
           // Get documents from ALL matching folders across all sites
           const matchingFolderIds = matchingSiteFolders.map(sf => sf.id);
@@ -10207,7 +10209,7 @@ export async function registerRoutes(
               : [];
             
             const childDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === childTemplate.id);
-            const childRequiredTemplates = childDocTemplates.filter(dt => dt.isRequired);
+            const childRequiredTemplates = childDocTemplates.filter(dt => getEffectiveTemplateIsRequired(dt));
             const sharedForChildFolder = sharedDocsByFolderTemplateId.get(childTemplate.id) ?? [];
             const childFulfilledCount = childRequiredTemplates.filter(rt =>
               childFolderDocs.some(d => d.templateId === rt.id) ||
@@ -15274,6 +15276,7 @@ export async function registerRoutes(
         portfolio = {
           assignedCompanies: Array.from(companyMap.entries()).map(([name, v]) => ({ name, siteCount: v.siteCount })),
           assignedSites: sitesData.slice(0, 20),
+          assignedCases: casesData.map((c) => ({ id: c.id, reference: c.case_reference, employeeName: c.employee_name, companyName: c.company_name, status: c.status })),
           sources: sourcesData,
         };
       } else {
