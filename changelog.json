@@ -119,7 +119,7 @@
           "id": "caee8253-3285-45a9-b77b-b62e084f8fb2",
           "patch": 6,
           "message": "Removed weasyprint dependency (replaced by pyppeteer)",
-          "category": "chore",
+          "category": "other",
           "createdAt": "2026-04-30T20:39:18.189566Z",
           "createdBy": "agent"
         },
@@ -127,7 +127,7 @@
           "id": "57f8d4bd-1c98-4917-ac4e-9cf24b014760",
           "patch": 6,
           "message": "Removed unused main.py boilerplate file",
-          "category": "chore",
+          "category": "other",
           "createdAt": "2026-04-30T20:39:18.074141Z",
           "createdBy": "agent"
         },
@@ -135,7 +135,7 @@
           "id": "e839e482-676b-4ef9-bcd6-d43de5afed9e",
           "patch": 6,
           "message": "Fixed email signature alignment in .msg bundle PDFs",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T20:17:32.814341Z",
           "createdBy": "agent"
         },
@@ -143,7 +143,7 @@
           "id": "0252ac8b-8083-4dcb-b008-22579412c774",
           "patch": 6,
           "message": "Fixed bundle page numbers starting at 3 instead of 1",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T20:12:17.849131Z",
           "createdBy": "agent"
         },
@@ -1095,7 +1095,7 @@
           "id": "2463acf6-2407-4fb8-af32-94fa6e735610",
           "patch": 6,
           "message": "Added portal_messages table with full CRUD and storage layer",
-          "category": "backend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:31:30.962655+00:00",
           "createdBy": "agent"
         },
@@ -1103,7 +1103,7 @@
           "id": "e7ef7f1d-d116-4d77-85e6-7021977da64f",
           "patch": 6,
           "message": "Added /api/home-summary endpoint returning urgent actions, portfolio, and portal messages",
-          "category": "backend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:31:30.962724+00:00",
           "createdBy": "agent"
         },
@@ -1111,7 +1111,7 @@
           "id": "cd9bf392-ac38-4f93-8d73-a19f32a7b28c",
           "patch": 6,
           "message": "Added portal-messages CRUD API routes with admin/client visibility rules",
-          "category": "backend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:31:30.962775+00:00",
           "createdBy": "agent"
         },
@@ -1143,7 +1143,7 @@
           "id": "5b3e9414-9095-4861-bfdb-6349370cc274",
           "patch": 6,
           "message": "Fixed home page: / redirect, date greeting, client doc links, admin action buttons",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-29T13:40:58.560735Z",
           "createdBy": "agent"
         },
@@ -1151,7 +1151,7 @@
           "id": "930c8661-781e-4917-aee9-7dd02aa4b1d5",
           "patch": 6,
           "message": "Fixed home page review issues: portal message card type badges and colours",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-29T13:46:40.495315Z",
           "createdBy": "agent"
         },
@@ -1159,7 +1159,7 @@
           "id": "408b7414-de3e-4768-b0f9-dcb05f5261af",
           "patch": 6,
           "message": "Added /api/home-summary/items endpoint for urgent action modal drill-down lists",
-          "category": "backend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1167,7 +1167,7 @@
           "id": "9ff018d9-efa2-49f3-910d-b8fe03c6c050",
           "patch": 6,
           "message": "Remove Quick Links card from home page (redundant with sidebar navigation)",
-          "category": "frontend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1175,7 +1175,7 @@
           "id": "769c53c6-d981-4527-8629-055a2e25b2e5",
           "patch": 6,
           "message": "Urgent Actions: clicking a metric opens a modal listing specific items with links",
-          "category": "frontend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1183,7 +1183,7 @@
           "id": "08ff47cd-c613-454b-97b3-6fb144b4b5d6",
           "patch": 6,
           "message": "Redesigned My Portfolio panel with stats, client list, and site count badges",
-          "category": "frontend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1191,7 +1191,7 @@
           "id": "d5257ae3-900f-4f02-a88d-52e8e93cece8",
           "patch": 6,
           "message": "Client Account panel redesign: avatar icons, divider layout, document/incident quick-action buttons",
-          "category": "frontend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1199,7 +1199,7 @@
           "id": "3ed2e20c-c651-46b3-86cf-45c2adbba5c3",
           "patch": 6,
           "message": "Add Zod schema validation to PATCH /api/portal-messages/:id to constrain mutable fields",
-          "category": "backend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1207,7 +1207,7 @@
           "id": "17052834-e17c-4c5c-8a3a-95a9a4912d20",
           "patch": 6,
           "message": "Add SQL migration file 0005_add_portal_messages.sql for reproducible portal_messages table creation",
-          "category": "backend",
+          "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
           "createdBy": "agent"
         },
@@ -1215,7 +1215,7 @@
           "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
           "patch": 6,
           "message": "Fixed portal message create/update: coerce ISO string timestamps before validation",
-          "category": "bugfix",
+          "category": "bug",
           "createdAt": "2026-04-29T14:02:27.879484+00:00",
           "createdBy": "agent"
         },
@@ -1223,7 +1223,7 @@
           "id": "b062cc78-1b0b-4fd1-8917-39afc8527f7a",
           "patch": 6,
           "message": "Fixed PATCH portal-messages: omitted date fields no longer cause validation errors",
-          "category": "bugfix",
+          "category": "bug",
           "createdAt": "2026-04-29T14:04:42.966625+00:00",
           "createdBy": "agent"
         },
@@ -1239,7 +1239,7 @@
           "id": "e1463481-0535-427c-8b5b-7356f6e4446e",
           "patch": 6,
           "message": "Fixed portal messages: future-dated messages now hidden until published_at arrives",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-29T14:30:25.508982+00:00",
           "createdBy": "agent"
         },
@@ -1255,7 +1255,7 @@
           "id": "1b9d3dc4-3f1d-48e7-bd1b-701c866d27da",
           "patch": 6,
           "message": "Equalised Urgent Actions and My Portfolio card heights on home page",
-          "category": "ux",
+          "category": "enhancement",
           "createdAt": "2026-04-29T14:51:12.583438+00:00",
           "createdBy": "agent"
         },
@@ -1279,7 +1279,7 @@
           "id": "b1876e0b-28b1-402e-9d49-f84a07a5b8c3",
           "patch": 6,
           "message": "Case bundle PDF: page numbers now start at 1 (was 0-based) and render in black (was grey).",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T14:39:57.214558Z",
           "createdBy": "agent"
         },
@@ -1287,7 +1287,7 @@
           "id": "3650e936-35dc-4abc-87c1-3d726c228630",
           "patch": 6,
           "message": "Case bundle PDF: switched to explicit PostScript counter for page numbers",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T14:43:33.259347Z",
           "createdBy": "agent"
         },
@@ -1295,7 +1295,7 @@
           "id": "d60eca2c-7107-413b-a3a8-7fb6cd42f64a",
           "patch": 6,
           "message": "Case bundle PDF: fixed dictionary scoping bug in PostScript page numbering",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T14:48:42.854366Z",
           "createdBy": "agent"
         },
@@ -1303,7 +1303,7 @@
           "id": "952ce8b3-95f7-43ea-8814-aaae91150db7",
           "patch": 6,
           "message": "Case bundle: cleared cached PDFs so next download picks up page number fix",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T14:52:31.563337Z",
           "createdBy": "agent"
         },
@@ -1319,7 +1319,7 @@
           "id": "b6602aff-8ae9-4959-a6e8-6c4923b47b4c",
           "patch": 6,
           "message": "Case bundle: cleared cache after filename-fallback fix for .msg conversion",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T15:03:56.822334Z",
           "createdBy": "agent"
         },
@@ -1327,7 +1327,7 @@
           "id": "b53c2dc8-c4dd-4b1b-ac30-0d0739d6a1c3",
           "patch": 6,
           "message": "Case bundle: cleared cache again after confirming .msg fallback is live",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T15:37:08.123723Z",
           "createdBy": "agent"
         },
@@ -1335,7 +1335,7 @@
           "id": "b5597304-b347-43c4-862e-2ed1a832a3db",
           "patch": 6,
           "message": "Case bundle: switched .msg conversion to extract-msg + Python (LibreOffice failed)",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T15:42:38.009667Z",
           "createdBy": "agent"
         },
@@ -1343,7 +1343,7 @@
           "id": "02a68585-a397-4630-ac21-2691f8dba9bd",
           "patch": 6,
           "message": "Case bundle: forced server restart to load new msg_to_html.py integration",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T15:47:31.030816Z",
           "createdBy": "agent"
         },
@@ -1351,7 +1351,7 @@
           "id": "57bcb38c-27d4-4fb9-9178-e34cdada2720",
           "patch": 6,
           "message": ".msg conversion: switched from LibreOffice to weasyprint for correct A4 output",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T15:52:25.941935Z",
           "createdBy": "agent"
         },
@@ -1359,7 +1359,7 @@
           "id": "2d8d4a97-9840-49de-aff3-9fc4ea5c08f0",
           "patch": 6,
           "message": ".msg conversion: switched to rendering full Outlook HTML body via weasyprint",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T16:02:30.378886Z",
           "createdBy": "agent"
         },
@@ -1367,7 +1367,7 @@
           "id": "d98cd8bd-23e7-4c48-8537-8c4a272f5322",
           "patch": 6,
           "message": ".msg conversion: improved weasyprint rendering, strips Office CSS/namespaces",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T16:07:43.644430Z",
           "createdBy": "agent"
         },
@@ -1375,7 +1375,7 @@
           "id": "20e2ae9b-3e20-4dc2-8e97-9d22e771f92d",
           "patch": 6,
           "message": ".msg PDF layout: matches Outlook native print format (sender, header, UK date)",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T19:16:52.349031Z",
           "createdBy": "agent"
         },
@@ -1383,7 +1383,7 @@
           "id": "0976cf2d-2c45-407e-9a01-0290a4afda23",
           "patch": 6,
           "message": ".msg conversion: replaced weasyprint with pyppeteer + Chromium for accurate PDF",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T19:36:42.222966Z",
           "createdBy": "agent"
         },
@@ -1391,7 +1391,7 @@
           "id": "36fc36d8-54c7-428e-9c0e-56cba1a01c9a",
           "patch": 6,
           "message": "Fixed .msg Chromium path by scanning /nix/store when PATH is missing Nix entries",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T19:40:10.999457Z",
           "createdBy": "agent"
         },
@@ -1399,7 +1399,7 @@
           "id": "40257212-ae34-403b-984b-a5b6ea27faa7",
           "patch": 6,
           "message": ".msg PDF: full HTML rewrite using BeautifulSoup with clean Calibri print CSS",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T19:45:06.352979Z",
           "createdBy": "agent"
         },
@@ -1407,7 +1407,7 @@
           "id": "254891bb-d2ca-487b-8e67-4b8d7b73a035",
           "patch": 6,
           "message": ".msg PDF: removed sender name heading; header now starts at From/Sent/To/Subject",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T19:49:27.020311Z",
           "createdBy": "agent"
         },
@@ -1415,7 +1415,7 @@
           "id": "7a12680a-1866-4d93-90c2-59495eb1f43d",
           "patch": 6,
           "message": ".msg PDF: added dividing line between main email body and quoted replies",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T19:51:52.072213Z",
           "createdBy": "agent"
         },
@@ -1423,7 +1423,7 @@
           "id": "2d200b0d-92aa-414f-89a2-513f23b7558b",
           "patch": 6,
           "message": "Fixed bundle page numbering: replaced Ghostscript hooks with pypdf+reportlab script",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-04-30T20:00:11.129774Z",
           "createdBy": "agent"
         }
