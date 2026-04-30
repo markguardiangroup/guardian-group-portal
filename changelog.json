@@ -116,6 +116,14 @@
       ],
       "entries": [
         {
+          "id": "e839e482-676b-4ef9-bcd6-d43de5afed9e",
+          "patch": 6,
+          "message": "Fix email signature alignment: strip align/valign/width/height attributes from table elements in msg_to_html.py, and add CSS overrides to force left-alignment on all body tables \u2014 Outlook signatures were being pushed right by align attributes",
+          "category": "fix",
+          "createdAt": "2026-04-30T20:17:32.814341Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "0252ac8b-8083-4dcb-b008-22579412c774",
           "patch": 6,
           "message": "Fix addPageNumbers: import existsSync from 'fs' (not 'fs/promises' which lacks it); add console tracing for Python binary and script output; cleared bundle cache so next download uses corrected code path",

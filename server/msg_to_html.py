@@ -113,6 +113,13 @@ def extract_clean_body_html(html_src: str) -> str:
     for tag in content.find_all(class_=True):
         del tag["class"]
 
+    # Strip align/valign/width/height HTML attributes from tables — Outlook uses
+    # these to push signature blocks to the right; we want everything left-aligned.
+    for tag in content.find_all(["table", "td", "tr", "th"]):
+        for attr in ("align", "valign", "width", "height", "cellpadding", "cellspacing"):
+            if attr in tag.attrs:
+                del tag[attr]
+
     # Remove empty paragraphs that are just &nbsp; spacers
     for p in content.find_all("p"):
         text = p.get_text(strip=True)
@@ -195,7 +202,18 @@ PRINT_CSS = """
 
   a { color: #1155CC; text-decoration: none; }
   img { max-width: 100%; height: auto; }
-  table { max-width: 100%; }
+
+  /* Force all body tables to be left-aligned — Outlook signatures often use
+     align="center" / align="right" attributes or margin:auto to push them right */
+  .ol-body table {
+    max-width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    text-align: left !important;
+  }
+  .ol-body td, .ol-body th {
+    text-align: left !important;
+  }
 </style>
 """
 
