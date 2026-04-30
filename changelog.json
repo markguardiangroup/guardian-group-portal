@@ -116,6 +116,14 @@
       ],
       "entries": [
         {
+          "id": "66a00d72-ecd6-428a-a721-74ae865458b0",
+          "patch": 6,
+          "message": "Remove redundant main.py Replit boilerplate stub (unused)",
+          "category": "chore",
+          "createdAt": "2026-04-30T20:26:27.152659Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e839e482-676b-4ef9-bcd6-d43de5afed9e",
           "patch": 6,
           "message": "Fix email signature alignment: strip align/valign/width/height attributes from table elements in msg_to_html.py, and add CSS overrides to force left-alignment on all body tables \u2014 Outlook signatures were being pushed right by align attributes",
