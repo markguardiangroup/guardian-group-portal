@@ -161,18 +161,37 @@ async function convertFileToPdf(
     const ext = mimeToExtension(mimeType) !== "bin"
       ? mimeToExtension(mimeType)
       : (extensionFromFileName(fileName) ?? "bin");
-    console.log(`[convertFileToPdf] index=${index} mimeType=${mimeType} fileName=${fileName ?? "n/a"} resolvedExt=${ext}`);
-    const inputPath = path.join(tempDir, `${index}_src.${ext}`);
     const outDir = path.join(tempDir, `lo_${index}`);
     await fs.mkdir(outDir, { recursive: true });
-    await fs.writeFile(inputPath, fileBuffer);
+
+    let libreOfficeInput: string;
+
+    if (ext === "msg") {
+      // .msg is an OLE2 binary (Outlook email) — LibreOffice cannot open it directly.
+      // Use extract-msg (Python) to convert to HTML first, then feed HTML to LibreOffice.
+      const msgPath = path.join(tempDir, `${index}_src.msg`);
+      const htmlPath = path.join(tempDir, `${index}_src.html`);
+      await fs.writeFile(msgPath, fileBuffer);
+      const pythonScript = path.join(process.cwd(), "server", "msg_to_html.py");
+      const pythonBin = path.join(process.cwd(), ".pythonlibs", "bin", "python3");
+      const python = (await fs.access(pythonBin).then(() => true).catch(() => false))
+        ? pythonBin
+        : "python3";
+      await execAsync(`"${python}" "${pythonScript}" "${msgPath}" "${htmlPath}"`, { timeout: 30_000 });
+      libreOfficeInput = htmlPath;
+    } else {
+      const inputPath = path.join(tempDir, `${index}_src.${ext}`);
+      await fs.writeFile(inputPath, fileBuffer);
+      libreOfficeInput = inputPath;
+    }
+
     await execAsync(
-      `soffice --headless --norestore --convert-to pdf --outdir "${outDir}" "${inputPath}"`,
+      `soffice --headless --norestore --convert-to pdf --outdir "${outDir}" "${libreOfficeInput}"`,
       { timeout: 60_000, env: { ...process.env, HOME: outDir } },
     );
     const outFiles = await fs.readdir(outDir);
     const pdfFile = outFiles.find(f => f.endsWith(".pdf"));
-    if (!pdfFile) throw new Error(`LibreOffice produced no PDF for file ${index}`);
+    if (!pdfFile) throw new Error(`LibreOffice produced no PDF for file ${index} (ext: ${ext})`);
     await fs.rename(path.join(outDir, pdfFile), outputPath);
     return outputPath;
   });

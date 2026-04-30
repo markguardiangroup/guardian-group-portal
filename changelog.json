@@ -1290,6 +1290,22 @@
           "category": "fix",
           "createdAt": "2026-04-30T15:03:56.822334Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b53c2dc8-c4dd-4b1b-ac30-0d0739d6a1c3",
+          "patch": 6,
+          "message": "Case bundle: cleared bundle cache a third time after confirming filename-fallback code is live; direct test confirmed application/octet-stream + .msg filename correctly resolves to msg extension for LibreOffice.",
+          "category": "fix",
+          "createdAt": "2026-04-30T15:37:08.123723Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b5597304-b347-43c4-862e-2ed1a832a3db",
+          "patch": 6,
+          "message": "Case bundle: fix .msg conversion. Real Outlook .msg files are OLE2 binary format which LibreOffice cannot open. Added server/msg_to_html.py (uses extract-msg Python library) to convert .msg -> HTML first, then LibreOffice converts HTML -> PDF. Installed extract-msg Python package.",
+          "category": "fix",
+          "createdAt": "2026-04-30T15:42:38.009667Z",
+          "createdBy": "agent"
         }
       ]
     }
