@@ -1306,6 +1306,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T15:42:38.009667Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "02a68585-a397-4630-ac21-2691f8dba9bd",
+          "patch": 6,
+          "message": "Case bundle .msg fix: forced server restart to load new msg_to_html.py integration; cleared bundle cache. End-to-end test confirmed: extract-msg Python \u2192 HTML \u2192 LibreOffice \u2192 64KB PDF works on real OLE .msg file.",
+          "category": "fix",
+          "createdAt": "2026-04-30T15:47:31.030816Z",
+          "createdBy": "agent"
         }
       ]
     }
