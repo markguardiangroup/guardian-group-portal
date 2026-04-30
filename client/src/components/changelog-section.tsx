@@ -89,6 +89,16 @@ function formatPatch(v: ChangelogVersion, patch: number) {
   return `v${v.major}.${v.minor}.${String(patch).padStart(2, "0")}`;
 }
 
+function formatEntryDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const day = d.getDate();
+  const mon = d.toLocaleString("en-GB", { month: "short" });
+  const yr = d.getFullYear();
+  const thisYr = new Date().getFullYear();
+  return yr === thisYr ? `${day} ${mon}` : `${day} ${mon} ${yr}`;
+}
+
 export default function ChangelogSection() {
   const qc = useQueryClient();
   const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
@@ -257,11 +267,14 @@ export default function ChangelogSection() {
       {sortedVersions.map((version) => {
         const isOpen = openCards[version.id] ?? true;
 
-        // Group entries by patch number, newest patch first
+        // Group entries by patch number, newest patch first; within each patch sort by date desc
         const patchMap = new Map<number, ChangelogEntry[]>();
         for (const entry of version.entries) {
           if (!patchMap.has(entry.patch)) patchMap.set(entry.patch, []);
           patchMap.get(entry.patch)!.push(entry);
+        }
+        for (const entries of patchMap.values()) {
+          entries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
         const patchNums = [...patchMap.keys()].sort((a, b) => b - a);
 
@@ -400,6 +413,11 @@ export default function ChangelogSection() {
                                 {CATEGORY_LABELS[entry.category] ?? entry.category}
                               </Badge>
                               <span className="text-sm flex-1">{entry.message}</span>
+                              {entry.createdAt && (
+                                <span className="text-xs text-muted-foreground shrink-0 tabular-nums" data-testid={`date-entry-${entry.id}`}>
+                                  {formatEntryDate(entry.createdAt)}
+                                </span>
+                              )}
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                 <button
                                   className="text-muted-foreground hover:text-foreground transition-colors"

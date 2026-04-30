@@ -116,19 +116,11 @@
       ],
       "entries": [
         {
-          "id": "caee8253-3285-45a9-b77b-b62e084f8fb2",
+          "id": "2e57c991-62e3-4696-a979-2503c634ac01",
           "patch": 6,
-          "message": "Removed weasyprint dependency (replaced by pyppeteer)",
-          "category": "other",
-          "createdAt": "2026-04-30T20:39:18.189566Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "57f8d4bd-1c98-4917-ac4e-9cf24b014760",
-          "patch": 6,
-          "message": "Removed unused main.py boilerplate file",
-          "category": "other",
-          "createdAt": "2026-04-30T20:39:18.074141Z",
+          "message": "Changelog entries now show a date stamp and are sorted newest first within each patch",
+          "category": "enhancement",
+          "createdAt": "2026-04-30T20:55:05.918251+00:00",
           "createdBy": "agent"
         },
         {
@@ -137,14 +129,6 @@
           "message": "Fixed email signature alignment in .msg bundle PDFs",
           "category": "bug",
           "createdAt": "2026-04-30T20:17:32.814341Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "0252ac8b-8083-4dcb-b008-22579412c774",
-          "patch": 6,
-          "message": "Fixed bundle page numbers starting at 3 instead of 1",
-          "category": "bug",
-          "createdAt": "2026-04-30T20:12:17.849131Z",
           "createdBy": "agent"
         },
         {
@@ -988,22 +972,6 @@
           "createdBy": "agent"
         },
         {
-          "id": "6b31e51b-28a6-4ca8-bafd-642aee95e989",
-          "patch": 6,
-          "message": "Fixed Company tile Missing count to reflect company-scoped docs only",
-          "category": "bug",
-          "createdAt": "2026-04-24T16:04:42.744Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "64f1eb77-5b5e-4c42-ac8e-97a2e2e71748",
-          "patch": 6,
-          "message": "Fixed Company tile Missing count to mirror Documents page logic",
-          "category": "bug",
-          "createdAt": "2026-04-24T18:09:51.551Z",
-          "createdBy": "agent"
-        },
-        {
           "id": "72da25ef-eb4c-44b2-bc30-00b18a3849bb",
           "patch": 6,
           "message": "Fixed Group tile counts to load consistently alongside Company tile",
@@ -1196,22 +1164,6 @@
           "createdBy": "agent"
         },
         {
-          "id": "3ed2e20c-c651-46b3-86cf-45c2adbba5c3",
-          "patch": 6,
-          "message": "Add Zod schema validation to PATCH /api/portal-messages/:id to constrain mutable fields",
-          "category": "enhancement",
-          "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "17052834-e17c-4c5c-8a3a-95a9a4912d20",
-          "patch": 6,
-          "message": "Add SQL migration file 0005_add_portal_messages.sql for reproducible portal_messages table creation",
-          "category": "enhancement",
-          "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
-        },
-        {
           "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
           "patch": 6,
           "message": "Fixed portal message create/update: coerce ISO string timestamps before validation",
@@ -1225,14 +1177,6 @@
           "message": "Fixed PATCH portal-messages: omitted date fields no longer cause validation errors",
           "category": "bug",
           "createdAt": "2026-04-29T14:04:42.966625+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "457bbe3c-63df-45bc-a070-23e00460869f",
-          "patch": 6,
-          "message": "Added CTA fields to portal_messages (cta_type, cta_url, cta_label)",
-          "category": "feature",
-          "createdAt": "2026-04-29T14:21:21.169635+00:00",
           "createdBy": "agent"
         },
         {
@@ -1284,147 +1228,11 @@
           "createdBy": "agent"
         },
         {
-          "id": "3650e936-35dc-4abc-87c1-3d726c228630",
-          "patch": 6,
-          "message": "Case bundle PDF: switched to explicit PostScript counter for page numbers",
-          "category": "bug",
-          "createdAt": "2026-04-30T14:43:33.259347Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d60eca2c-7107-413b-a3a8-7fb6cd42f64a",
-          "patch": 6,
-          "message": "Case bundle PDF: fixed dictionary scoping bug in PostScript page numbering",
-          "category": "bug",
-          "createdAt": "2026-04-30T14:48:42.854366Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "952ce8b3-95f7-43ea-8814-aaae91150db7",
-          "patch": 6,
-          "message": "Case bundle: cleared cached PDFs so next download picks up page number fix",
-          "category": "bug",
-          "createdAt": "2026-04-30T14:52:31.563337Z",
-          "createdBy": "agent"
-        },
-        {
           "id": "66f0877b-dce8-49a1-9f81-30d91ce761bb",
           "patch": 6,
           "message": "Case bundle: added .msg (Outlook email) conversion support",
           "category": "feature",
           "createdAt": "2026-04-30T14:58:22.887394Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b6602aff-8ae9-4959-a6e8-6c4923b47b4c",
-          "patch": 6,
-          "message": "Case bundle: cleared cache after filename-fallback fix for .msg conversion",
-          "category": "bug",
-          "createdAt": "2026-04-30T15:03:56.822334Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b53c2dc8-c4dd-4b1b-ac30-0d0739d6a1c3",
-          "patch": 6,
-          "message": "Case bundle: cleared cache again after confirming .msg fallback is live",
-          "category": "bug",
-          "createdAt": "2026-04-30T15:37:08.123723Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b5597304-b347-43c4-862e-2ed1a832a3db",
-          "patch": 6,
-          "message": "Case bundle: switched .msg conversion to extract-msg + Python (LibreOffice failed)",
-          "category": "bug",
-          "createdAt": "2026-04-30T15:42:38.009667Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "02a68585-a397-4630-ac21-2691f8dba9bd",
-          "patch": 6,
-          "message": "Case bundle: forced server restart to load new msg_to_html.py integration",
-          "category": "bug",
-          "createdAt": "2026-04-30T15:47:31.030816Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "57bcb38c-27d4-4fb9-9178-e34cdada2720",
-          "patch": 6,
-          "message": ".msg conversion: switched from LibreOffice to weasyprint for correct A4 output",
-          "category": "bug",
-          "createdAt": "2026-04-30T15:52:25.941935Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "2d8d4a97-9840-49de-aff3-9fc4ea5c08f0",
-          "patch": 6,
-          "message": ".msg conversion: switched to rendering full Outlook HTML body via weasyprint",
-          "category": "bug",
-          "createdAt": "2026-04-30T16:02:30.378886Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d98cd8bd-23e7-4c48-8537-8c4a272f5322",
-          "patch": 6,
-          "message": ".msg conversion: improved weasyprint rendering, strips Office CSS/namespaces",
-          "category": "bug",
-          "createdAt": "2026-04-30T16:07:43.644430Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "20e2ae9b-3e20-4dc2-8e97-9d22e771f92d",
-          "patch": 6,
-          "message": ".msg PDF layout: matches Outlook native print format (sender, header, UK date)",
-          "category": "bug",
-          "createdAt": "2026-04-30T19:16:52.349031Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "0976cf2d-2c45-407e-9a01-0290a4afda23",
-          "patch": 6,
-          "message": ".msg conversion: replaced weasyprint with pyppeteer + Chromium for accurate PDF",
-          "category": "bug",
-          "createdAt": "2026-04-30T19:36:42.222966Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "36fc36d8-54c7-428e-9c0e-56cba1a01c9a",
-          "patch": 6,
-          "message": "Fixed .msg Chromium path by scanning /nix/store when PATH is missing Nix entries",
-          "category": "bug",
-          "createdAt": "2026-04-30T19:40:10.999457Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "40257212-ae34-403b-984b-a5b6ea27faa7",
-          "patch": 6,
-          "message": ".msg PDF: full HTML rewrite using BeautifulSoup with clean Calibri print CSS",
-          "category": "bug",
-          "createdAt": "2026-04-30T19:45:06.352979Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "254891bb-d2ca-487b-8e67-4b8d7b73a035",
-          "patch": 6,
-          "message": ".msg PDF: removed sender name heading; header now starts at From/Sent/To/Subject",
-          "category": "bug",
-          "createdAt": "2026-04-30T19:49:27.020311Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "7a12680a-1866-4d93-90c2-59495eb1f43d",
-          "patch": 6,
-          "message": ".msg PDF: added dividing line between main email body and quoted replies",
-          "category": "bug",
-          "createdAt": "2026-04-30T19:51:52.072213Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "2d200b0d-92aa-414f-89a2-513f23b7558b",
-          "patch": 6,
-          "message": "Fixed bundle page numbering: replaced Ghostscript hooks with pypdf+reportlab script",
-          "category": "bug",
-          "createdAt": "2026-04-30T20:00:11.129774Z",
           "createdBy": "agent"
         }
       ]
