@@ -6,6 +6,7 @@ Usage: python3 msg_to_html.py <input.msg> <output.pdf>
 import sys
 import os
 import html as html_lib
+import re
 
 _libs = os.path.join(os.path.dirname(__file__), '..', '.pythonlibs', 'lib', 'python3.11', 'site-packages')
 sys.path.insert(0, _libs)
@@ -13,15 +14,64 @@ sys.path.insert(0, _libs)
 import extract_msg
 import weasyprint
 
-A4_STYLE = """
+CSS = """
 @page { size: A4; margin: 2cm; }
-body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; }
-pre { white-space: pre-wrap; word-wrap: break-word; font-size: 10pt; }
-img { max-width: 100%; height: auto; }
-table { border-collapse: collapse; }
-td, th { padding: 4px 8px; }
-a { color: #1a0dab; }
+* { box-sizing: border-box; }
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    color: #000;
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+}
+.header-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12pt;
+    padding-bottom: 8pt;
+    border-bottom: 1px solid #999;
+}
+.header-table td.label {
+    font-weight: bold;
+    white-space: nowrap;
+    vertical-align: top;
+    padding: 2pt 12pt 2pt 0;
+    width: 80pt;
+}
+.header-table td.value {
+    vertical-align: top;
+    padding: 2pt 0;
+}
+.body-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.4;
+}
 """
+
+
+def strip_html(html_src: str) -> str:
+    """Very basic HTML-to-plain-text for email bodies."""
+    text = re.sub(r'<br\s*/?>', '\n', html_src, flags=re.IGNORECASE)
+    text = re.sub(r'<p[^>]*>', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'</p>', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'<div[^>]*>', '\n', text, flags=re.IGNORECASE)
+    text = re.sub(r'</div>', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = re.sub(r'&nbsp;', ' ', text)
+    text = re.sub(r'&amp;', '&', text)
+    text = re.sub(r'&lt;', '<', text)
+    text = re.sub(r'&gt;', '>', text)
+    text = re.sub(r'&quot;', '"', text)
+    text = re.sub(r'&#39;', "'", text)
+    text = re.sub(r'\r\n', '\n', text)
+    text = re.sub(r'\r', '\n', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
 
 def build_html(msg_path: str) -> str:
     msg = extract_msg.openMsg(msg_path)
@@ -42,71 +92,58 @@ def build_html(msg_path: str) -> str:
     except Exception:
         pass
 
-    html_body = msg.htmlBody
-    plain_body = msg.body or ""
-
-    if html_body:
-        if isinstance(html_body, bytes):
+    # Prefer plain text body; fall back to stripping HTML body
+    plain_body = ""
+    if msg.body:
+        plain_body = msg.body.strip()
+    elif msg.htmlBody:
+        html_src = msg.htmlBody
+        if isinstance(html_src, bytes):
             try:
-                html_body = html_body.decode("utf-8", errors="replace")
+                html_src = html_src.decode("utf-8", errors="replace")
             except Exception:
-                html_body = html_body.decode("latin-1", errors="replace")
-        body_content = html_body
-        is_full_html = "<html" in body_content.lower()
-    else:
-        body_content = "<pre>" + html_lib.escape(plain_body) + "</pre>"
-        is_full_html = False
+                html_src = html_src.decode("latin-1", errors="replace")
+        plain_body = strip_html(html_src)
 
-    def header_row(label: str, value: str) -> str:
+    # Remove characters that can't be encoded in common fonts (e.g. emoji surrogates)
+    plain_body = plain_body.encode("ascii", errors="ignore").decode("ascii")
+
+    def hrow(label: str, value: str) -> str:
         if not value:
             return ""
         return (
             f'<tr>'
-            f'<td style="font-weight:bold;padding:3px 10px 3px 0;white-space:nowrap;color:#444;vertical-align:top;">'
-            f'{html_lib.escape(label)}:</td>'
-            f'<td style="padding:3px 0;">{html_lib.escape(value)}</td>'
+            f'<td class="label">{html_lib.escape(label)}:</td>'
+            f'<td class="value">{html_lib.escape(value)}</td>'
             f'</tr>'
         )
 
-    header_html = (
-        '<div style="border-bottom:2px solid #ccc;padding-bottom:10px;margin-bottom:16px;">'
-        '<table style="border-collapse:collapse;width:100%;">'
-        + header_row("Subject", subject)
-        + header_row("From", sender)
-        + header_row("To", to_field)
-        + header_row("Cc", cc_field)
-        + header_row("Date", date)
-        + '</table></div>'
+    header_rows = (
+        hrow("Subject", subject)
+        + hrow("From", sender)
+        + hrow("To", to_field)
+        + hrow("Cc", cc_field)
+        + hrow("Date", date)
     )
 
-    if is_full_html:
-        # Inject A4 style into existing <head>
-        head_end = body_content.lower().find("</head>")
-        if head_end >= 0:
-            body_content = (body_content[:head_end]
-                            + f'<style>{A4_STYLE}</style>'
-                            + body_content[head_end:])
-        else:
-            body_content = f'<head><style>{A4_STYLE}</style></head>' + body_content
+    body_html = f'<div class="body-text">{html_lib.escape(plain_body)}</div>'
 
-        # Inject header after <body ...>
-        body_tag = body_content.lower().find("<body")
-        if body_tag >= 0:
-            tag_end = body_content.find(">", body_tag)
-            if tag_end >= 0:
-                body_content = body_content[:tag_end + 1] + header_html + body_content[tag_end + 1:]
-        return body_content
-    else:
-        return (
-            f'<!DOCTYPE html><html><head><meta charset="utf-8">'
-            f'<style>{A4_STYLE}</style></head>'
-            f'<body>{header_html}{body_content}</body></html>'
-        )
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>{CSS}</style>
+</head>
+<body>
+  <table class="header-table">{header_rows}</table>
+  {body_html}
+</body>
+</html>"""
 
 
 def msg_to_pdf(msg_path: str, pdf_path: str) -> None:
     html_src = build_html(msg_path)
-    doc = weasyprint.HTML(string=html_src, base_url=os.path.dirname(msg_path))
+    doc = weasyprint.HTML(string=html_src)
     doc.write_pdf(pdf_path)
 
 

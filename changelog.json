@@ -1322,6 +1322,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T15:52:25.941935Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "2d8d4a97-9840-49de-aff3-9fc4ea5c08f0",
+          "patch": 6,
+          "message": ".msg conversion: replaced Outlook HTML body rendering (which caused multi-page/non-A4 output) with clean plain-text extraction. Headers + body now flow together on A4 pages, matching expected format. Emoji/unmappable characters stripped for clean output.",
+          "category": "fix",
+          "createdAt": "2026-04-30T16:02:30.378886Z",
+          "createdBy": "agent"
         }
       ]
     }
