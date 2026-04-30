@@ -190,11 +190,11 @@ async function addPageNumbers(inputPath: string, outputPath: string): Promise<vo
 <</BeginPage {
   gsave
   /Helvetica findfont 9 scalefont setfont
-  0.55 0.55 0.55 setrgbcolor
+  0 0 0 setrgbcolor
   currentpagedevice /PageSize get 0 get 30 sub
   15
   moveto
-  10 string cvs show
+  1 add 10 string cvs show
   grestore
 } bind >> setpagedevice
 `;

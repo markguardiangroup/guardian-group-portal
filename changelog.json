@@ -1242,6 +1242,14 @@
           "category": "feature",
           "createdAt": "2026-04-29T15:32:35.577707Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b1876e0b-28b1-402e-9d49-f84a07a5b8c3",
+          "patch": 6,
+          "message": "Case bundle PDF: page numbers now start at 1 (was 0-based) and render in black (was grey).",
+          "category": "fix",
+          "createdAt": "2026-04-30T14:39:57.214558Z",
+          "createdBy": "agent"
         }
       ]
     }
