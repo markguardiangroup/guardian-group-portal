@@ -116,6 +116,22 @@
       ],
       "entries": [
         {
+          "id": "caee8253-3285-45a9-b77b-b62e084f8fb2",
+          "patch": 6,
+          "message": "Remove weasyprint: drop from pyproject.toml dependencies, delete package files from .pythonlibs, update stale comment in routes.ts \u2014 weasyprint was the old .msg-to-PDF library, replaced by pyppeteer+Chromium",
+          "category": "chore",
+          "createdAt": "2026-04-30T20:39:18.189566Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "57f8d4bd-1c98-4917-ac4e-9cf24b014760",
+          "patch": 6,
+          "message": "Remove redundant main.py Replit boilerplate stub (unused)",
+          "category": "chore",
+          "createdAt": "2026-04-30T20:39:18.074141Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "66a00d72-ecd6-428a-a721-74ae865458b0",
           "patch": 6,
           "message": "Remove redundant main.py Replit boilerplate stub (unused)",

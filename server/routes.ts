@@ -166,7 +166,7 @@ async function convertFileToPdf(
 
     if (ext === "msg") {
       // .msg is OLE2 binary (Outlook email) — LibreOffice cannot open it.
-      // Use extract-msg + weasyprint (Python) to produce an A4 PDF directly.
+      // Use extract-msg + pyppeteer (Python) to produce an A4 PDF via headless Chromium.
       const msgPath = path.join(tempDir, `${index}_src.msg`);
       await fs.writeFile(msgPath, fileBuffer);
       const pythonScript = path.join(process.cwd(), "server", "msg_to_html.py");
