@@ -84,6 +84,13 @@ def extract_clean_body_html(html_src: str) -> str:
     else:
         content = soup
 
+    # Detect Outlook reply-separator divs (border-top style) and insert an <hr> before them
+    for div in content.find_all("div", style=True):
+        style_val = div.get("style", "").lower()
+        if "border-top" in style_val:
+            hr = soup.new_tag("hr", **{"class": "reply-divider"})
+            div.insert_before(hr)
+
     # Strip mso-* and Office-specific inline style properties, keep useful ones
     KEEP_PROPS = {"font-weight", "font-style", "font-size", "color",
                   "text-decoration", "font-family", "text-align"}
@@ -180,10 +187,10 @@ PRINT_CSS = """
   }
 
   /* Quoted / replied email separator */
-  .ol-body hr {
+  .ol-body hr.reply-divider {
     border: none;
     border-top: 1px solid #ccc;
-    margin: 10pt 0;
+    margin: 14pt 0 10pt 0;
   }
 
   a { color: #1155CC; text-decoration: none; }

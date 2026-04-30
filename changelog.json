@@ -1378,6 +1378,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T19:49:27.020311Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "7a12680a-1866-4d93-90c2-59495eb1f43d",
+          "patch": 6,
+          "message": ".msg PDF: detect Outlook reply-separator divs (border-top style) and insert hr.reply-divider before each one, creating a visible dividing line between the main email and quoted replies.",
+          "category": "fix",
+          "createdAt": "2026-04-30T19:51:52.072213Z",
+          "createdBy": "agent"
         }
       ]
     }
