@@ -1274,6 +1274,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T14:52:31.563337Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "66f0877b-dce8-49a1-9f81-30d91ce761bb",
+          "patch": 6,
+          "message": "Case bundle PDF: support .msg (Outlook email) file conversion via LibreOffice. Added application/vnd.ms-outlook MIME mapping; convertFileToPdf now accepts optional fileName to fall back on file extension when browser sends application/octet-stream for .msg uploads.",
+          "category": "feature",
+          "createdAt": "2026-04-30T14:58:22.887394Z",
+          "createdBy": "agent"
         }
       ]
     }

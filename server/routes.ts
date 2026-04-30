@@ -60,6 +60,7 @@ function mimeToExtension(mimeType: string): string {
     "application/vnd.ms-excel": "xls",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
     "application/vnd.ms-powerpoint": "ppt",
+    "application/vnd.ms-outlook": "msg",
     "application/rtf": "rtf",
     "text/plain": "txt",
     "text/csv": "csv",
@@ -71,6 +72,14 @@ function mimeToExtension(mimeType: string): string {
     "application/xhtml+xml": "xhtml",
   };
   return map[mimeType] ?? "bin";
+}
+
+/** Derive file extension from filename when MIME type is generic (e.g. application/octet-stream). */
+function extensionFromFileName(fileName: string | null | undefined): string | null {
+  if (!fileName) return null;
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  const allowed = new Set(["docx","doc","xlsx","xls","pptx","ppt","msg","rtf","txt","csv","odt","ods","odp","odg","html","xhtml","pdf"]);
+  return ext && allowed.has(ext) ? ext : null;
 }
 
 /** Parse image dimensions from PNG/JPEG buffer headers without any-cast hacks. */
@@ -105,6 +114,7 @@ async function convertFileToPdf(
   mimeType: string,
   tempDir: string,
   index: number,
+  fileName?: string | null,
 ): Promise<string> {
   const outputPath = path.join(tempDir, `${index}.pdf`);
 
@@ -147,7 +157,10 @@ async function convertFileToPdf(
 
   // Office file — convert via LibreOffice (serial queue)
   return withLibreOffice(async () => {
-    const ext = mimeToExtension(mimeType);
+    // If MIME type is generic, fall back to extension derived from the original filename
+    const ext = mimeToExtension(mimeType) !== "bin"
+      ? mimeToExtension(mimeType)
+      : (extensionFromFileName(fileName) ?? "bin");
     const inputPath = path.join(tempDir, `${index}_src.${ext}`);
     const outDir = path.join(tempDir, `lo_${index}`);
     await fs.mkdir(outDir, { recursive: true });
@@ -9426,7 +9439,7 @@ export async function registerRoutes(
             const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
             const [fileBuffer] = await objectFile.download();
             const mimeType = doc.mimeType || "application/octet-stream";
-            const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i);
+            const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i, doc.fileName);
             pdfPaths.push(pdfPath);
           } catch (fileError) {
             console.warn(`Bundle: skipping item ${item.id} due to error:`, fileError);
