@@ -161,6 +161,7 @@ async function convertFileToPdf(
     const ext = mimeToExtension(mimeType) !== "bin"
       ? mimeToExtension(mimeType)
       : (extensionFromFileName(fileName) ?? "bin");
+    console.log(`[convertFileToPdf] index=${index} mimeType=${mimeType} fileName=${fileName ?? "n/a"} resolvedExt=${ext}`);
     const inputPath = path.join(tempDir, `${index}_src.${ext}`);
     const outDir = path.join(tempDir, `lo_${index}`);
     await fs.mkdir(outDir, { recursive: true });

@@ -1282,6 +1282,14 @@
           "category": "feature",
           "createdAt": "2026-04-30T14:58:22.887394Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b6602aff-8ae9-4959-a6e8-6c4923b47b4c",
+          "patch": 6,
+          "message": "Case bundle: cleared bundle cache a second time (it re-built before filename-fallback code was live); added conversion log to confirm .msg extension resolution fires correctly on next download.",
+          "category": "fix",
+          "createdAt": "2026-04-30T15:03:56.822334Z",
+          "createdBy": "agent"
         }
       ]
     }
