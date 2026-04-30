@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Convert a .msg (Outlook) file to an A4 PDF using extract-msg + headless Chromium.
-Produces true "print to PDF" quality — identical to printing from a browser.
+Produces output matching Outlook's native Print > Print to PDF layout.
 Usage: python3 msg_to_html.py <input.msg> <output.pdf>
 """
 import sys
@@ -18,6 +18,7 @@ sys.path.insert(0, _libs)
 
 import extract_msg
 import pyppeteer
+from bs4 import BeautifulSoup
 
 MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -57,48 +58,139 @@ def display_names_from_addrs(addr_list: str) -> str:
     return "; ".join(parts)
 
 
-HEADER_CSS = """
+def extract_clean_body_html(html_src: str) -> str:
+    """
+    Parse Outlook HTML, strip all <style>/<script>/<head> and Office junk,
+    return just the visible body content as clean HTML.
+    """
+    soup = BeautifulSoup(html_src, "html.parser")
+
+    # Remove script and style tags entirely
+    for tag in soup.find_all(["script", "style", "head"]):
+        tag.decompose()
+
+    # Remove conditional comment leftovers and Office namespace tags
+    for tag in soup.find_all(re.compile(r'^o:')):
+        tag.decompose()
+    for tag in soup.find_all(re.compile(r'^v:')):
+        tag.decompose()
+    for tag in soup.find_all(re.compile(r'^w:')):
+        tag.decompose()
+
+    # Get body content, or fallback to everything
+    body = soup.find("body")
+    if body:
+        content = body
+    else:
+        content = soup
+
+    # Strip mso-* and Office-specific inline style properties, keep useful ones
+    KEEP_PROPS = {"font-weight", "font-style", "font-size", "color",
+                  "text-decoration", "font-family", "text-align"}
+    for tag in content.find_all(style=True):
+        style_str = tag.get("style", "")
+        kept = []
+        for prop in style_str.split(";"):
+            prop = prop.strip()
+            if not prop:
+                continue
+            name = prop.split(":")[0].strip().lower()
+            if name in KEEP_PROPS and "mso" not in name:
+                kept.append(prop)
+        if kept:
+            tag["style"] = "; ".join(kept)
+        else:
+            del tag["style"]
+
+    # Remove class attributes (they referenced Outlook's stripped CSS)
+    for tag in content.find_all(class_=True):
+        del tag["class"]
+
+    # Remove empty paragraphs that are just &nbsp; spacers
+    for p in content.find_all("p"):
+        text = p.get_text(strip=True)
+        if not text or text == "\xa0":
+            p.decompose()
+
+    return str(content)
+
+
+PRINT_CSS = """
 <style>
-@media print {
-  @page { size: A4; margin: 1.8cm 2.4cm 2cm 2.4cm; }
-}
-.ol-sender-heading {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 12pt;
+  @page {
+    size: A4;
+    margin: 1.8cm 2.4cm 2cm 2.4cm;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: Calibri, Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* ── Outlook-style sender heading ── */
+  .ol-sender {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 14pt;
     font-weight: normal;
-    margin: 0 0 8pt 0;
-}
-.ol-header-table {
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 10pt;
+    margin: 0 0 6pt 0;
+    padding: 0;
+  }
+
+  /* ── From / Sent / To / Subject header table ── */
+  .ol-header {
+    border-bottom: 2px solid #000;
+    padding-bottom: 8pt;
+    margin-bottom: 12pt;
+  }
+  .ol-header table {
     border-collapse: collapse;
     width: 100%;
-    margin-bottom: 12pt;
-    padding-bottom: 10pt;
-    border-bottom: 2px solid #000;
-}
-.ol-header-table td {
+    font-size: 10pt;
+  }
+  .ol-header td {
     vertical-align: top;
-    padding: 1.5pt 0;
-}
-.ol-header-table td.lbl {
+    padding: 1pt 0;
+  }
+  .ol-header td.lbl {
     font-weight: bold;
     white-space: nowrap;
-    width: 95pt;
-}
-.ol-header-table td.val {
-    padding-left: 4pt;
-}
+    width: 80pt;
+  }
+  .ol-header td.val {
+    padding-left: 8pt;
+  }
+
+  /* ── Email body ── */
+  .ol-body {
+    font-size: 11pt;
+  }
+  .ol-body p {
+    margin: 0 0 6pt 0;
+    line-height: 1.4;
+  }
+  .ol-body div {
+    line-height: 1.4;
+  }
+
+  /* Quoted / replied email separator */
+  .ol-body hr {
+    border: none;
+    border-top: 1px solid #ccc;
+    margin: 10pt 0;
+  }
+
+  a { color: #1155CC; text-decoration: none; }
+  img { max-width: 100%; height: auto; }
+  table { max-width: 100%; }
 </style>
 """
-
-
-def preprocess_outlook_html(html_src: str) -> str:
-    """Strip Office-specific constructs that break print rendering."""
-    html_src = re.sub(r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->', '', html_src, flags=re.DOTALL)
-    html_src = re.sub(r'<o:p[^>]*>.*?</o:p>', '', html_src, flags=re.DOTALL | re.IGNORECASE)
-    html_src = re.sub(r'\s+xmlns:[a-z]="[^"]*"', '', html_src)
-    return html_src
 
 
 def build_html(msg_path: str) -> str:
@@ -135,14 +227,14 @@ def build_html(msg_path: str) -> str:
         )
 
     header_html = (
-        f'<div class="ol-sender-heading">{html_lib.escape(sender_display)}</div>'
-        f'<table class="ol-header-table">'
+        f'<div class="ol-sender">{html_lib.escape(sender_display)}</div>'
+        f'<div class="ol-header"><table>'
         + hrow("From",    sender_display)
         + hrow("Sent",    date_str)
         + hrow("To",      to_display)
         + hrow("Cc",      cc_display)
         + hrow("Subject", subject)
-        + f'</table>'
+        + f'</table></div>'
     )
 
     html_body = msg.htmlBody
@@ -153,40 +245,36 @@ def build_html(msg_path: str) -> str:
             except Exception:
                 html_body = html_body.decode("latin-1", errors="replace")
 
-        html_body = preprocess_outlook_html(html_body)
-
-        # Inject header CSS before </head>
-        head_end = html_body.lower().find("</head>")
-        if head_end >= 0:
-            html_body = html_body[:head_end] + HEADER_CSS + html_body[head_end:]
-        else:
-            html_body = "<head><meta charset='utf-8'>" + HEADER_CSS + "</head>" + html_body
-
-        # Inject header block right after <body …>
-        body_open = html_body.lower().find("<body")
-        if body_open >= 0:
-            tag_end = html_body.find(">", body_open)
-            if tag_end >= 0:
-                html_body = html_body[:tag_end + 1] + header_html + html_body[tag_end + 1:]
-        return html_body
-
+        body_content = extract_clean_body_html(html_body)
     else:
         plain = msg.body or ""
-        return (
-            f'<!DOCTYPE html><html><head><meta charset="utf-8">{HEADER_CSS}</head>'
-            f'<body>{header_html}'
-            f'<pre style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:10pt;">'
-            f'{html_lib.escape(plain)}</pre></body></html>'
+        body_content = (
+            f'<pre style="white-space:pre-wrap;font-family:Calibri,Arial,sans-serif;font-size:11pt;">'
+            f'{html_lib.escape(plain)}</pre>'
         )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+{PRINT_CSS}
+</head>
+<body>
+{header_html}
+<div class="ol-body">
+{body_content}
+</div>
+</body>
+</html>"""
 
 
 def find_chromium() -> str:
-    # 1. Try PATH lookup first
+    # 1. Try PATH lookup
     for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"):
         path = shutil.which(name)
         if path and os.path.isfile(path):
             return path
-    # 2. Scan Nix store directly (handles restricted PATH in spawned subprocesses)
+    # 2. Scan Nix store (handles restricted PATH in Node-spawned subprocesses)
     nix_store = "/nix/store"
     if os.path.isdir(nix_store):
         for entry in sorted(os.listdir(nix_store), reverse=True):
@@ -194,12 +282,14 @@ def find_chromium() -> str:
                 candidate = os.path.join(nix_store, entry, "bin", "chromium")
                 if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
                     return candidate
-    raise RuntimeError("Chromium not found — install it via system dependencies")
+    raise RuntimeError("Chromium not found — install via system dependencies")
 
 
 async def _render_pdf(html_src: str, pdf_path: str) -> None:
     chromium = find_chromium()
-    with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        suffix=".html", delete=False, mode="w", encoding="utf-8"
+    ) as f:
         f.write(html_src)
         tmp_html = f.name
 
@@ -218,7 +308,7 @@ async def _render_pdf(html_src: str, pdf_path: str) -> None:
         await page.pdf(
             path=pdf_path,
             format="A4",
-            printBackground=True,
+            printBackground=False,
             margin={
                 "top":    "1.8cm",
                 "right":  "2.4cm",

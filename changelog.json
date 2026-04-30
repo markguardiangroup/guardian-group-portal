@@ -1362,6 +1362,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T19:40:10.999457Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "40257212-ae34-403b-984b-a5b6ea27faa7",
+          "patch": 6,
+          "message": ".msg PDF: full redesign of HTML generation. BeautifulSoup strips all Outlook <style>/<head>/mso-*/Office namespace tags. Rebuilds document from scratch with clean Calibri-based print CSS matching Outlook print layout. Sender heading, From/Sent/To/Subject header, clean body content.",
+          "category": "fix",
+          "createdAt": "2026-04-30T19:45:06.352979Z",
+          "createdBy": "agent"
         }
       ]
     }
