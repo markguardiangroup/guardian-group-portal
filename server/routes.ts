@@ -15276,7 +15276,6 @@ export async function registerRoutes(
         portfolio = {
           assignedCompanies: Array.from(companyMap.entries()).map(([name, v]) => ({ name, siteCount: v.siteCount })),
           assignedSites: sitesData.slice(0, 20),
-          assignedCases: casesData.map((c) => ({ id: c.id, reference: c.case_reference, employeeName: c.employee_name, companyName: c.company_name, status: c.status })),
           sources: sourcesData,
         };
       } else {

@@ -116,6 +116,14 @@
       ],
       "entries": [
         {
+          "id": "a4589046-726d-45dc-99aa-7e3635e3b2bf",
+          "patch": 6,
+          "message": "Reverted unsolicited cases/sources additions to portfolio panel",
+          "category": "other",
+          "createdAt": "2026-04-30T21:51:14.021580+00:00",
+          "createdBy": "agent"
+        },
+        {
           "id": "e5f6c32f-16d7-4edc-a2e4-5665b3ceb8bd",
           "patch": 6,
           "message": "Portfolio panel now shows active EL cases and source tags for consultants",
