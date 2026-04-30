@@ -164,29 +164,25 @@ async function convertFileToPdf(
     const outDir = path.join(tempDir, `lo_${index}`);
     await fs.mkdir(outDir, { recursive: true });
 
-    let libreOfficeInput: string;
-
     if (ext === "msg") {
-      // .msg is an OLE2 binary (Outlook email) — LibreOffice cannot open it directly.
-      // Use extract-msg (Python) to convert to HTML first, then feed HTML to LibreOffice.
+      // .msg is OLE2 binary (Outlook email) — LibreOffice cannot open it.
+      // Use extract-msg + weasyprint (Python) to produce an A4 PDF directly.
       const msgPath = path.join(tempDir, `${index}_src.msg`);
-      const htmlPath = path.join(tempDir, `${index}_src.html`);
       await fs.writeFile(msgPath, fileBuffer);
       const pythonScript = path.join(process.cwd(), "server", "msg_to_html.py");
       const pythonBin = path.join(process.cwd(), ".pythonlibs", "bin", "python3");
       const python = (await fs.access(pythonBin).then(() => true).catch(() => false))
         ? pythonBin
         : "python3";
-      await execAsync(`"${python}" "${pythonScript}" "${msgPath}" "${htmlPath}"`, { timeout: 30_000 });
-      libreOfficeInput = htmlPath;
-    } else {
-      const inputPath = path.join(tempDir, `${index}_src.${ext}`);
-      await fs.writeFile(inputPath, fileBuffer);
-      libreOfficeInput = inputPath;
+      await execAsync(`"${python}" "${pythonScript}" "${msgPath}" "${outputPath}"`, { timeout: 60_000 });
+      return outputPath;
     }
 
+    const inputPath = path.join(tempDir, `${index}_src.${ext}`);
+    await fs.writeFile(inputPath, fileBuffer);
+
     await execAsync(
-      `soffice --headless --norestore --convert-to pdf --outdir "${outDir}" "${libreOfficeInput}"`,
+      `soffice --headless --norestore --convert-to pdf --outdir "${outDir}" "${inputPath}"`,
       { timeout: 60_000, env: { ...process.env, HOME: outDir } },
     );
     const outFiles = await fs.readdir(outDir);

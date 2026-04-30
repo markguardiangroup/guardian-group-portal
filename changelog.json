@@ -1314,6 +1314,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T15:47:31.030816Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "57bcb38c-27d4-4fb9-9178-e34cdada2720",
+          "patch": 6,
+          "message": ".msg bundle conversion: switched from LibreOffice HTML export (Letter size) to weasyprint PDF generation with @page { size: A4; margin: 2cm } CSS \u2014 produces correct 595x842pt A4 output. Installed weasyprint Python package.",
+          "category": "fix",
+          "createdAt": "2026-04-30T15:52:25.941935Z",
+          "createdBy": "agent"
         }
       ]
     }

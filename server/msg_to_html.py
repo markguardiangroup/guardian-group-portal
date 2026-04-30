@@ -1,17 +1,29 @@
 #!/usr/bin/env python3
 """
-Convert a .msg (Outlook) file to HTML for PDF conversion.
-Usage: python3 msg_to_html.py <input.msg> <output.html>
+Convert a .msg (Outlook) file to an A4 PDF using extract-msg + weasyprint.
+Usage: python3 msg_to_html.py <input.msg> <output.pdf>
 """
 import sys
 import os
 import html as html_lib
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '.pythonlibs', 'lib', 'python3.11', 'site-packages'))
+_libs = os.path.join(os.path.dirname(__file__), '..', '.pythonlibs', 'lib', 'python3.11', 'site-packages')
+sys.path.insert(0, _libs)
 
 import extract_msg
+import weasyprint
 
-def msg_to_html(msg_path: str, html_path: str) -> None:
+A4_STYLE = """
+@page { size: A4; margin: 2cm; }
+body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; }
+pre { white-space: pre-wrap; word-wrap: break-word; font-size: 10pt; }
+img { max-width: 100%; height: auto; }
+table { border-collapse: collapse; }
+td, th { padding: 4px 8px; }
+a { color: #1a0dab; }
+"""
+
+def build_html(msg_path: str) -> str:
     msg = extract_msg.openMsg(msg_path)
 
     subject = msg.subject or "(No Subject)"
@@ -49,53 +61,58 @@ def msg_to_html(msg_path: str, html_path: str) -> None:
         if not value:
             return ""
         return (
-            f'<tr><td style="font-weight:bold;padding:2px 8px 2px 0;white-space:nowrap;color:#555;">'
+            f'<tr>'
+            f'<td style="font-weight:bold;padding:3px 10px 3px 0;white-space:nowrap;color:#444;vertical-align:top;">'
             f'{html_lib.escape(label)}:</td>'
-            f'<td style="padding:2px 0;">{html_lib.escape(value)}</td></tr>'
+            f'<td style="padding:3px 0;">{html_lib.escape(value)}</td>'
+            f'</tr>'
         )
 
-    header_html = f"""
-<div style="border-bottom:2px solid #ccc;padding-bottom:10px;margin-bottom:16px;font-family:Arial,sans-serif;font-size:13px;">
-  <table style="border-collapse:collapse;width:100%;">
-    {header_row("Subject", subject)}
-    {header_row("From", sender)}
-    {header_row("To", to_field)}
-    {header_row("Cc", cc_field)}
-    {header_row("Date", date)}
-  </table>
-</div>
-"""
+    header_html = (
+        '<div style="border-bottom:2px solid #ccc;padding-bottom:10px;margin-bottom:16px;">'
+        '<table style="border-collapse:collapse;width:100%;">'
+        + header_row("Subject", subject)
+        + header_row("From", sender)
+        + header_row("To", to_field)
+        + header_row("Cc", cc_field)
+        + header_row("Date", date)
+        + '</table></div>'
+    )
 
     if is_full_html:
-        insert_after = body_content.find("<body")
-        if insert_after >= 0:
-            tag_end = body_content.find(">", insert_after)
-            if tag_end >= 0:
-                output = body_content[:tag_end + 1] + header_html + body_content[tag_end + 1:]
-            else:
-                output = body_content.replace("<body", "<body>" + header_html + "<body", 1)
+        # Inject A4 style into existing <head>
+        head_end = body_content.lower().find("</head>")
+        if head_end >= 0:
+            body_content = (body_content[:head_end]
+                            + f'<style>{A4_STYLE}</style>'
+                            + body_content[head_end:])
         else:
-            output = f"<html><body>{header_html}{body_content}</body></html>"
-    else:
-        output = f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><style>
-  body {{ font-family: Arial, sans-serif; font-size: 13px; margin: 24px; }}
-  pre {{ white-space: pre-wrap; word-wrap: break-word; }}
-</style></head>
-<body>
-{header_html}
-{body_content}
-</body>
-</html>"""
+            body_content = f'<head><style>{A4_STYLE}</style></head>' + body_content
 
-    with open(html_path, "w", encoding="utf-8") as f:
-        f.write(output)
+        # Inject header after <body ...>
+        body_tag = body_content.lower().find("<body")
+        if body_tag >= 0:
+            tag_end = body_content.find(">", body_tag)
+            if tag_end >= 0:
+                body_content = body_content[:tag_end + 1] + header_html + body_content[tag_end + 1:]
+        return body_content
+    else:
+        return (
+            f'<!DOCTYPE html><html><head><meta charset="utf-8">'
+            f'<style>{A4_STYLE}</style></head>'
+            f'<body>{header_html}{body_content}</body></html>'
+        )
+
+
+def msg_to_pdf(msg_path: str, pdf_path: str) -> None:
+    html_src = build_html(msg_path)
+    doc = weasyprint.HTML(string=html_src, base_url=os.path.dirname(msg_path))
+    doc.write_pdf(pdf_path)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: msg_to_html.py <input.msg> <output.html>", file=sys.stderr)
+        print("Usage: msg_to_html.py <input.msg> <output.pdf>", file=sys.stderr)
         sys.exit(1)
-    msg_to_html(sys.argv[1], sys.argv[2])
+    msg_to_pdf(sys.argv[1], sys.argv[2])
     print(f"OK: {sys.argv[2]}")
