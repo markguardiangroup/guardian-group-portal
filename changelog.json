@@ -1250,6 +1250,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T14:39:57.214558Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "3650e936-35dc-4abc-87c1-3d726c228630",
+          "patch": 6,
+          "message": "Case bundle PDF: use an explicit PostScript counter for page numbers (pop built-in arg, init to 0, increment per page) so numbering reliably starts at 1 regardless of Ghostscript BeginPage convention.",
+          "category": "fix",
+          "createdAt": "2026-04-30T14:43:33.259347Z",
+          "createdBy": "agent"
         }
       ]
     }

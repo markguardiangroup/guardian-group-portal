@@ -187,14 +187,17 @@ async function countPdfPages(pdfPath: string): Promise<number> {
 
 async function addPageNumbers(inputPath: string, outputPath: string): Promise<void> {
   const psScript = `%!PS
+/pagenum 0 def
 <</BeginPage {
+  pop
+  /pagenum pagenum 1 add def
   gsave
   /Helvetica findfont 9 scalefont setfont
   0 0 0 setrgbcolor
   currentpagedevice /PageSize get 0 get 30 sub
   15
   moveto
-  1 add 10 string cvs show
+  pagenum 10 string cvs show
   grestore
 } bind >> setpagedevice
 `;
