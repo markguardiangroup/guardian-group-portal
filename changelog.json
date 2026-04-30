@@ -1370,6 +1370,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T19:45:06.352979Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "254891bb-d2ca-487b-8e67-4b8d7b73a035",
+          "patch": 6,
+          "message": ".msg PDF: removed sender name heading from top of email layout. Header now starts directly with From/Sent/To/Subject table.",
+          "category": "fix",
+          "createdAt": "2026-04-30T19:49:27.020311Z",
+          "createdBy": "agent"
         }
       ]
     }

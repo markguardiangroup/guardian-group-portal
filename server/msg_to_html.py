@@ -227,7 +227,6 @@ def build_html(msg_path: str) -> str:
         )
 
     header_html = (
-        f'<div class="ol-sender">{html_lib.escape(sender_display)}</div>'
         f'<div class="ol-header"><table>'
         + hrow("From",    sender_display)
         + hrow("Sent",    date_str)
