@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Convert a .msg (Outlook) file to an A4 PDF using extract-msg + weasyprint.
-Matches Outlook's native "Print to PDF" layout.
+Convert a .msg (Outlook) file to an A4 PDF using extract-msg + headless Chromium.
+Produces true "print to PDF" quality — identical to printing from a browser.
 Usage: python3 msg_to_html.py <input.msg> <output.pdf>
 """
 import sys
@@ -9,12 +9,15 @@ import os
 import html as html_lib
 import re
 import email.utils as email_utils
+import shutil
+import tempfile
+import asyncio
 
 _libs = os.path.join(os.path.dirname(__file__), '..', '.pythonlibs', 'lib', 'python3.11', 'site-packages')
 sys.path.insert(0, _libs)
 
 import extract_msg
-import weasyprint
+import pyppeteer
 
 MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -29,20 +32,16 @@ def format_uk_date(dt) -> str:
 
 
 def display_name_from_addr(addr: str) -> str:
-    """Extract display name from 'Name <email@example.com>' format, or return as-is."""
     if not addr:
         return ""
     addr = addr.strip()
-    # Only parse if it looks like an email address form
     if "<" in addr:
         name, email_addr = email_utils.parseaddr(addr)
         return (name or email_addr).strip()
-    # Plain name with no angle brackets — return as-is
     return addr
 
 
 def display_names_from_addrs(addr_list: str) -> str:
-    """Handle comma-separated list of addresses, returning display names only."""
     if not addr_list:
         return ""
     parts = []
@@ -58,91 +57,46 @@ def display_names_from_addrs(addr_list: str) -> str:
     return "; ".join(parts)
 
 
-# Injected before </head> — wins over all Outlook/Word styles
-A4_CSS = """
+HEADER_CSS = """
 <style>
-@page {
-    size: A4;
-    margin: 1.8cm 2.4cm 2cm 2.4cm;
+@media print {
+  @page { size: A4; margin: 1.8cm 2.4cm 2cm 2.4cm; }
 }
-@page WordSection1 { size: A4; margin: 1.8cm 2.4cm 2cm 2.4cm; }
-
-* { box-sizing: border-box; }
-
-body {
+.ol-sender-heading {
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 10pt;
-    color: #000;
-    margin: 0;
-    padding: 0;
-    background: #fff;
-}
-
-/* ---- Outlook-style print header ---- */
-.ol-print-sender {
     font-size: 12pt;
     font-weight: normal;
-    margin: 0 0 10pt 0;
-    padding: 0;
-    border-bottom: none;
+    margin: 0 0 8pt 0;
 }
-.ol-print-header {
-    margin: 0 0 10pt 0;
+.ol-header-table {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 12pt;
     padding-bottom: 10pt;
     border-bottom: 2px solid #000;
 }
-.ol-print-header table {
-    border-collapse: collapse;
-    width: 100%;
-}
-.ol-print-header td {
+.ol-header-table td {
     vertical-align: top;
     padding: 1.5pt 0;
 }
-.ol-print-header td.lbl {
+.ol-header-table td.lbl {
     font-weight: bold;
     white-space: nowrap;
-    width: 105pt;
-    text-align: left;
+    width: 95pt;
 }
-.ol-print-header td.val {
+.ol-header-table td.val {
     padding-left: 4pt;
 }
-
-/* ---- Body content ---- */
-div.WordSection1 {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-p.MsoNormal, li.MsoNormal, div.MsoNormal {
-    margin: 0;
-    padding: 0;
-}
-table { max-width: 100% !important; }
-img   { max-width: 100% !important; height: auto !important; }
-a     { color: #467886; }
 </style>
 """
 
 
 def preprocess_outlook_html(html_src: str) -> str:
-    """Strip Office-specific constructs that break weasyprint A4 rendering."""
-    # Remove conditional comments <!--[if ...]>...</[endif]-->
+    """Strip Office-specific constructs that break print rendering."""
     html_src = re.sub(r'<!--\[if[^\]]*\]>.*?<!\[endif\]-->', '', html_src, flags=re.DOTALL)
-    # Remove <o:p> tags (empty Office paragraph markers)
     html_src = re.sub(r'<o:p[^>]*>.*?</o:p>', '', html_src, flags=re.DOTALL | re.IGNORECASE)
-    # Strip mso-* properties from inline styles
-    def clean_style(m):
-        style = re.sub(r'mso-[^;]+;?\s*', '', m.group(1))
-        return f'style="{style}"'
-    html_src = re.sub(r'style="([^"]*)"', clean_style, html_src)
-    # Remove @page WordSection size declarations (they force Letter)
-    html_src = re.sub(r'@page\s+\w+\s*\{[^}]*\}', '', html_src)
-    # Remove div.WordSection rules
-    html_src = re.sub(r'div\.WordSection\d+\s*\{[^}]*\}', '', html_src)
-    # Remove Office XML namespace attributes on <html>
     html_src = re.sub(r'\s+xmlns:[a-z]="[^"]*"', '', html_src)
     return html_src
 
@@ -150,9 +104,9 @@ def preprocess_outlook_html(html_src: str) -> str:
 def build_html(msg_path: str) -> str:
     msg = extract_msg.openMsg(msg_path)
 
-    sender      = msg.sender or ""
-    subject     = msg.subject or "(No Subject)"
-    date_str    = format_uk_date(msg.date)
+    sender   = msg.sender or ""
+    subject  = msg.subject or "(No Subject)"
+    date_str = format_uk_date(msg.date)
 
     to_raw = ""
     try:
@@ -181,14 +135,14 @@ def build_html(msg_path: str) -> str:
         )
 
     header_html = (
-        f'<div class="ol-print-sender">{html_lib.escape(sender_display)}</div>'
-        f'<div class="ol-print-header"><table>'
+        f'<div class="ol-sender-heading">{html_lib.escape(sender_display)}</div>'
+        f'<table class="ol-header-table">'
         + hrow("From",    sender_display)
         + hrow("Sent",    date_str)
         + hrow("To",      to_display)
         + hrow("Cc",      cc_display)
         + hrow("Subject", subject)
-        + f'</table></div>'
+        + f'</table>'
     )
 
     html_body = msg.htmlBody
@@ -201,12 +155,12 @@ def build_html(msg_path: str) -> str:
 
         html_body = preprocess_outlook_html(html_body)
 
-        # Inject A4 CSS before </head>
+        # Inject header CSS before </head>
         head_end = html_body.lower().find("</head>")
         if head_end >= 0:
-            html_body = html_body[:head_end] + A4_CSS + html_body[head_end:]
+            html_body = html_body[:head_end] + HEADER_CSS + html_body[head_end:]
         else:
-            html_body = "<head><meta charset='utf-8'>" + A4_CSS + "</head>" + html_body
+            html_body = "<head><meta charset='utf-8'>" + HEADER_CSS + "</head>" + html_body
 
         # Inject header block right after <body …>
         body_open = html_body.lower().find("<body")
@@ -217,20 +171,60 @@ def build_html(msg_path: str) -> str:
         return html_body
 
     else:
-        # Plain-text fallback
         plain = msg.body or ""
         return (
-            f'<!DOCTYPE html><html><head><meta charset="utf-8">{A4_CSS}</head>'
+            f'<!DOCTYPE html><html><head><meta charset="utf-8">{HEADER_CSS}</head>'
             f'<body>{header_html}'
             f'<pre style="white-space:pre-wrap;font-family:Arial,sans-serif;font-size:10pt;">'
             f'{html_lib.escape(plain)}</pre></body></html>'
         )
 
 
+def find_chromium() -> str:
+    for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"):
+        path = shutil.which(name)
+        if path:
+            return path
+    raise RuntimeError("Chromium not found — install it via system dependencies")
+
+
+async def _render_pdf(html_src: str, pdf_path: str) -> None:
+    chromium = find_chromium()
+    with tempfile.NamedTemporaryFile(suffix=".html", delete=False, mode="w", encoding="utf-8") as f:
+        f.write(html_src)
+        tmp_html = f.name
+
+    try:
+        browser = await pyppeteer.launch(
+            executablePath=chromium,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+                "--disable-setuid-sandbox",
+            ]
+        )
+        page = await browser.newPage()
+        await page.goto(f"file://{tmp_html}", waitUntil="networkidle0")
+        await page.pdf(
+            path=pdf_path,
+            format="A4",
+            printBackground=True,
+            margin={
+                "top":    "1.8cm",
+                "right":  "2.4cm",
+                "bottom": "2.0cm",
+                "left":   "2.4cm",
+            }
+        )
+        await browser.close()
+    finally:
+        os.unlink(tmp_html)
+
+
 def msg_to_pdf(msg_path: str, pdf_path: str) -> None:
     html_src = build_html(msg_path)
-    doc = weasyprint.HTML(string=html_src)
-    doc.write_pdf(pdf_path)
+    asyncio.run(_render_pdf(html_src, pdf_path))
 
 
 if __name__ == "__main__":

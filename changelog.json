@@ -1346,6 +1346,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T19:16:52.349031Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "0976cf2d-2c45-407e-9a01-0290a4afda23",
+          "patch": 6,
+          "message": ".msg conversion: replaced weasyprint with pyppeteer + system Chromium 125 (true print-to-PDF). Install: pyppeteer (Python), chromium (system). Still requires extract-msg for .msg parsing. Output: A4, 1.8/2.4cm margins, printBackground=True, networkidle0 wait.",
+          "category": "fix",
+          "createdAt": "2026-04-30T19:36:42.222966Z",
+          "createdBy": "agent"
         }
       ]
     }
