@@ -1338,6 +1338,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T16:07:43.644430Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "20e2ae9b-3e20-4dc2-8e97-9d22e771f92d",
+          "patch": 6,
+          "message": ".msg PDF layout: matches Outlook native print-to-PDF format. Sender name heading at top, From/Sent/To/Cc/Subject table with UK date (DD Month YYYY HH:MM), display-name-only To/Cc fields. Fixed parseaddr handling plain names without angle brackets.",
+          "category": "fix",
+          "createdAt": "2026-04-30T19:16:52.349031Z",
+          "createdBy": "agent"
         }
       ]
     }
