@@ -1258,6 +1258,14 @@
           "category": "fix",
           "createdAt": "2026-04-30T14:43:33.259347Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d60eca2c-7107-413b-a3a8-7fb6cd42f64a",
+          "patch": 6,
+          "message": "Case bundle PDF page numbers: fix dictionary scoping bug where def inside bound BeginPage procedure created a local shadow instead of updating the outer counter. Now uses userdict /pagenum put/get explicitly, starting at 1, showing before incrementing.",
+          "category": "fix",
+          "createdAt": "2026-04-30T14:48:42.854366Z",
+          "createdBy": "agent"
         }
       ]
     }
