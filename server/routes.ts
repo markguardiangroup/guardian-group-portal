@@ -5,7 +5,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import fs from "fs/promises";
-import { createWriteStream } from "fs";
+import { createWriteStream, existsSync } from "fs";
 import path from "path";
 import os from "os";
 import { exec } from "child_process";
@@ -219,12 +219,14 @@ async function addPageNumbers(inputPath: string, outputPath: string): Promise<vo
   // The old Ghostscript BeginPage/EndPage hook approach misfired on Chromium-generated
   // PDFs (transparency layers cause BeginPage to fire 3× per page → numbers 3, 6, 9 …).
   const scriptPath = path.join(process.cwd(), "server", "add_page_numbers.py");
-  const pythonBin = fs.existsSync(path.join(process.cwd(), ".pythonlibs", "bin", "python3"))
-    ? path.join(process.cwd(), ".pythonlibs", "bin", "python3")
-    : "python3";
-  await execAsync(`"${pythonBin}" "${scriptPath}" "${inputPath}" "${outputPath}"`, {
+  const libBin = path.join(process.cwd(), ".pythonlibs", "bin", "python3");
+  const pythonBin = existsSync(libBin) ? libBin : "python3";
+  console.log(`[addPageNumbers] using pythonBin=${pythonBin}`);
+  const { stdout, stderr } = await execAsync(`"${pythonBin}" "${scriptPath}" "${inputPath}" "${outputPath}"`, {
     timeout: 120_000,
   });
+  if (stdout) console.log("[addPageNumbers] stdout:", stdout.trim());
+  if (stderr) console.warn("[addPageNumbers] stderr:", stderr.trim());
 }
 
 const BCRYPT_SALT_ROUNDS = 12;

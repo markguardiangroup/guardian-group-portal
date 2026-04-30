@@ -116,6 +116,14 @@
       ],
       "entries": [
         {
+          "id": "0252ac8b-8083-4dcb-b008-22579412c774",
+          "patch": 6,
+          "message": "Fix addPageNumbers: import existsSync from 'fs' (not 'fs/promises' which lacks it); add console tracing for Python binary and script output; cleared bundle cache so next download uses corrected code path",
+          "category": "fix",
+          "createdAt": "2026-04-30T20:12:17.849131Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
           "patch": 0,
           "message": "Added Release Notes section to admin reports",
