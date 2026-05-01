@@ -1873,6 +1873,38 @@ export async function registerRoutes(
     }
   });
 
+  // Batch company-level missing-required-templates endpoint.
+  // Returns a flat array of company-scope missing slots for every accessible company,
+  // computed WITHOUT per-site exclusions (matching the company Documents page view).
+  // Used by module-sites tiles to display a consistent Missing count.
+  app.get("/api/missing-required-templates/by-company", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const moduleParam = req.query.module as ModuleType | undefined;
+
+      const allSites = await storage.getSites();
+      const accessChecks = await Promise.all(allSites.map(s => canUserAccessSite(user, s.id)));
+      const accessibleCompanyIds = [
+        ...new Set(
+          allSites.filter((_, i) => accessChecks[i]).map(s => s.companyId).filter((id): id is string => !!id)
+        ),
+      ];
+
+      const results = (
+        await Promise.all(
+          accessibleCompanyIds.map(cid => getMissingRequiredTemplatesForCompany(user, cid, moduleParam))
+        )
+      ).flat();
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching company-scope missing templates:", error);
+      res.status(500).json({ error: "Failed to fetch company-scope missing templates" });
+    }
+  });
+
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {
     try {

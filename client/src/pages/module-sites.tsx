@@ -194,6 +194,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     },
   });
 
+  // Company-level missing slots (no per-site exclusions) — used by company tiles
+  // so their Missing count matches what the company Documents page shows.
+  const { data: companyLevelMissingDetails = [] } = useQuery<MissingRequired[]>({
+    queryKey: ["/api/missing-required-templates/by-company", module],
+    queryFn: async () => {
+      const res = await fetch(`/api/missing-required-templates/by-company?module=${module}`, { credentials: "include" });
+      return res.json();
+    },
+  });
+
   // Effective required template IDs per site (after site-level overrides),
   // used to constrain the Site tile's Compliant/Review/Overdue counts so they
   // only credit docs whose template is actually required at that site. Without
@@ -578,18 +588,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           (d.sharedWithCompanyIds?.includes(company.id) ?? false)
                         )
                     );
-                    // The Company tile mirrors what the user sees on the Documents
-                    // page when filtered to this company's scope:
-                    //   - Compliant / Review: count visible documents (own
-                    //     company-scope docs + any group-shared docs targeting this
+                    // The Company tile mirrors what the user sees on the company
+                    // Documents page:
+                    //   - Compliant / Review: count visible company/group-scoped
+                    //     documents (own docs + group-shared docs targeting this
                     //     company) by their status.
-                    //   - Missing: unique required templates that have no covering
-                    //     document at any of this company's sites — taken from the
-                    //     canonical /api/missing-required-templates endpoint, which
-                    //     correctly accounts for site-template overrides (excluded
-                    //     templates) and shared/site-scope docs that fulfil the slot.
-                    //     Deduped by templateId so a template required across N
-                    //     sites only counts once.
+                    //   - Missing: company-level required templates with no covering
+                    //     document, computed WITHOUT per-site exclusions so the count
+                    //     matches the company Documents page (uses the batch
+                    //     /api/missing-required-templates/by-company endpoint).
                     let cCompliant = 0;
                     let cReview = 0;
                     for (const d of companyDocs) {
@@ -599,8 +606,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       // uploaded so they aren't "Missing", and the tile has no
                       // Overdue box.
                     }
+                    // Use company-level missing slots (no per-site exclusions) so the
+                    // tile count matches the company Documents page.
                     const cMissingTemplateIds = new Set<string>();
-                    for (const m of missingRequiredDetails) {
+                    for (const m of companyLevelMissingDetails) {
                       if (m.companyId === company.id && m.module === module) {
                         cMissingTemplateIds.add(m.templateId);
                       }
