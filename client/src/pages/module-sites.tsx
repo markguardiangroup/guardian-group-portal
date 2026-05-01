@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -480,12 +480,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <Layers className={`h-4 w-4 ${moduleColors[module]}`} />
                           </div>
                           <div className="min-w-0">
-                            <p
-                              className="font-semibold text-sm leading-snug truncate"
+                            <Link
+                              href={`/companies/${selectedGroup}`}
+                              className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
                               data-testid={`text-group-name-${selectedGroup}`}
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {selectedGroupOwnerName}
-                            </p>
+                            </Link>
                             <p className="text-xs text-muted-foreground">Group documents</p>
                           </div>
                         </div>
@@ -632,12 +634,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
                               <div className="min-w-0">
-                                <p
-                                  className="font-semibold text-sm leading-snug truncate"
+                                <Link
+                                  href={`/companies/${company.id}`}
+                                  className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
                                   data-testid={`text-company-name-${company.id}`}
+                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   {company.name}
-                                </p>
+                                </Link>
                                 <p className="text-xs text-muted-foreground">Company documents</p>
                               </div>
                             </div>
@@ -945,16 +949,22 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
                         <div className="min-w-0">
-                          <p
-                            className="font-semibold text-sm leading-snug truncate"
+                          <Link
+                            href={`/sites/${site.id}`}
+                            className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
                             data-testid={`text-site-name-${site.id}`}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             {site.name}
-                          </p>
+                          </Link>
                           {site.companyName && (
-                            <p className="text-xs text-muted-foreground truncate">
+                            <Link
+                              href={`/companies/${site.companyId}`}
+                              className="text-xs text-muted-foreground truncate hover:underline cursor-pointer block"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               {site.companyName}
-                            </p>
+                            </Link>
                           )}
                         </div>
                       </div>
