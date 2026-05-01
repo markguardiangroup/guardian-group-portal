@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams, useLocation, Link } from "wouter";
+import { useParams, useLocation, useSearch, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -772,6 +772,8 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
 export default function CompanyDetail() {
   const { companyId } = useParams<{ companyId: string }>();
   const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const fromParam = new URLSearchParams(searchString).get("from");
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -1491,7 +1493,7 @@ export default function CompanyDetail() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-4 shrink-0 px-8 py-6 bg-background border-b">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/companies")} data-testid="button-back">
+        <Button variant="ghost" size="icon" onClick={() => navigate(fromParam || "/companies")} data-testid="button-back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">

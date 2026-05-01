@@ -481,7 +481,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </div>
                           <div className="min-w-0">
                             <Link
-                              href={`/companies/${selectedGroup}`}
+                              href={`/companies/${selectedGroup}?from=${encodeURIComponent(`${basePath}/sites`)}`}
                               className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
                               data-testid={`text-group-name-${selectedGroup}`}
                               onClick={(e) => e.stopPropagation()}
@@ -635,7 +635,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               </div>
                               <div className="min-w-0">
                                 <Link
-                                  href={`/companies/${company.id}`}
+                                  href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
                                   className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
                                   data-testid={`text-company-name-${company.id}`}
                                   onClick={(e) => e.stopPropagation()}
@@ -950,7 +950,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                         <div className="min-w-0">
                           <Link
-                            href={`/sites/${site.id}`}
+                            href={`/sites/${site.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
                             className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
                             data-testid={`text-site-name-${site.id}`}
                             onClick={(e) => e.stopPropagation()}
@@ -959,7 +959,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </Link>
                           {site.companyName && (
                             <Link
-                              href={`/companies/${site.companyId}`}
+                              href={`/companies/${site.companyId}?from=${encodeURIComponent(`${basePath}/sites`)}`}
                               className="text-xs text-muted-foreground truncate hover:underline cursor-pointer block"
                               onClick={(e) => e.stopPropagation()}
                             >
