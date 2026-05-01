@@ -569,27 +569,42 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/missing-required-templates"],
   });
 
-  // Required-but-missing slots for the current module + selected site.
+  // Company-scope uses a dedicated endpoint that evaluates requirements at the
+  // company level (no per-site exclusions), so all required templates are visible.
+  const { data: companyScopeMissingTemplates } = useQuery<MissingRequiredTemplate[]>({
+    queryKey: ["/api/missing-required-templates", "company", urlEntityId],
+    queryFn: async () => {
+      const res = await fetch(`/api/missing-required-templates?companyId=${urlEntityId}&module=${module}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch company missing templates");
+      return res.json();
+    },
+    enabled: urlScope === "company" && !!urlEntityId,
+  });
+
+  // Required-but-missing slots for the current module + selected scope.
   //
   // Requirements cascade DOWNWARDS (Group → member Companies → Sites), so:
   // - Group scope: show missing slots for the group owner's own sites AND for
   //   all member-company sites whose groupOwnerId matches the group entity.
-  // - Company scope: show missing slots for sites belonging to that company.
+  // - Company scope: uses a company-level query (no per-site exclusions) so
+  //   all required templates appear even if excluded at some sites.
   // - Site scope: filtered by siteId below.
   const missingSlots = useMemo(() => {
+    if (urlScope === "company" && urlEntityId) {
+      if (!companyScopeMissingTemplates) return [];
+      return companyScopeMissingTemplates.filter(m => m.module === module);
+    }
     if (!allMissingTemplates) return [];
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
       if (urlScope === "group" && urlEntityId) {
         // Include slots from the group's own sites and all member companies' sites.
         if (m.companyId !== urlEntityId && m.groupOwnerId !== urlEntityId) return false;
-      } else if (urlScope === "company" && urlEntityId) {
-        if (m.companyId !== urlEntityId) return false;
       }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
       return true;
     });
-  }, [allMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
+  }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
   // For the flat table view, collapse per-site duplicates of the same template
   // (a template required at group level shows once per site in `missingSlots`,

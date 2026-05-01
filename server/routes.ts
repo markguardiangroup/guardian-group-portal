@@ -1555,6 +1555,75 @@ export async function registerRoutes(
     kind: "template_slot" | "required_document";
   }
 
+  async function getMissingRequiredTemplatesForCompany(
+    user: any,
+    companyId: string,
+    module: ModuleType | undefined,
+  ): Promise<MissingRequiredTemplateDetail[]> {
+    const company = await storage.getCompany(companyId);
+    if (!company) return [];
+
+    const templates = await storage.getDocumentTemplates(module);
+    const templateMap = new Map(templates.map(t => [t.id, t]));
+
+    // Effective required template IDs for this company (inherited + own), no site-exclusion filtering.
+    const requiredIds = await storage.getEffectiveCompanyRequiredTemplateIds(companyId);
+
+    // All documents that are "visible" at the company level:
+    // 1. Site-scoped docs from any of the company's sites
+    // 2. Company-scoped docs owned by this company
+    // 3. Group-scoped docs shared (explicitly) to this company
+    const allSites = await storage.getSites();
+    const companySiteIds = new Set(
+      allSites.filter(s => s.companyId === companyId).map(s => s.id)
+    );
+    const allDocs = await storage.getDocuments(module);
+    const siteDocs = allDocs.filter(d => d.siteId && companySiteIds.has(d.siteId) && !d.isArchived && !d.caseId);
+    const companyScopedDocs = allDocs.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group") && !d.isArchived && !d.caseId);
+
+    // Collect all doc templateIds visible at company level.
+    const fulfilledTemplateIds = new Set<string>();
+    for (const d of siteDocs) {
+      if (d.templateId) fulfilledTemplateIds.add(d.templateId);
+    }
+    for (const d of companyScopedDocs) {
+      // Company-owned docs count directly.
+      if (d.scope === "company" && d.entityId === companyId && d.templateId) {
+        fulfilledTemplateIds.add(d.templateId);
+        continue;
+      }
+      // Group-scoped docs need an explicit share record pointing to this company.
+      if (d.scope === "group" && d.templateId) {
+        const shares = await storage.getDocumentShares(d.id);
+        const sharedToCompany = shares.some(s => s.entityType === "company" && s.entityId === companyId);
+        if (sharedToCompany) fulfilledTemplateIds.add(d.templateId);
+      }
+    }
+
+    const results: MissingRequiredTemplateDetail[] = [];
+    for (const templateId of requiredIds) {
+      if (fulfilledTemplateIds.has(templateId)) continue;
+      const tmpl = templateMap.get(templateId);
+      if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+      if (module && tmpl.module !== module) continue;
+      if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
+      results.push({
+        templateId,
+        templateName: tmpl.name,
+        module: tmpl.module,
+        requiresApproval: tmpl.requiresApproval || false,
+        siteId: "",
+        siteName: "",
+        companyId,
+        companyName: company.name,
+        groupOwnerId: company.groupOwnerId ?? null,
+        folderTemplateId: (tmpl as any).folderTemplateId ?? null,
+        kind: "template_slot" as const,
+      });
+    }
+    return results;
+  }
+
   async function getMissingRequiredTemplateDetails(
     user: any,
     module: ModuleType | undefined,
@@ -1783,8 +1852,19 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       const module = req.query.module as ModuleType | undefined;
+      const companyId = req.query.companyId as string | undefined;
       const siteId = req.query.siteId as string | undefined;
       const siteIds = req.query.siteIds as string | undefined;
+
+      // Company-scope request: compute requirements at the company level without
+      // applying per-site exclusions.  Each required template appears once; a template
+      // is "fulfilled" when any document visible to the company (site docs, company/group
+      // scoped shared docs) has a matching templateId.
+      if (companyId) {
+        const details = await getMissingRequiredTemplatesForCompany(user, companyId, module);
+        return res.json(details);
+      }
+
       const details = await getMissingRequiredTemplateDetails(user, module, { siteId, siteIds });
       res.json(details);
     } catch (error) {

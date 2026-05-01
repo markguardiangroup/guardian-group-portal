@@ -114,9 +114,18 @@
         "3be22683-ff52-458f-8322-a8444c9e097f",
         "1cd04d25-c05e-4514-b85a-b28b27c40973",
         "aa67bbc3-83ba-46ec-a7dd-89773957889c",
-        "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34"
+        "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34",
+        "a2e83d51-7b4f-4c1e-9d82-3f5a7b9c0e64"
       ],
       "entries": [
+        {
+          "id": "a2e83d51-7b4f-4c1e-9d82-3f5a7b9c0e64",
+          "patch": 6,
+          "message": "Company scope module docs now show all required templates without per-site exclusions via a dedicated company-level missing-slots API",
+          "category": "fix",
+          "createdAt": "2026-05-01T00:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34",
           "patch": 6,
