@@ -10160,9 +10160,7 @@ export async function registerRoutes(
           
           // Get document templates in this folder template
           const folderDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === folderTemplate.id);
-          // Use getEffectiveTemplateIsRequired so company-required templates (from company_required_templates)
-          // are counted as required slots, not just templates with dt.isRequired=true on the template itself.
-          const requiredTemplates = folderDocTemplates.filter(dt => getEffectiveTemplateIsRequired(dt));
+          const requiredTemplates = folderDocTemplates.filter(dt => dt.isRequired);
           
           // Get documents from ALL matching folders across all sites
           const matchingFolderIds = matchingSiteFolders.map(sf => sf.id);
@@ -10209,7 +10207,7 @@ export async function registerRoutes(
               : [];
             
             const childDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === childTemplate.id);
-            const childRequiredTemplates = childDocTemplates.filter(dt => getEffectiveTemplateIsRequired(dt));
+            const childRequiredTemplates = childDocTemplates.filter(dt => dt.isRequired);
             const sharedForChildFolder = sharedDocsByFolderTemplateId.get(childTemplate.id) ?? [];
             const childFulfilledCount = childRequiredTemplates.filter(rt =>
               childFolderDocs.some(d => d.templateId === rt.id) ||
