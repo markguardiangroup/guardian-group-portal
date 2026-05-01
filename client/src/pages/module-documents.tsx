@@ -561,6 +561,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     siteName: string;
     companyId: string;
     companyName: string;
+    groupOwnerId?: string | null;
     kind: string;
   }
 
@@ -570,20 +571,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // Required-but-missing slots for the current module + selected site.
   //
-  // Requirements only cascade DOWNWARDS (Group → member Companies → Sites),
-  // never upwards. So at the Group scope we only show missing slots whose
-  // companyId matches the group owner company itself — i.e. requirements added
-  // at the Group level (which sit at the group's own sites). Requirements that
-  // a member Company added on its own do not bubble up onto the Group view.
+  // Requirements cascade DOWNWARDS (Group → member Companies → Sites), so:
+  // - Group scope: show missing slots for the group owner's own sites AND for
+  //   all member-company sites whose groupOwnerId matches the group entity.
+  // - Company scope: show missing slots for sites belonging to that company.
+  // - Site scope: filtered by siteId below.
   const missingSlots = useMemo(() => {
     if (!allMissingTemplates) return [];
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
-      // Scope-view: include only slots under the selected entity.
-      // For both company and group scopes, the slot must belong to the entity
-      // itself (m.companyId === urlEntityId). Member-company requirements are
-      // intentionally excluded from the group view.
-      if ((urlScope === "company" || urlScope === "group") && urlEntityId) {
+      if (urlScope === "group" && urlEntityId) {
+        // Include slots from the group's own sites and all member companies' sites.
+        if (m.companyId !== urlEntityId && m.groupOwnerId !== urlEntityId) return false;
+      } else if (urlScope === "company" && urlEntityId) {
         if (m.companyId !== urlEntityId) return false;
       }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
@@ -1238,25 +1238,37 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     }
                   }
 
-                  const renderMissingRow = (slot: any) => (
-                    <div
-                      key={`missing-${slot.templateId}`}
-                      className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20"
-                      data-testid={`row-missing-scope-${slot.templateId}`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm text-amber-800 dark:text-amber-200 truncate">{slot.templateName}</p>
-                          <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded</p>
+                  // Count how many sites are missing each template (used in group scope subtitle).
+                  const missingSiteCountByTemplate = new Map<string, number>();
+                  for (const s of missingSlots) {
+                    missingSiteCountByTemplate.set(s.templateId, (missingSiteCountByTemplate.get(s.templateId) ?? 0) + 1);
+                  }
+
+                  const renderMissingRow = (slot: any) => {
+                    const affectedSites = missingSiteCountByTemplate.get(slot.templateId) ?? 1;
+                    const subtitle = urlScope === "group" && affectedSites > 1
+                      ? `Required — missing across ${affectedSites} site${affectedSites !== 1 ? "s" : ""}`
+                      : "Required — not yet uploaded";
+                    return (
+                      <div
+                        key={`missing-${slot.templateId}`}
+                        className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20"
+                        data-testid={`row-missing-scope-${slot.templateId}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm text-amber-800 dark:text-amber-200 truncate">{slot.templateName}</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400">{subtitle}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                          <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
-                        <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
-                      </div>
-                    </div>
-                  );
+                    );
+                  };
 
                   if (folders.length === 0 && sortedDocuments.length === 0) {
                     return (

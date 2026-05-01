@@ -1548,6 +1548,7 @@ export async function registerRoutes(
     siteName: string;
     companyId: string;
     companyName: string;
+    groupOwnerId?: string | null;
     folderTemplateId?: string | null;
     documentId?: string;
     documentStatus?: string;
@@ -1611,6 +1612,7 @@ export async function registerRoutes(
             siteName: site.name,
             companyId: site.companyId,
             companyName: company?.name || "Unknown",
+            groupOwnerId: company?.groupOwnerId ?? null,
             folderTemplateId: (tmpl as any).folderTemplateId ?? null,
             kind: "template_slot" as const,
           });

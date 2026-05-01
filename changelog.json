@@ -113,23 +113,16 @@
         "9e223c29-17ed-4956-aa3c-c03cdde676f9",
         "3be22683-ff52-458f-8322-a8444c9e097f",
         "1cd04d25-c05e-4514-b85a-b28b27c40973",
-        "aa67bbc3-83ba-46ec-a7dd-89773957889c"
+        "aa67bbc3-83ba-46ec-a7dd-89773957889c",
+        "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34"
       ],
       "entries": [
         {
-          "id": "aa67bbc3-83ba-46ec-a7dd-89773957889c",
+          "id": "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34",
           "patch": 6,
-          "message": "Investigated missing-required-templates API: confirmed Recreation Limited Site 1 correctly shows 2 missing HR templates after accounting for site exclusions and group shared docs",
+          "message": "Group scope module docs now show missing required slots from all member company sites, not just the group owner's own sites",
           "category": "fix",
-          "createdAt": "2026-04-30T22:20:00.000000+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a4589046-726d-45dc-99aa-7e3635e3b2bf",
-          "patch": 6,
-          "message": "Reverted unsolicited cases/sources additions to portfolio panel",
-          "category": "other",
-          "createdAt": "2026-04-30T21:51:14.021580+00:00",
+          "createdAt": "2026-05-01T00:00:00.000Z",
           "createdBy": "agent"
         },
         {
@@ -263,7 +256,7 @@
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
           "patch": 2,
-          "message": "Redesigned Template Library header \u2014 icon badge and action buttons always visible at top",
+          "message": "Redesigned Template Library header — icon badge and action buttons always visible at top",
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
           "createdBy": "agent"
@@ -447,7 +440,7 @@
         {
           "id": "f3c910ab7d82",
           "patch": 4,
-          "message": "Users Report now distinguishes between Consultants and Pro Consultants \u2014 each shown with a distinct badge, colour, and separate summary count",
+          "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
           "category": "enhancement",
           "createdAt": "2026-04-17T18:28:00.000Z",
           "createdBy": "agent"
@@ -471,7 +464,7 @@
         {
           "id": "d4a78e21c903",
           "patch": 4,
-          "message": "Added ACAS Conciliation as a case type in Employment Law \u2014 available in the new case form and case type filter",
+          "message": "Added ACAS Conciliation as a case type in Employment Law — available in the new case form and case type filter",
           "category": "feature",
           "createdAt": "2026-04-19T13:55:00.000Z",
           "createdBy": "agent"
@@ -479,7 +472,7 @@
         {
           "id": "e8b2f94d1c37",
           "patch": 4,
-          "message": "Admins can grant Case Advocate permission to consultants \u2014 only Case Advocates can view and manage Employment Law cases",
+          "message": "Admins can grant Case Advocate permission to consultants — only Case Advocates can view and manage Employment Law cases",
           "category": "feature",
           "createdAt": "2026-04-19T14:50:00.000Z",
           "createdBy": "agent"
@@ -631,7 +624,7 @@
         {
           "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
           "patch": 5,
-          "message": "Group Owner moved into Linked Companies panel \u2014 single unified section",
+          "message": "Group Owner moved into Linked Companies panel — single unified section",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:23:13.023Z",
           "createdBy": "user-admin"
