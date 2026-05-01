@@ -154,9 +154,16 @@ function RouteFallback() {
   );
 }
 
-function ClientGuard({ component: Component }: { component: ComponentType<any> }) {
+type GuardUser = { role: string; consultantPermissions?: { templateLibrary?: boolean; trainingLibrary?: boolean } | null } | null | undefined;
+
+const ADMIN_ONLY     = (u: GuardUser) => u?.role === "admin";
+const NOT_CLIENT     = (u: GuardUser) => u?.role === "admin" || u?.role === "consultant";
+const TEMPLATE_LIB   = (u: GuardUser) => u?.role === "admin" || (u?.role === "consultant" && u?.consultantPermissions?.templateLibrary === true);
+const TRAINING_LIB   = (u: GuardUser) => u?.role === "admin" || (u?.role === "consultant" && u?.consultantPermissions?.trainingLibrary === true);
+
+function AccessGuard({ component: Component, allow }: { component: ComponentType<any>; allow: (u: GuardUser) => boolean }) {
   const { user } = useAuth();
-  if (user?.role === "client") return <Redirect to="/home" />;
+  if (!allow(user)) return <Redirect to="/home" />;
   return <Component />;
 }
 
@@ -199,34 +206,34 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
-      <Route path="/companies">{() => <ClientGuard component={Companies} />}</Route>
-      <Route path="/companies/:companyId">{() => <ClientGuard component={CompanyDetail} />}</Route>
-      <Route path="/sites">{() => <ClientGuard component={Sites} />}</Route>
-      <Route path="/sites/:siteId">{() => <ClientGuard component={SiteDetail} />}</Route>
+      <Route path="/companies">{() => <AccessGuard component={Companies} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={NOT_CLIENT} />}</Route>
+      <Route path="/sites">{() => <AccessGuard component={Sites} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={NOT_CLIENT} />}</Route>
       <Route path="/reports" component={Reports} />
-      <Route path="/admin-reports" component={AdminReports} />
-      <Route path="/admin-reports/changelog" component={AdminChangelog} />
+      <Route path="/admin-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
-      <Route path="/users">{() => <ClientGuard component={UserManagement} />}</Route>
-      <Route path="/template-library" component={TemplateLibrary} />
-      <Route path="/training-library" component={TrainingLibrary} />
+      <Route path="/users">{() => <AccessGuard component={UserManagement} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/template-library">{() => <AccessGuard component={TemplateLibrary} allow={TEMPLATE_LIB} />}</Route>
+      <Route path="/training-library">{() => <AccessGuard component={TrainingLibrary} allow={TRAINING_LIB} />}</Route>
       <Route path="/training" component={Training} />
-      <Route path="/training/dashboard" component={TrainingDashboard} />
+      <Route path="/training/dashboard">{() => <AccessGuard component={TrainingDashboard} allow={NOT_CLIENT} />}</Route>
       <Route path="/training/my-training" component={MyTraining} />
-      <Route path="/training/certificates" component={TrainingCertificates} />
-      <Route path="/training/certificates/upload" component={TrainingCertificateUpload} />
-      <Route path="/training/certificates/:id" component={TrainingCertificates} />
-      <Route path="/create-from-template" component={CreateFromTemplate} />
-      <Route path="/roadmap" component={DevelopmentRoadmap} />
-      <Route path="/feedback" component={AdminFeedback} />
+      <Route path="/training/certificates">{() => <AccessGuard component={TrainingCertificates} allow={NOT_CLIENT} />}</Route>
+      <Route path="/training/certificates/upload">{() => <AccessGuard component={TrainingCertificateUpload} allow={NOT_CLIENT} />}</Route>
+      <Route path="/training/certificates/:id">{() => <AccessGuard component={TrainingCertificates} allow={NOT_CLIENT} />}</Route>
+      <Route path="/create-from-template">{() => <AccessGuard component={CreateFromTemplate} allow={TEMPLATE_LIB} />}</Route>
+      <Route path="/roadmap">{() => <AccessGuard component={DevelopmentRoadmap} allow={NOT_CLIENT} />}</Route>
+      <Route path="/feedback">{() => <AccessGuard component={AdminFeedback} allow={NOT_CLIENT} />}</Route>
       <Route path="/help" component={HelpGuide} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/toolkit" component={ToolkitDashboard} />
       <Route path="/toolkit/browse" component={ToolkitBrowse} />
-      <Route path="/admin/pathways" component={AdminPathways} />
-      <Route path="/admin/sources" component={AdminSources} />
-      <Route path="/admin/portal-messages" component={AdminPortalMessages} />
+      <Route path="/admin/pathways">{() => <AccessGuard component={AdminPathways} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin/sources">{() => <AccessGuard component={AdminSources} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin/portal-messages">{() => <AccessGuard component={AdminPortalMessages} allow={ADMIN_ONLY} />}</Route>
       <Route component={NotFound} />
     </Switch>
     </Suspense>
