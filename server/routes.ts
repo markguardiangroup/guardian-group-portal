@@ -1569,23 +1569,15 @@ export async function registerRoutes(
     // Effective required template IDs for this company (inherited + own), no site-exclusion filtering.
     const requiredIds = await storage.getEffectiveCompanyRequiredTemplateIds(companyId);
 
-    // All documents that are "visible" at the company level:
-    // 1. Site-scoped docs from any of the company's sites
-    // 2. Company-scoped docs owned by this company
-    // 3. Group-scoped docs shared (explicitly) to this company
-    const allSites = await storage.getSites();
-    const companySiteIds = new Set(
-      allSites.filter(s => s.companyId === companyId).map(s => s.id)
-    );
+    // Only company-scoped and group-scoped docs count as fulfilling requirements
+    // at company level. Site-scoped docs fulfil site-level slots, not company-level
+    // ones — the company Documents page only shows company/group-scoped docs, so
+    // a site doc covering "Contract" should not hide the company-level missing slot.
     const allDocs = await storage.getDocuments(module);
-    const siteDocs = allDocs.filter(d => d.siteId && companySiteIds.has(d.siteId) && !d.isArchived && !d.caseId);
     const companyScopedDocs = allDocs.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group") && !d.isArchived && !d.caseId);
 
-    // Collect all doc templateIds visible at company level.
+    // Collect fulfilled templateIds from company/group-scoped docs only.
     const fulfilledTemplateIds = new Set<string>();
-    for (const d of siteDocs) {
-      if (d.templateId) fulfilledTemplateIds.add(d.templateId);
-    }
     for (const d of companyScopedDocs) {
       // Company-owned docs count directly.
       if (d.scope === "company" && d.entityId === companyId && d.templateId) {

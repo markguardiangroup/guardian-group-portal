@@ -118,9 +118,18 @@
         "a2e83d51-7b4f-4c1e-9d82-3f5a7b9c0e64",
         "b3f94c62-8d5a-4e2f-0c93-4g6b8c0d1f75",
         "c4a05d73-9e6b-4f3g-1d04-5h7c9d1e2g86",
-        "d5b16e84-0f7c-5g4h-2e15-6i8d0e2f3h97"
+        "d5b16e84-0f7c-5g4h-2e15-6i8d0e2f3h97",
+        "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08"
       ],
       "entries": [
+        {
+          "id": "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08",
+          "patch": 6,
+          "message": "Company-level missing count no longer incorrectly treats site-scoped docs as fulfilling company-level required template slots",
+          "category": "bug",
+          "createdAt": "2026-05-01T00:50:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "d5b16e84-0f7c-5g4h-2e15-6i8d0e2f3h97",
           "patch": 6,
