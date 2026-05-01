@@ -119,9 +119,18 @@
         "b3f94c62-8d5a-4e2f-0c93-4g6b8c0d1f75",
         "c4a05d73-9e6b-4f3g-1d04-5h7c9d1e2g86",
         "d5b16e84-0f7c-5g4h-2e15-6i8d0e2f3h97",
-        "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08"
+        "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08",
+        "f7d38a06-2h9e-7i6j-4g37-8k0f2g4h5j19"
       ],
       "entries": [
+        {
+          "id": "f7d38a06-2h9e-7i6j-4g37-8k0f2g4h5j19",
+          "patch": 6,
+          "message": "Clients can no longer access /companies, /sites, or /users pages directly; name links on module-sites tiles are hidden for client users",
+          "category": "feature",
+          "createdAt": "2026-05-01T01:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08",
           "patch": 6,

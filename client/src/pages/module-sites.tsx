@@ -480,14 +480,20 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <Layers className={`h-4 w-4 ${moduleColors[module]}`} />
                           </div>
                           <div className="min-w-0">
-                            <Link
-                              href={`/companies/${selectedGroup}?from=${encodeURIComponent(`${basePath}/sites`)}`}
-                              className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
-                              data-testid={`text-group-name-${selectedGroup}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {selectedGroupOwnerName}
-                            </Link>
+                            {isPrivilegedUser ? (
+                              <Link
+                                href={`/companies/${selectedGroup}?from=${encodeURIComponent(`${basePath}/sites`)}`}
+                                className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
+                                data-testid={`text-group-name-${selectedGroup}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {selectedGroupOwnerName}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-sm leading-snug truncate block" data-testid={`text-group-name-${selectedGroup}`}>
+                                {selectedGroupOwnerName}
+                              </span>
+                            )}
                             <p className="text-xs text-muted-foreground">Group documents</p>
                           </div>
                         </div>
@@ -634,14 +640,20 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
                               <div className="min-w-0">
-                                <Link
-                                  href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
-                                  className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
-                                  data-testid={`text-company-name-${company.id}`}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {company.name}
-                                </Link>
+                                {isPrivilegedUser ? (
+                                  <Link
+                                    href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
+                                    className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
+                                    data-testid={`text-company-name-${company.id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {company.name}
+                                  </Link>
+                                ) : (
+                                  <span className="font-semibold text-sm leading-snug truncate block" data-testid={`text-company-name-${company.id}`}>
+                                    {company.name}
+                                  </span>
+                                )}
                                 <p className="text-xs text-muted-foreground">Company documents</p>
                               </div>
                             </div>
@@ -949,22 +961,34 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
                         <div className="min-w-0">
-                          <Link
-                            href={`/sites/${site.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
-                            className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
-                            data-testid={`text-site-name-${site.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {site.name}
-                          </Link>
-                          {site.companyName && (
+                          {isPrivilegedUser ? (
                             <Link
-                              href={`/companies/${site.companyId}?from=${encodeURIComponent(`${basePath}/sites`)}`}
-                              className="text-xs text-muted-foreground truncate hover:underline cursor-pointer block"
+                              href={`/sites/${site.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
+                              className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
+                              data-testid={`text-site-name-${site.id}`}
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {site.companyName}
+                              {site.name}
                             </Link>
+                          ) : (
+                            <span className="font-semibold text-sm leading-snug truncate block" data-testid={`text-site-name-${site.id}`}>
+                              {site.name}
+                            </span>
+                          )}
+                          {site.companyName && (
+                            isPrivilegedUser ? (
+                              <Link
+                                href={`/companies/${site.companyId}?from=${encodeURIComponent(`${basePath}/sites`)}`}
+                                className="text-xs text-muted-foreground truncate hover:underline cursor-pointer block"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {site.companyName}
+                              </Link>
+                            ) : (
+                              <span className="text-xs text-muted-foreground truncate block">
+                                {site.companyName}
+                              </span>
+                            )
                           )}
                         </div>
                       </div>

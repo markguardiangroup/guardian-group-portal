@@ -154,6 +154,12 @@ function RouteFallback() {
   );
 }
 
+function ClientGuard({ component: Component }: { component: ComponentType<any> }) {
+  const { user } = useAuth();
+  if (user?.role === "client") return <Redirect to="/home" />;
+  return <Component />;
+}
+
 function Router() {
   return (
     <>
@@ -193,16 +199,16 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
-      <Route path="/companies" component={Companies} />
-      <Route path="/companies/:companyId" component={CompanyDetail} />
-      <Route path="/sites" component={Sites} />
-      <Route path="/sites/:siteId" component={SiteDetail} />
+      <Route path="/companies">{() => <ClientGuard component={Companies} />}</Route>
+      <Route path="/companies/:companyId">{() => <ClientGuard component={CompanyDetail} />}</Route>
+      <Route path="/sites">{() => <ClientGuard component={Sites} />}</Route>
+      <Route path="/sites/:siteId">{() => <ClientGuard component={SiteDetail} />}</Route>
       <Route path="/reports" component={Reports} />
       <Route path="/admin-reports" component={AdminReports} />
       <Route path="/admin-reports/changelog" component={AdminChangelog} />
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
-      <Route path="/users" component={UserManagement} />
+      <Route path="/users">{() => <ClientGuard component={UserManagement} />}</Route>
       <Route path="/template-library" component={TemplateLibrary} />
       <Route path="/training-library" component={TrainingLibrary} />
       <Route path="/training" component={Training} />
