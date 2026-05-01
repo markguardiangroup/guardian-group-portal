@@ -116,6 +116,38 @@
       ],
       "entries": [
         {
+          "id": "aa67bbc3-83ba-46ec-a7dd-89773957889c",
+          "patch": 6,
+          "message": "Investigated missing-required-templates API: confirmed Recreation Ltd Site 1 correctly shows 2 missing HR templates",
+          "category": "enhancement",
+          "createdAt": "2026-04-30T22:20:00.000000+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a4589046-726d-45dc-99aa-7e3635e3b2bf",
+          "patch": 6,
+          "message": "Reverted unsolicited cases/sources additions to portfolio panel",
+          "category": "other",
+          "createdAt": "2026-04-30T21:51:14.021580+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e5f6c32f-16d7-4edc-a2e4-5665b3ceb8bd",
+          "patch": 6,
+          "message": "Portfolio panel now shows active EL cases and source tags for consultants",
+          "category": "enhancement",
+          "createdAt": "2026-04-30T21:39:34.399693+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "45143410-ae19-4dab-8e2b-a61aab7c1b0a",
+          "patch": 6,
+          "message": "Fixed folder view: company-required template slots now counted in folder stats and compliance status",
+          "category": "bug",
+          "createdAt": "2026-04-30T21:32:25.104657+00:00",
+          "createdBy": "agent"
+        },
+        {
           "id": "2e57c991-62e3-4696-a979-2503c634ac01",
           "patch": 6,
           "message": "Changelog entries now show a date stamp and are sorted newest first within each patch",
@@ -132,995 +164,75 @@
           "createdBy": "agent"
         },
         {
-          "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          "patch": 0,
-          "message": "Added Release Notes section to admin reports",
+          "id": "66f0877b-dce8-49a1-9f81-30d91ce761bb",
+          "patch": 6,
+          "message": "Case bundle: added .msg (Outlook email) conversion support",
           "category": "feature",
-          "createdAt": "2026-04-10T20:53:00.000Z",
+          "createdAt": "2026-04-30T14:58:22.887394Z",
           "createdBy": "agent"
         },
         {
-          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-          "patch": 0,
-          "message": "Fixed folder template selection when creating documents from a template",
-          "category": "enhancement",
-          "createdAt": "2026-04-10T15:22:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-          "patch": 0,
-          "message": "Support link in sidebar always shows as locked in production",
-          "category": "enhancement",
-          "createdAt": "2026-04-10T15:35:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
-          "patch": 1,
-          "message": "Fixed: consultants blocked from saving incidents due to missing permissions check",
+          "id": "b1876e0b-28b1-402e-9d49-f84a07a5b8c3",
+          "patch": 6,
+          "message": "Case bundle PDF: page numbers now start at 1 (was 0-based) and render in black (was grey).",
           "category": "bug",
-          "createdAt": "2026-04-13T11:50:00.000Z",
+          "createdAt": "2026-04-30T14:39:57.214558Z",
           "createdBy": "agent"
         },
         {
-          "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
-          "patch": 1,
-          "message": "Standard consultants and clients can now edit their own profile details",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T13:15:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
-          "patch": 1,
-          "message": "Fixed typo in phone number example on settings page",
-          "category": "bug",
-          "createdAt": "2026-04-13T13:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
-          "patch": 1,
-          "message": "Fixed: profile changes on settings page not reflected until page refresh",
-          "category": "bug",
-          "createdAt": "2026-04-13T13:45:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
-          "patch": 1,
-          "message": "Fixed: admins blocked from saving their profile due to spurious sources validation error",
-          "category": "bug",
-          "createdAt": "2026-04-13T13:55:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
-          "patch": 1,
-          "message": "Updated empty folder message in template library",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T15:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
-          "patch": 1,
-          "message": "Removed Setup Wizard from template library",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T15:50:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
-          "patch": 1,
-          "message": "Feedback comments dialog now shows the original message at the top",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T16:10:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
-          "patch": 1,
-          "message": "Improved session expiry error message shown on file upload failure",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T16:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
-          "patch": 2,
-          "message": "Redesigned Template Library header \u2014 icon badge and action buttons always visible at top",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T17:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d6e7f8a9-b0c1-2345-defa-456789012345",
-          "patch": 2,
-          "message": "Fixed: company name missing from sidebar immediately after login",
-          "category": "bug",
-          "createdAt": "2026-04-14T14:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c5d6e7f8-a9b0-1234-cdef-345678901234",
-          "patch": 2,
-          "message": "Fixed: pro consultants' assigned sources not showing in company creation form",
-          "category": "bug",
-          "createdAt": "2026-04-14T09:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
-          "patch": 2,
-          "message": "Admins can now permanently delete cases and incidents, with confirmation dialog and full audit trail",
-          "category": "enhancement",
-          "createdAt": "2026-04-13T18:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e5f6a7b8-c9d0-1234-cdef-456789012345",
-          "patch": 3,
-          "message": "Consultants can now build and download PDF document bundles from a case's checklist items",
+          "id": "6fcd3290-aceb-423f-ad10-742bd93eb1c6",
+          "patch": 6,
+          "message": "Required docs inherited from group can now be dismissed at site level",
           "category": "feature",
-          "createdAt": "2026-04-16T17:00:00.000Z",
+          "createdAt": "2026-04-29T15:32:35.577707Z",
           "createdBy": "agent"
         },
         {
-          "id": "a7b8c9d0-e1f2-3456-efab-678901234567",
-          "patch": 3,
-          "message": "Guardian Group logo on the login page now links to guardiangroup.co.uk",
-          "category": "enhancement",
-          "createdAt": "2026-04-16T19:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b9c0d1e2-f3a4-5678-bcde-890123456789",
-          "patch": 3,
-          "message": "Pro consultants can now manage module access at both company and site level",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T08:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c0d1e2f3-a4b5-6789-cdef-901234567890",
-          "patch": 4,
-          "message": "Fixed: login could hang due to slow background data requests",
-          "category": "bug",
-          "createdAt": "2026-04-17T09:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d1e2f3a4-b5c6-7890-defa-012345678901",
-          "patch": 4,
-          "message": "Fixed: session timeout stays active while any tab is in use",
-          "category": "bug",
-          "createdAt": "2026-04-17T10:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
-          "patch": 4,
-          "message": "Fixed: patch number no longer auto-increments on server restart",
-          "category": "bug",
-          "createdAt": "2026-04-17T13:51:01.944Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "23b692fe-eeb8-4410-9be4-566e3e4ece3a",
-          "patch": 4,
-          "message": "Fixed: company dropdown when adding a user now shows all companies, not just the first page",
-          "category": "bug",
-          "createdAt": "2026-04-17T14:02:51.746Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a0c79eac-8479-4977-a3ec-5af46bf30389",
-          "patch": 4,
-          "message": "Fixed: all company dropdown filters now show the full company list",
-          "category": "bug",
-          "createdAt": "2026-04-17T14:36:47.515Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "68d685d0-2252-4c94-a36a-0eadecd4d7a9",
-          "patch": 4,
-          "message": "Fixed: company list no longer capped at 100 results",
-          "category": "bug",
-          "createdAt": "2026-04-17T14:46:19.279Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "64d8d9ae-b983-4381-86cf-011b36416e1c",
-          "patch": 4,
-          "message": "Improved: sites list now loads significantly faster",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T14:56:52.390Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "175a2948-b234-463f-be87-85854bd21592",
-          "patch": 4,
-          "message": "Improved: users and sites lists no longer re-fetch on first visit",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T14:56:52.391Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b",
-          "patch": 4,
-          "message": "Fixed: pro consultants assigned to sites now appear in the company Users list",
-          "category": "bug",
-          "createdAt": "2026-04-17T15:02:50.178Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "9dc4f768-fe90-494d-a989-d3885f470ed9",
-          "patch": 4,
-          "message": "Fixed: toolkit folder dropdown in Add Templates now always loads fresh data",
-          "category": "bug",
-          "createdAt": "2026-04-17T15:20:53.903Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
-          "patch": 4,
-          "message": "Add Templates dialog now includes a Create New folder option inline",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T15:20:53.903Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "fdf2d30a0b16",
-          "patch": 4,
-          "message": "Client users are blocked from logging in when their company is On Hold or Inactive",
+          "id": "282b73f5-de91-4390-9c98-88cd7914b873",
+          "patch": 6,
+          "message": "Added toggle for clients to grant consultants full unredacted incident access",
           "category": "feature",
-          "createdAt": "2026-04-17T15:32:27.726Z",
-          "createdBy": "system"
-        },
-        {
-          "id": "0793c6ddef8b",
-          "patch": 4,
-          "message": "Feedback & comments now preserve line breaks and paragraphs exactly as typed",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T16:14:19.625Z",
-          "createdBy": "system"
-        },
-        {
-          "id": "93e3f8278d9d",
-          "patch": 4,
-          "message": "Users can now edit their own feedback (when it has no upvotes or comments) and edit their own comments",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T16:14:19.625Z",
-          "createdBy": "system"
-        },
-        {
-          "id": "aa98822ac1a8",
-          "patch": 4,
-          "message": "Sites dropdown locks until a Company is selected",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T16:14:19.625Z",
-          "createdBy": "system"
-        },
-        {
-          "id": "c243f52f18f4",
-          "patch": 4,
-          "message": "When a company or site address is updated, you are now prompted to copy the new address to any matching sites or the parent company",
-          "category": "enhancement",
-          "createdAt": "2026-04-17T17:17:48.594Z",
+          "createdAt": "2026-04-29T14:56:48.061183Z",
           "createdBy": "agent"
         },
         {
-          "id": "f3c910ab7d82",
-          "patch": 4,
-          "message": "Users Report now distinguishes between Consultants and Pro Consultants \u2014 each shown with a distinct badge, colour, and separate summary count",
+          "id": "1b9d3dc4-3f1d-48e7-bd1b-701c866d27da",
+          "patch": 6,
+          "message": "Equalised Urgent Actions and My Portfolio card heights on home page",
           "category": "enhancement",
-          "createdAt": "2026-04-17T18:28:00.000Z",
+          "createdAt": "2026-04-29T14:51:12.583438+00:00",
           "createdBy": "agent"
         },
         {
-          "id": "a91e43c2bf05",
-          "patch": 4,
-          "message": "Fixed: address updates now reflect immediately on the company's sites list",
+          "id": "834541c6-172a-409f-96a6-0cc3f0ca2e31",
+          "patch": 6,
+          "message": "Moved Open Cases count from My Portfolio to Urgent Actions on home page",
+          "category": "feature",
+          "createdAt": "2026-04-29T14:46:32.418290+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e1463481-0535-427c-8b5b-7356f6e4446e",
+          "patch": 6,
+          "message": "Fixed portal messages: future-dated messages now hidden until published_at arrives",
           "category": "bug",
-          "createdAt": "2026-04-17T18:35:00.000Z",
+          "createdAt": "2026-04-29T14:30:25.508982+00:00",
           "createdBy": "agent"
         },
         {
-          "id": "b72d15fe8c91",
-          "patch": 4,
-          "message": "Fixed: site address on the company Sites tab now shows the full address including Address Line 2 and County",
+          "id": "b062cc78-1b0b-4fd1-8917-39afc8527f7a",
+          "patch": 6,
+          "message": "Fixed PATCH portal-messages: omitted date fields no longer cause validation errors",
           "category": "bug",
-          "createdAt": "2026-04-17T18:40:00.000Z",
+          "createdAt": "2026-04-29T14:04:42.966625+00:00",
           "createdBy": "agent"
         },
         {
-          "id": "d4a78e21c903",
-          "patch": 4,
-          "message": "Added ACAS Conciliation as a case type in Employment Law \u2014 available in the new case form and case type filter",
-          "category": "feature",
-          "createdAt": "2026-04-19T13:55:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e8b2f94d1c37",
-          "patch": 4,
-          "message": "Admins can grant Case Advocate permission to consultants \u2014 only Case Advocates can view and manage Employment Law cases",
-          "category": "feature",
-          "createdAt": "2026-04-19T14:50:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "f1c73ae09b56",
-          "patch": 4,
-          "message": "Case Advocates only see cases matching their assigned sources",
-          "category": "feature",
-          "createdAt": "2026-04-19T14:51:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a3c82e15d640",
-          "patch": 4,
-          "message": "Admins can grant or revoke Template Library and Training Library access per consultant",
-          "category": "feature",
-          "createdAt": "2026-04-19T15:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b7f91d03c852",
-          "patch": 4,
-          "message": "Template and Training Library permission toggles appear in both the Permissions dialog and Create Consultant form",
-          "category": "feature",
-          "createdAt": "2026-04-19T15:31:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c9e04bf72d13",
-          "patch": 4,
-          "message": "Fixed: non-active users are greyed out and unselectable in the Case Access dialog",
+          "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
+          "patch": 6,
+          "message": "Fixed portal message create/update: coerce ISO string timestamps before validation",
           "category": "bug",
-          "createdAt": "2026-04-19T16:20:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d2f15e84a701",
-          "patch": 4,
-          "message": "Cases now have a mandatory Case Number field shown in the case list",
-          "category": "feature",
-          "createdAt": "2026-04-19T17:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e3a26f95b812",
-          "patch": 4,
-          "message": "Case Number can be edited from the case detail view; duplicates are blocked",
-          "category": "feature",
-          "createdAt": "2026-04-19T17:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "f4b37g06c923",
-          "patch": 4,
-          "message": "Improved: Testing page redesigned with side-by-side panel layout for easier use",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T07:15:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "g5c48h17d034",
-          "patch": 4,
-          "message": "Testing: task lists can now be archived; archived view accessible from left panel",
-          "category": "feature",
-          "createdAt": "2026-04-20T07:45:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "h6d59i28e145",
-          "patch": 4,
-          "message": "RIDDOR section moved from Report Incident form to Follow Up Investigation",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T07:55:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "i7e60j39f256",
-          "patch": 4,
-          "message": "Follow Up Investigation adds RIDDOR reference and notes fields",
-          "category": "feature",
-          "createdAt": "2026-04-20T07:56:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "j8f71k40g367",
-          "patch": 4,
-          "message": "Incident detail view and PDF now display RIDDOR reference and notes",
-          "category": "feature",
-          "createdAt": "2026-04-20T07:57:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "k9g82l51h478",
-          "patch": 5,
-          "message": "User list: new Permissions column shows colour-coded badges per consultant",
-          "category": "feature",
-          "createdAt": "2026-04-20T10:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "l0h93m62i589",
-          "patch": 5,
-          "message": "User list: admin rows show an All badge in the Permissions column",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T10:15:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "m1i04n73j690",
-          "patch": 5,
-          "message": "User list: Case Advocate badge removed from Role cell; shown only in Permissions column",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T10:30:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "n2j15o84k701",
-          "patch": 5,
-          "message": "Settings: Your Permissions card moved to top with read-only permission toggles",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T11:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "o3k26p95l812",
-          "patch": 5,
-          "message": "Companies can now be linked to a Group Owner company",
-          "category": "feature",
-          "createdAt": "2026-04-20T14:00:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "p4l37q06m923",
-          "patch": 5,
-          "message": "Group Owner companies show a Linked Companies panel with all member companies",
-          "category": "feature",
-          "createdAt": "2026-04-20T14:05:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "q5m48r17n034",
-          "patch": 5,
-          "message": "Company list shows Group Owner and Member Of badges",
-          "category": "feature",
-          "createdAt": "2026-04-20T14:10:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
-          "patch": 5,
-          "message": "Group Owner moved into Linked Companies panel \u2014 single unified section",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T15:23:13.023Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "60b6ecca-714c-4dfc-958b-948cec848e75",
-          "patch": 5,
-          "message": "Standalone companies now show clear options to join a group or become a Group Owner",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T15:23:13.036Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "2997224e-c260-4080-8433-d028faa0bd29",
-          "patch": 5,
-          "message": "Company list: filter by group shows the Group Owner and all its members",
-          "category": "feature",
-          "createdAt": "2026-04-20T15:23:13.045Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e",
-          "patch": 5,
-          "message": "Patch version auto-increments on every production deployment",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T15:26:39.129Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "3a3a8c29-aa97-49eb-a04c-6193b383ca5d",
-          "patch": 5,
-          "message": "Patch headings now show the date of the latest entry in that patch",
-          "category": "enhancement",
-          "createdAt": "2026-04-20T15:35:35.857Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "d87c774e-195d-452b-b8fe-19bea4a36965",
-          "patch": 5,
-          "message": "Template source filtering: restrict template visibility by source",
-          "category": "feature",
-          "createdAt": "2026-04-20T15:59:29.769Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "9025fb43-87f2-4ce1-8e38-399cf8ede4c1",
-          "patch": 5,
-          "message": "Older invite links now show a clear \"replaced by newer email\" message",
-          "category": "bug",
-          "createdAt": "2026-04-21T11:22:21.180Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "da5af77c-e3c4-4d64-9698-7d4142cf5237",
-          "patch": 5,
-          "message": "Sidebar permission-gated items now appear instantly on login (no refresh)",
-          "category": "bug",
-          "createdAt": "2026-04-21T11:26:07.127Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "3ae46c03-64a0-4098-a748-257a1f9e0404",
-          "patch": 5,
-          "message": "Dashboard now shows skeleton placeholders during initial load instead of flashing an empty state.",
-          "category": "bug",
-          "createdAt": "2026-04-21T12:07:43.474Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "dcb2556e-90bb-499c-a5ec-a6c7f0bf3004",
-          "patch": 5,
-          "message": "Dashboard now renders instantly with zeros that count up to real values",
-          "category": "bug",
-          "createdAt": "2026-04-21T12:17:03.533Z",
-          "createdBy": "user-admin"
-        },
-        {
-          "id": "887c39d5-f372-4187-8b48-cfb4607281c9",
-          "patch": 5,
-          "message": "Site Documents page: filter by Group Owner with new Group + Company summary cards",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "6ff8871c-5c2e-4d72-bb56-1f1af1e0a366",
-          "patch": 5,
-          "message": "Fixed: shared documents to a Group could not be uploaded",
-          "category": "bug",
-          "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "6e4ff2ea-3c3b-4cdb-b336-003f73431a2f",
-          "patch": 5,
-          "message": "Documents button on Group/Company cards opens a list filtered to that scope",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "543817bc-9f24-4d70-b8d0-a39748087540",
-          "patch": 5,
-          "message": "Site Documents filter bar now has an X to clear active filters",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "985d7eff-a966-495d-a706-6e8148803562",
-          "patch": 5,
-          "message": "Client sign-off emails now go only to the consultant driving the approval",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "486b871c-b607-4150-86d8-20d898ac7d0b",
-          "patch": 5,
-          "message": "Companies, Sites and Users pages now share a consistent header and footer layout",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:33:55.921Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "4591a6ec-0154-4ee0-a6bd-8ee10b5093f5",
-          "patch": 5,
-          "message": "Companies, Sites and Users pages now show a record count in the footer",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:33:55.921Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "beb1944a-66be-413f-ab20-6531ad305a80",
-          "patch": 5,
-          "message": "Fixed: email document links now open the document after logging in",
-          "category": "bug",
-          "createdAt": "2026-04-23T09:37:34.619Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d420eaa1-5222-4503-b3fa-fb49768045ba",
-          "patch": 5,
-          "message": "Activation page now shows email and username in a clear table",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:40:26.883Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c37bf27b-9b68-4136-9b3c-b99f270d3dc9",
-          "patch": 5,
-          "category": "enhancement",
-          "createdAt": "2026-04-23T09:46:34.735Z",
-          "createdBy": "agent",
-          "message": "Activation/reset screens now use the branded login layout"
-        },
-        {
-          "id": "b2600776-9d49-4717-bdfb-c2ad25fbaffc",
-          "patch": 5,
-          "category": "bug",
-          "createdAt": "2026-04-23T09:52:15.715Z",
-          "createdBy": "agent",
-          "message": "Activation success screen no longer disappears when tab is refocused"
-        },
-        {
-          "id": "e0130b8d-aed7-4fc5-9e71-5315477319d6",
-          "patch": 5,
-          "message": "Group/company documents now show a Shared list with add/remove (auto-updates compliance)",
-          "category": "feature",
-          "createdAt": "2026-04-23T11:59:18.883Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "52284c9c-0b66-4e38-9c7f-f493c3bd9afc",
-          "patch": 5,
-          "message": "Fixed: shared-companies list crashed on group documents",
-          "category": "bug",
-          "createdAt": "2026-04-23T12:01:42.703Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c5a3fb12-2eb2-44b5-b690-6cd3914d1b89",
-          "patch": 5,
-          "message": "Group-shared documents now appear and count for each shared company and its sites",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T12:06:30.848Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "001d975a-9e0f-4ef2-84e0-82bff4a6ab1b",
-          "patch": 5,
-          "message": "Linked group documents now show on company document pages with a clear \"Linked from Group\" badge and read-only actions",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T12:13:27.593Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "7797b761-01f0-48c5-b3e0-af4420859d1b",
-          "patch": 5,
-          "message": "Documents button on Group/Company tiles now opens a properly scoped Documents view with the Group or Company name in the header",
-          "category": "bug",
-          "createdAt": "2026-04-23T12:22:15.748Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b1109e1e-76da-4860-84cc-4d7b2a274253",
-          "patch": 5,
-          "message": "Folders view now also respects Group/Company scope when opened from a tile, listing the scoped documents and linked items",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T12:25:23.275Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "c2210f2f-87eb-4971-95df-3b3551b385e4",
-          "patch": 5,
-          "message": "Folder structure now also exists at Group and Company level, with auto-provisioned folders from templates and a folder selector available when uploading or creating from template in those scopes",
-          "category": "feature",
-          "createdAt": "2026-04-23T12:38:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "d3321a40-98fc-5a82-a6e0-4c4662c496f5",
-          "patch": 5,
-          "message": "Folders view at Group/Company scope now auto-creates the folder structure from templates and lists documents grouped by folder",
-          "category": "bug",
-          "createdAt": "2026-04-23T12:42:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e4432b51-a90d-6b93-b7f1-5d5773d5a716",
-          "patch": 5,
-          "message": "Fixed folder creation so Group and Company folders are saved with the correct scope and stop showing as empty",
-          "category": "bug",
-          "createdAt": "2026-04-23T12:48:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "f5543c62-ba1e-7ca4-c802-6e6884e6b827",
-          "patch": 5,
-          "message": "Group Owner selection on the Site Documents pages is now remembered when navigating between modules",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T12:55:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a6654d73-cb2f-8db5-d913-7f7995f7c938",
-          "patch": 5,
-          "message": "Shared Group/Company documents now appear inside the matching site folder with a dashed border and Shared tag, instead of in a separate Shared Documents area. Shared documents are read-only at site level and can only be edited at the parent (Group or Company) where they were created",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T13:05:00.000Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "690eddbc-8f1f-42e3-badf-6970a28f1142",
-          "patch": 6,
-          "message": "Fixed production auto-bumping its own changelog patch on startup",
-          "category": "bug",
-          "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "a445031b-43c9-4412-85d6-10ac9c26c944",
-          "patch": 6,
-          "message": "Added auto-detect on Changelog: dev polls live site and bumps patch after publish",
-          "category": "feature",
-          "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "7e432ccd-5e99-44b4-8ce1-9493fd3f0a57",
-          "patch": 6,
-          "message": "Added /api/changelog/published-patch endpoint for auto-detect",
-          "category": "feature",
-          "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
-          "patch": 6,
-          "message": "Simplified Changelog header: removed Live badge, cards show patch number only",
-          "category": "enhancement",
-          "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e2475826-d265-41c0-a014-ab46a461fe69",
-          "patch": 6,
-          "message": "Added User Logins report to Admin Reports",
-          "category": "feature",
-          "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "03e532f5-93db-41ab-b284-ae59f19a552c",
-          "patch": 6,
-          "message": "Template Library: all users with page access now have full management rights",
-          "category": "enhancement",
-          "createdAt": "2026-04-24T10:44:25.053Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
-          "patch": 6,
-          "message": "Fixed client sign-off emails: now routes to assigned consultant before admins",
-          "category": "bug",
-          "createdAt": "2026-04-24T11:30:10.175Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "6359c831-05f0-4a80-9d73-1b83fdb5e274",
-          "patch": 6,
-          "message": "Fixed User Logins report always showing zero logins",
-          "category": "bug",
-          "createdAt": "2026-04-24T11:33:28.947Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
-          "patch": 6,
-          "message": "Added date-range presets to User Logins report",
-          "category": "feature",
-          "createdAt": "2026-04-24T11:33:28.947Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "9e223c29-17ed-4956-aa3c-c03cdde676f9",
-          "patch": 6,
-          "message": "Added Active Users Now tile to Admin Reports",
-          "category": "feature",
-          "createdAt": "2026-04-24T11:45:47.680Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "3be22683-ff52-458f-8322-a8444c9e097f",
-          "patch": 6,
-          "message": "Moved Changelog / Release Notes onto its own Admin Reports sub-page",
-          "category": "enhancement",
-          "createdAt": "2026-04-24T12:55:22.216Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "1cd04d25-c05e-4514-b85a-b28b27c40973",
-          "patch": 6,
-          "message": "Locked Admin Reports, Active Users, User Logins and Changelog to admins only",
-          "category": "enhancement",
-          "createdAt": "2026-04-24T13:35:26.377Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "4f88a5fa-eddc-4cf8-9161-2996a755b486",
-          "patch": 6,
-          "message": "Module Sites: replaced Overdue stat with Missing on Group and Company tiles",
-          "category": "enhancement",
-          "createdAt": "2026-04-24T14:47:32.513Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "80b91b5e-2161-4ba6-be85-7b9a20cdf6ca",
-          "patch": 6,
-          "message": "Fixed Missing count on Group/Company tiles to be scope-specific",
-          "category": "bug",
-          "createdAt": "2026-04-24T15:38:33.800Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "370508d5-c06d-4829-8a6e-1e7577b70bf3",
-          "patch": 6,
-          "message": "Further consistency fixes to Group/Company tile stat counts",
-          "category": "bug",
-          "createdAt": "2026-04-24T15:48:40.904Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "72da25ef-eb4c-44b2-bc30-00b18a3849bb",
-          "patch": 6,
-          "message": "Fixed Group tile counts to load consistently alongside Company tile",
-          "category": "enhancement",
-          "createdAt": "2026-04-27T10:22:45.852Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "97e6116e-e8d4-484d-9940-7138911c4923",
-          "patch": 6,
-          "message": "Fixed required docs from member companies incorrectly bubbling up to Group tile",
-          "category": "bug",
-          "createdAt": "2026-04-27T11:26:00.794Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "0721dc8b-14fd-4d04-addf-f8ef18859373",
-          "patch": 6,
-          "message": "Fixed Site tile over-counting Compliant when group/company docs are shared",
-          "category": "bug",
-          "createdAt": "2026-04-27T12:57:53.049Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b504c58f-0799-4972-abe4-737a06ffa8de",
-          "patch": 6,
-          "message": "Implemented group-to-member required-template cascade (non-binding)",
-          "category": "bug",
-          "createdAt": "2026-04-27T13:21:55.571Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "663428e3-18dc-44df-979f-342049318401",
-          "patch": 6,
-          "message": "Removing a group required template no longer forces removal at member companies",
-          "category": "feature",
-          "createdAt": "2026-04-27T14:02:02.702Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "253520c0-6436-44e2-8e77-89ef1a0acb2e",
-          "patch": 6,
-          "message": "Inherited required docs can now be individually dismissed at company level",
-          "category": "enhancement",
-          "createdAt": "2026-04-27T14:11:16.765Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "eecf08ae-784f-4d63-874e-4636c8a79d6e",
-          "patch": 6,
-          "message": "Dismissed inherited required docs can now be re-enabled",
-          "category": "enhancement",
-          "createdAt": "2026-04-27T14:41:05.642Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "6ad0ea35-d52d-47fb-bb77-ce13677c8768",
-          "patch": 6,
-          "message": "Added GDPR name redaction option for incident report PDFs",
-          "category": "feature",
-          "createdAt": "2026-04-29T12:30:28.554Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "0eeda2aa-dab5-4274-a13d-bd1fbad32fcb",
-          "patch": 6,
-          "message": "Extended GDPR redaction to cover address fields in incident PDFs",
-          "category": "enhancement",
-          "createdAt": "2026-04-29T12:36:28.334Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "b9624604-2fab-4e28-9acf-0c12aca7103d",
-          "patch": 6,
-          "message": "Consultants now receive an email when a client submits an incident report",
-          "category": "feature",
-          "createdAt": "2026-04-29T12:55:53.172Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "9880e36a-085e-42ee-986b-601ef241f989",
-          "patch": 6,
-          "message": "Added confirmation dialog shown to client after submitting an incident report",
-          "category": "feature",
-          "createdAt": "2026-04-29T13:07:12.047869Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "2463acf6-2407-4fb8-af32-94fa6e735610",
-          "patch": 6,
-          "message": "Added portal_messages table with full CRUD and storage layer",
-          "category": "enhancement",
-          "createdAt": "2026-04-29T13:31:30.962655+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "e7ef7f1d-d116-4d77-85e6-7021977da64f",
-          "patch": 6,
-          "message": "Added /api/home-summary endpoint returning urgent actions, portfolio, and portal messages",
-          "category": "enhancement",
-          "createdAt": "2026-04-29T13:31:30.962724+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "cd9bf392-ac38-4f93-8d73-a19f32a7b28c",
-          "patch": 6,
-          "message": "Added portal-messages CRUD API routes with admin/client visibility rules",
-          "category": "enhancement",
-          "createdAt": "2026-04-29T13:31:30.962775+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "2b1bf800-cd5a-436b-9bba-ab9be1d7d101",
-          "patch": 6,
-          "message": "Created /home portal page with greeting, urgent actions, portfolio and portal messages",
-          "category": "feature",
-          "createdAt": "2026-04-29T13:31:30.962829+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "58c989e1-4f2d-4634-9f25-680acc367ec4",
-          "patch": 6,
-          "message": "Moved dashboard to /dashboard; updated sidebar Overview to link to new /home page",
-          "category": "feature",
-          "createdAt": "2026-04-29T13:31:30.962880+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "72487e51-a6a0-430f-b978-b2b64fe64b89",
-          "patch": 6,
-          "message": "Added /admin/portal-messages admin page to create, edit, publish and delete messages",
-          "category": "feature",
-          "createdAt": "2026-04-29T13:31:30.962927+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "5b3e9414-9095-4861-bfdb-6349370cc274",
-          "patch": 6,
-          "message": "Fixed home page: / redirect, date greeting, client doc links, admin action buttons",
-          "category": "bug",
-          "createdAt": "2026-04-29T13:40:58.560735Z",
-          "createdBy": "agent"
-        },
-        {
-          "id": "930c8661-781e-4917-aee9-7dd02aa4b1d5",
-          "patch": 6,
-          "message": "Fixed home page review issues: portal message card type badges and colours",
-          "category": "bug",
-          "createdAt": "2026-04-29T13:46:40.495315Z",
+          "createdAt": "2026-04-29T14:02:27.879484+00:00",
           "createdBy": "agent"
         },
         {
@@ -1164,77 +276,1000 @@
           "createdBy": "agent"
         },
         {
-          "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
+          "id": "930c8661-781e-4917-aee9-7dd02aa4b1d5",
           "patch": 6,
-          "message": "Fixed portal message create/update: coerce ISO string timestamps before validation",
+          "message": "Fixed home page review issues: portal message card type badges and colours",
           "category": "bug",
-          "createdAt": "2026-04-29T14:02:27.879484+00:00",
+          "createdAt": "2026-04-29T13:46:40.495315Z",
           "createdBy": "agent"
         },
         {
-          "id": "b062cc78-1b0b-4fd1-8917-39afc8527f7a",
+          "id": "5b3e9414-9095-4861-bfdb-6349370cc274",
           "patch": 6,
-          "message": "Fixed PATCH portal-messages: omitted date fields no longer cause validation errors",
+          "message": "Fixed home page: / redirect, date greeting, client doc links, admin action buttons",
           "category": "bug",
-          "createdAt": "2026-04-29T14:04:42.966625+00:00",
+          "createdAt": "2026-04-29T13:40:58.560735Z",
           "createdBy": "agent"
         },
         {
-          "id": "e1463481-0535-427c-8b5b-7356f6e4446e",
+          "id": "72487e51-a6a0-430f-b978-b2b64fe64b89",
           "patch": 6,
-          "message": "Fixed portal messages: future-dated messages now hidden until published_at arrives",
-          "category": "bug",
-          "createdAt": "2026-04-29T14:30:25.508982+00:00",
-          "createdBy": "agent"
-        },
-        {
-          "id": "834541c6-172a-409f-96a6-0cc3f0ca2e31",
-          "patch": 6,
-          "message": "Moved Open Cases count from My Portfolio to Urgent Actions on home page",
+          "message": "Added /admin/portal-messages admin page to create, edit, publish and delete messages",
           "category": "feature",
-          "createdAt": "2026-04-29T14:46:32.418290+00:00",
+          "createdAt": "2026-04-29T13:31:30.962927+00:00",
           "createdBy": "agent"
         },
         {
-          "id": "1b9d3dc4-3f1d-48e7-bd1b-701c866d27da",
+          "id": "58c989e1-4f2d-4634-9f25-680acc367ec4",
           "patch": 6,
-          "message": "Equalised Urgent Actions and My Portfolio card heights on home page",
+          "message": "Moved dashboard to /dashboard; updated sidebar Overview to link to new /home page",
+          "category": "feature",
+          "createdAt": "2026-04-29T13:31:30.962880+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "2b1bf800-cd5a-436b-9bba-ab9be1d7d101",
+          "patch": 6,
+          "message": "Created /home portal page with greeting, urgent actions, portfolio and portal messages",
+          "category": "feature",
+          "createdAt": "2026-04-29T13:31:30.962829+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "cd9bf392-ac38-4f93-8d73-a19f32a7b28c",
+          "patch": 6,
+          "message": "Added portal-messages CRUD API routes with admin/client visibility rules",
           "category": "enhancement",
-          "createdAt": "2026-04-29T14:51:12.583438+00:00",
+          "createdAt": "2026-04-29T13:31:30.962775+00:00",
           "createdBy": "agent"
         },
         {
-          "id": "282b73f5-de91-4390-9c98-88cd7914b873",
+          "id": "e7ef7f1d-d116-4d77-85e6-7021977da64f",
           "patch": 6,
-          "message": "Added toggle for clients to grant consultants full unredacted incident access",
+          "message": "Added /api/home-summary endpoint returning urgent actions, portfolio, and portal messages",
+          "category": "enhancement",
+          "createdAt": "2026-04-29T13:31:30.962724+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "2463acf6-2407-4fb8-af32-94fa6e735610",
+          "patch": 6,
+          "message": "Added portal_messages table with full CRUD and storage layer",
+          "category": "enhancement",
+          "createdAt": "2026-04-29T13:31:30.962655+00:00",
+          "createdBy": "agent"
+        },
+        {
+          "id": "9880e36a-085e-42ee-986b-601ef241f989",
+          "patch": 6,
+          "message": "Added confirmation dialog shown to client after submitting an incident report",
           "category": "feature",
-          "createdAt": "2026-04-29T14:56:48.061183Z",
+          "createdAt": "2026-04-29T13:07:12.047869Z",
           "createdBy": "agent"
         },
         {
-          "id": "6fcd3290-aceb-423f-ad10-742bd93eb1c6",
+          "id": "b9624604-2fab-4e28-9acf-0c12aca7103d",
           "patch": 6,
-          "message": "Required docs inherited from group can now be dismissed at site level",
+          "message": "Consultants now receive an email when a client submits an incident report",
           "category": "feature",
-          "createdAt": "2026-04-29T15:32:35.577707Z",
+          "createdAt": "2026-04-29T12:55:53.172Z",
           "createdBy": "agent"
         },
         {
-          "id": "b1876e0b-28b1-402e-9d49-f84a07a5b8c3",
+          "id": "0eeda2aa-dab5-4274-a13d-bd1fbad32fcb",
           "patch": 6,
-          "message": "Case bundle PDF: page numbers now start at 1 (was 0-based) and render in black (was grey).",
+          "message": "Extended GDPR redaction to cover address fields in incident PDFs",
+          "category": "enhancement",
+          "createdAt": "2026-04-29T12:36:28.334Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6ad0ea35-d52d-47fb-bb77-ce13677c8768",
+          "patch": 6,
+          "message": "Added GDPR name redaction option for incident report PDFs",
+          "category": "feature",
+          "createdAt": "2026-04-29T12:30:28.554Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "eecf08ae-784f-4d63-874e-4636c8a79d6e",
+          "patch": 6,
+          "message": "Dismissed inherited required docs can now be re-enabled",
+          "category": "enhancement",
+          "createdAt": "2026-04-27T14:41:05.642Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "253520c0-6436-44e2-8e77-89ef1a0acb2e",
+          "patch": 6,
+          "message": "Inherited required docs can now be individually dismissed at company level",
+          "category": "enhancement",
+          "createdAt": "2026-04-27T14:11:16.765Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "663428e3-18dc-44df-979f-342049318401",
+          "patch": 6,
+          "message": "Removing a group required template no longer forces removal at member companies",
+          "category": "feature",
+          "createdAt": "2026-04-27T14:02:02.702Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b504c58f-0799-4972-abe4-737a06ffa8de",
+          "patch": 6,
+          "message": "Implemented group-to-member required-template cascade (non-binding)",
           "category": "bug",
-          "createdAt": "2026-04-30T14:39:57.214558Z",
+          "createdAt": "2026-04-27T13:21:55.571Z",
           "createdBy": "agent"
         },
         {
-          "id": "66f0877b-dce8-49a1-9f81-30d91ce761bb",
+          "id": "0721dc8b-14fd-4d04-addf-f8ef18859373",
           "patch": 6,
-          "message": "Case bundle: added .msg (Outlook email) conversion support",
+          "message": "Fixed Site tile over-counting Compliant when group/company docs are shared",
+          "category": "bug",
+          "createdAt": "2026-04-27T12:57:53.049Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "97e6116e-e8d4-484d-9940-7138911c4923",
+          "patch": 6,
+          "message": "Fixed required docs from member companies incorrectly bubbling up to Group tile",
+          "category": "bug",
+          "createdAt": "2026-04-27T11:26:00.794Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "72da25ef-eb4c-44b2-bc30-00b18a3849bb",
+          "patch": 6,
+          "message": "Fixed Group tile counts to load consistently alongside Company tile",
+          "category": "enhancement",
+          "createdAt": "2026-04-27T10:22:45.852Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "370508d5-c06d-4829-8a6e-1e7577b70bf3",
+          "patch": 6,
+          "message": "Further consistency fixes to Group/Company tile stat counts",
+          "category": "bug",
+          "createdAt": "2026-04-24T15:48:40.904Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "80b91b5e-2161-4ba6-be85-7b9a20cdf6ca",
+          "patch": 6,
+          "message": "Fixed Missing count on Group/Company tiles to be scope-specific",
+          "category": "bug",
+          "createdAt": "2026-04-24T15:38:33.800Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "4f88a5fa-eddc-4cf8-9161-2996a755b486",
+          "patch": 6,
+          "message": "Module Sites: replaced Overdue stat with Missing on Group and Company tiles",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T14:47:32.513Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "1cd04d25-c05e-4514-b85a-b28b27c40973",
+          "patch": 6,
+          "message": "Locked Admin Reports, Active Users, User Logins and Changelog to admins only",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T13:35:26.377Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "3be22683-ff52-458f-8322-a8444c9e097f",
+          "patch": 6,
+          "message": "Moved Changelog / Release Notes onto its own Admin Reports sub-page",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T12:55:22.216Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "9e223c29-17ed-4956-aa3c-c03cdde676f9",
+          "patch": 6,
+          "message": "Added Active Users Now tile to Admin Reports",
           "category": "feature",
-          "createdAt": "2026-04-30T14:58:22.887394Z",
+          "createdAt": "2026-04-24T11:45:47.680Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6359c831-05f0-4a80-9d73-1b83fdb5e274",
+          "patch": 6,
+          "message": "Fixed User Logins report always showing zero logins",
+          "category": "bug",
+          "createdAt": "2026-04-24T11:33:28.947Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
+          "patch": 6,
+          "message": "Added date-range presets to User Logins report",
+          "category": "feature",
+          "createdAt": "2026-04-24T11:33:28.947Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
+          "patch": 6,
+          "message": "Fixed client sign-off emails: now routes to assigned consultant before admins",
+          "category": "bug",
+          "createdAt": "2026-04-24T11:30:10.175Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "03e532f5-93db-41ab-b284-ae59f19a552c",
+          "patch": 6,
+          "message": "Template Library: all users with page access now have full management rights",
+          "category": "enhancement",
+          "createdAt": "2026-04-24T10:44:25.053Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "690eddbc-8f1f-42e3-badf-6970a28f1142",
+          "patch": 6,
+          "message": "Fixed production auto-bumping its own changelog patch on startup",
+          "category": "bug",
+          "createdAt": "2026-04-23T22:33:01.986Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a445031b-43c9-4412-85d6-10ac9c26c944",
+          "patch": 6,
+          "message": "Added auto-detect on Changelog: dev polls live site and bumps patch after publish",
+          "category": "feature",
+          "createdAt": "2026-04-23T22:33:01.986Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "7e432ccd-5e99-44b4-8ce1-9493fd3f0a57",
+          "patch": 6,
+          "message": "Added /api/changelog/published-patch endpoint for auto-detect",
+          "category": "feature",
+          "createdAt": "2026-04-23T22:33:01.986Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
+          "patch": 6,
+          "message": "Simplified Changelog header: removed Live badge, cards show patch number only",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T22:33:01.986Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e2475826-d265-41c0-a014-ab46a461fe69",
+          "patch": 6,
+          "message": "Added User Logins report to Admin Reports",
+          "category": "feature",
+          "createdAt": "2026-04-23T22:33:01.986Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a6654d73-cb2f-8db5-d913-7f7995f7c938",
+          "patch": 5,
+          "message": "Shared Group/Company documents now appear inside the matching site folder with a dashed border and Shared tag, instead of in a separate Shared Documents area. Shared documents are read-only at site level and can only be edited at the parent (Group or Company) where they were created",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T13:05:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f5543c62-ba1e-7ca4-c802-6e6884e6b827",
+          "patch": 5,
+          "message": "Group Owner selection on the Site Documents pages is now remembered when navigating between modules",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e4432b51-a90d-6b93-b7f1-5d5773d5a716",
+          "patch": 5,
+          "message": "Fixed folder creation so Group and Company folders are saved with the correct scope and stop showing as empty",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:48:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d3321a40-98fc-5a82-a6e0-4c4662c496f5",
+          "patch": 5,
+          "message": "Folders view at Group/Company scope now auto-creates the folder structure from templates and lists documents grouped by folder",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:42:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c2210f2f-87eb-4971-95df-3b3551b385e4",
+          "patch": 5,
+          "message": "Folder structure now also exists at Group and Company level, with auto-provisioned folders from templates and a folder selector available when uploading or creating from template in those scopes",
+          "category": "feature",
+          "createdAt": "2026-04-23T12:38:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b1109e1e-76da-4860-84cc-4d7b2a274253",
+          "patch": 5,
+          "message": "Folders view now also respects Group/Company scope when opened from a tile, listing the scoped documents and linked items",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:25:23.275Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "7797b761-01f0-48c5-b3e0-af4420859d1b",
+          "patch": 5,
+          "message": "Documents button on Group/Company tiles now opens a properly scoped Documents view with the Group or Company name in the header",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:22:15.748Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "001d975a-9e0f-4ef2-84e0-82bff4a6ab1b",
+          "patch": 5,
+          "message": "Linked group documents now show on company document pages with a clear \"Linked from Group\" badge and read-only actions",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:13:27.593Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c5a3fb12-2eb2-44b5-b690-6cd3914d1b89",
+          "patch": 5,
+          "message": "Group-shared documents now appear and count for each shared company and its sites",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T12:06:30.848Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "52284c9c-0b66-4e38-9c7f-f493c3bd9afc",
+          "patch": 5,
+          "message": "Fixed: shared-companies list crashed on group documents",
+          "category": "bug",
+          "createdAt": "2026-04-23T12:01:42.703Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e0130b8d-aed7-4fc5-9e71-5315477319d6",
+          "patch": 5,
+          "message": "Group/company documents now show a Shared list with add/remove (auto-updates compliance)",
+          "category": "feature",
+          "createdAt": "2026-04-23T11:59:18.883Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b2600776-9d49-4717-bdfb-c2ad25fbaffc",
+          "patch": 5,
+          "category": "bug",
+          "createdAt": "2026-04-23T09:52:15.715Z",
+          "createdBy": "agent",
+          "message": "Activation success screen no longer disappears when tab is refocused"
+        },
+        {
+          "id": "c37bf27b-9b68-4136-9b3c-b99f270d3dc9",
+          "patch": 5,
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:46:34.735Z",
+          "createdBy": "agent",
+          "message": "Activation/reset screens now use the branded login layout"
+        },
+        {
+          "id": "d420eaa1-5222-4503-b3fa-fb49768045ba",
+          "patch": 5,
+          "message": "Activation page now shows email and username in a clear table",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:40:26.883Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "beb1944a-66be-413f-ab20-6531ad305a80",
+          "patch": 5,
+          "message": "Fixed: email document links now open the document after logging in",
+          "category": "bug",
+          "createdAt": "2026-04-23T09:37:34.619Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "486b871c-b607-4150-86d8-20d898ac7d0b",
+          "patch": 5,
+          "message": "Companies, Sites and Users pages now share a consistent header and footer layout",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:33:55.921Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "4591a6ec-0154-4ee0-a6bd-8ee10b5093f5",
+          "patch": 5,
+          "message": "Companies, Sites and Users pages now show a record count in the footer",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:33:55.921Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "887c39d5-f372-4187-8b48-cfb4607281c9",
+          "patch": 5,
+          "message": "Site Documents page: filter by Group Owner with new Group + Company summary cards",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6ff8871c-5c2e-4d72-bb56-1f1af1e0a366",
+          "patch": 5,
+          "message": "Fixed: shared documents to a Group could not be uploaded",
+          "category": "bug",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "6e4ff2ea-3c3b-4cdb-b336-003f73431a2f",
+          "patch": 5,
+          "message": "Documents button on Group/Company cards opens a list filtered to that scope",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "543817bc-9f24-4d70-b8d0-a39748087540",
+          "patch": 5,
+          "message": "Site Documents filter bar now has an X to clear active filters",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "985d7eff-a966-495d-a706-6e8148803562",
+          "patch": 5,
+          "message": "Client sign-off emails now go only to the consultant driving the approval",
+          "category": "enhancement",
+          "createdAt": "2026-04-23T09:05:11.338Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "dcb2556e-90bb-499c-a5ec-a6c7f0bf3004",
+          "patch": 5,
+          "message": "Dashboard now renders instantly with zeros that count up to real values",
+          "category": "bug",
+          "createdAt": "2026-04-21T12:17:03.533Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "3ae46c03-64a0-4098-a748-257a1f9e0404",
+          "patch": 5,
+          "message": "Dashboard now shows skeleton placeholders during initial load instead of flashing an empty state.",
+          "category": "bug",
+          "createdAt": "2026-04-21T12:07:43.474Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "da5af77c-e3c4-4d64-9698-7d4142cf5237",
+          "patch": 5,
+          "message": "Sidebar permission-gated items now appear instantly on login (no refresh)",
+          "category": "bug",
+          "createdAt": "2026-04-21T11:26:07.127Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "9025fb43-87f2-4ce1-8e38-399cf8ede4c1",
+          "patch": 5,
+          "message": "Older invite links now show a clear \"replaced by newer email\" message",
+          "category": "bug",
+          "createdAt": "2026-04-21T11:22:21.180Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "d87c774e-195d-452b-b8fe-19bea4a36965",
+          "patch": 5,
+          "message": "Template source filtering: restrict template visibility by source",
+          "category": "feature",
+          "createdAt": "2026-04-20T15:59:29.769Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "3a3a8c29-aa97-49eb-a04c-6193b383ca5d",
+          "patch": 5,
+          "message": "Patch headings now show the date of the latest entry in that patch",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T15:35:35.857Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "d7421ee2-fc37-4f2e-ad42-ca279b4bcb3e",
+          "patch": 5,
+          "message": "Patch version auto-increments on every production deployment",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T15:26:39.129Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "2997224e-c260-4080-8433-d028faa0bd29",
+          "patch": 5,
+          "message": "Company list: filter by group shows the Group Owner and all its members",
+          "category": "feature",
+          "createdAt": "2026-04-20T15:23:13.045Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "60b6ecca-714c-4dfc-958b-948cec848e75",
+          "patch": 5,
+          "message": "Standalone companies now show clear options to join a group or become a Group Owner",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T15:23:13.036Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
+          "patch": 5,
+          "message": "Group Owner moved into Linked Companies panel \u2014 single unified section",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T15:23:13.023Z",
+          "createdBy": "user-admin"
+        },
+        {
+          "id": "q5m48r17n034",
+          "patch": 5,
+          "message": "Company list shows Group Owner and Member Of badges",
+          "category": "feature",
+          "createdAt": "2026-04-20T14:10:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "p4l37q06m923",
+          "patch": 5,
+          "message": "Group Owner companies show a Linked Companies panel with all member companies",
+          "category": "feature",
+          "createdAt": "2026-04-20T14:05:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "o3k26p95l812",
+          "patch": 5,
+          "message": "Companies can now be linked to a Group Owner company",
+          "category": "feature",
+          "createdAt": "2026-04-20T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "n2j15o84k701",
+          "patch": 5,
+          "message": "Settings: Your Permissions card moved to top with read-only permission toggles",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T11:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "m1i04n73j690",
+          "patch": 5,
+          "message": "User list: Case Advocate badge removed from Role cell; shown only in Permissions column",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T10:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "l0h93m62i589",
+          "patch": 5,
+          "message": "User list: admin rows show an All badge in the Permissions column",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T10:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "k9g82l51h478",
+          "patch": 5,
+          "message": "User list: new Permissions column shows colour-coded badges per consultant",
+          "category": "feature",
+          "createdAt": "2026-04-20T10:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "j8f71k40g367",
+          "patch": 4,
+          "message": "Incident detail view and PDF now display RIDDOR reference and notes",
+          "category": "feature",
+          "createdAt": "2026-04-20T07:57:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "i7e60j39f256",
+          "patch": 4,
+          "message": "Follow Up Investigation adds RIDDOR reference and notes fields",
+          "category": "feature",
+          "createdAt": "2026-04-20T07:56:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "h6d59i28e145",
+          "patch": 4,
+          "message": "RIDDOR section moved from Report Incident form to Follow Up Investigation",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T07:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "g5c48h17d034",
+          "patch": 4,
+          "message": "Testing: task lists can now be archived; archived view accessible from left panel",
+          "category": "feature",
+          "createdAt": "2026-04-20T07:45:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f4b37g06c923",
+          "patch": 4,
+          "message": "Improved: Testing page redesigned with side-by-side panel layout for easier use",
+          "category": "enhancement",
+          "createdAt": "2026-04-20T07:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e3a26f95b812",
+          "patch": 4,
+          "message": "Case Number can be edited from the case detail view; duplicates are blocked",
+          "category": "feature",
+          "createdAt": "2026-04-19T17:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d2f15e84a701",
+          "patch": 4,
+          "message": "Cases now have a mandatory Case Number field shown in the case list",
+          "category": "feature",
+          "createdAt": "2026-04-19T17:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c9e04bf72d13",
+          "patch": 4,
+          "message": "Fixed: non-active users are greyed out and unselectable in the Case Access dialog",
+          "category": "bug",
+          "createdAt": "2026-04-19T16:20:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b7f91d03c852",
+          "patch": 4,
+          "message": "Template and Training Library permission toggles appear in both the Permissions dialog and Create Consultant form",
+          "category": "feature",
+          "createdAt": "2026-04-19T15:31:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a3c82e15d640",
+          "patch": 4,
+          "message": "Admins can grant or revoke Template Library and Training Library access per consultant",
+          "category": "feature",
+          "createdAt": "2026-04-19T15:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f1c73ae09b56",
+          "patch": 4,
+          "message": "Case Advocates only see cases matching their assigned sources",
+          "category": "feature",
+          "createdAt": "2026-04-19T14:51:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e8b2f94d1c37",
+          "patch": 4,
+          "message": "Admins can grant Case Advocate permission to consultants \u2014 only Case Advocates can view and manage Employment Law cases",
+          "category": "feature",
+          "createdAt": "2026-04-19T14:50:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d4a78e21c903",
+          "patch": 4,
+          "message": "Added ACAS Conciliation as a case type in Employment Law \u2014 available in the new case form and case type filter",
+          "category": "feature",
+          "createdAt": "2026-04-19T13:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b72d15fe8c91",
+          "patch": 4,
+          "message": "Fixed: site address on the company Sites tab now shows the full address including Address Line 2 and County",
+          "category": "bug",
+          "createdAt": "2026-04-17T18:40:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a91e43c2bf05",
+          "patch": 4,
+          "message": "Fixed: address updates now reflect immediately on the company's sites list",
+          "category": "bug",
+          "createdAt": "2026-04-17T18:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f3c910ab7d82",
+          "patch": 4,
+          "message": "Users Report now distinguishes between Consultants and Pro Consultants \u2014 each shown with a distinct badge, colour, and separate summary count",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T18:28:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c243f52f18f4",
+          "patch": 4,
+          "message": "When a company or site address is updated, you are now prompted to copy the new address to any matching sites or the parent company",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T17:17:48.594Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "0793c6ddef8b",
+          "patch": 4,
+          "message": "Feedback & comments now preserve line breaks and paragraphs exactly as typed",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T16:14:19.625Z",
+          "createdBy": "system"
+        },
+        {
+          "id": "93e3f8278d9d",
+          "patch": 4,
+          "message": "Users can now edit their own feedback (when it has no upvotes or comments) and edit their own comments",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T16:14:19.625Z",
+          "createdBy": "system"
+        },
+        {
+          "id": "aa98822ac1a8",
+          "patch": 4,
+          "message": "Sites dropdown locks until a Company is selected",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T16:14:19.625Z",
+          "createdBy": "system"
+        },
+        {
+          "id": "fdf2d30a0b16",
+          "patch": 4,
+          "message": "Client users are blocked from logging in when their company is On Hold or Inactive",
+          "category": "feature",
+          "createdAt": "2026-04-17T15:32:27.726Z",
+          "createdBy": "system"
+        },
+        {
+          "id": "9dc4f768-fe90-494d-a989-d3885f470ed9",
+          "patch": 4,
+          "message": "Fixed: toolkit folder dropdown in Add Templates now always loads fresh data",
+          "category": "bug",
+          "createdAt": "2026-04-17T15:20:53.903Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
+          "patch": 4,
+          "message": "Add Templates dialog now includes a Create New folder option inline",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T15:20:53.903Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b",
+          "patch": 4,
+          "message": "Fixed: pro consultants assigned to sites now appear in the company Users list",
+          "category": "bug",
+          "createdAt": "2026-04-17T15:02:50.178Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "175a2948-b234-463f-be87-85854bd21592",
+          "patch": 4,
+          "message": "Improved: users and sites lists no longer re-fetch on first visit",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T14:56:52.391Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "64d8d9ae-b983-4381-86cf-011b36416e1c",
+          "patch": 4,
+          "message": "Improved: sites list now loads significantly faster",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T14:56:52.390Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "68d685d0-2252-4c94-a36a-0eadecd4d7a9",
+          "patch": 4,
+          "message": "Fixed: company list no longer capped at 100 results",
+          "category": "bug",
+          "createdAt": "2026-04-17T14:46:19.279Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a0c79eac-8479-4977-a3ec-5af46bf30389",
+          "patch": 4,
+          "message": "Fixed: all company dropdown filters now show the full company list",
+          "category": "bug",
+          "createdAt": "2026-04-17T14:36:47.515Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "23b692fe-eeb8-4410-9be4-566e3e4ece3a",
+          "patch": 4,
+          "message": "Fixed: company dropdown when adding a user now shows all companies, not just the first page",
+          "category": "bug",
+          "createdAt": "2026-04-17T14:02:51.746Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
+          "patch": 4,
+          "message": "Fixed: patch number no longer auto-increments on server restart",
+          "category": "bug",
+          "createdAt": "2026-04-17T13:51:01.944Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d1e2f3a4-b5c6-7890-defa-012345678901",
+          "patch": 4,
+          "message": "Fixed: session timeout stays active while any tab is in use",
+          "category": "bug",
+          "createdAt": "2026-04-17T10:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c0d1e2f3-a4b5-6789-cdef-901234567890",
+          "patch": 4,
+          "message": "Fixed: login could hang due to slow background data requests",
+          "category": "bug",
+          "createdAt": "2026-04-17T09:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b9c0d1e2-f3a4-5678-bcde-890123456789",
+          "patch": 3,
+          "message": "Pro consultants can now manage module access at both company and site level",
+          "category": "enhancement",
+          "createdAt": "2026-04-17T08:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-efab-678901234567",
+          "patch": 3,
+          "message": "Guardian Group logo on the login page now links to guardiangroup.co.uk",
+          "category": "enhancement",
+          "createdAt": "2026-04-16T19:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-cdef-456789012345",
+          "patch": 3,
+          "message": "Consultants can now build and download PDF document bundles from a case's checklist items",
+          "category": "feature",
+          "createdAt": "2026-04-16T17:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d6e7f8a9-b0c1-2345-defa-456789012345",
+          "patch": 2,
+          "message": "Fixed: company name missing from sidebar immediately after login",
+          "category": "bug",
+          "createdAt": "2026-04-14T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c5d6e7f8-a9b0-1234-cdef-345678901234",
+          "patch": 2,
+          "message": "Fixed: pro consultants' assigned sources not showing in company creation form",
+          "category": "bug",
+          "createdAt": "2026-04-14T09:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
+          "patch": 2,
+          "message": "Admins can now permanently delete cases and incidents, with confirmation dialog and full audit trail",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T18:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
+          "patch": 2,
+          "message": "Redesigned Template Library header \u2014 icon badge and action buttons always visible at top",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T17:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
+          "patch": 1,
+          "message": "Improved session expiry error message shown on file upload failure",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T16:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
+          "patch": 1,
+          "message": "Feedback comments dialog now shows the original message at the top",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T16:10:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
+          "patch": 1,
+          "message": "Removed Setup Wizard from template library",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T15:50:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
+          "patch": 1,
+          "message": "Updated empty folder message in template library",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T15:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
+          "patch": 1,
+          "message": "Fixed: admins blocked from saving their profile due to spurious sources validation error",
+          "category": "bug",
+          "createdAt": "2026-04-13T13:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
+          "patch": 1,
+          "message": "Fixed: profile changes on settings page not reflected until page refresh",
+          "category": "bug",
+          "createdAt": "2026-04-13T13:45:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
+          "patch": 1,
+          "message": "Fixed typo in phone number example on settings page",
+          "category": "bug",
+          "createdAt": "2026-04-13T13:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
+          "patch": 1,
+          "message": "Standard consultants and clients can now edit their own profile details",
+          "category": "enhancement",
+          "createdAt": "2026-04-13T13:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
+          "patch": 1,
+          "message": "Fixed: consultants blocked from saving incidents due to missing permissions check",
+          "category": "bug",
+          "createdAt": "2026-04-13T11:50:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "patch": 0,
+          "message": "Added Release Notes section to admin reports",
+          "category": "feature",
+          "createdAt": "2026-04-10T20:53:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+          "patch": 0,
+          "message": "Support link in sidebar always shows as locked in production",
+          "category": "enhancement",
+          "createdAt": "2026-04-10T15:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+          "patch": 0,
+          "message": "Fixed folder template selection when creating documents from a template",
+          "category": "enhancement",
+          "createdAt": "2026-04-10T15:22:00.000Z",
           "createdBy": "agent"
         }
+      ],
+      "patchHistory": [
+        "aa67bbc3-83ba-46ec-a7dd-89773957889c"
       ]
     }
   ]
