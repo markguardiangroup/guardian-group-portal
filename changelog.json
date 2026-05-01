@@ -132,7 +132,7 @@
           "id": "b3f94c62-8d5a-4e2f-0c93-4g6b8c0d1f75",
           "patch": 6,
           "message": "Company tiles in module sites now show company-level missing count (no site exclusions) matching the company Documents page",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-05-01T00:20:00.000Z",
           "createdBy": "agent"
         },
@@ -140,7 +140,7 @@
           "id": "a2e83d51-7b4f-4c1e-9d82-3f5a7b9c0e64",
           "patch": 6,
           "message": "Company scope module docs now show all required templates without per-site exclusions via a dedicated company-level missing-slots API",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-05-01T00:10:00.000Z",
           "createdBy": "agent"
         },
@@ -148,7 +148,7 @@
           "id": "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34",
           "patch": 6,
           "message": "Group scope module docs now show missing required slots from all member company sites, not just the group owner's own sites",
-          "category": "fix",
+          "category": "bug",
           "createdAt": "2026-05-01T00:00:00.000Z",
           "createdBy": "agent"
         },
