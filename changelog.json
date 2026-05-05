@@ -152,9 +152,18 @@
         "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08",
         "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
         "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
-        "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31"
+        "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
+        "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42"
       ],
       "entries": [
+        {
+          "id": "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
+          "patch": 6,
+          "category": "feature",
+          "message": "EL case detail view: Source field now visible and editable in Case Details card; shows current sources as grey chip badges (or 'No sources set' when empty); admins/consultants see a pencil icon to enter edit mode; edit mode shows the same 2-col toggle grid as create dialog, pre-checked with current values; Save calls PATCH /api/cases/:id with updated sources array; Cancel discards draft",
+          "createdAt": "2026-05-05T14:00:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
           "patch": 6,

@@ -1442,6 +1442,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [editingSources, setEditingSources] = useState(false);
+  const [sourcesDraft, setSourcesDraft] = useState<string[]>([]);
   const [editingCaseNumber, setEditingCaseNumber] = useState(false);
   const [caseNumberDraft, setCaseNumberDraft] = useState("");
   const [editingCaseName, setEditingCaseName] = useState(false);
@@ -1475,6 +1477,20 @@ function CaseDetailView({ id }: { id: string }) {
   const { data: auditLogs } = useQuery<AuditLog[]>({
     queryKey: ["/api/cases", id, "audit"],
   });
+
+  // Fetch admin-managed sources for display labels and editing
+  const { data: allSources = [] } = useQuery<SourceOption[]>({
+    queryKey: ["/api/sources"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+  });
+  const detailSourceLabelMap = useMemo(
+    () => Object.fromEntries(allSources.map((s) => [s.code, s.label])),
+    [allSources]
+  );
 
   // Fetch company and site details for display
   const { data: company } = useQuery<{ id: string; name: string }>({
@@ -2260,6 +2276,96 @@ function CaseDetailView({ id }: { id: string }) {
                     <p className="mt-1 text-sm">{caseData.description || <span className="text-muted-foreground italic">No description provided</span>}</p>
                   )}
                 </div>
+                {/* Sources */}
+                <div className="border-t pt-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm text-muted-foreground">Source</p>
+                    {(user?.role === "admin" || user?.role === "consultant") && !editingSources && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          setSourcesDraft((caseData as any).sources ?? []);
+                          setEditingSources(true);
+                        }}
+                        data-testid="button-edit-sources"
+                        title="Edit sources"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
+                  {editingSources ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
+                        {allSources.length === 0 && (
+                          <p className="col-span-2 text-xs text-muted-foreground text-center py-2">No sources configured — add them in Admin → Sources</p>
+                        )}
+                        {allSources.map((src) => {
+                          const checked = sourcesDraft.includes(src.code);
+                          return (
+                            <button
+                              key={src.code}
+                              type="button"
+                              onClick={() =>
+                                setSourcesDraft(prev =>
+                                  prev.includes(src.code)
+                                    ? prev.filter(s => s !== src.code)
+                                    : [...prev, src.code]
+                                )
+                              }
+                              data-testid={`toggle-source-edit-${src.code}`}
+                              className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-sm text-left transition-colors ${checked ? "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
+                            >
+                              <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px] ${checked ? "bg-pink-600 border-pink-600 text-white" : "border-input"}`}>
+                                {checked && "✓"}
+                              </span>
+                              {src.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
+                          onClick={() =>
+                            updateCaseMutation.mutate(
+                              { sources: sourcesDraft } as any,
+                              { onSuccess: () => setEditingSources(false) }
+                            )
+                          }
+                          disabled={updateCaseMutation.isPending}
+                          data-testid="button-save-sources"
+                        >
+                          {updateCaseMutation.isPending ? "Saving…" : "Save"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => setEditingSources(false)}
+                          data-testid="button-cancel-sources"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {((caseData as any).sources ?? []).length > 0
+                        ? ((caseData as any).sources as string[]).map((s: string) => (
+                            <span key={s} className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              {detailSourceLabelMap[s] ?? s}
+                            </span>
+                          ))
+                        : <span className="text-sm text-muted-foreground italic">No sources set</span>
+                      }
+                    </div>
+                  )}
+                </div>
+
                 {/* Date fields — inline row, only rendered when values exist */}
                 {(caseData.hearingDate || caseData.responseDeadline || caseData.resolutionDate) && (
                   <div className="flex flex-wrap gap-6 pt-1 border-t">
