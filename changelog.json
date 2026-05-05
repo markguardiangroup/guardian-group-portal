@@ -153,9 +153,18 @@
         "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
         "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
         "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
-        "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42"
+        "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
+        "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53"
       ],
       "entries": [
+        {
+          "id": "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
+          "patch": 6,
+          "category": "bug",
+          "message": "Reports: Export PDF button on EL Case Status report was silently doing nothing — added the missing else-if branch for activeReport==='el-cases' in handleExport; added exportElCases() to export-pdf.ts generating an A4 landscape PDF with a 4-metric summary row (Live Cases, Overdue, Due in 14 Days, Response Overdue) and a full cases table (Ref, Case Name, Type, Status, Site, Source, ET3 Deadline, Hearing, Docs, Flags); sources are resolved to labels via /api/sources fetched in parallel with the cases data",
+          "createdAt": "2026-05-05T14:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
           "patch": 6,

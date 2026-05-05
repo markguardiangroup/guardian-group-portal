@@ -13,6 +13,7 @@ import {
   exportApprovalPipeline,
   exportDeadlineRisk,
   exportSummary,
+  exportElCases,
 } from "@/lib/export-pdf";
 import {
   Select,
@@ -985,6 +986,17 @@ export default function Reports() {
       } else if (activeReport === "deadline") {
         const data = summaries.deadline.data ?? await fetchJson(buildUrl("/api/reports/deadline-risk", companyId, siteFilter));
         await exportDeadlineRisk(data.milestoneRisks ?? [], data.incidentRisks ?? [], selectedCompanyName);
+      } else if (activeReport === "el-cases") {
+        const [data, sourcesData] = await Promise.all([
+          summaries.elCases.data
+            ? Promise.resolve(summaries.elCases.data)
+            : fetchJson(buildUrl("/api/reports/el-cases", companyId, siteFilter)),
+          fetchJson("/api/sources"),
+        ]);
+        const sourceMap: Record<string, string> = Object.fromEntries(
+          (sourcesData as { code: string; label: string }[]).map((s) => [s.code, s.label])
+        );
+        await exportElCases(data, sourceMap, selectedCompanyName);
       }
     } finally {
       setIsExporting(false);

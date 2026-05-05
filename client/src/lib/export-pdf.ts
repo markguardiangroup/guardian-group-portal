@@ -629,6 +629,167 @@ export async function exportChangelogPdf(versions: ChangelogVersion[]) {
   doc.save(`changelog-${dateStamp()}.pdf`);
 }
 
+// ─── Report: EL Case Status ───────────────────────────────────────────────────
+
+interface ElCaseRowExport {
+  caseReference: string;
+  caseName: string;
+  caseType: string;
+  status: string;
+  sources: string[];
+  siteName: string;
+  responseDeadline: string | null;
+  responseDeadlineOverdue: boolean;
+  hearingDate: string | null;
+  overdueCount: number;
+  upcomingCount: number;
+  checklistTotal: number;
+  checklistCompleted: number;
+}
+
+interface ElCasesDataExport {
+  cases: ElCaseRowExport[];
+  metrics: { total: number; overdue: number; upcoming: number; responseOverdue: number };
+}
+
+const EL_STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  under_investigation: "Under Investigation",
+  hearing_scheduled: "Hearing Scheduled",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+const EL_TYPE_LABELS: Record<string, string> = {
+  tribunal_claim: "ET Claim",
+  acas_conciliation: "ACAS",
+};
+
+export async function exportElCases(
+  payload: ElCasesDataExport,
+  sourceMap: Record<string, string>,
+  companyName?: string
+) {
+  const logoDataUrl = await loadLogoDataUrl();
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const pageW = doc.internal.pageSize.getWidth();
+
+  let y = buildHeader(doc, {
+    title: "EL Case Status Report",
+    subtitle: "Live employment law cases — response deadlines, overdue items, and upcoming milestones.",
+    companyName,
+    logoDataUrl,
+  });
+
+  const { metrics, cases } = payload;
+
+  // ── Summary metric row ────────────────────────────────────────────────────
+  const metricCols = [
+    { label: "Live Cases", value: String(metrics.total), danger: false },
+    { label: "Overdue Items", value: String(metrics.overdue), danger: metrics.overdue > 0 },
+    { label: "Due in 14 Days", value: String(metrics.upcoming), danger: metrics.upcoming > 0 },
+    { label: "Response Overdue", value: String(metrics.responseOverdue), danger: metrics.responseOverdue > 0 },
+  ];
+
+  const colW = (pageW - 28) / 4;
+  metricCols.forEach((m, i) => {
+    const x = 14 + i * colW;
+    doc.setDrawColor(...BRAND.border);
+    doc.setFillColor(m.danger ? 254 : 249, m.danger ? 242 : 250, m.danger ? 242 : 251);
+    doc.roundedRect(x, y, colW - 3, 18, 2, 2, "FD");
+    doc.setFontSize(7);
+    doc.setTextColor(...BRAND.muted);
+    doc.setFont("helvetica", "normal");
+    doc.text(m.label.toUpperCase(), x + 4, y + 5.5);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    if (m.danger) doc.setTextColor(...BRAND.danger);
+    else doc.setTextColor(30, 30, 30);
+    doc.text(m.value, x + 4, y + 14);
+  });
+
+  y += 24;
+
+  // ── Cases table ───────────────────────────────────────────────────────────
+  if (cases.length === 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(...BRAND.muted);
+    doc.text("No live cases match the selected filters.", 14, y + 6);
+  } else {
+    const rows = cases.map((c) => {
+      const sourcesLabel = c.sources.length > 0
+        ? c.sources.map((s) => sourceMap[s] ?? s).join(", ")
+        : "—";
+      const deadlineLabel = c.responseDeadline
+        ? `${new Date(c.responseDeadline).toLocaleDateString("en-GB")}${c.responseDeadlineOverdue ? " ⚠ Overdue" : ""}`
+        : "—";
+      const hearingLabel = c.hearingDate
+        ? new Date(c.hearingDate).toLocaleDateString("en-GB")
+        : "—";
+      const milestones = `${c.checklistCompleted}/${c.checklistTotal} docs`;
+      const statusFlags = [
+        c.overdueCount > 0 ? `${c.overdueCount} overdue` : "",
+        c.upcomingCount > 0 ? `${c.upcomingCount} upcoming` : "",
+      ].filter(Boolean).join(" · ") || "On track";
+
+      return [
+        c.caseReference,
+        c.caseName || "—",
+        EL_TYPE_LABELS[c.caseType] ?? c.caseType,
+        EL_STATUS_LABELS[c.status] ?? c.status,
+        c.siteName,
+        sourcesLabel,
+        deadlineLabel,
+        hearingLabel,
+        milestones,
+        statusFlags,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Ref", "Case Name", "Type", "Status", "Site", "Source", "ET3 Deadline", "Hearing", "Docs", "Flags"]],
+      body: rows,
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: BRAND.primary, textColor: 255, fontStyle: "bold", fontSize: 7.5 },
+      alternateRowStyles: { fillColor: [249, 250, 251] },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 18 },
+        3: { cellWidth: 26 },
+        4: { cellWidth: 28 },
+        5: { cellWidth: 32 },
+        6: { cellWidth: 26 },
+        7: { cellWidth: 22 },
+        8: { cellWidth: 18 },
+        9: { cellWidth: "auto" },
+      },
+      margin: { left: 14, right: 14 },
+      didParseCell: (data) => {
+        if (data.section === "body") {
+          if (data.column.index === 6) {
+            const v = String(data.cell.raw);
+            if (v.includes("Overdue")) { data.cell.styles.textColor = BRAND.danger; data.cell.styles.fontStyle = "bold"; }
+          }
+          if (data.column.index === 9) {
+            const v = String(data.cell.raw);
+            if (v.includes("overdue")) { data.cell.styles.textColor = BRAND.danger; data.cell.styles.fontStyle = "bold"; }
+            else if (v.includes("upcoming")) { data.cell.styles.textColor = BRAND.warning; data.cell.styles.fontStyle = "bold"; }
+            else { data.cell.styles.textColor = BRAND.success; }
+          }
+        }
+      },
+      didDrawPage: (data) => {
+        if (data.pageNumber > 1) buildHeader(doc, { title: "EL Case Status Report", companyName, logoDataUrl });
+      },
+    });
+  }
+
+  addPageNumbers(doc);
+  doc.save(`el-case-status-${dateStamp()}.pdf`);
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function dateStamp() {
