@@ -3,8 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import type { RoadmapItem, RoadmapStatus, RoadmapPriority } from "@shared/schema";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import type { RoadmapItem, RoadmapStatus, RoadmapPriority, RoadmapModule } from "@shared/schema";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,12 +26,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
@@ -39,7 +33,6 @@ import {
   Clock,
   Loader2,
   CheckCircle2,
-  MoreVertical,
   Pencil,
   Trash2,
   Rocket,
@@ -52,6 +45,14 @@ import {
   ArrowDown,
   Bot,
   Calendar,
+  LayoutDashboard,
+  ShieldCheck,
+  Users,
+  HardHat,
+  Scale,
+  GraduationCap,
+  Wrench,
+  BarChart2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -75,6 +76,19 @@ const categoryConfig: Record<string, { label: string; icon: typeof Rocket; badge
   enhancement: { label: "Enhancement", icon: Target },
   ai: { label: "AI", icon: Bot, badgeColor: "bg-violet-100 text-violet-700 dark:bg-violet-900/50 dark:text-violet-300" },
 };
+
+const moduleConfig: Record<RoadmapModule, { label: string; icon: typeof LayoutDashboard; badgeColor: string }> = {
+  OVERVIEW:  { label: "Overview",  icon: LayoutDashboard, badgeColor: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+  ADMIN:     { label: "Admin",     icon: ShieldCheck,     badgeColor: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" },
+  HR:        { label: "HR",        icon: Users,           badgeColor: "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300" },
+  "H&S":     { label: "H&S",       icon: HardHat,         badgeColor: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" },
+  EL:        { label: "EL",        icon: Scale,           badgeColor: "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300" },
+  TRAINING:  { label: "Training",  icon: GraduationCap,   badgeColor: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300" },
+  TOOLKIT:   { label: "Toolkit",   icon: Wrench,          badgeColor: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300" },
+  REPORTS:   { label: "Reports",   icon: BarChart2,       badgeColor: "bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300" },
+};
+
+const MODULES: RoadmapModule[] = ["OVERVIEW", "ADMIN", "HR", "H&S", "EL", "TRAINING", "TOOLKIT", "REPORTS"];
 
 const priorityOrder: Record<RoadmapPriority, number> = {
   high: 0,
@@ -109,6 +123,7 @@ export default function DevelopmentRoadmap() {
   const [completionNotes, setCompletionNotes] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterModule, setFilterModule] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: roadmapItems = [], isLoading } = useQuery<RoadmapItem[]>({
@@ -175,12 +190,13 @@ export default function DevelopmentRoadmap() {
   const filteredItems = roadmapItems.filter(item => {
     const matchesStatus = filterStatus === "all" || item.status === filterStatus;
     const matchesType = filterType === "all" || item.category === filterType;
+    const matchesModule = filterModule === "all" || item.module === filterModule;
     const query = searchQuery.toLowerCase().trim();
-    const matchesSearch = !query || 
-      item.title.toLowerCase().includes(query) || 
+    const matchesSearch = !query ||
+      item.title.toLowerCase().includes(query) ||
       (item.description && item.description.toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query));
-    return matchesStatus && matchesType && matchesSearch;
+    return matchesStatus && matchesType && matchesModule && matchesSearch;
   });
 
   const groupedItems = {
@@ -207,12 +223,12 @@ export default function DevelopmentRoadmap() {
                 placeholder="Search roadmap..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-[200px]"
+                className="pl-9 w-[180px]"
                 data-testid="input-search-roadmap"
               />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[160px]" data-testid="select-filter-status">
+              <SelectTrigger className="w-[140px]" data-testid="select-filter-status">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -224,13 +240,24 @@ export default function DevelopmentRoadmap() {
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[160px]" data-testid="select-filter-type">
+              <SelectTrigger className="w-[140px]" data-testid="select-filter-type">
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 {Object.entries(categoryConfig).map(([key, cfg]) => (
                   <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterModule} onValueChange={setFilterModule}>
+              <SelectTrigger className="w-[140px]" data-testid="select-filter-module">
+                <SelectValue placeholder="Filter by module" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Modules</SelectItem>
+                {MODULES.map(mod => (
+                  <SelectItem key={mod} value={mod}>{moduleConfig[mod].label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -328,13 +355,23 @@ export default function DevelopmentRoadmap() {
               </DialogTitle>
               <DialogDescription>
                 {viewingItem && (
-                  <span className="flex items-center gap-2 mt-1">
+                  <span className="flex items-center gap-2 mt-1 flex-wrap">
                     <Badge className={statusConfig[viewingItem.status as RoadmapStatus].color}>
                       {statusConfig[viewingItem.status as RoadmapStatus].label}
                     </Badge>
                     <Badge className={(categoryConfig[viewingItem.category] || categoryConfig.feature).badgeColor || "bg-muted text-muted-foreground"}>
                       {(categoryConfig[viewingItem.category] || categoryConfig.feature).label}
                     </Badge>
+                    {viewingItem.module && moduleConfig[viewingItem.module as RoadmapModule] && (() => {
+                      const mod = moduleConfig[viewingItem.module as RoadmapModule];
+                      const ModIcon = mod.icon;
+                      return (
+                        <Badge className={mod.badgeColor}>
+                          <ModIcon className="h-3 w-3 mr-1" />
+                          {mod.label}
+                        </Badge>
+                      );
+                    })()}
                     {(() => {
                       const p = priorityConfig[viewingItem.priority as RoadmapPriority];
                       const PIcon = p.icon;
@@ -540,6 +577,7 @@ function RoadmapCard({
   const category = categoryConfig[item.category] || categoryConfig.feature;
   const CategoryIcon = category.icon;
   const PriorityIcon = priority.icon;
+  const mod = item.module ? moduleConfig[item.module as RoadmapModule] : null;
 
   return (
     <Card
@@ -554,17 +592,26 @@ function RoadmapCard({
             <h4 className="font-medium truncate">{item.title}</h4>
           </div>
         </div>
-        
+
         {item.description && (
           <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
         )}
-        
+
         <div className="flex items-center gap-2 flex-wrap">
           <Badge className={status.color}>{status.label}</Badge>
           <Badge className={category.badgeColor || "bg-muted text-muted-foreground"}>
             <CategoryIcon className="h-3 w-3 mr-1" />
             {category.label}
           </Badge>
+          {mod && (() => {
+            const ModIcon = mod.icon;
+            return (
+              <Badge className={mod.badgeColor} data-testid={`badge-module-${item.id}`}>
+                <ModIcon className="h-3 w-3 mr-1" />
+                {mod.label}
+              </Badge>
+            );
+          })()}
           <div className={`flex items-center gap-1 text-xs ${priority.color}`}>
             <PriorityIcon className="h-3 w-3" />
             {priority.label}
@@ -596,11 +643,12 @@ function RoadmapItemForm({
   const [category, setCategory] = useState(item?.category || "feature");
   const [status, setStatus] = useState<RoadmapStatus>(item?.status as RoadmapStatus || "idea");
   const [priority, setPriority] = useState<RoadmapPriority>(item?.priority as RoadmapPriority || "medium");
+  const [module, setModule] = useState<string>(item?.module || "none");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSubmit({ title, description, category, status, priority });
+    onSubmit({ title, description, category, status, priority, module: module === "none" ? null : module as RoadmapModule });
   };
 
   return (
@@ -616,7 +664,7 @@ function RoadmapItemForm({
           data-testid="input-title"
         />
       </div>
-      
+
       <div className="space-y-2">
         <Label htmlFor="description">Description</Label>
         <Textarea
@@ -628,7 +676,30 @@ function RoadmapItemForm({
           data-testid="input-description"
         />
       </div>
-      
+
+      <div className="space-y-2">
+        <Label>Module</Label>
+        <Select value={module} onValueChange={setModule}>
+          <SelectTrigger data-testid="select-module">
+            <SelectValue placeholder="Select a module (optional)" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">No module</SelectItem>
+            {MODULES.map(mod => {
+              const ModIcon = moduleConfig[mod].icon;
+              return (
+                <SelectItem key={mod} value={mod}>
+                  <span className="flex items-center gap-2">
+                    <ModIcon className="h-3.5 w-3.5" />
+                    {moduleConfig[mod].label}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-3 gap-3">
         <div className="space-y-2">
           <Label>Category</Label>
@@ -645,7 +716,7 @@ function RoadmapItemForm({
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="space-y-2">
           <Label>Status</Label>
           <Select value={status} onValueChange={(v) => setStatus(v as RoadmapStatus)}>
@@ -660,7 +731,7 @@ function RoadmapItemForm({
             </SelectContent>
           </Select>
         </div>
-        
+
         <div className="space-y-2">
           <Label>Priority</Label>
           <Select value={priority} onValueChange={(v) => setPriority(v as RoadmapPriority)}>

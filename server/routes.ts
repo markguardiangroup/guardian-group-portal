@@ -12032,12 +12032,15 @@ export async function registerRoutes(
 
   // ==================== ROADMAP ROUTES (Admin Only) ====================
 
+  const roadmapModuleEnum = z.enum(["OVERVIEW", "ADMIN", "HR", "H&S", "EL", "TRAINING", "TOOLKIT", "REPORTS"]);
+
   const createRoadmapItemSchema = z.object({
     title: z.string().min(1, "Title is required"),
     description: z.string().optional().nullable(),
     category: z.enum(["feature", "improvement", "bug", "enhancement", "ai"]).optional().default("feature"),
     status: z.enum(["idea", "planned", "in_progress", "completed"]).optional().default("idea"),
     priority: z.enum(["low", "medium", "high"]).optional().default("medium"),
+    module: roadmapModuleEnum.optional().nullable(),
     sortOrder: z.number().optional().default(0),
   });
 
@@ -12047,6 +12050,7 @@ export async function registerRoutes(
     category: z.enum(["feature", "improvement", "bug", "enhancement", "ai"]).optional(),
     status: z.enum(["idea", "planned", "in_progress", "completed"]).optional(),
     priority: z.enum(["low", "medium", "high"]).optional(),
+    module: roadmapModuleEnum.optional().nullable(),
     sortOrder: z.number().optional(),
     developerNotes: z.string().optional().nullable(),
   });
@@ -12086,6 +12090,7 @@ export async function registerRoutes(
         category: parsed.data.category,
         status: parsed.data.status,
         priority: parsed.data.priority,
+        module: parsed.data.module ?? null,
         sortOrder: parsed.data.sortOrder,
       });
       

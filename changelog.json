@@ -127,9 +127,18 @@
         "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53",
         "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64",
         "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
-        "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86"
+        "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
+        "n5l16i84-0p7m-5q4r-2o15-6s8n0o2p3r97"
       ],
       "entries": [
+        {
+          "id": "n5l16i84-0p7m-5q4r-2o15-6s8n0o2p3r97",
+          "patch": 6,
+          "message": "Roadmap: add module tag (OVERVIEW/ADMIN/HR/H&S/EL/TRAINING/TOOLKIT/REPORTS) to tiles, creation form, edit form, and kanban filter",
+          "category": "feature",
+          "createdAt": "2026-05-05T10:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
           "patch": 6,

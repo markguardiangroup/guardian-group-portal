@@ -1421,6 +1421,7 @@ export const SECURITY_CONFIG = {
 // Development Roadmap - Admin feature tracking
 export type RoadmapStatus = "idea" | "planned" | "in_progress" | "completed";
 export type RoadmapPriority = "low" | "medium" | "high";
+export type RoadmapModule = "OVERVIEW" | "ADMIN" | "HR" | "H&S" | "EL" | "TRAINING" | "TOOLKIT" | "REPORTS";
 
 export const roadmapItems = pgTable("roadmap_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1429,6 +1430,7 @@ export const roadmapItems = pgTable("roadmap_items", {
   category: text("category").notNull().default("feature"), // feature, improvement, bug, enhancement
   status: text("status").$type<RoadmapStatus>().notNull().default("idea"),
   priority: text("priority").$type<RoadmapPriority>().notNull().default("medium"),
+  module: text("module").$type<RoadmapModule>(),
   sortOrder: integer("sort_order").notNull().default(0),
   developerNotes: text("developer_notes"),
   completedAt: timestamp("completed_at"),
