@@ -203,7 +203,7 @@ export default function DevelopmentRoadmap() {
   const filteredItems = roadmapItems.filter(item => {
     const matchesStatus = filterStatus === "all" || item.status === filterStatus;
     const matchesType = filterType === "all" || item.category === filterType;
-    const matchesModule = filterModule === "all" || item.module === filterModule;
+    const matchesModule = filterModule === "all" || (filterModule === "none" ? !item.module : item.module === filterModule);
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch = !query ||
       item.title.toLowerCase().includes(query) ||
@@ -269,6 +269,7 @@ export default function DevelopmentRoadmap() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Modules</SelectItem>
+                <SelectItem value="none">No Module</SelectItem>
                 {MODULES.map(mod => (
                   <SelectItem key={mod} value={mod}>{moduleConfig[mod].label}</SelectItem>
                 ))}
