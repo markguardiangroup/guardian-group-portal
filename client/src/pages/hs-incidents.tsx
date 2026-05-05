@@ -2211,10 +2211,6 @@ function IncidentDetailView({ id }: { id: string }) {
                       <p className="text-sm font-medium">{incident.incidentType}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Severity</p>
-                      <p className="text-sm font-medium capitalize">{incident.severity}</p>
-                    </div>
-                    <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Date of Incident</p>
                       <p className="text-sm font-medium">{format(new Date(incident.incidentDate), "d MMMM yyyy")}</p>
                     </div>
@@ -3209,10 +3205,6 @@ function IncidentDetailView({ id }: { id: string }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Severity</p>
-                  <Badge variant="outline" className={severity.className}>{severity.label}</Badge>
-                </div>
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Status</p>
                   <Badge variant="outline" className={statusCfg.className}>

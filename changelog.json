@@ -122,9 +122,18 @@
         "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08",
         "f7d38a06-2h9e-7i6j-4g37-8k0f2g4h5j19",
         "g8e49b17-3i0f-8j7k-5h48-9l1g3h5i6k20",
-        "h9f50c28-4j1g-9k8l-6i59-0m2h4i6j7l31"
+        "h9f50c28-4j1g-9k8l-6i59-0m2h4i6j7l31",
+        "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42"
       ],
       "entries": [
+        {
+          "id": "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42",
+          "patch": 6,
+          "message": "Removed severity field from incident report detail view and consultant notification email",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T08:45:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "h9f50c28-4j1g-9k8l-6i59-0m2h4i6j7l31",
           "patch": 6,

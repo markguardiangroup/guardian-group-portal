@@ -732,12 +732,6 @@ export async function sendIncidentNotificationEmail({
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Date:</td>
                 <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${formattedDate}</td>
               </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Severity:</td>
-                <td style="padding: 6px 0;">
-                  <span style="display: inline-block; background-color: ${sev.bg}; border: 1px solid ${sev.border}; color: ${sev.text}; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 12px;">${sev.label}</span>
-                </td>
-              </tr>
             </table>
           </div>
 
