@@ -13845,7 +13845,16 @@ export async function registerRoutes(
       }
 
       // ── Case deadlines ─────────────────────────────────────────────────────
-      if (!moduleFilter || moduleFilter === "employment_law") {
+      // Consultants must have caseAdvocate permission to see EL case events.
+      // Clients see events only for their allowed sites (enforced by canAccess).
+      // Admins see all.
+      const canSeeELCases =
+        user.role === "admin" ||
+        user.role === "client" ||
+        (user.role === "consultant" &&
+          !!(user.consultantPermissions as { caseAdvocate?: boolean } | null)?.caseAdvocate);
+
+      if (canSeeELCases && (!moduleFilter || moduleFilter === "employment_law")) {
         const allCases = await storage.getCases({ includeArchived: false });
         for (const c of allCases) {
           if (!canAccess(c.siteId)) continue;
