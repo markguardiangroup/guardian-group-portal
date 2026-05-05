@@ -148,9 +148,18 @@
         "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
         "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
         "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
-        "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97"
+        "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
+        "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08"
       ],
       "entries": [
+        {
+          "id": "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08",
+          "patch": 6,
+          "category": "bug",
+          "message": "Essential documents: end-to-end verified submission date saving and linked milestone creation; confirmed route, storage, and Drizzle insert all work correctly; removed debug instrumentation added during investigation; prior null submission_date rows were created before the feature existed, not a runtime bug",
+          "createdAt": "2026-05-05T12:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
           "patch": 6,
