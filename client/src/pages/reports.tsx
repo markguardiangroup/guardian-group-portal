@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,12 +26,14 @@ import {
   ArrowLeft,
   ArrowRight,
   BarChart3,
+  Briefcase,
   Building2,
   Calendar,
   CheckCircle,
   Clock,
   Download,
   Filter,
+  Scale,
   ShieldAlert,
   TrendingDown,
   GitPullRequest,
@@ -41,7 +44,7 @@ import type { Site, Company } from "@shared/schema";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-type ReportId = "gaps" | "expiry" | "comparison" | "pipeline" | "deadline";
+type ReportId = "gaps" | "expiry" | "comparison" | "pipeline" | "deadline" | "el-cases";
 
 const MODULE_LABELS: Record<string, string> = {
   health_safety: "Health & Safety",
@@ -542,6 +545,188 @@ function DeadlineRiskReport({ companyId, siteId }: { companyId: string; siteId: 
   );
 }
 
+// ─── Report: EL Case Status ───────────────────────────────────────────────────
+
+interface ElCaseRow {
+  id: string;
+  caseReference: string;
+  caseName: string;
+  caseType: "tribunal_claim" | "acas_conciliation";
+  status: string;
+  siteId: string;
+  siteName: string;
+  responseDeadline: string | null;
+  responseDeadlineOverdue: boolean;
+  hearingDate: string | null;
+  overdueCount: number;
+  upcomingCount: number;
+  checklistTotal: number;
+  checklistCompleted: number;
+  createdAt: string;
+}
+
+interface ElCasesData {
+  cases: ElCaseRow[];
+  metrics: { total: number; overdue: number; upcoming: number; responseOverdue: number };
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  open: "Open",
+  under_investigation: "Under Investigation",
+  hearing_scheduled: "Hearing Scheduled",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  open: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  under_investigation: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  hearing_scheduled: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  resolved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  closed: "bg-muted text-muted-foreground",
+};
+
+function ElCasesReport({ companyId, siteId }: { companyId: string; siteId: string }) {
+  const { data, isLoading } = useQuery<ElCasesData>({
+    queryKey: ["/api/reports/el-cases", { companyId, siteId }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/el-cases", companyId, siteId), { credentials: "include" });
+      if (!r.ok) throw new Error("Failed");
+      return r.json();
+    },
+  });
+
+  const now = new Date();
+
+  if (isLoading) return <SkeletonRows count={6} />;
+  if (!data || data.cases.length === 0) {
+    return (
+      <EmptyState
+        icon={Scale}
+        title="No live employment law cases"
+        description="All cases are closed, resolved, or none have been created for the selected scope."
+      />
+    );
+  }
+
+  const { metrics, cases } = data;
+
+  return (
+    <div className="space-y-5">
+      {/* Summary metric cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="rounded-lg border bg-card p-4" data-testid="metric-el-total">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Live Cases</p>
+          <p className="text-3xl font-bold">{metrics.total}</p>
+        </div>
+        <div className={`rounded-lg border p-4 ${metrics.overdue > 0 ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/10" : "bg-card"}`} data-testid="metric-el-overdue">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Overdue Items</p>
+          <p className={`text-3xl font-bold ${metrics.overdue > 0 ? "text-red-600 dark:text-red-400" : ""}`}>{metrics.overdue}</p>
+        </div>
+        <div className={`rounded-lg border p-4 ${metrics.upcoming > 0 ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/10" : "bg-card"}`} data-testid="metric-el-upcoming">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Due in 14 Days</p>
+          <p className={`text-3xl font-bold ${metrics.upcoming > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{metrics.upcoming}</p>
+        </div>
+        <div className={`rounded-lg border p-4 ${metrics.responseOverdue > 0 ? "border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/10" : "bg-card"}`} data-testid="metric-el-response-overdue">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Response Overdue</p>
+          <p className={`text-3xl font-bold ${metrics.responseOverdue > 0 ? "text-red-600 dark:text-red-400" : ""}`}>{metrics.responseOverdue}</p>
+        </div>
+      </div>
+
+      {/* Case rows */}
+      <div className="space-y-3">
+        {cases.map((c) => {
+          const checklistPct = c.checklistTotal > 0
+            ? Math.round((c.checklistCompleted / c.checklistTotal) * 100)
+            : null;
+          const borderClass = c.overdueCount > 0
+            ? "border-l-4 border-l-red-500"
+            : c.upcomingCount > 0
+            ? "border-l-4 border-l-amber-400"
+            : "border-l-4 border-l-emerald-400";
+
+          return (
+            <Card key={c.id} className={`overflow-hidden ${borderClass}`} data-testid={`card-el-case-${c.id}`}>
+              <CardContent className="p-4">
+                <div className="flex flex-wrap items-start gap-3 justify-between">
+                  {/* Left: ref + name + site */}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-xs font-semibold bg-muted px-2 py-0.5 rounded">
+                        {c.caseReference}
+                      </span>
+                      <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[c.status] || "bg-muted text-muted-foreground"}`}>
+                        {STATUS_LABELS[c.status] || c.status}
+                      </span>
+                      <span className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300">
+                        {c.caseType === "tribunal_claim" ? "ET Claim" : "ACAS"}
+                      </span>
+                    </div>
+                    <p className="font-medium text-sm leading-snug">{c.caseName}</p>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Building2 className="h-3 w-3 shrink-0" />
+                      {c.siteName}
+                    </div>
+                  </div>
+
+                  {/* Right: deadline + counts */}
+                  <div className="shrink-0 flex flex-col items-end gap-1.5 text-xs">
+                    {c.responseDeadline && (
+                      <div className={`flex items-center gap-1 font-medium ${c.responseDeadlineOverdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
+                        <Calendar className="h-3 w-3" />
+                        {c.responseDeadlineOverdue ? "Response overdue" : "Response by"}{" "}
+                        {new Date(c.responseDeadline).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </div>
+                    )}
+                    {c.hearingDate && (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Scale className="h-3 w-3" />
+                        Hearing{" "}
+                        {new Date(c.hearingDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {c.overdueCount > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
+                          <AlertTriangle className="h-3 w-3" />
+                          {c.overdueCount} overdue
+                        </span>
+                      )}
+                      {c.upcomingCount > 0 && (
+                        <span className="inline-flex items-center gap-1 rounded bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                          <Clock className="h-3 w-3" />
+                          {c.upcomingCount} upcoming
+                        </span>
+                      )}
+                      {c.overdueCount === 0 && c.upcomingCount === 0 && (
+                        <span className="inline-flex items-center gap-1 rounded bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                          <CheckCircle className="h-3 w-3" />
+                          On track
+                        </span>
+                      )}
+                    </div>
+                    {checklistPct !== null && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground mt-1">
+                        <div className="w-20 h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${checklistPct === 100 ? "bg-emerald-500" : checklistPct >= 50 ? "bg-amber-400" : "bg-red-400"}`}
+                            style={{ width: `${checklistPct}%` }}
+                          />
+                        </div>
+                        <span>{c.checklistCompleted}/{c.checklistTotal} docs</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Summary data hooks (for tiles) ──────────────────────────────────────────
 
 function useTileSummaries(companyId: string, siteId: string) {
@@ -585,8 +770,19 @@ function useTileSummaries(companyId: string, siteId: string) {
       return r.json();
     },
   });
+  const elCases = useQuery<ElCasesData>({
+    queryKey: ["/api/reports/el-cases", { companyId, siteId }],
+    queryFn: async () => {
+      const r = await fetch(buildUrl("/api/reports/el-cases", companyId, siteId), { credentials: "include" });
+      if (!r.ok) {
+        if (r.status === 403) return { cases: [], metrics: { total: 0, overdue: 0, upcoming: 0, responseOverdue: 0 } };
+        throw new Error("Failed");
+      }
+      return r.json();
+    },
+  });
 
-  return { gaps, expiry, pipeline, deadline, comparison };
+  return { gaps, expiry, pipeline, deadline, comparison, elCases };
 }
 
 // ─── Report tile config ───────────────────────────────────────────────────────
@@ -604,12 +800,16 @@ function MetricNumber({ value, loading, danger }: { value: number | undefined; l
 
 export default function Reports() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { user } = useAuth();
   // companyFilter holds the company NAME (same convention as all other pages)
   const companyFilter = selectedCompany || "all";
   const siteFilter = selectedSiteId || "all";
   // Store company name in global state (not UUID) so other pages stay in sync
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
+
+  const isAdmin = user?.role === "admin";
+  const isCaseAdvocate = isAdmin || (user?.role === "consultant" && (user?.consultantPermissions as any)?.caseAdvocate === true);
 
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -704,6 +904,18 @@ export default function Reports() {
       metricLabel: "active risks",
       accentColor: "hover:border-red-400 dark:hover:border-red-600",
     },
+    ...(isCaseAdvocate ? [{
+      id: "el-cases" as ReportId,
+      icon: Scale,
+      iconColor: "text-pink-600 dark:text-pink-400",
+      title: "EL Case Status",
+      description: "Live employment law cases — response deadlines, overdue items, and upcoming milestones.",
+      metric: <MetricNumber value={summaries.elCases.data?.metrics.total} loading={summaries.elCases.isLoading} />,
+      metricLabel: summaries.elCases.data?.metrics.overdue
+        ? `${summaries.elCases.data.metrics.overdue} overdue item${summaries.elCases.data.metrics.overdue !== 1 ? "s" : ""}`
+        : "live cases",
+      accentColor: "hover:border-pink-400 dark:hover:border-pink-600",
+    }] : []),
   ];
 
   const REPORT_COMPONENTS: Record<ReportId, React.ReactNode> = {
@@ -712,6 +924,7 @@ export default function Reports() {
     comparison: <SiteComparisonReport companyId={companyId} />,
     pipeline: <ApprovalPipelineReport companyId={companyId} siteId={siteFilter} />,
     deadline: <DeadlineRiskReport companyId={companyId} siteId={siteFilter} />,
+    "el-cases": <ElCasesReport companyId={companyId} siteId={siteFilter} />,
   };
 
   const activeTile = REPORT_TILES.find((t) => t.id === activeReport);

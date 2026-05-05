@@ -146,9 +146,18 @@
         "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
         "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
         "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
-        "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75"
+        "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
+        "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86"
       ],
       "entries": [
+        {
+          "id": "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
+          "patch": 6,
+          "category": "feature",
+          "message": "Reports: EL Case Status report added — visible only to admins and consultants with the Case Advocate toggle; shows live (non-archived, non-closed) employment law cases with no employee names; summary metrics for total live cases, overdue items, upcoming deadlines (14 days), and response-overdue cases; per-case rows show case reference, name, type badge (ET Claim / ACAS), status badge, response deadline, hearing date, overdue/upcoming milestone counts, and essential docs completion bar; cases sorted by severity (overdue first); backend /api/reports/el-cases route guards access by role+permission and respects site scope",
+          "createdAt": "2026-05-05T00:00:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
           "patch": 6,

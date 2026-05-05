@@ -8330,6 +8330,143 @@ export async function registerRoutes(
     }
   });
 
+  // Report: EL Case Status (advocate + admin only)
+  app.get("/api/reports/el-cases", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const isAdmin = user.role === "admin";
+      const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+      const isAdvocate = user.role === "consultant" && perms?.caseAdvocate === true;
+      if (!isAdmin && !isAdvocate) {
+        return res.status(403).json({ error: "Not authorised" });
+      }
+
+      const allowedSiteIds = await getAllowedSiteIds(user);
+      const allSites = await storage.getSites();
+      const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
+
+      const companyId = req.query.companyId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+
+      let filteredSiteIds = [...allowedSiteIds];
+      if (siteId && allowedSiteIds.has(siteId)) {
+        filteredSiteIds = [siteId];
+      } else if (companyId) {
+        filteredSiteIds = allSites
+          .filter((s: any) => allowedSiteIds.has(s.id) && s.companyId === companyId)
+          .map((s: any) => s.id);
+      }
+      const allowedSet = new Set(filteredSiteIds);
+
+      const now = new Date();
+      const upcomingThresholdMs = 14 * 24 * 60 * 60 * 1000;
+
+      const allCases = await storage.getCases({ includeArchived: false });
+      const liveCases = allCases.filter(
+        (c: any) =>
+          !c.isArchived &&
+          c.status !== "closed" &&
+          c.status !== "resolved" &&
+          allowedSet.has(c.siteId)
+      );
+
+      if (liveCases.length === 0) {
+        return res.json({ cases: [], metrics: { total: 0, overdue: 0, upcoming: 0, responseOverdue: 0 } });
+      }
+
+      const caseIds = liveCases.map((c: any) => c.id);
+      const allMilestones = await storage.getCaseMilestonesForCases(caseIds);
+      const milestonesByCaseId = new Map<string, any[]>();
+      for (const m of allMilestones) {
+        if (!milestonesByCaseId.has(m.caseId)) milestonesByCaseId.set(m.caseId, []);
+        milestonesByCaseId.get(m.caseId)!.push(m);
+      }
+
+      // Fetch checklists per case
+      const checklistsByCaseId = new Map<string, any[]>();
+      for (const c of liveCases) {
+        const items = await storage.getCaseDocumentChecklist(c.id);
+        checklistsByCaseId.set(c.id, items);
+      }
+
+      let totalOverdue = 0;
+      let totalUpcoming = 0;
+      let totalResponseOverdue = 0;
+
+      const caseRows = liveCases.map((c: any) => {
+        const site = siteMap.get(c.siteId);
+        const milestones = milestonesByCaseId.get(c.id) ?? [];
+        const checklist = checklistsByCaseId.get(c.id) ?? [];
+
+        let overdueCount = 0;
+        let upcomingCount = 0;
+
+        for (const m of milestones) {
+          if (m.isCompleted || !m.dueDate) continue;
+          const msUntil = new Date(m.dueDate).getTime() - now.getTime();
+          if (msUntil < 0) overdueCount++;
+          else if (msUntil <= upcomingThresholdMs) upcomingCount++;
+        }
+
+        // Also count overdue submission dates on checklist
+        for (const item of checklist) {
+          if (item.isCompleted || !item.submissionDate) continue;
+          const msUntil = new Date(item.submissionDate).getTime() - now.getTime();
+          if (msUntil < 0) overdueCount++;
+          else if (msUntil <= upcomingThresholdMs) upcomingCount++;
+        }
+
+        const checklistCompleted = checklist.filter((i: any) => i.isCompleted).length;
+        const responseDeadlineOverdue =
+          c.responseDeadline && new Date(c.responseDeadline).getTime() < now.getTime();
+
+        totalOverdue += overdueCount;
+        totalUpcoming += upcomingCount;
+        if (responseDeadlineOverdue) totalResponseOverdue++;
+
+        return {
+          id: c.id,
+          caseReference: c.caseReference,
+          caseName: c.caseName || c.caseReference,
+          caseType: c.caseType,
+          status: c.status,
+          siteId: c.siteId,
+          siteName: site?.name || "Unknown Site",
+          responseDeadline: c.responseDeadline,
+          responseDeadlineOverdue,
+          hearingDate: c.hearingDate,
+          overdueCount,
+          upcomingCount,
+          checklistTotal: checklist.length,
+          checklistCompleted,
+          createdAt: c.createdAt,
+        };
+      });
+
+      caseRows.sort((a: any, b: any) => {
+        if (a.overdueCount !== b.overdueCount) return b.overdueCount - a.overdueCount;
+        if (a.responseDeadlineOverdue !== b.responseDeadlineOverdue)
+          return a.responseDeadlineOverdue ? -1 : 1;
+        return 0;
+      });
+
+      res.json({
+        cases: caseRows,
+        metrics: {
+          total: liveCases.length,
+          overdue: totalOverdue,
+          upcoming: totalUpcoming,
+          responseOverdue: totalResponseOverdue,
+        },
+      });
+    } catch (error) {
+      console.error("Reports el-cases error:", error);
+      res.status(500).json({ error: "Failed to fetch EL case status data" });
+    }
+  });
+
   // Assessments
   app.get("/api/assessments", async (req, res) => {
     try {
