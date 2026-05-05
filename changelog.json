@@ -147,9 +147,18 @@
         "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
         "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
         "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
-        "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86"
+        "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
+        "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97"
       ],
       "entries": [
+        {
+          "id": "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
+          "patch": 6,
+          "category": "feature",
+          "message": "EL cases: kanban view toggle added alongside the existing table view; toggle buttons (list/grid icons) in the Case Files card header switch between table and kanban; kanban shows 5 colour-coded columns by status (Open=blue, Under Investigation=amber, Hearing Scheduled=purple, Resolved=green, Closed=grey); each card shows case ref, name, employee, type badge, response deadline chip (red if overdue), overdue/upcoming milestone chips; cards link directly to the case; existing search and filter controls apply to both views; status filter narrows kanban columns accordingly",
+          "createdAt": "2026-05-05T00:00:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
           "patch": 6,

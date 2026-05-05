@@ -112,6 +112,8 @@ import {
   GripVertical,
   FileDown,
   Link as LinkIcon,
+  LayoutGrid,
+  LayoutList,
 } from "lucide-react";
 import {
   DndContext,
@@ -202,6 +204,7 @@ function CasesList() {
     if (urlSiteId) setSelectedSiteId(urlSiteId);
   }, [urlSiteId, urlCompany]);
   const [showArchived, setShowArchived] = useState(false);
+  const [caseView, setCaseView] = useState<"table" | "kanban">("table");
   const [caseToArchive, setCaseToArchive] = useState<Case | null>(null);
   const [caseToDelete, setCaseToDelete] = useState<Case | null>(null);
   const [caseDeleteConfirmText, setCaseDeleteConfirmText] = useState("");
@@ -733,11 +736,140 @@ function CasesList() {
                   {showArchived ? "Hide Archived" : "Show Archived"}
                 </Button>
               )}
+              {/* View toggle */}
+              <div className="flex items-center rounded-md border bg-muted/40 p-0.5 gap-0.5">
+                <Button
+                  variant={caseView === "table" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setCaseView("table")}
+                  data-testid="button-view-table"
+                  title="Table view"
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={caseView === "kanban" ? "secondary" : "ghost"}
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setCaseView("kanban")}
+                  data-testid="button-view-kanban"
+                  title="Kanban view"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {isLoading ? (
+        <CardContent className={caseView === "kanban" ? "px-4 pb-4" : undefined}>
+          {/* ── Kanban view ── */}
+          {caseView === "kanban" && (() => {
+            const KANBAN_COLS: { status: CaseStatus; label: string; color: string; headerCls: string; dotCls: string }[] = [
+              { status: "open", label: "Open", color: "border-blue-300 dark:border-blue-700", headerCls: "text-blue-700 dark:text-blue-400", dotCls: "bg-blue-500" },
+              { status: "under_investigation", label: "Under Investigation", color: "border-amber-300 dark:border-amber-700", headerCls: "text-amber-700 dark:text-amber-400", dotCls: "bg-amber-500" },
+              { status: "hearing_scheduled", label: "Hearing Scheduled", color: "border-purple-300 dark:border-purple-700", headerCls: "text-purple-700 dark:text-purple-400", dotCls: "bg-purple-500" },
+              { status: "resolved", label: "Resolved", color: "border-emerald-300 dark:border-emerald-700", headerCls: "text-emerald-700 dark:text-emerald-400", dotCls: "bg-emerald-500" },
+              { status: "closed", label: "Closed", color: "border-gray-300 dark:border-gray-600", headerCls: "text-gray-600 dark:text-gray-400", dotCls: "bg-gray-400" },
+            ];
+
+            if (isLoading) {
+              return (
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {KANBAN_COLS.map(col => (
+                    <div key={col.status} className="flex-none w-64 space-y-2">
+                      <Skeleton className="h-8 w-full rounded-md" />
+                      {[1, 2].map(i => <Skeleton key={i} className="h-28 w-full rounded-md" />)}
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            return (
+              <div className="flex gap-3 overflow-x-auto pb-2" data-testid="kanban-board">
+                {KANBAN_COLS.map(col => {
+                  const colCases = filteredCases.filter(c => c.status === col.status);
+                  return (
+                    <div key={col.status} className={`flex-none w-64 rounded-lg border-2 ${col.color} bg-muted/30 dark:bg-muted/10`} data-testid={`kanban-col-${col.status}`}>
+                      {/* Column header */}
+                      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-inherit">
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${col.dotCls}`} />
+                        <span className={`text-xs font-semibold uppercase tracking-wide ${col.headerCls}`}>{col.label}</span>
+                        <span className="ml-auto text-xs font-medium text-muted-foreground bg-muted rounded-full px-1.5 py-0.5">{colCases.length}</span>
+                      </div>
+                      {/* Cards */}
+                      <div className="flex flex-col gap-2 p-2 min-h-[120px]">
+                        {colCases.length === 0 && (
+                          <p className="text-xs text-muted-foreground text-center py-6">No cases</p>
+                        )}
+                        {colCases.map(c => {
+                          const rd = c.responseDeadline ? new Date(c.responseDeadline) : null;
+                          const rdOverdue = rd && isPast(rd);
+                          const overdueMilestone = c.overduesMilestoneDueDate ? new Date(c.overduesMilestoneDueDate) : null;
+                          const upcomingMilestone = c.upcomingMilestoneDueDate ? new Date(c.upcomingMilestoneDueDate) : null;
+                          const hasAlert = rdOverdue || !!overdueMilestone;
+                          return (
+                            <Link key={c.id} href={`/employment-law/cases/${c.id}`}>
+                              <div
+                                className={`rounded-md border bg-card p-3 shadow-sm cursor-pointer hover:shadow-md hover:border-module-accent/50 transition-all group ${hasAlert ? "border-l-4 border-l-red-400" : upcomingMilestone ? "border-l-4 border-l-amber-400" : ""}`}
+                                data-testid={`kanban-card-${c.id}`}
+                              >
+                                {/* Ref + icons */}
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                  {c.isConfidential && <Lock className="h-3 w-3 text-pink-500 shrink-0" />}
+                                  {c.isArchived && <Archive className="h-3 w-3 text-muted-foreground shrink-0" />}
+                                  <span className="font-mono text-[10px] font-semibold text-module-accent">
+                                    {c.caseNumber || c.caseReference}
+                                  </span>
+                                  <CaseTypeBadge type={c.caseType as CaseType} />
+                                </div>
+                                {/* Case name */}
+                                {c.caseName && (
+                                  <p className="text-xs font-medium leading-snug mb-1 text-foreground group-hover:text-module-accent transition-colors line-clamp-2">
+                                    {c.caseName}
+                                  </p>
+                                )}
+                                {/* Employee */}
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-2">
+                                  <User className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{c.employeeName}</span>
+                                </div>
+                                {/* Deadline chips */}
+                                <div className="flex flex-wrap gap-1">
+                                  {rd && (
+                                    <span className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium ${rdOverdue ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : differenceInDays(rd, new Date()) <= 7 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" : "bg-muted text-muted-foreground"}`}>
+                                      <Calendar className="h-2.5 w-2.5" />
+                                      {rdOverdue ? "Overdue" : format(rd, "d MMM")}
+                                    </span>
+                                  )}
+                                  {overdueMilestone && (
+                                    <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                      <AlertTriangle className="h-2.5 w-2.5" />
+                                      Milestone overdue
+                                    </span>
+                                  )}
+                                  {!overdueMilestone && upcomingMilestone && (
+                                    <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400">
+                                      <Clock className="h-2.5 w-2.5" />
+                                      {format(upcomingMilestone, "d MMM")}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* ── Table view ── */}
+          {caseView === "table" && isLoading ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -768,7 +900,7 @@ function CasesList() {
                 ))}
               </TableBody>
             </Table>
-          ) : filteredCases.length > 0 ? (
+          ) : caseView === "table" && filteredCases.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -909,7 +1041,7 @@ function CasesList() {
                 ))}
               </TableBody>
             </Table>
-          ) : (
+          ) : caseView === "table" ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Briefcase className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-medium">No cases found</h3>
@@ -919,7 +1051,7 @@ function CasesList() {
                   : "Create your first employment law case to get started"}
               </p>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
