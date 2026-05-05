@@ -480,7 +480,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <Layers className={`h-4 w-4 ${moduleColors[module]}`} />
                           </div>
                           <div className="min-w-0">
-                            <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Group</span>
+                            <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/40 px-1.5 py-0.5 rounded mb-1">Group</span>
                             {isPrivilegedUser ? (
                               <Link
                                 href={`/companies/${selectedGroup}?from=${encodeURIComponent(`${basePath}/sites`)}`}
@@ -640,7 +640,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
                               <div className="min-w-0">
-                                <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Company</span>
+                                <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded mb-1">Company</span>
                                 {isPrivilegedUser ? (
                                   <Link
                                     href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
@@ -778,7 +778,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <MapPin className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
                         <div className="min-w-0">
-                          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Site</span>
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/40 px-1.5 py-0.5 rounded mb-1">Site</span>
                           <p className="font-semibold text-sm leading-snug" data-testid="text-site-name-all">
                             All Sites
                           </p>
@@ -962,7 +962,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <MapPin className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
                         <div className="min-w-0">
-                          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Site</span>
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/40 px-1.5 py-0.5 rounded mb-1">Site</span>
                           {isPrivilegedUser ? (
                             <Link
                               href={`/sites/${site.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
