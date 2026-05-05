@@ -221,7 +221,20 @@ function CasesList() {
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
   });
-  
+
+  const { data: sourcesData = [] } = useQuery<SourceOption[]>({
+    queryKey: ["/api/sources"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+  });
+  const sourceLabelMap = useMemo(
+    () => Object.fromEntries(sourcesData.map((s) => [s.code, s.label])),
+    [sourcesData]
+  );
+
   // Clients can see the site filter to confirm their access (even with single site)
   const clientHasSites = isClientUser && sites && sites.length > 0;
 
@@ -840,7 +853,7 @@ function CasesList() {
                                   <div className="flex flex-wrap gap-0.5 mb-1.5">
                                     {((c as any).sources as string[]).map((s: string) => (
                                       <span key={s} className="inline-flex items-center rounded px-1 py-0.5 text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                        {CASE_SOURCE_LABELS[s] ?? s}
+                                        {sourceLabelMap[s] ?? s}
                                       </span>
                                     ))}
                                   </div>
@@ -967,7 +980,7 @@ function CasesList() {
                         <div className="flex flex-wrap gap-1">
                           {((caseItem as any).sources as string[]).map((s: string) => (
                             <span key={s} className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                              {CASE_SOURCE_LABELS[s] ?? s}
+                              {sourceLabelMap[s] ?? s}
                             </span>
                           ))}
                         </div>
@@ -1168,18 +1181,7 @@ function CasesList() {
   );
 }
 
-const CASE_SOURCES = [
-  { value: "employee", label: "Employee" },
-  { value: "acas", label: "ACAS" },
-  { value: "employment_tribunal", label: "Employment Tribunal" },
-  { value: "solicitor", label: "Solicitor" },
-  { value: "trade_union", label: "Trade Union" },
-  { value: "hr_internal", label: "HR / Internal" },
-  { value: "management", label: "Management" },
-  { value: "whistleblowing", label: "Whistleblowing" },
-] as const;
-
-const CASE_SOURCE_LABELS: Record<string, string> = Object.fromEntries(CASE_SOURCES.map(s => [s.value, s.label]));
+type SourceOption = { id: string; code: string; label: string; isActive: boolean };
 
 function CreateCaseDialog({
   open,
@@ -1206,14 +1208,24 @@ function CreateCaseDialog({
     sources: [] as string[],
   });
 
-  const toggleSource = (value: string) => {
+  const toggleSource = (code: string) => {
     setFormData(prev => ({
       ...prev,
-      sources: prev.sources.includes(value)
-        ? prev.sources.filter(s => s !== value)
-        : [...prev.sources, value],
+      sources: prev.sources.includes(code)
+        ? prev.sources.filter(s => s !== code)
+        : [...prev.sources, code],
     }));
   };
+
+  // Fetch available sources from admin-managed source database
+  const { data: availableSources = [] } = useQuery<SourceOption[]>({
+    queryKey: ["/api/sources"],
+    queryFn: async () => {
+      const res = await fetch("/api/sources", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+  });
 
   // Fetch companies for selection
   const { data: companies } = useQuery<Company[]>({
@@ -1367,14 +1379,17 @@ function CreateCaseDialog({
           <div className="space-y-2">
             <label className="text-sm font-medium">Source <span className="text-muted-foreground text-xs font-normal">(select all that apply)</span></label>
             <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
-              {CASE_SOURCES.map((src) => {
-                const checked = formData.sources.includes(src.value);
+              {availableSources.length === 0 && (
+                <p className="col-span-2 text-xs text-muted-foreground text-center py-2">No sources configured — add them in Admin → Sources</p>
+              )}
+              {availableSources.map((src) => {
+                const checked = formData.sources.includes(src.code);
                 return (
                   <button
-                    key={src.value}
+                    key={src.code}
                     type="button"
-                    onClick={() => toggleSource(src.value)}
-                    data-testid={`toggle-source-${src.value}`}
+                    onClick={() => toggleSource(src.code)}
+                    data-testid={`toggle-source-${src.code}`}
                     className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-sm text-left transition-colors ${checked ? "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
                   >
                     <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px] ${checked ? "bg-pink-600 border-pink-600 text-white" : "border-input"}`}>

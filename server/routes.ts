@@ -293,8 +293,6 @@ const createDocumentSchema = z.object({
   shareDestinations: z.array(z.string()).optional(),
 });
 
-const VALID_CASE_SOURCES = ["employee", "acas", "employment_tribunal", "solicitor", "trade_union", "hr_internal", "management", "whistleblowing"] as const;
-
 const createCaseSchema = z.object({
   entityId: z.string().min(1),
   siteId: z.string().min(1),
@@ -305,7 +303,7 @@ const createCaseSchema = z.object({
   caseType: z.enum(["disciplinary", "grievance", "tupe", "redundancy", "tribunal_claim", "settlement", "appeal", "investigation"]),
   description: z.string().optional(),
   isConfidential: z.boolean().optional(),
-  sources: z.array(z.enum(VALID_CASE_SOURCES)).optional(),
+  sources: z.array(z.string()).optional(),
   restrictedToUsers: z.array(z.string()).optional(),
   hearingDate: z.string().optional(),
   responseDeadline: z.string().min(1, "Response deadline is required"),

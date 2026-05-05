@@ -150,9 +150,18 @@
         "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
         "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
         "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08",
-        "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19"
+        "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
+        "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20"
       ],
       "entries": [
+        {
+          "id": "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
+          "patch": 6,
+          "category": "bug",
+          "message": "EL cases source field: replaced hardcoded source list with live query to admin-managed /api/sources database; create case dialog now shows only active sources configured in Admin > Sources; source code (not hardcoded string) stored in cases.sources[]; labels resolved dynamically from fetched source map in case table, kanban cards, and EL Case Status report; backend createCaseSchema source validation changed from fixed enum to z.array(z.string()) to support dynamic admin-defined sources",
+          "createdAt": "2026-05-05T13:35:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
           "patch": 6,
