@@ -111,6 +111,7 @@ import {
   Loader2,
   GripVertical,
   FileDown,
+  Link as LinkIcon,
 } from "lucide-react";
 import {
   DndContext,
@@ -1526,6 +1527,8 @@ function CaseDetailView({ id }: { id: string }) {
 
   const [checklistReopenDialog, setChecklistReopenDialog] = useState<{ item: CaseDocumentChecklist; linkedDoc?: { title: string; fileName: string } } | null>(null);
   const [checklistItemToDelete, setChecklistItemToDelete] = useState<CaseDocumentChecklist | null>(null);
+  const [linkDocDialog, setLinkDocDialog] = useState<CaseDocumentChecklist | null>(null);
+  const [linkDocSelectedId, setLinkDocSelectedId] = useState<string>("");
 
   // Document Bundles
   const { data: bundles = [] } = useQuery<CaseBundle[]>({
@@ -2345,6 +2348,15 @@ function CaseDetailView({ id }: { id: string }) {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
                                 </DropdownMenuItem>
+                                {!item.isCompleted && (
+                                  <DropdownMenuItem
+                                    onClick={() => { setLinkDocSelectedId(""); setLinkDocDialog(item); }}
+                                    data-testid={`button-link-doc-checklist-${item.id}`}
+                                  >
+                                    <LinkIcon className="mr-2 h-4 w-4" />
+                                    Link existing document
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -3281,6 +3293,77 @@ function CaseDetailView({ id }: { id: string }) {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Link existing document to checklist item */}
+      <Dialog open={!!linkDocDialog} onOpenChange={(open) => { if (!open) { setLinkDocDialog(null); setLinkDocSelectedId(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LinkIcon className="h-5 w-5 text-pink-500" />
+              Link existing document
+            </DialogTitle>
+            <DialogDescription>
+              Select a document already uploaded to this case to fulfil <span className="font-medium text-foreground">"{linkDocDialog?.title}"</span>.
+            </DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const alreadyLinked = new Set((checklistItems ?? []).map(i => i.linkedDocumentId).filter(Boolean));
+            const available = (documents ?? []).filter(d => !alreadyLinked.has(d.id));
+            return available.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No documents available to link. Upload a document first or all existing documents are already linked.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto py-1">
+                {available.map(doc => (
+                  <button
+                    key={doc.id}
+                    onClick={() => setLinkDocSelectedId(doc.id)}
+                    className={`w-full flex items-center gap-3 p-2.5 rounded-md border text-left transition-colors ${
+                      linkDocSelectedId === doc.id
+                        ? "border-pink-500 bg-pink-50 dark:bg-pink-900/20"
+                        : "border-border hover:bg-muted/50"
+                    }`}
+                    data-testid={`link-doc-option-${doc.id}`}
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{doc.fileName}</p>
+                    </div>
+                    {linkDocSelectedId === doc.id && <CheckCircle className="h-4 w-4 shrink-0 text-pink-500" />}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => { setLinkDocDialog(null); setLinkDocSelectedId(""); }}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-pink-600 hover:bg-pink-700 text-white"
+              disabled={!linkDocSelectedId || updateChecklistItemMutation.isPending}
+              onClick={() => {
+                if (!linkDocDialog || !linkDocSelectedId) return;
+                updateChecklistItemMutation.mutate(
+                  { itemId: linkDocDialog.id, data: { isCompleted: true, linkedDocumentId: linkDocSelectedId } },
+                  {
+                    onSuccess: () => {
+                      toast({ title: "Document linked — essential document marked complete" });
+                      setLinkDocDialog(null);
+                      setLinkDocSelectedId("");
+                    },
+                  }
+                );
+              }}
+              data-testid="button-confirm-link-doc"
+            >
+              {updateChecklistItemMutation.isPending ? "Linking…" : "Link document"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
