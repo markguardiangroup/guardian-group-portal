@@ -57,7 +57,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
-type UserType = { id: string; name: string; email: string; role: string };
+type UserType = { id: string; firstName: string; lastName: string; email: string; role: string };
+function userDisplayName(u: UserType) { return `${u.firstName} ${u.lastName}`.trim(); }
 
 const statusConfig: Record<RoadmapStatus, { label: string; color: string; icon: typeof Lightbulb }> = {
   idea: { label: "Idea", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300", icon: Lightbulb },
@@ -132,13 +133,14 @@ function UserChip({ userId, adminUsers }: { userId: string | null | undefined; a
   if (!userId) return null;
   const u = adminUsers.find(a => a.id === userId);
   if (!u) return null;
-  const initials = u.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  const displayName = userDisplayName(u);
+  const initials = [u.firstName?.[0], u.lastName?.[0]].filter(Boolean).join("").toUpperCase();
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
       <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-[10px]">
         {initials}
       </span>
-      {u.name}
+      {displayName}
     </span>
   );
 }
@@ -314,7 +316,7 @@ export default function DevelopmentRoadmap() {
                 <SelectItem value="all">All Assignees</SelectItem>
                 <SelectItem value="unassigned">Unassigned</SelectItem>
                 {adminUsers.map(u => (
-                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  <SelectItem key={u.id} value={u.id}>{userDisplayName(u)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -467,7 +469,7 @@ export default function DevelopmentRoadmap() {
                   {viewingAssignedUser && (
                     <span className="flex items-center gap-1.5">
                       <UserCircle className="h-3 w-3" />
-                      Assigned to <strong>{viewingAssignedUser.name}</strong>
+                      Assigned to <strong>{userDisplayName(viewingAssignedUser)}</strong>
                     </span>
                   )}
                 </div>
@@ -773,7 +775,7 @@ function RoadmapItemForm({
           <SelectContent>
             <SelectItem value="unassigned">Unassigned</SelectItem>
             {adminUsers.map(u => (
-              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+              <SelectItem key={u.id} value={u.id}>{userDisplayName(u)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
