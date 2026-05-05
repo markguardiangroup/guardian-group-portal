@@ -1223,6 +1223,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [editingCaseNumber, setEditingCaseNumber] = useState(false);
   const [caseNumberDraft, setCaseNumberDraft] = useState("");
+  const [editingCaseName, setEditingCaseName] = useState(false);
+  const [caseNameDraft, setCaseNameDraft] = useState("");
   const [caseNotesExpanded, setCaseNotesExpanded] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
@@ -1835,8 +1837,60 @@ function CaseDetailView({ id }: { id: string }) {
                       <h1 className="text-2xl font-bold">
                         {caseData.caseNumber || caseData.caseReference}
                       </h1>
-                      {caseData.caseName && (
-                        <p className="text-sm text-muted-foreground mt-0.5">{caseData.caseName}</p>
+                      {editingCaseName ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <input
+                            className="text-sm border-b-2 border-pink-500 bg-transparent focus:outline-none w-56"
+                            value={caseNameDraft}
+                            onChange={e => setCaseNameDraft(e.target.value)}
+                            placeholder="e.g. Smith v Acme Ltd"
+                            autoFocus
+                            data-testid="input-case-name-edit"
+                          />
+                          <Button
+                            size="sm"
+                            className="bg-pink-600 hover:bg-pink-700 text-white h-6 text-xs"
+                            onClick={() => {
+                              updateCaseMutation.mutate(
+                                { caseName: caseNameDraft.trim() } as any,
+                                { onSuccess: () => setEditingCaseName(false) }
+                              );
+                            }}
+                            disabled={updateCaseMutation.isPending}
+                            data-testid="button-save-case-name"
+                          >
+                            {updateCaseMutation.isPending ? "Saving…" : "Save"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-xs"
+                            onClick={() => setEditingCaseName(false)}
+                            data-testid="button-cancel-case-name"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {caseData.caseName ? (
+                            <p className="text-sm text-muted-foreground">{caseData.caseName}</p>
+                          ) : (user?.role === "admin" || user?.role === "consultant") ? (
+                            <p className="text-sm text-muted-foreground/50 italic">No case name set</p>
+                          ) : null}
+                          {(user?.role === "admin" || user?.role === "consultant") && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5"
+                              onClick={() => { setCaseNameDraft(caseData.caseName || ""); setEditingCaseName(true); }}
+                              data-testid="button-edit-case-name"
+                              title="Edit case name"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                     {(user?.role === "admin" || user?.role === "consultant") && (

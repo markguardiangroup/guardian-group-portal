@@ -135,9 +135,18 @@
         "r9p50m28-4t1q-9u8v-6s59-0w2r4s6t7v31",
         "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42",
         "t1r62o30-6v3s-1w0x-8u71-2y4t6u8v9x53",
-        "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64"
+        "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64",
+        "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75"
       ],
       "entries": [
+        {
+          "id": "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75",
+          "patch": 6,
+          "message": "EL Case detail: case name now editable inline via pencil icon in header; shows 'No case name set' placeholder for admins/consultants when empty",
+          "category": "bug",
+          "createdAt": "2026-05-05T11:45:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64",
           "patch": 6,
