@@ -470,7 +470,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   {/* Group card — group-scoped docs (only when a group is selected) */}
                   {selectedGroup !== "all" && (
                   <Card
-                    className={`overflow-hidden transition-all hover:shadow-md border-2 ${moduleBorderDashedColors[module]} hover:border-solid`}
+                    className={`overflow-hidden transition-all hover:shadow-md border-2 border-solid ${moduleBorderDashedColors[module]}`}
                     data-testid={`card-group-${selectedGroup}`}
                   >
                     <CardContent className="p-5 pb-4">
@@ -480,6 +480,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <Layers className={`h-4 w-4 ${moduleColors[module]}`} />
                           </div>
                           <div className="min-w-0">
+                            <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Group</span>
                             {isPrivilegedUser ? (
                               <Link
                                 href={`/companies/${selectedGroup}?from=${encodeURIComponent(`${basePath}/sites`)}`}
@@ -494,7 +495,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 {selectedGroupOwnerName}
                               </span>
                             )}
-                            <p className="text-xs text-muted-foreground">Group documents</p>
                           </div>
                         </div>
                         {groupHasIssues ? (
@@ -630,7 +630,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     return (
                       <Card
                         key={`company-${company.id}`}
-                        className={`overflow-hidden transition-all hover:shadow-md border-2 ${moduleBorderDashedColors[module]} hover:border-solid`}
+                        className={`overflow-hidden transition-all hover:shadow-md border-2 border-dashed ${moduleBorderDashedColors[module]} hover:border-solid`}
                         data-testid={`card-company-${company.id}`}
                       >
                         <CardContent className="p-5 pb-4">
@@ -640,6 +640,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
                               <div className="min-w-0">
+                                <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Company</span>
                                 {isPrivilegedUser ? (
                                   <Link
                                     href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
@@ -654,7 +655,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                     {company.name}
                                   </span>
                                 )}
-                                <p className="text-xs text-muted-foreground">Company documents</p>
                               </div>
                             </div>
                             {cHasIssues ? (
@@ -768,7 +768,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
               return (
                 <Card
-                  className={`overflow-hidden transition-all hover:shadow-md border-2 border-dashed ${moduleBorderDashedColors[module]} hover:border-solid`}
+                  className={`overflow-hidden transition-all hover:shadow-md border border-dashed hover:border-solid`}
                   data-testid="card-site-all"
                 >
                   <CardContent className="p-5 pb-4">
@@ -778,6 +778,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <MapPin className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
                         <div className="min-w-0">
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Site</span>
                           <p className="font-semibold text-sm leading-snug" data-testid="text-site-name-all">
                             All Sites
                           </p>
@@ -942,7 +943,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               return (
                 <Card
                   key={site.id}
-                  className={`overflow-hidden transition-all hover:shadow-md border-2 ${
+                  className={`overflow-hidden transition-all hover:shadow-md border ${
                     missingCount > 0 || overdue > 0
                       ? "border-red-200 dark:border-red-900/50 hover:border-red-400"
                       : reviewRequired > 0
@@ -958,9 +959,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     <div className="flex items-start justify-between gap-2 mb-4">
                       <div className="flex items-start gap-2.5">
                         <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
-                          <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
+                          <MapPin className={`h-4 w-4 ${moduleColors[module]}`} />
                         </div>
                         <div className="min-w-0">
+                          <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground bg-muted px-1.5 py-0.5 rounded mb-1">Site</span>
                           {isPrivilegedUser ? (
                             <Link
                               href={`/sites/${site.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}

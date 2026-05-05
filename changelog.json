@@ -136,9 +136,18 @@
         "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42",
         "t1r62o30-6v3s-1w0x-8u71-2y4t6u8v9x53",
         "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64",
-        "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75"
+        "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75",
+        "w4u95r63-9y6v-4z3a-1x04-5b7w9x1y2a86"
       ],
       "entries": [
+        {
+          "id": "w4u95r63-9y6v-4z3a-1x04-5b7w9x1y2a86",
+          "patch": 6,
+          "message": "Site docs dashboard: added GROUP/COMPANY/SITE type chips to tiles; fixed site tile icon (Building2→MapPin); differentiated borders (Group=solid, Company=dashed, Site=thin compliance border)",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T12:00:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75",
           "patch": 6,
