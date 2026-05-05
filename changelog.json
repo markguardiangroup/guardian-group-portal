@@ -151,9 +151,18 @@
         "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
         "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08",
         "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
-        "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20"
+        "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
+        "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31"
       ],
       "entries": [
+        {
+          "id": "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
+          "patch": 6,
+          "category": "bug",
+          "message": "EL create case dialog: fixed scroll — DialogContent constrained to 90vh with flex-col layout; form body wraps all fields in overflow-y-auto flex-1 scrollable div; footer (Cancel / Create Case) pinned outside scroll area with top border so it is always visible",
+          "createdAt": "2026-05-05T13:50:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
           "patch": 6,

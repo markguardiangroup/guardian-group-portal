@@ -1255,8 +1255,8 @@ function CreateCaseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Scale className="h-5 w-5 text-pink-600" />
             Create New Case
@@ -1265,7 +1265,8 @@ function CreateCaseDialog({
             Create a new employment law case file for an individual
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="overflow-y-auto flex-1 space-y-4 pr-1">
           {/* Company and Site Selection */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -1411,7 +1412,8 @@ function CreateCaseDialog({
               data-testid="input-description"
             />
           </div>
-          <DialogFooter>
+          </div>
+          <DialogFooter className="shrink-0 pt-4 border-t mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
