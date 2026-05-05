@@ -143,9 +143,18 @@
         "z7x28u96-2b9y-7c6d-4a37-8e0z2a4b5d19",
         "a8y39v07-3c0z-8d7e-5b48-9f1a3b5c6e20",
         "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31",
-        "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42"
+        "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
+        "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53"
       ],
       "entries": [
+        {
+          "id": "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
+          "patch": 6,
+          "message": "Case notes: clickable tick icon added to each note — toggles green completed state (strikethrough text, green background tint) with no persistence required",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T11:37:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
           "patch": 6,

@@ -1734,6 +1734,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [completionForm, setCompletionForm] = useState({ completedDate: format(new Date(), "yyyy-MM-dd"), completionNotes: "" });
   const [expandedMilestoneNotes, setExpandedMilestoneNotes] = useState<Set<string>>(new Set());
   const [viewingMilestoneNotes, setViewingMilestoneNotes] = useState<CaseMilestone | null>(null);
+  const [tickedNotes, setTickedNotes] = useState<Set<string>>(new Set());
 
   if (isLoading) {
     return (
@@ -2111,9 +2112,22 @@ function CaseDetailView({ id }: { id: string }) {
                   {caseNotes.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-2">No notes yet</p>
                   )}
-                  {caseNotes.map((note) => (
-                    <div key={note.id} className="flex items-start gap-2 group" data-testid={`note-item-${note.id}`}>
-                      <span className="text-pink-400 font-bold text-sm mt-0.5 shrink-0">•</span>
+                  {caseNotes.map((note) => {
+                    const isTicked = tickedNotes.has(note.id);
+                    return (
+                    <div key={note.id} className={`flex items-start gap-2 group rounded-md transition-colors ${isTicked ? "bg-green-50/60 dark:bg-green-900/10" : ""}`} data-testid={`note-item-${note.id}`}>
+                      <button
+                        className={`mt-0.5 shrink-0 rounded-full transition-colors ${isTicked ? "text-green-600" : "text-muted-foreground/40 hover:text-green-500"}`}
+                        onClick={() => setTickedNotes(prev => {
+                          const next = new Set(prev);
+                          next.has(note.id) ? next.delete(note.id) : next.add(note.id);
+                          return next;
+                        })}
+                        title={isTicked ? "Mark as incomplete" : "Mark as complete"}
+                        data-testid={`button-tick-note-${note.id}`}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </button>
                       <div className="flex-1 min-w-0">
                         {editingNote?.id === note.id ? (
                           <div className="space-y-2">
@@ -2147,7 +2161,7 @@ function CaseDetailView({ id }: { id: string }) {
                           </div>
                         ) : (
                           <>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                            <p className={`text-sm leading-relaxed whitespace-pre-wrap transition-all ${isTicked ? "line-through text-muted-foreground" : ""}`}>{note.content}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy")}
                               {note.updatedAt !== note.createdAt && " · edited"}
@@ -2180,7 +2194,8 @@ function CaseDetailView({ id }: { id: string }) {
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                   <div className="pt-2 border-t space-y-2">
                     <Textarea
                       placeholder="Add a note…"
