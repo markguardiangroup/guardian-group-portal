@@ -745,7 +745,7 @@ function CasesList() {
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Response Deadline</TableHead>
+                  <TableHead>ET3 Response Deadline</TableHead>
                   <TableHead>Next Milestone</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
@@ -776,7 +776,7 @@ function CasesList() {
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Response Deadline</TableHead>
+                  <TableHead>ET3 Response Deadline</TableHead>
                   <TableHead>Next Milestone</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
@@ -1172,7 +1172,7 @@ function CreateCaseDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Response Deadline <span className="text-destructive">*</span></label>
+            <label className="text-sm font-medium">ET3 Response Deadline <span className="text-destructive">*</span></label>
             <Input
               type="date"
               value={formData.responseDeadline}
@@ -2043,7 +2043,7 @@ function CaseDetailView({ id }: { id: string }) {
                   )}
                   {caseData.responseDeadline && (
                     <div>
-                      <p className="text-xs text-muted-foreground">Response Deadline</p>
+                      <p className="text-xs text-muted-foreground">ET3 Response Deadline</p>
                       <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${isPast(new Date(caseData.responseDeadline)) ? "text-red-600" : ""}`}>
                         <Clock className="h-4 w-4" />
                         {format(new Date(caseData.responseDeadline), "d MMM yyyy")}
@@ -2516,7 +2516,7 @@ function CaseDetailView({ id }: { id: string }) {
                         </p>
                         {milestone.isResponseDeadline && (
                           <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border-0 text-xs py-0">
-                            Response Deadline
+                            ET3 Response Deadline
                           </Badge>
                         )}
                       </div>
@@ -3577,7 +3577,7 @@ function EditMilestoneForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {isRD && (
         <div className="rounded-md bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 px-3 py-2 text-sm text-pink-700 dark:text-pink-300">
-          Changing the due date will also update the Response Deadline on the case file.
+          Changing the due date will also update the ET3 Response Deadline on the case file.
         </div>
       )}
       <div className="space-y-2">
