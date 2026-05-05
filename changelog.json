@@ -129,9 +129,18 @@
         "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
         "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
         "n5l16i84-0p7m-5q4r-2o15-6s8n0o2p3r97",
-        "o6m27j95-1q8n-6r5s-3p26-7t9o1p3q4s08"
+        "o6m27j95-1q8n-6r5s-3p26-7t9o1p3q4s08",
+        "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19"
       ],
       "entries": [
+        {
+          "id": "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19",
+          "patch": 6,
+          "message": "Roadmap fix: module field now saved on create — was missing from storage.createRoadmapItem insert",
+          "category": "bug",
+          "createdAt": "2026-05-05T10:30:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "o6m27j95-1q8n-6r5s-3p26-7t9o1p3q4s08",
           "patch": 6,

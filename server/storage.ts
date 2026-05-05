@@ -3838,6 +3838,7 @@ export class MemStorage implements IStorage {
       category: item.category ?? "feature",
       status: item.status ?? "idea",
       priority: item.priority ?? "medium",
+      module: item.module ?? null,
       sortOrder: item.sortOrder ?? 0,
       createdAt: now,
       updatedAt: now,
