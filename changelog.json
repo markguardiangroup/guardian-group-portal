@@ -130,9 +130,18 @@
         "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
         "n5l16i84-0p7m-5q4r-2o15-6s8n0o2p3r97",
         "o6m27j95-1q8n-6r5s-3p26-7t9o1p3q4s08",
-        "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19"
+        "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19",
+        "q8o49l17-3s0p-8t7u-5r48-9v1q3r5s6u20"
       ],
       "entries": [
+        {
+          "id": "q8o49l17-3s0p-8t7u-5r48-9v1q3r5s6u20",
+          "patch": 6,
+          "message": "Roadmap fix: replaced IIFE patterns in JSX with a ModuleBadge component — module badges now render correctly on kanban cards and in detail dialog",
+          "category": "bug",
+          "createdAt": "2026-05-05T10:32:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19",
           "patch": 6,

@@ -96,6 +96,19 @@ const priorityOrder: Record<RoadmapPriority, number> = {
   low: 2,
 };
 
+function ModuleBadge({ module, testId }: { module: string | null | undefined; testId?: string }) {
+  if (!module) return null;
+  const cfg = moduleConfig[module as RoadmapModule];
+  if (!cfg) return null;
+  const Icon = cfg.icon;
+  return (
+    <Badge className={cfg.badgeColor} data-testid={testId}>
+      <Icon className="h-3 w-3 mr-1" />
+      {cfg.label}
+    </Badge>
+  );
+}
+
 function sortByPriority(items: RoadmapItem[]): RoadmapItem[] {
   return [...items].sort((a, b) => {
     const aPriority = priorityOrder[a.priority as RoadmapPriority] ?? 1;
@@ -354,36 +367,25 @@ export default function DevelopmentRoadmap() {
                 {viewingItem?.title}
               </DialogTitle>
               <DialogDescription>
-                {viewingItem && (
-                  <span className="flex items-center gap-2 mt-1 flex-wrap">
-                    <Badge className={statusConfig[viewingItem.status as RoadmapStatus].color}>
-                      {statusConfig[viewingItem.status as RoadmapStatus].label}
-                    </Badge>
-                    <Badge className={(categoryConfig[viewingItem.category] || categoryConfig.feature).badgeColor || "bg-muted text-muted-foreground"}>
-                      {(categoryConfig[viewingItem.category] || categoryConfig.feature).label}
-                    </Badge>
-                    {viewingItem.module && moduleConfig[viewingItem.module as RoadmapModule] && (() => {
-                      const mod = moduleConfig[viewingItem.module as RoadmapModule];
-                      const ModIcon = mod.icon;
-                      return (
-                        <Badge className={mod.badgeColor}>
-                          <ModIcon className="h-3 w-3 mr-1" />
-                          {mod.label}
-                        </Badge>
-                      );
-                    })()}
-                    {(() => {
-                      const p = priorityConfig[viewingItem.priority as RoadmapPriority];
-                      const PIcon = p.icon;
-                      return (
-                        <span className={`flex items-center gap-1 text-xs ${p.color}`}>
-                          <PIcon className="h-3 w-3" />
-                          {p.label} Priority
-                        </span>
-                      );
-                    })()}
-                  </span>
-                )}
+                {viewingItem && (() => {
+                  const p = priorityConfig[viewingItem.priority as RoadmapPriority];
+                  const PIcon = p.icon;
+                  return (
+                    <span className="flex items-center gap-2 mt-1 flex-wrap">
+                      <Badge className={statusConfig[viewingItem.status as RoadmapStatus].color}>
+                        {statusConfig[viewingItem.status as RoadmapStatus].label}
+                      </Badge>
+                      <Badge className={(categoryConfig[viewingItem.category] || categoryConfig.feature).badgeColor || "bg-muted text-muted-foreground"}>
+                        {(categoryConfig[viewingItem.category] || categoryConfig.feature).label}
+                      </Badge>
+                      <ModuleBadge module={viewingItem.module} />
+                      <span className={`flex items-center gap-1 text-xs ${p.color}`}>
+                        <PIcon className="h-3 w-3" />
+                        {p.label} Priority
+                      </span>
+                    </span>
+                  );
+                })()}
               </DialogDescription>
             </DialogHeader>
             {viewingItem && (
@@ -603,15 +605,7 @@ function RoadmapCard({
             <CategoryIcon className="h-3 w-3 mr-1" />
             {category.label}
           </Badge>
-          {mod && (() => {
-            const ModIcon = mod.icon;
-            return (
-              <Badge className={mod.badgeColor} data-testid={`badge-module-${item.id}`}>
-                <ModIcon className="h-3 w-3 mr-1" />
-                {mod.label}
-              </Badge>
-            );
-          })()}
+          <ModuleBadge module={item.module} testId={`badge-module-${item.id}`} />
           <div className={`flex items-center gap-1 text-xs ${priority.color}`}>
             <PriorityIcon className="h-3 w-3" />
             {priority.label}
