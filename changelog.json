@@ -158,9 +158,18 @@
         "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
         "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75",
         "q4o85m63-9s6p-4t3u-1r04-5v7q9r1s2u86",
-        "r5p96n74-0t7q-5u4v-2s15-6w8r0s2t3v97"
+        "r5p96n74-0t7q-5u4v-2s15-6w8r0s2t3v97",
+        "s6q07o85-1u8r-6v5w-3t26-7x9s1t3u4w08"
       ],
       "entries": [
+        {
+          "id": "s6q07o85-1u8r-6v5w-3t26-7x9s1t3u4w08",
+          "patch": 6,
+          "category": "bug",
+          "message": "Admin Roadmap assignee save/display verified working end-to-end: server debug logs confirmed PATCH handler correctly receives and saves assignedUserId to DB (2 items assigned in live DB); GET /api/roadmap confirmed returning assignedUserId in all items; removed debug console.log statements from PATCH handler now that behaviour is verified",
+          "createdAt": "2026-05-05T14:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "r5p96n74-0t7q-5u4v-2s15-6w8r0s2t3v97",
           "patch": 6,

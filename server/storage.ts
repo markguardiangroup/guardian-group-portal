@@ -3840,6 +3840,7 @@ export class MemStorage implements IStorage {
       priority: item.priority ?? "medium",
       module: item.module ?? null,
       sortOrder: item.sortOrder ?? 0,
+      assignedUserId: item.assignedUserId ?? null,
       createdAt: now,
       updatedAt: now,
     }).returning();
