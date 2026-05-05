@@ -304,7 +304,7 @@ const createCaseSchema = z.object({
   isConfidential: z.boolean().optional(),
   restrictedToUsers: z.array(z.string()).optional(),
   hearingDate: z.string().optional(),
-  responseDeadline: z.string().optional(),
+  responseDeadline: z.string().min(1, "Response deadline is required"),
 });
 
 const updateCaseSchema = z.object({
@@ -8708,6 +8708,19 @@ export async function registerRoutes(
         restrictedToUsers: restrictedToUsers ? JSON.stringify(restrictedToUsers) : null,
       });
 
+      // Auto-create the mandatory Response Deadline milestone
+      if (parseResult.data.responseDeadline) {
+        await storage.createCaseMilestone({
+          caseId: caseData.id,
+          title: "Response Deadline",
+          description: "Mandatory response deadline for this case",
+          dueDate: new Date(parseResult.data.responseDeadline),
+          isCompleted: false,
+          isResponseDeadline: true,
+          createdBy: user.id,
+        });
+      }
+
       // Create audit log
       await storage.createAuditLog({
         action: "case_created",
@@ -9153,24 +9166,37 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      const { isCompleted } = req.body;
+      const { isCompleted, title, description, dueDate } = req.body;
       const updates: any = {};
       
       if (typeof isCompleted === "boolean") {
         updates.isCompleted = isCompleted;
         if (isCompleted) {
           updates.completedDate = new Date();
+        } else {
+          updates.completedDate = null;
         }
       }
+      if (title !== undefined) updates.title = title;
+      if (description !== undefined) updates.description = description || null;
+      if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
 
       const milestone = await storage.updateCaseMilestone(req.params.id, updates);
       if (!milestone) {
         return res.status(404).json({ error: "Milestone not found" });
       }
 
+      // If this is the Response Deadline milestone and due date changed, sync case field
+      if (dueDate !== undefined && milestone.isResponseDeadline) {
+        await storage.updateCase(milestone.caseId, {
+          responseDeadline: dueDate ? new Date(dueDate) : null,
+        } as any);
+      }
+
+      const caseData = await storage.getCase(milestone.caseId);
+
       // Create audit log if completing (with case context)
       if (isCompleted) {
-        const caseData = await storage.getCase(milestone.caseId);
         await storage.createAuditLog({
           action: "milestone_completed",
           userId: user.id,
@@ -9205,6 +9231,11 @@ export async function registerRoutes(
       const milestone = await storage.getCaseMilestone(req.params.id);
       if (!milestone) {
         return res.status(404).json({ error: "Milestone not found" });
+      }
+
+      // Response Deadline milestone cannot be deleted
+      if (milestone.isResponseDeadline) {
+        return res.status(400).json({ error: "The Response Deadline milestone cannot be deleted. Edit the date instead." });
       }
 
       const caseData = await storage.getCase(milestone.caseId);

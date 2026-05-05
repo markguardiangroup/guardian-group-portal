@@ -1020,7 +1020,7 @@ function CreateCaseDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.entityId || !formData.siteId) {
+    if (!formData.entityId || !formData.siteId || !formData.responseDeadline) {
       return;
     }
     onSubmit(formData);
@@ -1133,13 +1133,15 @@ function CreateCaseDialog({
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Response Deadline (optional)</label>
+            <label className="text-sm font-medium">Response Deadline <span className="text-destructive">*</span></label>
             <Input
               type="date"
               value={formData.responseDeadline}
               onChange={(e) => setFormData({ ...formData, responseDeadline: e.target.value })}
+              required
               data-testid="input-response-deadline"
             />
+            <p className="text-xs text-muted-foreground">Required — will be tracked as a milestone on this case</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>
@@ -1329,6 +1331,7 @@ function CaseDetailView({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
       setEditingMilestone(null);
@@ -2387,14 +2390,20 @@ function CaseDetailView({ id }: { id: string }) {
                   <div
                     key={milestone.id}
                     className={`flex items-start gap-3 p-3 rounded-lg border ${
-                      milestone.isCompleted ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-card"
+                      milestone.isCompleted
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                        : milestone.isResponseDeadline
+                          ? "bg-pink-50 dark:bg-pink-900/10 border-pink-200 dark:border-pink-800"
+                          : "bg-card"
                     }`}
                     data-testid={`milestone-${milestone.id}`}
                   >
                     <div className={`mt-0.5 rounded-full p-1 ${
                       milestone.isCompleted
                         ? "bg-green-100 dark:bg-green-900/40 text-green-600"
-                        : "bg-muted text-muted-foreground"
+                        : milestone.isResponseDeadline
+                          ? "bg-pink-100 dark:bg-pink-900/40 text-pink-600"
+                          : "bg-muted text-muted-foreground"
                     }`}>
                       {milestone.isCompleted ? (
                         <CheckCircle className="h-4 w-4" />
@@ -2403,10 +2412,17 @@ function CaseDetailView({ id }: { id: string }) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
-                        {milestone.title}
-                      </p>
-                      {milestone.description && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className={`font-medium ${milestone.isCompleted ? "line-through text-muted-foreground" : ""}`}>
+                          {milestone.title}
+                        </p>
+                        {milestone.isResponseDeadline && (
+                          <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border-0 text-xs py-0">
+                            Response Deadline
+                          </Badge>
+                        )}
+                      </div>
+                      {milestone.description && !milestone.isResponseDeadline && (
                         <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
                       )}
                       {milestone.dueDate && (
@@ -2456,15 +2472,19 @@ function CaseDetailView({ id }: { id: string }) {
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
-                            className="text-red-600"
-                            data-testid={`button-delete-milestone-${milestone.id}`}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {!milestone.isResponseDeadline && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
+                                className="text-red-600"
+                                data-testid={`button-delete-milestone-${milestone.id}`}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -3443,8 +3463,11 @@ function EditMilestoneForm({
     dueDate: milestone.dueDate ? format(new Date(milestone.dueDate), "yyyy-MM-dd") : "",
   });
 
+  const isRD = milestone.isResponseDeadline;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isRD && !formData.dueDate) return;
     onSubmit({
       title: formData.title,
       description: formData.description || null,
@@ -3454,6 +3477,11 @@ function EditMilestoneForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {isRD && (
+        <div className="rounded-md bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 px-3 py-2 text-sm text-pink-700 dark:text-pink-300">
+          Changing the due date will also update the Response Deadline on the case file.
+        </div>
+      )}
       <div className="space-y-2">
         <label className="text-sm font-medium">Title</label>
         <Input
@@ -3461,25 +3489,31 @@ function EditMilestoneForm({
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="e.g., Schedule hearing"
           required
+          disabled={isRD}
           data-testid="input-edit-milestone-title"
         />
       </div>
+      {!isRD && (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Description (optional)</label>
+          <Textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Additional details..."
+            rows={2}
+            data-testid="input-edit-milestone-description"
+          />
+        </div>
+      )}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Description (optional)</label>
-        <Textarea
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          placeholder="Additional details..."
-          rows={2}
-          data-testid="input-edit-milestone-description"
-        />
-      </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Due Date (optional)</label>
+        <label className="text-sm font-medium">
+          Due Date {isRD ? <span className="text-destructive">*</span> : "(optional)"}
+        </label>
         <Input
           type="date"
           value={formData.dueDate}
           onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+          required={isRD}
           data-testid="input-edit-milestone-due-date"
         />
       </div>
