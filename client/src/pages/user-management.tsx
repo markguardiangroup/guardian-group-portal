@@ -174,7 +174,7 @@ export default function UserManagement() {
   const setCompanyFilter = (val: string) => setSelectedCompany(val === "all" ? null : val);
   const handleCompanyChange = (val: string | null) => setSelectedCompany(val);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all" | "pro_consultant">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
@@ -403,7 +403,9 @@ export default function UserManagement() {
       u.email.toLowerCase().includes(search.toLowerCase()) ||
       u.username.toLowerCase().includes(search.toLowerCase()) ||
       (u.jobTitle && u.jobTitle.toLowerCase().includes(search.toLowerCase()));
-    const matchesRole = roleFilter === "all" || u.role === roleFilter;
+    const matchesRole =
+      roleFilter === "all" ||
+      (roleFilter === "pro_consultant" ? u.role === "consultant" && u.consultantTier === "pro" : u.role === roleFilter);
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
     const matchesCompany = companyFilter === "all" || u.companyId === companyFilter;
     return matchesSearch && matchesRole && matchesStatus && matchesCompany;
@@ -1204,7 +1206,7 @@ export default function UserManagement() {
         </div>
 
         {canAddUser && (
-          <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all"); setPage(1); }}>
+          <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all" | "pro_consultant"); setPage(1); }}>
             <SelectTrigger className="w-[150px]" data-testid="select-role-filter">
               <SelectValue placeholder="All roles" />
             </SelectTrigger>
@@ -1212,6 +1214,7 @@ export default function UserManagement() {
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Administrators</SelectItem>
               <SelectItem value="consultant">Consultants</SelectItem>
+              <SelectItem value="pro_consultant">Pro Consultants</SelectItem>
               <SelectItem value="client">Clients</SelectItem>
             </SelectContent>
           </Select>
