@@ -138,9 +138,18 @@
         "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64",
         "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75",
         "w4u95r63-9y6v-4z3a-1x04-5b7w9x1y2a86",
-        "x5v06s74-0z7w-5a4b-2y15-6c8x0y2z3b97"
+        "x5v06s74-0z7w-5a4b-2y15-6c8x0y2z3b97",
+        "y6w17t85-1a8x-6b5c-3z26-7d9y1z3a4c08"
       ],
       "entries": [
+        {
+          "id": "y6w17t85-1a8x-6b5c-3z26-7d9y1z3a4c08",
+          "patch": 6,
+          "message": "Site docs dashboard: changed Company badge from blue to orange for better contrast against module accent colours",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T12:10:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "x5v06s74-0z7w-5a4b-2y15-6c8x0y2z3b97",
           "patch": 6,

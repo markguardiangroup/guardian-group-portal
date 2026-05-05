@@ -640,7 +640,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
                               <div className="min-w-0">
-                                <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded mb-1">Company</span>
+                                <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 px-1.5 py-0.5 rounded mb-1">Company</span>
                                 {isPrivilegedUser ? (
                                   <Link
                                     href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
