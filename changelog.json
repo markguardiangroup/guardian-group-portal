@@ -123,9 +123,18 @@
         "f7d38a06-2h9e-7i6j-4g37-8k0f2g4h5j19",
         "g8e49b17-3i0f-8j7k-5h48-9l1g3h5i6k20",
         "h9f50c28-4j1g-9k8l-6i59-0m2h4i6j7l31",
-        "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42"
+        "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42",
+        "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53"
       ],
       "entries": [
+        {
+          "id": "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53",
+          "patch": 6,
+          "message": "Incident report PDF now always stored redacted; investigation report and portal views no longer redact personal names",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T09:00:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42",
           "patch": 6,

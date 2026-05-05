@@ -12709,13 +12709,6 @@ export async function registerRoutes(
         incidents = incidents.filter((i: any) => siteIds.includes(i.siteId));
       }
 
-      // GDPR: redact personal names for non-client users (skip if client has granted full access for that incident)
-      if (user.role !== "client") {
-        incidents = incidents.map((inc: any) =>
-          inc.consultantFullAccess ? inc : redactIncidentNamesForNonClient(inc)
-        );
-      }
-
       res.json(incidents);
     } catch (error) {
       console.error("Error fetching incidents:", error);
@@ -12955,7 +12948,7 @@ export async function registerRoutes(
 
   async function uploadIncidentReportDocument(incident: any, user: any, siteName: string, companyName: string, imageUrls: string[] = []): Promise<void> {
     try {
-      const html = generateIncidentReportHtml(incident, siteName, companyName, imageUrls);
+      const html = generateIncidentReportHtml(redactIncidentNamesForNonClient(incident), siteName, companyName, imageUrls);
       const buffer = Buffer.from(html, "utf-8");
       const objectStorageService = new ObjectStorageService();
       const privateObjectDir = objectStorageService.getPrivateObjectDir();
@@ -13112,10 +13105,6 @@ export async function registerRoutes(
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
-      // GDPR: redact personal names for non-client users, unless the client has granted full access
-      if (user.role !== "client" && !incident.consultantFullAccess) {
-        incident = redactIncidentNamesForNonClient(incident);
-      }
       res.json(incident);
     } catch (error) {
       console.error("Error fetching incident:", error);
@@ -13311,10 +13300,6 @@ export async function registerRoutes(
       const user = (req.session as any).user;
       let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
-      // GDPR: redact personal names for non-client users before HTML generation (unless client granted access)
-      if (user.role !== "client" && !incident.consultantFullAccess) {
-        incident = redactIncidentNamesForNonClient(incident);
-      }
 
       const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
       const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;
