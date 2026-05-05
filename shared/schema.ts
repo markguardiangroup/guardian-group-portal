@@ -408,6 +408,7 @@ export const caseMilestones = pgTable("case_milestones", {
   completedDate: timestamp("completed_date"),
   isCompleted: boolean("is_completed").notNull().default(false),
   isResponseDeadline: boolean("is_response_deadline").notNull().default(false),
+  completionNotes: text("completion_notes"),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

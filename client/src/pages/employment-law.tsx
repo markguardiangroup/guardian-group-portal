@@ -1340,14 +1340,15 @@ function CaseDetailView({ id }: { id: string }) {
   });
 
   const completeMilestoneMutation = useMutation({
-    mutationFn: async (milestoneId: string) => {
-      return apiRequest("PATCH", `/api/milestones/${milestoneId}`, { isCompleted: true });
+    mutationFn: async ({ milestoneId, completedDate, completionNotes }: { milestoneId: string; completedDate: string; completionNotes: string }) => {
+      return apiRequest("PATCH", `/api/milestones/${milestoneId}`, { isCompleted: true, completedDate, completionNotes: completionNotes || null });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/employment_law"] });
+      setCompletingMilestone(null);
       toast({ title: "Milestone completed" });
     },
   });
@@ -1729,6 +1730,9 @@ function CaseDetailView({ id }: { id: string }) {
 
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
+  const [completingMilestone, setCompletingMilestone] = useState<CaseMilestone | null>(null);
+  const [completionForm, setCompletionForm] = useState({ completedDate: format(new Date(), "yyyy-MM-dd"), completionNotes: "" });
+  const [expandedMilestoneNotes, setExpandedMilestoneNotes] = useState<Set<string>>(new Set());
 
   if (isLoading) {
     return (
@@ -2533,6 +2537,32 @@ function CaseDetailView({ id }: { id: string }) {
                           {format(new Date(milestone.dueDate), "MMM d, yyyy")}
                         </p>
                       )}
+                      {milestone.isCompleted && milestone.completedDate && (
+                        <p className="text-xs mt-1 text-green-700 dark:text-green-400 font-medium">
+                          Completed: {format(new Date(milestone.completedDate), "MMM d, yyyy")}
+                        </p>
+                      )}
+                      {milestone.isCompleted && milestone.completionNotes && (
+                        <div className="mt-1.5">
+                          <button
+                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                            onClick={() => setExpandedMilestoneNotes(prev => {
+                              const next = new Set(prev);
+                              next.has(milestone.id) ? next.delete(milestone.id) : next.add(milestone.id);
+                              return next;
+                            })}
+                            data-testid={`button-toggle-notes-${milestone.id}`}
+                          >
+                            {expandedMilestoneNotes.has(milestone.id) ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            Completion notes
+                          </button>
+                          {expandedMilestoneNotes.has(milestone.id) && (
+                            <p className="text-sm text-muted-foreground mt-1 pl-4 border-l-2 border-muted whitespace-pre-wrap" data-testid={`text-completion-notes-${milestone.id}`}>
+                              {milestone.completionNotes}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {(user?.role === "admin" || user?.role === "consultant") && (
                       <DropdownMenu>
@@ -2548,7 +2578,10 @@ function CaseDetailView({ id }: { id: string }) {
                         <DropdownMenuContent align="end">
                           {!milestone.isCompleted ? (
                             <DropdownMenuItem
-                              onClick={() => completeMilestoneMutation.mutate(milestone.id)}
+                              onClick={() => {
+                                setCompletionForm({ completedDate: format(new Date(), "yyyy-MM-dd"), completionNotes: "" });
+                                setCompletingMilestone(milestone);
+                              }}
                               data-testid={`button-complete-milestone-${milestone.id}`}
                             >
                               <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
@@ -3018,6 +3051,60 @@ function CaseDetailView({ id }: { id: string }) {
               isLoading={updateMilestoneMutation.isPending}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Complete milestone dialog */}
+      <Dialog open={!!completingMilestone} onOpenChange={(open) => !open && setCompletingMilestone(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Milestone</DialogTitle>
+            <DialogDescription>
+              Record the completion details for &ldquo;{completingMilestone?.title}&rdquo;
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Completion Date <span className="text-destructive">*</span></label>
+              <Input
+                type="date"
+                value={completionForm.completedDate}
+                onChange={(e) => setCompletionForm(f => ({ ...f, completedDate: e.target.value }))}
+                data-testid="input-completion-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Completion Notes <span className="text-muted-foreground text-xs font-normal">(optional)</span></label>
+              <Textarea
+                placeholder="Add any notes about how this milestone was completed…"
+                value={completionForm.completionNotes}
+                onChange={(e) => setCompletionForm(f => ({ ...f, completionNotes: e.target.value }))}
+                rows={4}
+                data-testid="input-completion-notes"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setCompletingMilestone(null)} data-testid="button-cancel-complete-milestone">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!completingMilestone || !completionForm.completedDate) return;
+                  completeMilestoneMutation.mutate({
+                    milestoneId: completingMilestone.id,
+                    completedDate: completionForm.completedDate,
+                    completionNotes: completionForm.completionNotes,
+                  });
+                }}
+                disabled={!completionForm.completedDate || completeMilestoneMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                data-testid="button-confirm-complete-milestone"
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {completeMilestoneMutation.isPending ? "Saving…" : "Mark Complete"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

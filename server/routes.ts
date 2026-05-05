@@ -9168,15 +9168,17 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      const { isCompleted, title, description, dueDate } = req.body;
+      const { isCompleted, title, description, dueDate, completedDate, completionNotes } = req.body;
       const updates: any = {};
       
       if (typeof isCompleted === "boolean") {
         updates.isCompleted = isCompleted;
         if (isCompleted) {
-          updates.completedDate = new Date();
+          updates.completedDate = completedDate ? new Date(completedDate) : new Date();
+          updates.completionNotes = completionNotes ?? null;
         } else {
           updates.completedDate = null;
+          updates.completionNotes = null;
         }
       }
       if (title !== undefined) updates.title = title;
