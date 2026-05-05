@@ -1085,20 +1085,6 @@ function ReportIncidentDialog({
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="recommendations" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Recommendations</FormLabel>
-                    <FormControl>
-                      <BulletListInput
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder="Type a recommendation and press Enter or Add…"
-                        data-testid="input-recommendations"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
               </div>
             </FormSection>
 
@@ -1423,6 +1409,8 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   const [primaryCause, setPrimaryCause] = useState("");
   const [invRootCause, setInvRootCause] = useState("");
   const [conclusion, setConclusion] = useState("");
+  const [invActions, setInvActions] = useState<string[]>([""]);
+  const [invRecommendations, setInvRecommendations] = useState<string[]>([""]);
   const [invAmendments, setInvAmendments] = useState("");
   const [invRiddorReportable, setInvRiddorReportable] = useState(false);
   const [invRiddorResponsiblePerson, setInvRiddorResponsiblePerson] = useState("");
@@ -1479,6 +1467,8 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     setPrimaryCause(incident.invPrimaryCause ?? "");
     setInvRootCause(incident.invRootCause ?? "");
     setConclusion(incident.invConclusion ?? "");
+    try { setInvActions(incident.invActions ? JSON.parse(incident.invActions) : [""]); } catch { setInvActions([""]); }
+    try { setInvRecommendations(incident.invRecommendations ? JSON.parse(incident.invRecommendations) : [""]); } catch { setInvRecommendations([""]); }
     setInvAmendments(incident.invAmendments ?? "");
     setInvRiddorReportable(incident.riddorReportable ?? false);
     setInvRiddorResponsiblePerson(incident.riddorResponsiblePerson ?? "");
@@ -1514,6 +1504,8 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
       invPrimaryCause: primaryCause,
       invRootCause: invRootCause,
       invConclusion: conclusion,
+      invActions: JSON.stringify(invActions.filter(a => a.trim())),
+      invRecommendations: JSON.stringify(invRecommendations.filter(r => r.trim())),
       invAmendments: invAmendments,
       invCompletedAt: new Date().toISOString(),
       riddorReportable: invRiddorReportable,
@@ -1532,6 +1524,12 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     setInvWitnesses(prev => prev.map((w, idx) => idx === i ? { ...w, [field]: value } : w));
   const updateEquipmentField = (i: number, field: keyof InvEquipment, value: string) =>
     setInvEquipment(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: value } : e));
+  const addActionRow = () => setInvActions(prev => [...prev, ""]);
+  const removeActionRow = (i: number) => setInvActions(prev => prev.filter((_, idx) => idx !== i));
+  const updateAction = (i: number, value: string) => setInvActions(prev => prev.map((a, idx) => idx === i ? value : a));
+  const addRecommendationRow = () => setInvRecommendations(prev => [...prev, ""]);
+  const removeRecommendationRow = (i: number) => setInvRecommendations(prev => prev.filter((_, idx) => idx !== i));
+  const updateRecommendation = (i: number, value: string) => setInvRecommendations(prev => prev.map((r, idx) => idx === i ? value : r));
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
@@ -1702,10 +1700,56 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
 
           {/* ── Conclusion ── */}
           <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Conclusion &amp; Recommendations</h3>
-            <p className="text-sm font-medium">Conclusion from investigation, recommendations and actions</p>
-            <p className="text-xs text-muted-foreground">(Actions should be listed in the actions register)</p>
-            <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" data-testid="textarea-inv-conclusion" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Conclusion</h3>
+            <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" placeholder="Summary conclusion from the investigation…" data-testid="textarea-inv-conclusion" />
+          </div>
+
+          {/* ── Actions ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Actions</h3>
+            <div className="space-y-2">
+              {invActions.map((action, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <span className="text-muted-foreground text-sm w-5 shrink-0 text-right">{i + 1}.</span>
+                  <Input
+                    value={action}
+                    onChange={e => updateAction(i, e.target.value)}
+                    placeholder="Describe action…"
+                    data-testid={`input-inv-action-${i}`}
+                  />
+                  {invActions.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeActionRow(i)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addActionRow} data-testid="button-add-inv-action">+ Add Action</Button>
+            </div>
+          </div>
+
+          {/* ── Recommendations ── */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Recommendations</h3>
+            <div className="space-y-2">
+              {invRecommendations.map((rec, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <span className="text-muted-foreground text-sm w-5 shrink-0 text-right">{i + 1}.</span>
+                  <Input
+                    value={rec}
+                    onChange={e => updateRecommendation(i, e.target.value)}
+                    placeholder="Describe recommendation…"
+                    data-testid={`input-inv-recommendation-${i}`}
+                  />
+                  {invRecommendations.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeRecommendationRow(i)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={addRecommendationRow} data-testid="button-add-inv-recommendation">+ Add Recommendation</Button>
+            </div>
           </div>
 
           {/* ── Amendments / Corrections ── */}
@@ -2329,41 +2373,21 @@ function IncidentDetailView({ id }: { id: string }) {
                   </div>
                 </div>
 
-                {/* ── Section 6: Actions & Recommendations ── */}
+                {/* ── Section 6: Immediate Actions Taken ── */}
                 <div className="py-5 space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions Taken &amp; Recommendations</p>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5">Immediate Actions Taken</p>
-                      {incident.immediateActions && incident.immediateActions.trim()
-                        ? (
-                          <ul className="space-y-1">
-                            {incident.immediateActions.split("\n").filter(Boolean).map((item, i) => (
-                              <li key={i} className="flex items-start gap-2 text-sm">
-                                <span className="mt-0.5 text-module-accent shrink-0">•</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1.5">Recommendations</p>
-                      {incident.recommendations && incident.recommendations.trim()
-                        ? (
-                          <ul className="space-y-1">
-                            {incident.recommendations.split("\n").filter(Boolean).map((item, i) => (
-                              <li key={i} className="flex items-start gap-2 text-sm">
-                                <span className="mt-0.5 text-module-accent shrink-0">•</span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
-                    </div>
-                  </div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Immediate Actions Taken</p>
+                  {incident.immediateActions && incident.immediateActions.trim()
+                    ? (
+                      <ul className="space-y-1">
+                        {incident.immediateActions.split("\n").filter(Boolean).map((item: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <span className="mt-0.5 text-module-accent shrink-0">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                    : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                 </div>
 
                 {/* ── Section 7: RIDDOR ── */}
@@ -2721,14 +2745,58 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                   </div>
 
-                  {/* ─ Conclusion & Recommendations ─ */}
-                  <div className="py-5 space-y-3">
+                  {/* ─ Conclusion ─ */}
+                  <div className="py-5 space-y-3 border-t">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion &amp; Recommendations</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
                       {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
                     </div>
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>
+
+                  {/* ─ Actions ─ */}
+                  {(() => {
+                    let acts: string[] = [];
+                    try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
+                    return acts.length > 0 ? (
+                      <div className="py-5 space-y-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions</p>
+                          {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                        </div>
+                        <ol className="space-y-1.5 list-none">
+                          {acts.map((a: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="text-module-accent font-semibold shrink-0">{i + 1}.</span>
+                              <span>{a}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* ─ Recommendations ─ */}
+                  {(() => {
+                    let recs: string[] = [];
+                    try { if (incident.invRecommendations) recs = JSON.parse(incident.invRecommendations); } catch {}
+                    return recs.length > 0 ? (
+                      <div className="py-5 space-y-3 border-t">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recommendations</p>
+                          {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                        </div>
+                        <ol className="space-y-1.5 list-none">
+                          {recs.map((r: string, i: number) => (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="text-module-accent font-semibold shrink-0">{i + 1}.</span>
+                              <span>{r}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    ) : null;
+                  })()}
 
                   {/* ─ Amendments / Corrections ─ */}
                   {incident.invAmendments && (

@@ -125,9 +125,18 @@
         "h9f50c28-4j1g-9k8l-6i59-0m2h4i6j7l31",
         "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42",
         "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53",
-        "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64"
+        "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64",
+        "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75"
       ],
       "entries": [
+        {
+          "id": "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
+          "patch": 6,
+          "message": "Investigation report: conclusion separated, actions and recommendations now individual list items; recommendations removed from incident report form",
+          "category": "feature",
+          "createdAt": "2026-05-05T09:30:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64",
           "patch": 6,

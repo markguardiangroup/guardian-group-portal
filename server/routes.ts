@@ -12888,17 +12888,8 @@ export async function registerRoutes(
     </section>
 
     <section>
-      <h2>Actions Taken &amp; Recommendations</h2>
-      <div class="two-col">
-        <div>
-          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Immediate Actions Taken</p>
-          <p style="font-size:13px;line-height:1.7">${val(incident.immediateActions)}</p>
-        </div>
-        <div>
-          <p style="font-size:11px;font-weight:600;color:#6b7280;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Recommendations</p>
-          <p style="font-size:13px;line-height:1.7">${val(incident.recommendations)}</p>
-        </div>
-      </div>
+      <h2>Immediate Actions Taken</h2>
+      <p style="font-size:13px;line-height:1.7">${val(incident.immediateActions)}</p>
     </section>
 
     ${(incident.riddorReportable || incident.riddorNotes) ? `
@@ -13476,11 +13467,29 @@ export async function registerRoutes(
     </section>
 
     <section>
-      <h2>Conclusion &amp; Recommendations</h2>
-      <table>
-        ${field("Conclusion", textVal(incident.invConclusion))}
-      </table>
+      <h2>Conclusion</h2>
+      <p style="font-size:13px;line-height:1.7;color:#111827">${textVal(incident.invConclusion)}</p>
     </section>
+
+    ${(() => {
+      let acts: string[] = [];
+      try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
+      if (!acts.length) return "";
+      return `<section>
+      <h2>Actions</h2>
+      <ol style="margin:0;padding-left:20px">${acts.map((a: string, i: number) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${a}</li>`).join("")}</ol>
+    </section>`;
+    })()}
+
+    ${(() => {
+      let recs: string[] = [];
+      try { if (incident.invRecommendations) recs = JSON.parse(incident.invRecommendations); } catch {}
+      if (!recs.length) return "";
+      return `<section>
+      <h2>Recommendations</h2>
+      <ol style="margin:0;padding-left:20px">${recs.map((r: string, i: number) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${r}</li>`).join("")}</ol>
+    </section>`;
+    })()}
 
     ${incident.invAmendments ? `
     <section>

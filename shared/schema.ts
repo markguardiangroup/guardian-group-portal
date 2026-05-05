@@ -527,6 +527,8 @@ export const incidents = pgTable("incidents", {
   invPrimaryCause: text("inv_primary_cause"),
   invRootCause: text("inv_root_cause"),
   invConclusion: text("inv_conclusion"),
+  invActions: text("inv_actions"),
+  invRecommendations: text("inv_recommendations"),
   invAmendments: text("inv_amendments"),
   invCompletedAt: timestamp("inv_completed_at"),
   invCompletedBy: text("inv_completed_by"),
