@@ -741,10 +741,12 @@ function CasesList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Case No.</TableHead>
+                  <TableHead>Case Name</TableHead>
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Deadline</TableHead>
+                  <TableHead>Response Deadline</TableHead>
+                  <TableHead>Next Milestone</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
@@ -754,8 +756,10 @@ function CasesList() {
                   <TableRow key={i}>
                     <TableCell><Skeleton className="h-4 w-28" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
@@ -768,10 +772,12 @@ function CasesList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Case No.</TableHead>
+                  <TableHead>Case Name</TableHead>
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Deadline</TableHead>
+                  <TableHead>Response Deadline</TableHead>
+                  <TableHead>Next Milestone</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead className="w-[80px]">Actions</TableHead>
                 </TableRow>
@@ -793,6 +799,11 @@ function CasesList() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="max-w-[180px]">
+                      <span className="text-sm font-medium truncate block" title={caseItem.caseName}>
+                        {caseItem.caseName || <span className="text-muted-foreground italic">—</span>}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
@@ -806,18 +817,34 @@ function CasesList() {
                       <CaseStatusBadge status={caseItem.status as CaseStatus} />
                     </TableCell>
                     <TableCell>
-                      {(() => {
-                        const nearest = getCaseDisplayDeadline(caseItem);
-                        if (!nearest) return <span className="text-muted-foreground">-</span>;
+                      {caseItem.responseDeadline ? (() => {
+                        const rd = new Date(caseItem.responseDeadline);
                         return (
                           <div className={`flex items-center gap-1 text-sm ${
-                            isPast(nearest.date) ? "text-red-600" :
-                            differenceInDays(nearest.date, new Date()) <= 7 ? "text-amber-600" :
+                            isPast(rd) ? "text-red-600 font-medium" :
+                            differenceInDays(rd, new Date()) <= 7 ? "text-amber-600" :
+                            "text-muted-foreground"
+                          }`}>
+                            {isPast(rd) && <AlertTriangle className="h-3 w-3" />}
+                            <span>{format(rd, "MMM d, yyyy")}</span>
+                          </div>
+                        );
+                      })() : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const overdue = caseItem.overduesMilestoneDueDate;
+                        const upcoming = caseItem.upcomingMilestoneDueDate;
+                        const date = overdue ? new Date(overdue) : upcoming ? new Date(upcoming) : null;
+                        if (!date) return <span className="text-muted-foreground">—</span>;
+                        return (
+                          <div className={`flex items-center gap-1 text-sm ${
+                            overdue ? "text-red-600" :
+                            differenceInDays(date, new Date()) <= 7 ? "text-amber-600" :
                             "text-muted-foreground"
                           }`}>
                             <Clock className="h-3 w-3" />
-                            <span>{format(nearest.date, "MMM d")}</span>
-                            <span className="text-xs opacity-70">({nearest.label})</span>
+                            <span>{format(date, "MMM d")}</span>
                           </div>
                         );
                       })()}
@@ -997,6 +1024,7 @@ function CreateCaseDialog({
     entityId: "",
     siteId: "",
     caseNumber: "",
+    caseName: "",
     employeeName: "",
     employeeId: "",
     caseType: "tribunal_claim" as CaseType,
@@ -1020,7 +1048,7 @@ function CreateCaseDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.entityId || !formData.siteId || !formData.responseDeadline) {
+    if (!formData.entityId || !formData.siteId || !formData.caseName || !formData.responseDeadline) {
       return;
     }
     onSubmit(formData);
@@ -1094,6 +1122,17 @@ function CreateCaseDialog({
               required
               data-testid="input-case-number"
             />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Case Name <span className="text-destructive">*</span></label>
+            <Input
+              value={formData.caseName}
+              onChange={(e) => setFormData({ ...formData, caseName: e.target.value })}
+              placeholder="e.g. Smith v Acme Ltd"
+              required
+              data-testid="input-case-name"
+            />
+            <p className="text-xs text-muted-foreground">A short descriptive name for this case</p>
           </div>
 
           <div className="space-y-2">
@@ -1792,9 +1831,14 @@ function CaseDetailView({ id }: { id: string }) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold">
-                      {caseData.caseNumber || caseData.caseReference}
-                    </h1>
+                    <div>
+                      <h1 className="text-2xl font-bold">
+                        {caseData.caseNumber || caseData.caseReference}
+                      </h1>
+                      {caseData.caseName && (
+                        <p className="text-sm text-muted-foreground mt-0.5">{caseData.caseName}</p>
+                      )}
+                    </div>
                     {(user?.role === "admin" || user?.role === "consultant") && (
                       <Button
                         size="icon"

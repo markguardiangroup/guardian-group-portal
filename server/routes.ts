@@ -297,6 +297,7 @@ const createCaseSchema = z.object({
   entityId: z.string().min(1),
   siteId: z.string().min(1),
   caseNumber: z.string().min(1),
+  caseName: z.string().min(1, "Case name is required"),
   employeeName: z.string().min(1),
   employeeId: z.string().optional(),
   caseType: z.enum(["disciplinary", "grievance", "tupe", "redundancy", "tribunal_claim", "settlement", "appeal", "investigation"]),
@@ -309,6 +310,7 @@ const createCaseSchema = z.object({
 
 const updateCaseSchema = z.object({
   caseNumber: z.string().min(1).optional(),
+  caseName: z.string().min(1).optional(),
   status: z.enum(["open", "under_investigation", "hearing_scheduled", "resolved", "closed"]).optional(),
   description: z.string().optional(),
   isConfidential: z.boolean().optional(),
@@ -2077,7 +2079,7 @@ export async function registerRoutes(
         const elOverdueByCase: Record<string, Date | null> = {};
         const elUpcomingByCase: Record<string, Date | null> = {};
         for (const m of elMilestones) {
-          if (!m.isCompleted && m.dueDate) {
+          if (!m.isCompleted && m.dueDate && !m.isResponseDeadline) {
             const mDate = new Date(m.dueDate);
             if (mDate < elNow) {
               const ex = elOverdueByCase[m.caseId];
@@ -8593,7 +8595,7 @@ export async function registerRoutes(
       const overdueByCase: Record<string, Date | null> = {};
       const upcomingByCase: Record<string, Date | null> = {};
       for (const m of allMilestones) {
-        if (!m.isCompleted && m.dueDate) {
+        if (!m.isCompleted && m.dueDate && !m.isResponseDeadline) {
           const mDate = new Date(m.dueDate);
           if (mDate < now) {
             // Overdue: keep the earliest (most overdue)

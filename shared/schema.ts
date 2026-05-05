@@ -371,6 +371,7 @@ export const cases = pgTable("cases", {
   folderId: varchar("folder_id"), // Auto-created folder for case documents
   caseReference: text("case_reference").notNull(),
   caseNumber: text("case_number").notNull().default(""),
+  caseName: text("case_name").notNull().default(""),
   employeeName: text("employee_name").notNull(),
   employeeId: text("employee_id"),
   caseType: text("case_type").$type<CaseType>().notNull(),

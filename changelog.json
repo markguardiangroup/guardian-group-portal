@@ -133,9 +133,18 @@
         "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19",
         "q8o49l17-3s0p-8t7u-5r48-9v1q3r5s6u20",
         "r9p50m28-4t1q-9u8v-6s59-0w2r4s6t7v31",
-        "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42"
+        "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42",
+        "t1r62o30-6v3s-1w0x-8u71-2y4t6u8v9x53"
       ],
       "entries": [
+        {
+          "id": "t1r62o30-6v3s-1w0x-8u71-2y4t6u8v9x53",
+          "patch": 6,
+          "message": "EL Cases: added mandatory Case Name field (form + table column); cases table gains dedicated Response Deadline column; Deadline column renamed to Next Milestone (shows only non-RD milestones, overdue takes priority)",
+          "category": "feature",
+          "createdAt": "2026-05-05T11:20:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42",
           "patch": 6,
