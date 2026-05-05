@@ -142,9 +142,18 @@
         "y6w17t85-1a8x-6b5c-3z26-7d9y1z3a4c08",
         "z7x28u96-2b9y-7c6d-4a37-8e0z2a4b5d19",
         "a8y39v07-3c0z-8d7e-5b48-9f1a3b5c6e20",
-        "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31"
+        "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31",
+        "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42"
       ],
       "entries": [
+        {
+          "id": "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
+          "patch": 6,
+          "message": "EL milestones: 'View Notes' option added to 3-dot menu on completed milestones with notes; opens read-only dialog showing completion date and notes",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T12:30:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31",
           "patch": 6,

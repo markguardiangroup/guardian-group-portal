@@ -1733,6 +1733,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [completingMilestone, setCompletingMilestone] = useState<CaseMilestone | null>(null);
   const [completionForm, setCompletionForm] = useState({ completedDate: format(new Date(), "yyyy-MM-dd"), completionNotes: "" });
   const [expandedMilestoneNotes, setExpandedMilestoneNotes] = useState<Set<string>>(new Set());
+  const [viewingMilestoneNotes, setViewingMilestoneNotes] = useState<CaseMilestone | null>(null);
 
   if (isLoading) {
     return (
@@ -2588,13 +2589,24 @@ function CaseDetailView({ id }: { id: string }) {
                               Mark Complete
                             </DropdownMenuItem>
                           ) : (
-                            <DropdownMenuItem
-                              onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
-                              data-testid={`button-reopen-milestone-${milestone.id}`}
-                            >
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                              Reopen
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
+                                data-testid={`button-reopen-milestone-${milestone.id}`}
+                              >
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Reopen
+                              </DropdownMenuItem>
+                              {milestone.completionNotes && (
+                                <DropdownMenuItem
+                                  onClick={() => setViewingMilestoneNotes(milestone)}
+                                  data-testid={`button-view-notes-${milestone.id}`}
+                                >
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  View Notes
+                                </DropdownMenuItem>
+                              )}
+                            </>
                           )}
                           <DropdownMenuItem
                             onClick={() => setEditingMilestone(milestone)}
@@ -3102,6 +3114,36 @@ function CaseDetailView({ id }: { id: string }) {
               >
                 <CheckCircle className="mr-2 h-4 w-4" />
                 {completeMilestoneMutation.isPending ? "Saving…" : "Mark Complete"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View milestone completion notes dialog */}
+      <Dialog open={!!viewingMilestoneNotes} onOpenChange={(open) => !open && setViewingMilestoneNotes(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              Completion Notes
+            </DialogTitle>
+            <DialogDescription>{viewingMilestoneNotes?.title}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            {viewingMilestoneNotes?.completedDate && (
+              <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+                Completed: {format(new Date(viewingMilestoneNotes.completedDate), "d MMM yyyy")}
+              </p>
+            )}
+            <div className="rounded-md bg-muted/50 border p-3">
+              <p className="text-sm whitespace-pre-wrap" data-testid="dialog-completion-notes">
+                {viewingMilestoneNotes?.completionNotes}
+              </p>
+            </div>
+            <div className="flex justify-end pt-1">
+              <Button variant="outline" onClick={() => setViewingMilestoneNotes(null)} data-testid="button-close-view-notes">
+                Close
               </Button>
             </div>
           </div>
