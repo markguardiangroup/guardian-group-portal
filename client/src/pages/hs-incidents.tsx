@@ -1698,12 +1698,6 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
             <p className="text-xs text-muted-foreground italic">HSE Guidance</p>
           </div>
 
-          {/* ── Conclusion ── */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Conclusion</h3>
-            <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" placeholder="Summary conclusion from the investigation…" data-testid="textarea-inv-conclusion" />
-          </div>
-
           {/* ── Actions ── */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Actions</h3>
@@ -1750,6 +1744,12 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
               ))}
               <Button type="button" variant="outline" size="sm" onClick={addRecommendationRow} data-testid="button-add-inv-recommendation">+ Add Recommendation</Button>
             </div>
+          </div>
+
+          {/* ── Conclusion ── */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Conclusion</h3>
+            <Textarea value={conclusion} onChange={e => setConclusion(e.target.value)} rows={4} className="resize-none" placeholder="Summary conclusion from the investigation…" data-testid="textarea-inv-conclusion" />
           </div>
 
           {/* ── Amendments / Corrections ── */}
@@ -2745,15 +2745,6 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                   </div>
 
-                  {/* ─ Conclusion ─ */}
-                  <div className="py-5 space-y-3 border-t">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
-                    </div>
-                    <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
-                  </div>
-
                   {/* ─ Actions ─ */}
                   {(() => {
                     let acts: string[] = [];
@@ -2797,6 +2788,15 @@ function IncidentDetailView({ id }: { id: string }) {
                       </div>
                     ) : null;
                   })()}
+
+                  {/* ─ Conclusion ─ */}
+                  <div className="py-5 space-y-3 border-t">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
+                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                    </div>
+                    <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
+                  </div>
 
                   {/* ─ Amendments / Corrections ─ */}
                   {incident.invAmendments && (

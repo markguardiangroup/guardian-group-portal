@@ -13466,11 +13466,6 @@ export async function registerRoutes(
       </table>
     </section>
 
-    <section>
-      <h2>Conclusion</h2>
-      <p style="font-size:13px;line-height:1.7;color:#111827">${textVal(incident.invConclusion)}</p>
-    </section>
-
     ${(() => {
       let acts: string[] = [];
       try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
@@ -13490,6 +13485,11 @@ export async function registerRoutes(
       <ol style="margin:0;padding-left:20px">${recs.map((r: string, i: number) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${r}</li>`).join("")}</ol>
     </section>`;
     })()}
+
+    <section>
+      <h2>Conclusion</h2>
+      <p style="font-size:13px;line-height:1.7;color:#111827">${textVal(incident.invConclusion)}</p>
+    </section>
 
     ${incident.invAmendments ? `
     <section>

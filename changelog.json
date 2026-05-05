@@ -126,9 +126,18 @@
         "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42",
         "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53",
         "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64",
-        "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75"
+        "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
+        "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86"
       ],
       "entries": [
+        {
+          "id": "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
+          "patch": 6,
+          "message": "Investigation form and report: Actions and Recommendations now appear before Conclusion",
+          "category": "enhancement",
+          "createdAt": "2026-05-05T09:45:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
           "patch": 6,
