@@ -988,9 +988,7 @@ export default function Reports() {
         await exportDeadlineRisk(data.milestoneRisks ?? [], data.incidentRisks ?? [], selectedCompanyName);
       } else if (activeReport === "el-cases") {
         const [data, sourcesData] = await Promise.all([
-          summaries.elCases.data
-            ? Promise.resolve(summaries.elCases.data)
-            : fetchJson(buildUrl("/api/reports/el-cases", companyId, siteFilter)),
+          fetchJson(buildUrl("/api/reports/el-cases", companyId, siteFilter)),
           fetchJson("/api/sources"),
         ]);
         const sourceMap: Record<string, string> = Object.fromEntries(

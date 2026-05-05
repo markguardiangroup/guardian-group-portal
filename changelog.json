@@ -155,9 +155,18 @@
         "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
         "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
         "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
-        "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64"
+        "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
+        "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75"
       ],
       "entries": [
+        {
+          "id": "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75",
+          "patch": 6,
+          "category": "bug",
+          "message": "EL Case Status PDF: Company column was showing '—' for all rows because the export was reusing stale TanStack Query cache data fetched before companyName was added to the API response; fixed by always doing a fresh fetch in the export handler instead of falling back to cached data",
+          "createdAt": "2026-05-05T14:30:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
           "patch": 6,
