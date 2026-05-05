@@ -8349,6 +8349,9 @@ export async function registerRoutes(
       const allSites = await storage.getSites();
       const siteMap = new Map(allSites.map((s: any) => [s.id, s]));
 
+      const allCompanies = await storage.getCompanies();
+      const companyMap = new Map(allCompanies.map((c: any) => [c.id, c.name]));
+
       const companyId = req.query.companyId as string | undefined;
       const siteId = req.query.siteId as string | undefined;
 
@@ -8437,6 +8440,7 @@ export async function registerRoutes(
           sources: c.sources ?? [],
           siteId: c.siteId,
           siteName: site?.name || "Unknown Site",
+          companyName: companyMap.get(site?.companyId) || "Unknown Company",
           responseDeadline: c.responseDeadline,
           responseDeadlineOverdue,
           hearingDate: c.hearingDate,

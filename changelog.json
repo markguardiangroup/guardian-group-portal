@@ -154,9 +154,18 @@
         "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
         "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
         "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
-        "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53"
+        "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
+        "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64"
       ],
       "entries": [
+        {
+          "id": "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
+          "patch": 6,
+          "category": "enhancement",
+          "message": "EL Case Status PDF export: removed redundant Hearing column; added Company column (company name that the site belongs to — sourced from new companyMap lookup in /api/reports/el-cases route); renamed Docs column to Essential Docs; column widths rebalanced to fit new layout on A4 landscape",
+          "createdAt": "2026-05-05T14:20:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
           "patch": 6,

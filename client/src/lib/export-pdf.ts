@@ -638,9 +638,9 @@ interface ElCaseRowExport {
   status: string;
   sources: string[];
   siteName: string;
+  companyName: string;
   responseDeadline: string | null;
   responseDeadlineOverdue: boolean;
-  hearingDate: string | null;
   overdueCount: number;
   upcomingCount: number;
   checklistTotal: number;
@@ -723,10 +723,7 @@ export async function exportElCases(
       const deadlineLabel = c.responseDeadline
         ? `${new Date(c.responseDeadline).toLocaleDateString("en-GB")}${c.responseDeadlineOverdue ? " ⚠ Overdue" : ""}`
         : "—";
-      const hearingLabel = c.hearingDate
-        ? new Date(c.hearingDate).toLocaleDateString("en-GB")
-        : "—";
-      const milestones = `${c.checklistCompleted}/${c.checklistTotal} docs`;
+      const essentialDocs = `${c.checklistCompleted}/${c.checklistTotal}`;
       const statusFlags = [
         c.overdueCount > 0 ? `${c.overdueCount} overdue` : "",
         c.upcomingCount > 0 ? `${c.upcomingCount} upcoming` : "",
@@ -737,38 +734,38 @@ export async function exportElCases(
         c.caseName || "—",
         EL_TYPE_LABELS[c.caseType] ?? c.caseType,
         EL_STATUS_LABELS[c.status] ?? c.status,
+        c.companyName || "—",
         c.siteName,
         sourcesLabel,
         deadlineLabel,
-        hearingLabel,
-        milestones,
+        essentialDocs,
         statusFlags,
       ];
     });
 
     autoTable(doc, {
       startY: y,
-      head: [["Ref", "Case Name", "Type", "Status", "Site", "Source", "ET3 Deadline", "Hearing", "Docs", "Flags"]],
+      head: [["Ref", "Case Name", "Type", "Status", "Company", "Site", "Source", "ET3 Deadline", "Essential Docs", "Flags"]],
       body: rows,
       styles: { fontSize: 7.5, cellPadding: 2 },
       headStyles: { fillColor: BRAND.primary, textColor: 255, fontStyle: "bold", fontSize: 7.5 },
       alternateRowStyles: { fillColor: [249, 250, 251] },
       columnStyles: {
         0: { cellWidth: 20 },
-        1: { cellWidth: 38 },
-        2: { cellWidth: 18 },
-        3: { cellWidth: 26 },
+        1: { cellWidth: 36 },
+        2: { cellWidth: 16 },
+        3: { cellWidth: 24 },
         4: { cellWidth: 28 },
-        5: { cellWidth: 32 },
-        6: { cellWidth: 26 },
-        7: { cellWidth: 22 },
-        8: { cellWidth: 18 },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 28 },
+        7: { cellWidth: 24 },
+        8: { cellWidth: 20 },
         9: { cellWidth: "auto" },
       },
       margin: { left: 14, right: 14 },
       didParseCell: (data) => {
         if (data.section === "body") {
-          if (data.column.index === 6) {
+          if (data.column.index === 7) {
             const v = String(data.cell.raw);
             if (v.includes("Overdue")) { data.cell.styles.textColor = BRAND.danger; data.cell.styles.fontStyle = "bold"; }
           }
