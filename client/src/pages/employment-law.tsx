@@ -831,10 +831,20 @@ function CasesList() {
                                   </p>
                                 )}
                                 {/* Employee */}
-                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-2">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-1">
                                   <User className="h-3 w-3 shrink-0" />
                                   <span className="truncate">{c.employeeName}</span>
                                 </div>
+                                {/* Source chips */}
+                                {(c as any).sources && (c as any).sources.length > 0 && (
+                                  <div className="flex flex-wrap gap-0.5 mb-1.5">
+                                    {((c as any).sources as string[]).map((s: string) => (
+                                      <span key={s} className="inline-flex items-center rounded px-1 py-0.5 text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                        {CASE_SOURCE_LABELS[s] ?? s}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 {/* Deadline chips */}
                                 <div className="flex flex-wrap gap-1">
                                   {rd && (
@@ -878,6 +888,7 @@ function CasesList() {
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>ET3 Response Deadline</TableHead>
                   <TableHead>Next Milestone</TableHead>
                   <TableHead>Updated</TableHead>
@@ -892,6 +903,7 @@ function CasesList() {
                     <TableCell><Skeleton className="h-4 w-36" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -909,6 +921,7 @@ function CasesList() {
                   <TableHead>Employee</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>ET3 Response Deadline</TableHead>
                   <TableHead>Next Milestone</TableHead>
                   <TableHead>Updated</TableHead>
@@ -948,6 +961,19 @@ function CasesList() {
                     </TableCell>
                     <TableCell>
                       <CaseStatusBadge status={caseItem.status as CaseStatus} />
+                    </TableCell>
+                    <TableCell>
+                      {(caseItem as any).sources && (caseItem as any).sources.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {((caseItem as any).sources as string[]).map((s: string) => (
+                            <span key={s} className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                              {CASE_SOURCE_LABELS[s] ?? s}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {caseItem.responseDeadline ? (() => {
@@ -1142,6 +1168,19 @@ function CasesList() {
   );
 }
 
+const CASE_SOURCES = [
+  { value: "employee", label: "Employee" },
+  { value: "acas", label: "ACAS" },
+  { value: "employment_tribunal", label: "Employment Tribunal" },
+  { value: "solicitor", label: "Solicitor" },
+  { value: "trade_union", label: "Trade Union" },
+  { value: "hr_internal", label: "HR / Internal" },
+  { value: "management", label: "Management" },
+  { value: "whistleblowing", label: "Whistleblowing" },
+] as const;
+
+const CASE_SOURCE_LABELS: Record<string, string> = Object.fromEntries(CASE_SOURCES.map(s => [s.value, s.label]));
+
 function CreateCaseDialog({
   open,
   onOpenChange,
@@ -1164,7 +1203,17 @@ function CreateCaseDialog({
     description: "",
     isConfidential: true,
     responseDeadline: "",
+    sources: [] as string[],
   });
+
+  const toggleSource = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      sources: prev.sources.includes(value)
+        ? prev.sources.filter(s => s !== value)
+        : [...prev.sources, value],
+    }));
+  };
 
   // Fetch companies for selection
   const { data: companies } = useQuery<Company[]>({
@@ -1314,6 +1363,28 @@ function CreateCaseDialog({
               data-testid="input-response-deadline"
             />
             <p className="text-xs text-muted-foreground">Required — will be tracked as a milestone on this case</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Source <span className="text-muted-foreground text-xs font-normal">(select all that apply)</span></label>
+            <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
+              {CASE_SOURCES.map((src) => {
+                const checked = formData.sources.includes(src.value);
+                return (
+                  <button
+                    key={src.value}
+                    type="button"
+                    onClick={() => toggleSource(src.value)}
+                    data-testid={`toggle-source-${src.value}`}
+                    className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-sm text-left transition-colors ${checked ? "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
+                  >
+                    <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px] ${checked ? "bg-pink-600 border-pink-600 text-white" : "border-input"}`}>
+                      {checked && "✓"}
+                    </span>
+                    {src.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Description</label>

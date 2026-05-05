@@ -379,6 +379,7 @@ export const cases = pgTable("cases", {
   description: text("description"),
   isConfidential: boolean("is_confidential").notNull().default(true),
   isArchived: boolean("is_archived").notNull().default(false),
+  sources: text("sources").array().default([]),
   restrictedToUsers: text("restricted_to_users"),
   hearingDate: timestamp("hearing_date"),
   responseDeadline: timestamp("response_deadline"),

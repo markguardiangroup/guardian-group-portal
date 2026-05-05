@@ -547,12 +547,24 @@ function DeadlineRiskReport({ companyId, siteId }: { companyId: string; siteId: 
 
 // ─── Report: EL Case Status ───────────────────────────────────────────────────
 
+const CASE_SOURCE_LABELS: Record<string, string> = {
+  employee: "Employee",
+  acas: "ACAS",
+  employment_tribunal: "Employment Tribunal",
+  solicitor: "Solicitor",
+  trade_union: "Trade Union",
+  hr_internal: "HR / Internal",
+  management: "Management",
+  whistleblowing: "Whistleblowing",
+};
+
 interface ElCaseRow {
   id: string;
   caseReference: string;
   caseName: string;
   caseType: "tribunal_claim" | "acas_conciliation";
   status: string;
+  sources: string[];
   siteId: string;
   siteName: string;
   responseDeadline: string | null;
@@ -667,6 +679,15 @@ function ElCasesReport({ companyId, siteId }: { companyId: string; siteId: strin
                       <Building2 className="h-3 w-3 shrink-0" />
                       {c.siteName}
                     </div>
+                    {c.sources && c.sources.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {c.sources.map((s) => (
+                          <span key={s} className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            {CASE_SOURCE_LABELS[s] ?? s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Right: deadline + counts */}
