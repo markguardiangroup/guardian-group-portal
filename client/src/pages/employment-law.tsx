@@ -1742,7 +1742,7 @@ function CaseDetailView({ id }: { id: string }) {
       <div className="flex flex-col items-center justify-center p-12">
         <Briefcase className="h-12 w-12 text-muted-foreground" />
         <h2 className="mt-4 text-xl font-semibold">Case not found</h2>
-        <Button variant="outline" className="mt-4" onClick={() => navigate("/employment-law")}>
+        <Button variant="outline" className="mt-4" onClick={() => navigate("/employment-law/cases")}>
           Back to Cases
         </Button>
       </div>
@@ -1788,7 +1788,7 @@ function CaseDetailView({ id }: { id: string }) {
     <div>
       <div className="sticky top-0 z-30 bg-background border-b px-6 py-5">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/employment-law")} data-testid="button-back">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/employment-law/cases")} data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
