@@ -12128,6 +12128,7 @@ export async function registerRoutes(
         }
       }
       if (parsed.data.priority !== undefined) updateData.priority = parsed.data.priority;
+      if (parsed.data.module !== undefined) updateData.module = parsed.data.module;
       if (parsed.data.sortOrder !== undefined) updateData.sortOrder = parsed.data.sortOrder;
       if (parsed.data.developerNotes !== undefined) updateData.developerNotes = parsed.data.developerNotes;
       
