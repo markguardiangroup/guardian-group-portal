@@ -12280,6 +12280,7 @@ export async function registerRoutes(
     priority: z.enum(["low", "medium", "high"]).optional().default("medium"),
     module: roadmapModuleEnum.optional().nullable(),
     sortOrder: z.number().optional().default(0),
+    assignedUserId: z.string().optional().nullable(),
   });
 
   const updateRoadmapItemSchema = z.object({
@@ -12291,6 +12292,7 @@ export async function registerRoutes(
     module: roadmapModuleEnum.optional().nullable(),
     sortOrder: z.number().optional(),
     developerNotes: z.string().optional().nullable(),
+    assignedUserId: z.string().optional().nullable(),
   });
 
   // Get all roadmap items
@@ -12330,6 +12332,7 @@ export async function registerRoutes(
         priority: parsed.data.priority,
         module: parsed.data.module ?? null,
         sortOrder: parsed.data.sortOrder,
+        assignedUserId: parsed.data.assignedUserId ?? null,
       });
       
       res.status(201).json(item);
@@ -12369,6 +12372,7 @@ export async function registerRoutes(
       if (parsed.data.module !== undefined) updateData.module = parsed.data.module;
       if (parsed.data.sortOrder !== undefined) updateData.sortOrder = parsed.data.sortOrder;
       if (parsed.data.developerNotes !== undefined) updateData.developerNotes = parsed.data.developerNotes;
+      if (parsed.data.assignedUserId !== undefined) updateData.assignedUserId = parsed.data.assignedUserId;
       
       const updated = await storage.updateRoadmapItem(req.params.id, updateData);
       

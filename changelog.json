@@ -156,9 +156,18 @@
         "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
         "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
         "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
-        "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75"
+        "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75",
+        "q4o85m63-9s6p-4t3u-1r04-5v7q9r1s2u86"
       ],
       "entries": [
+        {
+          "id": "q4o85m63-9s6p-4t3u-1r04-5v7q9r1s2u86",
+          "patch": 6,
+          "category": "feature",
+          "message": "Admin Roadmap: added assignedUserId field to roadmap_items table (ALTER TABLE migration); schema and routes updated (createRoadmapItemSchema, updateRoadmapItemSchema both accept assignedUserId); 'Assign to' dropdown in create/edit forms shows admin users only (filtered from /api/users); assigned user shown on cards as initials chip with full name; shown in detail view with UserCircle icon; new 'Assigned to' filter dropdown in header bar supports All Assignees / Unassigned / individual admin users",
+          "createdAt": "2026-05-05T14:40:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75",
           "patch": 6,

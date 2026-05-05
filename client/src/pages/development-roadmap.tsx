@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -53,8 +53,11 @@ import {
   GraduationCap,
   Wrench,
   BarChart2,
+  UserCircle,
 } from "lucide-react";
 import { format } from "date-fns";
+
+type UserType = { id: string; name: string; email: string; role: string };
 
 const statusConfig: Record<RoadmapStatus, { label: string; color: string; icon: typeof Lightbulb }> = {
   idea: { label: "Idea", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300", icon: Lightbulb },
@@ -125,6 +128,21 @@ function sortByCompletedDate(items: RoadmapItem[]): RoadmapItem[] {
   });
 }
 
+function UserChip({ userId, adminUsers }: { userId: string | null | undefined; adminUsers: UserType[] }) {
+  if (!userId) return null;
+  const u = adminUsers.find(a => a.id === userId);
+  if (!u) return null;
+  const initials = u.name.split(" ").map(p => p[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-medium text-[10px]">
+        {initials}
+      </span>
+      {u.name}
+    </span>
+  );
+}
+
 export default function DevelopmentRoadmap() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -137,11 +155,18 @@ export default function DevelopmentRoadmap() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterModule, setFilterModule] = useState<string>("all");
+  const [filterAssignedUser, setFilterAssignedUser] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: roadmapItems = [], isLoading } = useQuery<RoadmapItem[]>({
     queryKey: ["/api/roadmap"],
   });
+
+  const { data: allUsers = [] } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const adminUsers = useMemo(() => allUsers.filter(u => u.role === "admin"), [allUsers]);
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<RoadmapItem>) => {
@@ -204,12 +229,15 @@ export default function DevelopmentRoadmap() {
     const matchesStatus = filterStatus === "all" || item.status === filterStatus;
     const matchesType = filterType === "all" || item.category === filterType;
     const matchesModule = filterModule === "all" || (filterModule === "none" ? !item.module : item.module === filterModule);
+    const matchesAssignedUser =
+      filterAssignedUser === "all" ||
+      (filterAssignedUser === "unassigned" ? !(item as any).assignedUserId : (item as any).assignedUserId === filterAssignedUser);
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch = !query ||
       item.title.toLowerCase().includes(query) ||
       (item.description && item.description.toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query));
-    return matchesStatus && matchesType && matchesModule && matchesSearch;
+    return matchesStatus && matchesType && matchesModule && matchesAssignedUser && matchesSearch;
   });
 
   const groupedItems = {
@@ -218,6 +246,8 @@ export default function DevelopmentRoadmap() {
     in_progress: sortByPriority(filteredItems.filter(i => i.status === "in_progress")),
     completed: sortByCompletedDate(filteredItems.filter(i => i.status === "completed")),
   };
+
+  const viewingAssignedUser = viewingItem ? adminUsers.find(a => a.id === (viewingItem as any).assignedUserId) : null;
 
   return (
     <div className="flex-1 overflow-auto p-6">
@@ -275,6 +305,19 @@ export default function DevelopmentRoadmap() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filterAssignedUser} onValueChange={setFilterAssignedUser}>
+              <SelectTrigger className="w-[150px]" data-testid="select-filter-assigned-user">
+                <UserCircle className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Assigned to" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Assignees</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {adminUsers.map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button data-testid="button-add-roadmap-item">
@@ -287,6 +330,7 @@ export default function DevelopmentRoadmap() {
                   <DialogTitle>Add Roadmap Item</DialogTitle>
                 </DialogHeader>
                 <RoadmapItemForm
+                  adminUsers={adminUsers}
                   onSubmit={(data) => createMutation.mutate(data)}
                   isLoading={createMutation.isPending}
                 />
@@ -330,6 +374,7 @@ export default function DevelopmentRoadmap() {
                       <RoadmapCard
                         key={item.id}
                         item={item}
+                        adminUsers={adminUsers}
                         onClick={() => setViewingItem(item)}
                       />
                     ))}
@@ -349,6 +394,7 @@ export default function DevelopmentRoadmap() {
               <RoadmapCard
                 key={item.id}
                 item={item}
+                adminUsers={adminUsers}
                 onClick={() => setViewingItem(item)}
               />
             ))}
@@ -407,7 +453,7 @@ export default function DevelopmentRoadmap() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     Created {viewingItem.createdAt ? format(new Date(viewingItem.createdAt), "MMM d, yyyy") : "Unknown"}
@@ -416,6 +462,12 @@ export default function DevelopmentRoadmap() {
                     <span className="flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3 text-emerald-600" />
                       Completed {format(new Date(viewingItem.completedAt), "MMM d, yyyy")}
+                    </span>
+                  )}
+                  {viewingAssignedUser && (
+                    <span className="flex items-center gap-1.5">
+                      <UserCircle className="h-3 w-3" />
+                      Assigned to <strong>{viewingAssignedUser.name}</strong>
                     </span>
                   )}
                 </div>
@@ -557,6 +609,7 @@ export default function DevelopmentRoadmap() {
             {editingItem && (
               <RoadmapItemForm
                 item={editingItem}
+                adminUsers={adminUsers}
                 onSubmit={(data) => updateMutation.mutate({ id: editingItem.id, ...data })}
                 isLoading={updateMutation.isPending}
               />
@@ -570,9 +623,11 @@ export default function DevelopmentRoadmap() {
 
 function RoadmapCard({
   item,
+  adminUsers,
   onClick,
 }: {
   item: RoadmapItem;
+  adminUsers: UserType[];
   onClick: () => void;
 }) {
   const status = statusConfig[item.status as RoadmapStatus];
@@ -580,7 +635,6 @@ function RoadmapCard({
   const category = categoryConfig[item.category] || categoryConfig.feature;
   const CategoryIcon = category.icon;
   const PriorityIcon = priority.icon;
-  const mod = item.module ? moduleConfig[item.module as RoadmapModule] : null;
 
   return (
     <Card
@@ -613,12 +667,15 @@ function RoadmapCard({
           </div>
         </div>
 
-        {item.status === "completed" && item.completedAt && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-            Completed {format(new Date(item.completedAt), "MMM d, yyyy")}
-          </div>
-        )}
+        <div className="flex items-center justify-between gap-2">
+          <UserChip userId={(item as any).assignedUserId} adminUsers={adminUsers} />
+          {item.status === "completed" && item.completedAt && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+              {format(new Date(item.completedAt), "MMM d, yyyy")}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
@@ -626,10 +683,12 @@ function RoadmapCard({
 
 function RoadmapItemForm({
   item,
+  adminUsers,
   onSubmit,
   isLoading,
 }: {
   item?: RoadmapItem;
+  adminUsers: UserType[];
   onSubmit: (data: Partial<RoadmapItem>) => void;
   isLoading: boolean;
 }) {
@@ -639,11 +698,20 @@ function RoadmapItemForm({
   const [status, setStatus] = useState<RoadmapStatus>(item?.status as RoadmapStatus || "idea");
   const [priority, setPriority] = useState<RoadmapPriority>(item?.priority as RoadmapPriority || "medium");
   const [module, setModule] = useState<string>(item?.module || "none");
+  const [assignedUserId, setAssignedUserId] = useState<string>((item as any)?.assignedUserId || "unassigned");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onSubmit({ title, description, category, status, priority, module: module === "none" ? null : module as RoadmapModule });
+    onSubmit({
+      title,
+      description,
+      category,
+      status,
+      priority,
+      module: module === "none" ? null : module as RoadmapModule,
+      assignedUserId: assignedUserId === "unassigned" ? null : assignedUserId,
+    } as any);
   };
 
   return (
@@ -691,6 +759,22 @@ function RoadmapItemForm({
                 </SelectItem>
               );
             })}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Assign to</Label>
+        <Select value={assignedUserId} onValueChange={setAssignedUserId}>
+          <SelectTrigger data-testid="select-assigned-user">
+            <UserCircle className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+            <SelectValue placeholder="Unassigned" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {adminUsers.map(u => (
+              <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

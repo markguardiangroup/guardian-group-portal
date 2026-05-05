@@ -1441,6 +1441,7 @@ export const roadmapItems = pgTable("roadmap_items", {
   sortOrder: integer("sort_order").notNull().default(0),
   developerNotes: text("developer_notes"),
   completedAt: timestamp("completed_at"),
+  assignedUserId: varchar("assigned_user_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
