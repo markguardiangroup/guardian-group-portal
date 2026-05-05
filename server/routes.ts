@@ -332,6 +332,7 @@ const createChecklistItemSchema = z.object({
   caseId: z.string().min(1),
   title: z.string().min(1),
   description: z.string().optional(),
+  submissionDate: z.string().optional().nullable(),
 });
 
 const createSupportRequestSchema = z.object({
@@ -9185,6 +9186,7 @@ export async function registerRoutes(
       if (description !== undefined) updates.description = description || null;
       if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
 
+      const existing = await storage.getCaseMilestone(req.params.id);
       const milestone = await storage.updateCaseMilestone(req.params.id, updates);
       if (!milestone) {
         return res.status(404).json({ error: "Milestone not found" });
@@ -9195,6 +9197,22 @@ export async function registerRoutes(
         await storage.updateCase(milestone.caseId, {
           responseDeadline: dueDate ? new Date(dueDate) : null,
         } as any);
+      }
+
+      // If this milestone is linked to a checklist item, sync back
+      if (milestone.checklistItemId) {
+        const checklistUpdates: any = {};
+        if (dueDate !== undefined) {
+          checklistUpdates.submissionDate = dueDate ? new Date(dueDate) : null;
+        }
+        if (typeof isCompleted === "boolean") {
+          checklistUpdates.isCompleted = isCompleted;
+          checklistUpdates.completedAt = isCompleted ? (completedDate ? new Date(completedDate) : new Date()) : null;
+          checklistUpdates.completedBy = isCompleted ? user.id : null;
+        }
+        if (Object.keys(checklistUpdates).length > 0) {
+          await storage.updateCaseDocumentChecklistItem(milestone.checklistItemId, checklistUpdates);
+        }
       }
 
       const caseData = await storage.getCase(milestone.caseId);
@@ -9306,10 +9324,25 @@ export async function registerRoutes(
       const caseData = await storage.getCase(parseResult.data.caseId);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
 
+      const { submissionDate, ...rest } = parseResult.data;
       const item = await storage.createCaseDocumentChecklistItem({
-        ...parseResult.data,
+        ...rest,
+        submissionDate: submissionDate ? new Date(submissionDate) : null,
         createdBy: user.id,
       });
+
+      // Auto-create a linked milestone if a submission date was provided
+      let finalItem = item;
+      if (submissionDate) {
+        const milestone = await storage.createCaseMilestone({
+          caseId: item.caseId,
+          title: `Submit: ${item.title}`,
+          dueDate: new Date(submissionDate),
+          checklistItemId: item.id,
+          createdBy: user.id,
+        });
+        finalItem = await storage.updateCaseDocumentChecklistItem(item.id, { linkedMilestoneId: milestone.id }) ?? item;
+      }
 
       await storage.createAuditLog({
         action: "checklist_item_added",
@@ -9321,7 +9354,7 @@ export async function registerRoutes(
         details: `Document checklist item "${item.title}" added to case ${caseData.caseReference}`,
       });
 
-      res.status(201).json(item);
+      res.status(201).json(finalItem);
     } catch (error) {
       console.error("Create checklist item error:", error);
       res.status(500).json({ error: "Failed to create checklist item" });
@@ -9342,8 +9375,34 @@ export async function registerRoutes(
         updates.completedAt = updates.isCompleted ? new Date() : null;
         updates.completedBy = updates.isCompleted ? user.id : null;
       }
+      if ("submissionDate" in updates) {
+        updates.submissionDate = updates.submissionDate ? new Date(updates.submissionDate) : null;
+      }
 
       const item = await storage.updateCaseDocumentChecklistItem(req.params.id, updates);
+
+      // Sync submissionDate / title changes to linked milestone
+      if ("submissionDate" in req.body || req.body.title) {
+        if (existing.linkedMilestoneId) {
+          const milestoneUpdates: any = {};
+          if ("submissionDate" in req.body) milestoneUpdates.dueDate = updates.submissionDate ?? null;
+          if (req.body.title) milestoneUpdates.title = `Submit: ${req.body.title}`;
+          await storage.updateCaseMilestone(existing.linkedMilestoneId, milestoneUpdates);
+        } else if ("submissionDate" in req.body && updates.submissionDate) {
+          // First time a submission date is being added — create the milestone
+          const caseData2 = await storage.getCase(existing.caseId);
+          if (caseData2) {
+            const milestone = await storage.createCaseMilestone({
+              caseId: existing.caseId,
+              title: `Submit: ${req.body.title ?? existing.title}`,
+              dueDate: updates.submissionDate,
+              checklistItemId: existing.id,
+              createdBy: user.id,
+            });
+            await storage.updateCaseDocumentChecklistItem(existing.id, { linkedMilestoneId: milestone.id });
+          }
+        }
+      }
 
       if (typeof req.body.isCompleted === "boolean") {
         const caseData = await storage.getCase(existing.caseId);

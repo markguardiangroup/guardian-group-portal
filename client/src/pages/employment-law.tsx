@@ -1229,7 +1229,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [caseNotesExpanded, setCaseNotesExpanded] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
-  const [checklistForm, setChecklistForm] = useState({ title: "", description: "" });
+  const [checklistForm, setChecklistForm] = useState({ title: "", description: "", submissionDate: "" });
   const [editingChecklistItem, setEditingChecklistItem] = useState<CaseDocumentChecklist | null>(null);
   const [showAccessDialog, setShowAccessDialog] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -1396,14 +1396,15 @@ function CaseDetailView({ id }: { id: string }) {
   });
 
   const createChecklistItemMutation = useMutation({
-    mutationFn: async (data: { title: string; description: string }) => {
+    mutationFn: async (data: { title: string; description: string; submissionDate?: string | null }) => {
       return apiRequest("POST", "/api/checklist", { ...data, caseId: id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       setShowChecklistDialog(false);
-      setChecklistForm({ title: "", description: "" });
+      setChecklistForm({ title: "", description: "", submissionDate: "" });
       toast({ title: "Checklist item added" });
     },
   });
@@ -1414,6 +1415,7 @@ function CaseDetailView({ id }: { id: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "milestones"] });
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
       setEditingChecklistItem(null);
     },
@@ -2327,6 +2329,12 @@ function CaseDetailView({ id }: { id: string }) {
                             {item.description && (
                               <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                             )}
+                            {item.submissionDate && !item.isCompleted && (
+                              <p className={`text-xs mt-0.5 flex items-center gap-1 ${new Date(item.submissionDate) < new Date() ? "text-red-500" : "text-amber-600 dark:text-amber-400"}`}>
+                                <Calendar className="h-3 w-3" />
+                                Submit by {format(new Date(item.submissionDate), "d MMM yyyy")}
+                              </p>
+                            )}
                             {item.isCompleted && item.completedAt && (
                               <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
                                 Completed {format(new Date(item.completedAt), "d MMM yyyy")}
@@ -2342,7 +2350,15 @@ function CaseDetailView({ id }: { id: string }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  onClick={() => { setEditingChecklistItem(item); setChecklistForm({ title: item.title, description: item.description ?? "" }); setShowChecklistDialog(true); }}
+                                  onClick={() => {
+                                    setEditingChecklistItem(item);
+                                    setChecklistForm({
+                                      title: item.title,
+                                      description: item.description ?? "",
+                                      submissionDate: item.submissionDate ? format(new Date(item.submissionDate), "yyyy-MM-dd") : "",
+                                    });
+                                    setShowChecklistDialog(true);
+                                  }}
                                   data-testid={`button-edit-checklist-${item.id}`}
                                 >
                                   <Pencil className="mr-2 h-4 w-4" />
@@ -2549,6 +2565,12 @@ function CaseDetailView({ id }: { id: string }) {
                         {milestone.isResponseDeadline && (
                           <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border-0 text-xs py-0">
                             ET3 Response Deadline
+                          </Badge>
+                        )}
+                        {milestone.checklistItemId && (
+                          <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-0 text-xs py-0 flex items-center gap-1">
+                            <LinkIcon className="h-3 w-3" />
+                            Essential document
                           </Badge>
                         )}
                       </div>
@@ -3178,7 +3200,7 @@ function CaseDetailView({ id }: { id: string }) {
       </Dialog>
 
       {/* Checklist add/edit dialog */}
-      <Dialog open={showChecklistDialog} onOpenChange={(open) => { setShowChecklistDialog(open); if (!open) { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "" }); } }}>
+      <Dialog open={showChecklistDialog} onOpenChange={(open) => { setShowChecklistDialog(open); if (!open) { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "", submissionDate: "" }); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingChecklistItem ? "Edit Essential Document" : "Add Essential Document"}</DialogTitle>
@@ -3206,6 +3228,21 @@ function CaseDetailView({ id }: { id: string }) {
                 data-testid="input-checklist-description"
               />
             </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-pink-500" />
+                Submission date <span className="text-muted-foreground text-xs">(optional)</span>
+              </label>
+              <Input
+                type="date"
+                value={checklistForm.submissionDate}
+                onChange={e => setChecklistForm(f => ({ ...f, submissionDate: e.target.value }))}
+                data-testid="input-checklist-submission-date"
+              />
+              {checklistForm.submissionDate && (
+                <p className="text-xs text-muted-foreground">A milestone "Submit: {checklistForm.title || "…"}" will {editingChecklistItem?.linkedMilestoneId ? "be updated" : "appear"} in the milestone list.</p>
+              )}
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setShowChecklistDialog(false)} data-testid="button-checklist-cancel">Cancel</Button>
               <Button
@@ -3213,10 +3250,21 @@ function CaseDetailView({ id }: { id: string }) {
                 disabled={!checklistForm.title.trim() || (editingChecklistItem ? updateChecklistItemMutation.isPending : createChecklistItemMutation.isPending)}
                 onClick={() => {
                   if (editingChecklistItem) {
-                    updateChecklistItemMutation.mutate({ itemId: editingChecklistItem.id, data: { title: checklistForm.title.trim(), description: checklistForm.description.trim() || null } });
+                    updateChecklistItemMutation.mutate({
+                      itemId: editingChecklistItem.id,
+                      data: {
+                        title: checklistForm.title.trim(),
+                        description: checklistForm.description.trim() || null,
+                        submissionDate: checklistForm.submissionDate || null,
+                      }
+                    });
                     setShowChecklistDialog(false);
                   } else {
-                    createChecklistItemMutation.mutate({ title: checklistForm.title.trim(), description: checklistForm.description.trim() });
+                    createChecklistItemMutation.mutate({
+                      title: checklistForm.title.trim(),
+                      description: checklistForm.description.trim(),
+                      submissionDate: checklistForm.submissionDate || null,
+                    });
                   }
                 }}
                 data-testid="button-checklist-save"

@@ -145,9 +145,18 @@
         "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31",
         "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
         "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
-        "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64"
+        "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
+        "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75"
       ],
       "entries": [
+        {
+          "id": "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
+          "patch": 6,
+          "message": "Essential documents: submission date field added to create/edit dialog; auto-creates a linked milestone 'Submit: [title]'; date syncs bidirectionally between checklist item and milestone; completing the milestone also marks the checklist item complete with the same date; linked milestones show an 'Essential document' amber badge",
+          "category": "feature",
+          "createdAt": "2026-05-05T11:46:00.000Z",
+          "createdBy": "agent"
+        },
         {
           "id": "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
           "patch": 6,
