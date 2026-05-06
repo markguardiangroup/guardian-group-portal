@@ -1897,6 +1897,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T21:15:24.070Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
+          "patch": 6,
+          "message": "Fixed: All Sites document list now defaults to table view and expands shared docs per site",
+          "category": "bug",
+          "createdAt": "2026-05-06T21:23:30.362Z",
+          "createdBy": "agent"
         }
       ]
     }

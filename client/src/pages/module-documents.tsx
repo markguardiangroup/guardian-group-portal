@@ -491,8 +491,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // When viewing a specific group/company scope, the folder hierarchy
     // (which is per-site) doesn't apply — show the flat table instead.
     if (urlScope && urlEntityId) return explicitViewMode ?? "folder";
-    return explicitViewMode ?? "folder";
-  }, [sites, explicitViewMode, urlScope, urlEntityId]);
+    // In multi-site ("All Sites") context default to table — shared/group docs are
+    // expanded once per covered site in table view.  Folder view only adds value
+    // when a single specific site is selected.
+    const isMultiSite = !selectedSiteId || selectedSiteId === "all";
+    return explicitViewMode ?? (isMultiSite ? "table" : "folder");
+  }, [sites, explicitViewMode, urlScope, urlEntityId, selectedSiteId]);
 
   const setViewMode = (mode: ViewMode) => setExplicitViewMode(mode);
 
@@ -799,6 +803,43 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
     return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
   }, [hierarchy]);
+
+  // In "All Sites" folder view the hierarchy deduplicates shared docs to one entry.
+  // Expand them here (per covered site) so the unfiled section shows one row per site,
+  // mirroring the table-view expansion. We use filteredDocuments as the source of
+  // sharedWithSiteIds / sharedWithCompanyIds since HierarchyDocument lacks them.
+  const expandedUnmatchedShared = useMemo(() => {
+    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    if (!isAllSites || filteredSites.length <= 1) return unmatchedShared;
+    const docLookup = new Map<string, any>();
+    for (const d of filteredDocuments ?? []) {
+      if (d.siteId === null) docLookup.set(d.id, d);
+    }
+    const result: any[] = [];
+    for (const doc of unmatchedShared) {
+      const full = docLookup.get(doc.id);
+      if (!full) {
+        result.push(doc);
+        continue;
+      }
+      const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
+      const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
+      const docEntityId = (full as any).entityId as string | undefined;
+      const coveredSites = filteredSites.filter(s =>
+        sharedWithSiteIds?.includes(s.id) ||
+        sharedWithCompanyIds?.includes(s.companyId) ||
+        (docEntityId !== undefined && docEntityId === s.companyId)
+      );
+      if (coveredSites.length === 0) {
+        result.push(doc);
+      } else {
+        for (const site of coveredSites) {
+          result.push({ ...doc, _virtualSiteId: site.id, _virtualSiteName: site.name, _virtualKey: `${doc.id}-${site.id}` });
+        }
+      }
+    }
+    return result;
+  }, [unmatchedShared, filteredDocuments, selectedSiteId, filteredSites]);
 
   // Set of shared-doc IDs that the hierarchy API confirmed are visible for the
   // currently selected site. Used to correctly include shared docs in table view.
@@ -1937,14 +1978,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           ) : null}
 
           {/* Unfiled Documents — includes any shared docs whose folder template doesn't exist on this site */}
-          {hierarchySiteId && ((hierarchy?.unfiledDocuments?.length ?? 0) + unmatchedShared.length) > 0 && (
+          {hierarchySiteId && ((hierarchy?.unfiledDocuments?.length ?? 0) + expandedUnmatchedShared.length) > 0 && (
             <DroppableFolderZone folderId="__unfiled__" isDragEnabled={isAdmin}>
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
                 <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
                   <FileText className="h-4 w-4" />
                   Unfiled Documents
-                  <Badge variant="secondary">{(hierarchy?.unfiledDocuments?.length ?? 0) + unmatchedShared.length}</Badge>
+                  <Badge variant="secondary">{(hierarchy?.unfiledDocuments?.length ?? 0) + expandedUnmatchedShared.length}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
@@ -1971,21 +2012,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </Link>
                   </DraggableDocRow>
                 ))}
-                {unmatchedShared.map((doc) => (
+                {expandedUnmatchedShared.map((doc) => (
                   <Link
-                    key={doc.id}
+                    key={(doc as any)._virtualKey ?? doc.id}
                     href={`${basePath}/documents/${doc.id}`}
                     className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
-                    data-testid={`link-shared-document-${doc.id}`}
+                    data-testid={`link-shared-document-${(doc as any)._virtualKey ?? doc.id}`}
                   >
                     <div className="flex items-center gap-3">
                       <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {doc.sharedFromEntityName
-                            ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
-                            : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
+                          {(doc as any)._virtualSiteName
+                            ? `${(doc as any)._virtualSiteName}${doc.sharedFromEntityName ? ` · Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}` : ""}`
+                            : doc.sharedFromEntityName
+                              ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                              : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
                         </p>
                       </div>
                     </div>
