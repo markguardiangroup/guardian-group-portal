@@ -921,12 +921,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               // toward Compliant — without this guard, a stray cascaded doc can
               // inflate Compliant beyond the actual number of required slots.
               const siteEffectiveRequired = new Set(effectiveRequiredBySite[site.id] ?? []);
-              // Status priority (lower = better). Non-required docs and docs
-              // for templates outside the effective set are ignored.
+              // Status priority (lower = more urgent). For each template slot,
+              // pick the WORST status among all docs covering it so that any
+              // review_required or overdue doc is surfaced even when a compliant
+              // copy of the same template also exists at this site.
               const statusRank: Record<string, number> = {
-                compliant: 0,
+                overdue: 0,
                 review_required: 1,
-                overdue: 2,
+                compliant: 2,
               };
               const bestStatusByTemplate = new Map<string, string>();
               for (const d of siteDocs) {

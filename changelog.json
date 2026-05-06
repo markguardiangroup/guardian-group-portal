@@ -1857,6 +1857,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T10:25:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-4c9d-d0ea-1f2b3c4d5e6f",
+          "patch": 6,
+          "message": "Fixed: site cards now surface review-required docs even when a compliant copy of the same template also exists",
+          "category": "bug",
+          "createdAt": "2026-05-06T10:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
