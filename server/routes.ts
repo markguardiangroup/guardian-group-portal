@@ -1930,10 +1930,12 @@ export async function registerRoutes(
           // Apply additional site filter if specified
           if (requestedSiteId && requestedSiteId !== "all") {
             if (doc.siteId !== requestedSiteId) {
-              // For scoped docs (null siteId), check if shared to the requested site
+              // For scoped docs (null siteId), check if visible to the requested site
               if (!doc.siteId && (doc.scope === "company" || doc.scope === "group")) {
                 const site = await storage.getSite(requestedSiteId);
                 if (!site) return null;
+                // Doc owned by the same company as the site — no share record needed
+                if (doc.entityId === site.companyId) return doc;
                 const shares = await storage.getDocumentShares(doc.id);
                 const isSharedToSite = shares.some(s =>
                   (s.entityType === "site" && s.entityId === requestedSiteId) ||
@@ -1947,11 +1949,13 @@ export async function registerRoutes(
           } else if (requestedSiteIds) {
             const siteIdList = requestedSiteIds.split(",");
             if (!doc.siteId) {
-              // For scoped docs, check if shared to any of the requested sites
+              // For scoped docs, check if visible to any of the requested sites
               if (doc.scope === "company" || doc.scope === "group") {
-                const shares = await storage.getDocumentShares(doc.id);
                 const matchedSite = await Promise.all(siteIdList.map(sid => storage.getSite(sid)));
                 const matchedCompanyIds = new Set(matchedSite.filter(Boolean).map(s => s!.companyId));
+                // Doc owned by one of the matched companies — no share record needed
+                if (doc.entityId && matchedCompanyIds.has(doc.entityId)) return doc;
+                const shares = await storage.getDocumentShares(doc.id);
                 const isShared = shares.some(s =>
                   (s.entityType === "site" && siteIdList.includes(s.entityId)) ||
                   (s.entityType === "company" && matchedCompanyIds.has(s.entityId))

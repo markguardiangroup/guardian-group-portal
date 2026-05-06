@@ -163,6 +163,22 @@
       ],
       "entries": [
         {
+          "id": "e7b2a6c4-3f18-8b90-2a56-d5c6e7f8a9b0",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: group docs owned by a company were hidden on that company's own site dashboards",
+          "createdAt": "2026-05-06T13:05:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f8c3b7d5-4a29-9c01-3b67-e6d7f8a9b0c1",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: Document Progress count was 0 for sites belonging to a group owner company",
+          "createdAt": "2026-05-06T13:05:01.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "c5f0e4a3-1d96-6f78-0e34-b3a4f5c6d7e8",
           "patch": 6,
           "category": "bug",

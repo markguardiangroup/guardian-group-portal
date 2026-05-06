@@ -346,14 +346,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
           return (
             (sharedWithSiteIds?.includes(siteId) ?? false) ||
-            !!(siteCompanyId && sharedWithCompanyIds?.includes(siteCompanyId))
+            !!(siteCompanyId && sharedWithCompanyIds?.includes(siteCompanyId)) ||
+            // Doc owned by the same company as the site (no share record on origin docs)
+            !!(siteCompanyId && (doc as any).entityId === siteCompanyId)
           );
         }
         return false;
       }
       if (companySiteIds && companySiteIds.length > 0) {
         if (companySiteIds.includes(doc.siteId)) return true;
-        // Also include scoped docs shared with any site in this company
+        // Also include scoped docs shared with (or owned by) any of these companies
         if (doc.siteId === null) {
           const companySiteIdSet = new Set(companySiteIds);
           const companyId = sites?.find(s => companySiteIds.includes(s.id))?.companyId;
@@ -361,7 +363,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
           return (
             (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
-            !!(companyId && sharedWithCompanyIds?.includes(companyId))
+            !!(companyId && sharedWithCompanyIds?.includes(companyId)) ||
+            // Doc owned by this company (no share record needed for origin)
+            !!(companyId && (doc as any).entityId === companyId)
           );
         }
         return false;

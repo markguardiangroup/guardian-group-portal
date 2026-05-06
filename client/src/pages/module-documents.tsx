@@ -943,7 +943,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
         matchesCompany =
           (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
-          !!(selectedCompanyId && sharedWithCompanyIds?.includes(selectedCompanyId));
+          !!(selectedCompanyId && sharedWithCompanyIds?.includes(selectedCompanyId)) ||
+          // Doc owned by this company — no share record exists for the origin entity
+          !!(selectedCompanyId && (doc as any).entityId === selectedCompanyId);
       } else {
         const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
         matchesCompany = docCompanyName === selectedCompany;
