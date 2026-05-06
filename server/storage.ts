@@ -730,10 +730,16 @@ export class MemStorage implements IStorage {
 
     // Group by siteId / companyId for O(1) lookups
     const docsBySite = new Map<string, typeof allDocs>();
+    const docsByCompany = new Map<string, typeof allDocs>();
     for (const d of allDocs) {
-      if (!d.siteId) continue;
-      if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
-      docsBySite.get(d.siteId)!.push(d);
+      if (d.siteId) {
+        if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
+        docsBySite.get(d.siteId)!.push(d);
+      } else if (d.entityId) {
+        // Company-scoped documents (siteId IS NULL) count toward all sites of that company
+        if (!docsByCompany.has(d.entityId)) docsByCompany.set(d.entityId, []);
+        docsByCompany.get(d.entityId)!.push(d);
+      }
     }
     const overridesBySite = new Map<string, typeof allSiteOverrides>();
     for (const o of allSiteOverrides) {
@@ -760,7 +766,10 @@ export class MemStorage implements IStorage {
 
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
-      const siteDocs = docsBySite.get(site.id) ?? [];
+      const siteDocs = [
+        ...(docsBySite.get(site.id) ?? []),
+        ...(docsByCompany.get(site.companyId) ?? []),
+      ];
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
         siteDocs,
@@ -829,10 +838,16 @@ export class MemStorage implements IStorage {
     const usersMap = new Map(allUsers.map(u => [u.id, u]));
 
     const docsBySite = new Map<string, typeof allDocs>();
+    const companyDocs: typeof allDocs = [];
     for (const d of allDocs) {
-      if (!d.siteId || !siteIds.has(d.siteId)) continue;
-      if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
-      docsBySite.get(d.siteId)!.push(d);
+      if (d.siteId) {
+        if (!siteIds.has(d.siteId)) continue;
+        if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
+        docsBySite.get(d.siteId)!.push(d);
+      } else if (d.entityId === companyId) {
+        // Company-scoped documents count toward all sites of this company
+        companyDocs.push(d);
+      }
     }
     const overridesBySite = new Map<string, typeof allSiteOverrides>();
     for (const o of allSiteOverrides) {
@@ -855,7 +870,10 @@ export class MemStorage implements IStorage {
     }
 
     return companySites.map(site => {
-      const siteDocs = docsBySite.get(site.id) ?? [];
+      const siteDocs = [
+        ...(docsBySite.get(site.id) ?? []),
+        ...companyDocs,
+      ];
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
         siteDocs,

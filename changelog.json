@@ -1801,6 +1801,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-06T00:04:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b3c4d5e6-f7a8-4b9c-ad0e-1f2a3b4c5d6e",
+          "patch": 6,
+          "message": "Fixed: company-level documents now count toward site compliance scores",
+          "category": "bug",
+          "createdAt": "2026-05-06T00:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
