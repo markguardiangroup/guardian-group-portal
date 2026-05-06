@@ -1362,7 +1362,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       (doc as any).scope !== urlScope ||
                       (doc as any).entityId !== urlEntityId
                     );
-                    const isScopedDoc = !!(doc.siteId === null && ((doc as any).scope === "group" || (doc as any).scope === "company"));
+                    const isScopedDoc = !!(doc.siteId === null && ((doc as any).scope === "group" || (doc as any).scope === "company") && viewedAsLinked);
                     const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isScopedDoc;
                     const linkedFromScope: "group" | "company" | null = viewedAsLinked
                       ? ((doc as any).scope === "group" ? "group" : "company")
@@ -2291,7 +2291,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     )
                   );
                   // _originalSiteIdWasNull is set on virtual rows expanded from shared docs
-                  const isScopedDoc = !!((doc.siteId === null || (doc as any)._originalSiteIdWasNull) && ((doc as any).scope === "group" || (doc as any).scope === "company"));
+                  const isScopedDoc = !!((doc.siteId === null || (doc as any)._originalSiteIdWasNull) && ((doc as any).scope === "group" || (doc as any).scope === "company") && viewedAsLinked);
                   const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isScopedDoc;
                   const linkedFromScope: "group" | "company" | null = viewedAsLinked
                     ? ((doc as any).scope === "group" ? "group" : "company")
