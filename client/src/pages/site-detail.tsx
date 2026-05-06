@@ -1572,7 +1572,7 @@ export default function SiteDetail() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate(fromParam || "/sites")}
+          onClick={() => window.history.back()}
           data-testid="button-back"
         >
           <ArrowLeft className="h-5 w-5" />

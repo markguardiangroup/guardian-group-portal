@@ -1841,6 +1841,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T10:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-4a7b-b08c-9d0e1f2a3b4c",
+          "patch": 6,
+          "message": "Fixed: site profile back button now returns to previous page",
+          "category": "bug",
+          "createdAt": "2026-05-06T10:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
