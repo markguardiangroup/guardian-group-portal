@@ -334,11 +334,41 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     if (!documents) return [];
     return documents.filter(doc => {
       if (doc.isArchived) return false;
-      if (siteId) return doc.siteId === siteId;
-      if (companySiteIds && companySiteIds.length > 0) return companySiteIds.includes(doc.siteId);
+      if (siteId) {
+        // Site-owned doc — direct match
+        if (doc.siteId === siteId) return true;
+        // Scoped (group/company) doc — include if shared with this site or the
+        // site's owning company. isSharedLink is false for origin/admin users
+        // so we check siteId===null as the reliable signal for a scoped doc.
+        if (doc.siteId === null) {
+          const siteCompanyId = sites?.find(s => s.id === siteId)?.companyId;
+          const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+          const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+          return (
+            (sharedWithSiteIds?.includes(siteId) ?? false) ||
+            !!(siteCompanyId && sharedWithCompanyIds?.includes(siteCompanyId))
+          );
+        }
+        return false;
+      }
+      if (companySiteIds && companySiteIds.length > 0) {
+        if (companySiteIds.includes(doc.siteId)) return true;
+        // Also include scoped docs shared with any site in this company
+        if (doc.siteId === null) {
+          const companySiteIdSet = new Set(companySiteIds);
+          const companyId = sites?.find(s => companySiteIds.includes(s.id))?.companyId;
+          const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+          const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+          return (
+            (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
+            !!(companyId && sharedWithCompanyIds?.includes(companyId))
+          );
+        }
+        return false;
+      }
       return true;
     });
-  }, [documents, siteId, companySiteIds]);
+  }, [documents, siteId, companySiteIds, sites]);
 
   const docsDialogDocs = useMemo((): Document[] => {
     if (!docsDialogFilter) return [];

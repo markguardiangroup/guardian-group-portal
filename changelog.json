@@ -163,6 +163,22 @@
       ],
       "entries": [
         {
+          "id": "c5f0e4a3-1d96-6f78-0e34-b3a4f5c6d7e8",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: shared group docs now appear in table view and dashboard dialog when filtered by site",
+          "createdAt": "2026-05-06T12:45:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d6a1f5b4-2e07-7a89-1f45-c4b5a6d7e8f9",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: dashboard compliance dialog now lists shared docs counted in the compliant total",
+          "createdAt": "2026-05-06T12:45:01.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b4e9d3f2-0c85-5e67-9d23-a2f3e4b5c6d7",
           "patch": 6,
           "category": "bug",
