@@ -1849,6 +1849,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T10:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-4b8c-c09d-0e1f2a3b4c5d",
+          "patch": 6,
+          "message": "Fixed: company profile back button now returns to previous page",
+          "category": "bug",
+          "createdAt": "2026-05-06T10:25:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
