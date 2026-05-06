@@ -1490,15 +1490,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           ) : (
           <>
           {/* No site selected message */}
-          {!hierarchySiteId && (
+          {(!hierarchySiteId || hierarchySiteId === "all") && (
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className={`flex h-14 w-14 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
                   <FolderOpen className={`h-7 w-7 ${moduleColors[module]}`} />
                 </div>
-                <h3 className="mt-4 text-lg font-medium">Select a site</h3>
+                <h3 className="mt-4 text-lg font-medium">Select a site to view folders</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Choose a site to view documents organised by folder
+                  Folders are organised per site — choose a specific site from the filter above
                 </p>
               </CardContent>
             </Card>
@@ -1842,7 +1842,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </Accordion>
               </CardContent>
             </Card>
-          ) : hierarchySiteId ? (
+          ) : (hierarchySiteId && hierarchySiteId !== "all") ? (
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className={`flex h-14 w-14 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
