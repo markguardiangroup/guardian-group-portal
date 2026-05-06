@@ -1167,6 +1167,30 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return expanded;
   }, [sharedByFolderTemplate, filteredDocuments, selectedSiteId, filteredSites]);
 
+  // Compute how many extra virtual rows were added per folder (and a banner total)
+  // so that displayed counts stay consistent with the expanded rows.
+  const sharedExpansionDeltas = useMemo(() => {
+    const empty = { byFolder: new Map<string, { totalDocuments: number; compliant: number; reviewRequired: number; overdue: number }>(), summary: { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 } };
+    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    if (!isAllSites || filteredSites.length <= 1) return empty;
+    const byFolder = new Map<string, { totalDocuments: number; compliant: number; reviewRequired: number; overdue: number }>();
+    let sTotal = 0, sCompliant = 0, sReview = 0, sOverdue = 0;
+    for (const [folderId, expandedDocs] of expandedSharedByFolderTemplate.entries()) {
+      const originalDocs = sharedByFolderTemplate.get(folderId) ?? [];
+      if (expandedDocs.length <= originalDocs.length) continue;
+      const virtualRows = expandedDocs.filter(d => (d as any)._virtualKey);
+      const delta = {
+        totalDocuments: expandedDocs.length - originalDocs.length,
+        compliant: virtualRows.filter(d => d.status === "compliant").length - originalDocs.filter(d => d.status === "compliant").length,
+        reviewRequired: virtualRows.filter(d => d.status === "review_required").length - originalDocs.filter(d => d.status === "review_required").length,
+        overdue: virtualRows.filter(d => d.status === "overdue").length - originalDocs.filter(d => d.status === "overdue").length,
+      };
+      byFolder.set(folderId, delta);
+      sTotal += delta.totalDocuments; sCompliant += delta.compliant; sReview += delta.reviewRequired; sOverdue += delta.overdue;
+    }
+    return { byFolder, summary: { totalDocuments: sTotal, compliant: sCompliant, reviewRequired: sReview, overdue: sOverdue } };
+  }, [expandedSharedByFolderTemplate, sharedByFolderTemplate, selectedSiteId, filteredSites]);
+
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
       const apiDocType = allDocumentTypes.find(dt => dt.id === documentTypeId);
@@ -1664,15 +1688,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{hierarchy.summary.compliant} Compliant</span>
+                      <span>{hierarchy.summary.compliant + sharedExpansionDeltas.summary.compliant} Compliant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{hierarchy.summary.reviewRequired} Review Required</span>
+                      <span>{hierarchy.summary.reviewRequired + sharedExpansionDeltas.summary.reviewRequired} Review Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{hierarchy.summary.overdue} Overdue</span>
+                      <span>{hierarchy.summary.overdue + sharedExpansionDeltas.summary.overdue} Overdue</span>
                     </div>
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -1709,7 +1733,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               <CardContent className="p-4">
                 <Accordion type="multiple" className="w-full">
                   {hierarchy.folders.map((folder) => {
-                    const statusBadge = getFolderStatusBadge(folder.stats);
+                    const folderDelta = sharedExpansionDeltas.byFolder.get(folder.id);
+                    const adjustedFolderStats = folderDelta ? {
+                      totalDocuments: folder.stats.totalDocuments + folderDelta.totalDocuments,
+                      compliant: folder.stats.compliant + folderDelta.compliant,
+                      reviewRequired: folder.stats.reviewRequired + folderDelta.reviewRequired,
+                      overdue: folder.stats.overdue + folderDelta.overdue,
+                    } : folder.stats;
+                    const statusBadge = getFolderStatusBadge(adjustedFolderStats);
                     const folderDropId = (folder as any).siteFolder?.id ?? folder.id;
                     return (
                       <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isAdmin}>
@@ -1725,7 +1756,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             <div className="flex items-center gap-3">
                               {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
                               <span className="text-sm text-muted-foreground">
-                                {folder.stats.totalDocuments} document{folder.stats.totalDocuments !== 1 ? "s" : ""}
+                                {adjustedFolderStats.totalDocuments} document{adjustedFolderStats.totalDocuments !== 1 ? "s" : ""}
                               </span>
                             </div>
                           </div>
@@ -1736,7 +1767,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {(folder as any).childFolders && (folder as any).childFolders.length > 0 && (
                               <Accordion type="multiple" className="space-y-2 mb-4">
                                 {(folder as any).childFolders.map((childFolder: any) => {
-                                  const childStatusBadge = getFolderStatusBadge(childFolder.stats || { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 });
+                                  const childDelta = sharedExpansionDeltas.byFolder.get(childFolder.id);
+                                  const baseChildStats = childFolder.stats || { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 };
+                                  const adjustedChildStats = childDelta ? {
+                                    totalDocuments: baseChildStats.totalDocuments + childDelta.totalDocuments,
+                                    compliant: baseChildStats.compliant + childDelta.compliant,
+                                    reviewRequired: baseChildStats.reviewRequired + childDelta.reviewRequired,
+                                    overdue: baseChildStats.overdue + childDelta.overdue,
+                                  } : baseChildStats;
+                                  const childStatusBadge = getFolderStatusBadge(adjustedChildStats);
                                   const childDropId = (childFolder as any).siteFolder?.id ?? childFolder.id;
                                   return (
                                     <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isAdmin}>
@@ -1761,7 +1800,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             )}
                                             {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
                                             <span className="text-xs text-muted-foreground">
-                                              {childFolder.stats?.totalDocuments || 0} doc{(childFolder.stats?.totalDocuments || 0) !== 1 ? "s" : ""}
+                                              {adjustedChildStats.totalDocuments} doc{adjustedChildStats.totalDocuments !== 1 ? "s" : ""}
                                             </span>
                                           </div>
                                         </div>
