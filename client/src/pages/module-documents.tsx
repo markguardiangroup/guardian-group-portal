@@ -804,43 +804,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
   }, [hierarchy]);
 
-  // In "All Sites" folder view the hierarchy deduplicates shared docs to one entry.
-  // Expand them here (per covered site) so the unfiled section shows one row per site,
-  // mirroring the table-view expansion. We use filteredDocuments as the source of
-  // sharedWithSiteIds / sharedWithCompanyIds since HierarchyDocument lacks them.
-  const expandedUnmatchedShared = useMemo(() => {
-    const isAllSites = !selectedSiteId || selectedSiteId === "all";
-    if (!isAllSites || filteredSites.length <= 1) return unmatchedShared;
-    const docLookup = new Map<string, any>();
-    for (const d of filteredDocuments ?? []) {
-      if (d.siteId === null) docLookup.set(d.id, d);
-    }
-    const result: any[] = [];
-    for (const doc of unmatchedShared) {
-      const full = docLookup.get(doc.id);
-      if (!full) {
-        result.push(doc);
-        continue;
-      }
-      const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
-      const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
-      const docEntityId = (full as any).entityId as string | undefined;
-      const coveredSites = filteredSites.filter(s =>
-        sharedWithSiteIds?.includes(s.id) ||
-        sharedWithCompanyIds?.includes(s.companyId) ||
-        (docEntityId !== undefined && docEntityId === s.companyId)
-      );
-      if (coveredSites.length === 0) {
-        result.push(doc);
-      } else {
-        for (const site of coveredSites) {
-          result.push({ ...doc, _virtualSiteId: site.id, _virtualSiteName: site.name, _virtualKey: `${doc.id}-${site.id}` });
-        }
-      }
-    }
-    return result;
-  }, [unmatchedShared, filteredDocuments, selectedSiteId, filteredSites]);
-
   // Set of shared-doc IDs that the hierarchy API confirmed are visible for the
   // currently selected site. Used to correctly include shared docs in table view.
   const sharedDocIdSet = useMemo(() => {
@@ -1131,6 +1094,43 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
     return result;
   }, [sortedDocuments, selectedSiteId, filteredSites]);
+
+  // In "All Sites" folder view the hierarchy deduplicates shared docs to one entry.
+  // Expand them here (per covered site) so the unfiled section shows one row per site,
+  // mirroring the table-view expansion. filteredDocuments is the source of
+  // sharedWithSiteIds / sharedWithCompanyIds since HierarchyDocument lacks them.
+  const expandedUnmatchedShared = useMemo(() => {
+    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    if (!isAllSites || filteredSites.length <= 1) return unmatchedShared;
+    const docLookup = new Map<string, any>();
+    for (const d of filteredDocuments ?? []) {
+      if (d.siteId === null) docLookup.set(d.id, d);
+    }
+    const result: any[] = [];
+    for (const doc of unmatchedShared) {
+      const full = docLookup.get(doc.id);
+      if (!full) {
+        result.push(doc);
+        continue;
+      }
+      const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
+      const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
+      const docEntityId = (full as any).entityId as string | undefined;
+      const coveredSites = filteredSites.filter(s =>
+        sharedWithSiteIds?.includes(s.id) ||
+        sharedWithCompanyIds?.includes(s.companyId) ||
+        (docEntityId !== undefined && docEntityId === s.companyId)
+      );
+      if (coveredSites.length === 0) {
+        result.push(doc);
+      } else {
+        for (const site of coveredSites) {
+          result.push({ ...doc, _virtualSiteId: site.id, _virtualSiteName: site.name, _virtualKey: `${doc.id}-${site.id}` });
+        }
+      }
+    }
+    return result;
+  }, [unmatchedShared, filteredDocuments, selectedSiteId, filteredSites]);
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
