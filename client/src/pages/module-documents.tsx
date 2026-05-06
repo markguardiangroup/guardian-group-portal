@@ -548,6 +548,21 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return "All Sites";
   }, [selectedSiteId, selectedCompany, sites, urlScope]);
 
+  // IDs for linking company/site names to their profile pages
+  const contextCompanyId = useMemo(() => {
+    if (urlScope === "company") return urlEntityId;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyId || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompanyId;
+    return null;
+  }, [urlScope, urlEntityId, selectedSiteId, selectedCompany, selectedCompanyId, sites]);
+
+  const contextSiteId = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") return selectedSiteId;
+    return null;
+  }, [selectedSiteId]);
+
   const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents/module", module],
   });
@@ -1068,24 +1083,46 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </h1>
               <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
                 {isPrivilegedUser && (
-                  <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                  contextCompanyId ? (
+                    <Link href={`/companies/${contextCompanyId}`}>
+                      <span className="font-semibold text-foreground hover:underline cursor-pointer" data-testid="link-context-company">
+                        {contextCompany || "All Companies"}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-foreground">{contextCompany || "All Companies"}</span>
+                  )
                 )}
                 {!isPrivilegedUser && contextCompany && (
-                  <span className="font-semibold text-foreground">{contextCompany}</span>
+                  contextCompanyId ? (
+                    <Link href={`/companies/${contextCompanyId}`}>
+                      <span className="font-semibold text-foreground hover:underline cursor-pointer" data-testid="link-context-company-client">
+                        {contextCompany}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-foreground">{contextCompany}</span>
+                  )
                 )}
                 {(isPrivilegedUser || contextCompany) && contextSite && <span> - </span>}
-                {contextSite && <span>{contextSite}</span>}
+                {contextSite && (
+                  contextSiteId ? (
+                    <Link href={`/sites/${contextSiteId}`}>
+                      <span className="hover:underline cursor-pointer" data-testid="link-context-site">{contextSite}</span>
+                    </Link>
+                  ) : (
+                    <span>{contextSite}</span>
+                  )
+                )}
               </p>
             </div>
           </div>
 
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
-              <Button variant="outline" asChild>
-                <Link href={`${basePath}/sites`} data-testid="link-sites-from-documents">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Sites
-                </Link>
+              <Button variant="outline" data-testid="link-sites-from-documents" onClick={() => window.history.back()}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back
               </Button>
               <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
                 <Link href={basePath} data-testid="link-dashboard-from-documents">

@@ -1825,6 +1825,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T10:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e6f7a8b9-c0d1-4e2f-d03a-4b5c6d7e8f9a",
+          "patch": 6,
+          "message": "Documents header: company and site names now link to their profile pages; Back button returns to previous page",
+          "category": "enhancement",
+          "createdAt": "2026-05-06T10:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
