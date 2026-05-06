@@ -768,14 +768,30 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 )
               );
               const allTotal = allDocs.length;
-              // Only site-owned docs (siteId !== null) count toward the compliance
-              // score. Scoped/shared docs (siteId === null) are visible on this view
-              // but belong to the group owner — counting them would inflate the score
-              // beyond what each individual site card reflects.
-              const allRequiredDocs = allDocs.filter((d) => d.isRequired && d.siteId !== null);
-              const allCompliant = allRequiredDocs.filter((d) => d.status === "compliant").length;
-              const allOverdue = allRequiredDocs.filter((d) => d.status === "overdue").length;
-              const allReview = allRequiredDocs.filter((d) => d.status === "review_required").length;
+              // Count compliance contributions across all sites. Site-specific docs
+              // count once. Shared/scoped docs (siteId === null) count once per site
+              // they cover within filteredSites — consistent with per-site card logic.
+              let allCompliant = 0;
+              let allOverdue = 0;
+              let allReview = 0;
+              for (const d of allDocs) {
+                if (!d.isRequired) continue;
+                if (d.siteId !== null) {
+                  if (d.status === "compliant") allCompliant++;
+                  else if (d.status === "overdue") allOverdue++;
+                  else if (d.status === "review_required") allReview++;
+                } else {
+                  // Expand shared doc: one contribution per covered site
+                  const coveredCount = filteredSites.filter((s) =>
+                    (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
+                    (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
+                    (d as any).entityId === s.companyId
+                  ).length;
+                  if (d.status === "compliant") allCompliant += coveredCount;
+                  else if (d.status === "overdue") allOverdue += coveredCount;
+                  else if (d.status === "review_required") allReview += coveredCount;
+                }
+              }
               const allPending = allDocs.filter((d) => d.approvalStatus === "pending").length;
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
@@ -936,9 +952,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const countedDocIds = new Set<string>();
               for (const d of siteDocs) {
                 if (!d.isRequired || !d.templateId) continue;
-                // Scoped/shared docs (siteId === null) are group-owner docs;
-                // they should not count toward this site's compliance score.
-                if (d.siteId === null) continue;
                 if (!siteEffectiveRequired.has(d.templateId)) continue;
                 countedDocIds.add(d.id);
                 if (d.status === "compliant") compliant++;
@@ -950,8 +963,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const seenManualDocIds = new Set<string>();
               for (const d of siteDocs) {
                 if (!d.isRequired) continue;
-                // Scoped/shared docs do not count toward per-site compliance scores.
-                if (d.siteId === null) continue;
                 if (countedDocIds.has(d.id)) continue;
                 if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
                 if (seenManualDocIds.has(d.id)) continue;

@@ -1885,9 +1885,9 @@
         {
           "id": "f6a7b8c9-d0e1-4f2a-a3bd-4e5f6a7b8c9d",
           "patch": 6,
-          "message": "Fixed: group-owner shared docs no longer inflate per-site or All Sites compliance counts",
+          "message": "Fixed: All Sites shared-doc count now reflects one contribution per covered site",
           "category": "bug",
-          "createdAt": "2026-05-06T11:00:00.000Z",
+          "createdAt": "2026-05-06T11:05:00.000Z",
           "createdBy": "agent"
         }
       ]
