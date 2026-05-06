@@ -714,12 +714,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${params.toString()}`;
   }, [hierarchySiteId, module, selectedCompanyId]);
 
-  // Fetch document hierarchy — always fetch when a specific site is selected so that
-  // sharedDocuments is available for both folder and table views.
+  // Fetch document hierarchy — fetch whenever hierarchySiteId is set, including
+  // the "all" aggregate view which the backend handles by spanning all accessible sites.
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
     queryKey: [hierarchyUrl],
     placeholderData: keepPreviousData,
-    enabled: !!hierarchySiteId && hierarchySiteId !== "all",
+    enabled: !!hierarchySiteId,
   });
 
   // Count of missing-required rows actually displayed in the UI. The two render
@@ -1490,15 +1490,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           ) : (
           <>
           {/* No site selected message */}
-          {(!hierarchySiteId || hierarchySiteId === "all") && (
+          {!hierarchySiteId && (
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className={`flex h-14 w-14 items-center justify-center rounded-full ${moduleBgColors[module]}`}>
                   <FolderOpen className={`h-7 w-7 ${moduleColors[module]}`} />
                 </div>
-                <h3 className="mt-4 text-lg font-medium">Select a site to view folders</h3>
+                <h3 className="mt-4 text-lg font-medium">Select a site</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Folders are organised per site — choose a specific site from the filter above
+                  Choose a site to view documents organised by folder
                 </p>
               </CardContent>
             </Card>
@@ -1842,7 +1842,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </Accordion>
               </CardContent>
             </Card>
-          ) : (hierarchySiteId && hierarchySiteId !== "all") ? (
+          ) : hierarchySiteId ? (
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className={`flex h-14 w-14 items-center justify-center rounded-full ${moduleBgColors[module]}`}>

@@ -166,8 +166,8 @@
           "id": "e5h8i2d4-0f7g-4h56-8g12-j3k4l5m6n7o8",
           "patch": 6,
           "category": "bug",
-          "message": "Fixed: folder view no longer shows 'No folders yet' when all sites are selected",
-          "createdAt": "2026-05-06T14:35:00.000Z",
+          "message": "Fixed: folder view now shows all folders and files when 'All Sites' is selected",
+          "createdAt": "2026-05-06T14:45:00.000Z",
           "createdBy": "agent"
         },
         {
