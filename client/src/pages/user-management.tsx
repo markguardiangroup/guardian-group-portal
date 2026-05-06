@@ -1361,21 +1361,52 @@ export default function UserManagement() {
                     )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {(u.role === "admin" || u.role === "consultant") ? (
-                      u.sources && u.sources.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {u.sources.map((code) => (
-                            <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-table-source-user-${u.id}-${code}`}>
-                              {code}
+                    {(u.role === "admin" || u.role === "consultant") ? (() => {
+                      const activeCodes = availableSources.filter(s => s.isActive).map(s => s.code);
+                      const userSources = u.sources ?? [];
+                      if (userSources.length === 0) {
+                        return (
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-table-no-source-user-${u.id}`}>
+                            None
+                          </Badge>
+                        );
+                      }
+                      const hasAll = activeCodes.length > 0 && activeCodes.every(c => userSources.includes(c));
+                      if (hasAll) {
+                        return (
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 font-medium" data-testid={`badge-table-source-all-${u.id}`}>
+                            All
+                          </Badge>
+                        );
+                      }
+                      if (userSources.length === 1) {
+                        return (
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-table-source-user-${u.id}-${userSources[0]}`}>
+                            {userSources[0]}
+                          </Badge>
+                        );
+                      }
+                      return (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className="text-xs px-1.5 py-0 cursor-default"
+                              data-testid={`badge-table-source-count-${u.id}`}
+                            >
+                              {userSources.length} sources
                             </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-table-no-source-user-${u.id}`}>
-                          None
-                        </Badge>
-                      )
-                    ) : (
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-48">
+                            <div className="flex flex-wrap gap-1">
+                              {userSources.map(code => (
+                                <span key={code} className="font-mono text-xs font-semibold">{code}</span>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })() : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}
                   </TableCell>
