@@ -1478,6 +1478,8 @@ export async function registerRoutes(
     let missingRequired = 0;
     const consumedDocIds = new Set<string>();
     const filteredSiteIds = new Set<string>();
+    // Company/group-scoped required docs shared to any filtered site (keyed by id to deduplicate)
+    const sharedRequiredCandidates = new Map<string, any>();
 
     for (const site of sites) {
       if (!site.companyId) continue;
@@ -1501,7 +1503,8 @@ export async function registerRoutes(
       const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId);
       // Include company/group-scoped documents shared to this site in compliance scoring
       const sharedToSite = await storage.getSharedDocumentsForSite(site.id, module, false);
-      const allSiteDocs = [...siteDocs, ...sharedToSite.filter(sd => !sd.isArchived && !sd.caseId && !sd.incidentId)];
+      const validShared = sharedToSite.filter(sd => !sd.isArchived && !sd.caseId && !sd.incidentId);
+      const allSiteDocs = [...siteDocs, ...validShared];
 
       for (const rtTemplateId of requiredIds) {
         if (siteExcluded.has(rtTemplateId)) continue;
@@ -1529,18 +1532,35 @@ export async function registerRoutes(
           else if (d.status === "review_required") slotReview++;
         });
       }
+
+      // Collect shared required docs that weren't consumed by a template slot
+      // (e.g. their template is excluded by a site override). These must still
+      // count as manually-required — they cannot be caught by the post-loop
+      // manualRequired filter because their siteId is null.
+      for (const sd of validShared) {
+        if (sd.isRequired && !consumedDocIds.has(sd.id)) {
+          if (module && sd.module !== module) continue;
+          if (!module && !complianceModules.includes(sd.module as ModuleType)) continue;
+          sharedRequiredCandidates.set(sd.id, sd);
+        }
+      }
     }
 
-    // Manually-required docs not already consumed by a template slot
-    const manualRequired = documents.filter(d => {
-      if (!d.isRequired) return false;
-      if (consumedDocIds.has(d.id)) return false;
-      if (d.isArchived || d.caseId || d.incidentId) return false;
-      if (!filteredSiteIds.has(d.siteId)) return false;
-      if (module && d.module !== module) return false;
-      if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
-      return true;
-    });
+    // Manually-required docs not already consumed by a template slot.
+    // Includes site-scoped docs (filtered by filteredSiteIds) plus any
+    // company/group-scoped shared docs collected above.
+    const manualRequired = [
+      ...documents.filter(d => {
+        if (!d.isRequired) return false;
+        if (consumedDocIds.has(d.id)) return false;
+        if (d.isArchived || d.caseId || d.incidentId) return false;
+        if (!filteredSiteIds.has(d.siteId)) return false;
+        if (module && d.module !== module) return false;
+        if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
+        return true;
+      }),
+      ...[...sharedRequiredCandidates.values()].filter(d => !consumedDocIds.has(d.id)),
+    ];
 
     const totalDocuments = slotTotal + manualRequired.length;
     // Per-document counts (match what the dialog list shows)

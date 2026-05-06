@@ -1809,6 +1809,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T00:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c4d5e6f7-a8b9-4c0d-be1f-2a3b4c5d6e7f",
+          "patch": 6,
+          "message": "Fixed: required company docs shared to a site now counted in compliance even when the template is site-excluded",
+          "category": "bug",
+          "createdAt": "2026-05-06T10:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
