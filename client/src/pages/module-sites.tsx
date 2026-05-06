@@ -921,44 +921,29 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               // toward Compliant — without this guard, a stray cascaded doc can
               // inflate Compliant beyond the actual number of required slots.
               const siteEffectiveRequired = new Set(effectiveRequiredBySite[site.id] ?? []);
-              // Status priority (lower = more urgent). For each template slot,
-              // pick the WORST status among all docs covering it so that any
-              // review_required or overdue doc is surfaced even when a compliant
-              // copy of the same template also exists at this site.
-              const statusRank: Record<string, number> = {
-                overdue: 0,
-                review_required: 1,
-                compliant: 2,
-              };
-              const bestStatusByTemplate = new Map<string, string>();
-              for (const d of siteDocs) {
-                if (!d.isRequired || !d.templateId) continue;
-                if (!siteEffectiveRequired.has(d.templateId)) continue;
-                const rank = statusRank[d.status as string];
-                if (rank === undefined) continue;
-                const cur = bestStatusByTemplate.get(d.templateId);
-                const curRank = cur === undefined ? Infinity : statusRank[cur] ?? Infinity;
-                if (rank < curRank) bestStatusByTemplate.set(d.templateId, d.status as string);
-              }
+              // Count each required doc individually (raw count, no slot-dedup).
+              // Pass 1: docs whose template is in the effective required set.
+              // This means both a compliant AND a review_required copy of the
+              // same template are each counted — so the card reflects every doc
+              // that needs attention without hiding the compliant ones.
               let compliant = 0;
               let reviewRequired = 0;
               let overdue = 0;
-              for (const status of bestStatusByTemplate.values()) {
-                if (status === "compliant") compliant++;
-                else if (status === "review_required") reviewRequired++;
-                else if (status === "overdue") overdue++;
+              const countedDocIds = new Set<string>();
+              for (const d of siteDocs) {
+                if (!d.isRequired || !d.templateId) continue;
+                if (!siteEffectiveRequired.has(d.templateId)) continue;
+                countedDocIds.add(d.id);
+                if (d.status === "compliant") compliant++;
+                else if (d.status === "review_required") reviewRequired++;
+                else if (d.status === "overdue") overdue++;
               }
-              // Also count manually-required docs whose template is excluded from the
-              // effective required set (or have no templateId). These mirror the
-              // "manualRequired" pass in computeSlotBasedCompliance on the server.
-              const consumedTemplateIds = new Set(bestStatusByTemplate.keys());
+              // Pass 2: manually-required docs not covered above (no templateId,
+              // or template excluded at site level but doc is still marked required).
               const seenManualDocIds = new Set<string>();
               for (const d of siteDocs) {
                 if (!d.isRequired) continue;
-                // Skip if already counted via a template slot
-                if (d.templateId && consumedTemplateIds.has(d.templateId)) continue;
-                // Only count if the template is NOT in the effective required set
-                // (i.e. it's an excluded or template-free manually required doc)
+                if (countedDocIds.has(d.id)) continue;
                 if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
                 if (seenManualDocIds.has(d.id)) continue;
                 seenManualDocIds.add(d.id);
