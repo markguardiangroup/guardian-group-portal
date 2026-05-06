@@ -239,8 +239,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   // 3. Empty — no required docs, no attention needed
   const sortedFilteredSites = useMemo(() => {
     const getSiteMetrics = (siteId: string) => {
+      const site = sites?.find(s => s.id === siteId);
       const siteDocs = (documents ?? []).filter(
-        (d) => d.siteId === siteId && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external"
+        (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" && (
+          d.siteId === siteId ||
+          (d.siteId === null && site && (
+            (d.sharedWithSiteIds?.includes(siteId) ?? false) ||
+            (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
+            (d as any).entityId === site.companyId
+          ))
+        )
       );
       const total = siteDocs.length; // actual uploaded docs (not counting missing)
       const compliant = siteDocs.filter((d) => d.status === "compliant").length;
@@ -749,8 +757,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {(() => {
               if (filteredSites.length <= 1) return null;
               const allDocs = (documents ?? []).filter(
-                (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" &&
-                  filteredSites.some((s) => s.id === d.siteId)
+                (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" && (
+                  filteredSites.some((s) => s.id === d.siteId) ||
+                  (d.siteId === null && filteredSites.some((s) =>
+                    (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
+                    (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
+                    (d as any).entityId === s.companyId
+                  ))
+                )
               );
               const allTotal = allDocs.length;
               const allRequiredDocs = allDocs.filter((d) => d.isRequired);
@@ -885,10 +899,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (
                     // Native site doc
                     d.siteId === site.id ||
-                    // Document explicitly shared with this site
-                    (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
-                    // Document shared with the site's parent company (cascades to sites)
-                    (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
+                    // Scoped (group/company) doc visible to this site:
+                    // shared explicitly, shared to company, or owned by this company
+                    (d.siteId === null && (
+                      (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
+                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
+                      (d as any).entityId === site.companyId
+                    ))
                   )
               );
               const total = siteDocs.length;

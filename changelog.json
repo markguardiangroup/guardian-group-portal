@@ -163,6 +163,14 @@
       ],
       "entries": [
         {
+          "id": "a9d4c8e6-5b3a-0d12-4c78-f7e8a9b0c1d2",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: site cards now count group docs owned by the company in Compliant/Review totals",
+          "createdAt": "2026-05-06T13:45:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e7b2a6c4-3f18-8b90-2a56-d5c6e7f8a9b0",
           "patch": 6,
           "category": "bug",
