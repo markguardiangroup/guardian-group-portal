@@ -1056,6 +1056,41 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [filteredDocuments, sortBy, sortDir]);
 
+  // When in "All Sites" view, expand shared/scoped docs (siteId=null) so that each
+  // one appears once per covered site rather than as a single ambiguous row.
+  const expandedTableDocuments = useMemo(() => {
+    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    if (!isAllSites || filteredSites.length <= 1) {
+      return sortedDocuments.map(doc => ({ doc, rowKey: doc.id }));
+    }
+    const result: { doc: any; rowKey: string }[] = [];
+    for (const doc of sortedDocuments) {
+      if (doc.siteId !== null) {
+        result.push({ doc, rowKey: doc.id });
+      } else {
+        const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+        const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+        const docEntityId = (doc as any).entityId as string | undefined;
+        const coveredSites = filteredSites.filter(s =>
+          sharedWithSiteIds?.includes(s.id) ||
+          sharedWithCompanyIds?.includes(s.companyId) ||
+          (docEntityId !== undefined && docEntityId === s.companyId)
+        );
+        if (coveredSites.length === 0) {
+          result.push({ doc, rowKey: doc.id });
+        } else {
+          for (const site of coveredSites) {
+            result.push({
+              doc: { ...doc, siteId: site.id, _originalSiteIdWasNull: true },
+              rowKey: `${doc.id}-${site.id}`,
+            });
+          }
+        }
+      }
+    }
+    return result;
+  }, [sortedDocuments, selectedSiteId, filteredSites]);
+
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
       const apiDocType = allDocumentTypes.find(dt => dt.id === documentTypeId);
@@ -2121,7 +2156,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedDocuments.map((doc) => {
+                {expandedTableDocuments.map(({ doc, rowKey }) => {
                   // When viewed in a company/group-scoped page, a doc whose native scope
                   // (or owning entity) differs from the URL scope is being shown via a
                   // share — render it read-only with a clear "linked from group/company"
@@ -2134,14 +2169,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       (doc as any).entityId !== urlEntityId
                     )
                   );
-                  const isScopedDoc = !!(doc.siteId === null && ((doc as any).scope === "group" || (doc as any).scope === "company"));
+                  // _originalSiteIdWasNull is set on virtual rows expanded from shared docs
+                  const isScopedDoc = !!((doc.siteId === null || (doc as any)._originalSiteIdWasNull) && ((doc as any).scope === "group" || (doc as any).scope === "company"));
                   const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isScopedDoc;
                   const linkedFromScope: "group" | "company" | null = viewedAsLinked
                     ? ((doc as any).scope === "group" ? "group" : "company")
                     : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
                       : ((doc as any).scope === "group" ? "group" : (doc as any).scope === "company" ? "company" : null));
                   return (
-                  <TableRow key={doc.id} className="hover-elevate" data-testid={`row-document-${doc.id}`}>
+                  <TableRow key={rowKey} className="hover-elevate" data-testid={`row-document-${rowKey}`}>
                     <TableCell>
                       <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">

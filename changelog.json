@@ -1889,6 +1889,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T11:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-ef9876543210",
+          "patch": 6,
+          "message": "Fixed: shared/group docs now appear once per site in the All Sites document list",
+          "category": "bug",
+          "createdAt": "2026-05-06T21:15:24.070Z",
+          "createdBy": "agent"
         }
       ]
     }
