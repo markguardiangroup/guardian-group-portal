@@ -166,7 +166,7 @@
           "id": "s6q07o85-1u8r-6v5w-3t26-7x9s1t3u4w08",
           "patch": 6,
           "category": "bug",
-          "message": "Admin Roadmap assignee save/display verified working end-to-end: server debug logs confirmed PATCH handler correctly receives and saves assignedUserId to DB (2 items assigned in live DB); GET /api/roadmap confirmed returning assignedUserId in all items; removed debug console.log statements from PATCH handler now that behaviour is verified",
+          "message": "Fixed: roadmap assignee saving confirmed working end-to-end",
           "createdAt": "2026-05-05T14:10:00.000Z",
           "createdBy": "agent"
         },
@@ -174,7 +174,7 @@
           "id": "r5p96n74-0t7q-5u4v-2s15-6w8r0s2t3v97",
           "patch": 6,
           "category": "bug",
-          "message": "Admin Roadmap assignee dropdown was empty: UserType used a 'name' field but users have separate firstName/lastName columns; fixed by updating UserType to { firstName, lastName }, adding userDisplayName() helper, and replacing all u.name references with userDisplayName(u) in the Assign-to dropdowns (form + filter), UserChip, and detail view",
+          "message": "Fixed: assignee names weren't showing in the Roadmap assign dropdown",
           "createdAt": "2026-05-05T14:55:00.000Z",
           "createdBy": "agent"
         },
@@ -182,7 +182,7 @@
           "id": "q4o85m63-9s6p-4t3u-1r04-5v7q9r1s2u86",
           "patch": 6,
           "category": "feature",
-          "message": "Admin Roadmap: added assignedUserId field to roadmap_items table (ALTER TABLE migration); schema and routes updated (createRoadmapItemSchema, updateRoadmapItemSchema both accept assignedUserId); 'Assign to' dropdown in create/edit forms shows admin users only (filtered from /api/users); assigned user shown on cards as initials chip with full name; shown in detail view with UserCircle icon; new 'Assigned to' filter dropdown in header bar supports All Assignees / Unassigned / individual admin users",
+          "message": "Roadmap items can now be assigned to an admin user",
           "createdAt": "2026-05-05T14:40:00.000Z",
           "createdBy": "agent"
         },
@@ -190,7 +190,7 @@
           "id": "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75",
           "patch": 6,
           "category": "bug",
-          "message": "EL Case Status PDF: Company column was showing '—' for all rows because the export was reusing stale TanStack Query cache data fetched before companyName was added to the API response; fixed by always doing a fresh fetch in the export handler instead of falling back to cached data",
+          "message": "Fixed: Company column showed dashes in the EL Case Status PDF export",
           "createdAt": "2026-05-05T14:30:00.000Z",
           "createdBy": "agent"
         },
@@ -198,7 +198,7 @@
           "id": "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
           "patch": 6,
           "category": "enhancement",
-          "message": "EL Case Status PDF export: removed redundant Hearing column; added Company column (company name that the site belongs to — sourced from new companyMap lookup in /api/reports/el-cases route); renamed Docs column to Essential Docs; column widths rebalanced to fit new layout on A4 landscape",
+          "message": "EL Case Status PDF: Company column added, layout and column names tidied",
           "createdAt": "2026-05-05T14:20:00.000Z",
           "createdBy": "agent"
         },
@@ -206,7 +206,7 @@
           "id": "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
           "patch": 6,
           "category": "bug",
-          "message": "Reports: Export PDF button on EL Case Status report was silently doing nothing — added the missing else-if branch for activeReport==='el-cases' in handleExport; added exportElCases() to export-pdf.ts generating an A4 landscape PDF with a 4-metric summary row (Live Cases, Overdue, Due in 14 Days, Response Overdue) and a full cases table (Ref, Case Name, Type, Status, Site, Source, ET3 Deadline, Hearing, Docs, Flags); sources are resolved to labels via /api/sources fetched in parallel with the cases data",
+          "message": "Fixed: Export PDF button on the EL Case Status report wasn't working",
           "createdAt": "2026-05-05T14:10:00.000Z",
           "createdBy": "agent"
         },
@@ -214,7 +214,7 @@
           "id": "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
           "patch": 6,
           "category": "feature",
-          "message": "EL case detail view: Source field now visible and editable in Case Details card; shows current sources as grey chip badges (or 'No sources set' when empty); admins/consultants see a pencil icon to enter edit mode; edit mode shows the same 2-col toggle grid as create dialog, pre-checked with current values; Save calls PATCH /api/cases/:id with updated sources array; Cancel discards draft",
+          "message": "EL case source can now be edited directly from the case detail view",
           "createdAt": "2026-05-05T14:00:00.000Z",
           "createdBy": "agent"
         },
@@ -222,7 +222,7 @@
           "id": "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
           "patch": 6,
           "category": "bug",
-          "message": "EL create case dialog: fixed scroll — DialogContent constrained to 90vh with flex-col layout; form body wraps all fields in overflow-y-auto flex-1 scrollable div; footer (Cancel / Create Case) pinned outside scroll area with top border so it is always visible",
+          "message": "Fixed: Create case dialog action buttons were hidden when the form was long",
           "createdAt": "2026-05-05T13:50:00.000Z",
           "createdBy": "agent"
         },
@@ -230,7 +230,7 @@
           "id": "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
           "patch": 6,
           "category": "bug",
-          "message": "EL cases source field: replaced hardcoded source list with live query to admin-managed /api/sources database; create case dialog now shows only active sources configured in Admin > Sources; source code (not hardcoded string) stored in cases.sources[]; labels resolved dynamically from fetched source map in case table, kanban cards, and EL Case Status report; backend createCaseSchema source validation changed from fixed enum to z.array(z.string()) to support dynamic admin-defined sources",
+          "message": "Fixed: EL case sources now use the admin-configured sources list instead of a hardcoded one",
           "createdAt": "2026-05-05T13:35:00.000Z",
           "createdBy": "agent"
         },
@@ -238,7 +238,7 @@
           "id": "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
           "patch": 6,
           "category": "feature",
-          "message": "EL cases: source multi-select field added to create case dialog with 8 options (Employee, ACAS, Employment Tribunal, Solicitor, Trade Union, HR / Internal, Management, Whistleblowing); sources stored as a text array on the cases table; sources column added to the case table view with compact badge chips; source chips shown on kanban cards below employee name; sources shown as grey chips in the EL Case Status report below the site name",
+          "message": "EL cases now include a source field (e.g. Employee, ACAS, Solicitor) shown on the table, kanban, and report",
           "createdAt": "2026-05-05T12:30:00.000Z",
           "createdBy": "agent"
         },
@@ -246,7 +246,7 @@
           "id": "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08",
           "patch": 6,
           "category": "bug",
-          "message": "Essential documents: end-to-end verified submission date saving and linked milestone creation; confirmed route, storage, and Drizzle insert all work correctly; removed debug instrumentation added during investigation; prior null submission_date rows were created before the feature existed, not a runtime bug",
+          "message": "Fixed: essential document submission date saving confirmed working",
           "createdAt": "2026-05-05T12:10:00.000Z",
           "createdBy": "agent"
         },
@@ -254,7 +254,7 @@
           "id": "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
           "patch": 6,
           "category": "feature",
-          "message": "EL cases: kanban view toggle added alongside the existing table view; toggle buttons (list/grid icons) in the Case Files card header switch between table and kanban; kanban shows 5 colour-coded columns by status (Open=blue, Under Investigation=amber, Hearing Scheduled=purple, Resolved=green, Closed=grey); each card shows case ref, name, employee, type badge, response deadline chip (red if overdue), overdue/upcoming milestone chips; cards link directly to the case; existing search and filter controls apply to both views; status filter narrows kanban columns accordingly",
+          "message": "EL cases now have a kanban board view alongside the table view",
           "createdAt": "2026-05-05T00:00:00.000Z",
           "createdBy": "agent"
         },
@@ -262,14 +262,14 @@
           "id": "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
           "patch": 6,
           "category": "feature",
-          "message": "Reports: EL Case Status report added — visible only to admins and consultants with the Case Advocate toggle; shows live (non-archived, non-closed) employment law cases with no employee names; summary metrics for total live cases, overdue items, upcoming deadlines (14 days), and response-overdue cases; per-case rows show case reference, name, type badge (ET Claim / ACAS), status badge, response deadline, hearing date, overdue/upcoming milestone counts, and essential docs completion bar; cases sorted by severity (overdue first); backend /api/reports/el-cases route guards access by role+permission and respects site scope",
+          "message": "New EL Case Status report added for admins and case advocates",
           "createdAt": "2026-05-05T00:00:00.000Z",
           "createdBy": "agent"
         },
         {
           "id": "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
           "patch": 6,
-          "message": "Essential documents: submission date field added to create/edit dialog; auto-creates a linked milestone 'Submit: [title]'; date syncs bidirectionally between checklist item and milestone; completing the milestone also marks the checklist item complete with the same date; linked milestones show an 'Essential document' amber badge",
+          "message": "Essential documents: submission date added; auto-creates a linked milestone that keeps both in sync",
           "category": "feature",
           "createdAt": "2026-05-05T11:46:00.000Z",
           "createdBy": "agent"
@@ -277,7 +277,7 @@
         {
           "id": "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
           "patch": 6,
-          "message": "Case file essential documents: 'Link existing document' option added to checklist item 3-dot menu — opens a picker of unlinked case documents; selecting one marks the item complete with that document linked",
+          "message": "Essential document checklist items can now be linked to an existing case document",
           "category": "feature",
           "createdAt": "2026-05-05T11:41:00.000Z",
           "createdBy": "agent"
@@ -293,7 +293,7 @@
         {
           "id": "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
           "patch": 6,
-          "message": "EL milestones: 'View Notes' option added to 3-dot menu on completed milestones with notes; opens read-only dialog showing completion date and notes",
+          "message": "Completed milestones with notes now have a View Notes option in their menu",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:30:00.000Z",
           "createdBy": "agent"
@@ -301,7 +301,7 @@
         {
           "id": "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31",
           "patch": 6,
-          "message": "Calendar: EL case deadlines/milestones now hidden from consultants without caseAdvocate permission; confirmed advocate check already enforced on case list and detail routes",
+          "message": "Fixed: EL case deadlines were showing for consultants without Case Advocate permission",
           "category": "bug",
           "createdAt": "2026-05-05T12:25:00.000Z",
           "createdBy": "agent"
@@ -309,7 +309,7 @@
         {
           "id": "a8y39v07-3c0z-8d7e-5b48-9f1a3b5c6e20",
           "patch": 6,
-          "message": "EL milestones: completion dialog captures date + notes; completed milestones show completion date inline and expandable notes; DB column completion_notes added",
+          "message": "EL milestones now capture a completion date and optional notes when marked done",
           "category": "feature",
           "createdAt": "2026-05-05T12:20:00.000Z",
           "createdBy": "agent"
@@ -317,7 +317,7 @@
         {
           "id": "z7x28u96-2b9y-7c6d-4a37-8e0z2a4b5d19",
           "patch": 6,
-          "message": "EL cases: renamed 'Response Deadline' to 'ET3 Response Deadline' across table headers, case detail, create form, milestone badge, and milestone edit confirmation",
+          "message": "Response Deadline renamed to ET3 Response Deadline throughout EL cases",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:15:00.000Z",
           "createdBy": "agent"
@@ -325,7 +325,7 @@
         {
           "id": "y6w17t85-1a8x-6b5c-3z26-7d9y1z3a4c08",
           "patch": 6,
-          "message": "Site docs dashboard: changed Company badge from blue to orange for better contrast against module accent colours",
+          "message": "Site docs dashboard: Company badge colour updated for better contrast",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:10:00.000Z",
           "createdBy": "agent"
@@ -333,7 +333,7 @@
         {
           "id": "x5v06s74-0z7w-5a4b-2y15-6c8x0y2z3b97",
           "patch": 6,
-          "message": "Site docs dashboard: colour-coded hierarchy badges — GROUP=violet, COMPANY=blue, SITE=teal",
+          "message": "Site docs dashboard: Group, Company, and Site hierarchy badges are now colour-coded",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:05:00.000Z",
           "createdBy": "agent"
@@ -341,7 +341,7 @@
         {
           "id": "w4u95r63-9y6v-4z3a-1x04-5b7w9x1y2a86",
           "patch": 6,
-          "message": "Site docs dashboard: added GROUP/COMPANY/SITE type chips to tiles; fixed site tile icon (Building2→MapPin); differentiated borders (Group=solid, Company=dashed, Site=thin compliance border)",
+          "message": "Site docs dashboard: tiles now show Group, Company, or Site type labels with distinct styling",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:00:00.000Z",
           "createdBy": "agent"
@@ -349,7 +349,7 @@
         {
           "id": "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75",
           "patch": 6,
-          "message": "EL Case detail: case name now editable inline via pencil icon in header; shows 'No case name set' placeholder for admins/consultants when empty",
+          "message": "Fixed: EL case name can now be edited inline from the case detail header",
           "category": "bug",
           "createdAt": "2026-05-05T11:45:00.000Z",
           "createdBy": "agent"
@@ -357,7 +357,7 @@
         {
           "id": "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64",
           "patch": 6,
-          "message": "EL Case detail: back button now navigates to /employment-law/cases (cases list) instead of /employment-law (EL dashboard)",
+          "message": "Fixed: back button on EL case detail now returns to the cases list",
           "category": "bug",
           "createdAt": "2026-05-05T11:30:00.000Z",
           "createdBy": "agent"
@@ -365,7 +365,7 @@
         {
           "id": "t1r62o30-6v3s-1w0x-8u71-2y4t6u8v9x53",
           "patch": 6,
-          "message": "EL Cases: added mandatory Case Name field (form + table column); cases table gains dedicated Response Deadline column; Deadline column renamed to Next Milestone (shows only non-RD milestones, overdue takes priority)",
+          "message": "EL cases now require a case name; table shows dedicated response deadline and next milestone columns",
           "category": "feature",
           "createdAt": "2026-05-05T11:20:00.000Z",
           "createdBy": "agent"
@@ -373,7 +373,7 @@
         {
           "id": "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42",
           "patch": 6,
-          "message": "EL Cases: Response Deadline converted to a mandatory pinned milestone — auto-created on case creation, editing its due date syncs the case field, deletion blocked",
+          "message": "EL case ET3 response deadline is now a protected milestone that cannot be deleted",
           "category": "feature",
           "createdAt": "2026-05-05T11:15:00.000Z",
           "createdBy": "agent"
@@ -381,7 +381,7 @@
         {
           "id": "r9p50m28-4t1q-9u8v-6s59-0w2r4s6t7v31",
           "patch": 6,
-          "message": "Roadmap: added 'No Module' filter option to show items with no module tag assigned",
+          "message": "Roadmap: 'No Module' filter option added to find untagged items",
           "category": "enhancement",
           "createdAt": "2026-05-05T10:36:00.000Z",
           "createdBy": "agent"
@@ -389,7 +389,7 @@
         {
           "id": "q8o49l17-3s0p-8t7u-5r48-9v1q3r5s6u20",
           "patch": 6,
-          "message": "Roadmap fix: replaced IIFE patterns in JSX with a ModuleBadge component — module badges now render correctly on kanban cards and in detail dialog",
+          "message": "Fixed: roadmap module badges weren't rendering on cards",
           "category": "bug",
           "createdAt": "2026-05-05T10:32:00.000Z",
           "createdBy": "agent"
@@ -397,7 +397,7 @@
         {
           "id": "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19",
           "patch": 6,
-          "message": "Roadmap fix: module field now saved on create — was missing from storage.createRoadmapItem insert",
+          "message": "Fixed: roadmap module tag wasn't being saved when creating an item",
           "category": "bug",
           "createdAt": "2026-05-05T10:30:00.000Z",
           "createdBy": "agent"
@@ -405,7 +405,7 @@
         {
           "id": "o6m27j95-1q8n-6r5s-3p26-7t9o1p3q4s08",
           "patch": 6,
-          "message": "Roadmap fix: module field now persisted on update (was missing from server whitelist)",
+          "message": "Fixed: roadmap module tag wasn't saving when editing an item",
           "category": "bug",
           "createdAt": "2026-05-05T10:20:00.000Z",
           "createdBy": "agent"
@@ -413,7 +413,7 @@
         {
           "id": "n5l16i84-0p7m-5q4r-2o15-6s8n0o2p3r97",
           "patch": 6,
-          "message": "Roadmap: add module tag (OVERVIEW/ADMIN/HR/H&S/EL/TRAINING/TOOLKIT/REPORTS) to tiles, creation form, edit form, and kanban filter",
+          "message": "Roadmap items can now be tagged with a portal module (Overview, HR, H&S, EL, etc.)",
           "category": "feature",
           "createdAt": "2026-05-05T10:10:00.000Z",
           "createdBy": "agent"
@@ -421,7 +421,7 @@
         {
           "id": "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
           "patch": 6,
-          "message": "Investigation form and report: Actions and Recommendations now appear before Conclusion",
+          "message": "Investigation report: Actions and Recommendations section moved above Conclusion",
           "category": "enhancement",
           "createdAt": "2026-05-05T09:45:00.000Z",
           "createdBy": "agent"
@@ -429,7 +429,7 @@
         {
           "id": "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
           "patch": 6,
-          "message": "Investigation report: conclusion separated, actions and recommendations now individual list items; recommendations removed from incident report form",
+          "message": "Investigation report: actions listed individually; recommendations removed from incident report",
           "category": "feature",
           "createdAt": "2026-05-05T09:30:00.000Z",
           "createdBy": "agent"
@@ -437,7 +437,7 @@
         {
           "id": "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64",
           "patch": 6,
-          "message": "Redaction re-applied to portal and investigation report; bypassed only when client grants consultant full access; incident report PDF always redacted",
+          "message": "Investigation reports are redacted by default; shown unredacted only when client grants full consultant access",
           "category": "enhancement",
           "createdAt": "2026-05-05T09:15:00.000Z",
           "createdBy": "agent"
@@ -445,7 +445,7 @@
         {
           "id": "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53",
           "patch": 6,
-          "message": "Incident report PDF now always stored redacted; investigation report and portal views no longer redact personal names",
+          "message": "Incident report PDF is always redacted; investigation report and portal views show full names",
           "category": "enhancement",
           "createdAt": "2026-05-05T09:00:00.000Z",
           "createdBy": "agent"
