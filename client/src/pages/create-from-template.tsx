@@ -330,7 +330,7 @@ export default function CreateFromTemplate() {
   const selectedSite = sites.find(s => s.id === primarySiteId);
   const selectedSiteObjects = sites.filter(s => selectedSiteIds.includes(s.id));
 
-  // Sync requiresApproval and isRequiredForCompliance from template whenever the selected template changes
+  // Sync requiresApproval, isRequiredForCompliance, title and folder from template whenever it changes
   useEffect(() => {
     if (selectedTemplate) {
       setRequiresApproval(selectedTemplate.requiresApproval !== false);
@@ -346,6 +346,9 @@ export default function CreateFromTemplate() {
         setComplianceMode("none");
         setRenewalPeriodMonths(null);
       }
+      // Pre-fill title with template name; reset folder so auto-select fires for the new template
+      setDocumentTitle(selectedTemplate.name);
+      setSelectedFolderId("");
     }
   }, [selectedTemplateId, selectedTemplate, requiredTemplateIdSet]);
 
@@ -600,6 +603,19 @@ export default function CreateFromTemplate() {
     const matchingFolder = siteFolders.find(f => f.name === folderTemplate.name);
     if (matchingFolder) setSelectedFolderId(matchingFolder.id);
   }, [siteFolders, primarySiteId, selectedTemplate, folderTemplates, selectedFolderId]);
+
+  // Auto-set folder for company/group scoped docs — same logic but uses scopedFolders
+  useEffect(() => {
+    if (!selectedTemplate || !tplScopedScope || !selectedEntityId) return;
+    if (scopedFolders.length === 0 || folderTemplates.length === 0) return;
+    if (selectedFolderId) return;
+    if (selectedTemplate.toolkitFolderId) return;
+    if (!selectedTemplate.folderTemplateId) return;
+    const folderTemplate = folderTemplates.find(ft => ft.id === selectedTemplate.folderTemplateId);
+    if (!folderTemplate) return;
+    const matchingFolder = scopedFolders.find(f => f.name === folderTemplate.name);
+    if (matchingFolder) setSelectedFolderId(matchingFolder.id);
+  }, [scopedFolders, tplScopedScope, selectedEntityId, selectedTemplate, folderTemplates, selectedFolderId]);
 
   const createDocumentMutation = useMutation({
     mutationFn: async () => {

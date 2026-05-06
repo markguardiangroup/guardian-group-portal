@@ -163,6 +163,14 @@
       ],
       "entries": [
         {
+          "id": "d4g7h1c3-9e6f-3g45-7f01-i2j3k4l5m6n7",
+          "patch": 6,
+          "category": "enhancement",
+          "message": "Create from Template: document title and folder pre-fill from the selected template",
+          "createdAt": "2026-05-06T14:20:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b2e5f9a1-7c4d-1e23-5d89-g0h1i2j3k4l5",
           "patch": 6,
           "category": "bug",
