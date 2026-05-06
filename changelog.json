@@ -1817,6 +1817,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T10:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d5e6f7a8-b9c0-4d1e-cf2f-3a4b5c6d7e8f",
+          "patch": 6,
+          "message": "Fixed: site card compliant count now includes manually-required docs with excluded templates",
+          "category": "bug",
+          "createdAt": "2026-05-06T10:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

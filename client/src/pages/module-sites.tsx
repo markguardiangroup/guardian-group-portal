@@ -51,6 +51,7 @@ interface Document {
   scope?: "site" | "company" | "group" | null;
   entityId?: string | null;
   isRequired?: boolean;
+  templateId?: string | null;
   sharedWithCompanyIds?: string[];
   sharedWithSiteIds?: string[];
 }
@@ -944,6 +945,24 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 if (status === "compliant") compliant++;
                 else if (status === "review_required") reviewRequired++;
                 else if (status === "overdue") overdue++;
+              }
+              // Also count manually-required docs whose template is excluded from the
+              // effective required set (or have no templateId). These mirror the
+              // "manualRequired" pass in computeSlotBasedCompliance on the server.
+              const consumedTemplateIds = new Set(bestStatusByTemplate.keys());
+              const seenManualDocIds = new Set<string>();
+              for (const d of siteDocs) {
+                if (!d.isRequired) continue;
+                // Skip if already counted via a template slot
+                if (d.templateId && consumedTemplateIds.has(d.templateId)) continue;
+                // Only count if the template is NOT in the effective required set
+                // (i.e. it's an excluded or template-free manually required doc)
+                if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
+                if (seenManualDocIds.has(d.id)) continue;
+                seenManualDocIds.add(d.id);
+                if (d.status === "compliant") compliant++;
+                else if (d.status === "review_required") reviewRequired++;
+                else if (d.status === "overdue") overdue++;
               }
               const pending = siteDocs.filter((d) => d.approvalStatus === "pending").length;
               const missingCount = missingRequiredDetails.filter(
