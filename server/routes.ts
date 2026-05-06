@@ -10490,8 +10490,43 @@ export async function registerRoutes(
       for (const reqSet of companyReqCacheHierarchy.values()) {
         for (const id of reqSet) allCompanyRequiredTemplateIds.add(id);
       }
-      const getEffectiveTemplateIsRequired = (dt: { id: string; isRequired: boolean }) =>
-        dt.isRequired || allCompanyRequiredTemplateIds.has(dt.id);
+
+      // Load site-level overrides (exclude/include) for all target sites so the
+      // folder view correctly reflects what is/isn't required per site.
+      const siteOverridesCache = new Map<string, { excludedIds: Set<string>; includedIds: Set<string> }>();
+      await Promise.all(targetSiteIds.map(async (sid) => {
+        const overrides = await storage.getSiteTemplateOverrides(sid);
+        const excludedIds = new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId));
+        const includedIds = new Set(overrides.filter(o => o.action === "include").map(o => o.templateId));
+        siteOverridesCache.set(sid, { excludedIds, includedIds });
+      }));
+
+      // For a single-site view, pre-compute the effective required set that
+      // respects the site's exclude/include overrides so the folder Required/Missing
+      // badges match exactly what is shown in the site's Required Documents panel.
+      const singleSiteEffectiveRequired = (!isAllSites && targetSiteIds.length === 1)
+        ? (() => {
+            const sid = targetSiteIds[0];
+            const companyId = siteToCompanyHierarchy.get(sid);
+            const companyReq = companyId
+              ? (companyReqCacheHierarchy.get(companyId) ?? new Set<string>())
+              : new Set<string>();
+            const { excludedIds, includedIds } = siteOverridesCache.get(sid) ?? { excludedIds: new Set<string>(), includedIds: new Set<string>() };
+            const effective = new Set<string>();
+            for (const id of companyReq) {
+              if (!excludedIds.has(id)) effective.add(id);
+            }
+            for (const id of includedIds) effective.add(id);
+            return effective;
+          })()
+        : null;
+
+      const getEffectiveTemplateIsRequired = (dt: { id: string; isRequired: boolean }) => {
+        if (singleSiteEffectiveRequired !== null) {
+          return dt.isRequired || singleSiteEffectiveRequired.has(dt.id);
+        }
+        return dt.isRequired || allCompanyRequiredTemplateIds.has(dt.id);
+      };
 
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
@@ -10603,6 +10638,8 @@ export async function registerRoutes(
                 const missingSites = isAllSites && isReq
                   ? targetSiteIds
                       .filter(sId => {
+                        const siteOvr = siteOverridesCache.get(sId);
+                        if (siteOvr?.excludedIds.has(dt.id)) return false;
                         const siteHasDoc = childFolderDocs.some(d => d.siteId === sId && d.templateId === dt.id);
                         const sharedHas = sharedFulfillmentBySiteAndTemplate.get(sId)?.has(dt.id) ?? false;
                         return !siteHasDoc && !sharedHas;
@@ -10726,6 +10763,8 @@ export async function registerRoutes(
               const missingSites = isAllSites && isReq
                 ? targetSiteIds
                     .filter(sId => {
+                      const siteOvr = siteOverridesCache.get(sId);
+                      if (siteOvr?.excludedIds.has(dt.id)) return false;
                       const siteHasDoc = folderDocuments.some(d => d.siteId === sId && d.templateId === dt.id);
                       const sharedHas = sharedFulfillmentBySiteAndTemplate.get(sId)?.has(dt.id) ?? false;
                       return !siteHasDoc && !sharedHas;

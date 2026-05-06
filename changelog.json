@@ -163,6 +163,14 @@
       ],
       "entries": [
         {
+          "id": "a3f8c2e1-9b74-4d56-8c12-f1e2d3a4b5c6",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: excluded required docs were still showing as Required/Missing in the folder view",
+          "createdAt": "2026-05-06T10:50:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "s6q07o85-1u8r-6v5w-3t26-7x9s1t3u4w08",
           "patch": 6,
           "category": "bug",
