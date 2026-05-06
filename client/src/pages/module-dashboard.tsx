@@ -410,6 +410,42 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return map;
   }, [sites]);
 
+  // Sites currently in scope for the dashboard view — used to expand shared
+  // (siteId=null) docs into one dialog row per site they cover.
+  const currentFilterSites = useMemo(() => {
+    if (!sites) return [];
+    if (siteId) return sites.filter(s => s.id === siteId);
+    if (companySiteIds?.length) return sites.filter(s => companySiteIds.includes(s.id));
+    return sites;
+  }, [sites, siteId, companySiteIds]);
+
+  // Expand dialog docs so that shared docs (siteId=null) appear once per site
+  // they are visible to within the current view, each labelled with that site.
+  const expandedDocsDialogRows = useMemo(() => {
+    return docsDialogDocs.flatMap(doc => {
+      if (doc.siteId) {
+        return [{ doc, key: doc.id, siteName: siteNameMap[doc.siteId] ?? null }];
+      }
+      // Scoped/shared doc — find every site in current view that sees it
+      const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+      const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+      const entityId = (doc as any).entityId as string | undefined;
+      const visibleSites = currentFilterSites.filter(s =>
+        (sharedWithSiteIds?.includes(s.id) ?? false) ||
+        (sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
+        entityId === s.companyId
+      );
+      if (visibleSites.length === 0) {
+        return [{ doc, key: doc.id, siteName: null }];
+      }
+      return visibleSites.map(s => ({
+        doc,
+        key: `${doc.id}-${s.id}`,
+        siteName: `${s.name}${s.companyName ? ` — ${s.companyName}` : ""}`,
+      }));
+    });
+  }, [docsDialogDocs, currentFilterSites, siteNameMap]);
+
   const getDocTypeLabel = (type: string) => {
     const docType = config.documentTypes.find(dt => dt.value === type);
     return docType?.label || type.replace(/_/g, " ");
@@ -881,19 +917,18 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {docsDialogDocs.length === 0 ? (
+            {expandedDocsDialogRows.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
             ) : (
               <>
-                {docsDialogDocs.map((doc) => {
-                  const siteName = doc.siteId ? siteNameMap[doc.siteId] : null;
+                {expandedDocsDialogRows.map(({ doc, key, siteName }) => {
                   const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
                   return (
                     <div
-                      key={doc.id}
+                      key={key}
                       className="flex items-center justify-between rounded-md border p-3 gap-3 hover:bg-muted/40 cursor-pointer"
                       onClick={() => { setDocsDialogFilter(null); navigate(`${basePath}/documents/${doc.id}`); }}
-                      data-testid={`row-module-doc-${doc.id}`}
+                      data-testid={`row-module-doc-${key}`}
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{doc.title}</p>
