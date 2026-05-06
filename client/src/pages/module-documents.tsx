@@ -548,21 +548,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return "All Sites";
   }, [selectedSiteId, selectedCompany, sites, urlScope]);
 
-  // IDs for linking company/site names to their profile pages
-  const contextCompanyId = useMemo(() => {
-    if (urlScope === "company") return urlEntityId;
-    if (selectedSiteId && selectedSiteId !== "all") {
-      return sites?.find(s => s.id === selectedSiteId)?.companyId || null;
-    }
-    if (selectedCompany && selectedCompany !== "all") return selectedCompanyId;
-    return null;
-  }, [urlScope, urlEntityId, selectedSiteId, selectedCompany, selectedCompanyId, sites]);
-
-  const contextSiteId = useMemo(() => {
-    if (selectedSiteId && selectedSiteId !== "all") return selectedSiteId;
-    return null;
-  }, [selectedSiteId]);
-
   const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents/module", module],
   });
@@ -720,6 +705,21 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     const siteInCompany = sites.find(s => s.companyName === selectedCompany);
     return siteInCompany?.companyId || null;
   }, [selectedCompany, sites]);
+
+  // IDs for linking company/site names to their profile pages in the header
+  const contextCompanyId = useMemo(() => {
+    if (urlScope === "company") return urlEntityId;
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return sites?.find(s => s.id === selectedSiteId)?.companyId || null;
+    }
+    if (selectedCompany && selectedCompany !== "all") return selectedCompanyId;
+    return null;
+  }, [urlScope, urlEntityId, selectedSiteId, selectedCompany, selectedCompanyId, sites]);
+
+  const contextSiteId = useMemo(() => {
+    if (selectedSiteId && selectedSiteId !== "all") return selectedSiteId;
+    return null;
+  }, [selectedSiteId]);
   
   // Build hierarchy URL - always fetch with includeArchived=true, filter client-side
   const hierarchyUrl = useMemo(() => {

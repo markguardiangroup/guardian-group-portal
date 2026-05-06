@@ -1833,6 +1833,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-06T10:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f7a8b9c0-d1e2-4f3a-e04b-5c6d7e8f9a0b",
+          "patch": 6,
+          "message": "Fixed: documents page crash on load caused by initialization order error",
+          "category": "bug",
+          "createdAt": "2026-05-06T10:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
