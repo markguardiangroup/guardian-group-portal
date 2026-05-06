@@ -163,6 +163,14 @@
       ],
       "entries": [
         {
+          "id": "b4e9d3f2-0c85-5e67-9d23-a2f3e4b5c6d7",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: shared/group documents were missing from the table view when a site was selected",
+          "createdAt": "2026-05-06T11:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a3f8c2e1-9b74-4d56-8c12-f1e2d3a4b5c6",
           "patch": 6,
           "category": "bug",

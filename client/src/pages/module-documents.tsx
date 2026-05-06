@@ -714,11 +714,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${params.toString()}`;
   }, [hierarchySiteId, module, selectedCompanyId]);
 
-  // Fetch document hierarchy for folder view
+  // Fetch document hierarchy — always fetch when a specific site is selected so that
+  // sharedDocuments is available for both folder and table views.
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
     queryKey: [hierarchyUrl],
     placeholderData: keepPreviousData,
-    enabled: !!hierarchySiteId && viewMode === "folder",
+    enabled: !!hierarchySiteId && hierarchySiteId !== "all",
   });
 
   // Count of missing-required rows actually displayed in the UI. The two render
@@ -782,6 +783,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       }
     }
     return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
+  }, [hierarchy]);
+
+  // Set of shared-doc IDs that the hierarchy API confirmed are visible for the
+  // currently selected site. Used to correctly include shared docs in table view.
+  const sharedDocIdSet = useMemo(() => {
+    const s = new Set<string>();
+    if (hierarchy?.sharedDocuments) {
+      for (const d of hierarchy.sharedDocuments) s.add(d.id);
+    }
+    return s;
   }, [hierarchy]);
 
   // Drag-and-drop for folder view (admin only — individual items use disabled:!isAdmin)
@@ -900,15 +911,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
     
     // Filter by site - site-scoped docs must match selected site.
-    // Shared-link docs (siteId=null) have no deterministic site affinity client-side:
-    // show them only in "all sites" mode; per-site shared doc display is handled by the
-    // hierarchy/folder view which explicitly renders a "Shared Documents" section per site.
+    // Shared-link docs (siteId=null) are included when the hierarchy confirms they
+    // are visible to the selected site (via sharedDocIdSet). This ensures table view
+    // matches folder view: both show the same shared/group documents.
     let matchesSite = true;
     if (urlScope && urlEntityId) {
       // Scope-view already constrains by entity; skip site/company filters
     } else if (selectedSiteId && selectedSiteId !== "all") {
       if (doc.isSharedLink) {
-        matchesSite = false;
+        matchesSite = sharedDocIdSet.has(doc.id);
       } else {
         matchesSite = doc.siteId === selectedSiteId;
       }
