@@ -1132,6 +1132,41 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return result;
   }, [unmatchedShared, filteredDocuments, selectedSiteId, filteredSites]);
 
+  // Same per-site expansion for shared docs filed inside a folder template.
+  const expandedSharedByFolderTemplate = useMemo(() => {
+    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    if (!isAllSites || filteredSites.length <= 1) return sharedByFolderTemplate;
+    const docLookup = new Map<string, any>();
+    for (const d of filteredDocuments ?? []) {
+      if (d.siteId === null) docLookup.set(d.id, d);
+    }
+    const expanded = new Map<string, any[]>();
+    for (const [tplId, docs] of sharedByFolderTemplate.entries()) {
+      const expandedDocs: any[] = [];
+      for (const doc of docs) {
+        const full = docLookup.get(doc.id);
+        if (!full) { expandedDocs.push(doc); continue; }
+        const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
+        const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
+        const docEntityId = (full as any).entityId as string | undefined;
+        const coveredSites = filteredSites.filter(s =>
+          sharedWithSiteIds?.includes(s.id) ||
+          sharedWithCompanyIds?.includes(s.companyId) ||
+          (docEntityId !== undefined && docEntityId === s.companyId)
+        );
+        if (coveredSites.length === 0) {
+          expandedDocs.push(doc);
+        } else {
+          for (const site of coveredSites) {
+            expandedDocs.push({ ...doc, _virtualSiteId: site.id, _virtualSiteName: site.name, _virtualKey: `${doc.id}-${site.id}` });
+          }
+        }
+      }
+      expanded.set(tplId, expandedDocs);
+    }
+    return expanded;
+  }, [sharedByFolderTemplate, filteredDocuments, selectedSiteId, filteredSites]);
+
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
       const apiDocType = allDocumentTypes.find(dt => dt.id === documentTypeId);
@@ -1763,21 +1798,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             </DraggableDocRow>
                                           ))}
                                           {/* Shared (Group/Company-scope) documents filed under this child folder template — read-only */}
-                                          {(sharedByFolderTemplate.get(childFolder.id) ?? []).map((doc) => (
+                                          {(expandedSharedByFolderTemplate.get(childFolder.id) ?? []).map((doc) => (
                                             <Link
-                                              key={doc.id}
+                                              key={(doc as any)._virtualKey ?? doc.id}
                                               href={`${basePath}/documents/${doc.id}`}
                                               className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
-                                              data-testid={`link-shared-document-${doc.id}`}
+                                              data-testid={`link-shared-document-${(doc as any)._virtualKey ?? doc.id}`}
                                             >
                                               <div className="flex items-center gap-3">
                                                 <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                                                 <div>
                                                   <p className="font-medium text-sm">{doc.title}</p>
                                                   <p className="text-xs text-muted-foreground">
-                                                    {doc.sharedFromEntityName
-                                                      ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
-                                                      : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
+                                                    {(doc as any)._virtualSiteName
+                                                      ? `${(doc as any)._virtualSiteName}${doc.sharedFromEntityName ? ` · Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}` : ""}`
+                                                      : doc.sharedFromEntityName
+                                                        ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                                                        : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
                                                   </p>
                                                 </div>
                                               </div>
@@ -1879,14 +1916,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             )}
 
                             {/* Shared (Group/Company-scope) documents filed under this folder template — read-only */}
-                            {(sharedByFolderTemplate.get(folder.id) ?? []).length > 0 && (
+                            {(expandedSharedByFolderTemplate.get(folder.id) ?? []).length > 0 && (
                               <div className="space-y-2">
-                                {(sharedByFolderTemplate.get(folder.id) ?? []).map((doc) => (
+                                {(expandedSharedByFolderTemplate.get(folder.id) ?? []).map((doc) => (
                                   <Link
-                                    key={doc.id}
+                                    key={(doc as any)._virtualKey ?? doc.id}
                                     href={`${basePath}/documents/${doc.id}`}
                                     className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
-                                    data-testid={`link-shared-document-${doc.id}`}
+                                    data-testid={`link-shared-document-${(doc as any)._virtualKey ?? doc.id}`}
                                   >
                                     <div className="flex items-center gap-3">
                                       <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -1895,9 +1932,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                           <p className="font-medium text-sm">{doc.title}</p>
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                          {doc.sharedFromEntityName
-                                            ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
-                                            : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
+                                          {(doc as any)._virtualSiteName
+                                            ? `${(doc as any)._virtualSiteName}${doc.sharedFromEntityName ? ` · Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}` : ""}`
+                                            : doc.sharedFromEntityName
+                                              ? `Shared from ${doc.sharedScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                                              : `Shared ${doc.sharedScope ?? "document"} (read-only)`}
                                         </p>
                                       </div>
                                     </div>
