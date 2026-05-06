@@ -1063,7 +1063,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // When in "All Sites" view, expand shared/scoped docs (siteId=null) so that each
   // one appears once per covered site rather than as a single ambiguous row.
   const expandedTableDocuments = useMemo(() => {
-    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
     if (!isAllSites || filteredSites.length <= 1) {
       return sortedDocuments.map(doc => ({ doc, rowKey: doc.id }));
     }
@@ -1100,7 +1100,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // mirroring the table-view expansion. filteredDocuments is the source of
   // sharedWithSiteIds / sharedWithCompanyIds since HierarchyDocument lacks them.
   const expandedUnmatchedShared = useMemo(() => {
-    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
     if (!isAllSites || filteredSites.length <= 1) return unmatchedShared;
     const docLookup = new Map<string, any>();
     for (const d of filteredDocuments ?? []) {
@@ -1134,7 +1134,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // Same per-site expansion for shared docs filed inside a folder template.
   const expandedSharedByFolderTemplate = useMemo(() => {
-    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
     if (!isAllSites || filteredSites.length <= 1) return sharedByFolderTemplate;
     const docLookup = new Map<string, any>();
     for (const d of filteredDocuments ?? []) {
@@ -1171,7 +1171,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // so that displayed counts stay consistent with the expanded rows.
   const sharedExpansionDeltas = useMemo(() => {
     const empty = { byFolder: new Map<string, { totalDocuments: number; compliant: number; reviewRequired: number; overdue: number }>(), summary: { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 } };
-    const isAllSites = !selectedSiteId || selectedSiteId === "all";
+    const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
     if (!isAllSites || filteredSites.length <= 1) return empty;
     const byFolder = new Map<string, { totalDocuments: number; compliant: number; reviewRequired: number; overdue: number }>();
     let sTotal = 0, sCompliant = 0, sReview = 0, sOverdue = 0;

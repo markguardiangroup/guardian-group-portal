@@ -1921,6 +1921,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T21:38:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-cb9876543210",
+          "patch": 6,
+          "message": "Fixed: shared docs no longer show per-site rows in Company Documents view",
+          "category": "bug",
+          "createdAt": "2026-05-06T21:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
