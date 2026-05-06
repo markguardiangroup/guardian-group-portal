@@ -1190,10 +1190,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       (doc as any).scope !== urlScope ||
                       (doc as any).entityId !== urlEntityId
                     );
-                    const isLinkedRow = viewedAsLinked || !!doc.isSharedLink;
+                    const isScopedDoc = !!(doc.siteId === null && ((doc as any).scope === "group" || (doc as any).scope === "company"));
+                    const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isScopedDoc;
                     const linkedFromScope: "group" | "company" | null = viewedAsLinked
                       ? ((doc as any).scope === "group" ? "group" : "company")
-                      : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company" : null);
+                      : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
+                        : ((doc as any).scope === "group" ? "group" : (doc as any).scope === "company" ? "company" : null));
                     return (
                       <Link
                         key={doc.id}
@@ -1208,19 +1210,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{doc.title}</p>
                             <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
+                            {isLinkedRow && (
+                              <Badge variant="outline" className={`mt-1 text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
+                                <LinkIcon className="h-3 w-3 mr-1" />
+                                Shared from {linkedFromScope === "group" ? "Group" : "Company"}
+                              </Badge>
+                            )}
+                            {doc.isArchived && (
+                              <Badge variant="secondary" className="mt-1 gap-1 bg-muted">
+                                <Archive className="h-3 w-3" />
+                                Archived
+                              </Badge>
+                            )}
                           </div>
-                          {isLinkedRow && (
-                            <Badge variant="outline" className={`text-xs shrink-0 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
-                              <LinkIcon className="h-3 w-3 mr-1" />
-                              Shared from {linkedFromScope === "group" ? "Group" : "Company"}
-                            </Badge>
-                          )}
-                          {doc.isArchived && (
-                            <Badge variant="secondary" className="gap-1 bg-muted shrink-0">
-                              <Archive className="h-3 w-3" />
-                              Archived
-                            </Badge>
-                          )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
@@ -2095,10 +2097,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       (doc as any).entityId !== urlEntityId
                     )
                   );
-                  const isLinkedRow = viewedAsLinked || !!doc.isSharedLink;
+                  const isScopedDoc = !!(doc.siteId === null && ((doc as any).scope === "group" || (doc as any).scope === "company"));
+                  const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isScopedDoc;
                   const linkedFromScope: "group" | "company" | null = viewedAsLinked
                     ? ((doc as any).scope === "group" ? "group" : "company")
-                    : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company" : null);
+                    : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
+                      : ((doc as any).scope === "group" ? "group" : (doc as any).scope === "company" ? "company" : null));
                   return (
                   <TableRow key={doc.id} className="hover-elevate" data-testid={`row-document-${doc.id}`}>
                     <TableCell>
@@ -2106,21 +2110,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
                           <FileText className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div>
-                            <p className="font-medium">{doc.title}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {docMetaLine(doc)}
-                            </p>
-                          </div>
+                        <div>
+                          <p className="font-medium">{doc.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {docMetaLine(doc)}
+                          </p>
                           {isLinkedRow ? (
-                            <Badge variant="outline" className={`text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
+                            <Badge variant="outline" className={`mt-1 text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
                               <LinkIcon className="h-3 w-3 mr-1" />
                               Shared from {linkedFromScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
                             </Badge>
                           ) : null}
                           {doc.isArchived && (
-                            <Badge variant="secondary" className="gap-1 bg-muted">
+                            <Badge variant="secondary" className="mt-1 gap-1 bg-muted">
                               <Archive className="h-3 w-3" />
                               Archived
                             </Badge>

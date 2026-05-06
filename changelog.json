@@ -163,6 +163,22 @@
       ],
       "entries": [
         {
+          "id": "b2e5f9a1-7c4d-1e23-5d89-g0h1i2j3k4l5",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: 'Shared from Group/Company' tag now sits below the doc name instead of squeezing it",
+          "createdAt": "2026-05-06T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c3f6g0b2-8d5e-2f34-6e90-h1i2j3k4l5m6",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: 'Shared from Group/Company' tag now shows at site level in table and folder views",
+          "createdAt": "2026-05-06T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a9d4c8e6-5b3a-0d12-4c78-f7e8a9b0c1d2",
           "patch": 6,
           "category": "bug",
