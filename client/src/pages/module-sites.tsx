@@ -768,7 +768,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 )
               );
               const allTotal = allDocs.length;
-              const allRequiredDocs = allDocs.filter((d) => d.isRequired);
+              // Only site-owned docs (siteId !== null) count toward the compliance
+              // score. Scoped/shared docs (siteId === null) are visible on this view
+              // but belong to the group owner — counting them would inflate the score
+              // beyond what each individual site card reflects.
+              const allRequiredDocs = allDocs.filter((d) => d.isRequired && d.siteId !== null);
               const allCompliant = allRequiredDocs.filter((d) => d.status === "compliant").length;
               const allOverdue = allRequiredDocs.filter((d) => d.status === "overdue").length;
               const allReview = allRequiredDocs.filter((d) => d.status === "review_required").length;
@@ -932,6 +936,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const countedDocIds = new Set<string>();
               for (const d of siteDocs) {
                 if (!d.isRequired || !d.templateId) continue;
+                // Scoped/shared docs (siteId === null) are group-owner docs;
+                // they should not count toward this site's compliance score.
+                if (d.siteId === null) continue;
                 if (!siteEffectiveRequired.has(d.templateId)) continue;
                 countedDocIds.add(d.id);
                 if (d.status === "compliant") compliant++;
@@ -943,6 +950,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const seenManualDocIds = new Set<string>();
               for (const d of siteDocs) {
                 if (!d.isRequired) continue;
+                // Scoped/shared docs do not count toward per-site compliance scores.
+                if (d.siteId === null) continue;
                 if (countedDocIds.has(d.id)) continue;
                 if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
                 if (seenManualDocIds.has(d.id)) continue;
