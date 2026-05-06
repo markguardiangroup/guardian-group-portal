@@ -1388,17 +1388,13 @@ export default function UserManagement() {
                       }
                       return (
                         <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Badge
-                              variant="outline"
-                              className="text-xs px-1.5 py-0 cursor-default"
-                              data-testid={`badge-table-source-count-${u.id}`}
-                            >
+                          <TooltipTrigger className="cursor-default" data-testid={`badge-table-source-count-${u.id}`}>
+                            <Badge variant="outline" className="text-xs px-1.5 py-0 pointer-events-none">
                               {userSources.length} sources
                             </Badge>
                           </TooltipTrigger>
                           <TooltipContent side="top" className="max-w-48">
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                               {userSources.map(code => (
                                 <span key={code} className="font-mono text-xs font-semibold">{code}</span>
                               ))}

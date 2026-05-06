@@ -1785,6 +1785,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-06T00:02:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c1b0a9f8-e7d6-4c5b-8a9b-0c1d2e3f4a5b",
+          "patch": 6,
+          "message": "Fixed: Sources hover tooltip now appears correctly on the user list",
+          "category": "bug",
+          "createdAt": "2026-05-06T00:03:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
