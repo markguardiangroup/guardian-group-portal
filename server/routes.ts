@@ -881,6 +881,19 @@ export async function registerRoutes(
       
       // Mark the invitation as used
       await storage.markInvitationUsed(invitation.id);
+
+      // Clear the lockout by recording a successful login attempt.
+      // isAccountLocked() counts consecutive failures and stops at the first success,
+      // so this immediately breaks the chain and lets the user log in again.
+      if (invitation.purpose === "password_reset") {
+        await storage.recordLoginAttempt({
+          username: updatedUser.username || updatedUser.email,
+          ipAddress: req.ip || "unknown",
+          userAgent: req.headers["user-agent"] || null,
+          success: true,
+          failureReason: null,
+        });
+      }
       
       // Create audit log with legal acceptance details
       const legalDetails = invitation.purpose === "invite" 

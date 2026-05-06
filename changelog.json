@@ -163,6 +163,14 @@
       ],
       "entries": [
         {
+          "id": "f6i9j3e5-1g8h-5i67-9h23-k4l5m6n7o8p9",
+          "patch": 6,
+          "category": "bug",
+          "message": "Fixed: resetting password now fully unlocks the account so you can log in again",
+          "createdAt": "2026-05-06T15:05:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e5h8i2d4-0f7g-4h56-8g12-j3k4l5m6n7o8",
           "patch": 6,
           "category": "bug",
