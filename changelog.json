@@ -1761,6 +1761,14 @@
           "category": "feature",
           "createdAt": "2026-04-30T14:58:22.887394Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a9c3e7f1-bb42-4d18-9c05-2e1f8d6a0b47",
+          "patch": 6,
+          "message": "Fixed: Companies, Sites and Users pages now accessible to consultants",
+          "category": "bug",
+          "createdAt": "2026-05-06T00:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

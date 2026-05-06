@@ -206,16 +206,16 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
-      <Route path="/companies">{() => <AccessGuard component={Companies} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/companies">{() => <AccessGuard component={Companies} allow={NOT_CLIENT} />}</Route>
       <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={NOT_CLIENT} />}</Route>
-      <Route path="/sites">{() => <AccessGuard component={Sites} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/sites">{() => <AccessGuard component={Sites} allow={NOT_CLIENT} />}</Route>
       <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={NOT_CLIENT} />}</Route>
       <Route path="/reports" component={Reports} />
       <Route path="/admin-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
       <Route path="/admin-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
       <Route path="/support" component={Support} />
       <Route path="/settings" component={Settings} />
-      <Route path="/users">{() => <AccessGuard component={UserManagement} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/users">{() => <AccessGuard component={UserManagement} allow={NOT_CLIENT} />}</Route>
       <Route path="/template-library">{() => <AccessGuard component={TemplateLibrary} allow={TEMPLATE_LIB} />}</Route>
       <Route path="/training-library">{() => <AccessGuard component={TrainingLibrary} allow={TRAINING_LIB} />}</Route>
       <Route path="/training" component={Training} />
