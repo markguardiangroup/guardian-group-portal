@@ -15030,6 +15030,25 @@ export async function registerRoutes(
         label: parsed.data.label,
         isActive: parsed.data.isActive ?? true,
       });
+
+      // Auto-assign new source to all existing admin users
+      try {
+        const allUsers = await storage.getAllUsers();
+        const adminUsers = allUsers.filter(u => u.role === "admin");
+        await Promise.all(
+          adminUsers.map(async (adminUser) => {
+            const currentSources: string[] = adminUser.sources ?? [];
+            if (!currentSources.includes(source.code)) {
+              await storage.updateUser(adminUser.id, {
+                sources: [...currentSources, source.code],
+              });
+            }
+          })
+        );
+      } catch (err) {
+        console.error("Failed to auto-assign new source to admin users:", err);
+      }
+
       res.status(201).json(source);
     } catch (error: any) {
       if (error?.code === "23505") {

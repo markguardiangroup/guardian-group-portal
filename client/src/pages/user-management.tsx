@@ -895,9 +895,9 @@ export default function UserManagement() {
       toast({ title: "Company is required for client users", variant: "destructive" });
       return;
     }
-    // Consultants and admins must have at least one source (admin-created only)
-    if (isAdmin && (newUser.role === "consultant" || newUser.role === "admin") && newUser.sources.length === 0) {
-      toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
+    // Consultants must have at least one source (admin users always get all sources automatically)
+    if (isAdmin && newUser.role === "consultant" && newUser.sources.length === 0) {
+      toast({ title: "At least one source is required for consultant users", variant: "destructive" });
       return;
     }
     // Auto-generate fullName from firstName and lastName if not provided
@@ -2477,7 +2477,10 @@ export default function UserManagement() {
                     <Label htmlFor="new-role">Role <span className="text-destructive">*</span></Label>
                     <Select
                       value={newUser.role}
-                      onValueChange={(value: "admin" | "consultant" | "client") => setNewUser({ ...newUser, role: value })}
+                      onValueChange={(value: "admin" | "consultant" | "client") => {
+                        const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
+                        setNewUser({ ...newUser, role: value, sources: value === "admin" ? allSourceCodes : newUser.sources });
+                      }}
                     >
                       <SelectTrigger id="new-role" data-testid="select-new-role">
                         <SelectValue />
@@ -2617,7 +2620,7 @@ export default function UserManagement() {
               </div>
             )}
 
-            {isAdmin && (newUser.role === "admin" || newUser.role === "consultant") && availableSources.length > 0 && (
+            {isAdmin && newUser.role === "consultant" && availableSources.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
                 <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>

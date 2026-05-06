@@ -1769,6 +1769,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T00:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f3d2c1b0-a9e8-4f7d-8c6b-5a4e3d2c1b0a",
+          "patch": 6,
+          "message": "Admin users get all sources automatically; new sources auto-assigned to all admins",
+          "category": "enhancement",
+          "createdAt": "2026-05-06T00:01:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
