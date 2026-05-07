@@ -488,6 +488,10 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
     queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
     queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"] });
   };
 
   const addMutation = useMutation({
