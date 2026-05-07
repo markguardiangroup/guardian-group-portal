@@ -1985,6 +1985,14 @@
           "category": "feature",
           "createdAt": "2026-05-07T11:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-fe9876543299",
+          "patch": 6,
+          "message": "Fixed: Internal Company Number now saves correctly when editing a company",
+          "category": "bug",
+          "createdAt": "2026-05-07T13:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
