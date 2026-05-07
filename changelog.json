@@ -2073,6 +2073,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T15:37:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e9f0a1b2-c3d4-5678-efab-901234567890",
+          "patch": 6,
+          "message": "Last login text in users table is now smaller for a tidier layout",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T15:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

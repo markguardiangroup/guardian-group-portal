@@ -1512,7 +1512,7 @@ export default function UserManagement() {
                   <TableCell>
                     {(() => {
                       const loginAt = u.lastLoginAt || u.lastLogin;
-                      if (!loginAt) return <span className="text-sm text-muted-foreground">Never</span>;
+                      if (!loginAt) return <span className="text-xs text-muted-foreground">Never</span>;
                       const d = new Date(loginAt);
                       const diffMs = Date.now() - d.getTime();
                       const diffMins = Math.floor(diffMs / 60000);
@@ -1526,7 +1526,7 @@ export default function UserManagement() {
                       else if (diffDays < 7) relative = `${diffDays}d ago`;
                       else relative = d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
                       return (
-                        <span className="text-sm text-muted-foreground" title={d.toLocaleString()}>
+                        <span className="text-xs text-muted-foreground" title={d.toLocaleString()}>
                           {relative}
                         </span>
                       );
