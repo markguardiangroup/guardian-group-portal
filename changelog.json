@@ -2137,6 +2137,14 @@
           "category": "bug",
           "createdAt": "2026-05-07T21:50:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-abcd-789012345678",
+          "patch": 6,
+          "message": "Fixed: compliance counts update instantly after adding or removing a required document at company or site level",
+          "category": "bug",
+          "createdAt": "2026-05-07T21:57:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

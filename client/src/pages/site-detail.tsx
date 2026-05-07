@@ -990,14 +990,14 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
   ];
 
   const invalidateSiteData = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "template-overrides"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "template-overrides"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"], refetchType: "all" });
   };
 
   const addOverrideMutation = useMutation({

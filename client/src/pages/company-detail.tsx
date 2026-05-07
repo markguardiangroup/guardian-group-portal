@@ -513,14 +513,14 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"], refetchType: "all" });
+    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"], refetchType: "all" });
   };
 
   const addMutation = useMutation({

@@ -506,9 +506,12 @@ export default function Companies() {
     onSuccess: () => {
       const companyId = createdCompanyId;
       if (companyId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"], refetchType: "all" });
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
       toast({ title: "Required documents saved" });
       setIsRequiredDocsOpen(false);
       setCreatedCompanyId(null);
