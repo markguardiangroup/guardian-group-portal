@@ -428,9 +428,15 @@ export default function UserManagement() {
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortBy === "username") return dir * a.username.toLowerCase().localeCompare(b.username.toLowerCase());
     if (sortBy === "role") {
-      const roleA = roleOrder[a.role] ?? 3;
-      const roleB = roleOrder[b.role] ?? 3;
-      if (roleA !== roleB) return dir * (roleA - roleB);
+      const getRoleRank = (u: any) => {
+        if (u.role === "admin") return 0;
+        if (u.role === "consultant" && u.consultantTier === "pro") return 1;
+        if (u.role === "consultant") return 2;
+        return 3;
+      };
+      const rankA = getRoleRank(a);
+      const rankB = getRoleRank(b);
+      if (rankA !== rankB) return dir * (rankA - rankB);
       return a.username.toLowerCase().localeCompare(b.username.toLowerCase());
     }
     if (sortBy === "status") {
@@ -1317,9 +1323,13 @@ export default function UserManagement() {
               <TableHead onClick={() => handleSortUsers("username")} className="cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">User {sortBy === "username" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortUsers("role")} className="w-24 cursor-pointer select-none whitespace-nowrap">
-                <div className="flex items-center gap-1">Role {sortBy === "role" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
-              </TableHead>
+              {userTypeTab === "staff" ? (
+                <TableHead onClick={() => handleSortUsers("role")} className="w-24 cursor-pointer select-none whitespace-nowrap">
+                  <div className="flex items-center gap-1">Role {sortBy === "role" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+                </TableHead>
+              ) : (
+                <TableHead className="w-24">Role</TableHead>
+              )}
               {userTypeTab === "client" && <TableHead className="min-w-[160px]">Company</TableHead>}
               <TableHead>Sites Assigned</TableHead>
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Sources</TableHead>}

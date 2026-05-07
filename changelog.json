@@ -2089,6 +2089,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T20:58:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-123456789012",
+          "patch": 6,
+          "message": "Role sort on staff tab orders Admin > Pro Consultant > Consultant; removed from client tab",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T21:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
