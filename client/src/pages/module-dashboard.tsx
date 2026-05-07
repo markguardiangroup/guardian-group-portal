@@ -400,6 +400,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   const statusColorMap: Record<string, string> = {
     compliant: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+    complete: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
     review_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   };
@@ -950,7 +951,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             ) : (
               <>
                 {expandedDocsDialogRows.map(({ doc, key, siteName }) => {
-                  const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
+                  const isNonRequired = !doc.isRequired && doc.status === "compliant";
+                  const statusKey = isNonRequired ? "complete" : doc.status;
+                  const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : isNonRequired ? "Complete" : "Compliant";
                   return (
                     <div
                       key={key}
@@ -962,7 +965,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                         <p className="text-sm font-medium truncate">{doc.title}</p>
                         {siteName && <p className="text-xs text-muted-foreground truncate">{siteName}</p>}
                       </div>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${statusColorMap[doc.status] || "bg-muted text-muted-foreground"}`}>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${statusColorMap[statusKey] || "bg-muted text-muted-foreground"}`}>
                         {statusLabel}
                       </span>
                     </div>

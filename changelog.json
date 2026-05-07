@@ -1969,6 +1969,14 @@
           "category": "bug",
           "createdAt": "2026-05-07T10:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-fe9876543210",
+          "patch": 6,
+          "message": "Non-required documents now show a blue 'Complete' badge instead of green 'Compliant'",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T10:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
