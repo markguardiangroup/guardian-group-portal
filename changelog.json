@@ -2145,6 +2145,22 @@
           "category": "bug",
           "createdAt": "2026-05-07T21:57:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-bcde-890123456789",
+          "patch": 6,
+          "message": "Clients on all company sites are automatically assigned to any new site added to that company",
+          "category": "feature",
+          "createdAt": "2026-05-07T22:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-cdef-901234567890",
+          "patch": 6,
+          "message": "Manage Sites dialog now informs you when assigning a client to all their company's sites",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T22:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

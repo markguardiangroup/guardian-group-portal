@@ -7430,6 +7430,50 @@ export async function registerRoutes(
         }
       }
       
+      // Auto-assign clients who are already on ALL existing sites of this company
+      // (i.e. "company-wide" users) so they land on every new site automatically.
+      const allCompanySitesNow = await storage.getSitesByCompanyId(companyId);
+      const preExistingSiteIds = allCompanySitesNow
+        .filter(s => s.id !== entity.id)
+        .map(s => s.id);
+
+      if (preExistingSiteIds.length > 0) {
+        // Build intersection: clients present on EVERY pre-existing site
+        const perSiteClients = await Promise.all(
+          preExistingSiteIds.map(sid => storage.getClientSiteAssignments(sid))
+        );
+        const firstSet = new Set(perSiteClients[0].map(a => a.clientId));
+        const companyWideClientIds = perSiteClients.slice(1).reduce<Set<string>>((acc, clients) => {
+          const ids = new Set(clients.map(a => a.clientId));
+          return new Set([...acc].filter(id => ids.has(id)));
+        }, firstSet);
+
+        for (const clientId of companyWideClientIds) {
+          // Skip primary contact (already handled above)
+          if (company?.contactUserId === clientId) continue;
+          // Skip GO primary contact (already handled above)
+          if (company?.groupOwnerId) {
+            const goCompany = await storage.getCompany(company.groupOwnerId);
+            if (goCompany?.contactUserId === clientId) continue;
+          }
+          try {
+            await storage.assignClientToSite({ clientId, siteId: entity.id, assignedBy: user.id });
+            const clientUser = await storage.getUser(clientId);
+            await storage.createAuditLog({
+              action: "client_auto_assigned_new_site",
+              entityType: "site",
+              entityId: entity.id,
+              userId: user.id,
+              userName: user.fullName,
+              details: `${clientUser?.fullName ?? clientId} auto-assigned to new site "${entity.name}" (assigned to all company sites)`,
+              metadata: { clientUserId: clientId, siteId: entity.id, companyId },
+            });
+          } catch {
+            // ignore duplicate-assignment errors
+          }
+        }
+      }
+
       res.status(201).json(entity);
     } catch (error) {
       console.error("Create entity error:", error);

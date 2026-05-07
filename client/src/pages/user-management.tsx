@@ -91,6 +91,7 @@ import {
   RotateCcw,
   MessageSquare,
   ShieldCheck,
+  Info,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -268,6 +269,7 @@ export default function UserManagement() {
   const [isSavingManageSites, setIsSavingManageSites] = useState(false);
   const [manageSiteSearch, setManageSiteSearch] = useState("");
   const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
+  const [companyWideInfoName, setCompanyWideInfoName] = useState<string | null>(null);
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -522,6 +524,7 @@ export default function UserManagement() {
     setShowManageSitesCancelConfirm(false);
     setManageSiteSearch("");
     setExpandedCompanyIds(new Set());
+    setCompanyWideInfoName(null);
   };
 
   const handleManageSitesCloseRequest = () => {
@@ -603,6 +606,10 @@ export default function UserManagement() {
     setPendingAddSiteIds(prev => [...prev, ...notAlreadyPending]);
     const stillRemoved = pendingRemoveSiteIds.filter(id => !toAdd.includes(id));
     setPendingRemoveSiteIds(stillRemoved);
+    // Show a notice when assigning a client to all sites of their own company
+    if (manageSitesUser?.role === "client" && manageSitesUser?.companyId === companyId) {
+      setCompanyWideInfoName(group.company.name);
+    }
   };
 
   const saveManageSitesChanges = async () => {
@@ -3122,6 +3129,16 @@ export default function UserManagement() {
                 <p className="text-sm text-muted-foreground">No sites assigned.</p>
               )}
             </div>
+
+            {/* Company-wide assignment notice */}
+            {companyWideInfoName && (
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40 px-3 py-2.5 text-sm text-blue-800 dark:text-blue-300">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  This user will be assigned to all current sites in <strong>{companyWideInfoName}</strong> and will be <strong>automatically added to any new sites</strong> added to this company in the future.
+                </span>
+              </div>
+            )}
 
             {/* Available Sites grouped by company */}
             <div className="border-t pt-4">
