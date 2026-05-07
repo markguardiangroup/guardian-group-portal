@@ -2177,6 +2177,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T22:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-fabc-234567890123",
+          "patch": 6,
+          "message": "Fixed: document table/folder view now updates immediately after approving a document",
+          "category": "bug",
+          "createdAt": "2026-05-07T23:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -557,6 +557,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents/module", module],
+    refetchOnMount: "always",
   });
 
   interface MissingRequiredTemplate {
