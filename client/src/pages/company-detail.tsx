@@ -1025,7 +1025,14 @@ export default function CompanyDetail() {
     u.role === "consultant" &&
     (u.siteAssignments || []).some(a => companySiteIds.has(a.siteId))
   );
-  const tabClients = allUsers.filter(u => u.role === "client" && u.companyId === companyId);
+  // Include same-company clients AND cross-company clients assigned to any of this company's sites
+  // (e.g. Group Owner primary contacts auto-assigned to member company sites)
+  const tabClients = allUsers.filter(u =>
+    u.role === "client" && (
+      u.companyId === companyId ||
+      (u.companyId !== companyId && (u.siteAssignments || []).some(a => companySiteIds.has(a.siteId)))
+    )
+  );
   const companyTabUsers = [...tabConsultants, ...tabClients];
 
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
@@ -2306,6 +2313,7 @@ export default function CompanyDetail() {
                           const isExpanded = expandedUserId === u.id;
                           const clientSites = u.siteAssignments || [];
                           const isPrimary = company?.contactUserId === u.id;
+                          const isGroupOwnerContact = u.companyId !== companyId;
                           return (
                             <div key={u.id} data-testid={`row-client-${u.id}`}>
                               <div className="flex items-center gap-4 px-4 py-3">
@@ -2325,12 +2333,17 @@ export default function CompanyDetail() {
                                           Primary Contact
                                         </Badge>
                                       )}
+                                      {isGroupOwnerContact && (
+                                        <Badge variant="outline" className="text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 shrink-0">
+                                          Group Owner Contact
+                                        </Badge>
+                                      )}
                                     </div>
                                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                                   </div>
                                 </button>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  {isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
+                                  {!isGroupOwnerContact && isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
                                     <Button
                                       variant="outline"
                                       size="sm"

@@ -2105,6 +2105,14 @@
           "category": "feature",
           "createdAt": "2026-05-07T21:12:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
+          "patch": 6,
+          "message": "Member company Users tab now shows Group Owner contacts with a 'Group Owner Contact' badge",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T21:27:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
