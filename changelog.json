@@ -2129,6 +2129,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T21:42:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-678901234567",
+          "patch": 6,
+          "message": "Fixed: deleted or archived documents disappear from folder view immediately without needing a refresh",
+          "category": "bug",
+          "createdAt": "2026-05-07T21:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
