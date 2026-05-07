@@ -1961,6 +1961,14 @@
           "category": "bug",
           "createdAt": "2026-05-07T10:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-fe9876543210",
+          "patch": 6,
+          "message": "Fixed: shared documents now count as one in the Document Progress dialog",
+          "category": "bug",
+          "createdAt": "2026-05-07T10:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

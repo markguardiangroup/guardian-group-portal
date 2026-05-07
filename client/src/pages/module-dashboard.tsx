@@ -419,32 +419,23 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return sites;
   }, [sites, siteId, companySiteIds]);
 
-  // Expand dialog docs so that shared docs (siteId=null) appear once per site
-  // they are visible to within the current view, each labelled with that site.
+  // Build one dialog row per unique document — shared/scoped docs (siteId=null)
+  // count as a single document and are labelled with their scope type.
   const expandedDocsDialogRows = useMemo(() => {
-    return docsDialogDocs.flatMap(doc => {
+    return docsDialogDocs.map(doc => {
       if (doc.siteId) {
-        return [{ doc, key: doc.id, siteName: siteNameMap[doc.siteId] ?? null }];
+        return { doc, key: doc.id, siteName: siteNameMap[doc.siteId] ?? null };
       }
-      // Scoped/shared doc — find every site in current view that sees it
-      const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
-      const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
-      const entityId = (doc as any).entityId as string | undefined;
-      const visibleSites = currentFilterSites.filter(s =>
-        (sharedWithSiteIds?.includes(s.id) ?? false) ||
-        (sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-        entityId === s.companyId
-      );
-      if (visibleSites.length === 0) {
-        return [{ doc, key: doc.id, siteName: null }];
-      }
-      return visibleSites.map(s => ({
-        doc,
-        key: `${doc.id}-${s.id}`,
-        siteName: `${s.name}${s.companyName ? ` — ${s.companyName}` : ""}`,
-      }));
+      // Scoped doc — label by scope type so the user knows it's company/group level
+      const scope = (doc as any).scope as string | undefined;
+      const sharedFromEntityName = (doc as any).sharedFromEntityName as string | null | undefined;
+      const entitySite = sites?.find(s => s.companyId === (doc as any).entityId);
+      const entityCompanyName = sharedFromEntityName ?? entitySite?.companyName ?? null;
+      const scopeLabel = scope === "group" ? "Group document" : "Company document";
+      const siteName = entityCompanyName ? `${scopeLabel} · ${entityCompanyName}` : scopeLabel;
+      return { doc, key: doc.id, siteName };
     });
-  }, [docsDialogDocs, currentFilterSites, siteNameMap]);
+  }, [docsDialogDocs, siteNameMap, sites]);
 
   const getDocTypeLabel = (type: string) => {
     const docType = config.documentTypes.find(dt => dt.value === type);
