@@ -309,6 +309,7 @@ export interface IStorage {
   // Users by Site
   getUsersBySite(siteId: string): Promise<User[]>;
   getConsultants(): Promise<User[]>;
+  getConsultantsByManager(managerId: string): Promise<User[]>;
   
   // Document Types (Admin-managed)
   getDocumentTypes(module?: ModuleType): Promise<DocumentTypeRecord[]>;
@@ -2453,6 +2454,17 @@ export class MemStorage implements IStorage {
       return await db.select().from(usersTable).where(eq(usersTable.role, "consultant"));
     } catch (error) {
       console.error("Error fetching consultants from DB:", error);
+      return [];
+    }
+  }
+
+  async getConsultantsByManager(managerId: string): Promise<User[]> {
+    try {
+      return await db.select().from(usersTable).where(
+        and(eq(usersTable.role, "consultant"), eq(usersTable.managerId, managerId))
+      );
+    } catch (error) {
+      console.error("Error fetching consultants by manager from DB:", error);
       return [];
     }
   }

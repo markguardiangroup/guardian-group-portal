@@ -92,12 +92,23 @@ export default function Sites() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(20);
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
-  const [myAssignedOnly, setMyAssignedOnly] = useState(false);
+  const [staffFilter, setStaffFilter] = useState<string>("my");
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
   const canCreateSite = user?.role === "admin" || isProConsultant;
+
+  type StaffConsultant = { id: string; fullName: string; consultantTier?: string | null };
+  const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
+    queryKey: ["/api/consultants/my-staff"],
+    queryFn: async () => {
+      const res = await fetch("/api/consultants/my-staff", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isProConsultant,
+  });
   const [newSite, setNewSite] = useState({
     name: "",
     companyId: "",
@@ -111,14 +122,15 @@ export default function Sites() {
   });
   const { toast } = useToast();
 
-  // Key matches the prefetcher's cache key when not filtering — avoids a redundant fetch on first visit
-  const sitesQueryKey = isProConsultant && myAssignedOnly ? ["/api/sites?myAssigned=true"] : ["/api/sites"];
+  const sitesUrl = !isProConsultant ? "/api/sites"
+    : staffFilter === "my" ? "/api/sites?myAssigned=true"
+    : staffFilter !== "all" ? `/api/sites?staffId=${staffFilter}`
+    : "/api/sites";
   const { data: sites, isLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: sitesQueryKey,
+    queryKey: [sitesUrl],
     staleTime: 60 * 1000,
     queryFn: async () => {
-      const url = isProConsultant && myAssignedOnly ? "/api/sites?myAssigned=true" : "/api/sites";
-      const response = await fetch(url, { credentials: "include" });
+      const response = await fetch(sitesUrl, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch sites");
       return response.json();
     },
@@ -326,7 +338,7 @@ export default function Sites() {
   }, [page, totalPages]);
   useEffect(() => {
     setPage(1);
-  }, [searchQuery, companyFilter, complianceFilter, myAssignedOnly, pageSize]);
+  }, [searchQuery, companyFilter, complianceFilter, staffFilter, pageSize]);
   const paginatedSites = filteredSites?.slice((page - 1) * pageSize, page * pageSize);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -349,20 +361,23 @@ export default function Sites() {
         <div>
           <h1 className="text-3xl font-semibold">Sites</h1>
           <p className="mt-1 text-muted-foreground">
-            {filteredSites?.length || 0} site{filteredSites?.length !== 1 ? "s" : ""} {isProConsultant && myAssignedOnly ? "(my assigned)" : "total"}
+            {filteredSites?.length || 0} site{filteredSites?.length !== 1 ? "s" : ""}{isProConsultant ? (staffFilter === "my" ? " (my clients)" : staffFilter !== "all" ? ` (${myStaff.find(s => s.id === staffFilter)?.fullName?.split(" ")[0] || "staff"}'s clients)` : "") : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isProConsultant && (
-            <Button
-              variant={myAssignedOnly ? "default" : "outline"}
-              size="sm"
-              onClick={() => setMyAssignedOnly(!myAssignedOnly)}
-              data-testid="button-my-assigned-filter"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              My Sites
-            </Button>
+            <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[180px]" data-testid="select-staff-filter-sites">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My clients</SelectItem>
+                {myStaff.map(s => (
+                  <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-sites-${s.id}`}>{s.fullName}</SelectItem>
+                ))}
+                <SelectItem value="all">All sites</SelectItem>
+              </SelectContent>
+            </Select>
           )}
           {canCreateSite && (
             <Button size="sm" className="w-32" onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">

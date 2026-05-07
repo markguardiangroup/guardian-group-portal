@@ -293,7 +293,7 @@ export default function Companies() {
   const [isRequiredDocsOpen, setIsRequiredDocsOpen] = useState(false);
   const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
   const [selectedRequiredIds, setSelectedRequiredIds] = useState<Set<string>>(new Set());
-  const [myAssignedOnly, setMyAssignedOnly] = useState(false);
+  const [staffFilter, setStaffFilter] = useState<string>("my");
 
   const { captureSnapshot, onCompanyUpdated, AddressSyncDialog } = useAddressSync();
 
@@ -321,6 +321,17 @@ export default function Companies() {
 
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
 
+  type StaffConsultant = { id: string; fullName: string; consultantTier?: string | null };
+  const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
+    queryKey: ["/api/consultants/my-staff"],
+    queryFn: async () => {
+      const res = await fetch("/api/consultants/my-staff", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isProConsultant,
+  });
+
   type Source = { id: string; code: string; label: string; isActive: boolean };
   const { data: availableSources = [] } = useQuery<Source[]>({
     queryKey: ["/api/sources"],
@@ -332,7 +343,7 @@ export default function Companies() {
   });
 
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
-    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, myAssigned: isProConsultant && myAssignedOnly, groupFilter }],
+    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, staffFilter: isProConsultant ? staffFilter : undefined, groupFilter }],
     staleTime: 60 * 1000,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -340,7 +351,8 @@ export default function Companies() {
         limit: limit.toString(),
         ...(debouncedSearch && { search: debouncedSearch }),
         ...(statusFilter !== "all" && { status: statusFilter }),
-        ...(isProConsultant && myAssignedOnly && { myAssigned: "true" }),
+        ...(isProConsultant && staffFilter === "my" && { myAssigned: "true" }),
+        ...(isProConsultant && staffFilter !== "my" && staffFilter !== "all" && { staffId: staffFilter }),
         ...(groupFilter !== "all" && { groupFilter }),
       });
       const response = await fetch(`/api/companies?${params}`, { credentials: "include" });
@@ -810,20 +822,23 @@ export default function Companies() {
         <div>
           <h1 className="text-3xl font-semibold">Companies</h1>
           <p className="mt-1 text-muted-foreground">
-            {total} {total === 1 ? "company" : "companies"} {isProConsultant && myAssignedOnly ? "(my assigned)" : "total"}
+            {total} {total === 1 ? "company" : "companies"}{isProConsultant ? (staffFilter === "my" ? " (my clients)" : staffFilter !== "all" ? ` (${myStaff.find(s => s.id === staffFilter)?.fullName?.split(" ")[0] || "staff"}'s clients)` : "") : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {isProConsultant && (
-            <Button
-              variant={myAssignedOnly ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setMyAssignedOnly(!myAssignedOnly); setPage(1); }}
-              data-testid="button-my-assigned-companies"
-            >
-              <Building2 className="h-4 w-4 mr-2" />
-              My Companies
-            </Button>
+            <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[180px]" data-testid="select-staff-filter-companies">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My clients</SelectItem>
+                {myStaff.map(s => (
+                  <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-${s.id}`}>{s.fullName}</SelectItem>
+                ))}
+                <SelectItem value="all">All companies</SelectItem>
+              </SelectContent>
+            </Select>
           )}
           {canCreateCompany && (
             <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">

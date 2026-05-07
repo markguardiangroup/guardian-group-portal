@@ -124,6 +124,8 @@ export const users = pgTable("users", {
   companyId: varchar("entity_id"),
   // Consultant-specific: tier level
   consultantTier: text("consultant_tier").$type<ConsultantTier>(),
+  // Consultant-specific: the Pro Consultant who manages this consultant (null = unmanaged)
+  managerId: varchar("manager_id"),
   // Consultant-specific: feature permissions (e.g. { caseAdvocate: true })
   consultantPermissions: jsonb("consultant_permissions").$type<ConsultantPermissions>(),
   // Client-specific: permission role within their site/company

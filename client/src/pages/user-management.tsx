@@ -114,6 +114,7 @@ interface UserWithAssignments {
   lastLogin: string | null;
   lastLoginAt?: string | null;
   consultantTier?: ConsultantTier | null;
+  managerId?: string | null;
   clientPermissionRole?: ClientPermissionRole | null;
   siteAssignments?: SiteAssignment[];
   sources?: string[] | null;
@@ -208,6 +209,7 @@ export default function UserManagement() {
     role: "admin" | "consultant" | "client";
     companyId: string;
     consultantTier: string;
+    managerId: string;
     clientPermissionRole: string;
     sources: string[];
   } | null>(null);
@@ -443,6 +445,7 @@ export default function UserManagement() {
       role: u.role,
       companyId: u.companyId || "",
       consultantTier: u.consultantTier || "standard",
+      managerId: u.managerId || "",
       clientPermissionRole: "full",
       sources: u.sources || [],
     });
@@ -608,6 +611,7 @@ export default function UserManagement() {
         fullName,
         consultantTier: data?.consultantTier || null,
         companyId: data?.companyId || null,
+        managerId: data?.managerId || null,
       });
       return response.json();
     },
@@ -1857,6 +1861,28 @@ export default function UserManagement() {
                           <SelectContent>
                             <SelectItem value="pro">Pro</SelectItem>
                             <SelectItem value="standard">Standard</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {editFormData.role === "consultant" && isAdmin && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="edit-manager">Managed by (Pro Consultant)</Label>
+                        <Select
+                          value={editFormData.managerId || "none"}
+                          onValueChange={(v) => setEditFormData({ ...editFormData, managerId: v === "none" ? "" : v })}
+                        >
+                          <SelectTrigger id="edit-manager" data-testid="select-edit-manager">
+                            <SelectValue placeholder="Not managed" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Not managed</SelectItem>
+                            {usersWithSiteInfo
+                              .filter(u => u.role === "consultant" && u.consultantTier === "pro" && u.id !== editingUser.id)
+                              .map(u => (
+                                <SelectItem key={u.id} value={u.id} data-testid={`manager-option-${u.id}`}>{u.fullName}</SelectItem>
+                              ))
+                            }
                           </SelectContent>
                         </Select>
                       </div>

@@ -2033,6 +2033,22 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T14:25:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-fe9876543310",
+          "patch": 6,
+          "message": "Admins can assign a Pro Consultant as manager for standard consultants",
+          "category": "feature",
+          "createdAt": "2026-05-07T14:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-fe9876543311",
+          "patch": 6,
+          "message": "Pro consultants can filter companies and sites by their managed staff members",
+          "category": "feature",
+          "createdAt": "2026-05-07T14:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

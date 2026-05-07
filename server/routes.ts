@@ -6426,6 +6426,18 @@ export async function registerRoutes(
       } else if (user.role !== "admin") {
         filteredCompanies = [];
       }
+
+      // Admin/Pro: staffId filter — narrow to companies where a specific consultant is assigned
+      const staffId = req.query.staffId as string | undefined;
+      if (staffId && (user.role === "admin" || isProConsultant(user))) {
+        const staffAssignments = await storage.getConsultantSites(staffId);
+        const staffCompanyIds = new Set<string>();
+        for (const a of staffAssignments) {
+          const site = await storage.getSite(a.siteId);
+          if (site) staffCompanyIds.add(site.companyId);
+        }
+        filteredCompanies = filteredCompanies.filter(c => staffCompanyIds.has(c.id));
+      }
       
       // Apply group filter — show the GO itself plus all its members
       const groupFilter = req.query.groupFilter as string | undefined;
@@ -7168,10 +7180,16 @@ export async function registerRoutes(
       
       const allSites = await storage.getSitesWithDetails();
       
-      // Admin sees all sites, optionally filtered by companyId
+      // Admin sees all sites, optionally filtered by companyId or staffId
       const companyIdFilter = req.query.companyId as string | undefined;
+      const staffIdFilter = req.query.staffId as string | undefined;
       if (user.role === "admin") {
-        const result = companyIdFilter ? allSites.filter(s => s.companyId === companyIdFilter) : allSites;
+        let result = companyIdFilter ? allSites.filter(s => s.companyId === companyIdFilter) : allSites;
+        if (staffIdFilter) {
+          const staffAssignments = await storage.getConsultantSites(staffIdFilter);
+          const assignedSiteIds = new Set(staffAssignments.map(a => a.siteId));
+          result = result.filter(s => assignedSiteIds.has(s.id));
+        }
         res.json(result);
         return;
       }
@@ -11474,6 +11492,23 @@ export async function registerRoutes(
     }
   });
 
+  // Get consultants managed by the current pro consultant
+  app.get("/api/consultants/my-staff", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isProConsultant(user) && user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const staff = await storage.getConsultantsByManager(user.id);
+      const safeStaff = staff.map(({ password, ...s }) => s);
+      res.json(safeStaff);
+    } catch (error) {
+      console.error("Get my-staff error:", error);
+      res.status(500).json({ error: "Failed to fetch staff" });
+    }
+  });
+
   // Create a new consultant
   app.post("/api/consultants", requireAuth, async (req, res) => {
     try {
@@ -12291,7 +12326,8 @@ export async function registerRoutes(
         role,
         companyId,
         consultantTier,
-        sources
+        sources,
+        managerId
       } = req.body;
 
       // Standard consultants and clients editing their own profile may only update
@@ -12329,6 +12365,7 @@ export async function registerRoutes(
         ...(allowFullFieldEdit && companyId !== undefined && { companyId }),
         ...(allowFullFieldEdit && consultantTier !== undefined && { consultantTier }),
         ...(allowFullFieldEdit && sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
+        ...(currentUser.role === "admin" && managerId !== undefined && { managerId: managerId || null }),
         // Fields everyone can update on their own profile
         ...(title !== undefined && { title }),
         ...(jobTitle !== undefined && { jobTitle }),
