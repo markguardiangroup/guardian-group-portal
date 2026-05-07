@@ -98,24 +98,20 @@ function CompanyCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
                 <h4 className="font-medium">{company.name}</h4>
                 {company.internalCompanyNumber && (
-                  <p className="mt-0.5 text-sm text-muted-foreground" data-testid={`text-internal-no-${company.id}`}>{company.internalCompanyNumber}</p>
+                  <span className="text-xs text-muted-foreground shrink-0" data-testid={`text-internal-no-${company.id}`}>{company.internalCompanyNumber}</span>
                 )}
-                {(company.isGroupOwner || company.groupOwnerName) && (
-                  <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                    {company.isGroupOwner && (
-                      <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700" data-testid={`badge-go-${company.id}`}>
-                        Group Owner
-                      </Badge>
-                    )}
-                    {company.groupOwnerName && (
-                      <Badge variant="outline" className="text-xs text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700" data-testid={`badge-member-${company.id}`}>
-                        Member of {company.groupOwnerName}
-                      </Badge>
-                    )}
-                  </div>
+                {company.isGroupOwner && (
+                  <Badge variant="outline" className="text-xs py-0 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 shrink-0" data-testid={`badge-go-${company.id}`}>
+                    Group Owner
+                  </Badge>
+                )}
+                {company.groupOwnerName && (
+                  <Badge variant="outline" className="text-xs py-0 text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700 shrink-0" data-testid={`badge-member-${company.id}`}>
+                    Member of {company.groupOwnerName}
+                  </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -917,24 +913,20 @@ export default function Companies() {
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                         <Building2 className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
                         <span className="font-medium">{company.name}</span>
                         {company.internalCompanyNumber && (
-                          <p className="text-xs text-muted-foreground mt-0.5" data-testid={`text-internal-no-table-${company.id}`}>{company.internalCompanyNumber}</p>
+                          <span className="text-xs text-muted-foreground shrink-0" data-testid={`text-internal-no-table-${company.id}`}>{company.internalCompanyNumber}</span>
                         )}
-                        {(company.isGroupOwner || company.groupOwnerName) && (
-                          <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                            {company.isGroupOwner && (
-                              <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700" data-testid={`badge-go-table-${company.id}`}>
-                                Group Owner
-                              </Badge>
-                            )}
-                            {company.groupOwnerName && (
-                              <Badge variant="outline" className="text-xs text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700" data-testid={`badge-member-table-${company.id}`}>
-                                Member of {company.groupOwnerName}
-                              </Badge>
-                            )}
-                          </div>
+                        {company.isGroupOwner && (
+                          <Badge variant="outline" className="text-xs py-0 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 shrink-0" data-testid={`badge-go-table-${company.id}`}>
+                            Group Owner
+                          </Badge>
+                        )}
+                        {company.groupOwnerName && (
+                          <Badge variant="outline" className="text-xs py-0 text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700 shrink-0" data-testid={`badge-member-table-${company.id}`}>
+                            Member of {company.groupOwnerName}
+                          </Badge>
                         )}
                       </div>
                     </div>

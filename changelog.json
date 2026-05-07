@@ -2017,6 +2017,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T14:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-fe9876543303",
+          "patch": 6,
+          "message": "Company list rows now consistent height; number and tag shown inline with name",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T14:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
