@@ -2025,6 +2025,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T14:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-fe9876543304",
+          "patch": 6,
+          "message": "Internal Company Number shown as a distinct monospace tag; group badges moved below",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T14:25:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
