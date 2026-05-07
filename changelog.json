@@ -2009,6 +2009,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T13:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-fe9876543302",
+          "patch": 6,
+          "message": "Group Owner badge now matches Member of style with blue outline",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T14:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

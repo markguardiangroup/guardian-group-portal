@@ -106,7 +106,7 @@ function CompanyCard({
                 {(company.isGroupOwner || company.groupOwnerName) && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-1">
                     {company.isGroupOwner && (
-                      <Badge className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700" data-testid={`badge-go-${company.id}`}>
+                      <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700" data-testid={`badge-go-${company.id}`}>
                         Group Owner
                       </Badge>
                     )}
@@ -925,7 +925,7 @@ export default function Companies() {
                         {(company.isGroupOwner || company.groupOwnerName) && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
                             {company.isGroupOwner && (
-                              <Badge className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700" data-testid={`badge-go-table-${company.id}`}>
+                              <Badge variant="outline" className="text-xs text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700" data-testid={`badge-go-table-${company.id}`}>
                                 Group Owner
                               </Badge>
                             )}
