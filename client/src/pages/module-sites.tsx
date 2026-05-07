@@ -145,6 +145,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   });
   const companies = companiesResp?.companies ?? [];
 
+  // GO client users can see multiple companies and should get the company combobox
+  const isGoClient = user?.role === "client" && companies.length > 1;
+
   // Discover groups visible to the user. A group is identified by its
   // group-owner companyId. Members reference it via groupOwnerId, and the
   // owner itself appears with isGroupOwner=true (when visible).
@@ -371,7 +374,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 </SelectContent>
               </Select>
             )}
-            {isPrivilegedUser && (() => {
+            {(isPrivilegedUser || isGoClient) && (() => {
               // When a group is selected, restrict the company filter to
               // companies that belong to that group.
               const sitesForCombobox =

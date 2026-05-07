@@ -2113,6 +2113,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T21:27:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-456789012345",
+          "patch": 6,
+          "message": "Group Owner clients can now filter sites by individual member company",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T21:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
