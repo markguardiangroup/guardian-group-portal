@@ -276,7 +276,7 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
   );
 }
 
-function ModuleAccessCard({ companyId }: { companyId: string }) {
+function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; groupOwnerId?: string | null }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -298,6 +298,9 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "module-access"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/module-access"] });
+      if (groupOwnerId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", groupOwnerId, "module-access"] });
+      }
       toast({
         title: "Module access updated",
         description: "The company's module access has been updated successfully.",
@@ -2140,7 +2143,7 @@ export default function CompanyDetail() {
 
         {/* Module Access Tab */}
         <TabsContent value="module-access" className="mt-6">
-          <ModuleAccessCard companyId={companyId!} />
+          <ModuleAccessCard companyId={companyId!} groupOwnerId={company?.groupOwnerId} />
         </TabsContent>
 
         {/* Required Documents Tab */}
