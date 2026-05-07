@@ -33,6 +33,8 @@ import {
   MoreVertical,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Eye,
   MapPinned,
   Trash2,
@@ -294,6 +296,12 @@ export default function Companies() {
   const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
   const [selectedRequiredIds, setSelectedRequiredIds] = useState<Set<string>>(new Set());
   const [staffFilter, setStaffFilter] = useState<string>("my");
+  const [sortBy, setSortBy] = useState<"name" | "city" | "industry" | "siteCount" | "status">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const handleSortCompanies = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("asc"); }
+  };
 
   const { captureSnapshot, onCompanyUpdated, AddressSyncDialog } = useAddressSync();
 
@@ -796,7 +804,16 @@ export default function Companies() {
 
   const isAdmin = user?.role === "admin";
   const canCreateCompany = isAdmin || isProConsultant;
-  const companies = data?.companies || [];
+  const companiesRaw = data?.companies || [];
+  const companies = [...companiesRaw].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortBy === "name") return dir * a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    if (sortBy === "city") return dir * (a.city || "").toLowerCase().localeCompare((b.city || "").toLowerCase());
+    if (sortBy === "industry") return dir * (a.industry || "").toLowerCase().localeCompare((b.industry || "").toLowerCase());
+    if (sortBy === "siteCount") return dir * ((a.siteCount ?? 0) - (b.siteCount ?? 0));
+    if (sortBy === "status") return dir * (a.status || "").localeCompare(b.status || "");
+    return 0;
+  });
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
 
@@ -905,12 +922,22 @@ export default function Companies() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header">
           <TableHeader>
             <TableRow>
-              <TableHead>Company</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Industry</TableHead>
+              <TableHead onClick={() => handleSortCompanies("name")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Company {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
+              <TableHead onClick={() => handleSortCompanies("city")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Location {sortBy === "city" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
+              <TableHead onClick={() => handleSortCompanies("industry")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Industry {sortBy === "industry" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead className="hidden lg:table-cell">Sources</TableHead>
-              <TableHead className="w-20">Sites</TableHead>
-              <TableHead className="w-28">Status</TableHead>
+              <TableHead onClick={() => handleSortCompanies("siteCount")} className="w-20 cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Sites {sortBy === "siteCount" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
+              <TableHead onClick={() => handleSortCompanies("status")} className="w-28 cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>

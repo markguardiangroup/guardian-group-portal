@@ -70,6 +70,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   RefreshCw,
   Trash2,
   Clock,
@@ -401,6 +402,13 @@ export default function UserManagement() {
 
   const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
 
+  const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastLogin">("username");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const handleSortUsers = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("asc"); }
+  };
+
   const filteredUsers = getVisibleUsers().filter((u) => {
     const matchesTab =
       userTypeTab === "client" ? u.role === "client" : u.role === "admin" || u.role === "consultant";
@@ -417,15 +425,27 @@ export default function UserManagement() {
     const matchesCompany = userTypeTab === "staff" || companyFilter === "all" || u.companyId === companyFilter;
     return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany;
   }).sort((a, b) => {
-    const roleA = roleOrder[a.role] ?? 3;
-    const roleB = roleOrder[b.role] ?? 3;
-    if (roleA !== roleB) return roleA - roleB;
-    if (a.role === "client" && b.role === "client") {
-      const compA = (a.companyName || "").toLowerCase();
-      const compB = (b.companyName || "").toLowerCase();
-      if (compA !== compB) return compA.localeCompare(compB);
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortBy === "username") return dir * a.username.toLowerCase().localeCompare(b.username.toLowerCase());
+    if (sortBy === "role") {
+      const roleA = roleOrder[a.role] ?? 3;
+      const roleB = roleOrder[b.role] ?? 3;
+      if (roleA !== roleB) return dir * (roleA - roleB);
+      return a.username.toLowerCase().localeCompare(b.username.toLowerCase());
     }
-    return a.fullName.toLowerCase().localeCompare(b.fullName.toLowerCase());
+    if (sortBy === "status") {
+      const statusOrder: Record<string, number> = { active: 0, invited: 1, invite_required: 2, site_required: 3, inactive: 4, locked: 5 };
+      const sA = statusOrder[a.status] ?? 9;
+      const sB = statusOrder[b.status] ?? 9;
+      if (sA !== sB) return dir * (sA - sB);
+      return a.username.toLowerCase().localeCompare(b.username.toLowerCase());
+    }
+    if (sortBy === "lastLogin") {
+      const tA = a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0;
+      const tB = b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
+      return dir * (tA - tB);
+    }
+    return 0;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
@@ -1294,14 +1314,22 @@ export default function UserManagement() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header">
           <TableHeader>
             <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead className="w-24">Role</TableHead>
+              <TableHead onClick={() => handleSortUsers("username")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">User {sortBy === "username" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
+              <TableHead onClick={() => handleSortUsers("role")} className="w-24 cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Role {sortBy === "role" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               {userTypeTab === "client" && <TableHead className="min-w-[160px]">Company</TableHead>}
               <TableHead>Sites Assigned</TableHead>
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Sources</TableHead>}
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Permissions</TableHead>}
-              <TableHead>Status</TableHead>
-              <TableHead className="w-32">Last Login</TableHead>
+              <TableHead onClick={() => handleSortUsers("status")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
+              <TableHead onClick={() => handleSortUsers("lastLogin")} className="w-32 cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Last Login {sortBy === "lastLogin" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>

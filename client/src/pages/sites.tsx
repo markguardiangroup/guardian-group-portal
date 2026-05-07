@@ -39,6 +39,8 @@ import {
   XCircle,
   Settings,
   RefreshCw,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -302,6 +304,13 @@ export default function Sites() {
     createSiteMutation.mutate(newSite);
   };
 
+  const [sortBy, setSortBy] = useState<"name" | "company" | "compliance">("company");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const handleSortSites = (col: typeof sortBy) => {
+    if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("asc"); }
+  };
+
   const filteredSites = sites?.filter((site) => {
     const matchesSearch = 
       site.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -325,10 +334,20 @@ export default function Sites() {
     
     return matchesSearch && matchesCompany && matchesCompliance;
   })?.sort((a, b) => {
-    const companyA = (a.companyName || "").toLowerCase();
-    const companyB = (b.companyName || "").toLowerCase();
-    if (companyA !== companyB) return companyA.localeCompare(companyB);
-    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortBy === "name") return dir * a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    if (sortBy === "company") {
+      const compA = (a.companyName || "").toLowerCase();
+      const compB = (b.companyName || "").toLowerCase();
+      if (compA !== compB) return dir * compA.localeCompare(compB);
+      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    }
+    if (sortBy === "compliance") {
+      const scoreA = a.complianceSummary?.complianceScore ?? -1;
+      const scoreB = b.complianceSummary?.complianceScore ?? -1;
+      return dir * (scoreA - scoreB);
+    }
+    return 0;
   });
 
   const totalSites = filteredSites?.length || 0;
@@ -443,11 +462,17 @@ export default function Sites() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header">
           <TableHeader>
             <TableRow>
-              <TableHead>Site Name</TableHead>
-              <TableHead>Company</TableHead>
+              <TableHead onClick={() => handleSortSites("name")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Site Name {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
+              <TableHead onClick={() => handleSortSites("company")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Company {sortBy === "company" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead className="hidden md:table-cell">Address</TableHead>
               <TableHead className="hidden lg:table-cell">Primary Contact</TableHead>
-              <TableHead>Compliance</TableHead>
+              <TableHead onClick={() => handleSortSites("compliance")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Compliance {sortBy === "compliance" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>

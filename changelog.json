@@ -2081,6 +2081,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T15:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f0a1b2c3-d4e5-6789-f0ab-012345678901",
+          "patch": 6,
+          "message": "Sort buttons added to Companies, Sites and Users tables; Users sorted by username by default",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T20:58:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
