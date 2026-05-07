@@ -1977,6 +1977,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T10:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-fe9876543210",
+          "patch": 6,
+          "message": "Company Number renamed to Registered Company Number; new Internal Company Number field added and searchable",
+          "category": "feature",
+          "createdAt": "2026-05-07T11:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

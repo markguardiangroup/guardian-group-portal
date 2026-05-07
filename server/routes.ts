@@ -6450,6 +6450,7 @@ export async function registerRoutes(
         filteredCompanies = filteredCompanies.filter(c => 
           c.name.toLowerCase().includes(search) ||
           c.companyNumber?.toLowerCase().includes(search) ||
+          c.internalCompanyNumber?.toLowerCase().includes(search) ||
           c.searchTag?.toLowerCase().includes(search)
         );
       }
@@ -6735,7 +6736,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can create companies" });
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange, industry, sources } = req.body;
+      const { name, companyNumber, internalCompanyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange, industry, sources } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Company name is required" });
@@ -6773,6 +6774,7 @@ export async function registerRoutes(
       const company = await storage.createCompany({
         name: name.trim(),
         companyNumber: companyNumber || null,
+        internalCompanyNumber: internalCompanyNumber || null,
         website: website || null,
         address: address || null,
         contactEmail: contactEmail || null,
@@ -6838,11 +6840,12 @@ export async function registerRoutes(
         }
       }
       
-      const { name, companyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry, sources } = req.body;
+      const { name, companyNumber, internalCompanyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry, sources } = req.body;
       
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
       if (companyNumber !== undefined) updates.companyNumber = companyNumber || null;
+      if (internalCompanyNumber !== undefined) updates.internalCompanyNumber = internalCompanyNumber || null;
       if (website !== undefined) updates.website = website || null;
       if (address !== undefined) updates.address = address || null;
       if (contactEmail !== undefined) updates.contactEmail = contactEmail || null;

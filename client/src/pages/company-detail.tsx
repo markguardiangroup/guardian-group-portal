@@ -844,6 +844,7 @@ export default function CompanyDetail() {
   const [editForm, setEditForm] = useState({
     name: "",
     companyNumber: "",
+    internalCompanyNumber: "",
     website: "",
     industry: "",
     employeeRange: "",
@@ -1283,6 +1284,7 @@ export default function CompanyDetail() {
       const initial = {
         name: company.name || "",
         companyNumber: company.companyNumber || "",
+        internalCompanyNumber: company.internalCompanyNumber || "",
         website: company.website || "",
         industry: (company as any).industry || "",
         employeeRange: company.employeeRange || "",
@@ -1515,7 +1517,10 @@ export default function CompanyDetail() {
                 )}
               </div>
               {company.companyNumber && (
-                <p className="text-sm text-muted-foreground">Company No: {company.companyNumber}</p>
+                <p className="text-sm text-muted-foreground">Reg. No: {company.companyNumber}</p>
+              )}
+              {company.internalCompanyNumber && (
+                <p className="text-sm text-muted-foreground">Internal No: {company.internalCompanyNumber}</p>
               )}
               {company.searchTag && (isAdmin || user?.role === "consultant") && (
                 <p className="text-sm text-muted-foreground">Search Tag: {company.searchTag}</p>
@@ -2419,13 +2424,23 @@ export default function CompanyDetail() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-company-number">Company Number</Label>
+                <Label htmlFor="edit-company-number">Registered Company Number</Label>
                 <Input
                   id="edit-company-number"
                   value={editForm.companyNumber}
                   onChange={(e) => setEditForm({ ...editForm, companyNumber: e.target.value })}
                   placeholder="e.g., 12345678"
                   data-testid="input-edit-company-number"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-internal-company-number">Internal Company Number</Label>
+                <Input
+                  id="edit-internal-company-number"
+                  value={editForm.internalCompanyNumber}
+                  onChange={(e) => setEditForm({ ...editForm, internalCompanyNumber: e.target.value })}
+                  placeholder="e.g., INT-001"
+                  data-testid="input-edit-internal-company-number"
                 />
               </div>
             </div>

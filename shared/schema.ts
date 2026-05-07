@@ -48,6 +48,7 @@ export const companies = pgTable("companies", {
   referenceNumber: text("reference_number").unique(),
   name: text("name").notNull(),
   companyNumber: text("company_number"),
+  internalCompanyNumber: text("internal_company_number"),
   website: text("website"),
   // Structured address fields
   addressLine1: text("address_line1"),

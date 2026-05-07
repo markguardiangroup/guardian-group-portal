@@ -254,6 +254,7 @@ export default function Companies() {
   const [formData, setFormData] = useState({
     name: "",
     companyNumber: "",
+    internalCompanyNumber: "",
     website: "",
     industry: "",
     employeeRange: "",
@@ -526,6 +527,7 @@ export default function Companies() {
     setFormData({
       name: "",
       companyNumber: "",
+      internalCompanyNumber: "",
       website: "",
       industry: "",
       employeeRange: "",
@@ -562,6 +564,7 @@ export default function Companies() {
     setFormData({
       name: company.name,
       companyNumber: company.companyNumber || "",
+      internalCompanyNumber: (company as any).internalCompanyNumber || "",
       website: company.website || "",
       industry: (company as any).industry || "",
       employeeRange: company.employeeRange || "",
@@ -1112,13 +1115,23 @@ export default function Companies() {
               )}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="company-number">Company Number</Label>
+              <Label htmlFor="company-number">Registered Company Number</Label>
               <Input
                 id="company-number"
                 placeholder="e.g., 12345678"
                 value={formData.companyNumber}
                 onChange={(e) => setFormData({ ...formData, companyNumber: e.target.value })}
                 data-testid="input-company-number"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="internal-company-number">Internal Company Number</Label>
+              <Input
+                id="internal-company-number"
+                placeholder="e.g., INT-001"
+                value={formData.internalCompanyNumber}
+                onChange={(e) => setFormData({ ...formData, internalCompanyNumber: e.target.value })}
+                data-testid="input-internal-company-number"
               />
             </div>
             <div className="grid gap-2">
