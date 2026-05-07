@@ -2001,6 +2001,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T13:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-cdef-fe9876543301",
+          "patch": 6,
+          "message": "Registered and Internal Company Numbers must now be unique across all companies",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T13:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

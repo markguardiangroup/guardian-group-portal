@@ -6770,6 +6770,24 @@ export async function registerRoutes(
       if (duplicate) {
         return res.status(409).json({ error: "A company with this name already exists" });
       }
+
+      if (companyNumber && companyNumber.trim()) {
+        const dupRegNo = existingCompanies.find(
+          (c) => c.companyNumber && c.companyNumber.trim().toLowerCase() === companyNumber.trim().toLowerCase()
+        );
+        if (dupRegNo) {
+          return res.status(409).json({ error: "A company with this Registered Company Number already exists" });
+        }
+      }
+
+      if (internalCompanyNumber && internalCompanyNumber.trim()) {
+        const dupIntNo = existingCompanies.find(
+          (c) => c.internalCompanyNumber && c.internalCompanyNumber.trim().toLowerCase() === internalCompanyNumber.trim().toLowerCase()
+        );
+        if (dupIntNo) {
+          return res.status(409).json({ error: "A company with this Internal Company Number already exists" });
+        }
+      }
       
       const company = await storage.createCompany({
         name: name.trim(),
@@ -6841,7 +6859,28 @@ export async function registerRoutes(
       }
       
       const { name, companyNumber, internalCompanyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry, sources } = req.body;
-      
+
+      // Uniqueness checks — exclude the company being updated
+      if (companyNumber && companyNumber.trim()) {
+        const allCompaniesForCheck = await storage.getCompanies();
+        const dupRegNo = allCompaniesForCheck.find(
+          (c) => c.id !== req.params.id && c.companyNumber && c.companyNumber.trim().toLowerCase() === companyNumber.trim().toLowerCase()
+        );
+        if (dupRegNo) {
+          return res.status(409).json({ error: "A company with this Registered Company Number already exists" });
+        }
+      }
+
+      if (internalCompanyNumber && internalCompanyNumber.trim()) {
+        const allCompaniesForIntCheck = await storage.getCompanies();
+        const dupIntNo = allCompaniesForIntCheck.find(
+          (c) => c.id !== req.params.id && c.internalCompanyNumber && c.internalCompanyNumber.trim().toLowerCase() === internalCompanyNumber.trim().toLowerCase()
+        );
+        if (dupIntNo) {
+          return res.status(409).json({ error: "A company with this Internal Company Number already exists" });
+        }
+      }
+
       const updates: Record<string, any> = {};
       if (name !== undefined) updates.name = name;
       if (companyNumber !== undefined) updates.companyNumber = companyNumber || null;
