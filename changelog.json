@@ -2121,6 +2121,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T21:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-567890123456",
+          "patch": 6,
+          "message": "Group Owner clients see their full group by default on sites pages; group dropdown hidden, all companies selectable",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T21:42:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

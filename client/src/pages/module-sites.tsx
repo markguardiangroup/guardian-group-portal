@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -171,6 +171,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     [groupOwners]
   );
 
+  // For GO clients, auto-select their group on first load so the full group
+  // view is shown by default without showing the Group Owners dropdown.
+  useEffect(() => {
+    if (isGoClient && groupOwners.length > 0 && selectedGroup === "all") {
+      setSelectedGroup(groupOwners[0].id);
+    }
+  }, [isGoClient, groupOwners, selectedGroup, setSelectedGroup]);
+
   // Companies belonging to the selected group (members + owner if visible)
   const selectedGroupCompanies = useMemo(() => {
     if (selectedGroup === "all") return [] as CompanyListItem[];
@@ -327,13 +335,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {(selectedGroup !== "all" ||
-              (selectedCompany && selectedCompany !== "all")) && (
+            {(isGoClient
+              ? selectedCompany && selectedCompany !== "all"
+              : selectedGroup !== "all" || (selectedCompany && selectedCompany !== "all")
+            ) && (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  setSelectedGroup("all");
+                  if (!isGoClient) setSelectedGroup("all");
                   handleCompanyChange(null);
                 }}
                 data-testid="button-clear-filters"
@@ -343,7 +353,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 <X className="h-4 w-4" />
               </Button>
             )}
-            {groupOwners.length > 0 && (
+            {!isGoClient && groupOwners.length > 0 && (
               <Select
                 value={selectedGroup}
                 onValueChange={(v) => {
@@ -391,7 +401,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   onValueChange={handleCompanyChange}
                   className="w-[260px]"
                   testId="select-company-sites"
-                  excludeNames={groupOwnerNames}
+                  excludeNames={isGoClient ? [] : groupOwnerNames}
                 />
               );
             })()}
