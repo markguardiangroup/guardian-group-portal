@@ -6729,6 +6729,36 @@ export async function registerRoutes(
 
       const updated = await storage.setGroupOwner(req.params.companyId, groupOwnerId ?? null);
       if (!updated) return res.status(500).json({ error: "Failed to update" });
+
+      // When linking a member company to a GO, auto-assign the GO's primary contact to all member's sites
+      if (groupOwnerId) {
+        const goCompany = await storage.getCompany(groupOwnerId);
+        if (goCompany && goCompany.contactUserId) {
+          const goPrimaryContact = await storage.getUser(goCompany.contactUserId);
+          if (goPrimaryContact && goPrimaryContact.role === "client" && goPrimaryContact.companyId === groupOwnerId) {
+            const memberSites = await storage.getSitesByCompanyId(req.params.companyId);
+            for (const site of memberSites) {
+              await storage.assignClientToSite({
+                clientId: goPrimaryContact.id,
+                siteId: site.id,
+                assignedBy: user.id,
+              });
+            }
+            if (memberSites.length > 0) {
+              await storage.createAuditLog({
+                action: "primary_contact_auto_assigned",
+                entityType: "company",
+                entityId: req.params.companyId,
+                userId: user.id,
+                userName: user.fullName,
+                details: `Group Owner primary contact ${goPrimaryContact.fullName} auto-assigned to ${memberSites.length} site(s) of newly-linked member company`,
+                metadata: { contactUserId: goPrimaryContact.id, siteCount: memberSites.length, groupOwnerId },
+              });
+            }
+          }
+        }
+      }
+
       res.json(updated);
     } catch (error) {
       console.error("Set group owner error:", error);
@@ -7009,6 +7039,34 @@ export async function registerRoutes(
             details: `Primary contact ${contactUser.fullName} auto-assigned to all ${companySites.length} company sites`,
             metadata: { contactUserId, siteCount: companySites.length },
           });
+
+          // If this company is a Group Owner, also assign the new primary contact to all member company sites
+          const groupMembers = await storage.getGroupMembers(req.params.id);
+          if (groupMembers.length > 0) {
+            let totalMemberSites = 0;
+            for (const member of groupMembers) {
+              const memberSites = await storage.getSitesByCompanyId(member.id);
+              for (const site of memberSites) {
+                await storage.assignClientToSite({
+                  clientId: contactUserId,
+                  siteId: site.id,
+                  assignedBy: user.id,
+                });
+              }
+              totalMemberSites += memberSites.length;
+            }
+            if (totalMemberSites > 0) {
+              await storage.createAuditLog({
+                action: "primary_contact_auto_assigned",
+                entityType: "company",
+                entityId: req.params.id,
+                userId: user.id,
+                userName: user.fullName,
+                details: `Group Owner primary contact ${contactUser.fullName} auto-assigned to ${totalMemberSites} site(s) across ${groupMembers.length} member company(ies)`,
+                metadata: { contactUserId, totalMemberSites, memberCount: groupMembers.length },
+              });
+            }
+          }
         }
       }
       
@@ -7345,6 +7403,30 @@ export async function registerRoutes(
             details: `Primary contact ${primaryContact.fullName} auto-assigned to new site ${entity.name}`,
             metadata: { contactUserId: primaryContact.id, siteId: entity.id },
           });
+        }
+      }
+
+      // Also auto-assign the Group Owner's primary contact if this company belongs to a group
+      if (company && company.groupOwnerId) {
+        const goCompany = await storage.getCompany(company.groupOwnerId);
+        if (goCompany && goCompany.contactUserId) {
+          const goPrimaryContact = await storage.getUser(goCompany.contactUserId);
+          if (goPrimaryContact && goPrimaryContact.role === "client" && goPrimaryContact.companyId === company.groupOwnerId) {
+            await storage.assignClientToSite({
+              clientId: goPrimaryContact.id,
+              siteId: entity.id,
+              assignedBy: user.id,
+            });
+            await storage.createAuditLog({
+              action: "primary_contact_auto_assigned",
+              entityType: "site",
+              entityId: entity.id,
+              userId: user.id,
+              userName: user.fullName,
+              details: `Group Owner primary contact ${goPrimaryContact.fullName} auto-assigned to new site ${entity.name}`,
+              metadata: { contactUserId: goPrimaryContact.id, siteId: entity.id, groupOwnerId: company.groupOwnerId },
+            });
+          }
         }
       }
       

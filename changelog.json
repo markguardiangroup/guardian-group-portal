@@ -2097,6 +2097,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T21:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-234567890123",
+          "patch": 6,
+          "message": "Group Owner primary contact is auto-assigned to all member sites when group is linked or new sites are added",
+          "category": "feature",
+          "createdAt": "2026-05-07T21:12:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
