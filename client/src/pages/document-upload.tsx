@@ -953,6 +953,18 @@ export default function DocumentUpload() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Company / Group scope — cascading notice */}
+            {(docScope === "company" || docScope === "group") && (
+              <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3.5 py-3 text-sm text-amber-800 dark:text-amber-300">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  {docScope === "company"
+                    ? "This document is added at company level. It will cascade down and be visible in every destination site you select below."
+                    : "This document is added at group level. It will cascade down and be visible in every selected member company and all of their sites."}
+                </span>
+              </div>
+            )}
+
             {/* Company or Group entity picker */}
             {(docScope === "company" || docScope === "group") && (
               <div className="space-y-2">
@@ -1531,8 +1543,8 @@ export default function DocumentUpload() {
                         </label>
                         <p className="text-xs text-muted-foreground mb-2">
                           {docScope === "company"
-                            ? "Select the client user at the owning company who will review and approve this document"
-                            : "Select the client user at the group owner company who will review and approve this document"}
+                            ? "Only client users belonging to the origin company can approve company-level documents."
+                            : "Only client users belonging to the group owner company can approve group-level documents."}
                         </p>
                         {entityClientUsers.length > 0 ? (
                           <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>

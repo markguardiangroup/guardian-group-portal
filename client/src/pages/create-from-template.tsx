@@ -419,6 +419,12 @@ export default function CreateFromTemplate() {
     );
   }, [allUsers, selectedSiteIds]);
 
+  // For company/group scope: only clients from the origin (entity) company can approve
+  const entityClientUsers = useMemo(() => {
+    if (!selectedEntityId || docScope === "site") return [];
+    return allUsers.filter(u => u.role === "client" && u.companyId === selectedEntityId);
+  }, [allUsers, selectedEntityId, docScope]);
+
   const selectedSitesWithNoClients = useMemo(() => {
     if (!allUsers || selectedSiteIds.length === 0 || !sites) return [];
     return selectedSiteObjects.filter(site =>
@@ -1149,6 +1155,16 @@ export default function CreateFromTemplate() {
               {docScope === "company" && "Document is owned by the company and shared with selected sites — compliance is calculated per destination site."}
               {docScope === "group" && "Document is owned by the group and shared with member companies — compliance is calculated for all sites under those companies."}
             </p>
+            {docScope !== "site" && (
+              <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3.5 py-3 text-sm text-amber-800 dark:text-amber-300 mt-2">
+                <Info className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>
+                  {docScope === "company"
+                    ? "This document is added at company level. It will cascade down and be visible in every destination site you select below."
+                    : "This document is added at group level. It will cascade down and be visible in every selected member company and all of their sites."}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
@@ -1591,51 +1607,60 @@ export default function CreateFromTemplate() {
               {requiresApproval && (
                 <div className="mt-3">
                   <Label className="text-sm font-medium flex items-center gap-1">
-                    Client Approver
+                    {docScope === "site" ? "Client Approver" : docScope === "company" ? "Company Approver" : "Group Approver"}
                     <span className="text-destructive">*</span>
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5 mb-2">
-                    {selectedSiteIds.length > 1
-                      ? `Select a client user with access to all ${selectedSiteIds.length} selected sites`
-                      : "Select the client user who will review and approve this document"}
+                    {docScope === "site"
+                      ? selectedSiteIds.length > 1
+                        ? `Select a client user with access to all ${selectedSiteIds.length} selected sites`
+                        : "Select the client user who will review and approve this document"
+                      : docScope === "company"
+                      ? "Only client users belonging to the origin company can approve company-level documents."
+                      : "Only client users belonging to the group owner company can approve group-level documents."}
                   </p>
-                  {siteClientUsers.length > 0 ? (
-                    <Select
-                      value={selectedApproverId}
-                      onValueChange={setSelectedApproverId}
-                    >
-                      <SelectTrigger
-                        className={`mt-1 ${requiresApproval && !selectedApproverId ? "border-destructive" : ""}`}
-                        data-testid="select-client-approver"
-                      >
-                        <SelectValue placeholder="Select a client approver…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {siteClientUsers.map((u) => (
-                          <SelectItem
-                            key={u.id}
-                            value={u.id}
-                            disabled={u.status !== "active"}
-                            data-testid={`option-approver-${u.id}`}
-                          >
-                            <span className="flex items-center gap-2">
-                              {u.fullName}
-                              {u.status !== "active" && (
-                                <span className="text-xs text-muted-foreground">(not active)</span>
-                              )}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground mt-1">
-                      <Users className="h-4 w-4 shrink-0" />
-                      {selectedSiteIds.length > 1
-                        ? "No client users have access to all selected sites. Assign users in User Management first."
-                        : "No client users are assigned to this site. Assign users in User Management first."}
-                    </div>
-                  )}
+                  {(() => {
+                    const approverList = docScope === "site" ? siteClientUsers : entityClientUsers;
+                    const emptyMsg = docScope === "site"
+                      ? (selectedSiteIds.length > 1
+                          ? "No client users have access to all selected sites. Assign users in User Management first."
+                          : "No client users are assigned to this site. Assign users in User Management first.")
+                      : docScope === "company"
+                      ? "No client users found for this company. Assign users in User Management first."
+                      : "No client users found for the group owner company. Assign users in User Management first.";
+                    return approverList.length > 0 ? (
+                      <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                        <SelectTrigger
+                          className={`mt-1 ${requiresApproval && !selectedApproverId ? "border-destructive" : ""}`}
+                          data-testid="select-client-approver"
+                        >
+                          <SelectValue placeholder="Select a client approver…" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {approverList.map((u) => (
+                            <SelectItem
+                              key={u.id}
+                              value={u.id}
+                              disabled={u.status !== "active"}
+                              data-testid={`option-approver-${u.id}`}
+                            >
+                              <span className="flex items-center gap-2">
+                                {u.fullName}
+                                {u.status !== "active" && (
+                                  <span className="text-xs text-muted-foreground">(not active)</span>
+                                )}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground mt-1">
+                        <Users className="h-4 w-4 shrink-0" />
+                        {emptyMsg}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
