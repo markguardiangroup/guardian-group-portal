@@ -1937,6 +1937,14 @@
           "category": "bug",
           "createdAt": "2026-05-06T21:53:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-ed9876543210",
+          "patch": 6,
+          "message": "Fixed: group name link in documents header now navigates to the correct company",
+          "category": "bug",
+          "createdAt": "2026-05-07T08:43:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

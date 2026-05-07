@@ -712,7 +712,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // IDs for linking company/site names to their profile pages in the header
   const contextCompanyId = useMemo(() => {
-    if (urlScope === "company") return urlEntityId;
+    if (urlScope === "company" || urlScope === "group") return urlEntityId;
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.companyId || null;
     }
