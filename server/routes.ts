@@ -10103,15 +10103,18 @@ export async function registerRoutes(
         });
       }
       
+      // Merge in inherited access for Group Owner companies
+      const inherited = await storage.getGroupOwnerInheritedAccess(user.companyId);
+      
       // Convert company boolean access to status format for frontend compatibility
       res.json({
-        health_safety: companyAccess.healthSafety ? "active" : "hidden",
-        human_resources: companyAccess.humanResources ? "active" : "hidden",
-        employment_law: companyAccess.employmentLaw ? "active" : "hidden",
-        training: companyAccess.training ? "active" : "hidden",
-        toolkit: companyAccess.toolkit ? "active" : "hidden",
-        support: companyAccess.support ? "active" : "hidden",
-        reports: companyAccess.reports ? "active" : "hidden",
+        health_safety: (companyAccess.healthSafety || inherited.healthSafety) ? "active" : "hidden",
+        human_resources: (companyAccess.humanResources || inherited.humanResources) ? "active" : "hidden",
+        employment_law: (companyAccess.employmentLaw || inherited.employmentLaw) ? "active" : "hidden",
+        training: (companyAccess.training || inherited.training) ? "active" : "hidden",
+        toolkit: (companyAccess.toolkit || inherited.toolkit) ? "active" : "hidden",
+        support: (companyAccess.support || inherited.support) ? "active" : "hidden",
+        reports: (companyAccess.reports || inherited.reports) ? "active" : "hidden",
       });
     } catch (error) {
       console.error("Get user module access error:", error);
@@ -10218,7 +10221,8 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Company not found" });
       }
       
-      res.json(access);
+      const inherited = await storage.getGroupOwnerInheritedAccess(req.params.companyId);
+      res.json({ ...access, inherited });
     } catch (error) {
       console.error("Get company module access error:", error);
       res.status(500).json({ error: "Failed to fetch module access" });
@@ -10245,6 +10249,22 @@ export async function registerRoutes(
           employmentLaw === undefined && training === undefined && toolkit === undefined &&
           support === undefined && reports === undefined) {
         return res.status(400).json({ error: "At least one module access setting is required" });
+      }
+      
+      // Check inherited modules — cannot disable what's inherited from member companies
+      const inherited = await storage.getGroupOwnerInheritedAccess(req.params.companyId);
+      const modulesToCheck: Array<[string | undefined, boolean]> = [
+        [healthSafety, inherited.healthSafety],
+        [humanResources, inherited.humanResources],
+        [employmentLaw, inherited.employmentLaw],
+        [training, inherited.training],
+        [toolkit, inherited.toolkit],
+        [support, inherited.support],
+        [reports, inherited.reports],
+      ];
+      const tryingToDisableInherited = modulesToCheck.some(([val, inh]) => val === false && inh);
+      if (tryingToDisableInherited) {
+        return res.status(400).json({ error: "Cannot disable a module that is inherited from a member company" });
       }
       
       const company = await storage.setCompanyModuleAccess(req.params.companyId, {

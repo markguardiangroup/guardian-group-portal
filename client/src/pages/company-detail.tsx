@@ -111,6 +111,15 @@ interface CompanyModuleAccess {
   toolkit: boolean;
   support: boolean;
   reports: boolean;
+  inherited?: {
+    healthSafety: boolean;
+    humanResources: boolean;
+    employmentLaw: boolean;
+    training: boolean;
+    toolkit: boolean;
+    support: boolean;
+    reports: boolean;
+  };
 }
 
 type CompanyWithSites = Company & {
@@ -303,7 +312,7 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     },
   });
 
-  const handleToggle = (module: keyof CompanyModuleAccess, enabled: boolean) => {
+  const handleToggle = (module: keyof Omit<CompanyModuleAccess, "inherited">, enabled: boolean) => {
     updateMutation.mutate({ [module]: enabled });
   };
 
@@ -381,6 +390,8 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
     );
   }
 
+  const hasAnyInherited = modules.some(({ key }) => moduleAccess?.inherited?.[key]);
+
   return (
     <Card>
       <CardHeader>
@@ -388,10 +399,19 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
         <p className="text-sm text-muted-foreground">
           Enable or disable modules for this company. Changes apply to all sites and users.
         </p>
+        {hasAnyInherited && (
+          <div className="flex items-center gap-1.5 rounded-md bg-muted/60 border px-3 py-2 mt-1">
+            <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              Modules marked <span className="font-medium">Inherited</span> are automatically enabled because one or more member companies have them active. They cannot be disabled here.
+            </p>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         {modules.map(({ key, label, icon: Icon, iconClass, bgClass, borderClass }) => {
-          const enabled = moduleAccess?.[key] ?? false;
+          const isInherited = moduleAccess?.inherited?.[key] ?? false;
+          const enabled = (moduleAccess?.[key] ?? false) || isInherited;
           return (
             <div
               key={key}
@@ -400,14 +420,20 @@ function ModuleAccessCard({ companyId }: { companyId: string }) {
               <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${bgClass}`}>
                 <Icon className={`h-4 w-4 ${iconClass}`} />
               </div>
-              <Label htmlFor={`module-${key}`} className="font-medium text-sm cursor-pointer">{label}</Label>
+              <Label htmlFor={`module-${key}`} className={`font-medium text-sm flex-1 ${isInherited ? "cursor-default" : "cursor-pointer"}`}>{label}</Label>
+              {isInherited && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted border rounded px-1.5 py-0.5 shrink-0" data-testid={`badge-inherited-${key}`}>
+                  <LockKeyhole className="h-3 w-3" />
+                  Inherited
+                </span>
+              )}
               <Switch
                 id={`module-${key}`}
                 checked={enabled}
                 onCheckedChange={(checked) => handleToggle(key, checked)}
-                disabled={!isAdmin || updateMutation.isPending}
+                disabled={!isAdmin || updateMutation.isPending || isInherited}
                 data-testid={`switch-module-${key}`}
-                className="ml-1 shrink-0"
+                className="shrink-0"
               />
             </div>
           );
@@ -477,7 +503,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   });
 
   const enabledModules = Object.entries(MODULE_MAP)
-    .filter(([, { key }]) => moduleAccess?.[key])
+    .filter(([, { key }]) => (moduleAccess?.[key] || moduleAccess?.inherited?.[key]))
     .map(([mod]) => mod);
 
   const requiredIds = new Set(requiredTemplates.map(rt => rt.templateId));

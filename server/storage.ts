@@ -285,6 +285,7 @@ export interface IStorage {
   getCompanyModuleAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; support: boolean; reports: boolean } | undefined>;
   setCompanyModuleAccess(companyId: string, modules: { healthSafety?: boolean; humanResources?: boolean; employmentLaw?: boolean; support?: boolean; reports?: boolean }): Promise<Company | undefined>;
   hasCompanyModuleAccess(companyId: string, module: ModuleType): Promise<boolean>;
+  getGroupOwnerInheritedAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; training: boolean; toolkit: boolean; support: boolean; reports: boolean }>;
   
   // Module Access Requests
   getModuleAccessRequests(siteId?: string, status?: ModuleAccessRequestStatus): Promise<ModuleAccessRequest[]>;
@@ -2237,24 +2238,54 @@ export class MemStorage implements IStorage {
     const company = await this.getCompany(companyId);
     if (!company) return false;
     
+    let ownAccess: boolean;
     switch (module) {
       case "health_safety":
-        return company.healthSafetyAccess;
+        ownAccess = company.healthSafetyAccess; break;
       case "human_resources":
-        return company.humanResourcesAccess;
+        ownAccess = company.humanResourcesAccess; break;
       case "employment_law":
-        return company.employmentLawAccess;
+        ownAccess = company.employmentLawAccess; break;
       case "training":
-        return company.trainingAccess;
+        ownAccess = company.trainingAccess; break;
       case "toolkit":
-        return company.toolkitAccess;
+        ownAccess = company.toolkitAccess; break;
       case "support":
-        return company.supportAccess;
+        ownAccess = company.supportAccess; break;
       case "reports":
-        return company.reportsAccess;
+        ownAccess = company.reportsAccess; break;
       default:
         return false;
     }
+    
+    if (ownAccess) return true;
+    
+    const inherited = await this.getGroupOwnerInheritedAccess(companyId);
+    switch (module) {
+      case "health_safety": return inherited.healthSafety;
+      case "human_resources": return inherited.humanResources;
+      case "employment_law": return inherited.employmentLaw;
+      case "training": return inherited.training;
+      case "toolkit": return inherited.toolkit;
+      case "support": return inherited.support;
+      case "reports": return inherited.reports;
+      default: return false;
+    }
+  }
+
+  async getGroupOwnerInheritedAccess(companyId: string): Promise<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean; training: boolean; toolkit: boolean; support: boolean; reports: boolean }> {
+    const empty = { healthSafety: false, humanResources: false, employmentLaw: false, training: false, toolkit: false, support: false, reports: false };
+    const members = await this.getGroupMembers(companyId);
+    if (!members.length) return empty;
+    return {
+      healthSafety: members.some(m => m.healthSafetyAccess),
+      humanResources: members.some(m => m.humanResourcesAccess),
+      employmentLaw: members.some(m => m.employmentLawAccess),
+      training: members.some(m => m.trainingAccess),
+      toolkit: members.some(m => m.toolkitAccess),
+      support: members.some(m => m.supportAccess),
+      reports: members.some(m => m.reportsAccess),
+    };
   }
 
   // Module Access Requests (Database-backed)

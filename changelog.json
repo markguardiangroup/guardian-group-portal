@@ -2049,6 +2049,14 @@
           "category": "feature",
           "createdAt": "2026-05-07T14:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-fe9876543305",
+          "patch": 6,
+          "message": "Group Owner companies automatically inherit module access from member companies",
+          "category": "feature",
+          "createdAt": "2026-05-07T14:40:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
