@@ -1993,6 +1993,14 @@
           "category": "bug",
           "createdAt": "2026-05-07T13:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-fe9876543300",
+          "patch": 6,
+          "message": "Company list now shows Internal Company Number; Group Owner badge moved below it",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T13:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
