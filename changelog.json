@@ -2065,6 +2065,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-07T15:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d8e9f0a1-b2c3-4567-defa-890123456789",
+          "patch": 6,
+          "message": "Users page split into Staff and Client tabs with tailored columns and filters",
+          "category": "enhancement",
+          "createdAt": "2026-05-07T15:37:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

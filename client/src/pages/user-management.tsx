@@ -89,6 +89,7 @@ import {
   Send,
   RotateCcw,
   MessageSquare,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -174,6 +175,7 @@ export default function UserManagement() {
   const companyFilter = selectedCompany || "all";
   const setCompanyFilter = (val: string) => setSelectedCompany(val === "all" ? null : val);
   const handleCompanyChange = (val: string | null) => setSelectedCompany(val);
+  const [userTypeTab, setUserTypeTab] = useState<"staff" | "client">(isStandardConsultant ? "client" : "staff");
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all" | "pro_consultant">("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
@@ -400,17 +402,20 @@ export default function UserManagement() {
   const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
 
   const filteredUsers = getVisibleUsers().filter((u) => {
+    const matchesTab =
+      userTypeTab === "client" ? u.role === "client" : u.role === "admin" || u.role === "consultant";
     const matchesSearch = 
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
       u.username.toLowerCase().includes(search.toLowerCase()) ||
       (u.jobTitle && u.jobTitle.toLowerCase().includes(search.toLowerCase()));
     const matchesRole =
+      userTypeTab === "client" ||
       roleFilter === "all" ||
       (roleFilter === "pro_consultant" ? u.role === "consultant" && u.consultantTier === "pro" : u.role === roleFilter);
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
-    const matchesCompany = companyFilter === "all" || u.companyId === companyFilter;
-    return matchesSearch && matchesRole && matchesStatus && matchesCompany;
+    const matchesCompany = userTypeTab === "staff" || companyFilter === "all" || u.companyId === companyFilter;
+    return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany;
   }).sort((a, b) => {
     const roleA = roleOrder[a.role] ?? 3;
     const roleB = roleOrder[b.role] ?? 3;
@@ -1194,6 +1199,27 @@ export default function UserManagement() {
 
       <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
 
+      {(isAdmin || isPro) && (
+        <div className="inline-flex rounded-lg border bg-muted/40 p-1 gap-1">
+          <button
+            onClick={() => { setUserTypeTab("staff"); setRoleFilter("all"); setStatusFilter("all"); setPage(1); }}
+            className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "staff" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            data-testid="tab-staff"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            {isAdmin ? "Consultants & Admins" : "Consultants"}
+          </button>
+          <button
+            onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setPage(1); }}
+            className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "client" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            data-testid="tab-clients"
+          >
+            <Users className="h-4 w-4" />
+            Clients
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -1209,17 +1235,16 @@ export default function UserManagement() {
           />
         </div>
 
-        {canAddUser && (
+        {canAddUser && userTypeTab === "staff" && (
           <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all" | "pro_consultant"); setPage(1); }}>
-            <SelectTrigger className="w-[150px]" data-testid="select-role-filter">
+            <SelectTrigger className="w-[170px]" data-testid="select-role-filter">
               <SelectValue placeholder="All roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="admin">Administrators</SelectItem>
+              <SelectItem value="all">All Staff</SelectItem>
+              {isAdmin && <SelectItem value="admin">Administrators</SelectItem>}
               <SelectItem value="consultant">Consultants</SelectItem>
               <SelectItem value="pro_consultant">Pro Consultants</SelectItem>
-              <SelectItem value="client">Clients</SelectItem>
             </SelectContent>
           </Select>
         )}
@@ -1239,17 +1264,19 @@ export default function UserManagement() {
           </SelectContent>
         </Select>
 
-        <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); setPage(1); }}>
-          <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
-            <SelectValue placeholder="All companies" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Companies</SelectItem>
-            {companies.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {userTypeTab === "client" && (
+          <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
+              <SelectValue placeholder="All companies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              {companies.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Button
           variant="outline"
           size="icon"
@@ -1269,10 +1296,10 @@ export default function UserManagement() {
             <TableRow>
               <TableHead>User</TableHead>
               <TableHead className="w-24">Role</TableHead>
-              <TableHead className="min-w-[160px]">Company</TableHead>
+              {userTypeTab === "client" && <TableHead className="min-w-[160px]">Company</TableHead>}
               <TableHead>Sites Assigned</TableHead>
-              <TableHead className="hidden md:table-cell">Sources</TableHead>
-              <TableHead className="hidden md:table-cell">Permissions</TableHead>
+              {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Sources</TableHead>}
+              {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Permissions</TableHead>}
               <TableHead>Status</TableHead>
               <TableHead className="w-32">Last Login</TableHead>
               <TableHead className="w-12"></TableHead>
@@ -1281,7 +1308,7 @@ export default function UserManagement() {
           <TableBody key={isLoadingUsers ? "loading" : "loaded"} className={!alreadyShown && !isLoadingUsers && paginatedUsers.length > 0 ? "table-rows-animate" : ""}>
             {isLoadingUsers ? null : paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={userTypeTab === "staff" ? 8 : 7} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"
                     ? "No users match your filters." 
                     : "No users found."}
@@ -1325,22 +1352,24 @@ export default function UserManagement() {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {u.companyId ? (
-                      <div className="flex flex-col gap-1">
-                        <span className="text-xs">
-                          {companies.find(c => c.id === u.companyId)?.name || "-"}
-                        </span>
-                        {isPrimaryContact(u) && (
-                          <Badge variant="outline" className="w-fit text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700">
-                            Primary Contact
-                          </Badge>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
+                  {userTypeTab === "client" && (
+                    <TableCell>
+                      {u.companyId ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs">
+                            {companies.find(c => c.id === u.companyId)?.name || "-"}
+                          </span>
+                          {isPrimaryContact(u) && (
+                            <Badge variant="outline" className="w-fit text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                              Primary Contact
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell>
                     {u.role === "admin" ? (
                       <button
@@ -1364,88 +1393,92 @@ export default function UserManagement() {
                       <span className="text-xs text-muted-foreground">None</span>
                     )}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {(u.role === "admin" || u.role === "consultant") ? (() => {
-                      const activeCodes = availableSources.filter(s => s.isActive).map(s => s.code);
-                      const userSources = u.sources ?? [];
-                      if (userSources.length === 0) {
-                        return (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-table-no-source-user-${u.id}`}>
-                            None
-                          </Badge>
-                        );
-                      }
-                      const hasAll = activeCodes.length > 0 && activeCodes.every(c => userSources.includes(c));
-                      if (hasAll) {
-                        return (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0 font-medium" data-testid={`badge-table-source-all-${u.id}`}>
-                            All
-                          </Badge>
-                        );
-                      }
-                      if (userSources.length === 1) {
-                        return (
-                          <Badge variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-table-source-user-${u.id}-${userSources[0]}`}>
-                            {userSources[0]}
-                          </Badge>
-                        );
-                      }
-                      return (
-                        <Tooltip>
-                          <TooltipTrigger className="cursor-default" data-testid={`badge-table-source-count-${u.id}`}>
-                            <Badge variant="outline" className="text-xs px-1.5 py-0 pointer-events-none">
-                              {userSources.length} sources
+                  {userTypeTab === "staff" && (
+                    <TableCell className="hidden md:table-cell">
+                      {(u.role === "admin" || u.role === "consultant") ? (() => {
+                        const activeCodes = availableSources.filter(s => s.isActive).map(s => s.code);
+                        const userSources = u.sources ?? [];
+                        if (userSources.length === 0) {
+                          return (
+                            <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-table-no-source-user-${u.id}`}>
+                              None
                             </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-48">
-                            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                              {userSources.map(code => (
-                                <span key={code} className="font-mono text-xs font-semibold">{code}</span>
-                              ))}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })() : (
-                      <span className="text-sm text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {u.role === "consultant" ? (() => {
-                      const PERMS = [
-                        { key: "caseAdvocate", label: "Case Advocate", className: "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700" },
-                        { key: "trainingLibrary", label: "Training Lib", className: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" },
-                        { key: "templateLibrary", label: "Template Lib", className: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" },
-                      ];
-                      const active = PERMS.filter(p => (u.consultantPermissions as any)?.[p.key]);
-                      if (active.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
-                      const visible = active.slice(0, 2);
-                      const overflow = active.slice(2);
-                      return (
-                        <div className="flex flex-wrap items-center gap-1">
-                          {visible.map(p => (
-                            <Badge key={p.key} variant="outline" className={`text-xs px-1.5 py-0 ${p.className}`} data-testid={`badge-perm-${p.key}-${u.id}`}>{p.label}</Badge>
-                          ))}
-                          {overflow.length > 0 && (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <button className="text-xs text-muted-foreground hover:text-foreground border border-dashed rounded px-1.5 py-0.5 transition-colors" data-testid={`badge-perm-overflow-${u.id}`}>+{overflow.length}</button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-2" align="start">
-                                <div className="flex flex-col gap-1">
-                                  {overflow.map(p => (
-                                    <Badge key={p.key} variant="outline" className={`text-xs px-1.5 py-0 ${p.className}`}>{p.label}</Badge>
-                                  ))}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        </div>
-                      );
-                    })() : u.role === "admin" ? (
-                      <Badge variant="outline" className="text-xs px-1.5 py-0 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600" data-testid={`badge-perm-all-${u.id}`}>All</Badge>
-                    ) : <span className="text-sm text-muted-foreground">—</span>}
-                  </TableCell>
+                          );
+                        }
+                        const hasAll = activeCodes.length > 0 && activeCodes.every(c => userSources.includes(c));
+                        if (hasAll) {
+                          return (
+                            <Badge variant="outline" className="text-xs px-1.5 py-0 font-medium" data-testid={`badge-table-source-all-${u.id}`}>
+                              All
+                            </Badge>
+                          );
+                        }
+                        if (userSources.length === 1) {
+                          return (
+                            <Badge variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-table-source-user-${u.id}-${userSources[0]}`}>
+                              {userSources[0]}
+                            </Badge>
+                          );
+                        }
+                        return (
+                          <Tooltip>
+                            <TooltipTrigger className="cursor-default" data-testid={`badge-table-source-count-${u.id}`}>
+                              <Badge variant="outline" className="text-xs px-1.5 py-0 pointer-events-none">
+                                {userSources.length} sources
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-48">
+                              <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                                {userSources.map(code => (
+                                  <span key={code} className="font-mono text-xs font-semibold">{code}</span>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        );
+                      })() : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {userTypeTab === "staff" && (
+                    <TableCell className="hidden md:table-cell">
+                      {u.role === "consultant" ? (() => {
+                        const PERMS = [
+                          { key: "caseAdvocate", label: "Case Advocate", className: "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700" },
+                          { key: "trainingLibrary", label: "Training Lib", className: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" },
+                          { key: "templateLibrary", label: "Template Lib", className: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" },
+                        ];
+                        const active = PERMS.filter(p => (u.consultantPermissions as any)?.[p.key]);
+                        if (active.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
+                        const visible = active.slice(0, 2);
+                        const overflow = active.slice(2);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1">
+                            {visible.map(p => (
+                              <Badge key={p.key} variant="outline" className={`text-xs px-1.5 py-0 ${p.className}`} data-testid={`badge-perm-${p.key}-${u.id}`}>{p.label}</Badge>
+                            ))}
+                            {overflow.length > 0 && (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button className="text-xs text-muted-foreground hover:text-foreground border border-dashed rounded px-1.5 py-0.5 transition-colors" data-testid={`badge-perm-overflow-${u.id}`}>+{overflow.length}</button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-2" align="start">
+                                  <div className="flex flex-col gap-1">
+                                    {overflow.map(p => (
+                                      <Badge key={p.key} variant="outline" className={`text-xs px-1.5 py-0 ${p.className}`}>{p.label}</Badge>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
+                          </div>
+                        );
+                      })() : u.role === "admin" ? (
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600" data-testid={`badge-perm-all-${u.id}`}>All</Badge>
+                      ) : <span className="text-sm text-muted-foreground">—</span>}
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Badge 
                       variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" || u.status === "site_required" || u.status === "locked" ? "outline" : "secondary"}
