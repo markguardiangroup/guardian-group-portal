@@ -2417,6 +2417,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T19:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e1f2a3b4-c5d6-7890-efab-456789012345",
+          "patch": 6,
+          "message": "Added: staff scope filter to Site Documents page for pro consultants",
+          "category": "feature",
+          "createdAt": "2026-05-08T19:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

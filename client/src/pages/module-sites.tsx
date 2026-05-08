@@ -123,6 +123,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { selectedCompany, handleCompanyChange, setSelectedSiteId, selectedGroup, setSelectedGroup } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
   const basePath =
     module === "health_safety"
       ? "/health-safety"
@@ -132,8 +133,35 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       ? "/employment-law"
       : "/training";
 
+  const [staffFilter, setStaffFilter] = useState<string>("my");
+
+  type StaffConsultant = { id: string; fullName: string };
+  const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
+    queryKey: ["/api/consultants/my-staff"],
+    queryFn: async () => {
+      const res = await fetch("/api/consultants/my-staff", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isProConsultant,
+  });
+
+  const sitesUrl = !isProConsultant
+    ? "/api/sites"
+    : staffFilter === "my"
+    ? "/api/sites?myAssigned=true"
+    : staffFilter !== "all"
+    ? `/api/sites?staffId=${staffFilter}`
+    : "/api/sites";
+
   const { data: sites, isLoading: isLoadingSites } = useQuery<SiteWithCompany[]>({
-    queryKey: ["/api/sites"],
+    queryKey: [sitesUrl],
+    queryFn: async () => {
+      const res = await fetch(sitesUrl, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch sites");
+      return res.json();
+    },
+    staleTime: 60 * 1000,
   });
 
   const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
@@ -148,12 +176,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   // GO client users can see multiple companies and should get the company combobox
   const isGoClient = user?.role === "client" && companies.length > 1;
 
-  // Discover groups visible to the user. A group is identified by its
-  // group-owner companyId. Members reference it via groupOwnerId, and the
-  // owner itself appears with isGroupOwner=true (when visible).
+  // IDs of companies visible in the current staff-filtered site list
+  const visibleCompanyIds = useMemo(() => new Set((sites ?? []).map(s => s.companyId)), [sites]);
+
+  // Discover groups visible to the user — constrained to companies in the
+  // current staff-scoped site list so the dropdown only shows relevant groups.
   const groupOwners = useMemo(() => {
     const map = new Map<string, string>(); // ownerId -> ownerName
     for (const c of companies) {
+      if (!visibleCompanyIds.has(c.id)) continue;
       if (c.isGroupOwner) {
         map.set(c.id, c.name);
       }
@@ -164,7 +195,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     return Array.from(map.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [companies]);
+  }, [companies, visibleCompanyIds]);
 
   const groupOwnerNames = useMemo(
     () => groupOwners.map((g) => g.name),
@@ -352,6 +383,29 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               >
                 <X className="h-4 w-4" />
               </Button>
+            )}
+            {isProConsultant && (
+              <Select
+                value={staffFilter}
+                onValueChange={(v) => {
+                  setStaffFilter(v);
+                  setSelectedGroup("all");
+                  handleCompanyChange(null);
+                }}
+              >
+                <SelectTrigger className="w-[220px]" data-testid="select-staff-filter-docs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  {myStaff.map(s => (
+                    <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-docs-${s.id}`}>
+                      {s.fullName}'s client sites
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="all">All companies</SelectItem>
+                </SelectContent>
+              </Select>
             )}
             {!isGoClient && groupOwners.length > 0 && (
               <Select
