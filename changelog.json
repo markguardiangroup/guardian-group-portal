@@ -2577,6 +2577,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T23:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a3b4c5d6-e7f8-9012-bcde-456789012a34",
+          "patch": 6,
+          "message": "Company overview: Primary Contact layout now matches the Key Contact style",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T23:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

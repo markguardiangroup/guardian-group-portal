@@ -1797,28 +1797,20 @@ export default function CompanyDetail() {
                     )}
                   </div>
                   {(company.contactName || company.contactPhone || company.contactEmail) ? (
-                    <div className="space-y-1.5 text-sm">
-                      {company.contactName && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span>{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
+                    <div className="flex items-start gap-2 text-sm">
+                      <UserIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {company.contactName && (
+                            <span className="font-medium truncate">{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
+                          )}
                           <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 shrink-0">
                             Primary Contact
                           </Badge>
                         </div>
-                      )}
-                      {company.contactPhone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
-                          <span>{company.contactPhone}</span>
-                        </div>
-                      )}
-                      {company.contactEmail && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span>{company.contactEmail}</span>
-                        </div>
-                      )}
+                        {company.contactPhone && <p className="text-xs text-muted-foreground truncate">{company.contactPhone}</p>}
+                        {company.contactEmail && <p className="text-xs text-muted-foreground truncate">{company.contactEmail}</p>}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground">No primary contact set</p>
