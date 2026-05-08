@@ -2233,6 +2233,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T10:38:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a9b0c1d2-e3f4-5678-abcd-901234567890",
+          "patch": 6,
+          "message": "Fixed: Dashboard and Documents stay scoped to the group when clicking from the All Sites card",
+          "category": "bug",
+          "createdAt": "2026-05-08T10:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

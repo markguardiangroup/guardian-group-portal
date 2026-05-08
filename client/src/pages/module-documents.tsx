@@ -169,6 +169,12 @@ interface SiteWithCompany extends SiteBasic {
   moduleAccess?: SiteModuleAccess;
 }
 
+interface CompanyListItem {
+  id: string;
+  name: string;
+  groupOwnerId?: string | null;
+}
+
 type ViewMode = "folder" | "table";
 
 // Module-specific color theming (matching template library)
@@ -326,7 +332,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -473,7 +479,27 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
-  
+
+  // Fetch companies for group scope filtering (only when a group is selected)
+  const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
+    queryKey: ["/api/companies"],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies?limit=1000`, { credentials: "include" });
+      return res.json();
+    },
+    enabled: selectedGroup !== "all",
+  });
+  const companies = companiesResp?.companies ?? [];
+
+  // Set of company IDs that belong to the selected group (owner + members)
+  const groupCompanyIds = useMemo(() => {
+    if (selectedGroup === "all" || !companies.length) return null;
+    const ids = companies
+      .filter(c => c.id === selectedGroup || c.groupOwnerId === selectedGroup)
+      .map(c => c.id);
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [selectedGroup, companies]);
+
   // With company-level module access, all sites in a company have the same access
   // So no per-site filtering needed - just show all sites for the user's company
   const clientSites = useMemo(() => {
@@ -481,12 +507,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return sites;
   }, [sites]);
   
-  // Filter sites by selected company (for privileged users)
+  // Filter sites by selected group, then by selected company (for privileged users)
   const filteredSites = useMemo(() => {
     if (!clientSites) return [];
-    if (!selectedCompany || selectedCompany === "all") return clientSites;
-    return clientSites.filter(s => s.companyName === selectedCompany);
-  }, [clientSites, selectedCompany]);
+    let result = clientSites;
+    if (groupCompanyIds) {
+      result = result.filter(s => groupCompanyIds.has(s.companyId ?? ""));
+    }
+    if (!selectedCompany || selectedCompany === "all") return result;
+    return result.filter(s => s.companyName === selectedCompany);
+  }, [clientSites, selectedCompany, groupCompanyIds]);
 
   // Derive the effective view mode: use the user's explicit choice if set, otherwise "folder".
   const viewMode: ViewMode | null = useMemo(() => {

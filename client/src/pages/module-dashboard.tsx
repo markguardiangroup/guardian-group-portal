@@ -39,6 +39,12 @@ interface SiteWithCompany {
   contactPhone: string | null;
 }
 
+interface CompanyListItem {
+  id: string;
+  name: string;
+  groupOwnerId?: string | null;
+}
+
 interface MissingRequiredTemplateDetail {
   templateId: string;
   templateName: string;
@@ -155,7 +161,7 @@ interface ModuleDashboardProps {
 
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, selectedGroup } = useSiteFilter();
   const [, navigate] = useLocation();
 
   const config = moduleConfig[module];
@@ -174,19 +180,45 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
   });
+
+  // Fetch companies for group scope filtering (only when a group is selected)
+  const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
+    queryKey: ["/api/companies"],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies?limit=1000`, { credentials: "include" });
+      return res.json();
+    },
+    enabled: selectedGroup !== "all",
+  });
+  const companies = companiesResp?.companies ?? [];
+
+  // Set of company IDs that belong to the selected group (owner + members)
+  const groupCompanyIds = useMemo(() => {
+    if (selectedGroup === "all" || !companies.length) return null;
+    const ids = companies
+      .filter(c => c.id === selectedGroup || c.groupOwnerId === selectedGroup)
+      .map(c => c.id);
+    return ids.length > 0 ? new Set(ids) : null;
+  }, [selectedGroup, companies]);
   
   // Determine which site(s) to show data for
   // Clients can now filter by site if they have multiple sites
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
   
-  // Get site IDs for selected company (for API filtering)
-  // Use full sites list to get all sites for selected company
+  // Get site IDs for selected company/group (for API filtering)
   const companySiteIds = useMemo(() => {
-    if (!sites || !selectedCompany || selectedCompany === "all") return null;
+    if (!sites) return null;
     if (selectedSiteId && selectedSiteId !== "all") return null; // Use specific site instead
-    const companySites = sites.filter(s => s.companyName === selectedCompany);
-    return companySites.map(s => s.id);
-  }, [sites, selectedCompany, selectedSiteId]);
+    if (groupCompanyIds) {
+      let groupSites = sites.filter(s => groupCompanyIds.has(s.companyId));
+      if (selectedCompany && selectedCompany !== "all") {
+        groupSites = groupSites.filter(s => s.companyName === selectedCompany);
+      }
+      return groupSites.map(s => s.id);
+    }
+    if (!selectedCompany || selectedCompany === "all") return null;
+    return sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
+  }, [sites, selectedCompany, selectedSiteId, groupCompanyIds]);
   
   // Create stable string key for company site IDs (avoid nested arrays in query keys)
   const companySiteIdsKey = companySiteIds?.join(",") || null;
