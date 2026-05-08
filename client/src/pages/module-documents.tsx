@@ -1792,6 +1792,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     } : folder.stats;
                     const statusBadge = getFolderStatusBadge(adjustedFolderStats);
                     const folderDropId = (folder as any).siteFolder?.id ?? folder.id;
+                    const parentMissingCount = (missingByFolderTemplateId.get(folder.id)?.length ?? 0) +
+                      ((folder as any).childFolders ?? []).reduce((sum: number, cf: any) => sum + (missingByFolderTemplateId.get(cf.id)?.length ?? 0), 0);
                     return (
                       <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isAdmin}>
                       <AccordionItem value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
@@ -1804,6 +1806,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               <span className="font-medium">{folder.name}</span>
                             </div>
                             <div className="flex items-center gap-3">
+                              {parentMissingCount > 0 && (
+                                <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
+                                  <AlertCircle className="h-3 w-3" />
+                                  {parentMissingCount} Missing
+                                </Badge>
+                              )}
                               {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
                               <span className="text-sm text-muted-foreground">
                                 {adjustedFolderStats.totalDocuments} document{adjustedFolderStats.totalDocuments !== 1 ? "s" : ""}
