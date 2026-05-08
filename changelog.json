@@ -2277,7 +2277,7 @@
         {
           "id": "f4a5b6c7-d8e9-0123-fabc-456789012345",
           "patch": 6,
-          "message": "Improved: site, company and group tiles now show 'Document Compliance' instead of 'Compliance'",
+          "message": "Improved: all site/company/group tiles now show 'Document Compliance' instead of 'Compliance'",
           "category": "enhancement",
           "createdAt": "2026-05-08T13:20:00.000Z",
           "createdBy": "agent"
