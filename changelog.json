@@ -2281,6 +2281,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T13:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a5b6c7d8-e9f0-1234-abcd-567890123456",
+          "patch": 6,
+          "message": "Improved: dashboard 'Overall Compliance' card now shows 'Based on required documents only' highlight",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T14:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
