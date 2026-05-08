@@ -2249,6 +2249,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T11:05:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c1d2e3f4-a5b6-7890-cdef-123456789012",
+          "patch": 6,
+          "message": "Improved: documents page now defaults to folder view instead of table view",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T11:12:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -524,11 +524,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // When viewing a specific group/company scope, the folder hierarchy
     // (which is per-site) doesn't apply — show the flat table instead.
     if (urlScope && urlEntityId) return explicitViewMode ?? "folder";
-    // In multi-site ("All Sites") context default to table — shared/group docs are
-    // expanded once per covered site in table view.  Folder view only adds value
-    // when a single specific site is selected.
-    const isMultiSite = !selectedSiteId || selectedSiteId === "all";
-    return explicitViewMode ?? (isMultiSite ? "table" : "folder");
+    return explicitViewMode ?? "folder";
   }, [sites, explicitViewMode, urlScope, urlEntityId, selectedSiteId]);
 
   const setViewMode = (mode: ViewMode) => setExplicitViewMode(mode);
