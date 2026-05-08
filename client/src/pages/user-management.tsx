@@ -1300,28 +1300,27 @@ export default function UserManagement() {
 
       <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
 
-      {(isAdmin || isPro) && (
-        <div className="inline-flex rounded-lg border bg-muted/40 p-1 gap-1">
-          <button
-            onClick={() => { setUserTypeTab("staff"); setRoleFilter("all"); setStatusFilter("all"); setPage(1); }}
-            className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "staff" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            data-testid="tab-staff"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            {isAdmin ? "Consultants & Admins" : "Consultants"}
-          </button>
-          <button
-            onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setClientStaffFilter("all"); setPage(1); }}
-            className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "client" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            data-testid="tab-clients"
-          >
-            <Users className="h-4 w-4" />
-            Clients
-          </button>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center gap-3">
+        {(isAdmin || isPro) && (
+          <div className="inline-flex rounded-lg border bg-muted/40 p-1 gap-1 shrink-0">
+            <button
+              onClick={() => { setUserTypeTab("staff"); setRoleFilter("all"); setStatusFilter("all"); setPage(1); }}
+              className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "staff" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              data-testid="tab-staff"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              {isAdmin ? "Consultants & Admins" : "Consultants"}
+            </button>
+            <button
+              onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setClientStaffFilter("all"); setPage(1); }}
+              className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "client" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              data-testid="tab-clients"
+            >
+              <Users className="h-4 w-4" />
+              Clients
+            </button>
+          </div>
+        )}
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input

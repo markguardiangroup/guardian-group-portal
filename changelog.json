@@ -2561,6 +2561,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T22:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e1f2a3b4-c5d6-7890-fabc-234567890ef1",
+          "patch": 6,
+          "message": "Users page: tab toggle and filters now sit on a single row",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T22:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
