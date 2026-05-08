@@ -931,6 +931,17 @@ export default function CompanyDetail() {
     enabled: !!companyId,
   });
 
+  // Fetch group owner company to know its primary contact (for "Group Primary Contact" badge)
+  const { data: groupOwnerCompany } = useQuery<{ id: string; contactUserId?: string | null }>({
+    queryKey: ["/api/companies", company?.groupOwnerId],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies/${company!.groupOwnerId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch group owner");
+      return res.json();
+    },
+    enabled: !!company?.groupOwnerId,
+  });
+
   // All companies list (for GO admin picker – admin only); uses a large limit to get all
   const { data: allCompaniesData } = useQuery<{ companies: CompanyWithSites[]; total: number }>({
     queryKey: ["/api/companies", { limit: 1000, page: 1 }],
@@ -2313,7 +2324,10 @@ export default function CompanyDetail() {
                           const isExpanded = expandedUserId === u.id;
                           const clientSites = u.siteAssignments || [];
                           const isPrimary = company?.contactUserId === u.id;
-                          const isGroupOwnerContact = u.companyId !== companyId;
+                          const isGroupPrimaryContact = !isPrimary &&
+                            u.companyId !== companyId &&
+                            !!groupOwnerCompany?.contactUserId &&
+                            groupOwnerCompany.contactUserId === u.id;
                           return (
                             <div key={u.id} data-testid={`row-client-${u.id}`}>
                               <div className="flex items-center gap-4 px-4 py-3">
@@ -2333,9 +2347,9 @@ export default function CompanyDetail() {
                                           Primary Contact
                                         </Badge>
                                       )}
-                                      {isGroupOwnerContact && (
-                                        <Badge variant="outline" className="text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 shrink-0">
-                                          Group Owner Contact
+                                      {isGroupPrimaryContact && (
+                                        <Badge variant="outline" className="text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 shrink-0" data-testid={`badge-group-primary-contact-${u.id}`}>
+                                          Group Primary Contact
                                         </Badge>
                                       )}
                                     </div>
@@ -2343,7 +2357,7 @@ export default function CompanyDetail() {
                                   </div>
                                 </button>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  {!isGroupOwnerContact && isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
+                                  {u.companyId === companyId && isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
                                     <Button
                                       variant="outline"
                                       size="sm"

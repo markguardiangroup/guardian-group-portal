@@ -2265,6 +2265,14 @@
           "category": "feature",
           "createdAt": "2026-05-08T12:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e3f4a5b6-c7d8-9012-efab-345678901234",
+          "patch": 6,
+          "message": "Fixed: 'Group Primary Contact' badge now correctly shows on member company user lists (not for all cross-company users)",
+          "category": "bug",
+          "createdAt": "2026-05-08T12:58:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
