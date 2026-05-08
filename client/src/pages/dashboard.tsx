@@ -683,11 +683,7 @@ function OverallComplianceCard({
           </div>
           <div>
             <CardTitle>Overall Compliance Across All Modules</CardTitle>
-            <CardDescription>
-              <span className="inline-block mt-0.5 text-xs font-medium bg-yellow-200 text-yellow-900 dark:bg-yellow-300/30 dark:text-yellow-200 px-1.5 py-0.5 rounded">
-                Based on required documents only
-              </span>
-            </CardDescription>
+            <CardDescription>Based on required documents only</CardDescription>
           </div>
         </div>
       </CardHeader>
