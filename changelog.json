@@ -2225,6 +2225,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T10:22:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f8a9b0c1-d2e3-4567-fabc-890123456789",
+          "patch": 6,
+          "message": "Fixed: 'Shared from Group/Company' badge now shows in table view when a specific site is selected",
+          "category": "bug",
+          "createdAt": "2026-05-08T10:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
