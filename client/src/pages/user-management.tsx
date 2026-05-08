@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -324,6 +324,33 @@ export default function UserManagement() {
     enabled: isAdmin,
   });
 
+  const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
+    queryKey: ["/api/consultants/my-staff"],
+    enabled: isPro,
+  });
+
+  const staffScopeSitesUrl = useMemo(() => {
+    if (!isPro || clientStaffFilter === "all") return null;
+    if (clientStaffFilter === "my") return "/api/sites?myAssigned=true";
+    return `/api/sites?staffId=${clientStaffFilter}`;
+  }, [isPro, clientStaffFilter]);
+
+  const { data: staffScopeSites = [] } = useQuery<SiteBasic[]>({
+    queryKey: ["/api/sites/staff-scope", clientStaffFilter],
+    queryFn: async () => {
+      if (!staffScopeSitesUrl) return [];
+      const res = await fetch(staffScopeSitesUrl, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: isPro && clientStaffFilter !== "all",
+  });
+
+  const staffScopeSet = useMemo(() => {
+    if (!isPro || clientStaffFilter === "all") return null;
+    return new Set(staffScopeSites.map(s => s.id));
+  }, [isPro, clientStaffFilter, staffScopeSites]);
+
   const { data: sites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
     enabled: isAdmin || isConsultant,
@@ -404,6 +431,8 @@ export default function UserManagement() {
 
   const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
 
+  const [clientStaffFilter, setClientStaffFilter] = useState<string>("all");
+
   const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastLogin">("username");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const handleSortUsers = (col: typeof sortBy) => {
@@ -425,7 +454,11 @@ export default function UserManagement() {
       (roleFilter === "pro_consultant" ? u.role === "consultant" && u.consultantTier === "pro" : u.role === roleFilter);
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
     const matchesCompany = userTypeTab === "staff" || companyFilter === "all" || u.companyId === companyFilter;
-    return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany;
+    const matchesStaffScope =
+      userTypeTab !== "client" ||
+      !staffScopeSet ||
+      (u.siteAssignments || []).some(a => staffScopeSet.has(a.siteId));
+    return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany && matchesStaffScope;
   }).sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortBy === "username") return dir * a.username.toLowerCase().localeCompare(b.username.toLowerCase());
@@ -1243,7 +1276,7 @@ export default function UserManagement() {
             {isAdmin ? "Consultants & Admins" : "Consultants"}
           </button>
           <button
-            onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setPage(1); }}
+            onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setClientStaffFilter("all"); setPage(1); }}
             className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "client" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
             data-testid="tab-clients"
           >
@@ -1296,6 +1329,30 @@ export default function UserManagement() {
             <SelectItem value="locked">Locked</SelectItem>
           </SelectContent>
         </Select>
+
+        {isPro && userTypeTab === "client" && (
+          <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[205px] text-sm shrink-0" data-testid="select-client-staff-filter">
+              <span className="truncate pointer-events-none">
+                {clientStaffFilter === "all"
+                  ? "All client sites"
+                  : clientStaffFilter === "my"
+                  ? "My client sites"
+                  : (() => {
+                      const s = myStaff.find(m => m.id === clientStaffFilter);
+                      return s ? `${s.fullName}'s clients` : "All client sites";
+                    })()}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All client sites</SelectItem>
+              <SelectItem value="my">My client sites</SelectItem>
+              {myStaff.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {userTypeTab === "client" && (
           <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); setPage(1); }}>

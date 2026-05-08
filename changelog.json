@@ -2505,6 +2505,14 @@
           "category": "feature",
           "createdAt": "2026-05-08T21:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-efab-567890123def",
+          "patch": 6,
+          "message": "Pro consultants can now filter client users by their own sites or a specific staff member's sites",
+          "category": "feature",
+          "createdAt": "2026-05-08T21:40:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
