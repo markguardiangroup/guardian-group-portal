@@ -647,18 +647,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
-  // For the flat table view, one row per unique template. Track how many distinct
-  // sites are missing each template so the subtitle can say "missing at N sites".
+  // For the flat table view, deduplicate by (templateId, siteId) so each missing
+  // (template, site) pair gets its own row. In scoped (group/company) views where
+  // siteId is "" for all slots, fall back to deduping by templateId alone to avoid
+  // showing the same template once per site in the group.
   const tableMissingSlots = useMemo(() => {
-    const seen = new Map<string, any & { _missingSiteCount: number }>();
+    const seen = new Set<string>();
+    const out: typeof missingSlots = [];
     for (const slot of missingSlots) {
-      if (seen.has(slot.templateId)) {
-        seen.get(slot.templateId)!._missingSiteCount += 1;
-      } else {
-        seen.set(slot.templateId, { ...slot, _missingSiteCount: 1 });
-      }
+      const key = slot.siteId ? `${slot.templateId}||${slot.siteId}` : slot.templateId;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(slot);
     }
-    return [...seen.values()];
+    return out;
   }, [missingSlots]);
 
   // Archived documents — fetched fresh only when the dialog opens
@@ -788,7 +790,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlScope && urlEntityId) {
       return tableMissingSlots.length;
     }
-    // Site-hierarchy view: count one per unique template (not per site).
+    // Site-hierarchy view expands per-site via templateInfo.missingSites.
+    // Use missingSites.length when available (all-sites view); fall back to
+    // !hasFulfilledDocument for single-site where missingSites is always [].
     if (!hierarchy?.folders) return missingSlots.length;
     let count = 0;
     const walk = (folders: any[] | undefined) => {
@@ -798,7 +802,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         for (const t of ti) {
           const hasMissingSites = Array.isArray(t.missingSites) && t.missingSites.length > 0;
           if (t.isRequired && (hasMissingSites || !t.hasFulfilledDocument)) {
-            count += 1; // one per template, not per site
+            const sites = hasMissingSites ? t.missingSites : [{}];
+            count += sites.length;
           }
         }
         walk((f as any).childFolders);
@@ -1901,19 +1906,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                               </div>
                                             </Link>
                                           ))}
-                                          {/* Missing required slots for child folder — one row per template */}
-                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).map((ti: any) => {
-                                            const missingSiteCount: number = Array.isArray(ti.missingSites) ? ti.missingSites.length : 0;
-                                            const subtitle = missingSiteCount > 1
-                                              ? `Required — not yet uploaded · ${missingSiteCount} sites`
-                                              : `Required — not yet uploaded${ti.missingSites?.[0]?.siteName ? ` · ${ti.missingSites[0].siteName}` : ""}`;
-                                            return (
-                                              <div key={ti.id} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}`}>
+                                          {/* Missing required slots for child folder — per-site at all-sites view */}
+                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).flatMap((ti: any) => {
+                                            const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
+                                              ? ti.missingSites
+                                              : [{ siteId: "_", siteName: "" }];
+                                            return sites.map((ms) => (
+                                              <div key={`${ti.id}-${ms.siteId}`} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}-${ms.siteId}`}>
                                                 <div className="flex items-center gap-3">
                                                   <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                                                   <div>
                                                     <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
-                                                    <p className="text-xs text-amber-600 dark:text-amber-400">{subtitle}</p>
+                                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{ms.siteName ? ` · ${ms.siteName}` : ""}</p>
                                                   </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -1921,7 +1925,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                   <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                                                 </div>
                                               </div>
-                                            );
+                                            ));
                                           })}
                                           {/* Empty state — only when no docs and no missing required slots */}
                                           {(!childFolder.documents || childFolder.documents.filter((doc: any) => !doc.isArchived).length === 0) &&
@@ -2027,19 +2031,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               </div>
                             )}
 
-                            {/* Missing required document slots — one row per template regardless of how many sites */}
-                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).map((ti: any) => {
-                              const missingSiteCount: number = Array.isArray(ti.missingSites) ? ti.missingSites.length : 0;
-                              const subtitle = missingSiteCount > 1
-                                ? `Required — not yet uploaded · ${missingSiteCount} sites`
-                                : `Required — not yet uploaded${ti.missingSites?.[0]?.siteName ? ` · ${ti.missingSites[0].siteName}` : ""}`;
-                              return (
-                                <div key={ti.id} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}`}>
+                            {/* Missing required document slots — at all-sites view show one row per missing site */}
+                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).flatMap((ti: any) => {
+                              const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
+                                ? ti.missingSites
+                                : [{ siteId: "_", siteName: "" }];
+                              return sites.map((ms) => (
+                                <div key={`${ti.id}-${ms.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}-${ms.siteId}`}>
                                   <div className="flex items-center gap-3">
                                     <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                                     <div>
                                       <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
-                                      <p className="text-xs text-amber-600 dark:text-amber-400">{subtitle}</p>
+                                      <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{ms.siteName ? ` · ${ms.siteName}` : ""}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -2047,7 +2050,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                                   </div>
                                 </div>
-                              );
+                              ));
                             })}
 
                             {/* Upload to parent folder option - privileged only */}
@@ -2466,7 +2469,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div>
                           <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{(slot as any)._missingSiteCount > 1 ? ` · ${(slot as any)._missingSiteCount} sites` : slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -2507,7 +2510,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div>
                           <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{(slot as any)._missingSiteCount > 1 ? ` · ${(slot as any)._missingSiteCount} sites` : slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
                         </div>
                       </div>
                     </TableCell>
