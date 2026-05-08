@@ -2241,6 +2241,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T10:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b0c1d2e3-f4a5-6789-bcde-012345678901",
+          "patch": 6,
+          "message": "Fixed: header now shows group name instead of 'All Companies' when a group is active",
+          "category": "bug",
+          "createdAt": "2026-05-08T11:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

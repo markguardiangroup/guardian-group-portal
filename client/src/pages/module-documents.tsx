@@ -565,6 +565,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return `${basePath}/documents/upload${qs ? `?${qs}` : ""}`;
   }, [basePath, selectedSiteId, urlScope, urlEntityId, urlEntityName]);
 
+  const groupOwnerName = useMemo(() => {
+    if (selectedGroup === "all" || !companies.length) return null;
+    return companies.find(c => c.id === selectedGroup)?.name ?? null;
+  }, [selectedGroup, companies]);
+
   const contextCompany = useMemo(() => {
     if (urlScope === "group" && urlEntityName) return `${urlEntityName} (Group)`;
     if (urlScope === "company" && urlEntityName) return urlEntityName;
@@ -572,8 +577,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
     }
     if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    if (groupOwnerName) return `${groupOwnerName} (Group)`;
     return null;
-  }, [selectedSiteId, selectedCompany, sites, urlScope, urlEntityName]);
+  }, [selectedSiteId, selectedCompany, sites, urlScope, urlEntityName, groupOwnerName]);
 
   const contextSite = useMemo(() => {
     if (urlScope === "group") return "Group Documents";
@@ -582,8 +588,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (selectedCompany && selectedCompany !== "all") return "All Sites";
+    if (groupOwnerName) return "All Sites";
     return "All Sites";
-  }, [selectedSiteId, selectedCompany, sites, urlScope]);
+  }, [selectedSiteId, selectedCompany, sites, urlScope, groupOwnerName]);
 
   const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents/module", module],

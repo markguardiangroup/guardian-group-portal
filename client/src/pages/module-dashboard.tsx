@@ -316,21 +316,28 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return { overdue, due30Days, due60Days, upcomingRenewals };
   }, [documents, siteId, companySiteIds]);
   
+  const groupOwnerName = useMemo(() => {
+    if (selectedGroup === "all" || !companies.length) return null;
+    return companies.find(c => c.id === selectedGroup)?.name ?? null;
+  }, [selectedGroup, companies]);
+
   const contextCompany = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.companyName || null;
     }
     if (selectedCompany && selectedCompany !== "all") return selectedCompany;
+    if (groupOwnerName) return `${groupOwnerName} (Group)`;
     return null;
-  }, [selectedSiteId, selectedCompany, sites]);
+  }, [selectedSiteId, selectedCompany, sites, groupOwnerName]);
 
   const contextSite = useMemo(() => {
     if (selectedSiteId && selectedSiteId !== "all") {
       return sites?.find(s => s.id === selectedSiteId)?.name || null;
     }
     if (selectedCompany && selectedCompany !== "all") return "All Sites";
+    if (groupOwnerName) return "All Sites";
     return "All Sites";
-  }, [selectedSiteId, selectedCompany, sites]);
+  }, [selectedSiteId, selectedCompany, sites, groupOwnerName]);
   
   // Build URL for View Documents with filter context
   const viewDocumentsUrl = useMemo(() => {
