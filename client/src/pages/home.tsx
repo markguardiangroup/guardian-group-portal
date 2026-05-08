@@ -256,7 +256,7 @@ function UrgentActionsPanel({
   const totalUrgent = items.filter((i) => i.severity === "high").reduce((s, i) => s + i.count, 0);
 
   return (
-    <Card data-testid="card-urgent-actions">
+    <Card data-testid="card-urgent-actions" className="h-full">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -328,7 +328,7 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
     const visibleCompanies = expanded ? p.assignedCompanies : p.assignedCompanies.slice(0, PORTFOLIO_INITIAL_ROWS);
 
     return (
-      <Card data-testid="card-portfolio">
+      <Card data-testid="card-portfolio" className="h-full">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
             <Briefcase className="h-4 w-4 text-primary" />
@@ -488,7 +488,7 @@ function AssignedConsultantsPanel({
   consultants: NonNullable<HomeSummary["assignedConsultants"]>;
 }) {
   return (
-    <Card data-testid="card-assigned-consultants">
+    <Card data-testid="card-assigned-consultants" className="h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <UserCog className="h-4 w-4 text-primary" />
@@ -897,7 +897,7 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          <div className={`grid gap-6 items-start ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+          <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
             {/* Urgent Actions */}
             {data && (
               <UrgentActionsPanel
