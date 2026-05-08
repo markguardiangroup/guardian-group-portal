@@ -1069,25 +1069,36 @@ export default function Dashboard() {
   
   // Create stable string key for company site IDs (avoid nested arrays in query keys)
   const companySiteIdsKey = companySiteIds?.join(",") || null;
+
+  // When a pro consultant has a staff filter active, scope all data queries to
+  // the visible site IDs so that document progress, module cards, and activity
+  // all update together with the filter.
+  const staffSiteIds = useMemo(() => {
+    if (!isProConsultant || staffFilter === "all" || !sites) return null;
+    return sites.map(s => s.id);
+  }, [isProConsultant, staffFilter, sites]);
   
   // Determine which site to show data for
   // "all" or null means show data across all accessible sites
   // Clients can now filter by site if they have multiple sites
   const siteId = selectedSiteId === "all" ? null : (selectedSiteId || null);
+
+  // Build the siteIds param used when no single site is selected.
+  // companySiteIds takes priority (user explicitly picked a company);
+  // staffSiteIds is the fallback for the staff scope filter.
+  const scopedSiteIds = companySiteIds ?? staffSiteIds;
+  const scopedSiteIdsKey = scopedSiteIds?.join(",") || null;
   
   const { data: moduleSummaries, isLoading } = useQuery<ModuleSummary[]>({
-    queryKey: ["/api/modules/summary", siteId, companySiteIdsKey, isClientUser],
+    queryKey: ["/api/modules/summary", siteId, scopedSiteIdsKey, isClientUser],
     placeholderData: keepPreviousData,
     queryFn: async () => {
-      // For client users, the backend will filter by their company from session
-      // No need to send companyId from client side (more secure)
       let url = "/api/modules/summary";
       if (siteId) {
         url = `/api/modules/summary?siteId=${siteId}`;
-      } else if (companySiteIds && companySiteIds.length > 0) {
-        url = `/api/modules/summary?siteIds=${companySiteIds.join(",")}`;
+      } else if (scopedSiteIds && scopedSiteIds.length > 0) {
+        url = `/api/modules/summary?siteIds=${scopedSiteIds.join(",")}`;
       }
-      // Client users get company-scoped data automatically from backend
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
       return res.json();
@@ -1096,14 +1107,14 @@ export default function Dashboard() {
   
   // Fetch all documents for renewal compliance tracking
   const { data: allDocuments = [] } = useQuery<Document[]>({
-    queryKey: ["/api/documents", siteId, companySiteIdsKey],
+    queryKey: ["/api/documents", siteId, scopedSiteIdsKey],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       let url = "/api/documents";
       if (siteId) {
         url = `/api/documents?siteId=${siteId}`;
-      } else if (companySiteIds && companySiteIds.length > 0) {
-        url = `/api/documents?siteIds=${companySiteIds.join(",")}`;
+      } else if (scopedSiteIds && scopedSiteIds.length > 0) {
+        url = `/api/documents?siteIds=${scopedSiteIds.join(",")}`;
       }
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch documents");
@@ -1112,13 +1123,13 @@ export default function Dashboard() {
   });
   
   const { data: missingRequiredDetails = [], isLoading: isMissingLoading } = useQuery<MissingRequiredTemplateDetail[]>({
-    queryKey: ["/api/missing-required-templates", siteId, companySiteIdsKey],
+    queryKey: ["/api/missing-required-templates", siteId, scopedSiteIdsKey],
     placeholderData: keepPreviousData,
     queryFn: async () => {
       let url = "/api/missing-required-templates";
       const params: string[] = [];
       if (siteId) params.push(`siteId=${siteId}`);
-      else if (companySiteIds && companySiteIds.length > 0) params.push(`siteIds=${companySiteIds.join(",")}`);
+      else if (scopedSiteIds && scopedSiteIds.length > 0) params.push(`siteIds=${scopedSiteIds.join(",")}`);
       if (params.length > 0) url += `?${params.join("&")}`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch missing required templates");

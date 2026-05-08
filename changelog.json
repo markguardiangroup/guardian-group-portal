@@ -2473,6 +2473,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T20:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f8a9b0c1-d2e3-4567-abcd-123456789012",
+          "patch": 6,
+          "message": "Fixed: dashboard compliance cards now update when the staff filter changes",
+          "category": "bug",
+          "createdAt": "2026-05-08T21:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
