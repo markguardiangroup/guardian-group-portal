@@ -2553,6 +2553,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T22:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d0e1f2a3-b4c5-6789-efab-123456789def",
+          "patch": 6,
+          "message": "Fixed: Key Contact badge now always reflects the latest data on the client users list",
+          "category": "bug",
+          "createdAt": "2026-05-08T22:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

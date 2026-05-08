@@ -327,7 +327,12 @@ export default function UserManagement() {
   const { data: keyContactUserIds = [] } = useQuery<string[]>({
     queryKey: ["/api/key-contacts/user-ids"],
     enabled: isAdmin || isConsultant,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    queryFn: async () => {
+      const res = await fetch("/api/key-contacts/user-ids", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
   });
   const keyContactUserIdSet = useMemo(() => new Set(keyContactUserIds), [keyContactUserIds]);
 
