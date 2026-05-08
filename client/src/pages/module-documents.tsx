@@ -2294,15 +2294,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       (doc as any).entityId !== urlEntityId
                     )
                   );
-                  // _originalSiteIdWasNull is set on virtual rows expanded from shared docs
-                  const isScopedDoc = !!((doc.siteId === null || (doc as any)._originalSiteIdWasNull) && ((doc as any).scope === "group" || (doc as any).scope === "company") && viewedAsLinked);
-                  // At site level (no urlScope), any doc with siteId=null is a shared
-                  // group/company document — show the badge regardless of isSharedLink
-                  // (admins are origin users so isSharedLink=false, but it's still shared).
-                  const isScopedAtSiteLevel = !urlScope && !urlEntityId &&
-                    doc.siteId === null &&
+                  // A doc is group/company-scoped if siteId is null, or was null before
+                  // per-site expansion (expansion sets siteId to the target site but
+                  // preserves _originalSiteIdWasNull). isSharedLink is false for origin/
+                  // admin users even on genuine shared docs, so we can't rely on it alone.
+                  const isGroupOrCompanyScoped = (doc.siteId === null || !!(doc as any)._originalSiteIdWasNull) &&
                     ((doc as any).scope === "group" || (doc as any).scope === "company");
-                  const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isScopedDoc || isScopedAtSiteLevel;
+                  const isLinkedRow = viewedAsLinked || !!doc.isSharedLink || isGroupOrCompanyScoped;
                   const linkedFromScope: "group" | "company" | null = viewedAsLinked
                     ? ((doc as any).scope === "group" ? "group" : "company")
                     : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
