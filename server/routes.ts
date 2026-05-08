@@ -7309,6 +7309,12 @@ export async function registerRoutes(
             sourcesOverlap(mySources, site.companySources ?? []) || goExpanded.has(site.companyId)
           );
           if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
+          // Pro consultant filtering by a specific staff member's assignments
+          if (staffIdFilter) {
+            const staffAssignments = await storage.getConsultantSites(staffIdFilter);
+            const staffSiteIds = new Set(staffAssignments.map(a => a.siteId));
+            filteredSites = filteredSites.filter(s => staffSiteIds.has(s.id));
+          }
           res.json(filteredSites);
           return;
         }

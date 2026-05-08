@@ -2385,6 +2385,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T18:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-abcd-012345678901",
+          "patch": 6,
+          "message": "Fixed: sites list staff filter now correctly scopes to selected consultant's sites",
+          "category": "bug",
+          "createdAt": "2026-05-08T18:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
