@@ -2433,6 +2433,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T19:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a3b4c5d6-e7f8-9012-bcde-678901234567",
+          "patch": 6,
+          "message": "Improved: 'Group Owners' filter label shortened to 'Groups'; filters widened",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T19:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

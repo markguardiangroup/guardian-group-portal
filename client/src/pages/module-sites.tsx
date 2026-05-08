@@ -393,7 +393,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   handleCompanyChange(null);
                 }}
               >
-                <SelectTrigger className="w-[170px]" data-testid="select-staff-filter-docs">
+                <SelectTrigger className="w-[190px]" data-testid="select-staff-filter-docs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -416,15 +416,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   handleCompanyChange(null);
                 }}
               >
-                <SelectTrigger className="w-[160px]" data-testid="select-group-sites">
+                <SelectTrigger className="w-[180px]" data-testid="select-group-sites">
                   <div className="flex items-center gap-2 min-w-0">
                     <Layers className="h-4 w-4 shrink-0 opacity-60" />
-                    <SelectValue placeholder="Group Owners" />
+                    <SelectValue placeholder="Groups" />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" data-testid="select-group-option-all">
-                    Group Owners
+                    Groups
                   </SelectItem>
                   {groupOwners.map((g) => (
                     <SelectItem
@@ -453,7 +453,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   sites={sitesForCombobox}
                   value={selectedCompany}
                   onValueChange={handleCompanyChange}
-                  className="w-[170px]"
+                  className="w-[190px]"
                   testId="select-company-sites"
                   excludeNames={isGoClient ? [] : groupOwnerNames}
                 />
