@@ -1259,7 +1259,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2">
-              <Button variant="outline" data-testid="link-sites-from-documents" onClick={() => window.history.back()}>
+              <Button variant="outline" data-testid="link-sites-from-documents" onClick={() => navigate(`${basePath}/sites`)}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
