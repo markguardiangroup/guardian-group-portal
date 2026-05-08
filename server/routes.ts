@@ -16253,6 +16253,18 @@ export async function registerRoutes(
   });
 
   // ── Key Contacts ──────────────────────────────────────────────────────────────
+  app.get("/api/key-contacts/user-ids", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+      const ids = await storage.getAllKeyContactUserIds();
+      return res.json(ids);
+    } catch (err) {
+      console.error("Get key contact user IDs error:", err);
+      return res.status(500).json({ error: "Failed to fetch key contact user IDs" });
+    }
+  });
+
   app.get("/api/key-contacts", async (req, res) => {
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;

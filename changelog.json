@@ -2537,6 +2537,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T22:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-cdef-901234567bcd",
+          "patch": 6,
+          "message": "Key Contact badge now shown on client users in the Users list",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T22:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

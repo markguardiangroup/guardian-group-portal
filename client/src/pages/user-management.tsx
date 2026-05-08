@@ -324,6 +324,13 @@ export default function UserManagement() {
     enabled: isAdmin,
   });
 
+  const { data: keyContactUserIds = [] } = useQuery<string[]>({
+    queryKey: ["/api/key-contacts/user-ids"],
+    enabled: isAdmin || isConsultant,
+    staleTime: 30 * 1000,
+  });
+  const keyContactUserIdSet = useMemo(() => new Set(keyContactUserIds), [keyContactUserIds]);
+
   const [clientStaffFilter, setClientStaffFilter] = useState<string>("my");
 
   const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
@@ -1463,6 +1470,11 @@ export default function UserManagement() {
                           {isPrimaryContact(u) && (
                             <Badge variant="outline" className="w-fit text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700">
                               Primary Contact
+                            </Badge>
+                          )}
+                          {keyContactUserIdSet.has(u.id) && (
+                            <Badge variant="outline" className="w-fit text-xs bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700" data-testid={`badge-key-contact-user-${u.id}`}>
+                              Key Contact
                             </Badge>
                           )}
                         </div>
