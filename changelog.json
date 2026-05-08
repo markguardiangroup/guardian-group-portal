@@ -2217,6 +2217,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T10:06:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e7f8a9b0-c1d2-3456-efab-789012345678",
+          "patch": 6,
+          "message": "Improved: document table view has a wider Document column, condensed column headers, and shorter dates",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T10:22:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

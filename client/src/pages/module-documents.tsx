@@ -2203,13 +2203,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Compliance</TableHead>
-                  <TableHead>Renewal Period</TableHead>
-                  <TableHead>Renewal Date</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Modified</TableHead>
+                  <TableHead className="min-w-[240px]">Document</TableHead>
+                  <TableHead className="w-28 whitespace-nowrap">Compliance</TableHead>
+                  <TableHead className="w-20 whitespace-nowrap">Period</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Renews</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Expires</TableHead>
+                  <TableHead className="w-32 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Modified</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -2240,40 +2240,40 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap min-w-[240px]">
                     <span className="flex items-center gap-1">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead>Compliance</TableHead>
-                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap">
+                  <TableHead className="w-28 whitespace-nowrap">Compliance</TableHead>
+                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap w-20">
                     <span className="flex items-center gap-1">
-                      Renewal Period
+                      Period
                       {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none whitespace-nowrap">
+                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none whitespace-nowrap w-24">
                     <span className="flex items-center gap-1">
-                      Renewal Date
+                      Renews
                       {sortBy === "renewalDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none whitespace-nowrap">
+                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none whitespace-nowrap w-24">
                     <span className="flex items-center gap-1">
-                      Expiry Date
+                      Expires
                       {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none whitespace-nowrap">
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none whitespace-nowrap w-32">
                     <span className="flex items-center gap-1">
                       Status
                       {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none whitespace-nowrap">
+                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none whitespace-nowrap w-24">
                     <span className="flex items-center gap-1">
-                      Last Modified
+                      Modified
                       {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
@@ -2338,16 +2338,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {(doc as any).renewalDate ? (
-                        <span className="text-sm">{format(new Date((doc as any).renewalDate), "MMM d, yyyy")}</span>
+                        <span className="text-sm">{format(new Date((doc as any).renewalDate), "d MMM yyyy")}</span>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-nowrap">
                       {(doc as any).expiryDate ? (
-                        <span className="text-sm">{format(new Date((doc as any).expiryDate), "MMM d, yyyy")}</span>
+                        <span className="text-sm">{format(new Date((doc as any).expiryDate), "d MMM yyyy")}</span>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
                       )}
@@ -2355,8 +2355,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <TableCell>
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {doc.updatedAt && format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                      {doc.updatedAt && format(new Date(doc.updatedAt), "d MMM yyyy")}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -2450,13 +2450,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Compliance</TableHead>
-                  <TableHead>Renewal Period</TableHead>
-                  <TableHead>Renewal Date</TableHead>
-                  <TableHead>Expiry Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Modified</TableHead>
+                  <TableHead className="min-w-[240px]">Document</TableHead>
+                  <TableHead className="w-28 whitespace-nowrap">Compliance</TableHead>
+                  <TableHead className="w-20 whitespace-nowrap">Period</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Renews</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Expires</TableHead>
+                  <TableHead className="w-32 whitespace-nowrap">Status</TableHead>
+                  <TableHead className="w-24 whitespace-nowrap">Modified</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
