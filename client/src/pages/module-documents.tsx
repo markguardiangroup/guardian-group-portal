@@ -647,35 +647,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
-  // Build a map from folderTemplateId → list of missing slots for use in the
-  // non-scoped hierarchy folder view. Uses the same authoritative data source
-  // as the table view (missingSlots from allMissingTemplates) so both views
-  // show identical counts and entries.
-  const missingByFolderTemplateId = useMemo(() => {
-    // Build the set of folder template IDs that actually exist in the hierarchy
-    // so any slot whose folderTemplateId doesn't match a real hierarchy folder
-    // (e.g. no site folder has been provisioned for it) falls into __unfiled__.
-    const hierarchyFolderIds = new Set<string>();
-    if (hierarchy?.folders) {
-      for (const f of (hierarchy.folders as any[])) {
-        if (f.id) hierarchyFolderIds.add(f.id);
-        for (const cf of (f.childFolders ?? []) as any[]) {
-          if (cf.id) hierarchyFolderIds.add(cf.id);
-        }
-      }
-    }
-
-    const map = new Map<string, typeof missingSlots>();
-    for (const slot of missingSlots) {
-      const ftId = (slot as any).folderTemplateId as string | null | undefined;
-      const key = (ftId && hierarchyFolderIds.has(ftId)) ? ftId : "__unfiled__";
-      const list = map.get(key) ?? [];
-      list.push(slot);
-      map.set(key, list);
-    }
-    return map;
-  }, [missingSlots, hierarchy]);
-
   // For the flat table view, deduplicate by (templateId, siteId) so each missing
   // (template, site) pair gets its own row. In scoped (group/company) views where
   // siteId is "" for all slots, fall back to deduping by templateId alone to avoid
@@ -822,6 +793,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // Site-hierarchy view: use missingSlots (same source as table view) for accuracy.
     return missingSlots.length;
   }, [urlScope, urlEntityId, tableMissingSlots, missingSlots]);
+
+  // Build a map from folderTemplateId → list of missing slots for use in the
+  // non-scoped hierarchy folder view. Uses the same authoritative data source
+  // as the table view (missingSlots from allMissingTemplates) so both views
+  // show identical counts and entries. Must be declared after `hierarchy`.
+  const missingByFolderTemplateId = useMemo(() => {
+    // Build the set of folder template IDs that actually exist in the hierarchy
+    // so any slot whose folderTemplateId doesn't match a real hierarchy folder
+    // (e.g. no site folder has been provisioned for it) falls into __unfiled__.
+    const hierarchyFolderIds = new Set<string>();
+    if (hierarchy?.folders) {
+      for (const f of (hierarchy.folders as any[])) {
+        if (f.id) hierarchyFolderIds.add(f.id);
+        for (const cf of (f.childFolders ?? []) as any[]) {
+          if (cf.id) hierarchyFolderIds.add(cf.id);
+        }
+      }
+    }
+
+    const map = new Map<string, typeof missingSlots>();
+    for (const slot of missingSlots) {
+      const ftId = (slot as any).folderTemplateId as string | null | undefined;
+      const key = (ftId && hierarchyFolderIds.has(ftId)) ? ftId : "__unfiled__";
+      const list = map.get(key) ?? [];
+      list.push(slot);
+      map.set(key, list);
+    }
+    return map;
+  }, [missingSlots, hierarchy]);
 
   // Group shared (Group/Company-scope) documents by the folder template they were filed under,
   // so each shared doc can be rendered inside the matching site folder. Any shared doc whose
