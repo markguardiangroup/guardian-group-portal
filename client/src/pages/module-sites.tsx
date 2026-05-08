@@ -394,7 +394,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 }}
               >
                 <SelectTrigger className="w-[205px] text-sm" data-testid="select-staff-filter-docs">
-                  <SelectValue />
+                  <SelectValue>
+                    {staffFilter === "my"
+                      ? "My client sites"
+                      : staffFilter === "all"
+                      ? "All companies"
+                      : (myStaff.find((s) => s.id === staffFilter)?.fullName ?? "") + "'s client sites"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="my">My client sites</SelectItem>

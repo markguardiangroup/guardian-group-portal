@@ -2449,6 +2449,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T20:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c5d6e7f8-a9b0-1234-defa-890123456789",
+          "patch": 6,
+          "message": "Fixed: staff filter showed indented text when a staff member was selected",
+          "category": "bug",
+          "createdAt": "2026-05-08T20:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
