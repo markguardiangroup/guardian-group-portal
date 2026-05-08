@@ -647,15 +647,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
-  // For the flat table view, collapse per-site duplicates of the same template
-  // (a template required at group level shows once per site in `missingSlots`,
-  // which would render the same template multiple times in the table).
+  // For the flat table view, deduplicate by (templateId, siteId) so each missing
+  // (template, site) pair gets its own row. In scoped (group/company) views where
+  // siteId is "" for all slots, fall back to deduping by templateId alone to avoid
+  // showing the same template once per site in the group.
   const tableMissingSlots = useMemo(() => {
     const seen = new Set<string>();
     const out: typeof missingSlots = [];
     for (const slot of missingSlots) {
-      if (seen.has(slot.templateId)) continue;
-      seen.add(slot.templateId);
+      const key = slot.siteId ? `${slot.templateId}||${slot.siteId}` : slot.templateId;
+      if (seen.has(key)) continue;
+      seen.add(key);
       out.push(slot);
     }
     return out;
@@ -789,6 +791,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return tableMissingSlots.length;
     }
     // Site-hierarchy view expands per-site via templateInfo.missingSites.
+    // Use missingSites.length when available (all-sites view); fall back to
+    // !hasFulfilledDocument for single-site where missingSites is always [].
     if (!hierarchy?.folders) return missingSlots.length;
     let count = 0;
     const walk = (folders: any[] | undefined) => {
@@ -796,10 +800,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       for (const f of folders) {
         const ti = (f as any).templateInfo || [];
         for (const t of ti) {
-          if (t.isRequired && !t.hasFulfilledDocument) {
-            const sites = Array.isArray(t.missingSites) && t.missingSites.length > 0
-              ? t.missingSites
-              : [{}];
+          const hasMissingSites = Array.isArray(t.missingSites) && t.missingSites.length > 0;
+          if (t.isRequired && (hasMissingSites || !t.hasFulfilledDocument)) {
+            const sites = hasMissingSites ? t.missingSites : [{}];
             count += sites.length;
           }
         }
@@ -1829,10 +1832,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            {childFolder.templateInfo?.some((ti: any) => ti.isRequired && !ti.hasFulfilledDocument) && (
+                                            {childFolder.templateInfo?.some((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)) && (
                                               <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
                                                 <AlertCircle className="h-3 w-3" />
-                                                {childFolder.templateInfo.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).length} Missing
+                                                {childFolder.templateInfo.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).length} Missing
                                               </Badge>
                                             )}
                                             {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
@@ -1904,7 +1907,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             </Link>
                                           ))}
                                           {/* Missing required slots for child folder — per-site at all-sites view */}
-                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).flatMap((ti: any) => {
+                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).flatMap((ti: any) => {
                                             const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
                                               ? ti.missingSites
                                               : [{ siteId: "_", siteName: "" }];
@@ -1926,7 +1929,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                           })}
                                           {/* Empty state — only when no docs and no missing required slots */}
                                           {(!childFolder.documents || childFolder.documents.filter((doc: any) => !doc.isArchived).length === 0) &&
-                                           (!childFolder.templateInfo || childFolder.templateInfo.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).length === 0) && (
+                                           (!childFolder.templateInfo || childFolder.templateInfo.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).length === 0) && (
                                             <div className="text-center py-4 text-muted-foreground">
                                               <p className="text-xs">No documents in this subfolder</p>
                                               {isPrivilegedUser && (
@@ -2029,7 +2032,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             )}
 
                             {/* Missing required document slots — at all-sites view show one row per missing site */}
-                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && !ti.hasFulfilledDocument).flatMap((ti: any) => {
+                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).flatMap((ti: any) => {
                               const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
                                 ? ti.missingSites
                                 : [{ siteId: "_", siteName: "" }];

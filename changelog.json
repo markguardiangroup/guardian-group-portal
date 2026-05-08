@@ -2585,6 +2585,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T23:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b4c5d6e7-f8a9-0123-cdef-567890123b45",
+          "patch": 6,
+          "message": "Fixed: All Sites documents — folder view, table view and summary missing count now align",
+          "category": "bug",
+          "createdAt": "2026-05-08T23:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
