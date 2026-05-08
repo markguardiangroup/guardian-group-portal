@@ -2521,14 +2521,6 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T21:50:00.000Z",
           "createdBy": "agent"
-        },
-        {
-          "id": "f6a7b8c9-d0e1-2345-abcd-789012345fab",
-          "patch": 6,
-          "message": "Client staff filter now visible for admins, listing all consultants",
-          "category": "bug",
-          "createdAt": "2026-05-08T22:00:00.000Z",
-          "createdBy": "agent"
         }
       ]
     }

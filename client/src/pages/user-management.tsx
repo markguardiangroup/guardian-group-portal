@@ -331,13 +331,11 @@ export default function UserManagement() {
     enabled: isPro,
   });
 
-  const canUseClientFilter = isPro || isAdmin;
-
   const staffScopeSitesUrl = useMemo(() => {
-    if (!canUseClientFilter || clientStaffFilter === "all") return null;
+    if (!isPro || clientStaffFilter === "all") return null;
     if (clientStaffFilter === "my") return "/api/sites?myAssigned=true";
     return `/api/sites?staffId=${clientStaffFilter}`;
-  }, [canUseClientFilter, clientStaffFilter]);
+  }, [isPro, clientStaffFilter]);
 
   const { data: staffScopeSites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites/staff-scope", clientStaffFilter],
@@ -347,21 +345,13 @@ export default function UserManagement() {
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
-    enabled: canUseClientFilter && clientStaffFilter !== "all",
+    enabled: isPro && clientStaffFilter !== "all",
   });
 
   const staffScopeSet = useMemo(() => {
-    if (!canUseClientFilter || clientStaffFilter === "all") return null;
+    if (!isPro || clientStaffFilter === "all") return null;
     return new Set(staffScopeSites.map(s => s.id));
-  }, [canUseClientFilter, clientStaffFilter, staffScopeSites]);
-
-  // All consultants available in the filter (depends on role)
-  // Admins see all consultants; pro consultants see their own staff
-  const filterConsultants = useMemo(() => {
-    if (isAdmin) return consultantsWithAssignments.filter(u => u.role === "consultant");
-    if (isPro) return myStaff;
-    return [];
-  }, [isAdmin, isPro, consultantsWithAssignments, myStaff]);
+  }, [isPro, clientStaffFilter, staffScopeSites]);
 
   const { data: sites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
@@ -466,7 +456,6 @@ export default function UserManagement() {
     const matchesCompany = userTypeTab === "staff" || companyFilter === "all" || u.companyId === companyFilter;
     const matchesStaffScope =
       userTypeTab !== "client" ||
-      !canUseClientFilter ||
       !staffScopeSet ||
       (u.siteAssignments || []).some(a => staffScopeSet.has(a.siteId));
     return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany && matchesStaffScope;
@@ -1246,7 +1235,7 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {canUseClientFilter && userTypeTab === "client" && (
+          {isPro && userTypeTab === "client" && (
             <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[205px] text-sm shrink-0" data-testid="select-client-staff-filter">
                 <span className="truncate pointer-events-none">
@@ -1255,15 +1244,15 @@ export default function UserManagement() {
                     : clientStaffFilter === "my"
                     ? "My client sites"
                     : (() => {
-                        const s = filterConsultants.find(m => m.id === clientStaffFilter);
+                        const s = myStaff.find(m => m.id === clientStaffFilter);
                         return s ? `${s.fullName}'s clients` : "All client sites";
                       })()}
                 </span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All client sites</SelectItem>
-                {isPro && <SelectItem value="my">My client sites</SelectItem>}
-                {filterConsultants.map(s => (
+                <SelectItem value="my">My client sites</SelectItem>
+                {myStaff.map(s => (
                   <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
                 ))}
               </SelectContent>
