@@ -2489,6 +2489,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T21:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-cdef-345678901bcd",
+          "patch": 6,
+          "message": "Roadmap filters now persist when navigating away and back; added clear filters button",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T21:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

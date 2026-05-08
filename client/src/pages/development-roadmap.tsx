@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +44,7 @@ import {
   ArrowRight,
   ArrowDown,
   Bot,
+  X,
   Calendar,
   LayoutDashboard,
   ShieldCheck,
@@ -154,12 +155,42 @@ export default function DevelopmentRoadmap() {
   const [viewingItem, setViewingItem] = useState<RoadmapItem | null>(null);
   const [completingItem, setCompletingItem] = useState<RoadmapItem | null>(null);
   const [completionNotes, setCompletionNotes] = useState("");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterModule, setFilterModule] = useState<string>("all");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [filterAssignedUser, setFilterAssignedUser] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const SK = "roadmap_filters";
+  const savedFilters = useMemo(() => {
+    try { return JSON.parse(sessionStorage.getItem(SK) || "{}"); } catch { return {}; }
+  }, []);
+  const persist = useCallback((patch: Record<string, string>) => {
+    try {
+      const current = JSON.parse(sessionStorage.getItem(SK) || "{}");
+      sessionStorage.setItem(SK, JSON.stringify({ ...current, ...patch }));
+    } catch {}
+  }, []);
+
+  const [filterStatus, setFilterStatusRaw] = useState<string>(savedFilters.filterStatus ?? "all");
+  const [filterType, setFilterTypeRaw] = useState<string>(savedFilters.filterType ?? "all");
+  const [filterModule, setFilterModuleRaw] = useState<string>(savedFilters.filterModule ?? "all");
+  const [filterPriority, setFilterPriorityRaw] = useState<string>(savedFilters.filterPriority ?? "all");
+  const [filterAssignedUser, setFilterAssignedUserRaw] = useState<string>(savedFilters.filterAssignedUser ?? "all");
+  const [searchQuery, setSearchQueryRaw] = useState<string>(savedFilters.searchQuery ?? "");
+
+  const setFilterStatus = useCallback((v: string) => { setFilterStatusRaw(v); persist({ filterStatus: v }); }, [persist]);
+  const setFilterType = useCallback((v: string) => { setFilterTypeRaw(v); persist({ filterType: v }); }, [persist]);
+  const setFilterModule = useCallback((v: string) => { setFilterModuleRaw(v); persist({ filterModule: v }); }, [persist]);
+  const setFilterPriority = useCallback((v: string) => { setFilterPriorityRaw(v); persist({ filterPriority: v }); }, [persist]);
+  const setFilterAssignedUser = useCallback((v: string) => { setFilterAssignedUserRaw(v); persist({ filterAssignedUser: v }); }, [persist]);
+  const setSearchQuery = useCallback((v: string) => { setSearchQueryRaw(v); persist({ searchQuery: v }); }, [persist]);
+
+  const hasActiveFilters = filterStatus !== "all" || filterType !== "all" || filterModule !== "all" || filterPriority !== "all" || filterAssignedUser !== "all" || searchQuery !== "";
+
+  const clearFilters = useCallback(() => {
+    setFilterStatusRaw("all");
+    setFilterTypeRaw("all");
+    setFilterModuleRaw("all");
+    setFilterPriorityRaw("all");
+    setFilterAssignedUserRaw("all");
+    setSearchQueryRaw("");
+    try { sessionStorage.removeItem(SK); } catch {}
+  }, []);
 
   const { data: roadmapItems = [], isLoading } = useQuery<RoadmapItem[]>({
     queryKey: ["/api/roadmap"],
@@ -263,17 +294,28 @@ export default function DevelopmentRoadmap() {
               Track and manage future development ideas and features
             </p>
           </div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-4 gap-2">
             {/* Row 1: Search (2-wide), Status, Types */}
             <div className="relative col-span-2">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search roadmap..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-full h-9"
+                className="pl-9 pr-8 w-full h-9"
                 data-testid="input-search-roadmap"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  data-testid="button-clear-search"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-full h-9" data-testid="select-filter-status">
@@ -352,6 +394,21 @@ export default function DevelopmentRoadmap() {
                 />
               </DialogContent>
             </Dialog>
+          </div>
+          {hasActiveFilters && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                data-testid="button-clear-all-filters"
+              >
+                <X className="h-3 w-3" />
+                Clear filters
+              </Button>
+            </div>
+          )}
           </div>
         </div>
 
