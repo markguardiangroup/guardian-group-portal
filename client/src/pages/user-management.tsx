@@ -2182,6 +2182,53 @@ export default function UserManagement() {
                 </div>
               )}
 
+              {/* Managed by */}
+              {viewingUser.managerId && (() => {
+                const manager = allUsers.find(u => u.id === viewingUser.managerId);
+                if (!manager) return null;
+                return (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">Managed by</h4>
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-semibold flex-shrink-0">
+                        {manager.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <span className="font-medium">{manager.fullName}</span>
+                      {manager.jobTitle && (
+                        <span className="text-muted-foreground">· {manager.jobTitle}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Assigned Consultants (staff managed by this user) */}
+              {(() => {
+                const staff = allUsers.filter(u => u.managerId === viewingUser.id && u.role === "consultant");
+                if (staff.length === 0) return null;
+                return (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      Assigned Consultants
+                      <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-muted px-1.5 text-xs font-normal text-muted-foreground">{staff.length}</span>
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {staff.map(s => (
+                        <div key={s.id} className="flex items-center gap-1.5 rounded-full border bg-muted/40 px-2.5 py-1 text-xs" data-testid={`badge-staff-${s.id}`}>
+                          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary text-[9px] font-semibold">
+                            {s.fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          <span className="font-medium">{s.fullName}</span>
+                          {s.consultantTier === "standard" && (
+                            <span className="text-muted-foreground opacity-70">Standard</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Sources */}
               {(viewingUser.role === "admin" || viewingUser.role === "consultant") && viewingUser.sources && viewingUser.sources.length > 0 && (
                 <div className="space-y-3">
