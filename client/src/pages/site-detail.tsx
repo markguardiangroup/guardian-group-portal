@@ -679,8 +679,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     queryKey: ["/api/sites", siteId, "consultants"],
   });
 
-  // Filter to non-pro consultants only
-  const nonProConsultants = consultantAssignments.filter(a => a.consultantTier !== "pro");
+  const nonProConsultants = consultantAssignments;
 
   const roleLabels: Record<string, string> = {
     full: "Full",
