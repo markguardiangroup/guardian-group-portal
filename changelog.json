@@ -2513,6 +2513,14 @@
           "category": "feature",
           "createdAt": "2026-05-08T21:40:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-fabc-678901234efa",
+          "patch": 6,
+          "message": "Client staff filter moved to header bar; Welcome Emails button now only shows on the Staff tab",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T21:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

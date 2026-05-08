@@ -1235,7 +1235,30 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && (() => {
+          {isPro && userTypeTab === "client" && (
+            <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[205px] text-sm shrink-0" data-testid="select-client-staff-filter">
+                <span className="truncate pointer-events-none">
+                  {clientStaffFilter === "all"
+                    ? "All client sites"
+                    : clientStaffFilter === "my"
+                    ? "My client sites"
+                    : (() => {
+                        const s = myStaff.find(m => m.id === clientStaffFilter);
+                        return s ? `${s.fullName}'s clients` : "All client sites";
+                      })()}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All client sites</SelectItem>
+                <SelectItem value="my">My client sites</SelectItem>
+                {myStaff.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {isAdmin && userTypeTab === "staff" && (() => {
             const pendingCount = allUsers.filter(
               u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"
             ).length;
@@ -1329,30 +1352,6 @@ export default function UserManagement() {
             <SelectItem value="locked">Locked</SelectItem>
           </SelectContent>
         </Select>
-
-        {isPro && userTypeTab === "client" && (
-          <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
-            <SelectTrigger className="w-[205px] text-sm shrink-0" data-testid="select-client-staff-filter">
-              <span className="truncate pointer-events-none">
-                {clientStaffFilter === "all"
-                  ? "All client sites"
-                  : clientStaffFilter === "my"
-                  ? "My client sites"
-                  : (() => {
-                      const s = myStaff.find(m => m.id === clientStaffFilter);
-                      return s ? `${s.fullName}'s clients` : "All client sites";
-                    })()}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All client sites</SelectItem>
-              <SelectItem value="my">My client sites</SelectItem>
-              {myStaff.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
 
         {userTypeTab === "client" && (
           <Select value={companyFilter} onValueChange={(v) => { setCompanyFilter(v); setPage(1); }}>
