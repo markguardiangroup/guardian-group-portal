@@ -647,6 +647,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
 
+  // Build a map from folderTemplateId → list of missing slots for use in the
+  // non-scoped hierarchy folder view. Uses the same authoritative data source
+  // as the table view (missingSlots from allMissingTemplates) so both views
+  // show identical counts and entries.
+  const missingByFolderTemplateId = useMemo(() => {
+    const map = new Map<string, typeof missingSlots>();
+    for (const slot of missingSlots) {
+      const ftId = (slot as any).folderTemplateId as string | null | undefined;
+      if (!ftId) continue;
+      const list = map.get(ftId) ?? [];
+      list.push(slot);
+      map.set(ftId, list);
+    }
+    return map;
+  }, [missingSlots]);
+
   // For the flat table view, deduplicate by (templateId, siteId) so each missing
   // (template, site) pair gets its own row. In scoped (group/company) views where
   // siteId is "" for all slots, fall back to deduping by templateId alone to avoid
@@ -790,28 +806,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (urlScope && urlEntityId) {
       return tableMissingSlots.length;
     }
-    // Site-hierarchy view expands per-site via templateInfo.missingSites.
-    // Use missingSites.length when available (all-sites view); fall back to
-    // !hasFulfilledDocument for single-site where missingSites is always [].
-    if (!hierarchy?.folders) return missingSlots.length;
-    let count = 0;
-    const walk = (folders: any[] | undefined) => {
-      if (!folders) return;
-      for (const f of folders) {
-        const ti = (f as any).templateInfo || [];
-        for (const t of ti) {
-          const hasMissingSites = Array.isArray(t.missingSites) && t.missingSites.length > 0;
-          if (t.isRequired && (hasMissingSites || !t.hasFulfilledDocument)) {
-            const sites = hasMissingSites ? t.missingSites : [{}];
-            count += sites.length;
-          }
-        }
-        walk((f as any).childFolders);
-      }
-    };
-    walk(hierarchy.folders);
-    return count;
-  }, [urlScope, urlEntityId, tableMissingSlots, hierarchy, missingSlots]);
+    // Site-hierarchy view: use missingSlots (same source as table view) for accuracy.
+    return missingSlots.length;
+  }, [urlScope, urlEntityId, tableMissingSlots, missingSlots]);
 
   // Group shared (Group/Company-scope) documents by the folder template they were filed under,
   // so each shared doc can be rendered inside the matching site folder. Any shared doc whose
@@ -1832,10 +1829,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            {childFolder.templateInfo?.some((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)) && (
+                                            {(missingByFolderTemplateId.get(childFolder.id)?.length ?? 0) > 0 && (
                                               <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
                                                 <AlertCircle className="h-3 w-3" />
-                                                {childFolder.templateInfo.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).length} Missing
+                                                {missingByFolderTemplateId.get(childFolder.id)!.length} Missing
                                               </Badge>
                                             )}
                                             {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
@@ -1906,30 +1903,25 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                               </div>
                                             </Link>
                                           ))}
-                                          {/* Missing required slots for child folder — per-site at all-sites view */}
-                                          {childFolder.templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).flatMap((ti: any) => {
-                                            const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
-                                              ? ti.missingSites
-                                              : [{ siteId: "_", siteName: "" }];
-                                            return sites.map((ms) => (
-                                              <div key={`${ti.id}-${ms.siteId}`} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}-${ms.siteId}`}>
-                                                <div className="flex items-center gap-3">
-                                                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                                                  <div>
-                                                    <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
-                                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{ms.siteName ? ` · ${ms.siteName}` : ""}</p>
-                                                  </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
-                                                  <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                                          {/* Missing required slots for child folder — sourced from missingSlots for accuracy */}
+                                          {(missingByFolderTemplateId.get(childFolder.id) ?? []).map((slot: any) => (
+                                            <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
+                                              <div className="flex items-center gap-3">
+                                                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                                <div>
+                                                  <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
                                                 </div>
                                               </div>
-                                            ));
-                                          })}
+                                              <div className="flex items-center gap-2">
+                                                <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                                <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                                              </div>
+                                            </div>
+                                          ))}
                                           {/* Empty state — only when no docs and no missing required slots */}
                                           {(!childFolder.documents || childFolder.documents.filter((doc: any) => !doc.isArchived).length === 0) &&
-                                           (!childFolder.templateInfo || childFolder.templateInfo.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).length === 0) && (
+                                           (missingByFolderTemplateId.get(childFolder.id)?.length ?? 0) === 0 && (
                                             <div className="text-center py-4 text-muted-foreground">
                                               <p className="text-xs">No documents in this subfolder</p>
                                               {isPrivilegedUser && (
@@ -2031,27 +2023,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               </div>
                             )}
 
-                            {/* Missing required document slots — at all-sites view show one row per missing site */}
-                            {(folder as any).templateInfo?.filter((ti: any) => ti.isRequired && (ti.missingSites?.length > 0 || !ti.hasFulfilledDocument)).flatMap((ti: any) => {
-                              const sites: { siteId: string; siteName: string }[] = Array.isArray(ti.missingSites) && ti.missingSites.length > 0
-                                ? ti.missingSites
-                                : [{ siteId: "_", siteName: "" }];
-                              return sites.map((ms) => (
-                                <div key={`${ti.id}-${ms.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${ti.id}-${ms.siteId}`}>
-                                  <div className="flex items-center gap-3">
-                                    <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
-                                    <div>
-                                      <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{ti.name}</p>
-                                      <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{ms.siteName ? ` · ${ms.siteName}` : ""}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
-                                    <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                            {/* Missing required document slots — sourced from missingSlots for accuracy */}
+                            {(missingByFolderTemplateId.get((folder as any).id) ?? []).map((slot: any) => (
+                              <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
+                                <div className="flex items-center gap-3">
+                                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                                  <div>
+                                    <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
                                   </div>
                                 </div>
-                              ));
-                            })}
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                  <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                                </div>
+                              </div>
+                            ))}
 
                             {/* Upload to parent folder option - privileged only */}
                             {isPrivilegedUser && (
