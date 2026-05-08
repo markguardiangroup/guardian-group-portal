@@ -654,8 +654,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const missingByFolderTemplateId = useMemo(() => {
     const map = new Map<string, typeof missingSlots>();
     for (const slot of missingSlots) {
-      const ftId = (slot as any).folderTemplateId as string | null | undefined;
-      if (!ftId) continue;
+      const ftId = ((slot as any).folderTemplateId as string | null | undefined) ?? "__unfiled__";
       const list = map.get(ftId) ?? [];
       list.push(slot);
       map.set(ftId, list);
@@ -2083,7 +2082,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           ) : null}
 
           {/* Unfiled Documents — includes any shared docs whose folder template doesn't exist on this site */}
-          {hierarchySiteId && ((hierarchy?.unfiledDocuments?.length ?? 0) + expandedUnmatchedShared.length) > 0 && (
+          {hierarchySiteId && ((hierarchy?.unfiledDocuments?.length ?? 0) + expandedUnmatchedShared.length + (missingByFolderTemplateId.get("__unfiled__")?.length ?? 0)) > 0 && (
             <DroppableFolderZone folderId="__unfiled__" isDragEnabled={isAdmin}>
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
@@ -2091,6 +2090,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <FileText className="h-4 w-4" />
                   Unfiled Documents
                   <Badge variant="secondary">{(hierarchy?.unfiledDocuments?.length ?? 0) + expandedUnmatchedShared.length}</Badge>
+                  {(missingByFolderTemplateId.get("__unfiled__")?.length ?? 0) > 0 && (
+                    <Badge className="gap-1 bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">
+                      <AlertCircle className="h-3 w-3" />
+                      {missingByFolderTemplateId.get("__unfiled__")!.length} Missing
+                    </Badge>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
@@ -2145,6 +2150,21 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
+                ))}
+                {(missingByFolderTemplateId.get("__unfiled__") ?? []).map((slot: any) => (
+                  <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                      <div>
+                        <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                      <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                    </div>
+                  </div>
                 ))}
               </CardContent>
             </Card>

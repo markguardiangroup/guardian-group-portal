@@ -2609,6 +2609,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T23:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e7f8a9b0-c1d2-3456-fabc-890123456e78",
+          "patch": 6,
+          "message": "Fixed: Required docs with no folder assignment now appear in Unfiled section of folder view",
+          "category": "bug",
+          "createdAt": "2026-05-08T23:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
