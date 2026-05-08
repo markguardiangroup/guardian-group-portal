@@ -380,7 +380,7 @@ export default function Sites() {
         <div>
           <h1 className="text-3xl font-semibold">Sites</h1>
           <p className="mt-1 text-muted-foreground">
-            {filteredSites?.length || 0} site{filteredSites?.length !== 1 ? "s" : ""}{isProConsultant ? (staffFilter === "my" ? " (my clients)" : staffFilter !== "all" ? ` (${myStaff.find(s => s.id === staffFilter)?.fullName?.split(" ")[0] || "staff"}'s clients)` : "") : ""}
+            {filteredSites?.length || 0} site{filteredSites?.length !== 1 ? "s" : ""}{isProConsultant ? (staffFilter === "my" ? " (my client sites)" : staffFilter !== "all" ? ` (${myStaff.find(s => s.id === staffFilter)?.fullName?.split(" ")[0] || "staff"}'s client sites)` : "") : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -390,7 +390,7 @@ export default function Sites() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="my">My clients</SelectItem>
+                <SelectItem value="my">My client sites</SelectItem>
                 {myStaff.map(s => (
                   <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-sites-${s.id}`}>{s.fullName}</SelectItem>
                 ))}
