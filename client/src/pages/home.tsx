@@ -39,6 +39,7 @@ import {
   Zap,
   ChevronDown,
   ChevronUp,
+  UserCog,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -51,6 +52,7 @@ interface HomeSummary {
     pendingAccessRequests: number;
     openCases: number;
   };
+  assignedConsultants?: { id: string; fullName: string; consultantTier: string | null; sources: string[] | null }[];
   portfolio:
     | {
         assignedCompanies: { name: string; siteCount: number }[];
@@ -480,6 +482,59 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
   );
 }
 
+function AssignedConsultantsPanel({
+  consultants,
+}: {
+  consultants: NonNullable<HomeSummary["assignedConsultants"]>;
+}) {
+  return (
+    <Card data-testid="card-assigned-consultants">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <UserCog className="h-4 w-4 text-primary" />
+          My Assigned Consultants
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center">
+          <p className="text-xl font-bold tabular-nums">{consultants.length}</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
+            <Users className="h-3 w-3" />
+            {consultants.length === 1 ? "Consultant" : "Consultants"}
+          </p>
+        </div>
+        <div className="space-y-1">
+          {consultants.map((c) => (
+            <div
+              key={c.id}
+              className="flex items-center justify-between rounded-md px-2.5 py-2 hover:bg-muted/60 transition-colors"
+              data-testid={`assigned-consultant-${c.id}`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                  <UserCog className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-sm font-medium truncate">{c.fullName}</span>
+              </div>
+              {c.consultantTier === "pro" && (
+                <span className="shrink-0 ml-2 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">
+                  Pro
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" className="w-full" asChild>
+          <Link href="/user-management" data-testid="link-view-all-consultants">
+            View All Users
+            <ArrowRight className="ml-2 h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 type PortalMessage = HomeSummary["portalMessages"][0];
 
 function PortalMessageModal({
@@ -811,8 +866,12 @@ export default function HomePage() {
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || user?.username || "";
   const todayLabel = format(now, "EEEE, d MMMM yyyy");
 
+  const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
+  const assignedConsultants = data?.assignedConsultants ?? [];
+  const showThirdTile = isProConsultant && assignedConsultants.length > 0;
+
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto" id="page-content">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto" id="page-content">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight" data-testid="text-home-greeting">
@@ -838,7 +897,7 @@ export default function HomePage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 md:grid-cols-2 items-start">
+          <div className={`grid gap-6 items-start ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
             {/* Urgent Actions */}
             {data && (
               <UrgentActionsPanel
@@ -851,6 +910,11 @@ export default function HomePage() {
             {/* Portfolio */}
             {data?.portfolio && (
               <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} />
+            )}
+
+            {/* My Assigned Consultants — pro consultants only, only if staff exist */}
+            {showThirdTile && (
+              <AssignedConsultantsPanel consultants={assignedConsultants} />
             )}
           </div>
 

@@ -16083,6 +16083,18 @@ export async function registerRoutes(
         }
       }
 
+      // Assigned consultants — pro consultants who have others reporting to them
+      let assignedConsultants: { id: string; fullName: string; consultantTier: string | null; sources: string[] | null }[] = [];
+      if (user.role === "consultant" && user.consultantTier === "pro") {
+        const staff = await storage.getConsultantsByManager(user.id);
+        assignedConsultants = staff.map((c) => ({
+          id: c.id,
+          fullName: c.fullName,
+          consultantTier: c.consultantTier ?? null,
+          sources: Array.isArray(c.sources) ? c.sources : null,
+        }));
+      }
+
       res.json({
         urgentActions: {
           overdueDocuments: overdueCount,
@@ -16095,6 +16107,7 @@ export async function registerRoutes(
         },
         portfolio,
         portalMessages: messages,
+        assignedConsultants,
       });
     } catch (err) {
       console.error("Home summary error:", err);
