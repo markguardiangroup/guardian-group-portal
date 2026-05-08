@@ -2305,6 +2305,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T15:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d8e9f0a1-b2c3-4567-defa-890123456789",
+          "patch": 6,
+          "message": "Fixed: case folders no longer appear in the folder dropdown when uploading site documents",
+          "category": "bug",
+          "createdAt": "2026-05-08T15:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

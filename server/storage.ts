@@ -2592,9 +2592,21 @@ export class MemStorage implements IStorage {
 
   // Document Folders
   async getDocumentFolders(siteId: string, module?: ModuleType): Promise<DocumentFolder[]> {
-    let folders = await db.select().from(documentFoldersTable)
-      .where(eq(documentFoldersTable.siteId, siteId))
+    // Collect folder IDs that belong to cases so we can exclude them
+    const caseFolders = await db.select({ folderId: casesTable.folderId })
+      .from(casesTable)
+      .where(eq(casesTable.siteId, siteId));
+    const caseFolderIds = caseFolders.map(c => c.folderId).filter(Boolean) as string[];
+
+    let query = db.select().from(documentFoldersTable)
+      .where(
+        caseFolderIds.length > 0
+          ? and(eq(documentFoldersTable.siteId, siteId), sql`${documentFoldersTable.id} NOT IN (${sql.join(caseFolderIds.map(id => sql`${id}`), sql`, `)})`)
+          : eq(documentFoldersTable.siteId, siteId)
+      )
       .orderBy(asc(documentFoldersTable.sortOrder));
+
+    let folders = await query;
     if (module) {
       folders = folders.filter(f => f.module === module);
     }
