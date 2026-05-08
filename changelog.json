@@ -2617,6 +2617,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T23:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f8a9b0c1-d2e3-4567-abcd-901234567f89",
+          "patch": 6,
+          "message": "Fixed: Missing slots whose folder isn't provisioned on any site now fall into Unfiled",
+          "category": "bug",
+          "createdAt": "2026-05-09T00:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

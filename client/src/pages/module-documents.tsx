@@ -652,15 +652,29 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // as the table view (missingSlots from allMissingTemplates) so both views
   // show identical counts and entries.
   const missingByFolderTemplateId = useMemo(() => {
+    // Build the set of folder template IDs that actually exist in the hierarchy
+    // so any slot whose folderTemplateId doesn't match a real hierarchy folder
+    // (e.g. no site folder has been provisioned for it) falls into __unfiled__.
+    const hierarchyFolderIds = new Set<string>();
+    if (hierarchy?.folders) {
+      for (const f of (hierarchy.folders as any[])) {
+        if (f.id) hierarchyFolderIds.add(f.id);
+        for (const cf of (f.childFolders ?? []) as any[]) {
+          if (cf.id) hierarchyFolderIds.add(cf.id);
+        }
+      }
+    }
+
     const map = new Map<string, typeof missingSlots>();
     for (const slot of missingSlots) {
-      const ftId = ((slot as any).folderTemplateId as string | null | undefined) ?? "__unfiled__";
-      const list = map.get(ftId) ?? [];
+      const ftId = (slot as any).folderTemplateId as string | null | undefined;
+      const key = (ftId && hierarchyFolderIds.has(ftId)) ? ftId : "__unfiled__";
+      const list = map.get(key) ?? [];
       list.push(slot);
-      map.set(ftId, list);
+      map.set(key, list);
     }
     return map;
-  }, [missingSlots]);
+  }, [missingSlots, hierarchy]);
 
   // For the flat table view, deduplicate by (templateId, siteId) so each missing
   // (template, site) pair gets its own row. In scoped (group/company) views where
