@@ -555,6 +555,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "site", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
       toast({ title: "Key contact added" });
     },
     onError: async (err: any) => {
@@ -570,6 +571,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "site", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
       toast({ title: "Key contact removed" });
     },
     onError: () => {

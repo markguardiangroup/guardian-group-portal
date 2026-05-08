@@ -2545,6 +2545,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T22:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-defa-012345678cde",
+          "patch": 6,
+          "message": "Fixed: Key Contact badge now updates immediately after setting or removing a key contact",
+          "category": "bug",
+          "createdAt": "2026-05-08T22:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

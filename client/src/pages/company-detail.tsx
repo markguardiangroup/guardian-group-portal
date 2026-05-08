@@ -976,6 +976,7 @@ export default function CompanyDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
       toast({ title: "Key contact added" });
     },
     onError: async (err: any) => {
@@ -991,6 +992,7 @@ export default function CompanyDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
       toast({ title: "Key contact removed" });
     },
     onError: () => {
