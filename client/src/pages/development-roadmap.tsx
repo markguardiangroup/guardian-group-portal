@@ -157,6 +157,7 @@ export default function DevelopmentRoadmap() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterModule, setFilterModule] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterAssignedUser, setFilterAssignedUser] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -231,6 +232,7 @@ export default function DevelopmentRoadmap() {
     const matchesStatus = filterStatus === "all" || item.status === filterStatus;
     const matchesType = filterType === "all" || item.category === filterType;
     const matchesModule = filterModule === "all" || (filterModule === "none" ? !item.module : item.module === filterModule);
+    const matchesPriority = filterPriority === "all" || item.priority === filterPriority;
     const matchesAssignedUser =
       filterAssignedUser === "all" ||
       (filterAssignedUser === "unassigned" ? !(item as any).assignedUserId : (item as any).assignedUserId === filterAssignedUser);
@@ -239,7 +241,7 @@ export default function DevelopmentRoadmap() {
       item.title.toLowerCase().includes(query) ||
       (item.description && item.description.toLowerCase().includes(query)) ||
       (item.category && item.category.toLowerCase().includes(query));
-    return matchesStatus && matchesType && matchesModule && matchesAssignedUser && matchesSearch;
+    return matchesStatus && matchesType && matchesModule && matchesPriority && matchesAssignedUser && matchesSearch;
   });
 
   const groupedItems = {
@@ -261,20 +263,20 @@ export default function DevelopmentRoadmap() {
               Track and manage future development ideas and features
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search roadmap..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-[180px]"
+                className="pl-9 w-[240px] h-9"
                 data-testid="input-search-roadmap"
               />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[140px]" data-testid="select-filter-status">
-                <SelectValue placeholder="Filter by status" />
+              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-status">
+                <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -285,8 +287,8 @@ export default function DevelopmentRoadmap() {
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[140px]" data-testid="select-filter-type">
-                <SelectValue placeholder="Filter by type" />
+              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-type">
+                <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -296,8 +298,8 @@ export default function DevelopmentRoadmap() {
               </SelectContent>
             </Select>
             <Select value={filterModule} onValueChange={setFilterModule}>
-              <SelectTrigger className="w-[140px]" data-testid="select-filter-module">
-                <SelectValue placeholder="Filter by module" />
+              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-module">
+                <SelectValue placeholder="All Modules" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Modules</SelectItem>
@@ -307,10 +309,20 @@ export default function DevelopmentRoadmap() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filterPriority} onValueChange={setFilterPriority}>
+              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-priority">
+                <SelectValue placeholder="All Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                {Object.entries(priorityConfig).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={filterAssignedUser} onValueChange={setFilterAssignedUser}>
-              <SelectTrigger className="w-[150px]" data-testid="select-filter-assigned-user">
-                <UserCircle className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Assigned to" />
+              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-assigned-user">
+                <SelectValue placeholder="All Assignees" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Assignees</SelectItem>
@@ -322,7 +334,7 @@ export default function DevelopmentRoadmap() {
             </Select>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button data-testid="button-add-roadmap-item">
+                <Button className="h-9" data-testid="button-add-roadmap-item">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
                 </Button>
