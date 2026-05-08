@@ -28,6 +28,7 @@ interface AuthUser {
   notes?: string | null;
   legalAcceptanceRequired?: boolean;
   sources?: string[] | null;
+  isGroupPrimaryContact?: boolean;
 }
 
 interface AuthContextType {

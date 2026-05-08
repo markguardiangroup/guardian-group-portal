@@ -2257,6 +2257,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T11:12:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d2e3f4a5-b6c7-8901-defa-234567890123",
+          "patch": 6,
+          "message": "Group Primary Contact badge shown on member-company site user lists; approval rights granted across entire group",
+          "category": "feature",
+          "createdAt": "2026-05-08T12:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

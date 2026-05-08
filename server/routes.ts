@@ -691,6 +691,7 @@ export async function registerRoutes(
     }
 
     let companyName: string | null = null;
+    let isGroupPrimaryContact = false;
     if (user.companyId) {
       const company = await storage.getCompany(user.companyId);
       if (company) {
@@ -699,6 +700,11 @@ export async function registerRoutes(
         if (user.role === "client" && (company.status === "on_hold" || company.status === "inactive")) {
           req.session.destroy(() => {});
           return res.status(401).json({ error: "Your account is currently unavailable. Please contact your Consultant." });
+        }
+        // Determine if this client is the primary contact of a group owner company
+        if (user.role === "client" && company.contactUserId === user.id) {
+          const groupMembers = await storage.getGroupMembers(user.companyId);
+          isGroupPrimaryContact = groupMembers.length > 0;
         }
       }
     }
@@ -738,6 +744,7 @@ export async function registerRoutes(
       consultantPermissions: user.consultantPermissions,
       legalAcceptanceRequired,
       sources: user.sources,
+      isGroupPrimaryContact,
     });
   });
 
@@ -1283,7 +1290,17 @@ export async function registerRoutes(
       return assignments.some(a => entitySiteIds.has(a.siteId));
     }
     if (user.role === "client" && user.companyId) {
-      return user.companyId === doc.entityId;
+      if (user.companyId === doc.entityId) return true;
+      // Group Primary Contact: primary contact of a group owner company can act as origin
+      // user for any member company's documents
+      if (user.id && doc.entityId) {
+        const userCompany = await storage.getCompany(user.companyId);
+        if (userCompany?.contactUserId === user.id) {
+          const groupMembers = await storage.getGroupMembers(user.companyId);
+          if (groupMembers.some(m => m.id === doc.entityId)) return true;
+        }
+      }
+      return false;
     }
     return false;
   };
@@ -3468,9 +3485,24 @@ export async function registerRoutes(
       if (user.role === "client") {
         // For company/group scoped docs: full-permission origin-entity clients can directly approve
         // (regardless of who uploaded, since origin-entity sign-off is the authoritative action)
+
+        // Check if user is Group Primary Contact acting on a member company's document
+        let isGroupPrimaryContactForDoc = false;
+        if (user.companyId && user.id && existingDoc.entityId &&
+            user.companyId !== existingDoc.entityId &&
+            (existingDoc.scope === "company" || existingDoc.scope === "group")) {
+          const userCompanyForApproval = await storage.getCompany(user.companyId);
+          if (userCompanyForApproval?.contactUserId === user.id) {
+            const groupMembersForApproval = await storage.getGroupMembers(user.companyId);
+            isGroupPrimaryContactForDoc = groupMembersForApproval.some(m => m.id === existingDoc.entityId);
+          }
+        }
+
         const isScopedOriginClient = (existingDoc.scope === "company" || existingDoc.scope === "group")
-          && user.companyId === existingDoc.entityId
-          && user.clientPermissionRole === "full";
+          && (
+            (user.companyId === existingDoc.entityId && user.clientPermissionRole === "full") ||
+            isGroupPrimaryContactForDoc
+          );
         
         if (!isScopedOriginClient) {
           // Legacy behavior: clients can only sign off on documents uploaded by consultants/admins
@@ -3485,12 +3517,15 @@ export async function registerRoutes(
         }
         
         // Check if client has approval permission (owner or approver role)
-        if (!user.clientPermissionRole) {
-          return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
-        }
-        const capabilities = getClientCapabilities(user.clientPermissionRole);
-        if (!capabilities.canApproveDocuments) {
-          return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
+        // Group Primary Contacts bypass the permission-role check — their group ownership grants approval rights
+        if (!isGroupPrimaryContactForDoc) {
+          if (!user.clientPermissionRole) {
+            return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
+          }
+          const capabilities = getClientCapabilities(user.clientPermissionRole);
+          if (!capabilities.canApproveDocuments) {
+            return res.status(403).json({ error: "You don't have permission to approve documents. Contact your administrator." });
+          }
         }
         
         // Scoped-doc origin client approval is a direct approval (no consultant countersign needed)

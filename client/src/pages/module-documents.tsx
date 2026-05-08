@@ -3375,9 +3375,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const isPending = document.approvalStatus === "pending";
             const isSignedOff = document.approvalStatus === "client_signed_off";
             
-            // Check if client has approval permissions (full role)
+            // Check if client has approval permissions (full role or group primary contact)
             const clientHasApprovalPermission = isClient && 
-              user?.clientPermissionRole === "full";
+              (user?.clientPermissionRole === "full" || user?.isGroupPrimaryContact);
             
             // Determine which approval action is appropriate based on document uploader and current user
             // We need to know if the document was uploaded by a client or consultant

@@ -491,9 +491,15 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   });
 
   // Fetch company to know who the primary contact is
-  const { data: company } = useQuery<{ id: string; contactUserId?: string | null }>({
+  const { data: company } = useQuery<{ id: string; contactUserId?: string | null; groupOwnerId?: string | null }>({
     queryKey: ["/api/companies", companyId],
     enabled: !!companyId,
+  });
+
+  // Fetch group owner company (if the site's company is a member of a group)
+  const { data: groupOwnerCompany } = useQuery<{ id: string; contactUserId?: string | null }>({
+    queryKey: ["/api/companies", company?.groupOwnerId],
+    enabled: !!company?.groupOwnerId,
   });
 
   // Filter to get only client users belonging to this company
@@ -673,6 +679,9 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
               <div className="divide-y">
                 {users.map((user) => {
                   const isPrimaryContact = company?.contactUserId === user.id;
+                  const isGroupPrimContact = !isPrimaryContact &&
+                    !!groupOwnerCompany?.contactUserId &&
+                    groupOwnerCompany.contactUserId === user.id;
                   return (
                   <div key={user.id} className="flex items-center gap-4 px-4 py-3" data-testid={`user-${user.id}`}>
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium">
@@ -684,6 +693,11 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                         {isPrimaryContact && (
                           <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 shrink-0">
                             Primary Contact
+                          </Badge>
+                        )}
+                        {isGroupPrimContact && (
+                          <Badge variant="outline" className="text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 shrink-0" data-testid={`badge-group-primary-contact-${user.id}`}>
+                            Group Primary Contact
                           </Badge>
                         )}
                       </div>
