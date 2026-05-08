@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1014,10 +1015,31 @@ export default function Dashboard() {
   
   const isClientUser = user?.role === "client";
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
-  
+  const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
+
+  const [staffFilter, setStaffFilter] = useState("my");
+
+  const { data: myStaff = [] } = useQuery<{ id: string; fullName: string }[]>({
+    queryKey: ["/api/consultants/my-staff"],
+    enabled: isProConsultant,
+  });
+
+  const sitesUrl = isProConsultant
+    ? staffFilter === "my"
+      ? "/api/sites?myAssigned=true"
+      : staffFilter === "all"
+      ? "/api/sites"
+      : `/api/sites?staffId=${staffFilter}`
+    : "/api/sites";
+
   // Fetch sites for all users (clients see their accessible sites, admin/consultant see all)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites"],
+    queryKey: ["/api/sites", isProConsultant ? staffFilter : null],
+    queryFn: async () => {
+      const res = await fetch(sitesUrl, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch sites");
+      return res.json();
+    },
   });
   
   // Clients can see the site filter to confirm their access (even with single site)
@@ -1284,7 +1306,7 @@ export default function Dashboard() {
     <div className="theme-dashboard flex flex-col h-full">
       {/* Dashboard Header */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
               <Shield className="h-7 w-7 text-white dark:text-white" />
@@ -1306,17 +1328,37 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Link 
-              href="/support" 
-              className="flex items-center gap-1.5 text-sm font-medium bg-background/60 hover-elevate rounded-md px-3 py-1.5 border"
-              data-testid="link-need-help"
-            >
-              <Headphones className="h-4 w-4" />
-              <span>Need support?</span>
-            </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            {isProConsultant && (
+              <Select
+                value={staffFilter}
+                onValueChange={(v) => {
+                  setStaffFilter(v);
+                  resetFilters();
+                }}
+              >
+                <SelectTrigger className="w-[205px] text-sm" data-testid="select-staff-filter-dashboard">
+                  <span className="truncate pointer-events-none">
+                    {staffFilter === "my"
+                      ? "My client sites"
+                      : staffFilter === "all"
+                      ? "All companies"
+                      : (myStaff.find((s) => s.id === staffFilter)?.fullName ?? "") + "'s client sites"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  {myStaff.map(s => (
+                    <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-dashboard-${s.id}`}>
+                      {s.fullName}'s client sites
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="all">All companies</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2">
+              <>
                 {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
                   <Button
                     variant="ghost"
@@ -1329,26 +1371,24 @@ export default function Dashboard() {
                     <X className="h-4 w-4" />
                   </Button>
                 )}
-                <div className="flex flex-row items-center gap-2">
-                  {isPrivilegedUser && (
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-[200px]"
-                      testId="select-company-dashboard"
-                    />
-                  )}
-                  <SiteCombobox
-                    sites={isPrivilegedUser ? filteredSites : sites}
-                    value={selectedSiteId}
-                    onValueChange={handleSiteChange}
-                    className="w-[200px]"
-                    testId="select-site-dashboard"
-                    disabled={isPrivilegedUser && (!selectedCompany || selectedCompany === "all")}
+                {isPrivilegedUser && (
+                  <CompanyCombobox
+                    sites={sites}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-[205px] text-sm"
+                    testId="select-company-dashboard"
                   />
-                </div>
-              </div>
+                )}
+                <SiteCombobox
+                  sites={isPrivilegedUser ? filteredSites : sites}
+                  value={selectedSiteId}
+                  onValueChange={handleSiteChange}
+                  className="w-[205px] text-sm"
+                  testId="select-site-dashboard"
+                  disabled={isPrivilegedUser && (!selectedCompany || selectedCompany === "all")}
+                />
+              </>
             )}
           </div>
         </div>

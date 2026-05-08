@@ -2465,6 +2465,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T20:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e7f8a9b0-c1d2-3456-fabc-012345678901",
+          "patch": 6,
+          "message": "Improved: dashboard overview — removed 'Need Support?' button; added staff filter for pro consultants; dropdowns match site documents style",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T20:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
