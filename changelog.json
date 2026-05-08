@@ -2409,6 +2409,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T18:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d0e1f2a3-b4c5-6789-defa-345678901234",
+          "patch": 6,
+          "message": "Improved: My client sites now shows only directly assigned sites, not group member sites",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T19:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -7318,33 +7318,10 @@ export async function registerRoutes(
           res.json(filteredSites);
           return;
         }
-        // Standard consultants (or pro with myAssigned=true) see only their assigned sites
-        // that also share at least one source via the parent company,
-        // PLUS all sites in member companies of any GO they're directly assigned to
+        // Standard consultants (or pro with myAssigned=true) see only their directly assigned sites
         const assignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        // Directly assigned companies that have source overlap
-        const assignedCompanyIds = new Set(
-          allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId)
-        );
-        const sourceOverlapCompanyIds = new Set(
-          [...assignedCompanyIds].filter(cId => {
-            const companySources = allSites.find(s => s.companyId === cId)?.companySources ?? [];
-            return sourcesOverlap(mySources, companySources);
-          })
-        );
-        // GO expansion: member companies of source-overlapping GOs (no member source check)
-        const goMemberCompanyIds = new Set<string>();
-        for (const cId of sourceOverlapCompanyIds) {
-          const members = await storage.getGroupMembers(cId);
-          for (const m of members) goMemberCompanyIds.add(m.id);
-        }
-        let filteredSites = allSites.filter(site =>
-          // Directly assigned site in a source-overlapping company
-          (assignedSiteIds.has(site.id) && sourceOverlapCompanyIds.has(site.companyId)) ||
-          // Any site in a GO member company
-          goMemberCompanyIds.has(site.companyId)
-        );
+        const assignedSiteIds = new Set(assignments.map(a => a.entityId));
+        let filteredSites = allSites.filter(site => assignedSiteIds.has(site.id));
         if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
         res.json(filteredSites);
         return;
