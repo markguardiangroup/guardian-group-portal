@@ -2887,23 +2887,23 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const approvalInProgress = document?.approvalStatus === "pending" || document?.approvalStatus === "client_signed_off";
 
-  const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
+  const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
     enabled: !!document?.siteId && isPrivilegedUser && approvalInProgress,
   });
 
-  const { data: companyUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
-    queryKey: ["/api/companies", documentEntityId, "users"],
-    enabled: isDocumentScoped && !!documentEntityId && isPrivilegedUser && approvalInProgress,
+  const { data: allUsersForApproval } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
+    queryKey: ["/api/users"],
+    enabled: isDocumentScoped && isPrivilegedUser && approvalInProgress,
   });
 
   const siteClientUsers = useMemo(() => {
     if (isDocumentScoped) {
-      return (companyUsers ?? []).filter(u => u.role === "client");
+      return (allUsersForApproval ?? []).filter(u => u.role === "client" && u.companyId === documentEntityId);
     }
     if (!siteUsers) return [];
     return siteUsers.filter(u => u.role === "client");
-  }, [siteUsers, companyUsers, isDocumentScoped]);
+  }, [siteUsers, allUsersForApproval, isDocumentScoped, documentEntityId]);
 
   useEffect(() => {
     if (document) {
