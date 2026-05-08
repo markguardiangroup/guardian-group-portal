@@ -2289,6 +2289,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T14:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b6c7d8e9-f0a1-2345-bcde-678901234567",
+          "patch": 6,
+          "message": "Improved: Add Folder dialog now pre-selects the current module; module is required",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T15:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -257,7 +257,7 @@ const defaultBulkSharedSettings: BulkSharedSettings = {
 
 type FolderFormData = {
   name: string;
-  module: ModuleType;
+  module: ModuleType | "";
   description: string;
   parentId: string | null;
   isRequired: boolean;
@@ -302,7 +302,7 @@ const defaultTemplateFormData: TemplateFormData = {
 
 const defaultFolderFormData: FolderFormData = {
   name: "",
-  module: "health_safety",
+  module: "",
   description: "",
   parentId: null,
   isRequired: false,
@@ -1391,7 +1391,11 @@ export default function TemplateLibraryPage() {
       toast({ title: "Validation error", description: "Please enter a folder name", variant: "destructive" });
       return;
     }
-    createFolderMutation.mutate(folderFormData);
+    if (!folderFormData.module) {
+      toast({ title: "Validation error", description: "Please select a module", variant: "destructive" });
+      return;
+    }
+    createFolderMutation.mutate(folderFormData as FolderFormData & { module: ModuleType });
   };
   
   const handleEditFolder = (folder: FolderTemplate) => {
@@ -1814,7 +1818,7 @@ export default function TemplateLibraryPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => { setFolderFormData(defaultFolderFormData); setIsFolderDialogOpen(true); }}
+              onClick={() => { setFolderFormData({ ...defaultFolderFormData, module: selectedModule === "all" ? "" : selectedModule }); setIsFolderDialogOpen(true); }}
               data-testid="button-add-folder"
             >
               <FolderPlus className="h-4 w-4 mr-2" />
@@ -3366,13 +3370,13 @@ export default function TemplateLibraryPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="folder-module">Module</Label>
+              <Label htmlFor="folder-module">Module <span className="text-destructive">*</span></Label>
               <Select 
                 value={folderFormData.module} 
                 onValueChange={(v) => setFolderFormData({ ...folderFormData, module: v as ModuleType, parentId: null })}
               >
-                <SelectTrigger data-testid="select-folder-module">
-                  <SelectValue placeholder="Select module" />
+                <SelectTrigger data-testid="select-folder-module" className={!folderFormData.module ? "border-destructive/50" : ""}>
+                  <SelectValue placeholder="Select a module…" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="health_safety">Health & Safety</SelectItem>
