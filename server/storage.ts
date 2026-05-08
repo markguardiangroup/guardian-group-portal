@@ -113,6 +113,8 @@ import {
   feedbackComments as feedbackCommentsTable,
   feedbackReads as feedbackReadsTable,
   SECURITY_CONFIG,
+  type KeyContact, type InsertKeyContact, type KeyContactEntityType,
+  keyContacts as keyContactsTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -519,6 +521,11 @@ export interface IStorage {
   createPortalMessage(data: InsertPortalMessage): Promise<PortalMessage>;
   updatePortalMessage(id: string, updates: Partial<PortalMessage>): Promise<PortalMessage | undefined>;
   deletePortalMessage(id: string): Promise<boolean>;
+
+  // Key Contacts
+  getKeyContacts(entityType: KeyContactEntityType, entityId: string): Promise<KeyContact[]>;
+  addKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<KeyContact>;
+  removeKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -5187,6 +5194,57 @@ export class MemStorage implements IStorage {
 
   async deletePortalMessage(id: string): Promise<boolean> {
     const result = await db.delete(portalMessagesTable).where(eq(portalMessagesTable.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Key Contacts
+  async getKeyContacts(entityType: KeyContactEntityType, entityId: string): Promise<KeyContact[]> {
+    return db.select().from(keyContactsTable)
+      .where(and(eq(keyContactsTable.entityType, entityType), eq(keyContactsTable.entityId, entityId)))
+      .orderBy(asc(keyContactsTable.createdAt));
+  }
+
+  async addKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<KeyContact> {
+    // Storage-level guard: reject if user is the primary contact for this entity
+    if (entityType === "company") {
+      const [company] = await db.select({ contactUserId: companiesTable.contactUserId })
+        .from(companiesTable).where(eq(companiesTable.id, entityId));
+      if (company?.contactUserId === userId) {
+        throw Object.assign(new Error("User is the primary contact for this company"), { code: "PRIMARY_CONTACT" });
+      }
+    } else {
+      const [site] = await db.select({ companyId: sitesTable.companyId })
+        .from(sitesTable).where(eq(sitesTable.id, entityId));
+      if (site?.companyId) {
+        const [company] = await db.select({ contactUserId: companiesTable.contactUserId })
+          .from(companiesTable).where(eq(companiesTable.id, site.companyId));
+        if (company?.contactUserId === userId) {
+          throw Object.assign(new Error("User is the primary contact for this site's company"), { code: "PRIMARY_CONTACT" });
+        }
+      }
+    }
+
+    // Also guard: user must be a client
+    const [targetUser] = await db.select({ role: usersTable.role })
+      .from(usersTable).where(eq(usersTable.id, userId));
+    if (!targetUser || targetUser.role !== "client") {
+      throw Object.assign(new Error("Only client users can be designated as key contacts"), { code: "NOT_CLIENT" });
+    }
+
+    const [row] = await db.insert(keyContactsTable)
+      .values({ userId, entityType, entityId })
+      .returning();
+    return row;
+  }
+
+  async removeKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<boolean> {
+    const result = await db.delete(keyContactsTable)
+      .where(and(
+        eq(keyContactsTable.userId, userId),
+        eq(keyContactsTable.entityType, entityType),
+        eq(keyContactsTable.entityId, entityId),
+      ))
+      .returning();
     return result.length > 0;
   }
 

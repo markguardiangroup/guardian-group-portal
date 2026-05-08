@@ -76,6 +76,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Site, SiteWithDetails, User, ConsultantAssignment, ClientSiteAssignment, Company, DocumentTemplate, SiteTemplateOverride } from "@shared/schema";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/hooks/use-auth";
 
 type ClientAssignmentWithDetails = ClientSiteAssignment & {
   clientName: string;
@@ -469,6 +470,9 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
 
 function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string }) {
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === "admin";
+  const isProConsultant = authUser?.role === "consultant" && authUser?.consultantTier === "pro";
   const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
   const [editRole, setEditRole] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("");
@@ -482,6 +486,48 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   // Fetch client site assignments for this site
   const { data: clientAssignments = [] } = useQuery<ClientAssignmentWithDetails[]>({
     queryKey: ["/api/sites", siteId, "client-assignments"],
+  });
+
+  // Fetch key contacts for this site (all admins and consultants can view badges; only admin/pro can toggle)
+  const isConsultant = authUser?.role === "consultant";
+  const { data: siteKeyContacts = [] } = useQuery<{ id: string; userId: string }[]>({
+    queryKey: ["/api/key-contacts", "site", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/key-contacts?entityType=site&entityId=${siteId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!(siteId && (isAdmin || isConsultant)),
+  });
+  const siteKeyContactIds = new Set(siteKeyContacts.map((kc) => kc.userId));
+
+  const addSiteKeyContactMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", "/api/key-contacts", { userId, entityType: "site", entityId: siteId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "site", siteId] });
+      toast({ title: "Key contact added" });
+    },
+    onError: async (err: any) => {
+      let msg = "Failed to add key contact";
+      try { const d = await err?.response?.json?.(); if (d?.error) msg = d.error; } catch {}
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  const removeSiteKeyContactMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      await apiRequest("DELETE", `/api/key-contacts/${userId}/site/${siteId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "site", siteId] });
+      toast({ title: "Key contact removed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove key contact", variant: "destructive" });
+    },
   });
 
   // Fetch all users to get company users
@@ -695,6 +741,11 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                             Primary Contact
                           </Badge>
                         )}
+                        {!isPrimaryContact && siteKeyContactIds.has(user.id) && (
+                          <Badge variant="outline" className="text-xs bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700 shrink-0" data-testid={`badge-key-contact-site-${user.id}`}>
+                            Key Contact
+                          </Badge>
+                        )}
                         {isGroupPrimContact && (
                           <Badge variant="outline" className="text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 shrink-0" data-testid={`badge-group-primary-contact-${user.id}`}>
                             Group Primary Contact
@@ -734,6 +785,25 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                             <Shield className="mr-2 h-4 w-4" />
                             {assignedClientIds.has(user.id) ? (isPrimaryContact ? "Primary contact — cannot remove" : "Remove Site Access") : "Grant Site Access"}
                           </DropdownMenuItem>
+                          {!isPrimaryContact && (isAdmin || isProConsultant) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  if (siteKeyContactIds.has(user.id)) {
+                                    removeSiteKeyContactMutation.mutate(user.id);
+                                  } else {
+                                    addSiteKeyContactMutation.mutate(user.id);
+                                  }
+                                }}
+                                disabled={addSiteKeyContactMutation.isPending || removeSiteKeyContactMutation.isPending}
+                                data-testid={`toggle-key-contact-site-${user.id}`}
+                              >
+                                <UserCheck className="mr-2 h-4 w-4 text-teal-600 dark:text-teal-400" />
+                                {siteKeyContactIds.has(user.id) ? "Remove Key Contact" : "Set as Key Contact"}
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

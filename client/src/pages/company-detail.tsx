@@ -942,6 +942,62 @@ export default function CompanyDetail() {
     enabled: !!company?.groupOwnerId,
   });
 
+  // Fetch key contacts for this company (all admins and consultants can view badges; only admin/pro can toggle)
+  const isConsultant = authUser?.role === "consultant";
+  const { data: companyKeyContacts = [] } = useQuery<{ id: string; userId: string; entityType: string; entityId: string }[]>({
+    queryKey: ["/api/key-contacts", "company", companyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/key-contacts?entityType=company&entityId=${companyId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!(companyId && (isAdmin || isConsultant)),
+  });
+  const companyKeyContactIds = new Set(companyKeyContacts.map((kc) => kc.userId));
+
+  // Fetch key contacts for the group-owner company (when applicable, for cross-company badge display)
+  const { data: groupOwnerKeyContacts = [] } = useQuery<{ id: string; userId: string }[]>({
+    queryKey: ["/api/key-contacts", "company", company?.groupOwnerId ?? groupOwnerCompany?.id],
+    queryFn: async () => {
+      const goId = company?.groupOwnerId ?? groupOwnerCompany?.id;
+      if (!goId) return [];
+      const res = await fetch(`/api/key-contacts?entityType=company&entityId=${goId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!(isAdmin || isConsultant) && !!(company?.groupOwnerId ?? groupOwnerCompany?.id),
+  });
+  const groupOwnerKeyContactIds = new Set(groupOwnerKeyContacts.map((kc) => kc.userId));
+
+  const addKeyContactMutation = useMutation({
+    mutationFn: async ({ userId, entityType, entityId }: { userId: string; entityType: string; entityId: string }) => {
+      const res = await apiRequest("POST", "/api/key-contacts", { userId, entityType, entityId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
+      toast({ title: "Key contact added" });
+    },
+    onError: async (err: any) => {
+      let msg = "Failed to add key contact";
+      try { const d = await err?.response?.json?.(); if (d?.error) msg = d.error; } catch {}
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  const removeKeyContactMutation = useMutation({
+    mutationFn: async ({ userId, entityType, entityId }: { userId: string; entityType: string; entityId: string }) => {
+      await apiRequest("DELETE", `/api/key-contacts/${userId}/${entityType}/${entityId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
+      toast({ title: "Key contact removed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to remove key contact", variant: "destructive" });
+    },
+  });
+
   // All companies list (for GO admin picker – admin only); uses a large limit to get all
   const { data: allCompaniesData } = useQuery<{ companies: CompanyWithSites[]; total: number }>({
     queryKey: ["/api/companies", { limit: 1000, page: 1 }],
@@ -2347,6 +2403,16 @@ export default function CompanyDetail() {
                                           Primary Contact
                                         </Badge>
                                       )}
+                                      {!isPrimary && companyKeyContactIds.has(u.id) && (
+                                        <Badge variant="outline" className="text-xs bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700 shrink-0" data-testid={`badge-key-contact-company-${u.id}`}>
+                                          Key Contact
+                                        </Badge>
+                                      )}
+                                      {!isPrimary && u.companyId !== companyId && groupOwnerKeyContactIds.has(u.id) && (
+                                        <Badge variant="outline" className="text-xs bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700 shrink-0" data-testid={`badge-key-contact-group-owner-${u.id}`}>
+                                          Key Contact
+                                        </Badge>
+                                      )}
                                       {isGroupPrimaryContact && (
                                         <Badge variant="outline" className="text-xs bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700 shrink-0" data-testid={`badge-group-primary-contact-${u.id}`}>
                                           Group Primary Contact
@@ -2406,6 +2472,24 @@ export default function CompanyDetail() {
                                         <><XCircle className="h-3 w-3 mr-1" />Inactive</>
                                       )}
                                     </Badge>
+                                  )}
+                                  {!isPrimary && (isAdmin || isProConsultant) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={`h-7 px-2 text-xs ${companyKeyContactIds.has(u.id) ? "text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300" : "text-muted-foreground hover:text-foreground"}`}
+                                      onClick={() => {
+                                        if (companyKeyContactIds.has(u.id)) {
+                                          removeKeyContactMutation.mutate({ userId: u.id, entityType: "company", entityId: companyId! });
+                                        } else {
+                                          addKeyContactMutation.mutate({ userId: u.id, entityType: "company", entityId: companyId! });
+                                        }
+                                      }}
+                                      disabled={addKeyContactMutation.isPending || removeKeyContactMutation.isPending}
+                                      data-testid={`button-key-contact-company-${u.id}`}
+                                    >
+                                      {companyKeyContactIds.has(u.id) ? "Remove Key Contact" : "Set as Key Contact"}
+                                    </Button>
                                   )}
                                   {clientSites.length > 0 ? (
                                     <button

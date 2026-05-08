@@ -16269,6 +16269,99 @@ export async function registerRoutes(
     }
   });
 
+  // ── Key Contacts ──────────────────────────────────────────────────────────────
+  app.get("/api/key-contacts", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+
+      const { entityType, entityId } = req.query;
+      if (!entityType || !entityId || typeof entityType !== "string" || typeof entityId !== "string") {
+        return res.status(400).json({ error: "entityType and entityId are required" });
+      }
+      if (entityType !== "company" && entityType !== "site") {
+        return res.status(400).json({ error: "entityType must be 'company' or 'site'" });
+      }
+
+      const contacts = await storage.getKeyContacts(entityType as "company" | "site", entityId);
+      return res.json(contacts);
+    } catch (err) {
+      console.error("Get key contacts error:", err);
+      return res.status(500).json({ error: "Failed to fetch key contacts" });
+    }
+  });
+
+  app.post("/api/key-contacts", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const isAdmin = user.role === "admin";
+      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
+      if (!isAdmin && !isProConsultant) return res.status(403).json({ error: "Admin or Pro Consultant access required" });
+
+      const schema = z.object({
+        userId: z.string().min(1),
+        entityType: z.enum(["company", "site"]),
+        entityId: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+      const { userId, entityType, entityId } = parsed.data;
+
+      // Block if the user is already the primary contact for this entity
+      if (entityType === "company") {
+        const company = await storage.getCompany(entityId);
+        if (company?.contactUserId === userId) {
+          return res.status(409).json({ error: "User is already the primary contact for this company" });
+        }
+      } else {
+        const site = await storage.getSite(entityId);
+        const company = site?.companyId ? await storage.getCompany(site.companyId) : undefined;
+        if (company?.contactUserId === userId) {
+          return res.status(409).json({ error: "User is already the primary contact for this site's company" });
+        }
+      }
+
+      const contact = await storage.addKeyContact(userId, entityType, entityId);
+      return res.status(201).json(contact);
+    } catch (err: any) {
+      if (err?.code === "PRIMARY_CONTACT") {
+        return res.status(409).json({ error: err.message });
+      }
+      if (err?.code === "NOT_CLIENT") {
+        return res.status(422).json({ error: err.message });
+      }
+      if (err?.code === "23505") {
+        return res.status(409).json({ error: "User is already a key contact for this entity" });
+      }
+      console.error("Add key contact error:", err);
+      return res.status(500).json({ error: "Failed to add key contact" });
+    }
+  });
+
+  app.delete("/api/key-contacts/:userId/:entityType/:entityId", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const isAdmin = user.role === "admin";
+      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
+      if (!isAdmin && !isProConsultant) return res.status(403).json({ error: "Admin or Pro Consultant access required" });
+
+      const { userId, entityType, entityId } = req.params;
+      if (entityType !== "company" && entityType !== "site") {
+        return res.status(400).json({ error: "entityType must be 'company' or 'site'" });
+      }
+
+      const ok = await storage.removeKeyContact(userId, entityType as "company" | "site", entityId);
+      if (!ok) return res.status(404).json({ error: "Key contact not found" });
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("Remove key contact error:", err);
+      return res.status(500).json({ error: "Failed to remove key contact" });
+    }
+  });
+
   // ── Portal Messages ──────────────────────────────────────────────────────────
   app.get("/api/portal-messages", async (req, res) => {
     try {

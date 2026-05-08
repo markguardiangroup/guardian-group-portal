@@ -1802,3 +1802,20 @@ export const sources = pgTable("sources", {
 export const insertSourceSchema = createInsertSchema(sources).omit({ id: true, createdAt: true });
 export type InsertSource = z.infer<typeof insertSourceSchema>;
 export type Source = typeof sources.$inferSelect;
+
+// ==================== KEY CONTACTS ====================
+export type KeyContactEntityType = "company" | "site";
+
+export const keyContacts = pgTable("key_contacts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  entityType: text("entity_type").$type<KeyContactEntityType>().notNull(),
+  entityId: varchar("entity_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueKeyContact: uniqueIndex("key_contacts_user_entity_unique").on(table.userId, table.entityType, table.entityId),
+}));
+
+export const insertKeyContactSchema = createInsertSchema(keyContacts).omit({ id: true, createdAt: true });
+export type InsertKeyContact = z.infer<typeof insertKeyContactSchema>;
+export type KeyContact = typeof keyContacts.$inferSelect;
