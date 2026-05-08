@@ -2529,6 +2529,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T22:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-bcde-890123456abc",
+          "patch": 6,
+          "message": "Fixed: Set as Key Contact was failing due to missing database table",
+          "category": "bug",
+          "createdAt": "2026-05-08T22:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
