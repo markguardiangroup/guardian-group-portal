@@ -263,19 +263,20 @@ export default function DevelopmentRoadmap() {
               Track and manage future development ideas and features
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
+          <div className="grid grid-cols-4 gap-2">
+            {/* Row 1: Search (2-wide), Status, Types */}
+            <div className="relative col-span-2">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search roadmap..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-[240px] h-9"
+                className="pl-9 w-full h-9"
                 data-testid="input-search-roadmap"
               />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-status">
+              <SelectTrigger className="w-full h-9" data-testid="select-filter-status">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -287,7 +288,7 @@ export default function DevelopmentRoadmap() {
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-type">
+              <SelectTrigger className="w-full h-9" data-testid="select-filter-type">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
@@ -297,8 +298,9 @@ export default function DevelopmentRoadmap() {
                 ))}
               </SelectContent>
             </Select>
+            {/* Row 2: Modules, Priority, Assignees, Add Item */}
             <Select value={filterModule} onValueChange={setFilterModule}>
-              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-module">
+              <SelectTrigger className="w-full h-9" data-testid="select-filter-module">
                 <SelectValue placeholder="All Modules" />
               </SelectTrigger>
               <SelectContent>
@@ -310,7 +312,7 @@ export default function DevelopmentRoadmap() {
               </SelectContent>
             </Select>
             <Select value={filterPriority} onValueChange={setFilterPriority}>
-              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-priority">
+              <SelectTrigger className="w-full h-9" data-testid="select-filter-priority">
                 <SelectValue placeholder="All Priority" />
               </SelectTrigger>
               <SelectContent>
@@ -321,7 +323,7 @@ export default function DevelopmentRoadmap() {
               </SelectContent>
             </Select>
             <Select value={filterAssignedUser} onValueChange={setFilterAssignedUser}>
-              <SelectTrigger className="w-[120px] h-9" data-testid="select-filter-assigned-user">
+              <SelectTrigger className="w-full h-9" data-testid="select-filter-assigned-user">
                 <SelectValue placeholder="All Assignees" />
               </SelectTrigger>
               <SelectContent>
@@ -334,7 +336,7 @@ export default function DevelopmentRoadmap() {
             </Select>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="h-9" data-testid="button-add-roadmap-item">
+                <Button className="w-full h-9" data-testid="button-add-roadmap-item">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
                 </Button>

@@ -2317,7 +2317,7 @@
         {
           "id": "e9f0a1b2-c3d4-5678-efab-901234567890",
           "patch": 6,
-          "message": "Improved: roadmap now has a Priority filter; all filters and button are uniform size",
+          "message": "Improved: roadmap filters laid out in a tidy 2×4 grid; search spans two columns",
           "category": "enhancement",
           "createdAt": "2026-05-08T16:10:00.000Z",
           "createdBy": "agent"
