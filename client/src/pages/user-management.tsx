@@ -324,6 +324,8 @@ export default function UserManagement() {
     enabled: isAdmin,
   });
 
+  const [clientStaffFilter, setClientStaffFilter] = useState<string>("all");
+
   const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants/my-staff"],
     enabled: isPro,
@@ -430,8 +432,6 @@ export default function UserManagement() {
   };
 
   const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
-
-  const [clientStaffFilter, setClientStaffFilter] = useState<string>("all");
 
   const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastLogin">("username");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
