@@ -2369,6 +2369,14 @@
           "category": "feature",
           "createdAt": "2026-05-08T17:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-012345678901",
+          "patch": 6,
+          "message": "Fixed: crash on company detail page after Key Contacts feature was deployed",
+          "category": "bug",
+          "createdAt": "2026-05-08T17:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

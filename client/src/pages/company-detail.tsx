@@ -943,7 +943,7 @@ export default function CompanyDetail() {
   });
 
   // Fetch key contacts for this company (all admins and consultants can view badges; only admin/pro can toggle)
-  const isConsultant = authUser?.role === "consultant";
+  const isConsultant = user?.role === "consultant";
   const { data: companyKeyContacts = [] } = useQuery<{ id: string; userId: string; entityType: string; entityId: string }[]>({
     queryKey: ["/api/key-contacts", "company", companyId],
     queryFn: async () => {

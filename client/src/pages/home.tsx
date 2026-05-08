@@ -869,7 +869,6 @@ export default function HomePage() {
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
   const assignedConsultants = data?.assignedConsultants ?? [];
   const showThirdTile = isProConsultant && assignedConsultants.length > 0;
-  console.log("[home] role:", user?.role, "tier:", user?.consultantTier, "isPro:", isProConsultant, "assignedCount:", assignedConsultants.length, "showThird:", showThirdTile);
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto" id="page-content">
