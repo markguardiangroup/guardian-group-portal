@@ -272,9 +272,10 @@ interface TrainingCardProps {
   siteId?: string | null;
   selectedCompany?: string | null;
   sites?: SiteWithDetails[];
+  scopedSiteIds?: string[] | null;
 }
 
-function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
+function TrainingCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: TrainingCardProps) {
   const { user } = useAuth();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
@@ -285,19 +286,19 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
   // Filter bookings based on selected site or company
   const filteredBookings = useMemo(() => {
     if (siteId) {
-      // Filter by specific site (siteId is a string like "site-1")
       return trainingBookings.filter(b => b.siteId === siteId);
     }
     if (selectedCompany && selectedCompany !== "all") {
-      // Filter by company - get all site IDs for this company
       const companySiteIds = sites
         .filter(s => s.companyName === selectedCompany)
         .map(s => s.id);
       return trainingBookings.filter(b => companySiteIds.includes(b.siteId as string));
     }
-    // No filter - return all
+    if (scopedSiteIds && scopedSiteIds.length > 0) {
+      return trainingBookings.filter(b => scopedSiteIds.includes(b.siteId as string));
+    }
     return trainingBookings;
-  }, [trainingBookings, siteId, selectedCompany, sites]);
+  }, [trainingBookings, siteId, selectedCompany, sites, scopedSiteIds]);
 
   const bookedCount = filteredBookings.filter(b => b.status === "booked").length;
   const completedCount = filteredBookings.filter(b => b.status === "completed").length;
@@ -352,7 +353,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps
   );
 }
 
-function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
+function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: TrainingCardProps) {
   const { user } = useAuth();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
@@ -366,8 +367,11 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
       const companySiteIds = sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
       return incidents.filter(i => companySiteIds.includes(i.siteId as string));
     }
+    if (scopedSiteIds && scopedSiteIds.length > 0) {
+      return incidents.filter(i => scopedSiteIds.includes(i.siteId as string));
+    }
     return incidents;
-  }, [incidents, siteId, selectedCompany, sites]);
+  }, [incidents, siteId, selectedCompany, sites, scopedSiteIds]);
 
   const activeCount = filteredIncidents.filter(i => i.status === "reported" || i.status === "under_review").length;
   const riddorCount = filteredIncidents.filter(i => i.riddorReportable).length;
@@ -421,7 +425,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [] }: TrainingCardProp
   );
 }
 
-function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
+function CasesCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: TrainingCardProps) {
   const { user } = useAuth();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
@@ -435,8 +439,11 @@ function CasesCard({ siteId, selectedCompany, sites = [] }: TrainingCardProps) {
       const companySiteIds = sites.filter(s => s.companyName === selectedCompany).map(s => s.id);
       return cases.filter(c => companySiteIds.includes(c.siteId as string));
     }
+    if (scopedSiteIds && scopedSiteIds.length > 0) {
+      return cases.filter(c => scopedSiteIds.includes(c.siteId as string));
+    }
     return cases;
-  }, [cases, siteId, selectedCompany, sites]);
+  }, [cases, siteId, selectedCompany, sites, scopedSiteIds]);
 
   const openCount = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
   const activeCases = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled");
@@ -1637,13 +1644,13 @@ export default function Dashboard() {
         <h2 className="mb-4 text-xl font-semibold">Activity</h2>
         <div className="grid gap-6 md:grid-cols-3">
           {hasActiveAccess("health_safety") ? (
-            <IncidentsCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
+            <IncidentsCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} scopedSiteIds={scopedSiteIds} />
           ) : (
             <div />
           )}
-          <TrainingCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
+          <TrainingCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} scopedSiteIds={scopedSiteIds} />
           {hasActiveAccess("employment_law") ? (
-            <CasesCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} />
+            <CasesCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} scopedSiteIds={scopedSiteIds} />
           ) : (
             <div />
           )}

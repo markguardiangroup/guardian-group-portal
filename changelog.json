@@ -2481,6 +2481,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T21:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-bcde-234567890abc",
+          "patch": 6,
+          "message": "Fixed: Activity cards (Incidents, Training, Cases) now filter correctly with the staff filter",
+          "category": "bug",
+          "createdAt": "2026-05-08T21:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
