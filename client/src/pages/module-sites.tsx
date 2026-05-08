@@ -541,7 +541,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <TrendingUp className="h-3 w-3" />
-                              Compliance
+                              Document Compliance
                             </span>
                             <span className={`text-xs font-semibold ${
                               groupPct === 100 ? "text-emerald-600 dark:text-emerald-400"
@@ -701,7 +701,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <TrendingUp className="h-3 w-3" />
-                                  Compliance
+                                  Document Compliance
                                 </span>
                                 <span className={`text-xs font-semibold ${
                                   cPct === 100 ? "text-emerald-600 dark:text-emerald-400"
@@ -1071,7 +1071,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
-                            Compliance
+                            Document Compliance
                           </span>
                           <span
                             className={`text-xs font-semibold ${

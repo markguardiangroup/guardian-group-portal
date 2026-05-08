@@ -2273,6 +2273,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T12:58:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f4a5b6c7-d8e9-0123-fabc-456789012345",
+          "patch": 6,
+          "message": "Improved: site, company and group tiles now show 'Document Compliance' instead of 'Compliance'",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T13:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
