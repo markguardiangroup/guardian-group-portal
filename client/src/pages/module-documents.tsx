@@ -2882,15 +2882,26 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const effectivelyRequired = editIsRequired || isRequiredTemplate;
 
+  const isDocumentScoped = !!document && !document.siteId && (document.scope === "company" || document.scope === "group");
+  const documentEntityId = (document as any)?.entityId as string | undefined;
+
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
     enabled: !!document?.siteId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
   });
 
+  const { data: companyUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
+    queryKey: ["/api/companies", documentEntityId, "users"],
+    enabled: isDocumentScoped && !!documentEntityId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
+  });
+
   const siteClientUsers = useMemo(() => {
+    if (isDocumentScoped) {
+      return (companyUsers ?? []).filter(u => u.role === "client");
+    }
     if (!siteUsers) return [];
     return siteUsers.filter(u => u.role === "client");
-  }, [siteUsers]);
+  }, [siteUsers, companyUsers, isDocumentScoped]);
 
   useEffect(() => {
     if (document) {
@@ -3471,7 +3482,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                 </SelectItem>
                               ))}
                               {siteClientUsers.length === 0 && (
-                                <SelectItem value="__none" disabled>No client users assigned to this site</SelectItem>
+                                <SelectItem value="__none" disabled>
+                                  {isDocumentScoped ? "No client users found for this company" : "No client users assigned to this site"}
+                                </SelectItem>
                               )}
                             </SelectContent>
                           </Select>

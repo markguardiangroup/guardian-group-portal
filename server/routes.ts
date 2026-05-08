@@ -11593,6 +11593,25 @@ export async function registerRoutes(
     }
   });
 
+  // Get all client users belonging to a company (used for scoped/group documents)
+  app.get("/api/companies/:companyId/users", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const users = await storage.getUsersByCompany(req.params.companyId);
+      const safeUsers = users.map(({ password, ...u }) => u);
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get company users error:", error);
+      res.status(500).json({ error: "Failed to fetch company users" });
+    }
+  });
+
   // Consultant Assignment Routes
   
   // Get all consultants with entity assignments

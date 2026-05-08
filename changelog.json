@@ -2185,6 +2185,14 @@
           "category": "bug",
           "createdAt": "2026-05-07T23:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a3b4c5d6-e7f8-9012-abcd-345678901234",
+          "patch": 6,
+          "message": "Fixed: client users now appear in the approver notification dropdown for company/group-scoped documents",
+          "category": "bug",
+          "createdAt": "2026-05-08T09:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

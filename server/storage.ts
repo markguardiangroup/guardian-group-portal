@@ -309,6 +309,7 @@ export interface IStorage {
   
   // Users by Site
   getUsersBySite(siteId: string): Promise<User[]>;
+  getUsersByCompany(companyId: string): Promise<User[]>;
   getConsultants(): Promise<User[]>;
   getConsultantsByManager(managerId: string): Promise<User[]>;
   
@@ -2476,6 +2477,23 @@ export class MemStorage implements IStorage {
         .where(inArray(usersTable.id, clientIds));
     } catch (error) {
       console.error("Error fetching users by site from DB:", error);
+      return [];
+    }
+  }
+
+  async getUsersByCompany(companyId: string): Promise<User[]> {
+    try {
+      return await db
+        .select()
+        .from(usersTable)
+        .where(
+          and(
+            eq(usersTable.companyId, companyId),
+            eq(usersTable.role, "client")
+          )
+        );
+    } catch (error) {
+      console.error("Error fetching users by company from DB:", error);
       return [];
     }
   }
