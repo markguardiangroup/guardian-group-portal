@@ -7280,7 +7280,7 @@ export async function registerRoutes(
         let result = companyIdFilter ? allSites.filter(s => s.companyId === companyIdFilter) : allSites;
         if (staffIdFilter) {
           const staffAssignments = await storage.getConsultantSites(staffIdFilter);
-          const assignedSiteIds = new Set(staffAssignments.map(a => a.siteId));
+          const assignedSiteIds = new Set(staffAssignments.map(a => a.entityId));
           result = result.filter(s => assignedSiteIds.has(s.id));
         }
         res.json(result);
@@ -7312,7 +7312,7 @@ export async function registerRoutes(
           // Pro consultant filtering by a specific staff member's assignments
           if (staffIdFilter) {
             const staffAssignments = await storage.getConsultantSites(staffIdFilter);
-            const staffSiteIds = new Set(staffAssignments.map(a => a.siteId));
+            const staffSiteIds = new Set(staffAssignments.map(a => a.entityId));
             filteredSites = filteredSites.filter(s => staffSiteIds.has(s.id));
           }
           res.json(filteredSites);
