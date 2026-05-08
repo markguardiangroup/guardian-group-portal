@@ -324,7 +324,7 @@ export default function UserManagement() {
     enabled: isAdmin,
   });
 
-  const [clientStaffFilter, setClientStaffFilter] = useState<string>("all");
+  const [clientStaffFilter, setClientStaffFilter] = useState<string>("my");
 
   const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants/my-staff"],
@@ -1240,21 +1240,21 @@ export default function UserManagement() {
               <SelectTrigger className="w-[205px] text-sm shrink-0" data-testid="select-client-staff-filter">
                 <span className="truncate pointer-events-none">
                   {clientStaffFilter === "all"
-                    ? "All client sites"
+                    ? "All clients"
                     : clientStaffFilter === "my"
-                    ? "My client sites"
+                    ? "My clients"
                     : (() => {
                         const s = myStaff.find(m => m.id === clientStaffFilter);
-                        return s ? `${s.fullName}'s clients` : "All client sites";
+                        return s ? `${s.fullName}'s clients` : "All clients";
                       })()}
                 </span>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All client sites</SelectItem>
-                <SelectItem value="my">My client sites</SelectItem>
+                <SelectItem value="my">My clients</SelectItem>
                 {myStaff.map(s => (
                   <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
                 ))}
+                <SelectItem value="all">All clients</SelectItem>
               </SelectContent>
             </Select>
           )}
