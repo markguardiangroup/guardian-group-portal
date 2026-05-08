@@ -2441,6 +2441,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T19:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b4c5d6e7-f8a9-0123-cdef-789012345678",
+          "patch": 6,
+          "message": "Improved: Site Documents filters are now uniform — no icons, consistent size",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T20:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
