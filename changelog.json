@@ -2593,6 +2593,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T23:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c5d6e7f8-a9b0-1234-defa-678901234c56",
+          "patch": 6,
+          "message": "Fixed: All Sites folder view no longer shows duplicate missing slots from unrelated companies",
+          "category": "bug",
+          "createdAt": "2026-05-08T23:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

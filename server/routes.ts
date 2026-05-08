@@ -10899,6 +10899,11 @@ export async function registerRoutes(
                 const missingSites = isAllSites && isReq
                   ? targetSiteIds
                       .filter(sId => {
+                        // Only flag as missing for sites whose company actually requires this template
+                        const siteCompanyId = siteToCompanyHierarchy.get(sId);
+                        const siteCompanyReq = siteCompanyId ? companyReqCacheHierarchy.get(siteCompanyId) : null;
+                        const isRequiredForSite = dt.isRequired || (siteCompanyReq?.has(dt.id) ?? false);
+                        if (!isRequiredForSite) return false;
                         const siteOvr = siteOverridesCache.get(sId);
                         if (siteOvr?.excludedIds.has(dt.id)) return false;
                         const siteHasDoc = childFolderDocs.some(d => d.siteId === sId && d.templateId === dt.id);
@@ -11024,6 +11029,11 @@ export async function registerRoutes(
               const missingSites = isAllSites && isReq
                 ? targetSiteIds
                     .filter(sId => {
+                      // Only flag as missing for sites whose company actually requires this template
+                      const siteCompanyId = siteToCompanyHierarchy.get(sId);
+                      const siteCompanyReq = siteCompanyId ? companyReqCacheHierarchy.get(siteCompanyId) : null;
+                      const isRequiredForSite = dt.isRequired || (siteCompanyReq?.has(dt.id) ?? false);
+                      if (!isRequiredForSite) return false;
                       const siteOvr = siteOverridesCache.get(sId);
                       if (siteOvr?.excludedIds.has(dt.id)) return false;
                       const siteHasDoc = folderDocuments.some(d => d.siteId === sId && d.templateId === dt.id);
