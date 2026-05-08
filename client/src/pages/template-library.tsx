@@ -3386,23 +3386,6 @@ export default function TemplateLibraryPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="folder-parent">Parent Folder (optional)</Label>
-              <Select 
-                value={folderFormData.parentId || "none"} 
-                onValueChange={(v) => setFolderFormData({ ...folderFormData, parentId: v === "none" ? null : v })}
-              >
-                <SelectTrigger data-testid="select-folder-parent">
-                  <SelectValue placeholder="Select parent folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No parent (root level)</SelectItem>
-                  {parentFolderOptions.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="folder-description">Description</Label>
               <Textarea
                 id="folder-description"
