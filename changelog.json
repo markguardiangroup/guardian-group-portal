@@ -2425,6 +2425,14 @@
           "category": "feature",
           "createdAt": "2026-05-08T19:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-fabc-567890123456",
+          "patch": 6,
+          "message": "Improved: Site Documents header filters now fit neatly on a single row",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T19:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

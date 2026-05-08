@@ -350,7 +350,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     <div className={`module-page theme-${module === "health_safety" ? "hs" : module === "human_resources" ? "hr" : module === "employment_law" ? "el" : "training"} flex flex-col h-full`}>
       {/* Page header */}
       <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent">
               <ModuleIcon className="h-7 w-7 text-module-accent-foreground" />
@@ -365,7 +365,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 shrink-0">
             {(isGoClient
               ? selectedCompany && selectedCompany !== "all"
               : selectedGroup !== "all" || (selectedCompany && selectedCompany !== "all")
@@ -393,7 +393,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   handleCompanyChange(null);
                 }}
               >
-                <SelectTrigger className="w-[220px]" data-testid="select-staff-filter-docs">
+                <SelectTrigger className="w-[170px]" data-testid="select-staff-filter-docs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -416,7 +416,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   handleCompanyChange(null);
                 }}
               >
-                <SelectTrigger className="w-[240px]" data-testid="select-group-sites">
+                <SelectTrigger className="w-[160px]" data-testid="select-group-sites">
                   <div className="flex items-center gap-2 min-w-0">
                     <Layers className="h-4 w-4 shrink-0 opacity-60" />
                     <SelectValue placeholder="Group Owners" />
@@ -453,7 +453,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   sites={sitesForCombobox}
                   value={selectedCompany}
                   onValueChange={handleCompanyChange}
-                  className="w-[260px]"
+                  className="w-[170px]"
                   testId="select-company-sites"
                   excludeNames={isGoClient ? [] : groupOwnerNames}
                 />
