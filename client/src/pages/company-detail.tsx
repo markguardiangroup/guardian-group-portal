@@ -1799,9 +1799,12 @@ export default function CompanyDetail() {
                   {(company.contactName || company.contactPhone || company.contactEmail) ? (
                     <div className="space-y-1.5 text-sm">
                       {company.contactName && (
-                        <div className="flex items-center gap-2">
-                          <UserIcon className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <UserIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span>{company.contactName}{company.contactPosition && ` - ${company.contactPosition}`}</span>
+                          <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 shrink-0">
+                            Primary Contact
+                          </Badge>
                         </div>
                       )}
                       {company.contactPhone && (

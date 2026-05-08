@@ -2569,6 +2569,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T22:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-abcd-345678901f23",
+          "patch": 6,
+          "message": "Company overview: Primary Contact now shows a blue badge next to the name",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T23:05:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
