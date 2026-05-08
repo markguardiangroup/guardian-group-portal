@@ -197,6 +197,23 @@ process.on("uncaughtException", (err) => {
     console.error("Startup required-template cascade backfill warning (non-fatal):", err);
   }
 
+  // One-time data migration: rename legacy "inactive" company status to "cancelled".
+  // Idempotent — safe to run on every startup.
+  try {
+    const { db } = await import("./db");
+    const { companies: companiesTable } = await import("@shared/schema");
+    const { eq, sql: drizzleSql } = await import("drizzle-orm");
+    const result = await db.update(companiesTable)
+      .set({ status: "cancelled" as any })
+      .where(eq(companiesTable.status, "inactive" as any));
+    const count = (result as any).rowCount ?? (result as any).count ?? 0;
+    if (count > 0) {
+      console.log(`[migration] Renamed ${count} company status(es) from 'inactive' to 'cancelled'.`);
+    }
+  } catch (err) {
+    console.error("Startup company-status migration warning (non-fatal):", err);
+  }
+
   // Run expired folder cleanup on startup and then daily
   storage.cleanupExpiredFolders().catch((err) =>
     console.error("Startup folder cleanup error:", err)

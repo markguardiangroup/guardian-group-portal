@@ -2329,6 +2329,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T16:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-abcd-123456789012",
+          "patch": 6,
+          "message": "Fixed: server auto-migrates any legacy 'inactive' company records to 'cancelled' on startup",
+          "category": "bug",
+          "createdAt": "2026-05-08T16:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
