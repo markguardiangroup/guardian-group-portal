@@ -2321,6 +2321,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-08T16:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f0a1b2c3-d4e5-6789-fabc-012345678901",
+          "patch": 6,
+          "message": "Improved: company status 'Inactive' renamed to 'Cancelled'; clients locked out on Cancelled or On Hold",
+          "category": "enhancement",
+          "createdAt": "2026-05-08T16:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

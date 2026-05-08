@@ -890,7 +890,7 @@ export default function Companies() {
             <SelectItem value="all">All Status</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="on_hold">On Hold</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
         {groupOwners.length > 0 && (

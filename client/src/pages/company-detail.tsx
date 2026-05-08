@@ -889,7 +889,7 @@ export default function CompanyDetail() {
     contactEmail: "",
     contactUserId: "",
     searchTag: "",
-    status: "active" as "active" | "inactive" | "pending",
+    status: "active" as "active" | "cancelled" | "pending",
     sources: [] as string[],
   });
   const [newSiteForm, setNewSiteForm] = useState({
@@ -1589,7 +1589,7 @@ export default function CompanyDetail() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {["pending", "active", "on_hold", "inactive"].map((status) => (
+                {["pending", "active", "on_hold", "cancelled"].map((status) => (
                   <DropdownMenuItem
                     key={status}
                     onClick={() => handleStatusChange(status)}
@@ -2739,14 +2739,14 @@ export default function CompanyDetail() {
               <Label htmlFor="edit-status">Status</Label>
               <Select
                 value={editForm.status}
-                onValueChange={(value: "active" | "inactive" | "pending") => setEditForm({ ...editForm, status: value })}
+                onValueChange={(value: "active" | "cancelled" | "pending") => setEditForm({ ...editForm, status: value })}
               >
                 <SelectTrigger id="edit-status" data-testid="select-edit-company-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>

@@ -505,7 +505,7 @@ export async function registerRoutes(
       // Block client users whose company is On Hold or Inactive
       if (user.role === "client" && user.companyId) {
         const userCompany = await storage.getCompany(user.companyId);
-        if (userCompany && (userCompany.status === "on_hold" || userCompany.status === "inactive")) {
+        if (userCompany && (userCompany.status === "on_hold" || userCompany.status === "cancelled")) {
           return res.status(403).json({ error: "Your account is currently unavailable. Please contact your Consultant." });
         }
       }
@@ -697,7 +697,7 @@ export async function registerRoutes(
       if (company) {
         companyName = company.name;
         // Safety net: if the company is suspended, destroy the session and kick the client out
-        if (user.role === "client" && (company.status === "on_hold" || company.status === "inactive")) {
+        if (user.role === "client" && (company.status === "on_hold" || company.status === "cancelled")) {
           req.session.destroy(() => {});
           return res.status(401).json({ error: "Your account is currently unavailable. Please contact your Consultant." });
         }
@@ -7020,7 +7020,7 @@ export async function registerRoutes(
       
       // If company is being suspended, immediately log out all its client users
       const patchStatusChanged = updates.status !== undefined && previousStatusForPatch !== updates.status;
-      if (patchStatusChanged && (updates.status === "on_hold" || updates.status === "inactive")) {
+      if (patchStatusChanged && (updates.status === "on_hold" || updates.status === "cancelled")) {
         const terminatedSessions = await destroyCompanyClientSessions(req.params.id);
         await storage.createAuditLog({
           action: "company_suspended",
@@ -7034,7 +7034,7 @@ export async function registerRoutes(
       } else if (
         patchStatusChanged &&
         (updates.status === "active" || updates.status === "pending") &&
-        (previousStatusForPatch === "on_hold" || previousStatusForPatch === "inactive")
+        (previousStatusForPatch === "on_hold" || previousStatusForPatch === "cancelled")
       ) {
         await storage.createAuditLog({
           action: "company_reactivated",
@@ -7125,7 +7125,7 @@ export async function registerRoutes(
       }
       
       const { status } = req.body;
-      if (!status || !["pending", "active", "on_hold", "inactive"].includes(status)) {
+      if (!status || !["pending", "active", "on_hold", "cancelled"].includes(status)) {
         return res.status(400).json({ error: "Invalid status value" });
       }
 
@@ -7142,9 +7142,9 @@ export async function registerRoutes(
       }
 
       const statusChanged = previousStatus !== status;
-      const isSuspended = status === "on_hold" || status === "inactive";
+      const isSuspended = status === "on_hold" || status === "cancelled";
       const isReactivated = (status === "active" || status === "pending") &&
-        (previousStatus === "on_hold" || previousStatus === "inactive");
+        (previousStatus === "on_hold" || previousStatus === "cancelled");
 
       let terminatedSessions = 0;
       if (statusChanged && isSuspended) {

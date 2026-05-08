@@ -40,7 +40,7 @@ export type DocumentStatus = "compliant" | "review_required" | "overdue";
 export type ApprovalStatus = "pending" | "review_required" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
 
 // Company status
-export type CompanyStatus = "pending" | "active" | "on_hold" | "inactive";
+export type CompanyStatus = "pending" | "active" | "on_hold" | "cancelled";
 
 // Companies table (parent of sites)
 export const companies = pgTable("companies", {
