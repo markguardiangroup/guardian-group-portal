@@ -104,6 +104,10 @@ interface UserWithoutPassword {
 }
 
 function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { entity: Site & { companySources?: string[] | null }; onEditSite: () => void; companyId?: string; companyName?: string; siteId: string }) {
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.role === "admin";
+  const isConsultant = authUser?.role === "consultant";
+
   const { data: siteStats } = useQuery<{ documents: Record<string, number>; cases: number; incidents: number }>({
     queryKey: ["/api/sites", siteId, "stats"],
     queryFn: async () => {
@@ -112,6 +116,21 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
       return response.json();
     },
     enabled: !!siteId,
+  });
+
+  const { data: siteKeyContacts = [] } = useQuery<{ id: string; userId: string }[]>({
+    queryKey: ["/api/key-contacts", "site", siteId],
+    queryFn: async () => {
+      const res = await fetch(`/api/key-contacts?entityType=site&entityId=${siteId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!(siteId && (isAdmin || isConsultant)),
+  });
+
+  const { data: siteUsers = [] } = useQuery<UserWithoutPassword[]>({
+    queryKey: ["/api/sites", siteId, "users"],
+    enabled: !!(siteId && (isAdmin || isConsultant) && siteKeyContacts.length > 0),
   });
 
   return (
@@ -190,6 +209,34 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
               </div>
             </div>
           )}
+
+          {(isAdmin || isConsultant) && siteKeyContacts.length > 0 && (() => {
+            const keyContactUsers = siteKeyContacts
+              .map((kc) => siteUsers.find((u) => u.id === kc.userId))
+              .filter(Boolean) as UserWithoutPassword[];
+            if (keyContactUsers.length === 0) return null;
+            return (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Key Contacts</p>
+                <div className="space-y-2">
+                  {keyContactUsers.map((u) => (
+                    <div key={u.id} className="flex items-start gap-2 text-sm" data-testid={`key-contact-overview-site-${u.id}`}>
+                      <UserCheck className="h-4 w-4 text-teal-600 dark:text-teal-400 mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-medium truncate">{u.fullName}</span>
+                          <Badge variant="outline" className="text-xs bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700 shrink-0">
+                            Key Contact
+                          </Badge>
+                        </div>
+                        {u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

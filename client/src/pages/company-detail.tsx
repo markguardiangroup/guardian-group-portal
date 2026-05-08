@@ -1819,6 +1819,35 @@ export default function CompanyDetail() {
                     <p className="text-sm text-muted-foreground">No primary contact set</p>
                   )}
                 </div>
+
+                {/* Key Contacts */}
+                {(isAdmin || isConsultant) && companyKeyContacts.length > 0 && (() => {
+                  const keyContactUsers = companyKeyContacts
+                    .map((kc) => allUsers.find((u) => u.id === kc.userId))
+                    .filter(Boolean) as typeof allUsers;
+                  if (keyContactUsers.length === 0) return null;
+                  return (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-2">Key Contacts</p>
+                      <div className="space-y-2">
+                        {keyContactUsers.map((u) => (
+                          <div key={u.id} className="flex items-start gap-2 text-sm" data-testid={`key-contact-overview-${u.id}`}>
+                            <UserCheck className="h-4 w-4 text-teal-600 dark:text-teal-400 mt-0.5 shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-medium truncate">{u.fullName}</span>
+                                <Badge variant="outline" className="text-xs bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-300 dark:border-teal-700 shrink-0">
+                                  Key Contact
+                                </Badge>
+                              </div>
+                              {u.email && <p className="text-xs text-muted-foreground truncate">{u.email}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 

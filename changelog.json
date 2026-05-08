@@ -2361,6 +2361,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T17:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-012345678901",
+          "patch": 6,
+          "message": "Key Contacts now shown in company and site Overview tabs with name, email, and badge",
+          "category": "feature",
+          "createdAt": "2026-05-08T17:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
