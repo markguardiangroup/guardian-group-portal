@@ -2883,16 +2883,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const effectivelyRequired = editIsRequired || isRequiredTemplate;
 
   const isDocumentScoped = !!document && !document.siteId && (document.scope === "company" || document.scope === "group");
-  const documentEntityId = (document as any)?.entityId as string | undefined;
+  const documentEntityId = document?.entityId;
+
+  const approvalInProgress = document?.approvalStatus === "pending" || document?.approvalStatus === "client_signed_off";
 
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
-    enabled: !!document?.siteId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
+    enabled: !!document?.siteId && isPrivilegedUser && approvalInProgress,
   });
 
   const { data: companyUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string }>>({
     queryKey: ["/api/companies", documentEntityId, "users"],
-    enabled: isDocumentScoped && !!documentEntityId && isPrivilegedUser && (document?.approvalStatus === "pending" || document?.approvalStatus === "review_required"),
+    enabled: isDocumentScoped && !!documentEntityId && isPrivilegedUser && approvalInProgress,
   });
 
   const siteClientUsers = useMemo(() => {

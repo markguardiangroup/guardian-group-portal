@@ -2201,6 +2201,14 @@
           "category": "bug",
           "createdAt": "2026-05-08T09:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c5d6e7f8-a9b0-1234-cdef-567890123456",
+          "patch": 6,
+          "message": "Fixed: approver dropdown now also shows client users when document awaits final consultant approval",
+          "category": "bug",
+          "createdAt": "2026-05-08T09:40:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
