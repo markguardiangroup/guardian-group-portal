@@ -777,6 +777,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const { data: hierarchy, isLoading: isLoadingHierarchy } = useQuery<DocumentHierarchy>({
     queryKey: [hierarchyUrl],
     placeholderData: keepPreviousData,
+    staleTime: 0,
     enabled: !!hierarchySiteId,
   });
 
@@ -1738,15 +1739,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{hierarchy.summary.approved + sharedExpansionDeltas.summary.approved} Approved</span>
+                      <span>{((hierarchy.summary as any).approved ?? 0) + (sharedExpansionDeltas.summary.approved ?? 0)} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{hierarchy.summary.reviewRequired + sharedExpansionDeltas.summary.reviewRequired} Review Required</span>
+                      <span>{((hierarchy.summary.reviewRequired ?? 0) + (sharedExpansionDeltas.summary.reviewRequired ?? 0))} Review Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{hierarchy.summary.overdue + sharedExpansionDeltas.summary.overdue} Overdue</span>
+                      <span>{((hierarchy.summary.overdue ?? 0) + (sharedExpansionDeltas.summary.overdue ?? 0))} Overdue</span>
                     </div>
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
