@@ -2219,6 +2219,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       {viewMode === "table" && (
       <Card>
         <CardHeader className="pb-4">
+          <div className="flex items-center justify-between mb-1">
+            <CardTitle className="text-base font-medium text-muted-foreground">
+              {(searchQuery || statusFilter !== "all" || folderFilter !== "all" || renewalFilter !== "all")
+                ? <><span className="text-foreground font-semibold">{sortedDocuments.length}</span> of {documents?.length ?? 0} documents</>
+                : <><span className="text-foreground font-semibold">{sortedDocuments.length}</span> {sortedDocuments.length === 1 ? "document" : "documents"}</>
+              }
+            </CardTitle>
+          </div>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

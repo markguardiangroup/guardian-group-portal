@@ -2673,6 +2673,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-09T15:25:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-abcd-567890123457",
+          "patch": 6,
+          "message": "Table view now shows document count, updating to 'X of Y' when filters are active",
+          "category": "enhancement",
+          "createdAt": "2026-05-09T15:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
