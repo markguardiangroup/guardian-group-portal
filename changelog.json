@@ -2665,6 +2665,14 @@
           "category": "bug",
           "createdAt": "2026-05-09T15:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-456789012346",
+          "patch": 6,
+          "message": "Documents summary bar now shows a Total Documents count",
+          "category": "enhancement",
+          "createdAt": "2026-05-09T15:25:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

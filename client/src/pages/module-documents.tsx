@@ -67,6 +67,7 @@ import {
   LayoutGrid,
   LayoutList,
   FolderOpen,
+  Files,
   FileCheck,
   FileClock,
   FileWarning,
@@ -1737,6 +1738,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <CardTitle className={`text-lg ${moduleColors[module]}`}>{config.name} Documents</CardTitle>
                   </div>
                   <div className="flex items-center gap-4 text-sm flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Files className="h-4 w-4 text-muted-foreground" />
+                      <span>{((hierarchy.summary.totalDocuments ?? 0) + (sharedExpansionDeltas.summary.totalDocuments ?? 0))} Total</span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
                       <span>{((hierarchy.summary as any).approved ?? 0) + (sharedExpansionDeltas.summary.approved ?? 0)} Approved</span>
