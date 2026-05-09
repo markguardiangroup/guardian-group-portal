@@ -2701,9 +2701,9 @@
         {
           "id": "d0e1f2a3-b4c5-6789-defa-890123456780",
           "patch": 6,
-          "message": "Fixed: HR module Document Progress totals now match the overview card counts",
+          "message": "Fixed: overview module card totals now count shared docs once per covered site, matching the module page",
           "category": "bug",
-          "createdAt": "2026-05-09T16:05:00.000Z",
+          "createdAt": "2026-05-09T16:10:00.000Z",
           "createdBy": "agent"
         }
       ]

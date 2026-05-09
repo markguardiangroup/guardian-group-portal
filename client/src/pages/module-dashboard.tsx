@@ -474,18 +474,19 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return Math.max(count, 1);
   };
 
-  // Document Progress counts — each unique document counted once regardless of
-  // how many sites a shared/scoped doc covers. Matches the overview card totals.
+  // Expanded counts used on the card buttons — matches the row count in the dialog.
+  // Shared/scoped docs (siteId=null) count once per site they cover in the current view.
   const expandedDocStats = useMemo(() => {
     let total = 0, compliant = 0, review = 0, overdue = 0;
     for (const doc of filteredModuleDocs) {
-      total++;
-      if (doc.status === "compliant") compliant++;
-      else if (doc.status === "review_required") review++;
-      else if (doc.status === "overdue") overdue++;
+      const m = scopedDocMultiplier(doc);
+      total += m;
+      if (doc.status === "compliant") compliant += m;
+      else if (doc.status === "review_required") review += m;
+      else if (doc.status === "overdue") overdue += m;
     }
     return { total, compliant, review, overdue };
-  }, [filteredModuleDocs]);
+  }, [filteredModuleDocs, currentFilterSites]);
 
   // Expand dialog docs so that shared docs (siteId=null) appear once per site
   // they are visible to within the current view, each labelled with that site.

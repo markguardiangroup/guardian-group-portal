@@ -2357,16 +2357,59 @@ export async function registerRoutes(
         }
       }
 
-      // Fetch regular module folder documents from accessible sites
+      // Fetch regular module folder documents
       // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const allDocs = await storage.getDocuments();
-      const filteredDocs = allDocs.filter(d =>
+
+      // Site-scoped docs filtered to accessible sites
+      const siteScopedDocs = allDocs.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
         d.source !== "external" &&
-        (!accessibleSiteIds || (d.siteId && accessibleSiteIds.includes(d.siteId)))
+        d.siteId != null &&
+        (!accessibleSiteIds || accessibleSiteIds.includes(d.siteId))
       );
+
+      // Company/group scoped docs (siteId=null) — expanded once per site they cover,
+      // mirroring the scopedDocMultiplier logic on the module dashboard page.
+      const allSitesForSummary = await storage.getSites();
+      const siteToCompanySummary = new Map(allSitesForSummary.map(s => [s.id, s.companyId]));
+      const effectiveAccessibleSiteIds = accessibleSiteIds ?? allSitesForSummary.map(s => s.id);
+
+      const rawScopedDocs = allDocs.filter(d =>
+        !d.isArchived &&
+        !d.caseId &&
+        !d.incidentId &&
+        d.source !== "external" &&
+        d.siteId == null
+      );
+
+      type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number };
+      const scopedExpansions: ScopedExpansion[] = [];
+      for (const doc of rawScopedDocs) {
+        const canAccess = await canUserAccessDocument(user, doc);
+        if (!canAccess) continue;
+
+        const shareRecords = await storage.getDocumentShares(doc.id);
+        const sharedWithCompanyIds = new Set(shareRecords.filter(s => s.entityType === "company").map(s => s.entityId));
+        const sharedWithSiteIds = new Set(shareRecords.filter(s => s.entityType === "site").map(s => s.entityId));
+
+        const count = effectiveAccessibleSiteIds.filter(sid => {
+          if (sharedWithSiteIds.has(sid)) return true;
+          const companyId = siteToCompanySummary.get(sid);
+          if (companyId && sharedWithCompanyIds.has(companyId)) return true;
+          if (companyId && doc.entityId === companyId) return true;
+          return false;
+        }).length;
+
+        scopedExpansions.push({
+          module: doc.module,
+          status: doc.status,
+          approvalStatus: doc.approvalStatus,
+          siteCount: Math.max(count, 1),
+        });
+      }
 
       const moduleNames: Record<string, string> = {
         health_safety: "Health & Safety",
@@ -2381,20 +2424,43 @@ export async function registerRoutes(
 
       const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
       const summaries = await Promise.all(modules.map(async (mod) => {
-        const moduleDocs = filteredDocs.filter(d => d.module === mod);
-        const allDocs = moduleDocs.length;
-        const allCompliant = moduleDocs.filter(d => d.status === "compliant").length;
-        const allReview = moduleDocs.filter(d => d.status === "review_required").length;
-        const allOverdue = moduleDocs.filter(d => d.status === "overdue").length;
-        const pending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+        const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
+        const siteCount = moduleDocs.length;
+        const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const siteReview = moduleDocs.filter(d => d.status === "review_required").length;
+        const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
+        const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+
+        // Add scoped doc expansion counts for this module
+        const modScoped = scopedExpansions.filter(e => e.module === mod);
+        let scopedTotal = 0, scopedCompliant = 0, scopedReview = 0, scopedOverdue = 0, scopedPending = 0;
+        for (const { status, approvalStatus, siteCount: n } of modScoped) {
+          scopedTotal += n;
+          if (status === "compliant") scopedCompliant += n;
+          else if (status === "review_required") scopedReview += n;
+          else if (status === "overdue") scopedOverdue += n;
+          if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
+        }
+
+        const allDocsCount = siteCount + scopedTotal;
+        const allCompliant = siteCompliant + scopedCompliant;
+        const allReview = siteReview + scopedReview;
+        const allOverdue = siteOverdue + scopedOverdue;
+        const pending = sitePending + scopedPending;
+
+        // Compliance calculation uses all docs (site-scoped + scoped) for the module
+        const allModuleDocs = [
+          ...moduleDocs,
+          ...rawScopedDocs.filter(d => d.module === mod && scopedExpansions.some(e => e.module === mod)),
+        ];
 
         if (complianceModules.includes(mod)) {
-          const compliance = await computeSlotBasedCompliance(user, moduleDocs, mod, siteFilter);
+          const compliance = await computeSlotBasedCompliance(user, allModuleDocs, mod, siteFilter);
           return {
             module: mod,
             moduleName: moduleNames[mod],
             ...compliance,
-            allDocuments: allDocs,
+            allDocuments: allDocsCount,
             allCompliantDocuments: allCompliant,
             allReviewRequired: allReview,
             allOverdueDocuments: allOverdue,
@@ -2406,13 +2472,13 @@ export async function registerRoutes(
         return {
           module: mod,
           moduleName: moduleNames[mod],
-          totalDocuments: allDocs,
+          totalDocuments: allDocsCount,
           compliantDocuments: allCompliant,
           reviewRequired: allReview,
           overdueDocuments: allOverdue,
           missingRequiredDocuments: 0,
-          complianceScore: allDocs > 0 ? Math.round((allCompliant / allDocs) * 100) : 0,
-          allDocuments: allDocs,
+          complianceScore: allDocsCount > 0 ? Math.round((allCompliant / allDocsCount) * 100) : 0,
+          allDocuments: allDocsCount,
           allCompliantDocuments: allCompliant,
           allReviewRequired: allReview,
           allOverdueDocuments: allOverdue,
