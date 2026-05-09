@@ -2689,6 +2689,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-09T15:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-cdef-789012345679",
+          "patch": 6,
+          "message": "Fixed: overview Compliant/Not Compliant/Missing counts now match module card totals",
+          "category": "bug",
+          "createdAt": "2026-05-09T15:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

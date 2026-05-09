@@ -563,7 +563,8 @@ function OverallComplianceCard({
   const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
   const reviewRequiredSlots = siteComplianceSummary?.reviewRequired ?? summaries.reduce((acc, s) => acc + (s.reviewRequired || 0), 0);
   const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? summaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
-  const overallScore = siteComplianceSummary?.complianceScore ?? summaries.reduce((acc, s) => acc + s.complianceScore, 0) / (summaries.length || 1);
+  const complianceDenominator = compliantDocs + reviewRequiredSlots + overdueDocs + missingDocs;
+  const overallScore = siteComplianceSummary?.complianceScore ?? (complianceDenominator > 0 ? Math.round((compliantDocs / complianceDenominator) * 100) : 0);
   // All-document progress stats
   const allDocs = siteComplianceSummary?.allDocuments ?? summaries.reduce((acc, s) => acc + (s.allDocuments ?? s.totalDocuments), 0);
   const allCompliant = siteComplianceSummary?.allCompliantDocuments ?? summaries.reduce((acc, s) => acc + (s.allCompliantDocuments ?? s.compliantDocuments), 0);
@@ -1431,7 +1432,7 @@ export default function Dashboard() {
       <>
       <OverallComplianceCard 
         summaries={complianceSummaries} 
-        siteComplianceSummary={selectedSiteComplianceSummary || aggregatedComplianceSummary}
+        siteComplianceSummary={selectedSiteComplianceSummary}
         missingRequiredDetails={missingRequiredDetails}
         isMissingLoading={isMissingLoading}
         allDocuments={allDocuments}
