@@ -2882,6 +2882,14 @@
           "category": "bug",
           "createdAt": "2026-05-09T16:57:53.763Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a3a55836-7598-4d2b-85f5-ea2603d46e47",
+          "patch": 7,
+          "message": "Fixed: changelog on prod now shows all patches as released (no in-dev distinction)",
+          "category": "bug",
+          "createdAt": "2026-05-09T17:05:55.147Z",
+          "createdBy": "agent"
         }
       ]
     }
