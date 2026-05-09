@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, MinusCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert } from "lucide-react";
 import type { DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -12,32 +12,17 @@ interface ComplianceBadgeProps {
 
 export function ComplianceBadge({ isRequired, status, approvalStatus, className }: ComplianceBadgeProps) {
   if (!isRequired) {
-    return (
-      <Badge
-        variant="outline"
-        className={cn("gap-1.5 font-medium", "bg-gray-500/15 text-gray-500 dark:text-gray-400 border-gray-500/20", className)}
-        data-testid="badge-compliance"
-      >
-        <MinusCircle className="h-3 w-3" />
-        Not Required
-      </Badge>
-    );
-  }
-
-  const isCompliant = status === "compliant" && approvalStatus === "approved";
-
-  if (isCompliant) {
     return null;
   }
 
   return (
     <Badge
       variant="outline"
-      className={cn("gap-1.5 font-medium", "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", className)}
+      className={cn("gap-1.5 font-medium", "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", className)}
       data-testid="badge-compliance"
     >
-      <XCircle className="h-3 w-3" />
-      Not Compliant
+      <ShieldAlert className="h-3 w-3" />
+      Required
     </Badge>
   );
 }

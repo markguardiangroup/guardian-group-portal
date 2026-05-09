@@ -2633,6 +2633,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-09T00:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
+          "patch": 6,
+          "message": "Documents now show a Required badge instead of Not Required in folder and table views",
+          "category": "enhancement",
+          "createdAt": "2026-05-09T14:40:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
