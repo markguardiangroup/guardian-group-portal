@@ -11120,21 +11120,10 @@ export async function registerRoutes(
         });
       }
 
-      // Summary stats: count required, non-archived docs from BOTH site-scoped and shared (company/group) docs
-      const requiredNonArchivedDocs = siteDocuments.filter(d => {
-        if (d.isArchived) return false;
-        const docTmpl = moduleDocTemplates.find(dt => dt.id === d.templateId);
-        return getEffectiveIsRequired(d, docTmpl);
-      });
-      // Required shared docs that are not already counted via a matching site-scoped doc (avoid double-counting)
-      const siteDocTemplateIds = new Set(requiredNonArchivedDocs.map(d => d.templateId).filter(Boolean));
-      const requiredSharedDocs = sharedDocuments.filter(d => {
-        if (!d.isRequired) return false;
-        // De-duplicate: if a required slot is already satisfied by a site doc, don't count twice
-        if (d.templateId && siteDocTemplateIds.has(d.templateId)) return false;
-        return true;
-      });
-      const allRequiredDocs = [...requiredNonArchivedDocs, ...requiredSharedDocs];
+      // Summary stats: count ALL non-archived docs from BOTH site-scoped and shared (company/group) docs
+      const allNonArchivedSiteDocs = siteDocuments.filter(d => !d.isArchived);
+      const allNonArchivedSharedDocs = sharedDocuments.filter((d: any) => !d.isArchived);
+      const allNonArchivedDocs = [...allNonArchivedSiteDocs, ...allNonArchivedSharedDocs];
       
       res.json({
         siteId,
@@ -11162,10 +11151,10 @@ export async function registerRoutes(
         sharedDocuments,
         summary: {
           totalFolders: hierarchy.length,
-          totalDocuments: siteDocuments.filter(d => !d.isArchived).length + sharedDocuments.length,
-          compliant: allRequiredDocs.filter(d => d.status === "compliant").length,
-          reviewRequired: allRequiredDocs.filter(d => d.status === "review_required").length,
-          overdue: allRequiredDocs.filter(d => d.status === "overdue").length,
+          totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
+          approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
+          reviewRequired: allNonArchivedDocs.filter((d: any) => d.status === "review_required").length,
+          overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
         },
       });
     } catch (error) {

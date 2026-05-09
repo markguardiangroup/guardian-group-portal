@@ -261,7 +261,7 @@ interface DocumentHierarchy {
   sharedDocuments?: (HierarchyDocument & { sharedScope?: "company" | "group"; sharedFromEntityName?: string | null })[];
   summary: {
     totalDocuments: number;
-    compliant: number;
+    approved: number;
     reviewRequired: number;
     overdue: number;
     totalFolders: number;
@@ -1220,25 +1220,25 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Compute how many extra virtual rows were added per folder (and a banner total)
   // so that displayed counts stay consistent with the expanded rows.
   const sharedExpansionDeltas = useMemo(() => {
-    const empty = { byFolder: new Map<string, { totalDocuments: number; compliant: number; reviewRequired: number; overdue: number }>(), summary: { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 } };
+    const empty = { byFolder: new Map<string, { totalDocuments: number; approved: number; reviewRequired: number; overdue: number }>(), summary: { totalDocuments: 0, approved: 0, reviewRequired: 0, overdue: 0 } };
     const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
     if (!isAllSites || filteredSites.length <= 1) return empty;
-    const byFolder = new Map<string, { totalDocuments: number; compliant: number; reviewRequired: number; overdue: number }>();
-    let sTotal = 0, sCompliant = 0, sReview = 0, sOverdue = 0;
+    const byFolder = new Map<string, { totalDocuments: number; approved: number; reviewRequired: number; overdue: number }>();
+    let sTotal = 0, sApproved = 0, sReview = 0, sOverdue = 0;
     for (const [folderId, expandedDocs] of expandedSharedByFolderTemplate.entries()) {
       const originalDocs = sharedByFolderTemplate.get(folderId) ?? [];
       if (expandedDocs.length <= originalDocs.length) continue;
       const virtualRows = expandedDocs.filter(d => (d as any)._virtualKey);
       const delta = {
         totalDocuments: expandedDocs.length - originalDocs.length,
-        compliant: virtualRows.filter(d => d.status === "compliant").length - originalDocs.filter(d => d.status === "compliant").length,
+        approved: virtualRows.filter(d => (d as any).approvalStatus === "approved").length - originalDocs.filter(d => (d as any).approvalStatus === "approved").length,
         reviewRequired: virtualRows.filter(d => d.status === "review_required").length - originalDocs.filter(d => d.status === "review_required").length,
         overdue: virtualRows.filter(d => d.status === "overdue").length - originalDocs.filter(d => d.status === "overdue").length,
       };
       byFolder.set(folderId, delta);
-      sTotal += delta.totalDocuments; sCompliant += delta.compliant; sReview += delta.reviewRequired; sOverdue += delta.overdue;
+      sTotal += delta.totalDocuments; sApproved += delta.approved; sReview += delta.reviewRequired; sOverdue += delta.overdue;
     }
-    return { byFolder, summary: { totalDocuments: sTotal, compliant: sCompliant, reviewRequired: sReview, overdue: sOverdue } };
+    return { byFolder, summary: { totalDocuments: sTotal, approved: sApproved, reviewRequired: sReview, overdue: sOverdue } };
   }, [expandedSharedByFolderTemplate, sharedByFolderTemplate, selectedSiteId, filteredSites]);
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -1738,7 +1738,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{hierarchy.summary.compliant + sharedExpansionDeltas.summary.compliant} Compliant</span>
+                      <span>{hierarchy.summary.approved + sharedExpansionDeltas.summary.approved} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
