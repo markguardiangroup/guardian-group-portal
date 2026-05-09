@@ -2681,6 +2681,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-09T15:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-bcde-678901234568",
+          "patch": 6,
+          "message": "Table view document count moved inline next to the Document column header",
+          "category": "enhancement",
+          "createdAt": "2026-05-09T15:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
