@@ -122,6 +122,9 @@ export async function bumpDevPatchAfterPublish(): Promise<void> {
  * Safe to call on every restart — idempotent if nothing has changed.
  */
 export async function autoIncrementPatchIfChanged(): Promise<void> {
+  // Never auto-bump on the production server — patch management is owned by dev.
+  if (process.env.NODE_ENV === "production") return;
+
   const cl = await readChangelog();
   const active = cl.versions.find((v) => v.id === cl.activeVersionId);
   if (!active) return;
