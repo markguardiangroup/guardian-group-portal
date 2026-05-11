@@ -2906,6 +2906,14 @@
           "category": "feature",
           "createdAt": "2026-05-11T08:56:17.987Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e1fa7749-6cf3-46d5-a8c6-ed6b305c2bda",
+          "patch": 7,
+          "message": "Fixed: pro consultants could not update a consultant user due to sources validation error",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:00:59.027Z",
+          "createdBy": "agent"
         }
       ]
     }
