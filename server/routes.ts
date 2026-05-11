@@ -16386,7 +16386,11 @@ export async function registerRoutes(
           SELECT d.id, d.title, d.module, d.status, d.approval_status, d.uploaded_by, s.name as site_name
           FROM documents d
           LEFT JOIN sites s ON d.site_id = s.id
-          WHERE d.is_archived = false AND ${filterClause}
+          WHERE d.is_archived = false
+            AND d.case_id IS NULL
+            AND d.incident_id IS NULL
+            AND d.source != 'external'
+            AND ${filterClause}
         `;
 
         if (userSiteIds && userSiteIds.length > 0) {
@@ -16402,20 +16406,28 @@ export async function registerRoutes(
         type DocRow = { id: string; title: string; module: string | null; status: string; site_name: string | null };
         const result = await pool.query<DocRow>(query, params);
 
+        const modulePathMap: Record<string, string> = {
+          health_safety: "/health-safety/documents",
+          human_resources: "/human-resources/documents",
+          employment_law: "/employment-law/documents",
+        };
         const badgeColorMap: Record<string, string> = {
           overdue_documents: "red",
           review_required: "amber",
           pending_approvals: "blue",
           pending_sign_offs: "violet",
         };
-        items = result.rows.map((row) => ({
-          id: row.id,
-          label: row.title,
-          subLabel: row.site_name ?? null,
-          href: `/documents/${row.id}`,
-          badge: row.module ?? row.status ?? null,
-          badgeColor: badgeColorMap[type] ?? null,
-        }));
+        items = result.rows.map((row) => {
+          const basePath = row.module ? (modulePathMap[row.module] ?? "/documents") : "/documents";
+          return {
+            id: row.id,
+            label: row.title,
+            subLabel: row.site_name ?? null,
+            href: `${basePath}/${row.id}`,
+            badge: row.module ?? row.status ?? null,
+            badgeColor: badgeColorMap[type] ?? null,
+          };
+        });
 
       } else if (type === "open_incidents") {
         if (userSiteIds?.length === 0 && user.role !== "client") return res.json({ type, items: [] });

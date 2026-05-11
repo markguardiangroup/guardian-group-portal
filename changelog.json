@@ -3173,6 +3173,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T19:38:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d5f67a89-4b90-1c23-de45-6f7a8b9c0d1e",
+          "patch": 8,
+          "message": "Fixed: clicking a document in urgent action drill-down now opens the correct module page",
+          "category": "bug",
+          "createdAt": "2026-05-11T19:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
