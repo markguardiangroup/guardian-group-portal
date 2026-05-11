@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "n4o5p6q7-folder-incomplete-badge-fix-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: folders no longer show 'Incomplete' badge when all uploaded documents are compliant but not required",
+          "createdAt": "2026-05-11T17:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "m3n4o5p6-module-docs-crash-fix-2026",
           "patch": 8,
           "category": "bug",

@@ -914,9 +914,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
     if (stats.overdue > 0) return { variant: "outline" as const, label: "Attention Needed", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" };
     if (stats.reviewRequired > 0) return { variant: "outline" as const, label: "Review Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" };
-    if (stats.compliant > 0 && stats.totalDocuments === stats.compliant) return null;
-    if (stats.totalDocuments === 0) return null;
-    return { variant: "outline" as const, label: "Incomplete", className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" };
+    // Only show Incomplete when there are required templates that haven't all been fulfilled
+    // (checked before the totalDocuments === 0 guard so empty folders with required templates still show Incomplete)
+    if ((stats.requiredTemplates ?? 0) > 0 && (stats.fulfilledRequired ?? 0) < (stats.requiredTemplates ?? 0)) {
+      return { variant: "outline" as const, label: "Incomplete", className: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" };
+    }
+    return null;
   };
   
   // Get folder templates for current module (exclude Toolkit roots and mirrored subfolders)
@@ -1585,6 +1588,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     compliant: docs.filter((d: any) => d.status === "compliant").length,
                     reviewRequired: docs.filter((d: any) => d.status === "review_required").length,
                     overdue: docs.filter((d: any) => d.status === "overdue").length,
+                    requiredTemplates: 0,
+                    fulfilledRequired: 0,
                   });
 
                   const renderChildFolder = (childFolder: any) => {
