@@ -2015,7 +2015,7 @@ export default function UserManagement() {
                         </Select>
                       </div>
                     )}
-                    {editFormData.role === "consultant" && isAdmin && (
+                    {editFormData.role === "consultant" && (isAdmin || isPro) && (
                       <div className="grid gap-2">
                         <Label htmlFor="edit-manager">Managed by (Pro Consultant)</Label>
                         <Select

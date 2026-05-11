@@ -550,7 +550,7 @@
         {
           "id": "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
           "patch": 6,
-          "message": "Case notes: clickable tick icon added to each note \u2014 toggles green completed state (strikethrough text, green background tint) with no persistence required",
+          "message": "Case notes: clickable tick icon added to each note — toggles green completed state (strikethrough text, green background tint) with no persistence required",
           "category": "enhancement",
           "createdAt": "2026-05-05T11:37:00.000Z",
           "createdBy": "agent"
@@ -926,7 +926,7 @@
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
           "patch": 2,
-          "message": "Redesigned Template Library header \u2014 icon badge and action buttons always visible at top",
+          "message": "Redesigned Template Library header — icon badge and action buttons always visible at top",
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
           "createdBy": "agent"
@@ -1110,7 +1110,7 @@
         {
           "id": "f3c910ab7d82",
           "patch": 4,
-          "message": "Users Report now distinguishes between Consultants and Pro Consultants \u2014 each shown with a distinct badge, colour, and separate summary count",
+          "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
           "category": "enhancement",
           "createdAt": "2026-04-17T18:28:00.000Z",
           "createdBy": "agent"
@@ -1134,7 +1134,7 @@
         {
           "id": "d4a78e21c903",
           "patch": 4,
-          "message": "Added ACAS Conciliation as a case type in Employment Law \u2014 available in the new case form and case type filter",
+          "message": "Added ACAS Conciliation as a case type in Employment Law — available in the new case form and case type filter",
           "category": "feature",
           "createdAt": "2026-04-19T13:55:00.000Z",
           "createdBy": "agent"
@@ -1142,7 +1142,7 @@
         {
           "id": "e8b2f94d1c37",
           "patch": 4,
-          "message": "Admins can grant Case Advocate permission to consultants \u2014 only Case Advocates can view and manage Employment Law cases",
+          "message": "Admins can grant Case Advocate permission to consultants — only Case Advocates can view and manage Employment Law cases",
           "category": "feature",
           "createdAt": "2026-04-19T14:50:00.000Z",
           "createdBy": "agent"
@@ -1294,7 +1294,7 @@
         {
           "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
           "patch": 5,
-          "message": "Group Owner moved into Linked Companies panel \u2014 single unified section",
+          "message": "Group Owner moved into Linked Companies panel — single unified section",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:23:13.023Z",
           "createdBy": "user-admin"
@@ -2486,7 +2486,7 @@
         {
           "id": "e9f0a1b2-c3d4-5678-efab-901234567890",
           "patch": 6,
-          "message": "Improved: roadmap filters laid out in a tidy 2\u00d74 grid; search spans two columns",
+          "message": "Improved: roadmap filters laid out in a tidy 2×4 grid; search spans two columns",
           "category": "enhancement",
           "createdAt": "2026-05-08T16:10:00.000Z",
           "createdBy": "agent"
@@ -2614,7 +2614,7 @@
         {
           "id": "b4c5d6e7-f8a9-0123-cdef-789012345678",
           "patch": 6,
-          "message": "Improved: Site Documents filters are now uniform \u2014 no icons, consistent size",
+          "message": "Improved: Site Documents filters are now uniform — no icons, consistent size",
           "category": "enhancement",
           "createdAt": "2026-05-08T20:00:00.000Z",
           "createdBy": "agent"
@@ -2638,7 +2638,7 @@
         {
           "id": "e7f8a9b0-c1d2-3456-fabc-012345678901",
           "patch": 6,
-          "message": "Improved: dashboard overview \u2014 removed 'Need Support?' button; added staff filter for pro consultants; dropdowns match site documents style",
+          "message": "Improved: dashboard overview — removed 'Need Support?' button; added staff filter for pro consultants; dropdowns match site documents style",
           "category": "enhancement",
           "createdAt": "2026-05-08T20:45:00.000Z",
           "createdBy": "agent"
@@ -2758,7 +2758,7 @@
         {
           "id": "b4c5d6e7-f8a9-0123-cdef-567890123b45",
           "patch": 6,
-          "message": "Fixed: All Sites documents \u2014 folder view, table view and summary missing count now align",
+          "message": "Fixed: All Sites documents — folder view, table view and summary missing count now align",
           "category": "bug",
           "createdAt": "2026-05-08T23:20:00.000Z",
           "createdBy": "agent"
@@ -2897,6 +2897,14 @@
           "message": "Fixed: 13 dependency vulnerabilities (dompurify, fast-xml-parser, postcss, ip-address, urllib3, and others)",
           "category": "bug",
           "createdAt": "2026-05-11T07:07:47.825064Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "2c024d18-aba0-49cc-9552-06be4611c9d8",
+          "patch": 7,
+          "message": "Pro consultants can now change who manages a consultant",
+          "category": "feature",
+          "createdAt": "2026-05-11T08:56:17.987Z",
           "createdBy": "agent"
         }
       ]

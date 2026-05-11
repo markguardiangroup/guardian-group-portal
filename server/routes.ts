@@ -12613,7 +12613,7 @@ export async function registerRoutes(
         ...(allowFullFieldEdit && companyId !== undefined && { companyId }),
         ...(allowFullFieldEdit && consultantTier !== undefined && { consultantTier }),
         ...(allowFullFieldEdit && sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
-        ...(currentUser.role === "admin" && managerId !== undefined && { managerId: managerId || null }),
+        ...((currentUser.role === "admin" || (currentUser.role === "consultant" && currentUser.consultantTier === "pro")) && managerId !== undefined && { managerId: managerId || null }),
         // Fields everyone can update on their own profile
         ...(title !== undefined && { title }),
         ...(jobTitle !== undefined && { jobTitle }),
