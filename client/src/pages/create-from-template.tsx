@@ -210,8 +210,10 @@ export default function CreateFromTemplate() {
   const hasUrlContext = !!(preselectedScope && preselectedEntityId) || !!preselectedSiteId;
 
   const initialStep: Step = (() => {
-    if (preselectedTemplateId) return "placeholders";
+    // For company/group scope, always show scope-decision first so the user
+    // explicitly decides sharing breadth, even if a template was pre-selected.
     if (preselectedScope && preselectedScope !== "site" && preselectedEntityId) return "scope-decision";
+    if (preselectedTemplateId) return "placeholders";
     return "template";
   })();
   const [currentStep, setCurrentStep] = useState<Step>(initialStep);
@@ -279,7 +281,9 @@ export default function CreateFromTemplate() {
       if (!res.ok) return {};
       return res.json();
     },
-    enabled: docScope === "company" || docScope === "group",
+    // Only fetch for company scope — group-level uploads span multiple companies
+    // so there is no single authoritative required-template list to show.
+    enabled: docScope === "company",
   });
 
   const requiredTemplateIdSet = useMemo(() => {
@@ -287,9 +291,11 @@ export default function CreateFromTemplate() {
       const siteId = selectedSiteIds[0] || preselectedSiteId || "";
       return new Set(requiredBySite?.[siteId] ?? []);
     }
-    if ((docScope === "company" || docScope === "group") && selectedEntityId) {
+    if (docScope === "company" && selectedEntityId) {
       return new Set(requiredByCompany?.[selectedEntityId] ?? []);
     }
+    // For group scope, required-template badges are not shown — documents are
+    // shared across multiple member companies each with their own required sets.
     return new Set<string>();
   }, [docScope, selectedSiteIds, preselectedSiteId, selectedEntityId, requiredBySite, requiredByCompany]);
 

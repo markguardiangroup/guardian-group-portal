@@ -753,7 +753,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // Whether the current view has enough context (specific site, company, or group)
   // to create a meaningful document upload. "All" views lack context.
-  const hasSpecificContext = !!((urlScope && urlEntityId) || (selectedSiteId && selectedSiteId !== "all"));
+  // A locked-company filter (selectedCompany !== "all") is valid context even when
+  // siteId is "all" — the upload wizard will pre-fill the company scope.
+  const hasSpecificContext = !!((urlScope && urlEntityId)
+    || (selectedSiteId && selectedSiteId !== "all")
+    || selectedCompanyId !== null);
 
   // IDs for linking company/site names to their profile pages in the header
   const contextCompanyId = useMemo(() => {
