@@ -323,12 +323,12 @@ function RoutePrefetcher({
 
     schedule(() => {
       // Pages everyone with an account can reach.
-      Dashboard.preload();
       Settings.preload();
       Documents.preload();
       DocumentUpload.preload();
       Support.preload();
       CalendarPage.preload();
+      Dashboard.preload();
 
       // Module-gated pages — only fetch chunks for modules the user can access.
       if (canAccess("health_safety")) {
