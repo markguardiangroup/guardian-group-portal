@@ -612,6 +612,11 @@ export default function DocumentUpload() {
       // Company or Group scoped upload — single document, no site association
       if (docScope === "company" || docScope === "group") {
         if (!selectedEntityId) throw new Error("Please select a target company or group");
+        // Guard: if sharing to all, ensure destination data has loaded before resolving
+        if (shareToAll) {
+          const destinationData = docScope === "company" ? companySites : groupMemberCompanies;
+          if (!destinationData) throw new Error("Destination data is still loading — please try again in a moment");
+        }
         const resolvedShareDestinations = shareToAll
           ? docScope === "company"
             ? (companySites ?? []).map(s => s.id)

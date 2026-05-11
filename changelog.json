@@ -3141,6 +3141,22 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T16:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f1b23c45-0d56-7e89-fa01-2b3c4d5e6f7a",
+          "patch": 8,
+          "message": "Improved: all upload buttons on 'All Sites' views are now disabled with a guiding tooltip",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T16:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "a2c34d56-1e67-8f90-ab12-3c4d5e6f7a8b",
+          "patch": 8,
+          "message": "Fixed: upload wizard will not silently send an empty share list if destination data hasn't loaded yet",
+          "category": "bug",
+          "createdAt": "2026-05-11T16:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
