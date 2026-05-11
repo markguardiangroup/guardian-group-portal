@@ -193,6 +193,73 @@ async function convertFileToPdf(
   });
 }
 
+// ── DOCX Preview Cache ────────────────────────────────────────────────────────
+
+const DOCX_PREVIEW_MIME_TYPES = new Set([
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword",
+]);
+
+const docxPreviewCache = new Map<string, { gcsPath: string; cachedAt: number }>();
+const DOCX_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Periodic cleanup: delete GCS objects whose TTL has expired so they don't accumulate
+// after server restarts or when a file is previewed only once.
+setInterval(async () => {
+  const now = Date.now();
+  const svc = new ObjectStorageService();
+  for (const [key, entry] of docxPreviewCache.entries()) {
+    if (now - entry.cachedAt >= DOCX_CACHE_TTL_MS) {
+      docxPreviewCache.delete(key);
+      try { await svc.deleteObjectEntityFile(entry.gcsPath); } catch {}
+    }
+  }
+}, 15 * 60 * 1000).unref(); // runs every 15 min, does not keep process alive
+
+async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promise<Buffer> {
+  const cacheKey = crypto.createHash("sha256").update(fileUrl).digest("hex").slice(0, 32);
+  const objectStorageService = new ObjectStorageService();
+  const now = Date.now();
+  const cached = docxPreviewCache.get(cacheKey);
+
+  if (cached && (now - cached.cachedAt) < DOCX_CACHE_TTL_MS) {
+    try {
+      const cachedFile = await objectStorageService.getObjectEntityFile(cached.gcsPath);
+      const [buf] = await cachedFile.download();
+      return Buffer.from(buf);
+    } catch {
+      docxPreviewCache.delete(cacheKey);
+    }
+  }
+
+  if (cached) {
+    docxPreviewCache.delete(cacheKey);
+    try { await objectStorageService.deleteObjectEntityFile(cached.gcsPath); } catch {}
+  }
+
+  const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+  const [docxBuf] = await objectFile.download();
+
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "docxprev_"));
+  let pdfBuffer: Buffer;
+  try {
+    // Pass the real MIME type so .doc files use the correct LibreOffice extension
+    const pdfPath = await convertFileToPdf(
+      Buffer.from(docxBuf),
+      mimeType,
+      tempDir,
+      0,
+    );
+    pdfBuffer = await fs.readFile(pdfPath);
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+
+  const gcsPath = await objectStorageService.saveDocxPreview(pdfBuffer, cacheKey);
+  docxPreviewCache.set(cacheKey, { gcsPath, cachedAt: now });
+  return pdfBuffer;
+}
+
 async function mergePdfs(pdfPaths: string[], outputPath: string): Promise<void> {
   const quoted = pdfPaths.map(p => `"${p}"`).join(" ");
   await execAsync(
@@ -3067,6 +3134,21 @@ export async function registerRoutes(
       }
 
       const objectStorageService = new ObjectStorageService();
+
+      // DOCX — convert via LibreOffice and stream as PDF
+      if (mimeType && DOCX_PREVIEW_MIME_TYPES.has(mimeType)) {
+        try {
+          const pdfBuffer = await getOrConvertDocxPreview(fileUrl, mimeType);
+          const pdfName = fileName.replace(/\.(docx?|doc)$/i, ".pdf");
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(pdfName)}"`);
+          res.setHeader("Content-Length", pdfBuffer.length.toString());
+          return res.end(pdfBuffer);
+        } catch (convErr) {
+          console.error("DOCX conversion error:", convErr);
+          return res.status(422).json({ error: "Unable to convert document to PDF for preview" });
+        }
+      }
       
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
@@ -3090,6 +3172,55 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Document preview error:", error);
       res.status(500).json({ error: "Failed to preview document" });
+    }
+  });
+
+  // ── Document Template Preview ─────────────────────────────────────────────
+  app.get("/api/document-templates/:id/preview", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const template = await storage.getDocumentTemplate(req.params.id);
+      if (!template) return res.status(404).json({ error: "Template not found" });
+
+      if (!template.fileUrl) {
+        return res.status(404).json({ error: "No file available for this template" });
+      }
+
+      const mimeType = template.mimeType || "";
+      const objectStorageService = new ObjectStorageService();
+
+      if (DOCX_PREVIEW_MIME_TYPES.has(mimeType)) {
+        try {
+          const pdfBuffer = await getOrConvertDocxPreview(template.fileUrl, mimeType);
+          const pdfName = template.fileName.replace(/\.(docx?|doc)$/i, ".pdf");
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(pdfName)}"`);
+          res.setHeader("Content-Length", pdfBuffer.length.toString());
+          return res.end(pdfBuffer);
+        } catch (convErr) {
+          console.error("Template DOCX conversion error:", convErr);
+          return res.status(422).json({ error: "Unable to convert template to PDF for preview" });
+        }
+      }
+
+      try {
+        const objectFile = await objectStorageService.getObjectEntityFile(template.fileUrl);
+        res.setHeader("Content-Type", mimeType || "application/octet-stream");
+        res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(template.fileName)}"`);
+        const [metadata] = await objectFile.getMetadata();
+        if (metadata.size) res.setHeader("Content-Length", metadata.size.toString());
+        objectFile.createReadStream().pipe(res);
+      } catch (storageError: any) {
+        if (storageError.name === "ObjectNotFoundError") {
+          return res.status(404).json({ error: "File not found in storage" });
+        }
+        throw storageError;
+      }
+    } catch (error) {
+      console.error("Template preview error:", error);
+      res.status(500).json({ error: "Failed to preview template" });
     }
   });
 

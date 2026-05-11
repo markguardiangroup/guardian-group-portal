@@ -275,7 +275,7 @@ function TemplateRow({ template, btnClass, onPreview }: { template: ToolkitTempl
             </Tooltip>
           )}
         </div>
-        {template.mimeType === "application/pdf" && onPreview && (
+        {(template.mimeType === "application/pdf" || template.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || template.mimeType === "application/msword") && onPreview && (
           <Button
             size="sm"
             variant="outline"
@@ -482,7 +482,7 @@ function PathwayWizard({
                       key={template.id}
                       template={template}
                       btnClass={btnClass}
-                      onPreview={template.mimeType === "application/pdf" ? () => onPreview(template) : undefined}
+                      onPreview={(template.mimeType === "application/pdf" || template.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || template.mimeType === "application/msword") ? () => onPreview(template) : undefined}
                     />
                   ))}
                 </div>
@@ -879,7 +879,7 @@ export default function ToolkitBrowse() {
                         key={template.id}
                         template={template}
                         btnClass={MODULE_CONFIG[selectedFolder.module as ModuleType].btnClass}
-                        onPreview={template.mimeType === "application/pdf" ? () => setPreviewToolkitTemplate(template) : undefined}
+                        onPreview={(template.mimeType === "application/pdf" || template.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || template.mimeType === "application/msword") ? () => setPreviewToolkitTemplate(template) : undefined}
                       />
                     ))}
                   </div>
@@ -900,9 +900,17 @@ export default function ToolkitBrowse() {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0">
-            {previewToolkitTemplate?.fileUrl && (
-              <PdfViewer url={previewToolkitTemplate.fileUrl} />
-            )}
+            {previewToolkitTemplate && (() => {
+              const mime = previewToolkitTemplate.mimeType || "";
+              if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                  mime === "application/msword") {
+                return <PdfViewer url={`/api/document-templates/${previewToolkitTemplate.id}/preview`} />;
+              }
+              if (previewToolkitTemplate.fileUrl) {
+                return <PdfViewer url={previewToolkitTemplate.fileUrl} />;
+              }
+              return null;
+            })()}
           </div>
           <div className="px-5 py-3 border-t shrink-0 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPreviewToolkitTemplate(null)} data-testid="button-close-pdf-preview">

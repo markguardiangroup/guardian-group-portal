@@ -3134,7 +3134,7 @@ function IncidentDetailView({ id }: { id: string }) {
                             </p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/") || doc.mimeType === "text/html") && (
+                            {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/") || doc.mimeType === "text/html" || doc.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || doc.mimeType === "application/msword") && (
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -3472,7 +3472,9 @@ function IncidentDetailView({ id }: { id: string }) {
                   />
                 );
               }
-              if (mime === "application/pdf") {
+              if (mime === "application/pdf" ||
+                  mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                  mime === "application/msword") {
                 return (
                   <PdfViewer url={previewUrl} data-testid="preview-pdf" />
                 );

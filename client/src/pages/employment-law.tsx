@@ -2768,7 +2768,7 @@ function CaseDetailView({ id }: { id: string }) {
                           </span>
                         )}
                       </div>
-                      {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/")) && (
+                      {doc.fileUrl && (doc.mimeType === "application/pdf" || doc.mimeType?.startsWith("image/") || doc.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || doc.mimeType === "application/msword") && (
                         <Button
                           size="icon"
                           variant="ghost"
@@ -4008,7 +4008,9 @@ function CaseDetailView({ id }: { id: string }) {
             {previewDoc && (() => {
               const mime = previewDoc.mimeType || "";
               const previewUrl = `/api/documents/${previewDoc.id}/preview`;
-              if (mime === "application/pdf") {
+              if (mime === "application/pdf" ||
+                  mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                  mime === "application/msword") {
                 return <PdfViewer url={previewUrl} />;
               }
               if (mime.startsWith("image/")) {

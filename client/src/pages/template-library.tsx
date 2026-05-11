@@ -1630,7 +1630,7 @@ export default function TemplateLibraryPage() {
               <DropdownMenuContent align="end">
                 {template.fileUrl && (
                   <>
-                    {template.mimeType === "application/pdf" && (
+                    {(template.mimeType === "application/pdf" || template.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || template.mimeType === "application/msword") && (
                       <DropdownMenuItem onClick={() => {
                         setPreviewTemplate(template);
                         setIsPreviewDialogOpen(true);
@@ -2478,9 +2478,17 @@ export default function TemplateLibraryPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex-1 min-h-0">
-            {previewTemplate?.fileUrl && (
-              <PdfViewer url={previewTemplate.fileUrl} />
-            )}
+            {previewTemplate && (() => {
+              const mime = previewTemplate.mimeType || "";
+              if (mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                  mime === "application/msword") {
+                return <PdfViewer url={`/api/document-templates/${previewTemplate.id}/preview`} />;
+              }
+              if (previewTemplate.fileUrl) {
+                return <PdfViewer url={previewTemplate.fileUrl} />;
+              }
+              return null;
+            })()}
           </div>
           <div className="px-5 py-3 border-t shrink-0 flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)} data-testid="button-close-preview">

@@ -3752,7 +3752,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {document.fileUrl && (document.mimeType === "application/pdf" || document.mimeType?.startsWith("image/")) && (
+              {document.fileUrl && (document.mimeType === "application/pdf" || document.mimeType?.startsWith("image/") || document.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || document.mimeType === "application/msword") && (
                 <Button 
                   variant="outline" 
                   className="w-full justify-start" 
@@ -4281,7 +4281,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   ? `/api/documents/${id}/preview?version=${previewVersion}`
                   : `/api/documents/${id}/preview`;
                 
-                if (mimeType === "application/pdf") {
+                if (mimeType === "application/pdf" ||
+                    mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                    mimeType === "application/msword") {
                   return (
                     <PdfViewer url={previewUrl} data-testid="preview-pdf" />
                   );
