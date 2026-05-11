@@ -3,8 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { CountUp } from "@/components/ui/count-up";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import {
   Dialog,
   DialogContent,
@@ -785,11 +785,7 @@ function UrgentActionsModal({
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6 py-1">
           {isLoading ? (
-            <div className="space-y-2 py-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-12 w-full rounded-lg" />
-              ))}
-            </div>
+            <FetchingOverlay />
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <CheckCircle className="h-8 w-8 text-emerald-500" />
@@ -913,10 +909,16 @@ export default function HomePage() {
           onActionClick={setActiveActionType}
         />
 
-        {/* Portfolio — only meaningful with data; show nothing during initial load */}
-        {data?.portfolio && (
+        {/* Portfolio — always rendered to keep the grid stable during load */}
+        {isLoading ? (
+          <Card className="h-full">
+            <CardContent className="p-6 h-full">
+              <FetchingOverlay />
+            </CardContent>
+          </Card>
+        ) : data?.portfolio ? (
           <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} animate={animate} />
-        )}
+        ) : null}
 
         {/* My Assigned Consultants — pro consultants only, only if staff exist */}
         {showThirdTile && (
