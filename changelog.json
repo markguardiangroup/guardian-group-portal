@@ -3237,6 +3237,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T21:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c0e12f34-9a45-6b78-cd90-1e2f3a4b5c6d",
+          "patch": 8,
+          "message": "Fixed: dashboard overdue count now matches calendar (date-based, not status-based)",
+          "category": "bug",
+          "createdAt": "2026-05-11T21:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

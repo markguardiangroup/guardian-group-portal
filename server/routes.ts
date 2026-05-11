@@ -1610,9 +1610,13 @@ export async function registerRoutes(
         // We count per-document so the display cards match the dialog list —
         // a slot with two compliant docs shows 2 compliant, and a non-compliant
         // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
+        const _now = new Date();
         matchingDocs.forEach(d => {
+          const dateOverdue =
+            (d.reviewDate && new Date(d.reviewDate) < _now) ||
+            (d.expiryDate && new Date(d.expiryDate) < _now);
           if (d.status === "compliant") slotCompliantDocs++;
-          else if (d.status === "overdue") slotOverdue++;
+          else if (d.status === "overdue" || dateOverdue) slotOverdue++;
           else if (d.status === "review_required") slotReview++;
         });
       }
@@ -1650,8 +1654,13 @@ export async function registerRoutes(
     // Per-document counts (match what the dialog list shows)
     const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
-    const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required").length;
-    const overdueDocuments = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const _manualNow = new Date();
+    const isManualOverdue = (d: any) =>
+      d.status === "overdue" ||
+      (d.reviewDate && new Date(d.reviewDate) < _manualNow) ||
+      (d.expiryDate && new Date(d.expiryDate) < _manualNow);
+    const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required" && !isManualOverdue(d)).length;
+    const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
     // Compliance score: compliant / (compliant + not compliant + missing)
     // This ties the percentage directly to the three tiles shown on the dashboard card.
@@ -2107,10 +2116,15 @@ export async function registerRoutes(
         !d.incidentId &&
         d.source !== "external"
       );
+      const _progNow = new Date();
+      const isDocOverdue = (d: any) =>
+        d.status === "overdue" ||
+        (d.reviewDate && new Date(d.reviewDate) < _progNow) ||
+        (d.expiryDate && new Date(d.expiryDate) < _progNow);
       const allDocumentsCount = docProgressSet.length;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant").length;
-      const allReviewRequired = docProgressSet.filter(d => d.status === "review_required").length;
-      const allOverdueDocuments = docProgressSet.filter(d => d.status === "overdue").length;
+      const allReviewRequired = docProgressSet.filter(d => d.status === "review_required" && !isDocOverdue(d)).length;
+      const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;
@@ -2269,10 +2283,15 @@ export async function registerRoutes(
         !d.incidentId &&
         d.source !== "external"
       );
+      const _progNow2 = new Date();
+      const isDocOverdue2 = (d: any) =>
+        d.status === "overdue" ||
+        (d.reviewDate && new Date(d.reviewDate) < _progNow2) ||
+        (d.expiryDate && new Date(d.expiryDate) < _progNow2);
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant").length;
-      const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required").length;
-      const allOverdueProgress = allNonCaseDocs.filter(d => d.status === "overdue").length;
+      const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required" && !isDocOverdue2(d)).length;
+      const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;

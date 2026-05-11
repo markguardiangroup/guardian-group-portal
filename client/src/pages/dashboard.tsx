@@ -652,11 +652,24 @@ function OverallComplianceCard({
     },
     all_review: {
       title: "Review Required Documents",
-      filter: (d) => isProgressDoc(d) && d.status === "review_required",
+      filter: (d) => {
+        if (!isProgressDoc(d) || d.status !== "review_required") return false;
+        const now = new Date();
+        if (d.reviewDate && new Date(d.reviewDate) < now) return false;
+        if (d.expiryDate && new Date(d.expiryDate) < now) return false;
+        return true;
+      },
     },
     all_overdue: {
       title: "Overdue Documents",
-      filter: (d) => isProgressDoc(d) && d.status === "overdue",
+      filter: (d) => {
+        if (!isProgressDoc(d)) return false;
+        if (d.status === "overdue") return true;
+        const now = new Date();
+        if (d.reviewDate && new Date(d.reviewDate) < now) return true;
+        if (d.expiryDate && new Date(d.expiryDate) < now) return true;
+        return false;
+      },
     },
   };
 
