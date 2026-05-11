@@ -1298,78 +1298,79 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             })}
           </div>
 
-          {/* Pagination — only shown when there are more sites than one page */}
-          {showPagination && (
-            <div className="sticky bottom-0 z-10 -mx-8 px-8 py-3 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/50 border-t flex items-center justify-between gap-3 mt-4">
-              <span className="text-sm text-muted-foreground" data-testid="text-sites-pagination-summary">
-                Showing {(siteStartIdx + 1).toLocaleString()}–{siteEndIdx.toLocaleString()} of {sortedFilteredSites.length.toLocaleString()} sites
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-                  onClick={() => setSitePage(1)}
-                  disabled={sitePage <= 1}
-                  aria-label="First page"
-                  data-testid="button-sites-first-page"
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </button>
-                <button
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-                  onClick={() => setSitePage(p => Math.max(1, p - 1))}
-                  disabled={sitePage <= 1}
-                  aria-label="Previous page"
-                  data-testid="button-sites-prev-page"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                {Array.from({ length: totalSitePages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === totalSitePages || Math.abs(p - sitePage) <= 1)
-                  .reduce<(number | "ellipsis")[]>((acc, p, idx, arr) => {
-                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((p, idx) =>
-                    p === "ellipsis" ? (
-                      <span key={`e-${idx}`} className="px-2 text-sm text-muted-foreground select-none">…</span>
-                    ) : (
-                      <button
-                        key={p}
-                        className={`h-8 min-w-8 px-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors ${p === sitePage ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
-                        onClick={() => setSitePage(p as number)}
-                        aria-label={`Page ${p}`}
-                        aria-current={p === sitePage ? "page" : undefined}
-                        data-testid={`button-sites-page-${p}`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  )}
-                <button
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-                  onClick={() => setSitePage(p => Math.min(totalSitePages, p + 1))}
-                  disabled={sitePage >= totalSitePages}
-                  aria-label="Next page"
-                  data-testid="button-sites-next-page"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-                  onClick={() => setSitePage(totalSitePages)}
-                  disabled={sitePage >= totalSitePages}
-                  aria-label="Last page"
-                  data-testid="button-sites-last-page"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
           </>
         )}
       </div>
+
+      {/* Pagination — shrink-0 sibling outside the scroll area, pinned to frame bottom */}
+      {!isLoadingSites && filteredSites.length > 1 && showPagination && (
+        <div className="shrink-0 z-10 px-8 py-3 bg-background border-t flex items-center justify-between gap-3">
+          <span className="text-sm text-muted-foreground" data-testid="text-sites-pagination-summary">
+            Showing {(siteStartIdx + 1).toLocaleString()}–{siteEndIdx.toLocaleString()} of {sortedFilteredSites.length.toLocaleString()} sites
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => setSitePage(1)}
+              disabled={sitePage <= 1}
+              aria-label="First page"
+              data-testid="button-sites-first-page"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </button>
+            <button
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => setSitePage(p => Math.max(1, p - 1))}
+              disabled={sitePage <= 1}
+              aria-label="Previous page"
+              data-testid="button-sites-prev-page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            {Array.from({ length: totalSitePages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalSitePages || Math.abs(p - sitePage) <= 1)
+              .reduce<(number | "ellipsis")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("ellipsis");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, idx) =>
+                p === "ellipsis" ? (
+                  <span key={`e-${idx}`} className="px-2 text-sm text-muted-foreground select-none">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    className={`h-8 min-w-8 px-2 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors ${p === sitePage ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground"}`}
+                    onClick={() => setSitePage(p as number)}
+                    aria-label={`Page ${p}`}
+                    aria-current={p === sitePage ? "page" : undefined}
+                    data-testid={`button-sites-page-${p}`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+            <button
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => setSitePage(p => Math.min(totalSitePages, p + 1))}
+              disabled={sitePage >= totalSitePages}
+              aria-label="Next page"
+              data-testid="button-sites-next-page"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+            <button
+              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => setSitePage(totalSitePages)}
+              disabled={sitePage >= totalSitePages}
+              aria-label="Last page"
+              data-testid="button-sites-last-page"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
