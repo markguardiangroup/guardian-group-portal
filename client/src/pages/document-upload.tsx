@@ -157,9 +157,15 @@ export default function DocumentUpload() {
   const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
-  const [uploadStep, setUploadStep] = useState<"choice" | "site" | "upload" | "complete">("choice");
+  const [uploadStep, setUploadStep] = useState<"choice" | "scope-decision" | "upload" | "complete">("choice");
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
+  const [shareToAll, setShareToAll] = useState(false);
+  // true when the user has confirmed a site selection (or a site was pre-filled from URL)
+  const [sitePickerConfirmed, setSitePickerConfirmed] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return !!params.get("siteId");
+  });
   const [sitePickerSearch, setSitePickerSearch] = useState("");
   const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
   // Full-permission clients can only upload company/group scope docs, not site-scope
@@ -293,8 +299,10 @@ export default function DocumentUpload() {
   const handleUploadFromScratch = () => {
     if (hasRelevantTemplates) {
       setShowTemplatePrompt(true);
+    } else if (docScope === "company" || docScope === "group") {
+      setUploadStep("scope-decision");
     } else {
-      setUploadStep("site");
+      setUploadStep("upload");
     }
   };
 
@@ -609,14 +617,18 @@ export default function DocumentUpload() {
       // Company or Group scoped upload — single document, no site association
       if (docScope === "company" || docScope === "group") {
         if (!selectedEntityId) throw new Error("Please select a target company or group");
-        if (shareDestinations.length === 0) throw new Error("Please select at least one destination");
+        const resolvedShareDestinations = shareToAll
+          ? docScope === "company"
+            ? (companySites ?? []).map(s => s.id)
+            : (groupMemberCompanies ?? []).map(c => c.id)
+          : shareDestinations;
         const formData: DocumentUploadPayload = {
           title: data.title,
           comments: data.comments,
           module: data.module,
           scope: docScope,
           entityId: selectedEntityId,
-          shareDestinations,
+          shareDestinations: resolvedShareDestinations,
           folderId: data.folderId || undefined,
           requiresApproval: data.requiresApproval,
           isRequired: data.isRequired,
@@ -773,16 +785,6 @@ export default function DocumentUpload() {
         });
         return;
       }
-      if (shareDestinations.length === 0) {
-        toast({
-          title: "No Destinations Selected",
-          description: docScope === "company"
-            ? "Please select at least one site to share this document to."
-            : "Please select at least one member company to share this document to.",
-          variant: "destructive",
-        });
-        return;
-      }
     }
     if (docScope === "site" && data.requiresApproval && siteClientUsers.length > 0 && !selectedApproverId) {
       toast({
@@ -804,7 +806,7 @@ export default function DocumentUpload() {
   };
 
   const steps = [
-    { key: "site", label: docScope === "site" ? "Select Site(s)" : docScope === "company" ? "Select Company" : "Select Group" },
+    { key: "scope-decision", label: docScope === "company" ? "Select Scope" : "Select Scope" },
     { key: "upload", label: "Upload & Details" },
   ] as const;
 
@@ -816,8 +818,10 @@ export default function DocumentUpload() {
           size="icon"
           data-testid="button-back"
           onClick={() => {
-            if (uploadStep === "site") setUploadStep("choice");
-            else if (uploadStep === "upload") setUploadStep("site");
+            if (uploadStep === "scope-decision") setUploadStep("choice");
+            else if (uploadStep === "upload" && docScope === "site" && sitePickerConfirmed) { setSitePickerConfirmed(false); }
+            else if (uploadStep === "upload" && (docScope === "company" || docScope === "group")) setUploadStep("scope-decision");
+            else if (uploadStep === "upload") setUploadStep("choice");
             else navigate(buildReturnUrl(selectedModule));
           }}
         >
@@ -831,7 +835,7 @@ export default function DocumentUpload() {
         </div>
       </div>
 
-      {(uploadStep === "site" || uploadStep === "upload") && (
+      {(uploadStep === "scope-decision" || uploadStep === "upload") && (docScope === "company" || docScope === "group") && (
         <div className="flex items-center gap-2">
           {steps.map((step, idx) => {
             const isActive = uploadStep === step.key;
@@ -903,214 +907,81 @@ export default function DocumentUpload() {
         </div>
       )}
 
-      {uploadStep === "site" && (
+      {uploadStep === "scope-decision" && (
+        <div className="max-w-2xl space-y-5">
+          <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
+            <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
+            <div className="text-blue-800 dark:text-blue-300">
+              <p>Uploading to <strong>{docScope === "company" ? "company" : "group"}</strong>: {initialUrlEntityName || allCompanies.find(c => c.id === selectedEntityId)?.name || "—"}</p>
+              <p className="mt-0.5">How should this document be shared?</p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card
+              className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+              onClick={() => { setShareToAll(false); setShareDestinations([]); setUploadStep("upload"); }}
+              data-testid="button-scope-this-level-only"
+            >
+              <CardContent className="py-6 flex flex-col gap-4">
+                <div className="p-3 bg-muted rounded-lg w-fit">
+                  <Building2 className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-semibold text-base">This {docScope === "company" ? "company" : "group"} only</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Document is visible at the {docScope === "company" ? "company" : "group"} level only — not pushed down to individual sites.
+                  </p>
+                </div>
+                <Button variant="outline" className="w-full pointer-events-none" tabIndex={-1}>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+              onClick={() => { setShareToAll(true); setUploadStep("upload"); }}
+              data-testid="button-scope-share-all"
+            >
+              <CardContent className="py-6 flex flex-col gap-4">
+                <div className="p-3 bg-primary/10 rounded-lg w-fit">
+                  <MapPin className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-base">
+                    Share to all {docScope === "company" ? "sites" : "member companies"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Automatically shared to{" "}
+                    {docScope === "company"
+                      ? companySites
+                        ? `all ${companySites.length} site${companySites.length === 1 ? "" : "s"}`
+                        : "all sites"
+                      : groupMemberCompanies
+                        ? `all ${groupMemberCompanies.length} member ${groupMemberCompanies.length === 1 ? "company" : "companies"}`
+                        : "all member companies"}.
+                  </p>
+                </div>
+                <Button className="w-full pointer-events-none" tabIndex={-1}>
+                  Continue
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {uploadStep === "upload" && docScope === "site" && !sitePickerConfirmed && (
         <div className="flex gap-6 items-start">
         <Card className="flex-1 max-w-2xl">
           <CardHeader>
-            {canUploadCompanyGroupScope && (
-              <div className="mb-2">
-                <p className="text-sm font-medium mb-2">Document scope</p>
-                <div className="flex gap-2">
-                  {(["site", "company", "group"] as const).filter(scope =>
-                  (scope !== "site" || isAdminOrConsultant) && (scope !== "group" || canUseGroupScope)
-                  && (!urlUploadScope || scope === urlUploadScope)
-                  && (!urlSiteId || scope === "site")
-                  && (!urlCompanyFilterId || scope === "site")
-                ).map(scope => (
-                    <button
-                      key={scope}
-                      type="button"
-                      onClick={() => { setDocScope(scope); setSelectedEntityId(""); setEntitySearch(""); }}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                        docScope === scope
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background hover:bg-muted border-border"
-                      }`}
-                      data-testid={`button-scope-${scope}`}
-                    >
-                      {scope === "site" ? "Site" : scope === "company" ? "Company" : "Group"}
-                    </button>
-                  ))}
-                </div>
-                {docScope !== "site" && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {docScope === "company"
-                      ? "This document will be shared to specific sites within the selected company. You can manage share destinations after upload."
-                      : "This document will be shared to specific member companies within the selected group. You can manage share destinations after upload."}
-                  </p>
-                )}
-              </div>
-            )}
-            <CardTitle>
-              {docScope === "site" ? "Select Site(s)" : docScope === "company" ? "Select Company" : "Select Group Owner"}
-            </CardTitle>
-            <CardDescription>
-              {docScope === "site"
-                ? "Choose one or more sites this document will be uploaded to"
-                : docScope === "company"
-                ? "Choose the company this document belongs to"
-                : "Choose the group owner company for this document"}
-            </CardDescription>
+            <CardTitle>Select Site(s)</CardTitle>
+            <CardDescription>Choose one or more sites this document will be uploaded to</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Company / Group scope — cascading notice */}
-            {(docScope === "company" || docScope === "group") && (
-              <div className="flex items-start gap-2.5 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3.5 py-3 text-sm text-amber-800 dark:text-amber-300">
-                <Info className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>
-                  {docScope === "company"
-                    ? "This document is added at company level. It will cascade down and be visible in every destination site you select below."
-                    : "This document is added at group level. It will cascade down and be visible in every selected member company and all of their sites."}
-                </span>
-              </div>
-            )}
-
-            {/* Company or Group entity picker */}
-            {(docScope === "company" || docScope === "group") && (
-              <div className="space-y-2">
-                {isFullPermissionClient ? (
-                  /* Full-permission clients: entity is always their own company — show read-only */
-                  <div className="flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm" data-testid="badge-selected-entity">
-                    <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name ?? "Your company"}</span>
-                    <span className="ml-1 text-muted-foreground">(your company)</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        value={entitySearch}
-                        onChange={(e) => setEntitySearch(e.target.value)}
-                        placeholder={docScope === "company" ? "Search companies…" : "Search group owners…"}
-                        className="pl-8 h-8 text-sm"
-                        data-testid="input-entity-search"
-                      />
-                    </div>
-                    <div className="space-y-1 max-h-72 overflow-y-auto pr-1 rounded-md border p-1" data-testid="entity-picker-list">
-                      {(allCompanies ?? [])
-                        .filter(c => docScope === "group" ? c.isGroupOwner : true)
-                        .filter(c => !entitySearch.trim() || c.name.toLowerCase().includes(entitySearch.toLowerCase()))
-                        .map(company => (
-                          <button
-                            key={company.id}
-                            type="button"
-                            onClick={() => { setSelectedEntityId(company.id); setShareDestinations([]); setDestSearch(""); }}
-                            className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
-                              selectedEntityId === company.id ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
-                            }`}
-                            data-testid={`button-entity-select-${company.id}`}
-                          >
-                            <Building2 className="h-3.5 w-3.5 shrink-0" />
-                            {company.name}
-                            {selectedEntityId === company.id && <Check className="h-3.5 w-3.5 ml-auto" />}
-                          </button>
-                        ))
-                      }
-                    </div>
-                    {selectedEntityId && (
-                      <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-sm w-fit" data-testid="badge-selected-entity">
-                        <Building2 className="h-3 w-3 text-primary shrink-0" />
-                        <span className="font-medium">{allCompanies?.find(c => c.id === selectedEntityId)?.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => { setSelectedEntityId(""); setShareDestinations([]); }}
-                          className="text-muted-foreground hover:text-foreground ml-0.5"
-                          data-testid="button-clear-entity"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-            {/* Destination picker — select specific sites (company scope) or member companies (group scope) */}
-            {(docScope === "company" || docScope === "group") && selectedEntityId && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  {docScope === "company" ? "Share to sites (select at least one)" : "Share to member companies (select at least one)"}
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  {docScope === "company"
-                    ? "The document will appear as a shared link in the selected sites."
-                    : "All sites within each chosen company will automatically receive the shared link."}
-                </p>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    value={destSearch}
-                    onChange={(e) => setDestSearch(e.target.value)}
-                    placeholder={docScope === "company" ? "Search sites…" : "Search companies…"}
-                    className="pl-8 h-8 text-sm"
-                    data-testid="input-dest-search"
-                  />
-                </div>
-                <div className="space-y-1 max-h-48 overflow-y-auto pr-1 rounded-md border p-1" data-testid="dest-picker-list">
-                  {docScope === "company" && (companySites ?? [])
-                    .filter(s => !destSearch.trim() || s.name.toLowerCase().includes(destSearch.toLowerCase()))
-                    .map(site => (
-                      <button
-                        key={site.id}
-                        type="button"
-                        onClick={() => setShareDestinations(prev =>
-                          prev.includes(site.id) ? prev.filter(id => id !== site.id) : [...prev, site.id]
-                        )}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
-                          shareDestinations.includes(site.id) ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
-                        }`}
-                        data-testid={`button-dest-select-${site.id}`}
-                      >
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        {site.name}
-                        {shareDestinations.includes(site.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
-                      </button>
-                    ))
-                  }
-                  {docScope === "group" && (groupMemberCompanies ?? [])
-                    .filter(c => !destSearch.trim() || c.name.toLowerCase().includes(destSearch.toLowerCase()))
-                    .map(company => (
-                      <button
-                        key={company.id}
-                        type="button"
-                        onClick={() => setShareDestinations(prev =>
-                          prev.includes(company.id) ? prev.filter(id => id !== company.id) : [...prev, company.id]
-                        )}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-left rounded-md text-sm transition-colors ${
-                          shareDestinations.includes(company.id) ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted"
-                        }`}
-                        data-testid={`button-dest-select-${company.id}`}
-                      >
-                        <Building2 className="h-3.5 w-3.5 shrink-0" />
-                        {company.name}
-                        {shareDestinations.includes(company.id) && <Check className="h-3.5 w-3.5 ml-auto" />}
-                      </button>
-                    ))
-                  }
-                </div>
-                {shareDestinations.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {shareDestinations.map(destId => {
-                      const label = docScope === "company"
-                        ? (companySites ?? []).find(s => s.id === destId)?.name
-                        : (groupMemberCompanies ?? []).find(c => c.id === destId)?.name;
-                      if (!label) return null;
-                      return (
-                        <div key={destId} className="flex items-center gap-1 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-0.5 text-xs" data-testid={`badge-dest-${destId}`}>
-                          {docScope === "company" ? <MapPin className="h-3 w-3 shrink-0" /> : <Building2 className="h-3 w-3 shrink-0" />}
-                          <span>{label}</span>
-                          <button type="button" onClick={() => setShareDestinations(prev => prev.filter(id => id !== destId))} className="text-muted-foreground hover:text-foreground ml-0.5">
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-            {docScope === "site" && selectedSiteIds.length > 0 && (
+            {selectedSiteIds.length > 0 && (
               <div className="space-y-1.5">
                 {(() => {
                   const companyName = sites?.find(s => s.id === selectedSiteIds[0])?.companyName;
@@ -1144,7 +1015,7 @@ export default function DocumentUpload() {
               </div>
             )}
 
-            {docScope === "site" && <div className="relative">
+            <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={sitePickerSearch}
@@ -1153,10 +1024,9 @@ export default function DocumentUpload() {
                 className="pl-8 h-8 text-sm"
                 data-testid="input-site-picker-search"
               />
-            </div>}
+            </div>
 
-            {docScope === "site" && (
-            !sites ? (
+            {!sites ? (
               <p className="text-sm text-muted-foreground">Loading sites…</p>
             ) : filteredSiteGroups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No matching sites found.</p>
@@ -1232,24 +1102,15 @@ export default function DocumentUpload() {
                 });
               })()}
             </div>
-            ))}
+            )}
           </CardContent>
           <div className="px-6 pb-6 flex justify-end">
             <Button
-              onClick={() => {
-                if (docScope === "site") {
-                  setShowSiteConfirmDialog(true);
-                } else {
-                  if (!selectedEntityId) return;
-                  setUploadStep("upload");
-                }
-              }}
-              disabled={docScope === "site" ? selectedSiteIds.length === 0 : (!selectedEntityId || shareDestinations.length === 0)}
+              onClick={() => setShowSiteConfirmDialog(true)}
+              disabled={selectedSiteIds.length === 0}
               data-testid="button-continue-to-upload"
             >
-              {docScope === "site"
-                ? `Continue${selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}`
-                : "Continue"}
+              {`Continue${selectedSiteIds.length > 1 ? ` (${selectedSiteIds.length} sites)` : ""}`}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -1274,7 +1135,7 @@ export default function DocumentUpload() {
         </div>
       )}
 
-      {uploadStep === "upload" && (
+      {uploadStep === "upload" && (docScope !== "site" || sitePickerConfirmed) && (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card>
@@ -1890,7 +1751,7 @@ export default function DocumentUpload() {
             <Button
               onClick={() => {
                 setShowSiteConfirmDialog(false);
-                setUploadStep("upload");
+                setSitePickerConfirmed(true);
               }}
               data-testid="button-confirm-continue"
             >
@@ -1929,7 +1790,11 @@ export default function DocumentUpload() {
               className="w-full"
               onClick={() => {
                 setShowTemplatePrompt(false);
-                setUploadStep("site");
+                if (docScope === "company" || docScope === "group") {
+                  setUploadStep("scope-decision");
+                } else {
+                  setUploadStep("upload");
+                }
               }}
               data-testid="button-prompt-continue"
             >

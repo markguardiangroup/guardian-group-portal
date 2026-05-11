@@ -3109,6 +3109,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T12:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b7d12e45-6c89-4f23-a1b2-3e4f5a6b7c8d",
+          "patch": 8,
+          "message": "Streamlined document upload: context derived from page, new scope-decision step for company/group uploads, upload buttons disabled on 'All' views",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T16:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

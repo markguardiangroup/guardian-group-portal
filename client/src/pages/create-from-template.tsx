@@ -190,7 +190,7 @@ function getFolderIcon(folderName: string): any {
   return Folder;
 }
 
-type Step = "template" | "site" | "placeholders" | "complete";
+type Step = "scope-decision" | "template" | "placeholders" | "complete";
 
 export default function CreateFromTemplate() {
   const [, navigate] = useLocation();
@@ -206,7 +206,12 @@ export default function CreateFromTemplate() {
   const preselectedEntityId = urlParams.get("entityId") || "";
   const preselectedCompanyFilterId = urlParams.get("companyId") || "";
   
-  const [currentStep, setCurrentStep] = useState<Step>(preselectedTemplateId ? "site" : "template");
+  const initialStep: Step = (() => {
+    if (preselectedTemplateId) return "placeholders";
+    if (preselectedScope && preselectedScope !== "site" && preselectedEntityId) return "scope-decision";
+    return "template";
+  })();
+  const [currentStep, setCurrentStep] = useState<Step>(initialStep);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(preselectedTemplateId || "");
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>(preselectedSiteId ? [preselectedSiteId] : []);
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
@@ -246,6 +251,7 @@ export default function CreateFromTemplate() {
   );
   const [selectedEntityId, setSelectedEntityId] = useState<string>(preselectedEntityId);
   const [shareDestinations, setShareDestinations] = useState<string[]>([]);
+  const [shareToAll, setShareToAll] = useState(false);
   const [entitySearch, setEntitySearch] = useState("");
   const [destSearch, setDestSearch] = useState("");
 
@@ -633,7 +639,6 @@ export default function CreateFromTemplate() {
         if (!selectedFolderId) throw new Error("Please select a folder");
       } else {
         if (!selectedEntityId) throw new Error("Please select a target company or group");
-        if (shareDestinations.length === 0) throw new Error("Please select at least one destination");
       }
       if (requiresApproval && !selectedApproverId) {
         throw new Error("Please select a client approver");
@@ -660,6 +665,11 @@ export default function CreateFromTemplate() {
 
       // Company or Group scoped upload — single document with shared destinations
       if (docScope === "company" || docScope === "group") {
+        const resolvedShareDestinations = shareToAll
+          ? docScope === "company"
+            ? (companySites ?? []).map(s => s.id)
+            : (groupMemberCompanies ?? []).map(c => c.id)
+          : shareDestinations;
         const formData = {
           title: documentTitle || selectedTemplate.name,
           comments: documentComments || null,
@@ -667,7 +677,7 @@ export default function CreateFromTemplate() {
           documentTypeId: selectedTemplate.documentTypeId,
           scope: docScope,
           entityId: selectedEntityId,
-          shareDestinations,
+          shareDestinations: resolvedShareDestinations,
           folderId: selectedFolderId || undefined,
           type: docType?.code || "policy",
           fileName: selectedFile.name,
@@ -885,9 +895,10 @@ export default function CreateFromTemplate() {
   };
 
   const renderStepIndicator = () => {
-    const steps = [
+    const isCompanyOrGroup = docScope === "company" || docScope === "group";
+    const steps: { key: Step; label: string }[] = [
+      ...(isCompanyOrGroup ? [{ key: "scope-decision" as Step, label: "Sharing" }] : []),
       { key: "template", label: "Select Template" },
-      { key: "site", label: "Select Site" },
       { key: "placeholders", label: "Customise & Upload" },
     ];
 
@@ -895,9 +906,9 @@ export default function CreateFromTemplate() {
       <div className="flex items-center gap-2 mb-6">
         {steps.map((step, index) => {
           const isActive = currentStep === step.key;
-          const isComplete = 
-            (step.key === "template" && selectedTemplateId) ||
-            (step.key === "site" && selectedSiteIds.length > 0);
+          const isComplete =
+            (step.key === "scope-decision" && (shareToAll || shareDestinations.length > 0)) ||
+            (step.key === "template" && !!selectedTemplateId);
           const isPast = steps.findIndex(s => s.key === currentStep) > index;
 
           return (
@@ -907,7 +918,7 @@ export default function CreateFromTemplate() {
               )}
               <button
                 onClick={() => {
-                  if (isPast || isComplete) goToStep(step.key as Step);
+                  if (isPast || isComplete) goToStep(step.key);
                 }}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm ${
                   isActive
@@ -928,6 +939,72 @@ export default function CreateFromTemplate() {
       </div>
     );
   };
+
+  const renderScopeDecisionStep = () => (
+    <div className="max-w-2xl space-y-5">
+      <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
+        <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
+        <div className="text-blue-800 dark:text-blue-300">
+          <p>Creating a <strong>{docScope === "company" ? "company" : "group"}</strong>-level document for: {allCompaniesData?.companies.find(c => c.id === selectedEntityId)?.name || selectedEntityId}</p>
+          <p className="mt-0.5">How should this document be shared?</p>
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card
+          className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+          onClick={() => { setShareToAll(false); setShareDestinations([]); goToStep("template"); }}
+          data-testid="button-scope-this-level-only"
+        >
+          <CardContent className="py-6 flex flex-col gap-4">
+            <div className="p-3 bg-muted rounded-lg w-fit">
+              <Building2 className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div>
+              <p className="font-semibold text-base">This {docScope === "company" ? "company" : "group"} only</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Document is visible at the {docScope === "company" ? "company" : "group"} level only — not pushed down to individual sites.
+              </p>
+            </div>
+            <Button variant="outline" className="w-full pointer-events-none" tabIndex={-1}>
+              Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
+          onClick={() => { setShareToAll(true); goToStep("template"); }}
+          data-testid="button-scope-share-all"
+        >
+          <CardContent className="py-6 flex flex-col gap-4">
+            <div className="p-3 bg-primary/10 rounded-lg w-fit">
+              <MapPin className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-base">
+                Share to all {docScope === "company" ? "sites" : "member companies"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Automatically shared to{" "}
+                {docScope === "company"
+                  ? companySites
+                    ? `all ${companySites.length} site${companySites.length === 1 ? "" : "s"}`
+                    : "all sites"
+                  : groupMemberCompanies
+                    ? `all ${groupMemberCompanies.length} member ${groupMemberCompanies.length === 1 ? "company" : "companies"}`
+                    : "all member companies"}.
+              </p>
+            </div>
+            <Button className="w-full pointer-events-none" tabIndex={-1}>
+              Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 
   const renderTemplateStep = () => (
     <div className="space-y-4">
@@ -1027,7 +1104,7 @@ export default function CreateFromTemplate() {
                   }`}
                   style={{ animation: "slideUpFade 0.28s ease both", animationDelay: `${index * 40}ms` }}
                   onClick={() => setSelectedTemplateId(template.id)}
-                  onDoubleClick={() => { setSelectedTemplateId(template.id); goToStep("site"); }}
+                  onDoubleClick={() => { setSelectedTemplateId(template.id); goToStep("placeholders"); }}
                   data-testid={`template-card-${template.id}`}
                 >
                   <CardContent className="p-3 flex flex-col flex-1 gap-1.5">
@@ -1089,9 +1166,9 @@ export default function CreateFromTemplate() {
 
       <div className="flex justify-end pt-4">
         <Button
-          onClick={() => goToStep("site")}
+          onClick={() => goToStep("placeholders")}
           disabled={!selectedTemplateId}
-          data-testid="button-next-site"
+          data-testid="button-next-placeholders"
         >
           Continue
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -1951,7 +2028,7 @@ export default function CreateFromTemplate() {
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={() => { goToStep("site"); setSubmitAttempted(false); }} data-testid="button-back-site">
+        <Button variant="outline" onClick={() => { goToStep("template"); setSubmitAttempted(false); }} data-testid="button-back-template-from-placeholders">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
@@ -2053,8 +2130,8 @@ export default function CreateFromTemplate() {
 
       {currentStep !== "complete" && renderStepIndicator()}
 
+      {currentStep === "scope-decision" && renderScopeDecisionStep()}
       {currentStep === "template" && renderTemplateStep()}
-      {currentStep === "site" && renderSiteStep()}
       {currentStep === "placeholders" && renderPlaceholdersStep()}
       {currentStep === "complete" && renderCompleteStep()}
 

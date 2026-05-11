@@ -5,6 +5,7 @@ import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -750,6 +751,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return siteInCompany?.companyId || null;
   }, [selectedCompany, sites]);
 
+  // Whether the current view has enough context (specific site, company, or group)
+  // to create a meaningful document upload. "All" views lack context.
+  const hasSpecificContext = !!((urlScope && urlEntityId) || (selectedSiteId && selectedSiteId !== "all"));
+
   // IDs for linking company/site names to their profile pages in the header
   const contextCompanyId = useMemo(() => {
     if (urlScope === "company" || urlScope === "group") return urlEntityId;
@@ -1318,16 +1323,37 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </Link>
               </Button>
               {isPrivilegedUser && (
-                <Button
-                  className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
-                  asChild
-                  data-testid="button-upload-document"
-                >
-                  <Link href={getUploadUrl()}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Link>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
+                          asChild={hasSpecificContext}
+                          disabled={!hasSpecificContext}
+                          data-testid="button-upload-document"
+                        >
+                          {hasSpecificContext ? (
+                            <Link href={getUploadUrl()}>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Document
+                            </Link>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Document
+                            </>
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!hasSpecificContext && (
+                      <TooltipContent>
+                        <p>Select a specific site, company or group to upload documents</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           </div>
@@ -2084,7 +2110,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <p className="mt-1 text-sm text-muted-foreground">
                   {isPrivilegedUser ? "Upload documents to get started" : "No documents have been added yet"}
                 </p>
-                {isPrivilegedUser && (
+                {isPrivilegedUser && hasSpecificContext && (
                   <Button variant="outline" size="sm" className={`mt-4 ${moduleBorderColors[module]} ${moduleColors[module]}`} asChild>
                     <Link href={getUploadUrl()}>
                       <Upload className="mr-2 h-4 w-4" />
@@ -2531,7 +2557,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     ? `Upload your first ${config.shortName} document to get started`
                     : "No documents have been added yet"}
               </p>
-              {isPrivilegedUser && (
+              {isPrivilegedUser && hasSpecificContext && (
                 <Button className="mt-4" asChild>
                   <Link href={getUploadUrl()}>
                     <Upload className="mr-2 h-4 w-4" />
