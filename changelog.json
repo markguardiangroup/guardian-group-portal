@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "a1b2c3d4-page-load-anim-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Improved page load experience: branded loading overlay and smoother entrance animations across all pages",
+          "createdAt": "2026-05-11T12:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "f6i9j3e5-1g8h-5i67-9h23-k4l5m6n7o8p9",
           "patch": 6,
           "category": "bug",

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import {
   Dialog,
   DialogContent,
@@ -871,7 +872,7 @@ export default function HomePage() {
   const showThirdTile = isProConsultant && assignedConsultants.length > 0;
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto" id="page-content">
+    <div className="p-6 space-y-6 max-w-6xl mx-auto dash-animate" id="page-content">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight" data-testid="text-home-greeting">
@@ -883,18 +884,7 @@ export default function HomePage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2">
-          {[1, 2].map((i) => (
-            <Card key={i}>
-              <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
-              <CardContent className="space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <FetchingOverlay />
       ) : (
         <>
           <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>

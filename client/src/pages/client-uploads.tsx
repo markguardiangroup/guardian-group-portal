@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -731,9 +732,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         </div>
 
         {filesLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          <FetchingOverlay />
         ) : files.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state-files">
             <File className="h-12 w-12 text-muted-foreground mb-3" />
@@ -1152,9 +1151,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
       )}
 
       {foldersLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <FetchingOverlay />
       ) : filteredFolders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center" data-testid="empty-state-folders">
           <CloudUpload className="h-14 w-14 text-muted-foreground mb-4" />

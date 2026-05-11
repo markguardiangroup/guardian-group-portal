@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -204,11 +204,7 @@ function EmailDetailSheet({
           <SheetDescription>Full metadata and event timeline for this email.</SheetDescription>
         </SheetHeader>
 
-        {isLoading && (
-          <div className="mt-6 space-y-3">
-            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 w-full" />)}
-          </div>
-        )}
+        {isLoading && <FetchingOverlay />}
 
         {isError && (
           <div className="mt-6 flex items-start gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
@@ -443,13 +439,7 @@ function EmailDeliveryLogDialog({
 
           {/* Table area */}
           <div className="flex-1 overflow-auto relative">
-            {isLoading && (
-              <div className="p-6 space-y-2">
-                {[1, 2, 3, 4, 5, 6, 7].map(i => (
-                  <Skeleton key={i} className="h-11 w-full" />
-                ))}
-              </div>
-            )}
+            {isLoading && <FetchingOverlay />}
 
             {isError && (
               <div className="m-6 flex items-start gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-4 text-destructive">
@@ -903,11 +893,7 @@ export default function AdminReports() {
             </div>
 
             {usersLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
-                ))}
-              </div>
+              <FetchingOverlay />
             ) : (
               <>
                 <Table>
@@ -1199,9 +1185,7 @@ export default function AdminReports() {
               <TableBody>
                 {loginReportLoading && (
                   <TableRow><TableCell colSpan={3}>
-                    <div className="space-y-2 py-2">
-                      {[1,2,3,4].map(i => <Skeleton key={i} className="h-6 w-full" />)}
-                    </div>
+                    <FetchingOverlay />
                   </TableCell></TableRow>
                 )}
                 {!loginReportLoading && (loginReportData?.logins ?? []).length === 0 && (

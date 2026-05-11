@@ -1381,7 +1381,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         </div>
       </div>
 
-      <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8">
+      <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
 
 
       {/* Folder View */}

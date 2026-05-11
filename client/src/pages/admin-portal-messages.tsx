@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import {
   Dialog,
   DialogContent,
@@ -221,7 +221,7 @@ export default function AdminPortalMessages() {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <div id="page-content" className="p-6 space-y-6 max-w-5xl mx-auto dash-animate">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -239,9 +239,7 @@ export default function AdminPortalMessages() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
-        </div>
+        <FetchingOverlay />
       ) : messages.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <Megaphone className="h-10 w-10 text-muted-foreground" />

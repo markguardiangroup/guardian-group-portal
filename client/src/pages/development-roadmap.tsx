@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -285,7 +286,7 @@ export default function DevelopmentRoadmap() {
   const viewingAssignedUser = viewingItem ? adminUsers.find(a => a.id === (viewingItem as any).assignedUserId) : null;
 
   return (
-    <div className="flex-1 overflow-auto p-6">
+    <div id="page-content" className="flex-1 overflow-auto p-6">
       <div className="max-w-6xl mx-auto space-y-6 dash-animate">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sticky top-0 z-10 bg-background pb-4">
           <div>
@@ -413,9 +414,7 @@ export default function DevelopmentRoadmap() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
+          <FetchingOverlay />
         ) : roadmapItems.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">

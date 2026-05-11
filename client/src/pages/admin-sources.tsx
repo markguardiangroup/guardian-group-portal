@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Tag, ShieldAlert } from "lucide-react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 
 type Source = {
   id: string;
@@ -82,7 +82,7 @@ export default function AdminSources() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
+    <div id="page-content" className="p-6 space-y-6 max-w-3xl dash-animate">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Sources</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -151,11 +151,7 @@ export default function AdminSources() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
+            <FetchingOverlay />
           ) : sources.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">No sources found.</p>
           ) : (

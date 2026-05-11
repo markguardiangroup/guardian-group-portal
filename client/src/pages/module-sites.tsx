@@ -467,7 +467,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       </div>
 
       {/* Sites grid */}
-      <div id="page-content" className="flex-1 overflow-auto p-8">
+      <div id="page-content" className="flex-1 overflow-auto p-8 dash-animate">
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (

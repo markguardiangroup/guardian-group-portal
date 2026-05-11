@@ -556,13 +556,7 @@ function CasesList() {
               </div>
             </div>
             <div className="p-6 pt-1">
-              {isLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-6 w-28" />
-                  <Skeleton className="h-6 w-28" />
-                </div>
-              ) : (
-                <div className="space-y-1">
+              <div className="space-y-1">
                   <button
                     onClick={() => setMetricDialog("cases_active")}
                     className="w-full flex items-center justify-between rounded-md px-1 py-1 hover:bg-pink-50 dark:hover:bg-pink-950/30 transition-colors group"
@@ -582,7 +576,6 @@ function CasesList() {
                   </button>
                   <p className="text-xs text-muted-foreground px-1 pt-0.5">Click row to view list</p>
                 </div>
-              )}
             </div>
           </div>
 
@@ -599,7 +592,7 @@ function CasesList() {
               </div>
             </div>
             <div className="p-6 pt-0">
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className={`text-2xl font-bold ${overdueCases > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}><CountUp value={overdueCases} animate={casesWasLoadingRef.current} /></div>}
+              <div className={`text-2xl font-bold ${overdueCases > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}><CountUp value={overdueCases} animate={casesWasLoadingRef.current} /></div>
               <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
             </div>
           </button>
@@ -617,7 +610,7 @@ function CasesList() {
               </div>
             </div>
             <div className="p-6 pt-0">
-              {isLoading ? <Skeleton className="h-8 w-12" /> : <div className={`text-2xl font-bold ${upcomingCases > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}><CountUp value={upcomingCases} animate={casesWasLoadingRef.current} /></div>}
+              <div className={`text-2xl font-bold ${upcomingCases > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}><CountUp value={upcomingCases} animate={casesWasLoadingRef.current} /></div>
               <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
             </div>
           </button>

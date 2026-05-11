@@ -4,6 +4,7 @@ import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -89,16 +90,6 @@ function EmptyState({ icon: Icon, title, description }: { icon: React.ElementTyp
   );
 }
 
-function SkeletonRows({ count = 5 }: { count?: number }) {
-  return (
-    <div className="space-y-3">
-      {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-16 w-full rounded-md" />
-      ))}
-    </div>
-  );
-}
-
 // ─── API query builder ───────────────────────────────────────────────────────
 
 function buildUrl(path: string, companyId: string, siteId: string, extra?: Record<string, string>) {
@@ -126,7 +117,7 @@ function ComplianceGapsReport({ companyId, siteId }: { companyId: string; siteId
     },
   });
 
-  if (isLoading) return <SkeletonRows />;
+  if (isLoading) return <FetchingOverlay />;
   if (!data || data.length === 0)
     return <EmptyState icon={CheckCircle} title="No compliance gaps found" description="All required documents for the selected scope are fulfilled." />;
 
@@ -249,7 +240,7 @@ function ExpiryRiskReport({ companyId, siteId }: { companyId: string; siteId: st
       )}
 
       {isLoading ? (
-        <SkeletonRows />
+        <FetchingOverlay />
       ) : !data || data.length === 0 ? (
         <EmptyState icon={CheckCircle} title="No expiry risk in this window" description="No documents are overdue or expiring within the selected timeframe." />
       ) : (
@@ -311,7 +302,7 @@ function SiteComparisonReport({ companyId }: { companyId: string }) {
     },
   });
 
-  if (isLoading) return <SkeletonRows />;
+  if (isLoading) return <FetchingOverlay />;
   if (!data || data.length === 0)
     return <EmptyState icon={Building2} title="No sites found" description="Select a company to compare site compliance scores." />;
 
@@ -387,7 +378,7 @@ function ApprovalPipelineReport({ companyId, siteId }: { companyId: string; site
     },
   });
 
-  if (isLoading) return <SkeletonRows />;
+  if (isLoading) return <FetchingOverlay />;
   if (!data || data.length === 0)
     return <EmptyState icon={CheckCircle} title="Pipeline is clear" description="No documents are currently awaiting approval." />;
 
@@ -472,7 +463,7 @@ function DeadlineRiskReport({ companyId, siteId }: { companyId: string; siteId: 
     },
   });
 
-  if (isLoading) return <SkeletonRows />;
+  if (isLoading) return <FetchingOverlay />;
   const milestones = data?.milestoneRisks || [];
   const incidents = data?.incidentRisks || [];
   if (milestones.length === 0 && incidents.length === 0)
@@ -610,7 +601,7 @@ function ElCasesReport({ companyId, siteId }: { companyId: string; siteId: strin
 
   const now = new Date();
 
-  if (isLoading) return <SkeletonRows count={6} />;
+  if (isLoading) return <FetchingOverlay />;
   if (!data || data.cases.length === 0) {
     return (
       <EmptyState

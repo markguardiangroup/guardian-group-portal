@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -252,9 +253,7 @@ export default function TrainingCertificates() {
 
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Loading certificates...
-            </div>
+            <FetchingOverlay />
           ) : filteredCertificates.length === 0 ? (
             <div className="text-center py-12">
               <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
