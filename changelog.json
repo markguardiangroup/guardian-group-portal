@@ -2997,6 +2997,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T09:45:59.205Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "3d5984cd-ba4f-46ba-bad6-0750dc3c6e70",
+          "patch": 8,
+          "message": "Improved: home page now loads instantly; unused page bundles removed from background prefetch",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T11:24:47.389Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -25,9 +25,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 
-// Eager pages — loaded in the initial bundle so login + dashboard appear instantly.
+// Eager pages — loaded in the initial bundle so login + home page appear instantly.
 import Login from "@/pages/login";
-import Dashboard from "@/pages/dashboard";
+import HomePage from "@/pages/home";
 import NotFound from "@/pages/not-found";
 import SetPassword from "@/pages/set-password";
 
@@ -74,7 +74,7 @@ const ToolkitDashboard = lazyPage(() => import("@/pages/toolkit-dashboard"));
 const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
 const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
 const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
-const HomePage = lazyPage(() => import("@/pages/home"));
+const Dashboard = lazyPage(() => import("@/pages/dashboard"));
 const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
 
 function ScrollToTop() {
@@ -323,8 +323,8 @@ function RoutePrefetcher({
 
     schedule(() => {
       // Pages everyone with an account can reach.
+      Dashboard.preload();
       Settings.preload();
-      HelpGuide.preload();
       Documents.preload();
       DocumentUpload.preload();
       Support.preload();
@@ -336,33 +336,25 @@ function RoutePrefetcher({
         ModuleDocuments.preload();
         ModuleSites.preload();
         HSIncidents.preload();
-        ClientUploads.preload();
       }
       if (canAccess("human_resources")) {
         ModuleDashboard.preload();
         ModuleDocuments.preload();
         ModuleSites.preload();
-        ClientUploads.preload();
       }
       if (canAccess("employment_law")) {
         EmploymentLawPage.preload();
         ModuleDocuments.preload();
         ModuleSites.preload();
-        ClientUploads.preload();
       }
       if (canAccess("training")) {
         Training.preload();
         TrainingDashboard.preload();
         MyTraining.preload();
-        TrainingCertificates.preload();
-        TrainingCertificateUpload.preload();
       }
       if (canAccess("toolkit")) {
         ToolkitDashboard.preload();
         ToolkitBrowse.preload();
-      }
-      if (canAccess("reports")) {
-        Reports.preload();
       }
 
       // Admin / consultant only — never download these for client users.
@@ -372,9 +364,7 @@ function RoutePrefetcher({
         Companies.preload();
         CompanyDetail.preload();
         UserManagement.preload();
-        AdminReports.preload();
         AdminFeedback.preload();
-        DevelopmentRoadmap.preload();
         CreateFromTemplate.preload();
       }
       // Library pages — admins always; consultants only with the matching permission.
@@ -385,7 +375,6 @@ function RoutePrefetcher({
         AdminSources.preload();
         AdminPortalMessages.preload();
       }
-      HomePage.preload();
 
     });
   }, [userId, role, isLoading, hasVisibleAccess, consultantPermissions]);
