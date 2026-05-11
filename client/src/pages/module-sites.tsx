@@ -346,8 +346,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     return count;
   }, [selectedGroup, selectedCompany, selectedGroupCompanies, companies]);
 
-  // Page 1 gets a smaller site budget so that summary cards fill the remainder.
-  const page1SiteBudget = Math.max(1, SITES_PER_PAGE - summaryCardCount);
+  // "All Sites" aggregate tile appears whenever there are 2+ filtered sites.
+  const allSitesCardCount = filteredSites.length > 1 ? 1 : 0;
+
+  // Page 1 gets a smaller site budget so that all fixed tiles fill the remainder.
+  const page1SiteBudget = Math.max(1, SITES_PER_PAGE - summaryCardCount - allSitesCardCount);
 
   // Reset to page 1 whenever the filtered list or summary card count changes
   useEffect(() => { setSitePage(1); }, [selectedCompany, selectedGroup, staffFilter, summaryCardCount]);
