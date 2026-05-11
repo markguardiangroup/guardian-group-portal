@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import type { ModuleType } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import { PdfViewer } from "@/components/pdf-viewer";
 import { SiteFilterProvider } from "@/hooks/use-site-filter";
@@ -147,11 +148,7 @@ function ELClientUploads() {
 
 
 function RouteFallback() {
-  return (
-    <div className="flex h-full w-full items-center justify-center p-8">
-      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-    </div>
-  );
+  return <FetchingOverlay />;
 }
 
 type GuardUser = { role: string; consultantPermissions?: { templateLibrary?: boolean; trainingLibrary?: boolean } | null } | null | undefined;
