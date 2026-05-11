@@ -7689,6 +7689,13 @@ export async function registerRoutes(
         }
       }
 
+      // Auto-create site-level share records for any company-scoped documents
+      // already shared with this company, so the new site appears in their
+      // Shared Sites list and the docs show up in the site's folder/table view.
+      if (company) {
+        await storage.autoShareCompanyDocumentsToSite(companyId, entity.id);
+      }
+
       res.status(201).json(entity);
     } catch (error) {
       console.error("Create entity error:", error);

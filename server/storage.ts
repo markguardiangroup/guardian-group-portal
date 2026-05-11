@@ -190,6 +190,7 @@ export interface IStorage {
   getDocumentShares(documentId: string): Promise<DocumentShare[]>;
   createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare>;
   deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
+  autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number>;
   getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
   
   // Document Versions
@@ -1364,6 +1365,54 @@ export class MemStorage implements IStorage {
       id: randomUUID(),
     }).returning();
     return result[0];
+  }
+
+  /**
+   * When a new site is created, automatically propagate existing company-level
+   * document share records down to the new site so it appears in those documents'
+   * Shared Sites lists and the docs show up in the site's folder/table view.
+   * Returns the number of share records created.
+   */
+  async autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number> {
+    // Find all docs already shared at company level with this company
+    const companyShares = await db
+      .select({ documentId: documentSharesTable.documentId })
+      .from(documentSharesTable)
+      .where(
+        and(
+          eq(documentSharesTable.entityType, "company"),
+          eq(documentSharesTable.entityId, companyId),
+        )
+      );
+
+    if (companyShares.length === 0) return 0;
+
+    // Find which of those already have a site-level share for this site
+    const docIds = companyShares.map(r => r.documentId);
+    const existingSiteShares = await db
+      .select({ documentId: documentSharesTable.documentId })
+      .from(documentSharesTable)
+      .where(
+        and(
+          eq(documentSharesTable.entityType, "site"),
+          eq(documentSharesTable.entityId, siteId),
+          inArray(documentSharesTable.documentId, docIds),
+        )
+      );
+    const alreadySharedDocIds = new Set(existingSiteShares.map(r => r.documentId));
+
+    const toInsert = docIds.filter(id => !alreadySharedDocIds.has(id));
+    if (toInsert.length === 0) return 0;
+
+    await db.insert(documentSharesTable).values(
+      toInsert.map(documentId => ({
+        id: randomUUID(),
+        documentId,
+        entityType: "site" as const,
+        entityId: siteId,
+      }))
+    );
+    return toInsert.length;
   }
 
   async deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean> {
