@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
+import { CountUp } from "@/components/ui/count-up";
 import {
   Dialog,
   DialogContent,
@@ -165,10 +166,12 @@ const badgeColorClass: Record<string, string> = {
 function UrgentActionsPanel({
   actions,
   role,
+  animate,
   onActionClick,
 }: {
   actions: HomeSummary["urgentActions"];
   role: string;
+  animate: boolean;
   onActionClick: (type: string) => void;
 }) {
   const isAdmin = role === "admin";
@@ -266,7 +269,7 @@ function UrgentActionsPanel({
           </CardTitle>
           {totalUrgent > 0 && (
             <Badge variant="destructive" className="text-xs" data-testid="badge-urgent-count">
-              {totalUrgent} urgent
+              <CountUp value={totalUrgent} animate={animate} /> urgent
             </Badge>
           )}
         </div>
@@ -291,7 +294,9 @@ function UrgentActionsPanel({
                 <span className="text-sm font-medium">{item.label}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-lg font-bold ${item.color}`}>{item.count}</span>
+                <span className={`text-lg font-bold ${item.color}`}>
+                  <CountUp value={item.count} animate={animate} />
+                </span>
                 {clickable && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
               </div>
             </button>
@@ -310,7 +315,7 @@ function UrgentActionsPanel({
 
 const PORTFOLIO_INITIAL_ROWS = 4;
 
-function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio"]; role: string }) {
+function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["portfolio"]; role: string; animate: boolean }) {
   const isPrivileged = role === "admin" || role === "consultant";
   const [expanded, setExpanded] = useState(false);
 
@@ -340,14 +345,14 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
           {/* Summary stats */}
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-companies">
-              <p className="text-xl font-bold tabular-nums">{totalCompanies}</p>
+              <p className="text-xl font-bold tabular-nums"><CountUp value={totalCompanies} animate={animate} /></p>
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
                 <Landmark className="h-3 w-3" />
                 {totalCompanies === 1 ? "Company" : "Companies"}
               </p>
             </div>
             <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-sites">
-              <p className="text-xl font-bold tabular-nums">{totalSites}</p>
+              <p className="text-xl font-bold tabular-nums"><CountUp value={totalSites} animate={animate} /></p>
               <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
                 <MapPin className="h-3 w-3" />
                 {totalSites === 1 ? "Site" : "Sites"}
@@ -485,8 +490,10 @@ function PortfolioPanel({ portfolio, role }: { portfolio: HomeSummary["portfolio
 
 function AssignedConsultantsPanel({
   consultants,
+  animate,
 }: {
   consultants: NonNullable<HomeSummary["assignedConsultants"]>;
+  animate: boolean;
 }) {
   return (
     <Card data-testid="card-assigned-consultants" className="h-full">
@@ -498,7 +505,7 @@ function AssignedConsultantsPanel({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center">
-          <p className="text-xl font-bold tabular-nums">{consultants.length}</p>
+          <p className="text-xl font-bold tabular-nums"><CountUp value={consultants.length} animate={animate} /></p>
           <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
             <Users className="h-3 w-3" />
             {consultants.length === 1 ? "Consultant" : "Consultants"}
@@ -852,14 +859,29 @@ function UrgentActionsModal({
   );
 }
 
+const EMPTY_URGENT_ACTIONS: HomeSummary["urgentActions"] = {
+  overdueDocuments: 0,
+  reviewRequiredDocuments: 0,
+  pendingApprovals: 0,
+  openIncidents: 0,
+  pendingSignOffs: 0,
+  pendingAccessRequests: 0,
+  openCases: 0,
+};
+
 export default function HomePage() {
   const { user } = useAuth();
   const [activeActionType, setActiveActionType] = useState<string | null>(null);
+  const wasLoadingRef = useRef(false);
 
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
     staleTime: 60000,
   });
+
+  useEffect(() => {
+    if (!isLoading) wasLoadingRef.current = true;
+  }, [isLoading]);
 
   const now = new Date();
   const hour = now.getHours();
@@ -867,9 +889,11 @@ export default function HomePage() {
   const firstName = user?.firstName || user?.fullName?.split(" ")[0] || user?.username || "";
   const todayLabel = format(now, "EEEE, d MMMM yyyy");
 
+  const urgentActions = data?.urgentActions ?? EMPTY_URGENT_ACTIONS;
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
   const assignedConsultants = data?.assignedConsultants ?? [];
   const showThirdTile = isProConsultant && assignedConsultants.length > 0;
+  const animate = wasLoadingRef.current;
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto dash-animate" id="page-content">
@@ -883,44 +907,37 @@ export default function HomePage() {
         </p>
       </div>
 
-      {isLoading ? (
-        <FetchingOverlay />
-      ) : (
-        <>
-          <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-            {/* Urgent Actions */}
-            {data && (
-              <UrgentActionsPanel
-                actions={data.urgentActions}
-                role={user?.role ?? "client"}
-                onActionClick={setActiveActionType}
-              />
-            )}
+      <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+        {/* Urgent Actions — always visible; shows zeros during load, counts up on arrival */}
+        <UrgentActionsPanel
+          actions={urgentActions}
+          role={user?.role ?? "client"}
+          animate={animate}
+          onActionClick={setActiveActionType}
+        />
 
-            {/* Portfolio */}
-            {data?.portfolio && (
-              <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} />
-            )}
+        {/* Portfolio — only meaningful with data; show nothing during initial load */}
+        {data?.portfolio && (
+          <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} animate={animate} />
+        )}
 
-            {/* My Assigned Consultants — pro consultants only, only if staff exist */}
-            {showThirdTile && (
-              <AssignedConsultantsPanel consultants={assignedConsultants} />
-            )}
+        {/* My Assigned Consultants — pro consultants only, only if staff exist */}
+        {showThirdTile && (
+          <AssignedConsultantsPanel consultants={assignedConsultants} animate={animate} />
+        )}
+      </div>
+
+      {/* Portal Messages — full width below */}
+      {data?.portalMessages && data.portalMessages.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold uppercase tracking-wide">
+              From Guardian Group
+            </h2>
           </div>
-
-          {/* Portal Messages — full width below */}
-          {data?.portalMessages && data.portalMessages.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Zap className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-semibold uppercase tracking-wide">
-                  From Guardian Group
-                </h2>
-              </div>
-              <PortalMessagesPanel messages={data.portalMessages} />
-            </div>
-          )}
-        </>
+          <PortalMessagesPanel messages={data.portalMessages} />
+        </div>
       )}
 
       {/* Urgent Actions drill-down modal */}
