@@ -2081,7 +2081,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             ))}
 
                             {/* Upload to parent folder option - privileged only */}
-                            {isPrivilegedUser && (
+                            {isPrivilegedUser && hasSpecificContext && (
                               <div className={`flex items-center justify-center py-3 mt-2 border border-dashed rounded-md ${moduleBorderColors[module]}`}>
                                 <Button variant="ghost" size="sm" asChild>
                                   <Link href={getUploadUrl(folder.id)}>

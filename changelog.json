@@ -3117,6 +3117,30 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T16:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c8e34f91-7a12-4b56-9d23-2e5f6a7b8c9d",
+          "patch": 8,
+          "message": "Improved: upload wizards block gracefully when no site/company context is set, with amber warnings and back navigation",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T16:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d9f45a02-8b23-5c67-ae34-3f6a7b8c9d0e",
+          "patch": 8,
+          "message": "Improved: 'Share to all' scope cards show amber irreversibility warning before continuing",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T16:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e0a56b13-9c34-6d78-bf45-4a7b8c9d0e1f",
+          "patch": 8,
+          "message": "Improved: required-document badges now reflect the specific site or company context",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T16:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

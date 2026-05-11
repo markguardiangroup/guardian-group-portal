@@ -161,11 +161,6 @@ export default function DocumentUpload() {
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
   const [shareToAll, setShareToAll] = useState(false);
-  // true when the user has confirmed a site selection (or a site was pre-filled from URL)
-  const [sitePickerConfirmed, setSitePickerConfirmed] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return !!params.get("siteId");
-  });
   const [sitePickerSearch, setSitePickerSearch] = useState("");
   const [expandedPickerCompanies, setExpandedPickerCompanies] = useState<Set<string>>(new Set());
   // Full-permission clients can only upload company/group scope docs, not site-scope
@@ -810,6 +805,10 @@ export default function DocumentUpload() {
     { key: "upload", label: "Upload & Details" },
   ] as const;
 
+  // Whether there is enough URL context to proceed with an upload.
+  // Admins/consultants can also upload from a company filter (companyId param = site scope restricted to one company).
+  const hasUrlContext = !!(urlUploadScope && urlUploadEntityId) || !!urlSiteId;
+
   return (
     <div className="space-y-6 p-8">
       <div className="flex items-center gap-4">
@@ -818,8 +817,8 @@ export default function DocumentUpload() {
           size="icon"
           data-testid="button-back"
           onClick={() => {
-            if (uploadStep === "scope-decision") setUploadStep("choice");
-            else if (uploadStep === "upload" && docScope === "site" && sitePickerConfirmed) { setSitePickerConfirmed(false); }
+            if (!hasUrlContext || uploadStep === "choice") navigate(buildReturnUrl(selectedModule));
+            else if (uploadStep === "scope-decision") setUploadStep("choice");
             else if (uploadStep === "upload" && (docScope === "company" || docScope === "group")) setUploadStep("scope-decision");
             else if (uploadStep === "upload") setUploadStep("choice");
             else navigate(buildReturnUrl(selectedModule));
@@ -864,7 +863,31 @@ export default function DocumentUpload() {
         </div>
       )}
 
-      {uploadStep === "choice" && (
+      {!hasUrlContext && (
+        <div className="max-w-lg">
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">No upload context</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                To upload a document, navigate to a specific site, company, or group from the documents page and use the Upload button there.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => navigate(buildReturnUrl(selectedModule))}
+                data-testid="button-no-context-back"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Documents
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasUrlContext && uploadStep === "choice" && (
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
           {isAdminOrConsultant && (
             <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
@@ -907,7 +930,7 @@ export default function DocumentUpload() {
         </div>
       )}
 
-      {uploadStep === "scope-decision" && (
+      {hasUrlContext && uploadStep === "scope-decision" && (
         <div className="max-w-2xl space-y-5">
           <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
             <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
@@ -962,6 +985,10 @@ export default function DocumentUpload() {
                         ? `all ${groupMemberCompanies.length} member ${groupMemberCompanies.length === 1 ? "company" : "companies"}`
                         : "all member companies"}.
                   </p>
+                  <div className="flex items-start gap-2 mt-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600" />
+                    <span>This is automatic and cannot be undone — the document will appear for all current{docScope === "company" ? " sites" : " member companies"} immediately.</span>
+                  </div>
                 </div>
                 <Button className="w-full pointer-events-none" tabIndex={-1}>
                   Continue
@@ -973,7 +1000,7 @@ export default function DocumentUpload() {
         </div>
       )}
 
-      {uploadStep === "upload" && docScope === "site" && !sitePickerConfirmed && (
+      {false && uploadStep === "upload" && docScope === "site" && (
         <div className="flex gap-6 items-start">
         <Card className="flex-1 max-w-2xl">
           <CardHeader>
@@ -1135,7 +1162,7 @@ export default function DocumentUpload() {
         </div>
       )}
 
-      {uploadStep === "upload" && (docScope !== "site" || sitePickerConfirmed) && (
+      {hasUrlContext && uploadStep === "upload" && (
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card>
@@ -1751,7 +1778,6 @@ export default function DocumentUpload() {
             <Button
               onClick={() => {
                 setShowSiteConfirmDialog(false);
-                setSitePickerConfirmed(true);
               }}
               data-testid="button-confirm-continue"
             >

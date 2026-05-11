@@ -206,6 +206,9 @@ export default function CreateFromTemplate() {
   const preselectedEntityId = urlParams.get("entityId") || "";
   const preselectedCompanyFilterId = urlParams.get("companyId") || "";
   
+  // Whether URL context is available to proceed with document creation.
+  const hasUrlContext = !!(preselectedScope && preselectedEntityId) || !!preselectedSiteId;
+
   const initialStep: Step = (() => {
     if (preselectedTemplateId) return "placeholders";
     if (preselectedScope && preselectedScope !== "site" && preselectedEntityId) return "scope-decision";
@@ -259,11 +262,36 @@ export default function CreateFromTemplate() {
     queryKey: ["/api/document-templates"],
   });
 
-  const { data: requiredTemplateIds = [] } = useQuery<string[]>({
-    queryKey: ["/api/required-template-ids"],
+  const { data: requiredBySite } = useQuery<Record<string, string[]>>({
+    queryKey: ["/api/effective-required-template-ids-by-site"],
+    queryFn: async () => {
+      const res = await fetch("/api/effective-required-template-ids-by-site", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: docScope === "site",
   });
 
-  const requiredTemplateIdSet = useMemo(() => new Set(requiredTemplateIds), [requiredTemplateIds]);
+  const { data: requiredByCompany } = useQuery<Record<string, string[]>>({
+    queryKey: ["/api/required-template-ids-by-company"],
+    queryFn: async () => {
+      const res = await fetch("/api/required-template-ids-by-company", { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    enabled: docScope === "company" || docScope === "group",
+  });
+
+  const requiredTemplateIdSet = useMemo(() => {
+    if (docScope === "site") {
+      const siteId = selectedSiteIds[0] || preselectedSiteId || "";
+      return new Set(requiredBySite?.[siteId] ?? []);
+    }
+    if ((docScope === "company" || docScope === "group") && selectedEntityId) {
+      return new Set(requiredByCompany?.[selectedEntityId] ?? []);
+    }
+    return new Set<string>();
+  }, [docScope, selectedSiteIds, preselectedSiteId, selectedEntityId, requiredBySite, requiredByCompany]);
 
   const { data: folderTemplates = [] } = useQuery<FolderTemplate[]>({
     queryKey: ["/api/folder-templates"],
@@ -995,6 +1023,10 @@ export default function CreateFromTemplate() {
                     ? `all ${groupMemberCompanies.length} member ${groupMemberCompanies.length === 1 ? "company" : "companies"}`
                     : "all member companies"}.
               </p>
+              <div className="flex items-start gap-2 mt-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600" />
+                <span>This is automatic and cannot be undone — the document will appear for all current{docScope === "company" ? " sites" : " member companies"} immediately.</span>
+              </div>
             </div>
             <Button className="w-full pointer-events-none" tabIndex={-1}>
               Continue
@@ -2128,11 +2160,35 @@ export default function CreateFromTemplate() {
         </div>
       </div>
 
-      {currentStep !== "complete" && renderStepIndicator()}
+      {!hasUrlContext && (
+        <div className="max-w-lg">
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-4">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">No document context</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+                To create a document from a template, navigate to a specific site, company, or group from the documents page and use the Create from Template button there.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => navigate(returnTo)}
+                data-testid="button-no-context-back"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Documents
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {currentStep === "scope-decision" && renderScopeDecisionStep()}
-      {currentStep === "template" && renderTemplateStep()}
-      {currentStep === "placeholders" && renderPlaceholdersStep()}
+      {hasUrlContext && currentStep !== "complete" && renderStepIndicator()}
+
+      {hasUrlContext && currentStep === "scope-decision" && renderScopeDecisionStep()}
+      {hasUrlContext && currentStep === "template" && renderTemplateStep()}
+      {hasUrlContext && currentStep === "placeholders" && renderPlaceholdersStep()}
       {currentStep === "complete" && renderCompleteStep()}
 
       {/* Site selection confirmation dialog */}
