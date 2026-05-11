@@ -139,7 +139,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   const [staffFilter, setStaffFilter] = useState<string>("my");
   const [sitePage, setSitePage] = useState(1);
-  const SITES_PER_PAGE = 21;
+  const SITES_PER_PAGE = 30;
 
   type StaffConsultant = { id: string; fullName: string };
   const { data: myStaff = [] } = useQuery<StaffConsultant[]>({

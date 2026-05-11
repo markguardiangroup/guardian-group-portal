@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "j0k1l2m3-sites-pagination-30-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Sites page tile limit increased from 21 to 30 per page",
+          "createdAt": "2026-05-11T14:08:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "i9j0k1l2-sites-pagination-bar-fixed-2026",
           "patch": 8,
           "category": "enhancement",
