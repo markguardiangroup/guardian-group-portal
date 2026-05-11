@@ -1595,7 +1595,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const renderChildFolder = (childFolder: any) => {
                     const childDocs = docsByFolder.get(childFolder.id) || [];
                     const childMissing = Array.from((missingByFolder.get(childFolder.id) ?? new Map()).values());
-                    const childStatusBadge = getFolderStatusBadge(computeStats(childDocs));
+                    const childStatusBadge = getFolderStatusBadge(childFolder.stats ?? computeStats(childDocs));
                     return (
                       <AccordionItem
                         key={childFolder.id}

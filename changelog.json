@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "a1b2c3d4-child-folder-backend-stats-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: subfolder status badges now accurately reflect required-document coverage",
+          "createdAt": "2026-05-11T18:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "n4o5p6q7-folder-incomplete-badge-fix-2026",
           "patch": 8,
           "category": "bug",
