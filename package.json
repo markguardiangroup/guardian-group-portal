@@ -117,7 +117,7 @@
     "autoprefixer": "^10.4.20",
     "drizzle-kit": "^0.31.8",
     "esbuild": "^0.25.0",
-    "postcss": "^8.4.47",
+    "postcss": "^8.5.14",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
@@ -127,8 +127,12 @@
     "drizzle-kit": {
       "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
     },
-    "rollup": "4.59.0",
-    "picomatch": "4.0.4"
+    "picomatch": "4.0.4",
+    "dompurify": "^3.4.2",
+    "fast-xml-parser": "^5.7.3",
+    "fast-xml-builder": "^1.2.0",
+    "ip-address": "^10.2.0",
+    "@tootallnate/once": "^3.0.1"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

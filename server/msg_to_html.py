@@ -11,13 +11,10 @@ import re
 import email.utils as email_utils
 import shutil
 import tempfile
-import asyncio
-
 _libs = os.path.join(os.path.dirname(__file__), '..', '.pythonlibs', 'lib', 'python3.11', 'site-packages')
 sys.path.insert(0, _libs)
 
 import extract_msg
-import pyppeteer
 from bs4 import BeautifulSoup
 
 MONTHS = [
@@ -309,7 +306,8 @@ def find_chromium() -> str:
     raise RuntimeError("Chromium not found — install via system dependencies")
 
 
-async def _render_pdf(html_src: str, pdf_path: str) -> None:
+def _render_pdf(html_src: str, pdf_path: str) -> None:
+    import subprocess
     chromium = find_chromium()
     with tempfile.NamedTemporaryFile(
         suffix=".html", delete=False, mode="w", encoding="utf-8"
@@ -318,36 +316,33 @@ async def _render_pdf(html_src: str, pdf_path: str) -> None:
         tmp_html = f.name
 
     try:
-        browser = await pyppeteer.launch(
-            executablePath=chromium,
-            args=[
+        result = subprocess.run(
+            [
+                chromium,
+                "--headless=new",
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
                 "--disable-setuid-sandbox",
-            ]
+                "--run-all-compositor-stages-before-draw",
+                "--print-to-pdf-no-header",
+                f"--print-to-pdf={pdf_path}",
+                f"file://{tmp_html}",
+            ],
+            capture_output=True,
+            timeout=60,
         )
-        page = await browser.newPage()
-        await page.goto(f"file://{tmp_html}", waitUntil="networkidle0")
-        await page.pdf(
-            path=pdf_path,
-            format="A4",
-            printBackground=False,
-            margin={
-                "top":    "1.8cm",
-                "right":  "2.4cm",
-                "bottom": "2.0cm",
-                "left":   "2.4cm",
-            }
-        )
-        await browser.close()
+        if result.returncode != 0:
+            raise RuntimeError(
+                f"Chromium exited with {result.returncode}: {result.stderr.decode(errors='replace')}"
+            )
     finally:
         os.unlink(tmp_html)
 
 
 def msg_to_pdf(msg_path: str, pdf_path: str) -> None:
     html_src = build_html(msg_path)
-    asyncio.run(_render_pdf(html_src, pdf_path))
+    _render_pdf(html_src, pdf_path)
 
 
 if __name__ == "__main__":
