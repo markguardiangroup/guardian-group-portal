@@ -259,6 +259,14 @@ function DocumentsListView() {
 
   const [showArchived, setShowArchived] = useState(false);
 
+  // Build a context-aware upload URL so the upload wizard receives siteId when a site is selected.
+  const uploadUrl = (() => {
+    if (selectedSiteId && selectedSiteId !== "all") {
+      return `/documents/upload?siteId=${selectedSiteId}`;
+    }
+    return "/documents/upload";
+  })();
+
   const { data: documents, isLoading } = useQuery<EnrichedDocument[]>({
     queryKey: ["/api/documents", "includeArchived"],
     queryFn: async () => {
@@ -442,7 +450,7 @@ function DocumentsListView() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/documents/upload" data-testid="button-upload-document">
+          <Link href={uploadUrl} data-testid="button-upload-document">
             <Upload className="mr-2 h-4 w-4" />
             Upload Document
           </Link>
@@ -824,7 +832,7 @@ function DocumentsListView() {
                             </div>
                             <p className="mt-3 text-sm text-muted-foreground">No documents in this folder yet</p>
                             <Button className="mt-3" size="sm" asChild>
-                              <Link href="/documents/upload">
+                              <Link href={uploadUrl}>
                                 <Upload className="mr-2 h-4 w-4" />
                                 Upload Document
                               </Link>
@@ -1152,7 +1160,7 @@ function DocumentsListView() {
               </p>
               {!searchQuery && typeFilter === "all" && statusFilter === "all" && (
                 <Button className="mt-4" asChild>
-                  <Link href="/documents/upload">
+                  <Link href={uploadUrl}>
                     <Upload className="mr-2 h-4 w-4" />
                     Upload Document
                   </Link>
