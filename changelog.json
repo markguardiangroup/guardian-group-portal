@@ -3261,6 +3261,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T22:35:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e2a34b56-1c67-8d90-ef12-3a4b5c6d7e8f",
+          "patch": 8,
+          "message": "Fixed: dashboard Document Progress overdue count now uses date logic consistently",
+          "category": "bug",
+          "createdAt": "2026-05-11T22:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
