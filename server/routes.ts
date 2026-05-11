@@ -1615,8 +1615,8 @@ export async function registerRoutes(
           const dateOverdue =
             (d.reviewDate && new Date(d.reviewDate) < _now) ||
             (d.expiryDate && new Date(d.expiryDate) < _now);
-          if (d.status === "compliant") slotCompliantDocs++;
-          else if (d.status === "overdue" || dateOverdue) slotOverdue++;
+          if (d.status === "overdue" || dateOverdue) slotOverdue++;
+          else if (d.status === "compliant") slotCompliantDocs++;
           else if (d.status === "review_required") slotReview++;
         });
       }
@@ -1652,13 +1652,13 @@ export async function registerRoutes(
 
     const totalDocuments = slotTotal + manualRequired.length;
     // Per-document counts (match what the dialog list shows)
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
-    const compliantDocuments = slotCompliantDocs + manualCompliant;
     const _manualNow = new Date();
     const isManualOverdue = (d: any) =>
       d.status === "overdue" ||
       (d.reviewDate && new Date(d.reviewDate) < _manualNow) ||
       (d.expiryDate && new Date(d.expiryDate) < _manualNow);
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d)).length;
+    const compliantDocuments = slotCompliantDocs + manualCompliant;
     const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required" && !isManualOverdue(d)).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
@@ -2122,7 +2122,7 @@ export async function registerRoutes(
         (d.reviewDate && new Date(d.reviewDate) < _progNow) ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow);
       const allDocumentsCount = docProgressSet.length;
-      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant").length;
+      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
       const allReviewRequired = docProgressSet.filter(d => d.status === "review_required" && !isDocOverdue(d)).length;
       const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
@@ -2289,7 +2289,7 @@ export async function registerRoutes(
         (d.reviewDate && new Date(d.reviewDate) < _progNow2) ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow2);
       const allDocsProgress = allNonCaseDocs.length;
-      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant").length;
+      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
       const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required" && !isDocOverdue2(d)).length;
       const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       

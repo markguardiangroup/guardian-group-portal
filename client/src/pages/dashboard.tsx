@@ -648,7 +648,13 @@ function OverallComplianceCard({
     },
     all_compliant: {
       title: "Complete Documents",
-      filter: (d) => isProgressDoc(d) && d.status === "compliant",
+      filter: (d) => {
+        if (!isProgressDoc(d) || d.status !== "compliant") return false;
+        const now = new Date();
+        if (d.reviewDate && new Date(d.reviewDate) < now) return false;
+        if (d.expiryDate && new Date(d.expiryDate) < now) return false;
+        return true;
+      },
     },
     all_review: {
       title: "Review Required Documents",

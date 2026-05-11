@@ -3253,6 +3253,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T21:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d1f23a45-0b56-7c89-de01-2f3a4b5c6d7e",
+          "patch": 8,
+          "message": "Fixed: docs with past expiry/review dates move from Complete to Overdue bucket",
+          "category": "bug",
+          "createdAt": "2026-05-11T22:35:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
