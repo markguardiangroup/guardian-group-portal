@@ -564,7 +564,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
     const qs = params.toString();
     return `${basePath}/documents/upload${qs ? `?${qs}` : ""}`;
-  }, [basePath, selectedSiteId, urlScope, urlEntityId, urlEntityName]);
+  }, [basePath, selectedSiteId, selectedCompanyId, companies, urlScope, urlEntityId, urlEntityName]);
 
   const groupOwnerName = useMemo(() => {
     if (selectedGroup === "all" || !companies.length) return null;
@@ -1970,7 +1970,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                            (missingByFolderTemplateId.get(childFolder.id)?.length ?? 0) === 0 && (
                                             <div className="text-center py-4 text-muted-foreground">
                                               <p className="text-xs">No documents in this subfolder</p>
-                                              {isPrivilegedUser && (
+                                              {isPrivilegedUser && hasSpecificContext && (
                                                 <Button variant="ghost" size="sm" className="mt-1" asChild>
                                                   <Link href={getUploadUrl()}>
                                                     <Upload className="mr-2 h-3 w-3" />
