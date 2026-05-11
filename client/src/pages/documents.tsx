@@ -850,12 +850,30 @@ function DocumentsListView() {
                               <FileText className="h-6 w-6 text-muted-foreground" />
                             </div>
                             <p className="mt-3 text-sm text-muted-foreground">No documents in this folder yet</p>
-                            <Button className="mt-3" size="sm" asChild>
-                              <Link href={uploadUrl}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Upload Document
-                              </Link>
-                            </Button>
+                            {selectedSiteId && selectedSiteId !== "all" ? (
+                              <Button className="mt-3" size="sm" asChild>
+                                <Link href={uploadUrl}>
+                                  <Upload className="mr-2 h-4 w-4" />
+                                  Upload Document
+                                </Link>
+                              </Button>
+                            ) : (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="mt-3">
+                                      <Button size="sm" disabled>
+                                        <Upload className="mr-2 h-4 w-4" />
+                                        Upload Document
+                                      </Button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom" className="max-w-xs whitespace-normal text-xs">
+                                    Select a specific site first to upload a document
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </div>
                         )}
 
@@ -1178,12 +1196,30 @@ function DocumentsListView() {
                   : "Upload your first document to get started"}
               </p>
               {!searchQuery && typeFilter === "all" && statusFilter === "all" && (
-                <Button className="mt-4" asChild>
-                  <Link href={uploadUrl}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
-                  </Link>
-                </Button>
+                selectedSiteId && selectedSiteId !== "all" ? (
+                  <Button className="mt-4" asChild>
+                    <Link href={uploadUrl}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Document
+                    </Link>
+                  </Button>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="mt-4">
+                          <Button disabled>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Document
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs whitespace-normal text-xs">
+                        Select a specific site first to upload a document
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
               )}
             </div>
           )}
