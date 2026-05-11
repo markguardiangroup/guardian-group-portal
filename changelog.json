@@ -3157,6 +3157,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T16:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b3d45e67-2f78-9a01-bc23-4d5e6f7a8b9c",
+          "patch": 8,
+          "message": "Fixed: home page Sites metric now shows the correct total instead of being capped at 20",
+          "category": "bug",
+          "createdAt": "2026-05-11T19:30:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

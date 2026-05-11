@@ -16167,7 +16167,7 @@ export async function registerRoutes(
           }
         } else {
           const sitesRes = await pool.query<SiteRow>(
-            "SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id ORDER BY c.name, s.name LIMIT 100"
+            "SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id ORDER BY c.name, s.name"
           );
           sitesData = sitesRes.rows.map((row) => ({ id: row.id, name: row.name, companyName: row.company_name, isPrimary: false }));
         }
@@ -16211,7 +16211,7 @@ export async function registerRoutes(
 
         portfolio = {
           assignedCompanies: Array.from(companyMap.entries()).map(([name, v]) => ({ name, siteCount: v.siteCount })),
-          assignedSites: sitesData.slice(0, 20),
+          assignedSites: sitesData,
           sources: sourcesData,
         };
       } else {
