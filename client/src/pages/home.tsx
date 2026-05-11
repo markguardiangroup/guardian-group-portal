@@ -525,7 +525,7 @@ function AssignedConsultantsPanel({
           ))}
         </div>
         <Button variant="outline" size="sm" className="w-full" asChild>
-          <Link href="/user-management?staffFilter=my_staff" data-testid="link-view-all-consultants">
+          <Link href="/users?staffFilter=my_staff" data-testid="link-view-all-consultants">
             View Staff
             <ArrowRight className="ml-2 h-3.5 w-3.5" />
           </Link>

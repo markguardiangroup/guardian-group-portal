@@ -2946,6 +2946,14 @@
           "category": "feature",
           "createdAt": "2026-05-11T09:14:59.487Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "54bdf731-19b0-4680-bcf4-1042809694c2",
+          "patch": 7,
+          "message": "Fixed: View Staff link from home page was returning a 404",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:17:46.652Z",
+          "createdBy": "agent"
         }
       ]
     }
