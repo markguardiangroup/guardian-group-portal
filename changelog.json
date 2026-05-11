@@ -3269,6 +3269,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T22:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f3b45c67-2d78-9e01-fa23-4b5c6d7e8f9a",
+          "patch": 8,
+          "message": "Fixed: module tile document count now shows actual docs, not required slot count",
+          "category": "bug",
+          "createdAt": "2026-05-11T22:55:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

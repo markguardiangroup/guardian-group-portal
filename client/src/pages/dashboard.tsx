@@ -116,7 +116,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           <div>
             <CardTitle className="text-lg">{summary.moduleName}</CardTitle>
             <CardDescription>
-              <CountUp value={summary.totalDocuments} /> documents
+              <CountUp value={summary.allDocuments ?? summary.totalDocuments} /> documents
             </CardDescription>
           </div>
         </div>
