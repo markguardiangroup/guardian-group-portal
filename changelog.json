@@ -3293,6 +3293,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T23:10:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c6e78f90-5a01-2b34-cd56-7e8f9a0b1c2d",
+          "patch": 8,
+          "message": "Improved: Urgent Actions card now shows scope label (e.g. 'Across your assigned sites')",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T23:20:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CountUp } from "@/components/ui/count-up";
@@ -165,11 +165,13 @@ const badgeColorClass: Record<string, string> = {
 function UrgentActionsPanel({
   actions,
   role,
+  scopeLabel,
   animate,
   onActionClick,
 }: {
   actions: HomeSummary["urgentActions"];
   role: string;
+  scopeLabel: string;
   animate: boolean;
   onActionClick: (type: string) => void;
 }) {
@@ -272,6 +274,7 @@ function UrgentActionsPanel({
             </Badge>
           )}
         </div>
+        <CardDescription className="text-xs mt-0.5">{scopeLabel}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {items.map((item) => {
@@ -876,6 +879,15 @@ export default function HomePage() {
   const showThirdTile = isProConsultant && assignedConsultants.length > 0;
   const animate = wasLoadingRef.current;
 
+  const urgentScopeLabel = (() => {
+    const role = user?.role;
+    if (role === "admin") return "Across all companies and sites";
+    if (role === "consultant") return "Across your assigned sites";
+    const portfolio = data?.portfolio as { site?: { name: string } | null } | null;
+    const companyName = portfolio?.site?.name;
+    return companyName ? `For ${companyName}` : "For your accessible sites";
+  })();
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto dash-animate" id="page-content">
       {/* Header */}
@@ -893,6 +905,7 @@ export default function HomePage() {
         <UrgentActionsPanel
           actions={urgentActions}
           role={user?.role ?? "client"}
+          scopeLabel={urgentScopeLabel}
           animate={animate}
           onActionClick={setActiveActionType}
         />
