@@ -2954,6 +2954,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T09:17:46.652Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "1f9608f7-0049-44cc-92c7-ccfe931fbde5",
+          "patch": 7,
+          "message": "Fixed: patch number now auto-increments in dev whenever a new deployment is published",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:27:29.453Z",
+          "createdBy": "agent"
         }
       ]
     }

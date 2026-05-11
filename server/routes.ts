@@ -15654,6 +15654,8 @@ export async function registerRoutes(
    * for this so it can auto-bump itself when prod has shipped a new patch.
    */
   app.get("/api/changelog/published-patch", async (_req, res) => {
+    // Allow cross-origin fetches so the dev frontend can poll the live prod server
+    res.setHeader("Access-Control-Allow-Origin", "*");
     try {
       const cl = await readChangelog();
       const active = cl.versions.find((v) => v.id === cl.activeVersionId);

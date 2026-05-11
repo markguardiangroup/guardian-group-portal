@@ -241,6 +241,51 @@ function Router() {
   );
 }
 
+/**
+ * Runs in the background for every authenticated dev session.
+ * Polls the live production server's published-patch endpoint every 60 s.
+ * When prod's patch has reached dev's current patch (i.e. a new deploy just
+ * shipped), it calls the bump endpoint so dev advances to the next patch number.
+ */
+function ProdPublishWatcher() {
+  const isDev = import.meta.env.DEV;
+  const prodUrl = (import.meta.env.VITE_PROD_URL as string | undefined)?.replace(/\/$/, "");
+
+  const bumpMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/changelog/bump-after-publish"),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/changelog"] }),
+  });
+
+  useQuery<{ major: number; minor: number; patch: number }>({
+    queryKey: ["prod-published-patch-global", prodUrl],
+    enabled: isDev && !!prodUrl,
+    refetchInterval: 60_000,
+    staleTime: 55_000,
+    queryFn: async () => {
+      const res = await fetch(`${prodUrl}/api/changelog/published-patch`, { credentials: "omit" });
+      if (!res.ok) throw new Error("prod fetch failed");
+      const data = await res.json() as { major: number; minor: number; patch: number };
+      // Fetch current dev changelog to compare
+      const clRes = await fetch("/api/changelog");
+      if (!clRes.ok) return data;
+      const cl = await clRes.json() as { activeVersionId: string; versions: Array<{ id: string; major: number; minor: number; patch: number }> };
+      const active = cl.versions.find((v: any) => v.id === cl.activeVersionId);
+      if (
+        active &&
+        data.major === active.major &&
+        data.minor === active.minor &&
+        data.patch >= active.patch &&
+        !bumpMutation.isPending
+      ) {
+        bumpMutation.mutate();
+      }
+      return data;
+    },
+  });
+
+  return null;
+}
+
 function RoutePrefetcher({
   userId,
   role,
@@ -623,6 +668,7 @@ function AuthenticatedApp() {
           <LegalAcceptanceScreen />
         ) : (
           <SiteFilterProvider>
+            <ProdPublishWatcher />
             <DataPrefetcher userId={user!.id} isClientUser={user!.role === "client"} />
             <RoutePrefetcher
               userId={user!.id}
