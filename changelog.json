@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "e5f6g7h8-urgent-badge-space-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: urgent actions badge now shows correct spacing (e.g. \"9 urgent\" not \"9urgent\")",
+          "createdAt": "2026-05-11T12:25:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "d4e5f6g7-spinning-logo-2026",
           "patch": 8,
           "category": "enhancement",
