@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { CountUp } from "@/components/ui/count-up";
 import {
   Dialog,
@@ -879,9 +878,7 @@ export default function HomePage() {
     staleTime: 60000,
   });
 
-  useEffect(() => {
-    if (!isLoading) wasLoadingRef.current = true;
-  }, [isLoading]);
+  if (isLoading) wasLoadingRef.current = true;
 
   const now = new Date();
   const hour = now.getHours();
