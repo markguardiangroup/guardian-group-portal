@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "f6g7h8i9-early-preload-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Pages like Documents and Sites now load faster — JS bundles preload immediately after sign-in",
+          "createdAt": "2026-05-11T13:20:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e5f6g7h8-urgent-badge-space-2026",
           "patch": 8,
           "category": "bug",

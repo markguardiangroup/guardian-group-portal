@@ -295,7 +295,20 @@ function RoutePrefetcher({
   consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
 }) {
   const startedRef = useRef(false);
+  const immediateRef = useRef(false);
   const { isLoading, hasVisibleAccess } = useModuleAccess();
+
+  // Fire immediately on first mount — no auth or idle wait needed for these
+  // bundles since they're the same chunk regardless of role/module access.
+  useEffect(() => {
+    if (immediateRef.current) return;
+    immediateRef.current = true;
+    ModuleDocuments.preload();
+    ModuleSites.preload();
+    ModuleDashboard.preload();
+    Dashboard.preload();
+    CalendarPage.preload();
+  }, []);
 
   useEffect(() => {
     if (startedRef.current) return;
