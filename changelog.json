@@ -3277,6 +3277,22 @@
           "category": "bug",
           "createdAt": "2026-05-11T22:55:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a4c56d78-3e89-0f12-ab34-5c6d7e8f9a0b",
+          "patch": 8,
+          "message": "Fixed: Document Progress totals now match folder view by using server-computed counts",
+          "category": "bug",
+          "createdAt": "2026-05-11T23:10:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b5d67e89-4f90-1a23-bc45-6d7e8f9a0b1c",
+          "patch": 8,
+          "message": "Fixed: folder view Review Required count now uses same date-based overdue logic as dashboard",
+          "category": "bug",
+          "createdAt": "2026-05-11T23:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -652,46 +652,46 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <CardContent className={`transition-opacity duration-300 ${isFetching ? "opacity-50" : "opacity-100"}`}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
-                  onClick={() => expandedDocStats.total > 0 && setDocsDialogFilter("total")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${expandedDocStats.total > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-total"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-2xl font-semibold">{expandedDocStats.total}</span>
+                    <span className="text-2xl font-semibold">{summary.allDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Total</p>
                 </button>
                 <button
-                  onClick={() => expandedDocStats.compliant > 0 && setDocsDialogFilter("all_compliant")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${expandedDocStats.compliant > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => summary.allCompliantDocuments > 0 && setDocsDialogFilter("all_compliant")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-compliant"
                 >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{expandedDocStats.compliant}</span>
+                    <span className="text-2xl font-semibold">{summary.allCompliantDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Complete</p>
                 </button>
                 <button
-                  onClick={() => expandedDocStats.review > 0 && setDocsDialogFilter("all_review")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${expandedDocStats.review > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => summary.allReviewRequired > 0 && setDocsDialogFilter("all_review")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allReviewRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-review"
                 >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                     <Clock className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{expandedDocStats.review}</span>
+                    <span className="text-2xl font-semibold">{summary.allReviewRequired}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Review Required</p>
                 </button>
                 <button
-                  onClick={() => expandedDocStats.overdue > 0 && setDocsDialogFilter("all_overdue")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${expandedDocStats.overdue > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-overdue"
                 >
                   <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{expandedDocStats.overdue}</span>
+                    <span className="text-2xl font-semibold">{summary.allOverdueDocuments}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Overdue</p>
                 </button>

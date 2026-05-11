@@ -11381,13 +11381,20 @@ export async function registerRoutes(
           };
         }),
         sharedDocuments,
-        summary: {
-          totalFolders: hierarchy.length,
-          totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
-          approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
-          reviewRequired: allNonArchivedDocs.filter((d: any) => d.status === "review_required").length,
-          overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
-        },
+        summary: (() => {
+          const _hierNow = new Date();
+          const isHierDocOverdue = (d: any) =>
+            d.status === "overdue" ||
+            (d.expiryDate && new Date(d.expiryDate) < _hierNow) ||
+            (d.reviewDate && new Date(d.reviewDate) < _hierNow);
+          return {
+            totalFolders: hierarchy.length,
+            totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
+            approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
+            reviewRequired: allNonArchivedDocs.filter((d: any) => d.status === "review_required" && !isHierDocOverdue(d)).length,
+            overdue: allNonArchivedDocs.filter(isHierDocOverdue).length,
+          };
+        })(),
       });
     } catch (error) {
       console.error("Get documents hierarchy error:", error);
