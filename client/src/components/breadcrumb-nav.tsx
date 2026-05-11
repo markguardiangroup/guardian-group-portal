@@ -46,14 +46,16 @@ function buildCrumbs(
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
     currentPath += `/${segment}`;
-    if (entityNames[segment]) {
-      crumbs.push({ label: entityNames[segment], href: currentPath });
-    } else if (isIdSegment(segment)) {
+    // Strip any query string from the segment before label lookup
+    const bareSegment = segment.split("?")[0];
+    if (entityNames[bareSegment]) {
+      crumbs.push({ label: entityNames[bareSegment], href: currentPath });
+    } else if (isIdSegment(bareSegment)) {
       crumbs.push({ label: "Details", href: currentPath });
     } else {
       const label =
-        routeLabels[segment] ||
-        segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        routeLabels[bareSegment] ||
+        bareSegment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       crumbs.push({ label, href: currentPath });
     }
   }

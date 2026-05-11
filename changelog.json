@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "k1l2m3n4-breadcrumb-querystring-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: breadcrumb no longer shows raw query strings like \"Documents?SiteId=Site 1\"",
+          "createdAt": "2026-05-11T14:10:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "j0k1l2m3-sites-pagination-30-2026",
           "patch": 8,
           "category": "enhancement",
