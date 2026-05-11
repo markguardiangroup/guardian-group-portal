@@ -3165,6 +3165,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T19:30:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c4e56f78-3a89-0b12-cd34-5e6f7a8b9c0d",
+          "patch": 8,
+          "message": "Fixed: home page Review Required count now matches the sum shown across module dashboards",
+          "category": "bug",
+          "createdAt": "2026-05-11T19:38:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
