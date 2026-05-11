@@ -4,6 +4,7 @@ import { useLocation, Link, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -449,12 +450,30 @@ function DocumentsListView() {
             Manage compliance documents and approvals
           </p>
         </div>
-        <Button asChild>
-          <Link href={uploadUrl} data-testid="button-upload-document">
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Document
-          </Link>
-        </Button>
+        {selectedSiteId && selectedSiteId !== "all" ? (
+          <Button asChild>
+            <Link href={uploadUrl} data-testid="button-upload-document">
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Document
+            </Link>
+          </Button>
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button disabled data-testid="button-upload-document">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Document
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs whitespace-normal text-xs">
+                Select a specific site first to upload a document
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <div id="page-content" className="flex-1 overflow-auto px-8 pb-8 pt-6 space-y-6 dash-animate">
 

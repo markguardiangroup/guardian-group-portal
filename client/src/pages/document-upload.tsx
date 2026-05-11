@@ -987,7 +987,9 @@ export default function DocumentUpload() {
                   </p>
                   <div className="flex items-start gap-2 mt-3 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                     <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-600" />
-                    <span>This is automatic and cannot be undone — the document will appear for all current{docScope === "company" ? " sites" : " member companies"} immediately.</span>
+                    <span>
+                      This cannot be selectively applied — the document will be shared to <strong>all current and future</strong>{docScope === "company" ? " sites within this company" : " companies (and all their sites) within this group"} automatically.
+                    </span>
                   </div>
                 </div>
                 <Button className="w-full pointer-events-none" tabIndex={-1}>
