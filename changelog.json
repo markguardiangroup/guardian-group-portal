@@ -3213,6 +3213,22 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T20:22:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a8c90d12-7e23-4f56-ab78-9c0d1e2f3a4b",
+          "patch": 8,
+          "message": "Calendar now includes training request scheduled and renewal dates",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T21:10:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "b9d01e23-8f34-5a67-bc89-0d1e2f3a4b5c",
+          "patch": 8,
+          "message": "Calendar now shows company-level document dates for admin users",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T21:10:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

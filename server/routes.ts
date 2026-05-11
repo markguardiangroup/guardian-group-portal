@@ -14563,18 +14563,33 @@ export async function registerRoutes(
       // ── Documents ──────────────────────────────────────────────────────────
       if (!moduleFilter || ["health_safety", "human_resources", "employment_law", "training"].includes(moduleFilter)) {
         const allDocs = await storage.getDocuments(undefined, false);
+
+        // Helper: can we include this document on the calendar?
+        // Site-scoped docs use the standard canAccess check.
+        // Company-scoped docs (siteId = null) are shown to admins when no site/company filter is active.
+        const canAccessDoc = (doc: any): boolean => {
+          if (doc.siteId) {
+            if (!canAccess(doc.siteId)) return false;
+            if (companySiteIds && !companySiteIds.includes(doc.siteId)) return false;
+            return true;
+          }
+          // Company-scoped document
+          if (siteFilter) return false; // specific site requested — skip
+          if (companySiteIds) return false; // company filter works through sites — skip
+          return allowedSiteIds === null; // admins only
+        };
+
+        const moduleDocUrlBase: Record<string, string> = {
+          health_safety: "/health-safety/documents",
+          human_resources: "/human-resources/documents",
+          employment_law: "/employment-law/documents",
+        };
+
         for (const doc of allDocs) {
-          if (!canAccess(doc.siteId)) continue;
-          if (companySiteIds && (!doc.siteId || !companySiteIds.includes(doc.siteId))) continue;
+          if (!canAccessDoc(doc)) continue;
           if (moduleFilter && doc.module !== moduleFilter) continue;
 
           // training has no /training/documents/:id route, so fall back to /training
-          const moduleDocUrlBase: Record<string, string> = {
-            health_safety: "/health-safety/documents",
-            human_resources: "/human-resources/documents",
-            employment_law: "/employment-law/documents",
-          };
-
           const docUrl = moduleDocUrlBase[doc.module]
             ? `${moduleDocUrlBase[doc.module]}/${doc.id}${doc.siteId ? `?siteId=${doc.siteId}` : ""}`
             : "/training";
@@ -14644,24 +14659,26 @@ export async function registerRoutes(
         }
       }
 
-      // ── Training bookings ──────────────────────────────────────────────────
+      // ── Training bookings & requests ───────────────────────────────────────
       if (!moduleFilter || moduleFilter === "training") {
-        const allBookings = await storage.getTrainingBookings({ status: "booked" });
-        // Batch-load courses to avoid N+1
+        // Batch-load course names to avoid N+1
         const courseCache: Record<string, string> = {};
+        const resolveCourse = async (courseId: string): Promise<string> => {
+          if (courseCache[courseId] === undefined) {
+            const course = await storage.getTrainingCourse(courseId);
+            courseCache[courseId] = course?.title ?? "Training Session";
+          }
+          return courseCache[courseId];
+        };
+
+        // New booking system: show scheduled date for active bookings
+        const allBookings = await storage.getTrainingBookings({ status: "booked" });
         for (const booking of allBookings) {
           if (!canAccess(booking.siteId)) continue;
           if (companySiteIds && !companySiteIds.includes(booking.siteId)) continue;
           if (!booking.scheduledDate) continue;
           if (!inDateRange(new Date(booking.scheduledDate))) continue;
-
-          let courseName = courseCache[booking.trainingCourseId];
-          if (courseName === undefined) {
-            const course = await storage.getTrainingCourse(booking.trainingCourseId);
-            courseName = course?.title ?? "Training Session";
-            courseCache[booking.trainingCourseId] = courseName;
-          }
-
+          const courseName = await resolveCourse(booking.trainingCourseId);
           events.push({
             id: `training-booking-${booking.id}`,
             title: `Training: ${courseName}`,
@@ -14672,6 +14689,38 @@ export async function registerRoutes(
             url: `/training`,
             isOverdue: new Date(booking.scheduledDate) < now,
           });
+        }
+
+        // Legacy training requests: show scheduled date (booked) and renewal due date (all statuses)
+        const allRequests = await storage.getTrainingRequests();
+        for (const req of allRequests) {
+          if (!canAccess(req.siteId)) continue;
+          if (companySiteIds && !companySiteIds.includes(req.siteId)) continue;
+          const courseName = await resolveCourse(req.trainingCourseId);
+          if (req.status === "booked" && req.scheduledDate && inDateRange(new Date(req.scheduledDate))) {
+            events.push({
+              id: `training-request-scheduled-${req.id}`,
+              title: `Training: ${courseName}`,
+              date: req.scheduledDate,
+              type: "training_renewal",
+              module: "training",
+              siteId: req.siteId,
+              url: `/training`,
+              isOverdue: new Date(req.scheduledDate) < now,
+            });
+          }
+          if (req.renewalDate && inDateRange(new Date(req.renewalDate))) {
+            events.push({
+              id: `training-request-renewal-${req.id}`,
+              title: `Re-training Due: ${courseName}`,
+              date: req.renewalDate,
+              type: "renewal_due",
+              module: "training",
+              siteId: req.siteId,
+              url: `/training`,
+              isOverdue: new Date(req.renewalDate) < now,
+            });
+          }
         }
       }
 
