@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useLocation, useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -4428,9 +4429,7 @@ function IncidentsListView() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <FetchingOverlay />
             ) : filteredIncidents.length > 0 ? (
               <Table>
                 <TableHeader>

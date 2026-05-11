@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "b2c3d4e5-spinner-replace-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Replaced plain spinning circles on Calendar, Incidents, and Feedback with branded loading overlay",
+          "createdAt": "2026-05-11T12:10:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a1b2c3d4-page-load-anim-2026",
           "patch": 8,
           "category": "enhancement",

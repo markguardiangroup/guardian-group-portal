@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { CountUp } from "@/components/ui/count-up";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -709,9 +710,7 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-24">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
+              <FetchingOverlay />
             ) : (
               <CalendarGrid events={events} currentMonth={currentMonth} />
             )}
@@ -739,9 +738,7 @@ export default function CalendarPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
+              <FetchingOverlay />
             ) : (
               <EventTable
                 events={events}

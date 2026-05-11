@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Feedback, FeedbackComment } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -240,9 +241,7 @@ export default function AdminFeedback() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            <FetchingOverlay />
           ) : (
             <div className="space-y-6">
               {feedbackList
