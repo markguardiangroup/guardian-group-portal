@@ -174,11 +174,13 @@ export default function ChangelogSection() {
       if (!res.ok) throw new Error("prod fetch failed");
       const data = await res.json();
       const active = changelog?.versions.find((v) => v.id === changelog.activeVersionId);
+      // Fire when prod's recorded publishedPatch exceeds dev's last known publishedPatch —
+      // meaning a new deployment has shipped code that dev hasn't yet accounted for.
       if (
         active &&
         data.major === active.major &&
         data.minor === active.minor &&
-        data.patch >= active.patch &&
+        data.patch > (active.publishedPatch ?? -1) &&
         !bumpAfterPublishMutation.isPending
       ) {
         bumpAfterPublishMutation.mutate();

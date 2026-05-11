@@ -8,6 +8,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { autoRecordPublishedPatch } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -240,12 +241,11 @@ process.on("uncaughtException", (err) => {
   // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
-    // NOTE: Production does NOT bump the changelog patch. Prod simply ships
-    // with whatever changelog.json was current in dev at build time, and the
-    // patch counter is owned by dev — dev advances itself after each publish
-    // (either via the manual "Bump Patch" button or the auto-detect poll on
-    // the changelog page that watches the live /api/changelog/published-patch
-    // endpoint).
+    // Record publishedPatch = current patch so the /api/changelog/published-patch
+    // endpoint returns what was actually shipped. Does NOT increment the patch counter.
+    autoRecordPublishedPatch().catch((e) =>
+      console.error("[changelog] autoRecordPublishedPatch failed:", e)
+    );
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);

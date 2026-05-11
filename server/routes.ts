@@ -15660,7 +15660,10 @@ export async function registerRoutes(
       const cl = await readChangelog();
       const active = cl.versions.find((v) => v.id === cl.activeVersionId);
       if (!active) return res.json({ major: 0, minor: 0, patch: 0 });
-      res.json({ major: active.major, minor: active.minor, patch: active.patch });
+      // Return publishedPatch (what was last shipped) so dev's watcher compares
+      // against the actually-deployed version, not a locally-bumped counter.
+      const shippedPatch = active.publishedPatch ?? active.patch;
+      res.json({ major: active.major, minor: active.minor, patch: shippedPatch });
     } catch (err) {
       console.error("Changelog published-patch error:", err);
       res.status(500).json({ error: "Failed to read changelog" });

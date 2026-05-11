@@ -136,6 +136,23 @@ export async function autoIncrementPatchIfChanged(): Promise<void> {
   await bumpDevPatchAfterPublish();
 }
 
+/**
+ * Called on production server startup.
+ *
+ * Records publishedPatch = current patch so the /api/changelog/published-patch
+ * endpoint can return what was actually shipped, without changing the patch
+ * counter itself. Safe to call on every restart — idempotent if nothing changed.
+ */
+export async function autoRecordPublishedPatch(): Promise<void> {
+  if (process.env.NODE_ENV !== "production") return;
+  const cl = await readChangelog();
+  const active = cl.versions.find((v) => v.id === cl.activeVersionId);
+  if (!active) return;
+  if (active.publishedPatch === active.patch) return; // already recorded, nothing to do
+  active.publishedPatch = active.patch;
+  await writeChangelog(cl);
+}
+
 export function generateChangelogId(): string {
   return crypto.randomUUID();
 }

@@ -5,9 +5,9 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 7,
-      "publishedPatch": 6,
-      "label": "Initial Release",
+      "patch": 8,
+      "publishedPatch": 7,
+      "label": "",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
       "patchedEntryIds": [
@@ -328,7 +328,18 @@
         "a7b8c9d0-e1f2-3456-abcd-567890123457",
         "b8c9d0e1-f2a3-4567-bcde-678901234568",
         "c9d0e1f2-a3b4-5678-cdef-789012345679",
-        "d0e1f2a3-b4c5-6789-defa-890123456780"
+        "d0e1f2a3-b4c5-6789-defa-890123456780",
+        "033b6b5b-0fc9-46d7-a95e-18cc3b547e49",
+        "a3a55836-7598-4d2b-85f5-ea2603d46e47",
+        "6627728c-426d-48f4-bd49-5775a488344d",
+        "2c024d18-aba0-49cc-9552-06be4611c9d8",
+        "e1fa7749-6cf3-46d5-a8c6-ed6b305c2bda",
+        "f847aeb5-8176-477b-862b-7bb4e16021a8",
+        "093ee088-3778-48d6-b800-9457b993c029",
+        "350ef7b8-e91b-4a4d-bc93-02d23d28b197",
+        "ea37f739-9fb4-405b-8406-0423bee4ebec",
+        "54bdf731-19b0-4680-bcf4-1042809694c2",
+        "1f9608f7-0049-44cc-92c7-ccfe931fbde5"
       ],
       "entries": [
         {
@@ -2961,6 +2972,22 @@
           "message": "Fixed: patch number now auto-increments in dev whenever a new deployment is published",
           "category": "bug",
           "createdAt": "2026-05-11T09:27:29.453Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d88511cc-584b-43b5-a92d-a7a3fc1e814d",
+          "patch": 8,
+          "message": "Fixed: patch numbering corrected — dev shows patch 8, prod shows patch 7",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:37:31.037Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "fbc47386-ff23-427a-bd28-a32ed94139b8",
+          "patch": 8,
+          "message": "Fixed: prod version badge correctly shows the shipped patch number",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:41:36.529Z",
           "createdBy": "agent"
         }
       ]

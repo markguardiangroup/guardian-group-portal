@@ -268,13 +268,15 @@ function ProdPublishWatcher() {
       // Fetch current dev changelog to compare
       const clRes = await fetch("/api/changelog");
       if (!clRes.ok) return data;
-      const cl = await clRes.json() as { activeVersionId: string; versions: Array<{ id: string; major: number; minor: number; patch: number }> };
+      const cl = await clRes.json() as { activeVersionId: string; versions: Array<{ id: string; major: number; minor: number; patch: number; publishedPatch?: number }> };
       const active = cl.versions.find((v: any) => v.id === cl.activeVersionId);
+      // Fire when prod's recorded publishedPatch exceeds dev's last known publishedPatch —
+      // meaning a new deployment has shipped code that dev hasn't yet accounted for.
       if (
         active &&
         data.major === active.major &&
         data.minor === active.minor &&
-        data.patch >= active.patch &&
+        data.patch > (active.publishedPatch ?? -1) &&
         !bumpMutation.isPending
       ) {
         bumpMutation.mutate();
