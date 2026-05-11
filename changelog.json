@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "b7c8d9e0-remove-incomplete-folder-badge-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Removed: 'Incomplete' badge no longer appears on folder rows in document pages",
+          "createdAt": "2026-05-11T19:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a1b2c3d4-child-folder-backend-stats-2026",
           "patch": 8,
           "category": "bug",

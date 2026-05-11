@@ -767,12 +767,6 @@ function DocumentsListView() {
                                 Compliant
                               </Badge>
                             )}
-                            {folder.stats.folderStatus === "incomplete" && (
-                              <Badge variant="outline" className="border-yellow-200 bg-yellow-50 text-yellow-700">
-                                <Clock className="mr-1 h-3 w-3" />
-                                {folder.stats.fulfilledRequired}/{folder.stats.requiredTemplates} Required
-                              </Badge>
-                            )}
                             {folder.stats.folderStatus === "attention_needed" && (
                               <Badge variant="outline" className="border-red-200 bg-red-50 text-red-700">
                                 <AlertTriangle className="mr-1 h-3 w-3" />
