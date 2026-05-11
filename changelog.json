@@ -3045,6 +3045,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T11:24:47.389Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a9c21f84-3b57-4e12-8d6a-1f2e3c4d5b6e",
+          "patch": 8,
+          "message": "Improved: sites and documents pages now show a branded loading animation instead of plain grey skeletons",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T12:45:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Button } from "@/components/ui/button";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { useSiteFilter } from "@/hooks/use-site-filter";
@@ -469,11 +469,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       {/* Sites grid */}
       <div id="page-content" className="flex-1 overflow-auto p-8 dash-animate">
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-52 rounded-xl" />
-            ))}
-          </div>
+          <FetchingOverlay />
         ) : filteredSites.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
             <MapPin className="h-10 w-10 mb-3 opacity-30" />

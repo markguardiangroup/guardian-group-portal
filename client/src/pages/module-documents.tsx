@@ -5,7 +5,7 @@ import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -1768,22 +1768,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           {/* Folders Accordion */}
           {hierarchySiteId && isLoadingHierarchy ? (
-            <Card>
-              <CardContent className="p-4 space-y-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center justify-between px-2 py-3 border-b last:border-b-0">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-8 w-8 rounded-md shrink-0" />
-                      <Skeleton className="h-4 w-36" />
-                    </div>
-                    <div className="flex items-center gap-3 pr-4">
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
+            <FetchingOverlay />
           ) : hierarchySiteId && hierarchy?.folders && hierarchy.folders.length > 0 ? (
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="p-4">
@@ -2274,42 +2259,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[240px]">Document</TableHead>
-                  <TableHead className="w-28 whitespace-nowrap">Compliance</TableHead>
-                  <TableHead className="w-20 whitespace-nowrap">Period</TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Renews</TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Expires</TableHead>
-                  <TableHead className="w-32 whitespace-nowrap">Status</TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Modified</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
-                        <div className="space-y-1.5">
-                          <Skeleton className="h-4 w-40" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-8 rounded-md" /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <Table>
               <TableHeader>
@@ -2611,9 +2561,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-2 py-2">
             {isLoadingArchived ? (
-              <div className="space-y-2">
-                {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
-              </div>
+              <FetchingOverlay />
             ) : !archivedDocuments || archivedDocuments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <Archive className="h-10 w-10 mb-3 opacity-40" />
@@ -3300,18 +3248,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   if (!document) {
