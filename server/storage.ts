@@ -1374,34 +1374,64 @@ export class MemStorage implements IStorage {
    * Returns the number of share records created.
    */
   async autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number> {
-    // Find all docs already shared at company level with this company
-    const companyShares = await db
-      .select({ documentId: documentSharesTable.documentId })
-      .from(documentSharesTable)
+    // Find all company-scoped documents owned by this company (scope="company", entityId=companyId).
+    // These use site-level share records (entityType="site") — one per covered site.
+    const companyDocs = await db
+      .select({ id: documentsTable.id })
+      .from(documentsTable)
       .where(
         and(
-          eq(documentSharesTable.entityType, "company"),
-          eq(documentSharesTable.entityId, companyId),
+          eq(documentsTable.scope, "company"),
+          eq(documentsTable.entityId, companyId),
+          isNull(documentsTable.siteId),
+          eq(documentsTable.isArchived, false),
         )
       );
 
-    if (companyShares.length === 0) return 0;
+    if (companyDocs.length === 0) return 0;
+    const docIds = companyDocs.map(r => r.id);
 
-    // Find which of those already have a site-level share for this site
-    const docIds = companyShares.map(r => r.documentId);
-    const existingSiteShares = await db
+    // Get all OTHER sites of this company so we can check which docs have been
+    // explicitly shared to at least one of them (i.e. they're "active" shares,
+    // not just orphaned rows for deleted sites).
+    const companySites = await this.getSitesByCompanyId(companyId);
+    const otherSiteIds = companySites.map(s => s.id).filter(id => id !== siteId);
+
+    // Find which company docs have at least one site-level share to an existing site
+    let sharedDocIds: Set<string>;
+    if (otherSiteIds.length > 0) {
+      const existingShares = await db
+        .select({ documentId: documentSharesTable.documentId })
+        .from(documentSharesTable)
+        .where(
+          and(
+            eq(documentSharesTable.entityType, "site"),
+            inArray(documentSharesTable.entityId, otherSiteIds),
+            inArray(documentSharesTable.documentId, docIds),
+          )
+        );
+      sharedDocIds = new Set(existingShares.map(r => r.documentId));
+    } else {
+      // No other sites yet — share all company docs to the first site
+      sharedDocIds = new Set(docIds);
+    }
+
+    if (sharedDocIds.size === 0) return 0;
+
+    // Exclude any docs already directly shared to the new site
+    const alreadyForNewSite = await db
       .select({ documentId: documentSharesTable.documentId })
       .from(documentSharesTable)
       .where(
         and(
           eq(documentSharesTable.entityType, "site"),
           eq(documentSharesTable.entityId, siteId),
-          inArray(documentSharesTable.documentId, docIds),
+          inArray(documentSharesTable.documentId, Array.from(sharedDocIds)),
         )
       );
-    const alreadySharedDocIds = new Set(existingSiteShares.map(r => r.documentId));
+    const alreadySharedDocIds = new Set(alreadyForNewSite.map(r => r.documentId));
 
-    const toInsert = docIds.filter(id => !alreadySharedDocIds.has(id));
+    const toInsert = Array.from(sharedDocIds).filter(id => !alreadySharedDocIds.has(id));
     if (toInsert.length === 0) return 0;
 
     await db.insert(documentSharesTable).values(
