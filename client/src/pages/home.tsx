@@ -267,8 +267,8 @@ function UrgentActionsPanel({
             Urgent Actions
           </CardTitle>
           {totalUrgent > 0 && (
-            <Badge variant="destructive" className="text-xs" data-testid="badge-urgent-count">
-              <CountUp value={totalUrgent} animate={animate} />{" urgent"}
+            <Badge variant="destructive" className="text-xs tabular-nums" data-testid="badge-urgent-count">
+              {totalUrgent} urgent
             </Badge>
           )}
         </div>
