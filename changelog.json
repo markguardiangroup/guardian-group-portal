@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "m3n4o5p6-module-docs-crash-fix-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: Module Documents pages no longer crash on load",
+          "createdAt": "2026-05-11T16:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "l2m3n4o5-auto-share-new-site-2026",
           "patch": 8,
           "category": "bug",

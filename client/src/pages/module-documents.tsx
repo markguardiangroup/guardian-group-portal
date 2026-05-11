@@ -540,6 +540,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
   }, [sites, setSelectedSiteId, setSelectedCompany]);
 
+  // Get companyId from selected company name (for filtering when viewing all sites)
+  const selectedCompanyId = useMemo(() => {
+    if (!selectedCompany || selectedCompany === "all" || !sites) return null;
+    const siteInCompany = sites.find(s => s.companyName === selectedCompany);
+    return siteInCompany?.companyId || null;
+  }, [selectedCompany, sites]);
+
   const getUploadUrl = useCallback((folderId?: string) => {
     const params = new URLSearchParams();
     if (urlScope && urlEntityId) {
@@ -747,13 +754,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       ? "all" 
       : (sites && sites.length === 1 ? sites[0].id : "all");
   
-  // Get companyId from selected company name (for filtering when viewing all sites)
-  const selectedCompanyId = useMemo(() => {
-    if (!selectedCompany || selectedCompany === "all" || !sites) return null;
-    const siteInCompany = sites.find(s => s.companyName === selectedCompany);
-    return siteInCompany?.companyId || null;
-  }, [selectedCompany, sites]);
-
   // Whether the current view has enough context (specific site, company, or group)
   // to create a meaningful document upload. "All" views lack context.
   // A locked-company filter (selectedCompany !== "all") is valid context even when
