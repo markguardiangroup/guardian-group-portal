@@ -2989,6 +2989,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T09:41:36.529Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "788f68f7-fec6-4854-9aad-60fee07b87de",
+          "patch": 8,
+          "message": "Fixed: logging out now resets the URL so next login always opens the home page",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:45:59.205Z",
+          "createdBy": "agent"
         }
       ]
     }
