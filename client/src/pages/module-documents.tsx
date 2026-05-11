@@ -549,9 +549,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     } else if (selectedSiteId && selectedSiteId !== "all") {
       params.set("siteId", selectedSiteId);
     } else if (selectedCompanyId) {
-      // "All Sites" view of a single company — lock scope to site and pre-filter to that company.
-      params.set("scope", "site");
-      params.set("companyId", selectedCompanyId);
+      // "All Sites" view of a single company — use canonical company scope so the
+      // upload wizard can resolve hasUrlContext correctly.
+      params.set("scope", "company");
+      params.set("entityId", selectedCompanyId);
+      const companyName = companies.find(c => c.id === selectedCompanyId)?.name;
+      if (companyName) params.set("entityName", companyName);
     } else {
       // "All Companies / All Sites" view — lock scope to site (no company/group context here).
       params.set("scope", "site");
