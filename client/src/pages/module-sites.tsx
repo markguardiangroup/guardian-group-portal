@@ -329,14 +329,45 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     });
   }, [filteredSites, documents, missingRequiredDetails]);
 
-  // Reset to page 1 whenever the filtered list changes
-  useEffect(() => { setSitePage(1); }, [selectedCompany, selectedGroup, staffFilter]);
+  // How many summary cards (group + company) will be rendered above the site tiles.
+  // They count toward the 21-tile-per-page budget on page 1.
+  const summaryCardCount = useMemo(() => {
+    if (selectedGroup === "all" && (!selectedCompany || selectedCompany === "all")) return 0;
+    let count = 0;
+    if (selectedGroup !== "all") count++; // group card
+    const companyCardSource: CompanyListItem[] =
+      selectedGroup !== "all"
+        ? selectedGroupCompanies.filter((c) => c.id !== selectedGroup)
+        : companies.filter((c) => c.name === selectedCompany);
+    const companyCards = companyCardSource.filter((c) =>
+      !selectedCompany || selectedCompany === "all" ? true : c.name === selectedCompany
+    );
+    count += companyCards.length;
+    return count;
+  }, [selectedGroup, selectedCompany, selectedGroupCompanies, companies]);
 
-  const totalSitePages = Math.max(1, Math.ceil(sortedFilteredSites.length / SITES_PER_PAGE));
-  const paginatedSites = sortedFilteredSites.slice(
-    (sitePage - 1) * SITES_PER_PAGE,
-    sitePage * SITES_PER_PAGE,
-  );
+  // Page 1 gets a smaller site budget so that summary cards fill the remainder.
+  const page1SiteBudget = Math.max(1, SITES_PER_PAGE - summaryCardCount);
+
+  // Reset to page 1 whenever the filtered list or summary card count changes
+  useEffect(() => { setSitePage(1); }, [selectedCompany, selectedGroup, staffFilter, summaryCardCount]);
+
+  const totalSitePages =
+    sortedFilteredSites.length <= page1SiteBudget
+      ? 1
+      : 1 + Math.ceil((sortedFilteredSites.length - page1SiteBudget) / SITES_PER_PAGE);
+
+  const siteStartIdx =
+    sitePage === 1 ? 0 : page1SiteBudget + (sitePage - 2) * SITES_PER_PAGE;
+  const siteEndIdx =
+    sitePage === 1
+      ? Math.min(page1SiteBudget, sortedFilteredSites.length)
+      : Math.min(siteStartIdx + SITES_PER_PAGE, sortedFilteredSites.length);
+
+  const paginatedSites = sortedFilteredSites.slice(siteStartIdx, siteEndIdx);
+
+  // Show pagination bar only when total tiles (summary + sites) exceed one page
+  const showPagination = sortedFilteredSites.length > page1SiteBudget;
 
   const handleSiteClick = (siteId: string) => {
     setSelectedSiteId(siteId);
@@ -1265,10 +1296,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           </div>
 
           {/* Pagination — only shown when there are more sites than one page */}
-          {sortedFilteredSites.length > SITES_PER_PAGE && (
+          {showPagination && (
             <div className="sticky bottom-0 z-10 -mx-8 px-8 py-3 bg-background/70 backdrop-blur-md supports-[backdrop-filter]:bg-background/50 border-t flex items-center justify-between gap-3 mt-4">
               <span className="text-sm text-muted-foreground" data-testid="text-sites-pagination-summary">
-                Showing {((sitePage - 1) * SITES_PER_PAGE + 1).toLocaleString()}–{Math.min(sitePage * SITES_PER_PAGE, sortedFilteredSites.length).toLocaleString()} of {sortedFilteredSites.length.toLocaleString()} sites
+                Showing {(siteStartIdx + 1).toLocaleString()}–{siteEndIdx.toLocaleString()} of {sortedFilteredSites.length.toLocaleString()} sites
               </span>
               <div className="flex items-center gap-1">
                 <button

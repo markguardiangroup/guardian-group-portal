@@ -346,7 +346,7 @@
           "id": "h8i9j0k1-sites-pagination-2026",
           "patch": 8,
           "category": "feature",
-          "message": "Site Documents pages now paginate at 21 sites per page with page navigation controls",
+          "message": "Site Documents pages paginate at 21 tiles per page (summary + site cards counted together)",
           "createdAt": "2026-05-11T13:50:00.000Z",
           "createdBy": "agent"
         },
