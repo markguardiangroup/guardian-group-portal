@@ -833,20 +833,8 @@ function UrgentActionsModal({
         </div>
 
         {config && (
-          <div className="shrink-0 pt-3 border-t flex justify-between items-center">
+          <div className="shrink-0 pt-3 border-t">
             <p className="text-xs text-muted-foreground">Showing all {config.listLabel}</p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                onClose();
-                navigate(config.navHref);
-              }}
-              data-testid="modal-nav-all"
-            >
-              Go to {config.label}
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Button>
           </div>
         )}
       </DialogContent>

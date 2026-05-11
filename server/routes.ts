@@ -16105,7 +16105,7 @@ export async function registerRoutes(
       }
       // admins see all — userSiteIds stays null
 
-      // Apply same filters as /api/modules/summary: exclude case, incident, and external docs
+      // Apply same filters as the items drill-down: exclude case, incident, and external docs
       const filteredDocs = allDocs.filter((d) =>
         !d.isArchived &&
         !d.caseId &&
@@ -16113,45 +16113,18 @@ export async function registerRoutes(
         d.source !== "external"
       );
 
-      // Site-scoped docs (siteId != null), filtered to accessible sites
-      const activeSiteDocs = userSiteIds
+      // Count only the docs the items list will actually show (site-scoped, within accessible sites).
+      // Company-scoped docs (siteId == null) are excluded for non-admins to keep counts in sync with the list.
+      const countableDocs = userSiteIds
         ? filteredDocs.filter((d) => d.siteId && userSiteIds!.includes(d.siteId))
-        : filteredDocs.filter((d) => d.siteId != null);
+        : filteredDocs; // admins see everything, including company-scoped docs
 
-      // Company/group-scoped docs (siteId == null) — expand per accessible site,
-      // mirroring the scopedDocMultiplier logic in /api/modules/summary
-      const companyScopedDocs = filteredDocs.filter((d) => d.siteId == null);
-      const allSitesForHome = await storage.getSites();
-      const accessibleSites = userSiteIds
-        ? allSitesForHome.filter((s) => userSiteIds!.includes(s.id))
-        : allSitesForHome;
-      const siteToCompanyHome = new Map(accessibleSites.map((s) => [s.id, s.companyId]));
-
-      let expandedOverdue = 0, expandedReview = 0, expandedPending = 0, expandedSignOffs = 0;
-      for (const doc of companyScopedDocs) {
-        const shareRecords = await storage.getDocumentShares(doc.id);
-        const sharedCompanyIds = new Set(shareRecords.filter((s) => s.entityType === "company").map((s) => s.entityId));
-        const sharedSiteIds = new Set(shareRecords.filter((s) => s.entityType === "site").map((s) => s.entityId));
-        const count = accessibleSites.filter((site) => {
-          if (sharedSiteIds.has(site.id)) return true;
-          const cId = siteToCompanyHome.get(site.id);
-          if (cId && sharedCompanyIds.has(cId)) return true;
-          if (cId && doc.entityId === cId) return true;
-          return false;
-        }).length;
-        const n = Math.max(count, 1);
-        if (doc.status === "overdue") expandedOverdue += n;
-        else if (doc.status === "review_required") expandedReview += n;
-        if (doc.approvalStatus === "pending") expandedPending += n;
-        if (user.role === "client" && doc.approvalStatus === "pending" && doc.uploadedBy !== user.id) expandedSignOffs += n;
-      }
-
-      const overdueCount = activeSiteDocs.filter((d) => d.status === "overdue").length + expandedOverdue;
-      const reviewCount = activeSiteDocs.filter((d) => d.status === "review_required").length + expandedReview;
-      const pendingCount = activeSiteDocs.filter((d) => d.approvalStatus === "pending").length + expandedPending;
+      const overdueCount = countableDocs.filter((d) => d.status === "overdue").length;
+      const reviewCount = countableDocs.filter((d) => d.status === "review_required").length;
+      const pendingCount = countableDocs.filter((d) => d.approvalStatus === "pending").length;
       // Docs awaiting THIS client's sign-off: pending status, uploaded by someone else (consultant/admin)
       const pendingSignOffs = user.role === "client"
-        ? activeSiteDocs.filter((d) => d.approvalStatus === "pending" && d.uploadedBy !== user.id).length + expandedSignOffs
+        ? countableDocs.filter((d) => d.approvalStatus === "pending" && d.uploadedBy !== user.id).length
         : 0;
 
       // Incidents — clients see only incidents they reported

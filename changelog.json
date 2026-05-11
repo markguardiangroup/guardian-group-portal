@@ -3189,6 +3189,22 @@
           "category": "bug",
           "createdAt": "2026-05-11T19:45:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e6a78b90-5c01-2d34-ef56-7a8b9c0d1e2f",
+          "patch": 8,
+          "message": "Fixed: home page metric counts now match the number of items shown in the drill-down modal",
+          "category": "bug",
+          "createdAt": "2026-05-11T20:22:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "f7b89c01-6d12-3e45-fa67-8b9c0d1e2f3a",
+          "patch": 8,
+          "message": "Removed 'Go to' navigation button from urgent action modals",
+          "category": "enhancement",
+          "createdAt": "2026-05-11T20:22:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
