@@ -179,7 +179,10 @@ export default function UserManagement() {
   const handleCompanyChange = (val: string | null) => setSelectedCompany(val);
   const [userTypeTab, setUserTypeTab] = useState<"staff" | "client">(isStandardConsultant ? "client" : "staff");
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<UserRole | "all" | "pro_consultant">("all");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "all" | "pro_consultant" | "my_staff">(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("staffFilter") === "my_staff" ? "my_staff" : "all";
+  });
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
@@ -343,6 +346,14 @@ export default function UserManagement() {
     enabled: isPro,
   });
 
+  // Auto-default to "My Staff" when a Pro Consultant who manages someone opens the page directly
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("staffFilter") && isPro && myStaff.length > 0 && roleFilter === "all") {
+      setRoleFilter("my_staff");
+    }
+  }, [isPro, myStaff.length]);
+
   const staffScopeSitesUrl = useMemo(() => {
     if (!isPro || clientStaffFilter === "all") return null;
     if (clientStaffFilter === "my") return "/api/sites?myAssigned=true";
@@ -463,7 +474,8 @@ export default function UserManagement() {
     const matchesRole =
       userTypeTab === "client" ||
       roleFilter === "all" ||
-      (roleFilter === "pro_consultant" ? u.role === "consultant" && u.consultantTier === "pro" : u.role === roleFilter);
+      (roleFilter === "my_staff" ? u.managerId === user?.id :
+      roleFilter === "pro_consultant" ? u.role === "consultant" && u.consultantTier === "pro" : u.role === roleFilter);
     const matchesStatus = statusFilter === "all" || u.status === statusFilter;
     const matchesCompany = userTypeTab === "staff" || companyFilter === "all" || u.companyId === companyFilter;
     const matchesStaffScope =
@@ -1340,11 +1352,12 @@ export default function UserManagement() {
         </div>
 
         {canAddUser && userTypeTab === "staff" && (
-          <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all" | "pro_consultant"); setPage(1); }}>
+          <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all" | "pro_consultant" | "my_staff"); setPage(1); }}>
             <SelectTrigger className="w-[170px]" data-testid="select-role-filter">
               <SelectValue placeholder="All roles" />
             </SelectTrigger>
             <SelectContent>
+              {isPro && myStaff.length > 0 && <SelectItem value="my_staff">My Staff</SelectItem>}
               <SelectItem value="all">All Staff</SelectItem>
               {isAdmin && <SelectItem value="admin">Administrators</SelectItem>}
               <SelectItem value="consultant">Consultants</SelectItem>

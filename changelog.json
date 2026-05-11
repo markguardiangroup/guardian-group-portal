@@ -2930,6 +2930,22 @@
           "category": "bug",
           "createdAt": "2026-05-11T09:10:58.490Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "350ef7b8-e91b-4a4d-bc93-02d23d28b197",
+          "patch": 7,
+          "message": "Users list defaults to My Staff filter for pro consultants who manage someone",
+          "category": "feature",
+          "createdAt": "2026-05-11T09:14:59.487Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "ea37f739-9fb4-405b-8406-0423bee4ebec",
+          "patch": 7,
+          "message": "Home page View Staff button opens the Users list pre-filtered to My Staff",
+          "category": "feature",
+          "createdAt": "2026-05-11T09:14:59.487Z",
+          "createdBy": "agent"
         }
       ]
     }
