@@ -689,9 +689,11 @@ export default function UserManagement() {
       const fullName = data ? 
         `${data.firstName} ${data.lastName}`.trim() || editingUser?.fullName : 
         editingUser?.fullName;
+      // Non-admins cannot update sources — omit entirely so the server preserves the existing value
+      const { sources: _sources, ...dataWithoutSources } = data ?? {};
+      const payload = isAdmin ? { ...data, fullName } : { ...dataWithoutSources, fullName };
       const response = await apiRequest("PATCH", `/api/users/${id}`, {
-        ...data,
-        fullName,
+        ...payload,
         consultantTier: data?.consultantTier || null,
         companyId: data?.companyId || null,
         managerId: data?.managerId || null,

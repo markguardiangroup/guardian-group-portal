@@ -2914,6 +2914,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T09:00:59.027Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f847aeb5-8176-477b-862b-7bb4e16021a8",
+          "patch": 7,
+          "message": "Fixed: pro consultants no longer get a sources error when editing a consultant profile",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:09:30.336Z",
+          "createdBy": "agent"
         }
       ]
     }
