@@ -29,6 +29,7 @@ import {
   LayoutDashboard,
   Layers,
   X,
+  Loader2,
 } from "lucide-react";
 import type { ModuleType } from "@shared/schema";
 
@@ -468,7 +469,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
       {/* Sites grid */}
       <div id="page-content" className="flex-1 overflow-auto p-8 dash-animate">
-        {isLoading ? (
+        {isLoadingSites ? (
           <FetchingOverlay />
         ) : filteredSites.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center text-muted-foreground">
@@ -625,16 +626,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
-                          <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{groupCompliant}</p>
+                          {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-emerald-400 my-0.5" /> : <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{groupCompliant}</p>}
                           <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
                         </div>
-                        <div className={`rounded-lg px-2 py-1.5 ${groupReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                          <p className={`text-base font-bold ${groupReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupReview}</p>
-                          <p className={`text-xs ${groupReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                        <div className={`rounded-lg px-2 py-1.5 ${!isLoadingDocs && groupReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                          {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-base font-bold ${groupReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupReview}</p>}
+                          <p className={`text-xs ${!isLoadingDocs && groupReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
                         </div>
-                        <div className={`rounded-lg px-2 py-1.5 ${groupMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                          <p className={`text-base font-bold ${groupMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`} data-testid={`text-group-missing-${selectedGroup}`}>{groupMissing}</p>
-                          <p className={`text-xs ${groupMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
+                        <div className={`rounded-lg px-2 py-1.5 ${!isLoadingDocs && groupMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                          {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-base font-bold ${groupMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`} data-testid={`text-group-missing-${selectedGroup}`}>{groupMissing}</p>}
+                          <p className={`text-xs ${!isLoadingDocs && groupMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
                         </div>
                       </div>
                     </CardContent>
@@ -785,16 +786,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                           <div className="grid grid-cols-3 gap-2 text-center">
                             <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
-                              <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{cCompliant}</p>
+                              {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-emerald-400 my-0.5" /> : <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{cCompliant}</p>}
                               <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
                             </div>
-                            <div className={`rounded-lg px-2 py-1.5 ${cReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                              <p className={`text-base font-bold ${cReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{cReview}</p>
-                              <p className={`text-xs ${cReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                            <div className={`rounded-lg px-2 py-1.5 ${!isLoadingDocs && cReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-base font-bold ${cReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{cReview}</p>}
+                              <p className={`text-xs ${!isLoadingDocs && cReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
                             </div>
-                            <div className={`rounded-lg px-2 py-1.5 ${cMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                              <p className={`text-base font-bold ${cMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cMissing}</p>
-                              <p className={`text-xs ${cMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
+                            <div className={`rounded-lg px-2 py-1.5 ${!isLoadingDocs && cMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-base font-bold ${cMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cMissing}</p>}
+                              <p className={`text-xs ${!isLoadingDocs && cMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
                             </div>
                           </div>
                         </CardContent>
@@ -939,16 +940,16 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
-                        <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{allCompliant}</p>
+                        {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-emerald-400 my-0.5" /> : <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{allCompliant}</p>}
                         <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">Compliant</p>
                       </div>
-                      <div className={`rounded-lg px-2 py-1.5 ${allReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                        <p className={`text-base font-bold ${allReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allReview}</p>
-                        <p className={`text-xs ${allReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
+                      <div className={`rounded-lg px-2 py-1.5 ${!isLoadingDocs && allReview > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                        {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-base font-bold ${allReview > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allReview}</p>}
+                        <p className={`text-xs ${!isLoadingDocs && allReview > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Review</p>
                       </div>
-                      <div className={`rounded-lg px-2 py-1.5 ${allMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                        <p className={`text-base font-bold ${allMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{allMissing}</p>
-                        <p className={`text-xs ${allMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
+                      <div className={`rounded-lg px-2 py-1.5 ${!isLoadingDocs && allMissing > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                        {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-base font-bold ${allMissing > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{allMissing}</p>}
+                        <p className={`text-xs ${!isLoadingDocs && allMissing > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Missing</p>
                       </div>
                     </div>
 
@@ -1160,21 +1161,19 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     {/* Stats row */}
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1.5">
-                        <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">
-                          {compliant}
-                        </p>
+                        {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-emerald-400 my-0.5" /> : <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">{compliant}</p>}
                         <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">
                           Compliant
                         </p>
                       </div>
                       <div
                         className={`rounded-lg px-2 py-1.5 ${
-                          reviewRequired > 0
+                          !isLoadingDocs && reviewRequired > 0
                             ? "bg-amber-50 dark:bg-amber-900/20"
                             : "bg-muted/50"
                         }`}
                       >
-                        <p
+                        {isLoadingDocs ? <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p
                           className={`text-base font-bold ${
                             reviewRequired > 0
                               ? "text-amber-700 dark:text-amber-400"
@@ -1182,10 +1181,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           }`}
                         >
                           {reviewRequired}
-                        </p>
+                        </p>}
                         <p
                           className={`text-xs ${
-                            reviewRequired > 0
+                            !isLoadingDocs && reviewRequired > 0
                               ? "text-amber-600/70 dark:text-amber-400/70"
                               : "text-muted-foreground/70"
                           }`}
@@ -1195,23 +1194,27 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                       <div
                         className={`rounded-lg px-2 py-1.5 ${
-                          missingCount > 0
+                          !isLoadingDocs && missingCount > 0
                             ? "bg-orange-50 dark:bg-orange-900/20"
                             : "bg-muted/50"
                         }`}
                       >
-                        <p
-                          className={`text-base font-bold ${
-                            missingCount > 0
-                              ? "text-orange-700 dark:text-orange-400"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {missingCount}
-                        </p>
+                        {isLoadingDocs ? (
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto text-muted-foreground my-0.5" />
+                        ) : (
+                          <p
+                            className={`text-base font-bold ${
+                              missingCount > 0
+                                ? "text-orange-700 dark:text-orange-400"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {missingCount}
+                          </p>
+                        )}
                         <p
                           className={`text-xs ${
-                            missingCount > 0
+                            !isLoadingDocs && missingCount > 0
                               ? "text-orange-600/70 dark:text-orange-400/70"
                               : "text-muted-foreground/70"
                           }`}

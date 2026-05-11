@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "g7h8i9j0-site-card-spinners-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Site cards now show spinners on stat numbers while data loads, preventing misleading zeros",
+          "createdAt": "2026-05-11T13:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "f6g7h8i9-early-preload-2026",
           "patch": 8,
           "category": "enhancement",
