@@ -1,4 +1,3 @@
-import { Loader2 } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 
 export function FetchingOverlay() {
@@ -7,9 +6,9 @@ export function FetchingOverlay() {
       <img
         src={logoIcon}
         alt="Guardian Group"
-        className="h-12 w-12 rounded-full object-cover shadow"
+        className="h-12 w-12 rounded-full object-cover shadow animate-spin"
+        style={{ animationDuration: "1.5s" }}
       />
-      <Loader2 className="h-5 w-5 animate-spin" />
       <p className="text-sm font-medium">Fetching data…</p>
     </div>
   );
