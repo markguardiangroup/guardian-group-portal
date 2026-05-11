@@ -2922,6 +2922,14 @@
           "category": "bug",
           "createdAt": "2026-05-11T09:09:30.336Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "093ee088-3778-48d6-b800-9457b993c029",
+          "patch": 7,
+          "message": "Fixed: home page updates immediately when a consultant's manager is changed",
+          "category": "bug",
+          "createdAt": "2026-05-11T09:10:58.490Z",
+          "createdBy": "agent"
         }
       ]
     }

@@ -702,6 +702,8 @@ export default function UserManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/consultants/my-staff"] });
       toast({
         title: "User Updated",
         description: "User profile has been updated successfully.",
