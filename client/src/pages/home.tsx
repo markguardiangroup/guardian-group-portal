@@ -375,24 +375,27 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
 
   return (
     <div
-      className="flex items-start gap-4 rounded-xl border border-border bg-card shadow-sm px-4 py-3.5 animate-in slide-in-from-top-2 duration-300"
+      className="relative flex items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 overflow-hidden pl-5 pr-4 py-3.5 animate-in slide-in-from-top-2 duration-300"
       data-testid={`banner-message-${active.id}`}
     >
-      {/* Brand mark */}
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 mt-0.5">
-        <Megaphone className="h-4 w-4 text-primary" />
+      {/* Left accent stripe */}
+      <div className="absolute inset-y-0 left-0 w-1 bg-primary rounded-l-xl" />
+
+      {/* Icon */}
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary shadow-sm">
+        <Megaphone className="h-4 w-4 text-primary-foreground" />
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold leading-snug">{active.title}</p>
+        <p className="text-sm font-semibold leading-snug text-foreground">{active.title}</p>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{active.body}</p>
       </div>
 
       {/* CTA + close */}
-      <div className="flex items-center gap-2 shrink-0 mt-0.5">
+      <div className="flex items-center gap-2 shrink-0">
         {hasCta && (
-          <Button size="sm" className="h-8 text-xs rounded-full px-4" asChild>
+          <Button size="sm" className="h-8 text-xs rounded-lg px-4 shadow-sm" asChild>
             <a
               href={ctaHref}
               target={isExternal ? "_blank" : undefined}
@@ -405,11 +408,11 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
         )}
         <button
           onClick={() => dismiss(active.id)}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-primary/50 hover:bg-primary/10 hover:text-primary transition-colors"
           aria-label="Dismiss banner"
           data-testid="button-banner-dismiss"
         >
-          <X className="h-4 w-4" />
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>

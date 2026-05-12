@@ -3724,6 +3724,14 @@
           "category": "feature",
           "createdAt": "2026-05-12T21:00:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "c9e2a741-3d56-48fb-b102-7f4e1c8b0d33",
+          "patch": 10,
+          "message": "Homepage Banner: improved visual design with brand accent stripe, icon, and tinted background",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T21:15:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
