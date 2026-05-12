@@ -118,7 +118,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, or, asc, desc, isNull, gt, count, sql, inArray } from "drizzle-orm";
+import { eq, and, or, asc, desc, isNull, isNotNull, gt, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
@@ -493,6 +493,7 @@ export interface IStorage {
   createClientUpload(data: InsertClientUpload): Promise<ClientUpload>;
   deleteClientUpload(id: string): Promise<boolean>;
   cleanupExpiredFolders(): Promise<number>;
+  markExpiredDocumentsOverdue(): Promise<number>;
 
   // Testing Task Lists
   getTestingTaskLists(includeArchived?: boolean): Promise<TestingTaskList[]>;
@@ -4552,6 +4553,24 @@ export class MemStorage implements IStorage {
     }
 
     return fileCount;
+  }
+
+  async markExpiredDocumentsOverdue(): Promise<number> {
+    const now = new Date();
+    const result = await db
+      .update(documentsTable)
+      .set({ status: "overdue", updatedAt: now })
+      .where(
+        and(
+          eq(documentsTable.status, "compliant"),
+          eq(documentsTable.isArchived, false),
+          or(
+            and(isNotNull(documentsTable.reviewDate), sql`${documentsTable.reviewDate} < ${now}`),
+            and(isNotNull(documentsTable.expiryDate), sql`${documentsTable.expiryDate} < ${now}`)
+          )
+        )
+      );
+    return (result as any).rowCount ?? 0;
   }
 
   async getCompanyRequiredTemplates(companyId: string): Promise<CompanyRequiredTemplate[]> {

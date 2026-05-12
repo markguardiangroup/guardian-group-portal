@@ -227,6 +227,53 @@ process.on("uncaughtException", (err) => {
     24 * 60 * 60 * 1000
   );
 
+  // Run expired document status sweep on startup, then every day at 05:00 UK time.
+  // Finds compliant documents whose reviewDate or expiryDate has passed and marks them overdue.
+  function msUntilNextUKTime(hour: number, minute: number): number {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/London",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false,
+    }).formatToParts(now);
+    const get = (type: string) => parseInt(parts.find(p => p.type === type)!.value);
+    const currentMinutesInDay = get("hour") * 60 + get("minute");
+    const currentSeconds = get("second");
+    const targetMinutesInDay = hour * 60 + minute;
+    const minutesUntil = currentMinutesInDay < targetMinutesInDay
+      ? targetMinutesInDay - currentMinutesInDay
+      : 24 * 60 - currentMinutesInDay + targetMinutesInDay;
+    return minutesUntil * 60 * 1000 - currentSeconds * 1000;
+  }
+
+  async function runExpiredDocumentSweep() {
+    try {
+      const count = await storage.markExpiredDocumentsOverdue();
+      if (count > 0) {
+        console.log(`[scheduler] Marked ${count} expired document(s) as overdue.`);
+      }
+    } catch (err) {
+      console.error("[scheduler] Expired document sweep error:", err);
+    }
+  }
+
+  function scheduleNextDocumentSweep() {
+    const ms = msUntilNextUKTime(5, 0);
+    const nextRun = new Date(Date.now() + ms);
+    console.log(`[scheduler] Next expired-document sweep scheduled for ${nextRun.toISOString()} (${Math.round(ms / 60000)} min from now).`);
+    setTimeout(async () => {
+      await runExpiredDocumentSweep();
+      scheduleNextDocumentSweep();
+    }, ms).unref();
+  }
+
+  // Run once immediately on startup to catch anything that expired overnight
+  runExpiredDocumentSweep();
+  // Then schedule for 05:00 UK time each day
+  scheduleNextDocumentSweep();
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

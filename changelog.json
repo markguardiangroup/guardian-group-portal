@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "b2c3d4e5-scheduled-expired-doc-sweep-2026",
+          "patch": 8,
+          "category": "feature",
+          "message": "Compliant docs with a past review or expiry date are now automatically marked overdue each morning at 5am",
+          "createdAt": "2026-05-12T10:23:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a1b2c3d4-fix-compliant-priority-slot-counter-2026",
           "patch": 8,
           "category": "bug",
