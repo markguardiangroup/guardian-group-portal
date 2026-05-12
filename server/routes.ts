@@ -266,15 +266,17 @@ async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promi
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
 
-  // Store buffer in memory and back up to GCS asynchronously (non-blocking).
+  // Cache the buffer immediately so any concurrent/subsequent request gets a
+  // hit straight away — don't wait for the GCS backup to finish.
+  docxPreviewCache.set(cacheKey, { buffer: pdfBuffer, gcsPath: "", cachedAt: now });
+
+  // Back up to GCS in the background; update gcsPath once done.
   objectStorageService.saveDocxPreview(pdfBuffer, cacheKey)
     .then(gcsPath => {
-      docxPreviewCache.set(cacheKey, { buffer: pdfBuffer, gcsPath, cachedAt: now });
+      const entry = docxPreviewCache.get(cacheKey);
+      if (entry) docxPreviewCache.set(cacheKey, { ...entry, gcsPath });
     })
-    .catch(() => {
-      // GCS save failed — still cache the buffer in memory so the session benefits.
-      docxPreviewCache.set(cacheKey, { buffer: pdfBuffer, gcsPath: "", cachedAt: now });
-    });
+    .catch(() => { /* GCS save failed — in-memory cache is still valid */ });
 
   return pdfBuffer;
 }

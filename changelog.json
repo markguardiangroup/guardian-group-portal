@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "c3d4e5f6-docx-preview-stuck-second-load-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: Word document preview got stuck when opened a second time",
+          "createdAt": "2026-05-12T13:40:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b2c3d4e5-pdf-viewer-setisconverting-runtime-error-2026",
           "patch": 8,
           "category": "bug",
