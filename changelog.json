@@ -3341,6 +3341,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-11T23:20:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d7f89a01-6b12-3c45-de67-8f9a0b1c2d3e",
+          "patch": 8,
+          "message": "Fixed: subfolder document counts now include shared documents, matching the badge status",
+          "category": "bug",
+          "createdAt": "2026-05-12T00:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

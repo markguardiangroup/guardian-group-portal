@@ -1615,7 +1615,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               )}
                               {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
                               <span className="text-xs text-muted-foreground">
-                                {childDocs.length} document{childDocs.length !== 1 ? "s" : ""}
+                                {(childFolder.stats?.totalDocuments ?? childDocs.length)} document{(childFolder.stats?.totalDocuments ?? childDocs.length) !== 1 ? "s" : ""}
                               </span>
                             </div>
                           </div>
