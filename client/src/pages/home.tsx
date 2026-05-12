@@ -900,16 +900,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-        {/* Urgent Actions — always visible; shows zeros during load, counts up on arrival */}
-        <UrgentActionsPanel
-          actions={urgentActions}
-          role={user?.role ?? "client"}
-          scopeLabel={urgentScopeLabel}
-          animate={animate}
-          onActionClick={setActiveActionType}
-        />
-
+      <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
         {/* Portfolio — always rendered to keep the grid stable during load */}
         {isLoading ? (
           <Card className="h-full">
@@ -940,12 +931,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Urgent Actions drill-down modal */}
-      <UrgentActionsModal
-        open={!!activeActionType}
-        onClose={() => setActiveActionType(null)}
-        actionType={activeActionType}
-      />
+      {/* Urgent Actions drill-down modal — hidden while panel is hidden */}
     </div>
   );
 }

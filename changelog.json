@@ -359,6 +359,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "d4e5f6a7-hide-urgent-actions-home-2026",
+          "patch": 8,
+          "category": "other",
+          "message": "Urgent Actions panel hidden from home page pending redesign",
+          "createdAt": "2026-05-12T10:35:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b2c3d4e5-scheduled-expired-doc-sweep-2026",
           "patch": 8,
           "category": "feature",
