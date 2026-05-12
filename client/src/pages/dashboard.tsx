@@ -737,7 +737,7 @@ function OverallComplianceCard({
 
         {/* Compliance stats: required docs only */}
         {variant === "modules" ? (() => {
-          const moduleConfig: { module: string; label: string; shortLabel: string; icon: React.ReactNode; scoreColor: (s: number) => string; barColor: (s: number) => string; borderColor: string }[] = [
+          const moduleConfig: { module: string; label: string; shortLabel: string; icon: React.ReactNode; scoreColor: (s: number) => string; barColor: (s: number) => string; leftBorder: string; avatarBg: string; avatarText: string; tileBg: string }[] = [
             {
               module: "health_safety",
               label: "Health & Safety",
@@ -745,7 +745,10 @@ function OverallComplianceCard({
               icon: <HardHat className="h-4 w-4" />,
               scoreColor: (s) => s >= 90 ? "text-emerald-600 dark:text-emerald-400" : s >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
               barColor: (s) => s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500",
-              borderColor: "border-emerald-200 dark:border-emerald-800",
+              leftBorder: "border-l-4 border-l-emerald-500",
+              avatarBg: "bg-emerald-500",
+              avatarText: "text-white",
+              tileBg: "bg-emerald-50 dark:bg-emerald-950/20",
             },
             {
               module: "human_resources",
@@ -754,7 +757,10 @@ function OverallComplianceCard({
               icon: <Users className="h-4 w-4" />,
               scoreColor: (s) => s >= 90 ? "text-emerald-600 dark:text-emerald-400" : s >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
               barColor: (s) => s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500",
-              borderColor: "border-blue-200 dark:border-blue-800",
+              leftBorder: "border-l-4 border-l-blue-500",
+              avatarBg: "bg-blue-500",
+              avatarText: "text-white",
+              tileBg: "bg-blue-50 dark:bg-blue-950/20",
             },
             {
               module: "employment_law",
@@ -763,7 +769,10 @@ function OverallComplianceCard({
               icon: <Scale className="h-4 w-4" />,
               scoreColor: (s) => s >= 90 ? "text-emerald-600 dark:text-emerald-400" : s >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
               barColor: (s) => s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500",
-              borderColor: "border-pink-200 dark:border-pink-800",
+              leftBorder: "border-l-4 border-l-pink-500",
+              avatarBg: "bg-pink-500",
+              avatarText: "text-white",
+              tileBg: "bg-pink-50 dark:bg-pink-950/20",
             },
           ];
           return (
@@ -773,12 +782,12 @@ function OverallComplianceCard({
                 const score = summary?.complianceScore ?? 0;
                 const docs = summary?.allDocuments ?? 0;
                 return (
-                  <div key={mc.module} className={`rounded-md border ${mc.borderColor} p-3`} data-testid={`stat-module-${mc.module}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <div key={mc.module} className={`rounded-md border border-border ${mc.leftBorder} ${mc.tileBg} p-3`} data-testid={`stat-module-${mc.module}`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`flex h-7 w-7 items-center justify-center rounded-md ${mc.avatarBg} ${mc.avatarText} shrink-0`}>
                         {mc.icon}
-                        <span className="text-xs font-medium">{mc.label}</span>
                       </div>
+                      <span className="text-xs font-semibold text-foreground leading-tight">{mc.label}</span>
                     </div>
                     <div className="flex items-end justify-between mb-2">
                       <span className={`text-2xl font-bold ${mc.scoreColor(score)}`}>
