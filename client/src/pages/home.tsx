@@ -785,21 +785,6 @@ function MyActionsPanel({ role }: { role: string }) {
             )}
           </div>
 
-          <div className="shrink-0 pt-3 border-t">
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full text-xs"
-              onClick={() => {
-                setActiveKey(null);
-                if (activeTile) navigate(activeTile.href);
-              }}
-              data-testid="button-my-action-go-to-section"
-            >
-              Go to {activeTile?.label ?? "Section"}
-              <ArrowRight className="ml-1.5 h-3 w-3" />
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </>
