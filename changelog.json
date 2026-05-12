@@ -3748,6 +3748,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T21:25:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "f3b5g074-6c89-5def-c435-0i7h4f1e3g66",
+          "patch": 10,
+          "message": "Fixed: My Actions doc links now pre-select the correct site on the Documents page",
+          "category": "bug",
+          "createdAt": "2026-05-12T21:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

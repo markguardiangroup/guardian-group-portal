@@ -459,7 +459,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: d.title,
         subLabel: [MODULE_LABELS[d.module ?? ""] ?? d.module, formatLabel(d.status)].filter(Boolean).join(" · "),
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
-        href: "/documents",
+        href: d.site_id ? `/documents?site=${d.site_id}` : "/documents",
       }));
     case "pendingApprovals":
       return data.pendingApprovals.items.map((d) => ({
@@ -467,7 +467,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: d.title,
         subLabel: MODULE_LABELS[d.module ?? ""] ?? d.module ?? null,
         badge: "pending approval",
-        href: "/documents",
+        href: d.site_id ? `/documents?site=${d.site_id}` : "/documents",
       }));
     case "myIncidents":
       return data.myIncidents.items.map((i) => ({

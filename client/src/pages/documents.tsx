@@ -247,7 +247,9 @@ function DocumentsListView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedSiteId, setSelectedSiteId] = useState<string>("all");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>(() => {
+    try { return new URLSearchParams(window.location.search).get("site") ?? "all"; } catch { return "all"; }
+  });
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [showCreateFolderDialog, setShowCreateFolderDialog] = useState(false);
   const [showProvisionDialog, setShowProvisionDialog] = useState(false);
