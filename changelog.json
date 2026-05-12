@@ -5,12 +5,50 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 9,
-      "publishedPatch": 8,
+      "patch": 10,
+      "publishedPatch": 9,
       "label": "",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
       "patchedEntryIds": [
+        "b1d4f2a8-135-loading-branded-anim-2026",
+        "a7c3e9f1-tdz-scan-all-pages-2026",
+        "f9a1b2c3-changelog-meta-display-2026",
+        "f6a7b8c9-clients-tab-default-my-clients-2026",
+        "e5f6a7b8-my-clients-filter-in-filter-bar-2026",
+        "d4e5f6a7-csp-changelog-poller-fix-2026",
+        "c3d4e5f6-docx-preview-stuck-second-load-2026",
+        "b2c3d4e5-pdf-viewer-setisconverting-runtime-error-2026",
+        "a1b2c3d4-docx-preview-broken-response-fix-2026",
+        "f6a7b8c0-docx-preview-speed-improvements-2026",
+        "e5f6a7b9-pdf-preview-spinner-logo-disclaimer-2026",
+        "d4e5f6a8-fulfilled-badge-fix-scope-query-2026",
+        "c3d4e5f6-fulfilled-badge-template-upload-2026",
+        "b2c3d4e5-back-button-module-dashboard-2026",
+        "a1b2c3d4-remove-compliance-template-scratch-upload-2026",
+        "f6a7b8c9-home-portfolio-fixed-width-2026",
+        "e5f6a7b8-home-portfolio-slot1-consultants-slot2-2026",
+        "d4e5f6a7-hide-urgent-actions-home-2026",
+        "b2c3d4e5-scheduled-expired-doc-sweep-2026",
+        "a1b2c3d4-fix-compliant-priority-slot-counter-2026",
+        "c9d1e2f3-revert-date-overdue-totals-2026",
+        "f3a9c2e1-perf-n1-query-elimination-2026",
+        "b7c8d9e0-remove-incomplete-folder-badge-2026",
+        "a1b2c3d4-child-folder-backend-stats-2026",
+        "n4o5p6q7-folder-incomplete-badge-fix-2026",
+        "m3n4o5p6-module-docs-crash-fix-2026",
+        "l2m3n4o5-auto-share-new-site-2026",
+        "k1l2m3n4-breadcrumb-querystring-2026",
+        "j0k1l2m3-sites-pagination-30-2026",
+        "i9j0k1l2-sites-pagination-bar-fixed-2026",
+        "h8i9j0k1-sites-pagination-2026",
+        "g7h8i9j0-site-card-spinners-2026",
+        "f6g7h8i9-early-preload-2026",
+        "e5f6g7h8-urgent-badge-space-2026",
+        "d4e5f6g7-spinning-logo-2026",
+        "c3d4e5f6-route-fallback-2026",
+        "b2c3d4e5-spinner-replace-2026",
+        "a1b2c3d4-page-load-anim-2026",
         "f6i9j3e5-1g8h-5i67-9h23-k4l5m6n7o8p9",
         "e5h8i2d4-0f7g-4h56-8g12-j3k4l5m6n7o8",
         "d4g7h1c3-9e6f-3g45-7f01-i2j3k4l5m6n7",
@@ -339,7 +377,40 @@
         "350ef7b8-e91b-4a4d-bc93-02d23d28b197",
         "ea37f739-9fb4-405b-8406-0423bee4ebec",
         "54bdf731-19b0-4680-bcf4-1042809694c2",
-        "1f9608f7-0049-44cc-92c7-ccfe931fbde5"
+        "1f9608f7-0049-44cc-92c7-ccfe931fbde5",
+        "d88511cc-584b-43b5-a92d-a7a3fc1e814d",
+        "fbc47386-ff23-427a-bd28-a32ed94139b8",
+        "788f68f7-fec6-4854-9aad-60fee07b87de",
+        "3d5984cd-ba4f-46ba-bad6-0750dc3c6e70",
+        "a9c21f84-3b57-4e12-8d6a-1f2e3c4d5b6e",
+        "b7d12e45-6c89-4f23-a1b2-3e4f5a6b7c8d",
+        "c8e34f91-7a12-4b56-9d23-2e5f6a7b8c9d",
+        "d9f45a02-8b23-5c67-ae34-3f6a7b8c9d0e",
+        "e0a56b13-9c34-6d78-bf45-4a7b8c9d0e1f",
+        "f1b23c45-0d56-7e89-fa01-2b3c4d5e6f7a",
+        "a2c34d56-1e67-8f90-ab12-3c4d5e6f7a8b",
+        "b3d45e67-2f78-9a01-bc23-4d5e6f7a8b9c",
+        "c4e56f78-3a89-0b12-cd34-5e6f7a8b9c0d",
+        "d5f67a89-4b90-1c23-de45-6f7a8b9c0d1e",
+        "e6a78b90-5c01-2d34-ef56-7a8b9c0d1e2f",
+        "f7b89c01-6d12-3e45-fa67-8b9c0d1e2f3a",
+        "a8c90d12-7e23-4f56-ab78-9c0d1e2f3a4b",
+        "b9d01e23-8f34-5a67-bc89-0d1e2f3a4b5c",
+        "c0e12f34-9a45-6b78-cd90-1e2f3a4b5c6d",
+        "d1f23a45-0b56-7c89-de01-2f3a4b5c6d7e",
+        "e2a34b56-1c67-8d90-ef12-3a4b5c6d7e8f",
+        "f3b45c67-2d78-9e01-fa23-4b5c6d7e8f9a",
+        "a4c56d78-3e89-0f12-ab34-5c6d7e8f9a0b",
+        "b5d67e89-4f90-1a23-bc45-6d7e8f9a0b1c",
+        "c6e78f90-5a01-2b34-cd56-7e8f9a0b1c2d",
+        "d7f89a01-6b12-3c45-de67-8f9a0b1c2d3e",
+        "e8a90b12-7c23-4d56-ef78-9a0b1c2d3e4f",
+        "f9b01c23-8d34-5e67-fa89-0b1c2d3e4f5a",
+        "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
+        "a0c12d34-9e45-6f78-ab90-1c2d3e4f5a6b",
+        "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
+        "c2e34f56-1a67-8b90-cd12-3e4f5a6b7c8d",
+        "d3f45a67-2b78-9c01-de23-4f5a6b7c8d9e"
       ],
       "entries": [
         {
@@ -348,7 +419,7 @@
           "category": "enhancement",
           "message": "Replaced remaining 'Loading...' text with the branded loading animation",
           "createdAt": "2026-05-12T15:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7c3e9f1-tdz-scan-all-pages-2026",
@@ -356,7 +427,7 @@
           "category": "other",
           "message": "Verified: all pages scanned for variable ordering crashes — none found",
           "createdAt": "2026-05-12T15:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f9a1b2c3-changelog-meta-display-2026",
@@ -364,7 +435,7 @@
           "category": "enhancement",
           "message": "Changelog entries now show full timestamp and author name next to each entry",
           "createdAt": "2026-05-12T14:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-clients-tab-default-my-clients-2026",
@@ -372,7 +443,7 @@
           "category": "bug",
           "message": "Fixed: Clients tab now defaults to My clients filter when switching to it",
           "createdAt": "2026-05-12T14:22:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-my-clients-filter-in-filter-bar-2026",
@@ -380,7 +451,7 @@
           "category": "enhancement",
           "message": "My clients filter now visible in the filter bar on Companies, Sites, and Users",
           "createdAt": "2026-05-12T14:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-csp-changelog-poller-fix-2026",
@@ -388,7 +459,7 @@
           "category": "bug",
           "message": "Fixed: dev changelog now auto-advances patch number after each publish",
           "createdAt": "2026-05-12T13:57:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-docx-preview-stuck-second-load-2026",
@@ -396,7 +467,7 @@
           "category": "bug",
           "message": "Fixed: Word document preview got stuck when opened a second time",
           "createdAt": "2026-05-12T13:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-pdf-viewer-setisconverting-runtime-error-2026",
@@ -404,7 +475,7 @@
           "category": "bug",
           "message": "Fixed: document preview crashed immediately with a runtime error on open",
           "createdAt": "2026-05-12T13:34:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-docx-preview-broken-response-fix-2026",
@@ -412,7 +483,7 @@
           "category": "bug",
           "message": "Fixed: document preview was silently broken when opening a Word document",
           "createdAt": "2026-05-12T13:27:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c0-docx-preview-speed-improvements-2026",
@@ -420,7 +491,7 @@
           "category": "enhancement",
           "message": "Improved document preview speed: repeat views now served instantly from memory cache",
           "createdAt": "2026-05-12T13:19:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b9-pdf-preview-spinner-logo-disclaimer-2026",
@@ -428,7 +499,7 @@
           "category": "enhancement",
           "message": "Document preview now shows the branded spinner and a format disclaimer while converting",
           "createdAt": "2026-05-12T13:12:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a8-fulfilled-badge-fix-scope-query-2026",
@@ -436,7 +507,7 @@
           "category": "bug",
           "message": "Fixed: Fulfilled badge now correctly detects site-level documents when uploading at company scope",
           "createdAt": "2026-05-12T13:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-fulfilled-badge-template-upload-2026",
@@ -444,7 +515,7 @@
           "category": "enhancement",
           "message": "Template upload shows a Fulfilled badge when a document already exists for that template",
           "createdAt": "2026-05-12T12:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-back-button-module-dashboard-2026",
@@ -452,7 +523,7 @@
           "category": "enhancement",
           "message": "Back button on site overview now returns to the previous page instead of always going to Sites",
           "createdAt": "2026-05-12T12:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-remove-compliance-template-scratch-upload-2026",
@@ -460,7 +531,7 @@
           "category": "enhancement",
           "message": "Removed redundant Compliance Template selector from scratch document upload",
           "createdAt": "2026-05-12T12:38:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-home-portfolio-fixed-width-2026",
@@ -468,7 +539,7 @@
           "category": "bug",
           "message": "Fixed: Portfolio card stays half-width on home page regardless of whether Assigned Consultants is shown",
           "createdAt": "2026-05-12T12:16:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-home-portfolio-slot1-consultants-slot2-2026",
@@ -476,7 +547,7 @@
           "category": "other",
           "message": "Home page: Portfolio moved to slot 1, Assigned Consultants to slot 2",
           "createdAt": "2026-05-12T12:13:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-hide-urgent-actions-home-2026",
@@ -484,7 +555,7 @@
           "category": "other",
           "message": "Urgent Actions panel hidden from home page pending redesign",
           "createdAt": "2026-05-12T10:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-scheduled-expired-doc-sweep-2026",
@@ -492,7 +563,7 @@
           "category": "feature",
           "message": "Compliant docs with a past review or expiry date are now automatically marked overdue each morning at 5am",
           "createdAt": "2026-05-12T10:23:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-fix-compliant-priority-slot-counter-2026",
@@ -500,7 +571,7 @@
           "category": "bug",
           "message": "Fixed: overview compliant count now matches site documents page (status wins over date check)",
           "createdAt": "2026-05-12T10:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9d1e2f3-revert-date-overdue-totals-2026",
@@ -508,7 +579,7 @@
           "category": "bug",
           "message": "Fixed: compliance module totals restored to use document status (not date-based overdue logic)",
           "createdAt": "2026-05-12T10:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f3a9c2e1-perf-n1-query-elimination-2026",
@@ -516,7 +587,7 @@
           "category": "enhancement",
           "message": "Improved: compliance reports, gap analysis, and document hierarchy pages load dramatically faster",
           "createdAt": "2026-05-12T09:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b7c8d9e0-remove-incomplete-folder-badge-2026",
@@ -524,7 +595,7 @@
           "category": "enhancement",
           "message": "Removed: 'Incomplete' badge no longer appears on folder rows in document pages",
           "createdAt": "2026-05-11T19:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-child-folder-backend-stats-2026",
@@ -532,7 +603,7 @@
           "category": "bug",
           "message": "Fixed: subfolder status badges now accurately reflect required-document coverage",
           "createdAt": "2026-05-11T18:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "n4o5p6q7-folder-incomplete-badge-fix-2026",
@@ -540,7 +611,7 @@
           "category": "bug",
           "message": "Fixed: folders no longer show 'Incomplete' badge when all uploaded documents are compliant but not required",
           "createdAt": "2026-05-11T17:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "m3n4o5p6-module-docs-crash-fix-2026",
@@ -548,7 +619,7 @@
           "category": "bug",
           "message": "Fixed: Module Documents pages no longer crash on load",
           "createdAt": "2026-05-11T16:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "l2m3n4o5-auto-share-new-site-2026",
@@ -556,7 +627,7 @@
           "category": "bug",
           "message": "Fixed: new sites now automatically inherit company-level document shares so compliant docs appear correctly",
           "createdAt": "2026-05-11T15:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "k1l2m3n4-breadcrumb-querystring-2026",
@@ -564,7 +635,7 @@
           "category": "bug",
           "message": "Fixed: breadcrumb no longer shows raw query strings like \"Documents?SiteId=Site 1\"",
           "createdAt": "2026-05-11T14:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "j0k1l2m3-sites-pagination-30-2026",
@@ -572,7 +643,7 @@
           "category": "enhancement",
           "message": "Sites page tile limit increased from 21 to 30 per page",
           "createdAt": "2026-05-11T14:08:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "i9j0k1l2-sites-pagination-bar-fixed-2026",
@@ -580,7 +651,7 @@
           "category": "enhancement",
           "message": "Sites pagination bar is now fixed to the bottom of the frame and no longer scrolls with content",
           "createdAt": "2026-05-11T14:02:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "h8i9j0k1-sites-pagination-2026",
@@ -588,7 +659,7 @@
           "category": "feature",
           "message": "Site pages paginate at 21 tiles total — All Sites, group, company and site cards all counted",
           "createdAt": "2026-05-11T13:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "g7h8i9j0-site-card-spinners-2026",
@@ -596,7 +667,7 @@
           "category": "enhancement",
           "message": "Site cards now show spinners on stat numbers while data loads, preventing misleading zeros",
           "createdAt": "2026-05-11T13:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6g7h8i9-early-preload-2026",
@@ -604,7 +675,7 @@
           "category": "enhancement",
           "message": "Pages like Documents and Sites now load faster — JS bundles preload immediately after sign-in",
           "createdAt": "2026-05-11T13:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6g7h8-urgent-badge-space-2026",
@@ -612,7 +683,7 @@
           "category": "bug",
           "message": "Fixed: urgent actions badge now shows correct spacing (e.g. \"9 urgent\" not \"9urgent\")",
           "createdAt": "2026-05-11T12:25:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6g7-spinning-logo-2026",
@@ -620,7 +691,7 @@
           "category": "enhancement",
           "message": "Loading overlay now spins the Guardian Group logo instead of a plain circle",
           "createdAt": "2026-05-11T12:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-route-fallback-2026",
@@ -628,7 +699,7 @@
           "category": "enhancement",
           "message": "Fixed: pages no longer show a plain spinning circle while loading — now shows branded overlay",
           "createdAt": "2026-05-11T12:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-spinner-replace-2026",
@@ -636,7 +707,7 @@
           "category": "enhancement",
           "message": "Replaced plain spinning circles on Calendar, Incidents, and Feedback with branded loading overlay",
           "createdAt": "2026-05-11T12:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-page-load-anim-2026",
@@ -644,7 +715,7 @@
           "category": "enhancement",
           "message": "Improved page load experience: branded loading overlay and smoother entrance animations across all pages",
           "createdAt": "2026-05-11T12:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6i9j3e5-1g8h-5i67-9h23-k4l5m6n7o8p9",
@@ -652,7 +723,7 @@
           "category": "bug",
           "message": "Fixed: resetting password now fully unlocks the account so you can log in again",
           "createdAt": "2026-05-06T15:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5h8i2d4-0f7g-4h56-8g12-j3k4l5m6n7o8",
@@ -660,7 +731,7 @@
           "category": "bug",
           "message": "Fixed: folder view now shows all folders and files when 'All Sites' is selected",
           "createdAt": "2026-05-06T14:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4g7h1c3-9e6f-3g45-7f01-i2j3k4l5m6n7",
@@ -668,7 +739,7 @@
           "category": "enhancement",
           "message": "Create from Template: document title and folder pre-fill from the selected template",
           "createdAt": "2026-05-06T14:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2e5f9a1-7c4d-1e23-5d89-g0h1i2j3k4l5",
@@ -676,7 +747,7 @@
           "category": "bug",
           "message": "Fixed: 'Shared from Group/Company' tag now sits below the doc name instead of squeezing it",
           "createdAt": "2026-05-06T14:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3f6g0b2-8d5e-2f34-6e90-h1i2j3k4l5m6",
@@ -684,7 +755,7 @@
           "category": "bug",
           "message": "Fixed: 'Shared from Group/Company' tag now shows at site level in table and folder views",
           "createdAt": "2026-05-06T14:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a9d4c8e6-5b3a-0d12-4c78-f7e8a9b0c1d2",
@@ -692,7 +763,7 @@
           "category": "bug",
           "message": "Fixed: site cards now count group docs owned by the company in Compliant/Review totals",
           "createdAt": "2026-05-06T13:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e7b2a6c4-3f18-8b90-2a56-d5c6e7f8a9b0",
@@ -700,7 +771,7 @@
           "category": "bug",
           "message": "Fixed: group docs owned by a company were hidden on that company's own site dashboards",
           "createdAt": "2026-05-06T13:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f8c3b7d5-4a29-9c01-3b67-e6d7f8a9b0c1",
@@ -708,7 +779,7 @@
           "category": "bug",
           "message": "Fixed: Document Progress count was 0 for sites belonging to a group owner company",
           "createdAt": "2026-05-06T13:05:01.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c5f0e4a3-1d96-6f78-0e34-b3a4f5c6d7e8",
@@ -716,7 +787,7 @@
           "category": "bug",
           "message": "Fixed: shared group docs now appear in table view and dashboard dialog when filtered by site",
           "createdAt": "2026-05-06T12:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d6a1f5b4-2e07-7a89-1f45-c4b5a6d7e8f9",
@@ -724,7 +795,7 @@
           "category": "bug",
           "message": "Fixed: dashboard compliance dialog now lists shared docs counted in the compliant total",
           "createdAt": "2026-05-06T12:45:01.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b4e9d3f2-0c85-5e67-9d23-a2f3e4b5c6d7",
@@ -732,7 +803,7 @@
           "category": "bug",
           "message": "Fixed: shared/group documents were missing from the table view when a site was selected",
           "createdAt": "2026-05-06T11:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3f8c2e1-9b74-4d56-8c12-f1e2d3a4b5c6",
@@ -740,7 +811,7 @@
           "category": "bug",
           "message": "Fixed: excluded required docs were still showing as Required/Missing in the folder view",
           "createdAt": "2026-05-06T10:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "s6q07o85-1u8r-6v5w-3t26-7x9s1t3u4w08",
@@ -748,7 +819,7 @@
           "category": "bug",
           "message": "Fixed: roadmap assignee saving confirmed working end-to-end",
           "createdAt": "2026-05-05T14:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "r5p96n74-0t7q-5u4v-2s15-6w8r0s2t3v97",
@@ -756,7 +827,7 @@
           "category": "bug",
           "message": "Fixed: assignee names weren't showing in the Roadmap assign dropdown",
           "createdAt": "2026-05-05T14:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "q4o85m63-9s6p-4t3u-1r04-5v7q9r1s2u86",
@@ -764,7 +835,7 @@
           "category": "feature",
           "message": "Roadmap items can now be assigned to an admin user",
           "createdAt": "2026-05-05T14:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "p3n74l52-8r5o-3s2t-0q93-4u6p8q0r1t75",
@@ -772,7 +843,7 @@
           "category": "bug",
           "message": "Fixed: Company column showed dashes in the EL Case Status PDF export",
           "createdAt": "2026-05-05T14:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "o2m63k41-7q4n-2r1s-9p82-3t5o7p9q0s64",
@@ -780,7 +851,7 @@
           "category": "enhancement",
           "message": "EL Case Status PDF: Company column added, layout and column names tidied",
           "createdAt": "2026-05-05T14:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "n1l52j30-6p3m-1q0r-8o71-2s4n6o8p9r53",
@@ -788,7 +859,7 @@
           "category": "bug",
           "message": "Fixed: Export PDF button on the EL Case Status report wasn't working",
           "createdAt": "2026-05-05T14:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "m0k41i29-5o2l-0p9q-7n60-1r3m5n7o8q42",
@@ -796,7 +867,7 @@
           "category": "feature",
           "message": "EL case source can now be edited directly from the case detail view",
           "createdAt": "2026-05-05T14:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "l9j30h18-4n1k-9o8p-6m59-0q2l4m6n7p31",
@@ -804,7 +875,7 @@
           "category": "bug",
           "message": "Fixed: Create case dialog action buttons were hidden when the form was long",
           "createdAt": "2026-05-05T13:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "k8i29g07-3m0j-8n7o-5l48-9p1k3l5m6o20",
@@ -812,7 +883,7 @@
           "category": "bug",
           "message": "Fixed: EL case sources now use the admin-configured sources list instead of a hardcoded one",
           "createdAt": "2026-05-05T13:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "j7h18f96-2l9i-7m6n-4k37-8o0j2k4l5n19",
@@ -820,7 +891,7 @@
           "category": "feature",
           "message": "EL cases now include a source field (e.g. Employee, ACAS, Solicitor) shown on the table, kanban, and report",
           "createdAt": "2026-05-05T12:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "i6g07d85-1k8h-6l5m-3j26-7n9i1j3k4m08",
@@ -828,7 +899,7 @@
           "category": "bug",
           "message": "Fixed: essential document submission date saving confirmed working",
           "createdAt": "2026-05-05T12:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "h5f06c74-0j7g-5k4l-2i15-6m8h0i2j3l97",
@@ -836,7 +907,7 @@
           "category": "feature",
           "message": "EL cases now have a kanban board view alongside the table view",
           "createdAt": "2026-05-05T00:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "g4e95b63-9i6f-4j3k-1h04-5l7g9h1i2k86",
@@ -844,7 +915,7 @@
           "category": "feature",
           "message": "New EL Case Status report added for admins and case advocates",
           "createdAt": "2026-05-05T00:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f3d84a52-8h5e-3i2j-0g93-4k6f8g0h1j75",
@@ -852,7 +923,7 @@
           "message": "Essential documents: submission date added; auto-creates a linked milestone that keeps both in sync",
           "category": "feature",
           "createdAt": "2026-05-05T11:46:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e2c73z41-7g4d-2h1i-9f82-3j5e7f9g0i64",
@@ -860,7 +931,7 @@
           "message": "Essential document checklist items can now be linked to an existing case document",
           "category": "feature",
           "createdAt": "2026-05-05T11:41:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
@@ -868,7 +939,7 @@
           "message": "Case notes: clickable tick icon added to each note — toggles green completed state (strikethrough text, green background tint) with no persistence required",
           "category": "enhancement",
           "createdAt": "2026-05-05T11:37:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c0a51x29-5e2b-0f9g-7d60-1h3c5d7e8g42",
@@ -876,7 +947,7 @@
           "message": "Completed milestones with notes now have a View Notes option in their menu",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b9z40w18-4d1a-9e8f-6c59-0g2b4c6d7f31",
@@ -884,7 +955,7 @@
           "message": "Fixed: EL case deadlines were showing for consultants without Case Advocate permission",
           "category": "bug",
           "createdAt": "2026-05-05T12:25:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a8y39v07-3c0z-8d7e-5b48-9f1a3b5c6e20",
@@ -892,7 +963,7 @@
           "message": "EL milestones now capture a completion date and optional notes when marked done",
           "category": "feature",
           "createdAt": "2026-05-05T12:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "z7x28u96-2b9y-7c6d-4a37-8e0z2a4b5d19",
@@ -900,7 +971,7 @@
           "message": "Response Deadline renamed to ET3 Response Deadline throughout EL cases",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "y6w17t85-1a8x-6b5c-3z26-7d9y1z3a4c08",
@@ -908,7 +979,7 @@
           "message": "Site docs dashboard: Company badge colour updated for better contrast",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "x5v06s74-0z7w-5a4b-2y15-6c8x0y2z3b97",
@@ -916,7 +987,7 @@
           "message": "Site docs dashboard: Group, Company, and Site hierarchy badges are now colour-coded",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "w4u95r63-9y6v-4z3a-1x04-5b7w9x1y2a86",
@@ -924,7 +995,7 @@
           "message": "Site docs dashboard: tiles now show Group, Company, or Site type labels with distinct styling",
           "category": "enhancement",
           "createdAt": "2026-05-05T12:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "v3t84q52-8x5u-3y2z-0w93-4a6v8w0x1z75",
@@ -932,7 +1003,7 @@
           "message": "Fixed: EL case name can now be edited inline from the case detail header",
           "category": "bug",
           "createdAt": "2026-05-05T11:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "u2s73p41-7w4t-2x1y-9v82-3z5u7v9w0y64",
@@ -940,7 +1011,7 @@
           "message": "Fixed: back button on EL case detail now returns to the cases list",
           "category": "bug",
           "createdAt": "2026-05-05T11:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "t1r62o30-6v3s-1w0x-8u71-2y4t6u8v9x53",
@@ -948,7 +1019,7 @@
           "message": "EL cases now require a case name; table shows dedicated response deadline and next milestone columns",
           "category": "feature",
           "createdAt": "2026-05-05T11:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "s0q51n29-5u2r-0v9w-7t60-1x3s5t7u8w42",
@@ -956,7 +1027,7 @@
           "message": "EL case ET3 response deadline is now a protected milestone that cannot be deleted",
           "category": "feature",
           "createdAt": "2026-05-05T11:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "r9p50m28-4t1q-9u8v-6s59-0w2r4s6t7v31",
@@ -964,7 +1035,7 @@
           "message": "Roadmap: 'No Module' filter option added to find untagged items",
           "category": "enhancement",
           "createdAt": "2026-05-05T10:36:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "q8o49l17-3s0p-8t7u-5r48-9v1q3r5s6u20",
@@ -972,7 +1043,7 @@
           "message": "Fixed: roadmap module badges weren't rendering on cards",
           "category": "bug",
           "createdAt": "2026-05-05T10:32:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "p7n38k06-2r9o-7s6t-4q37-8u0p2q4r5t19",
@@ -980,7 +1051,7 @@
           "message": "Fixed: roadmap module tag wasn't being saved when creating an item",
           "category": "bug",
           "createdAt": "2026-05-05T10:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "o6m27j95-1q8n-6r5s-3p26-7t9o1p3q4s08",
@@ -988,7 +1059,7 @@
           "message": "Fixed: roadmap module tag wasn't saving when editing an item",
           "category": "bug",
           "createdAt": "2026-05-05T10:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "n5l16i84-0p7m-5q4r-2o15-6s8n0o2p3r97",
@@ -996,7 +1067,7 @@
           "message": "Roadmap items can now be tagged with a portal module (Overview, HR, H&S, EL, etc.)",
           "category": "feature",
           "createdAt": "2026-05-05T10:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "m4k05h73-9o6l-4p3q-1n04-5r7m9n1o2q86",
@@ -1004,7 +1075,7 @@
           "message": "Investigation report: Actions and Recommendations section moved above Conclusion",
           "category": "enhancement",
           "createdAt": "2026-05-05T09:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "l3j94g62-8n5k-3o2p-0m93-4q6l8m0n1p75",
@@ -1012,7 +1083,7 @@
           "message": "Investigation report: actions listed individually; recommendations removed from incident report",
           "category": "feature",
           "createdAt": "2026-05-05T09:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "k2i83f51-7m4j-2n1o-9l82-3p5k7l9m0o64",
@@ -1020,7 +1091,7 @@
           "message": "Investigation reports are redacted by default; shown unredacted only when client grants full consultant access",
           "category": "enhancement",
           "createdAt": "2026-05-05T09:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "j1h72e40-6l3i-1m0n-8k71-2o4j6k8l9n53",
@@ -1028,7 +1099,7 @@
           "message": "Incident report PDF is always redacted; investigation report and portal views show full names",
           "category": "enhancement",
           "createdAt": "2026-05-05T09:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "i0g61d39-5k2h-0l9m-7j60-1n3i5j7k8m42",
@@ -1036,7 +1107,7 @@
           "message": "Removed severity field from incident report detail view and consultant notification email",
           "category": "enhancement",
           "createdAt": "2026-05-05T08:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "h9f50c28-4j1g-9k8l-6i59-0m2h4i6j7l31",
@@ -1044,7 +1115,7 @@
           "message": "Users page role filter now includes Pro Consultants as a distinct option",
           "category": "feature",
           "createdAt": "2026-05-05T08:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "g8e49b17-3i0f-8j7k-5h48-9l1g3h5i6k20",
@@ -1052,7 +1123,7 @@
           "message": "Full route-level access control matrix enforced: admin-only pages redirect non-admins, template/training library requires consultant permissions, privileged-only pages redirect clients",
           "category": "feature",
           "createdAt": "2026-05-01T01:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f7d38a06-2h9e-7i6j-4g37-8k0f2g4h5j19",
@@ -1060,7 +1131,7 @@
           "message": "Clients can no longer access /companies, /sites, or /users pages directly; name links on module-sites tiles are hidden for client users",
           "category": "feature",
           "createdAt": "2026-05-01T01:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e6c27f95-1g8d-6h5i-3f26-7j9e1f3g4i08",
@@ -1068,7 +1139,7 @@
           "message": "Company-level missing count no longer incorrectly treats site-scoped docs as fulfilling company-level required template slots",
           "category": "bug",
           "createdAt": "2026-05-01T00:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d5b16e84-0f7c-5g4h-2e15-6i8d0e2f3h97",
@@ -1076,7 +1147,7 @@
           "message": "Fix back button and breadcrumb trail when navigating from module site tiles to company or site detail pages",
           "category": "bug",
           "createdAt": "2026-05-01T00:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c4a05d73-9e6b-4f3g-1d04-5h7c9d1e2g86",
@@ -1084,7 +1155,7 @@
           "message": "Group, company and site names on module site tiles are now clickable links to their detail pages; browser back button returns to tiles",
           "category": "feature",
           "createdAt": "2026-05-01T00:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b3f94c62-8d5a-4e2f-0c93-4g6b8c0d1f75",
@@ -1092,7 +1163,7 @@
           "message": "Company tiles in module sites now show company-level missing count (no site exclusions) matching the company Documents page",
           "category": "bug",
           "createdAt": "2026-05-01T00:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a2e83d51-7b4f-4c1e-9d82-3f5a7b9c0e64",
@@ -1100,7 +1171,7 @@
           "message": "Company scope module docs now show all required templates without per-site exclusions via a dedicated company-level missing-slots API",
           "category": "bug",
           "createdAt": "2026-05-01T00:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f4d92a1b-3c7e-4f8d-9b0e-2a6c5d8f1e34",
@@ -1108,7 +1179,7 @@
           "message": "Group scope module docs now show missing required slots from all member company sites, not just the group owner's own sites",
           "category": "bug",
           "createdAt": "2026-05-01T00:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6c32f-16d7-4edc-a2e4-5665b3ceb8bd",
@@ -1116,7 +1187,7 @@
           "message": "Portfolio panel now shows active EL cases and source tags for consultants",
           "category": "enhancement",
           "createdAt": "2026-04-30T21:39:34.399693+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "45143410-ae19-4dab-8e2b-a61aab7c1b0a",
@@ -1124,7 +1195,7 @@
           "message": "Fixed folder view: company-required template slots now counted in folder stats and compliance status",
           "category": "bug",
           "createdAt": "2026-04-30T21:32:25.104657+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "2e57c991-62e3-4696-a979-2503c634ac01",
@@ -1132,7 +1203,7 @@
           "message": "Changelog entries now show a date stamp and are sorted newest first within each patch",
           "category": "enhancement",
           "createdAt": "2026-04-30T20:55:05.918251+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e839e482-676b-4ef9-bcd6-d43de5afed9e",
@@ -1140,7 +1211,7 @@
           "message": "Fixed email signature alignment in .msg bundle PDFs",
           "category": "bug",
           "createdAt": "2026-04-30T20:17:32.814341Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -1148,7 +1219,7 @@
           "message": "Added Release Notes section to admin reports",
           "category": "feature",
           "createdAt": "2026-04-10T20:53:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
@@ -1156,7 +1227,7 @@
           "message": "Fixed folder template selection when creating documents from a template",
           "category": "enhancement",
           "createdAt": "2026-04-10T15:22:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-123456789012",
@@ -1164,7 +1235,7 @@
           "message": "Support link in sidebar always shows as locked in production",
           "category": "enhancement",
           "createdAt": "2026-04-10T15:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-234567890123",
@@ -1172,7 +1243,7 @@
           "message": "Fixed: consultants blocked from saving incidents due to missing permissions check",
           "category": "bug",
           "createdAt": "2026-04-13T11:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-345678901234",
@@ -1180,7 +1251,7 @@
           "message": "Standard consultants and clients can now edit their own profile details",
           "category": "enhancement",
           "createdAt": "2026-04-13T13:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-456789012345",
@@ -1188,7 +1259,7 @@
           "message": "Fixed typo in phone number example on settings page",
           "category": "bug",
           "createdAt": "2026-04-13T13:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-abcd-567890123456",
@@ -1196,7 +1267,7 @@
           "message": "Fixed: profile changes on settings page not reflected until page refresh",
           "category": "bug",
           "createdAt": "2026-04-13T13:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b8c9d0e1-f2a3-4567-bcde-678901234567",
@@ -1204,7 +1275,7 @@
           "message": "Fixed: admins blocked from saving their profile due to spurious sources validation error",
           "category": "bug",
           "createdAt": "2026-04-13T13:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9d0e1f2-a3b4-5678-cdef-789012345678",
@@ -1212,7 +1283,7 @@
           "message": "Updated empty folder message in template library",
           "category": "enhancement",
           "createdAt": "2026-04-13T15:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d0e1f2a3-b4c5-6789-defa-890123456789",
@@ -1220,7 +1291,7 @@
           "message": "Removed Setup Wizard from template library",
           "category": "enhancement",
           "createdAt": "2026-04-13T15:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e1f2a3b4-c5d6-7890-efab-901234567890",
@@ -1228,7 +1299,7 @@
           "message": "Feedback comments dialog now shows the original message at the top",
           "category": "enhancement",
           "createdAt": "2026-04-13T16:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f2a3b4c5-d6e7-8901-fabc-012345678901",
@@ -1236,7 +1307,7 @@
           "message": "Improved session expiry error message shown on file upload failure",
           "category": "enhancement",
           "createdAt": "2026-04-13T16:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
@@ -1244,7 +1315,7 @@
           "message": "Redesigned Template Library header — icon badge and action buttons always visible at top",
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d6e7f8a9-b0c1-2345-defa-456789012345",
@@ -1252,7 +1323,7 @@
           "message": "Fixed: company name missing from sidebar immediately after login",
           "category": "bug",
           "createdAt": "2026-04-14T14:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c5d6e7f8-a9b0-1234-cdef-345678901234",
@@ -1260,7 +1331,7 @@
           "message": "Fixed: pro consultants' assigned sources not showing in company creation form",
           "category": "bug",
           "createdAt": "2026-04-14T09:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b4c5d6e7-f8a9-0123-bcde-234567890123",
@@ -1268,7 +1339,7 @@
           "message": "Admins can now permanently delete cases and incidents, with confirmation dialog and full audit trail",
           "category": "enhancement",
           "createdAt": "2026-04-13T18:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-cdef-456789012345",
@@ -1276,7 +1347,7 @@
           "message": "Consultants can now build and download PDF document bundles from a case's checklist items",
           "category": "feature",
           "createdAt": "2026-04-16T17:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-efab-678901234567",
@@ -1284,7 +1355,7 @@
           "message": "Guardian Group logo on the login page now links to guardiangroup.co.uk",
           "category": "enhancement",
           "createdAt": "2026-04-16T19:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b9c0d1e2-f3a4-5678-bcde-890123456789",
@@ -1292,7 +1363,7 @@
           "message": "Pro consultants can now manage module access at both company and site level",
           "category": "enhancement",
           "createdAt": "2026-04-17T08:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c0d1e2f3-a4b5-6789-cdef-901234567890",
@@ -1300,7 +1371,7 @@
           "message": "Fixed: login could hang due to slow background data requests",
           "category": "bug",
           "createdAt": "2026-04-17T09:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d1e2f3a4-b5c6-7890-defa-012345678901",
@@ -1308,7 +1379,7 @@
           "message": "Fixed: session timeout stays active while any tab is in use",
           "category": "bug",
           "createdAt": "2026-04-17T10:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "63b2cc3e-7186-42ee-ad9d-f9ce59bfd1f4",
@@ -1316,7 +1387,7 @@
           "message": "Fixed: patch number no longer auto-increments on server restart",
           "category": "bug",
           "createdAt": "2026-04-17T13:51:01.944Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "23b692fe-eeb8-4410-9be4-566e3e4ece3a",
@@ -1324,7 +1395,7 @@
           "message": "Fixed: company dropdown when adding a user now shows all companies, not just the first page",
           "category": "bug",
           "createdAt": "2026-04-17T14:02:51.746Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a0c79eac-8479-4977-a3ec-5af46bf30389",
@@ -1332,7 +1403,7 @@
           "message": "Fixed: all company dropdown filters now show the full company list",
           "category": "bug",
           "createdAt": "2026-04-17T14:36:47.515Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "68d685d0-2252-4c94-a36a-0eadecd4d7a9",
@@ -1340,7 +1411,7 @@
           "message": "Fixed: company list no longer capped at 100 results",
           "category": "bug",
           "createdAt": "2026-04-17T14:46:19.279Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "64d8d9ae-b983-4381-86cf-011b36416e1c",
@@ -1348,7 +1419,7 @@
           "message": "Improved: sites list now loads significantly faster",
           "category": "enhancement",
           "createdAt": "2026-04-17T14:56:52.390Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "175a2948-b234-463f-be87-85854bd21592",
@@ -1356,7 +1427,7 @@
           "message": "Improved: users and sites lists no longer re-fetch on first visit",
           "category": "enhancement",
           "createdAt": "2026-04-17T14:56:52.391Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "ab6a2217-e59a-4e3f-8e20-14c1dc119e6b",
@@ -1364,7 +1435,7 @@
           "message": "Fixed: pro consultants assigned to sites now appear in the company Users list",
           "category": "bug",
           "createdAt": "2026-04-17T15:02:50.178Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "9dc4f768-fe90-494d-a989-d3885f470ed9",
@@ -1372,7 +1443,7 @@
           "message": "Fixed: toolkit folder dropdown in Add Templates now always loads fresh data",
           "category": "bug",
           "createdAt": "2026-04-17T15:20:53.903Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "157b7507-3110-48f2-a0ec-ed9f36cda9bc",
@@ -1380,7 +1451,7 @@
           "message": "Add Templates dialog now includes a Create New folder option inline",
           "category": "enhancement",
           "createdAt": "2026-04-17T15:20:53.903Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "fdf2d30a0b16",
@@ -1420,7 +1491,7 @@
           "message": "When a company or site address is updated, you are now prompted to copy the new address to any matching sites or the parent company",
           "category": "enhancement",
           "createdAt": "2026-04-17T17:17:48.594Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f3c910ab7d82",
@@ -1428,7 +1499,7 @@
           "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
           "category": "enhancement",
           "createdAt": "2026-04-17T18:28:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a91e43c2bf05",
@@ -1436,7 +1507,7 @@
           "message": "Fixed: address updates now reflect immediately on the company's sites list",
           "category": "bug",
           "createdAt": "2026-04-17T18:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b72d15fe8c91",
@@ -1444,7 +1515,7 @@
           "message": "Fixed: site address on the company Sites tab now shows the full address including Address Line 2 and County",
           "category": "bug",
           "createdAt": "2026-04-17T18:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4a78e21c903",
@@ -1452,7 +1523,7 @@
           "message": "Added ACAS Conciliation as a case type in Employment Law — available in the new case form and case type filter",
           "category": "feature",
           "createdAt": "2026-04-19T13:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e8b2f94d1c37",
@@ -1460,7 +1531,7 @@
           "message": "Admins can grant Case Advocate permission to consultants — only Case Advocates can view and manage Employment Law cases",
           "category": "feature",
           "createdAt": "2026-04-19T14:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f1c73ae09b56",
@@ -1468,7 +1539,7 @@
           "message": "Case Advocates only see cases matching their assigned sources",
           "category": "feature",
           "createdAt": "2026-04-19T14:51:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3c82e15d640",
@@ -1476,7 +1547,7 @@
           "message": "Admins can grant or revoke Template Library and Training Library access per consultant",
           "category": "feature",
           "createdAt": "2026-04-19T15:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b7f91d03c852",
@@ -1484,7 +1555,7 @@
           "message": "Template and Training Library permission toggles appear in both the Permissions dialog and Create Consultant form",
           "category": "feature",
           "createdAt": "2026-04-19T15:31:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9e04bf72d13",
@@ -1492,7 +1563,7 @@
           "message": "Fixed: non-active users are greyed out and unselectable in the Case Access dialog",
           "category": "bug",
           "createdAt": "2026-04-19T16:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d2f15e84a701",
@@ -1500,7 +1571,7 @@
           "message": "Cases now have a mandatory Case Number field shown in the case list",
           "category": "feature",
           "createdAt": "2026-04-19T17:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e3a26f95b812",
@@ -1508,7 +1579,7 @@
           "message": "Case Number can be edited from the case detail view; duplicates are blocked",
           "category": "feature",
           "createdAt": "2026-04-19T17:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f4b37g06c923",
@@ -1516,7 +1587,7 @@
           "message": "Improved: Testing page redesigned with side-by-side panel layout for easier use",
           "category": "enhancement",
           "createdAt": "2026-04-20T07:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "g5c48h17d034",
@@ -1524,7 +1595,7 @@
           "message": "Testing: task lists can now be archived; archived view accessible from left panel",
           "category": "feature",
           "createdAt": "2026-04-20T07:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "h6d59i28e145",
@@ -1532,7 +1603,7 @@
           "message": "RIDDOR section moved from Report Incident form to Follow Up Investigation",
           "category": "enhancement",
           "createdAt": "2026-04-20T07:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "i7e60j39f256",
@@ -1540,7 +1611,7 @@
           "message": "Follow Up Investigation adds RIDDOR reference and notes fields",
           "category": "feature",
           "createdAt": "2026-04-20T07:56:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "j8f71k40g367",
@@ -1548,7 +1619,7 @@
           "message": "Incident detail view and PDF now display RIDDOR reference and notes",
           "category": "feature",
           "createdAt": "2026-04-20T07:57:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "k9g82l51h478",
@@ -1556,7 +1627,7 @@
           "message": "User list: new Permissions column shows colour-coded badges per consultant",
           "category": "feature",
           "createdAt": "2026-04-20T10:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "l0h93m62i589",
@@ -1564,7 +1635,7 @@
           "message": "User list: admin rows show an All badge in the Permissions column",
           "category": "enhancement",
           "createdAt": "2026-04-20T10:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "m1i04n73j690",
@@ -1572,7 +1643,7 @@
           "message": "User list: Case Advocate badge removed from Role cell; shown only in Permissions column",
           "category": "enhancement",
           "createdAt": "2026-04-20T10:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "n2j15o84k701",
@@ -1580,7 +1651,7 @@
           "message": "Settings: Your Permissions card moved to top with read-only permission toggles",
           "category": "enhancement",
           "createdAt": "2026-04-20T11:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "o3k26p95l812",
@@ -1588,7 +1659,7 @@
           "message": "Companies can now be linked to a Group Owner company",
           "category": "feature",
           "createdAt": "2026-04-20T14:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "p4l37q06m923",
@@ -1596,7 +1667,7 @@
           "message": "Group Owner companies show a Linked Companies panel with all member companies",
           "category": "feature",
           "createdAt": "2026-04-20T14:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "q5m48r17n034",
@@ -1604,7 +1675,7 @@
           "message": "Company list shows Group Owner and Member Of badges",
           "category": "feature",
           "createdAt": "2026-04-20T14:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
@@ -1692,7 +1763,7 @@
           "message": "Site Documents page: filter by Group Owner with new Group + Company summary cards",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "6ff8871c-5c2e-4d72-bb56-1f1af1e0a366",
@@ -1700,7 +1771,7 @@
           "message": "Fixed: shared documents to a Group could not be uploaded",
           "category": "bug",
           "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "6e4ff2ea-3c3b-4cdb-b336-003f73431a2f",
@@ -1708,7 +1779,7 @@
           "message": "Documents button on Group/Company cards opens a list filtered to that scope",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "543817bc-9f24-4d70-b8d0-a39748087540",
@@ -1716,7 +1787,7 @@
           "message": "Site Documents filter bar now has an X to clear active filters",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "985d7eff-a966-495d-a706-6e8148803562",
@@ -1724,7 +1795,7 @@
           "message": "Client sign-off emails now go only to the consultant driving the approval",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:05:11.338Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "486b871c-b607-4150-86d8-20d898ac7d0b",
@@ -1732,7 +1803,7 @@
           "message": "Companies, Sites and Users pages now share a consistent header and footer layout",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:33:55.921Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "4591a6ec-0154-4ee0-a6bd-8ee10b5093f5",
@@ -1740,7 +1811,7 @@
           "message": "Companies, Sites and Users pages now show a record count in the footer",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:33:55.921Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "beb1944a-66be-413f-ab20-6531ad305a80",
@@ -1748,7 +1819,7 @@
           "message": "Fixed: email document links now open the document after logging in",
           "category": "bug",
           "createdAt": "2026-04-23T09:37:34.619Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d420eaa1-5222-4503-b3fa-fb49768045ba",
@@ -1756,14 +1827,14 @@
           "message": "Activation page now shows email and username in a clear table",
           "category": "enhancement",
           "createdAt": "2026-04-23T09:40:26.883Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c37bf27b-9b68-4136-9b3c-b99f270d3dc9",
           "patch": 5,
           "category": "enhancement",
           "createdAt": "2026-04-23T09:46:34.735Z",
-          "createdBy": "agent",
+          "createdBy": "System",
           "message": "Activation/reset screens now use the branded login layout"
         },
         {
@@ -1771,7 +1842,7 @@
           "patch": 5,
           "category": "bug",
           "createdAt": "2026-04-23T09:52:15.715Z",
-          "createdBy": "agent",
+          "createdBy": "System",
           "message": "Activation success screen no longer disappears when tab is refocused"
         },
         {
@@ -1780,7 +1851,7 @@
           "message": "Group/company documents now show a Shared list with add/remove (auto-updates compliance)",
           "category": "feature",
           "createdAt": "2026-04-23T11:59:18.883Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "52284c9c-0b66-4e38-9c7f-f493c3bd9afc",
@@ -1788,7 +1859,7 @@
           "message": "Fixed: shared-companies list crashed on group documents",
           "category": "bug",
           "createdAt": "2026-04-23T12:01:42.703Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c5a3fb12-2eb2-44b5-b690-6cd3914d1b89",
@@ -1796,7 +1867,7 @@
           "message": "Group-shared documents now appear and count for each shared company and its sites",
           "category": "enhancement",
           "createdAt": "2026-04-23T12:06:30.848Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "001d975a-9e0f-4ef2-84e0-82bff4a6ab1b",
@@ -1804,7 +1875,7 @@
           "message": "Linked group documents now show on company document pages with a clear \"Linked from Group\" badge and read-only actions",
           "category": "enhancement",
           "createdAt": "2026-04-23T12:13:27.593Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "7797b761-01f0-48c5-b3e0-af4420859d1b",
@@ -1812,7 +1883,7 @@
           "message": "Documents button on Group/Company tiles now opens a properly scoped Documents view with the Group or Company name in the header",
           "category": "bug",
           "createdAt": "2026-04-23T12:22:15.748Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b1109e1e-76da-4860-84cc-4d7b2a274253",
@@ -1820,7 +1891,7 @@
           "message": "Folders view now also respects Group/Company scope when opened from a tile, listing the scoped documents and linked items",
           "category": "enhancement",
           "createdAt": "2026-04-23T12:25:23.275Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c2210f2f-87eb-4971-95df-3b3551b385e4",
@@ -1828,7 +1899,7 @@
           "message": "Folder structure now also exists at Group and Company level, with auto-provisioned folders from templates and a folder selector available when uploading or creating from template in those scopes",
           "category": "feature",
           "createdAt": "2026-04-23T12:38:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d3321a40-98fc-5a82-a6e0-4c4662c496f5",
@@ -1836,7 +1907,7 @@
           "message": "Folders view at Group/Company scope now auto-creates the folder structure from templates and lists documents grouped by folder",
           "category": "bug",
           "createdAt": "2026-04-23T12:42:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e4432b51-a90d-6b93-b7f1-5d5773d5a716",
@@ -1844,7 +1915,7 @@
           "message": "Fixed folder creation so Group and Company folders are saved with the correct scope and stop showing as empty",
           "category": "bug",
           "createdAt": "2026-04-23T12:48:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f5543c62-ba1e-7ca4-c802-6e6884e6b827",
@@ -1852,7 +1923,7 @@
           "message": "Group Owner selection on the Site Documents pages is now remembered when navigating between modules",
           "category": "enhancement",
           "createdAt": "2026-04-23T12:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a6654d73-cb2f-8db5-d913-7f7995f7c938",
@@ -1860,7 +1931,7 @@
           "message": "Shared Group/Company documents now appear inside the matching site folder with a dashed border and Shared tag, instead of in a separate Shared Documents area. Shared documents are read-only at site level and can only be edited at the parent (Group or Company) where they were created",
           "category": "enhancement",
           "createdAt": "2026-04-23T13:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "690eddbc-8f1f-42e3-badf-6970a28f1142",
@@ -1868,7 +1939,7 @@
           "message": "Fixed production auto-bumping its own changelog patch on startup",
           "category": "bug",
           "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a445031b-43c9-4412-85d6-10ac9c26c944",
@@ -1876,7 +1947,7 @@
           "message": "Added auto-detect on Changelog: dev polls live site and bumps patch after publish",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "7e432ccd-5e99-44b4-8ce1-9493fd3f0a57",
@@ -1884,7 +1955,7 @@
           "message": "Added /api/changelog/published-patch endpoint for auto-detect",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "99f1fc00-90cb-45c8-ba02-eddbc70eb3a2",
@@ -1892,7 +1963,7 @@
           "message": "Simplified Changelog header: removed Live badge, cards show patch number only",
           "category": "enhancement",
           "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e2475826-d265-41c0-a014-ab46a461fe69",
@@ -1900,7 +1971,7 @@
           "message": "Added User Logins report to Admin Reports",
           "category": "feature",
           "createdAt": "2026-04-23T22:33:01.986Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "03e532f5-93db-41ab-b284-ae59f19a552c",
@@ -1908,7 +1979,7 @@
           "message": "Template Library: all users with page access now have full management rights",
           "category": "enhancement",
           "createdAt": "2026-04-24T10:44:25.053Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b1c58f3d-caf7-4e8d-a31a-4c43b9d40c26",
@@ -1916,7 +1987,7 @@
           "message": "Fixed client sign-off emails: now routes to assigned consultant before admins",
           "category": "bug",
           "createdAt": "2026-04-24T11:30:10.175Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "6359c831-05f0-4a80-9d73-1b83fdb5e274",
@@ -1924,7 +1995,7 @@
           "message": "Fixed User Logins report always showing zero logins",
           "category": "bug",
           "createdAt": "2026-04-24T11:33:28.947Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "5b9a981b-b6bf-44e7-ba7c-b4e4b722ce35",
@@ -1932,7 +2003,7 @@
           "message": "Added date-range presets to User Logins report",
           "category": "feature",
           "createdAt": "2026-04-24T11:33:28.947Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "9e223c29-17ed-4956-aa3c-c03cdde676f9",
@@ -1940,7 +2011,7 @@
           "message": "Added Active Users Now tile to Admin Reports",
           "category": "feature",
           "createdAt": "2026-04-24T11:45:47.680Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "3be22683-ff52-458f-8322-a8444c9e097f",
@@ -1948,7 +2019,7 @@
           "message": "Moved Changelog / Release Notes onto its own Admin Reports sub-page",
           "category": "enhancement",
           "createdAt": "2026-04-24T12:55:22.216Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "1cd04d25-c05e-4514-b85a-b28b27c40973",
@@ -1956,7 +2027,7 @@
           "message": "Locked Admin Reports, Active Users, User Logins and Changelog to admins only",
           "category": "enhancement",
           "createdAt": "2026-04-24T13:35:26.377Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "4f88a5fa-eddc-4cf8-9161-2996a755b486",
@@ -1964,7 +2035,7 @@
           "message": "Module Sites: replaced Overdue stat with Missing on Group and Company tiles",
           "category": "enhancement",
           "createdAt": "2026-04-24T14:47:32.513Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "80b91b5e-2161-4ba6-be85-7b9a20cdf6ca",
@@ -1972,7 +2043,7 @@
           "message": "Fixed Missing count on Group/Company tiles to be scope-specific",
           "category": "bug",
           "createdAt": "2026-04-24T15:38:33.800Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "370508d5-c06d-4829-8a6e-1e7577b70bf3",
@@ -1980,7 +2051,7 @@
           "message": "Further consistency fixes to Group/Company tile stat counts",
           "category": "bug",
           "createdAt": "2026-04-24T15:48:40.904Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "72da25ef-eb4c-44b2-bc30-00b18a3849bb",
@@ -1988,7 +2059,7 @@
           "message": "Fixed Group tile counts to load consistently alongside Company tile",
           "category": "enhancement",
           "createdAt": "2026-04-27T10:22:45.852Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "97e6116e-e8d4-484d-9940-7138911c4923",
@@ -1996,7 +2067,7 @@
           "message": "Fixed required docs from member companies incorrectly bubbling up to Group tile",
           "category": "bug",
           "createdAt": "2026-04-27T11:26:00.794Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "0721dc8b-14fd-4d04-addf-f8ef18859373",
@@ -2004,7 +2075,7 @@
           "message": "Fixed Site tile over-counting Compliant when group/company docs are shared",
           "category": "bug",
           "createdAt": "2026-04-27T12:57:53.049Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b504c58f-0799-4972-abe4-737a06ffa8de",
@@ -2012,7 +2083,7 @@
           "message": "Implemented group-to-member required-template cascade (non-binding)",
           "category": "bug",
           "createdAt": "2026-04-27T13:21:55.571Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "663428e3-18dc-44df-979f-342049318401",
@@ -2020,7 +2091,7 @@
           "message": "Removing a group required template no longer forces removal at member companies",
           "category": "feature",
           "createdAt": "2026-04-27T14:02:02.702Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "253520c0-6436-44e2-8e77-89ef1a0acb2e",
@@ -2028,7 +2099,7 @@
           "message": "Inherited required docs can now be individually dismissed at company level",
           "category": "enhancement",
           "createdAt": "2026-04-27T14:11:16.765Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "eecf08ae-784f-4d63-874e-4636c8a79d6e",
@@ -2036,7 +2107,7 @@
           "message": "Dismissed inherited required docs can now be re-enabled",
           "category": "enhancement",
           "createdAt": "2026-04-27T14:41:05.642Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "6ad0ea35-d52d-47fb-bb77-ce13677c8768",
@@ -2044,7 +2115,7 @@
           "message": "Added GDPR name redaction option for incident report PDFs",
           "category": "feature",
           "createdAt": "2026-04-29T12:30:28.554Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "0eeda2aa-dab5-4274-a13d-bd1fbad32fcb",
@@ -2052,7 +2123,7 @@
           "message": "Extended GDPR redaction to cover address fields in incident PDFs",
           "category": "enhancement",
           "createdAt": "2026-04-29T12:36:28.334Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b9624604-2fab-4e28-9acf-0c12aca7103d",
@@ -2060,7 +2131,7 @@
           "message": "Consultants now receive an email when a client submits an incident report",
           "category": "feature",
           "createdAt": "2026-04-29T12:55:53.172Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "9880e36a-085e-42ee-986b-601ef241f989",
@@ -2068,7 +2139,7 @@
           "message": "Added confirmation dialog shown to client after submitting an incident report",
           "category": "feature",
           "createdAt": "2026-04-29T13:07:12.047869Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "2463acf6-2407-4fb8-af32-94fa6e735610",
@@ -2076,7 +2147,7 @@
           "message": "Added portal_messages table with full CRUD and storage layer",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:31:30.962655+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e7ef7f1d-d116-4d77-85e6-7021977da64f",
@@ -2084,7 +2155,7 @@
           "message": "Added /api/home-summary endpoint returning urgent actions, portfolio, and portal messages",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:31:30.962724+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "cd9bf392-ac38-4f93-8d73-a19f32a7b28c",
@@ -2092,7 +2163,7 @@
           "message": "Added portal-messages CRUD API routes with admin/client visibility rules",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:31:30.962775+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "2b1bf800-cd5a-436b-9bba-ab9be1d7d101",
@@ -2100,7 +2171,7 @@
           "message": "Created /home portal page with greeting, urgent actions, portfolio and portal messages",
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962829+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "58c989e1-4f2d-4634-9f25-680acc367ec4",
@@ -2108,7 +2179,7 @@
           "message": "Moved dashboard to /dashboard; updated sidebar Overview to link to new /home page",
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962880+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "72487e51-a6a0-430f-b978-b2b64fe64b89",
@@ -2116,7 +2187,7 @@
           "message": "Added /admin/portal-messages admin page to create, edit, publish and delete messages",
           "category": "feature",
           "createdAt": "2026-04-29T13:31:30.962927+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "5b3e9414-9095-4861-bfdb-6349370cc274",
@@ -2124,7 +2195,7 @@
           "message": "Fixed home page: / redirect, date greeting, client doc links, admin action buttons",
           "category": "bug",
           "createdAt": "2026-04-29T13:40:58.560735Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "930c8661-781e-4917-aee9-7dd02aa4b1d5",
@@ -2132,7 +2203,7 @@
           "message": "Fixed home page review issues: portal message card type badges and colours",
           "category": "bug",
           "createdAt": "2026-04-29T13:46:40.495315Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "408b7414-de3e-4768-b0f9-dcb05f5261af",
@@ -2140,7 +2211,7 @@
           "message": "Added /api/home-summary/items endpoint for urgent action modal drill-down lists",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "9ff018d9-efa2-49f3-910d-b8fe03c6c050",
@@ -2148,7 +2219,7 @@
           "message": "Remove Quick Links card from home page (redundant with sidebar navigation)",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "769c53c6-d981-4527-8629-055a2e25b2e5",
@@ -2156,7 +2227,7 @@
           "message": "Urgent Actions: clicking a metric opens a modal listing specific items with links",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "08ff47cd-c613-454b-97b3-6fb144b4b5d6",
@@ -2164,7 +2235,7 @@
           "message": "Redesigned My Portfolio panel with stats, client list, and site count badges",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d5257ae3-900f-4f02-a88d-52e8e93cece8",
@@ -2172,7 +2243,7 @@
           "message": "Client Account panel redesign: avatar icons, divider layout, document/incident quick-action buttons",
           "category": "enhancement",
           "createdAt": "2026-04-29T13:58:14.383104+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "205aea36-8850-4290-8d70-ff6f89c48ed3",
@@ -2180,7 +2251,7 @@
           "message": "Fixed portal message create/update: coerce ISO string timestamps before validation",
           "category": "bug",
           "createdAt": "2026-04-29T14:02:27.879484+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b062cc78-1b0b-4fd1-8917-39afc8527f7a",
@@ -2188,7 +2259,7 @@
           "message": "Fixed PATCH portal-messages: omitted date fields no longer cause validation errors",
           "category": "bug",
           "createdAt": "2026-04-29T14:04:42.966625+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e1463481-0535-427c-8b5b-7356f6e4446e",
@@ -2196,7 +2267,7 @@
           "message": "Fixed portal messages: future-dated messages now hidden until published_at arrives",
           "category": "bug",
           "createdAt": "2026-04-29T14:30:25.508982+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "834541c6-172a-409f-96a6-0cc3f0ca2e31",
@@ -2204,7 +2275,7 @@
           "message": "Moved Open Cases count from My Portfolio to Urgent Actions on home page",
           "category": "feature",
           "createdAt": "2026-04-29T14:46:32.418290+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "1b9d3dc4-3f1d-48e7-bd1b-701c866d27da",
@@ -2212,7 +2283,7 @@
           "message": "Equalised Urgent Actions and My Portfolio card heights on home page",
           "category": "enhancement",
           "createdAt": "2026-04-29T14:51:12.583438+00:00",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "282b73f5-de91-4390-9c98-88cd7914b873",
@@ -2220,7 +2291,7 @@
           "message": "Added toggle for clients to grant consultants full unredacted incident access",
           "category": "feature",
           "createdAt": "2026-04-29T14:56:48.061183Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "6fcd3290-aceb-423f-ad10-742bd93eb1c6",
@@ -2228,7 +2299,7 @@
           "message": "Required docs inherited from group can now be dismissed at site level",
           "category": "feature",
           "createdAt": "2026-04-29T15:32:35.577707Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b1876e0b-28b1-402e-9d49-f84a07a5b8c3",
@@ -2236,7 +2307,7 @@
           "message": "Case bundle PDF: page numbers now start at 1 (was 0-based) and render in black (was grey).",
           "category": "bug",
           "createdAt": "2026-04-30T14:39:57.214558Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "66f0877b-dce8-49a1-9f81-30d91ce761bb",
@@ -2244,7 +2315,7 @@
           "message": "Case bundle: added .msg (Outlook email) conversion support",
           "category": "feature",
           "createdAt": "2026-04-30T14:58:22.887394Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a9c3e7f1-bb42-4d18-9c05-2e1f8d6a0b47",
@@ -2252,7 +2323,7 @@
           "message": "Fixed: Companies, Sites and Users pages now accessible to consultants",
           "category": "bug",
           "createdAt": "2026-05-06T00:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f3d2c1b0-a9e8-4f7d-8c6b-5a4e3d2c1b0a",
@@ -2260,7 +2331,7 @@
           "message": "Admin users get all sources automatically; new sources auto-assigned to all admins",
           "category": "enhancement",
           "createdAt": "2026-05-06T00:01:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e2d1c0b9-a8f7-4e6d-9c5b-4a3e2d1c0b9a",
@@ -2268,7 +2339,7 @@
           "message": "User list Sources column now shows All, a single code, or N sources (hover to see full list)",
           "category": "enhancement",
           "createdAt": "2026-05-06T00:02:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c1b0a9f8-e7d6-4c5b-8a9b-0c1d2e3f4a5b",
@@ -2276,7 +2347,7 @@
           "message": "Fixed: Sources hover tooltip now appears correctly on the user list",
           "category": "bug",
           "createdAt": "2026-05-06T00:03:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a",
@@ -2284,7 +2355,7 @@
           "message": "User list: reduced text size for Company and Sites Assigned columns",
           "category": "enhancement",
           "createdAt": "2026-05-06T00:04:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b3c4d5e6-f7a8-4b9c-ad0e-1f2a3b4c5d6e",
@@ -2292,7 +2363,7 @@
           "message": "Fixed: company-level documents now count toward site compliance scores",
           "category": "bug",
           "createdAt": "2026-05-06T00:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c4d5e6f7-a8b9-4c0d-be1f-2a3b4c5d6e7f",
@@ -2300,7 +2371,7 @@
           "message": "Fixed: required company docs shared to a site now counted in compliance even when the template is site-excluded",
           "category": "bug",
           "createdAt": "2026-05-06T10:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d5e6f7a8-b9c0-4d1e-cf2f-3a4b5c6d7e8f",
@@ -2308,7 +2379,7 @@
           "message": "Fixed: site card compliant count now includes manually-required docs with excluded templates",
           "category": "bug",
           "createdAt": "2026-05-06T10:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e6f7a8b9-c0d1-4e2f-d03a-4b5c6d7e8f9a",
@@ -2316,7 +2387,7 @@
           "message": "Documents header: company and site names now link to their profile pages; Back button returns to previous page",
           "category": "enhancement",
           "createdAt": "2026-05-06T10:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f7a8b9c0-d1e2-4f3a-e04b-5c6d7e8f9a0b",
@@ -2324,7 +2395,7 @@
           "message": "Fixed: documents page crash on load caused by initialization order error",
           "category": "bug",
           "createdAt": "2026-05-06T10:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-4a7b-b08c-9d0e1f2a3b4c",
@@ -2332,7 +2403,7 @@
           "message": "Fixed: site profile back button now returns to previous page",
           "category": "bug",
           "createdAt": "2026-05-06T10:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-4b8c-c09d-0e1f2a3b4c5d",
@@ -2340,7 +2411,7 @@
           "message": "Fixed: company profile back button now returns to previous page",
           "category": "bug",
           "createdAt": "2026-05-06T10:25:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-4c9d-d0ea-1f2b3c4d5e6f",
@@ -2348,7 +2419,7 @@
           "message": "Fixed: site cards now surface review-required docs even when a compliant copy of the same template also exists",
           "category": "bug",
           "createdAt": "2026-05-06T10:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-4d0e-e1fb-2c3d4e5f6a7b",
@@ -2356,7 +2427,7 @@
           "message": "Fixed: site card now shows all compliant docs alongside any review-required docs",
           "category": "bug",
           "createdAt": "2026-05-06T10:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-4e1f-f2ac-3d4e5f6a7b8c",
@@ -2364,7 +2435,7 @@
           "message": "Fixed: shared docs in compliance dialogs now show once per site with site label",
           "category": "bug",
           "createdAt": "2026-05-06T10:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-4f2a-a3bd-4e5f6a7b8c9d",
@@ -2372,7 +2443,7 @@
           "message": "Fixed: All Sites shared-doc count now reflects one contribution per covered site",
           "category": "bug",
           "createdAt": "2026-05-06T11:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-ef9876543210",
@@ -2380,7 +2451,7 @@
           "message": "Fixed: shared/group docs now appear once per site in the All Sites document list",
           "category": "bug",
           "createdAt": "2026-05-06T21:15:24.070Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
@@ -2388,7 +2459,7 @@
           "message": "Fixed: All Sites document list now defaults to table view and expands shared docs per site",
           "category": "bug",
           "createdAt": "2026-05-06T21:23:30.362Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-ab9876543210",
@@ -2396,7 +2467,7 @@
           "message": "Fixed: shared/group docs now appear once per site in folder view (All Sites)",
           "category": "bug",
           "createdAt": "2026-05-06T21:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-ba9876543210",
@@ -2404,7 +2475,7 @@
           "message": "Fixed: folder and banner counts now reflect per-site shared doc expansion",
           "category": "bug",
           "createdAt": "2026-05-06T21:38:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-cb9876543210",
@@ -2412,7 +2483,7 @@
           "message": "Fixed: shared docs no longer show per-site rows in Company Documents view",
           "category": "bug",
           "createdAt": "2026-05-06T21:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-dc9876543210",
@@ -2420,7 +2491,7 @@
           "message": "Fixed: 'Shared from Group/Company' badge no longer shows on origin-level docs",
           "category": "bug",
           "createdAt": "2026-05-06T21:53:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-ed9876543210",
@@ -2428,7 +2499,7 @@
           "message": "Fixed: group name link in documents header now navigates to the correct company",
           "category": "bug",
           "createdAt": "2026-05-07T08:43:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-fe9876543210",
@@ -2436,7 +2507,7 @@
           "message": "Improved: removing a required template now instantly updates downstream site and company views",
           "category": "enhancement",
           "createdAt": "2026-05-07T09:22:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-fe9876543210",
@@ -2444,7 +2515,7 @@
           "message": "Fixed: Document Progress card dialogs now show all documents, not just required ones",
           "category": "bug",
           "createdAt": "2026-05-07T10:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-fe9876543210",
@@ -2452,7 +2523,7 @@
           "message": "Fixed: Document Progress totals now match the expanded row count in the dialog",
           "category": "bug",
           "createdAt": "2026-05-07T10:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-fe9876543210",
@@ -2460,7 +2531,7 @@
           "message": "Non-required documents now show a blue 'Complete' badge instead of green 'Compliant'",
           "category": "enhancement",
           "createdAt": "2026-05-07T10:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-fe9876543210",
@@ -2468,7 +2539,7 @@
           "message": "Company Number renamed to Registered Company Number; new Internal Company Number field added and searchable",
           "category": "feature",
           "createdAt": "2026-05-07T11:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-fe9876543299",
@@ -2476,7 +2547,7 @@
           "message": "Fixed: Internal Company Number now saves correctly when editing a company",
           "category": "bug",
           "createdAt": "2026-05-07T13:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-fe9876543300",
@@ -2484,7 +2555,7 @@
           "message": "Company list now shows Internal Company Number; Group Owner badge moved below it",
           "category": "enhancement",
           "createdAt": "2026-05-07T13:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-fe9876543301",
@@ -2492,7 +2563,7 @@
           "message": "Registered and Internal Company Numbers must now be unique across all companies",
           "category": "enhancement",
           "createdAt": "2026-05-07T13:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-fe9876543302",
@@ -2500,7 +2571,7 @@
           "message": "Group Owner badge now matches Member of style with blue outline",
           "category": "enhancement",
           "createdAt": "2026-05-07T14:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-fe9876543303",
@@ -2508,7 +2579,7 @@
           "message": "Company list rows now consistent height; number and tag shown inline with name",
           "category": "enhancement",
           "createdAt": "2026-05-07T14:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-fe9876543304",
@@ -2516,7 +2587,7 @@
           "message": "Internal Company Number shown as a distinct monospace tag; group badges moved below",
           "category": "enhancement",
           "createdAt": "2026-05-07T14:25:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-fe9876543310",
@@ -2524,7 +2595,7 @@
           "message": "Admins can assign a Pro Consultant as manager for standard consultants",
           "category": "feature",
           "createdAt": "2026-05-07T14:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-fe9876543311",
@@ -2532,7 +2603,7 @@
           "message": "Pro consultants can filter companies and sites by their managed staff members",
           "category": "feature",
           "createdAt": "2026-05-07T14:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-fe9876543305",
@@ -2540,7 +2611,7 @@
           "message": "Group Owner companies automatically inherit module access from member companies",
           "category": "feature",
           "createdAt": "2026-05-07T14:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c7d8e9f0-a1b2-3456-cdef-789012345678",
@@ -2548,7 +2619,7 @@
           "message": "Group Owner panel stays in sync when a member company's modules change",
           "category": "enhancement",
           "createdAt": "2026-05-07T15:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d8e9f0a1-b2c3-4567-defa-890123456789",
@@ -2556,7 +2627,7 @@
           "message": "Users page split into Staff and Client tabs with tailored columns and filters",
           "category": "enhancement",
           "createdAt": "2026-05-07T15:37:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e9f0a1b2-c3d4-5678-efab-901234567890",
@@ -2564,7 +2635,7 @@
           "message": "Last login text in users table is now smaller for a tidier layout",
           "category": "enhancement",
           "createdAt": "2026-05-07T15:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f0a1b2c3-d4e5-6789-f0ab-012345678901",
@@ -2572,7 +2643,7 @@
           "message": "Sort buttons added to Companies, Sites and Users tables; Users sorted by username by default",
           "category": "enhancement",
           "createdAt": "2026-05-07T20:58:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-123456789012",
@@ -2580,7 +2651,7 @@
           "message": "Role sort on staff tab orders Admin > Pro Consultant > Consultant; removed from client tab",
           "category": "enhancement",
           "createdAt": "2026-05-07T21:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-234567890123",
@@ -2588,7 +2659,7 @@
           "message": "Group Owner primary contact is auto-assigned to all member sites when group is linked or new sites are added",
           "category": "feature",
           "createdAt": "2026-05-07T21:12:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-345678901234",
@@ -2596,7 +2667,7 @@
           "message": "Member company Users tab now shows Group Owner contacts with a 'Group Owner Contact' badge",
           "category": "enhancement",
           "createdAt": "2026-05-07T21:27:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-456789012345",
@@ -2604,7 +2675,7 @@
           "message": "Group Owner clients can now filter sites by individual member company",
           "category": "enhancement",
           "createdAt": "2026-05-07T21:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-567890123456",
@@ -2612,7 +2683,7 @@
           "message": "Group Owner clients see their full group by default on sites pages; group dropdown hidden, all companies selectable",
           "category": "enhancement",
           "createdAt": "2026-05-07T21:42:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-678901234567",
@@ -2620,7 +2691,7 @@
           "message": "Fixed: deleted or archived documents disappear from folder view immediately without needing a refresh",
           "category": "bug",
           "createdAt": "2026-05-07T21:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-abcd-789012345678",
@@ -2628,7 +2699,7 @@
           "message": "Fixed: compliance counts update instantly after adding or removing a required document at company or site level",
           "category": "bug",
           "createdAt": "2026-05-07T21:57:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b8c9d0e1-f2a3-4567-bcde-890123456789",
@@ -2636,7 +2707,7 @@
           "message": "Clients on all company sites are automatically assigned to any new site added to that company",
           "category": "feature",
           "createdAt": "2026-05-07T22:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9d0e1f2-a3b4-5678-cdef-901234567890",
@@ -2644,7 +2715,7 @@
           "message": "Manage Sites dialog now informs you when assigning a client to all their company's sites",
           "category": "enhancement",
           "createdAt": "2026-05-07T22:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d0e1f2a3-b4c5-6789-defa-012345678901",
@@ -2652,7 +2723,7 @@
           "message": "Document upload at company/group level now shows a notice explaining it cascades to all destination sites or companies",
           "category": "enhancement",
           "createdAt": "2026-05-07T22:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e1f2a3b4-c5d6-7890-efab-123456789012",
@@ -2660,7 +2731,7 @@
           "message": "Company/group-level approver list now restricted to clients of the origin company only",
           "category": "enhancement",
           "createdAt": "2026-05-07T22:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f2a3b4c5-d6e7-8901-fabc-234567890123",
@@ -2668,7 +2739,7 @@
           "message": "Fixed: document table/folder view now updates immediately after approving a document",
           "category": "bug",
           "createdAt": "2026-05-07T23:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-345678901234",
@@ -2676,7 +2747,7 @@
           "message": "Fixed: client users now appear in the approver notification dropdown for company/group-scoped documents",
           "category": "bug",
           "createdAt": "2026-05-08T09:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b4c5d6e7-f8a9-0123-bcde-456789012345",
@@ -2684,7 +2755,7 @@
           "message": "Fixed: Back button on documents page now always returns to the module sites view",
           "category": "bug",
           "createdAt": "2026-05-08T09:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c5d6e7f8-a9b0-1234-cdef-567890123456",
@@ -2692,7 +2763,7 @@
           "message": "Fixed: approver dropdown now also shows client users when document awaits final consultant approval",
           "category": "bug",
           "createdAt": "2026-05-08T09:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d6e7f8a9-b0c1-2345-defa-678901234567",
@@ -2700,7 +2771,7 @@
           "message": "Fixed: reassignment dropdown on company/group-scoped documents now correctly shows all client users",
           "category": "bug",
           "createdAt": "2026-05-08T10:06:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e7f8a9b0-c1d2-3456-efab-789012345678",
@@ -2708,7 +2779,7 @@
           "message": "Improved: document table view has a wider Document column, condensed column headers, and shorter dates",
           "category": "enhancement",
           "createdAt": "2026-05-08T10:22:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f8a9b0c1-d2e3-4567-fabc-890123456789",
@@ -2716,7 +2787,7 @@
           "message": "Fixed: 'Shared from Group/Company' badge now shows in table view at site and All Sites level",
           "category": "bug",
           "createdAt": "2026-05-08T10:38:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a9b0c1d2-e3f4-5678-abcd-901234567890",
@@ -2724,7 +2795,7 @@
           "message": "Fixed: Dashboard and Documents stay scoped to the group when clicking from the All Sites card",
           "category": "bug",
           "createdAt": "2026-05-08T10:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b0c1d2e3-f4a5-6789-bcde-012345678901",
@@ -2732,7 +2803,7 @@
           "message": "Fixed: header now shows group name instead of 'All Companies' when a group is active",
           "category": "bug",
           "createdAt": "2026-05-08T11:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c1d2e3f4-a5b6-7890-cdef-123456789012",
@@ -2740,7 +2811,7 @@
           "message": "Improved: documents page now defaults to folder view instead of table view",
           "category": "enhancement",
           "createdAt": "2026-05-08T11:12:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d2e3f4a5-b6c7-8901-defa-234567890123",
@@ -2748,7 +2819,7 @@
           "message": "Group Primary Contact badge shown on member-company site user lists; approval rights granted across entire group",
           "category": "feature",
           "createdAt": "2026-05-08T12:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e3f4a5b6-c7d8-9012-efab-345678901234",
@@ -2756,7 +2827,7 @@
           "message": "Fixed: 'Group Primary Contact' badge now correctly shows on member company user lists (not for all cross-company users)",
           "category": "bug",
           "createdAt": "2026-05-08T12:58:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f4a5b6c7-d8e9-0123-fabc-456789012345",
@@ -2764,7 +2835,7 @@
           "message": "Improved: all site/company/group tiles now show 'Document Compliance' instead of 'Compliance'",
           "category": "enhancement",
           "createdAt": "2026-05-08T13:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a5b6c7d8-e9f0-1234-abcd-567890123456",
@@ -2772,7 +2843,7 @@
           "message": "Improved: dashboard compliance card subtitle now matches module overview style",
           "category": "enhancement",
           "createdAt": "2026-05-08T14:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b6c7d8e9-f0a1-2345-bcde-678901234567",
@@ -2780,7 +2851,7 @@
           "message": "Improved: Add Folder dialog now pre-selects the current module; module is required",
           "category": "enhancement",
           "createdAt": "2026-05-08T15:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c7d8e9f0-a1b2-3456-cdef-789012345678",
@@ -2788,7 +2859,7 @@
           "message": "Improved: Parent Folder field hidden from the Create Folder dialog",
           "category": "enhancement",
           "createdAt": "2026-05-08T15:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d8e9f0a1-b2c3-4567-defa-890123456789",
@@ -2796,7 +2867,7 @@
           "message": "Fixed: case folders no longer appear in the folder dropdown when uploading site documents",
           "category": "bug",
           "createdAt": "2026-05-08T15:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e9f0a1b2-c3d4-5678-efab-901234567890",
@@ -2804,7 +2875,7 @@
           "message": "Improved: roadmap filters laid out in a tidy 2×4 grid; search spans two columns",
           "category": "enhancement",
           "createdAt": "2026-05-08T16:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f0a1b2c3-d4e5-6789-fabc-012345678901",
@@ -2812,7 +2883,7 @@
           "message": "Improved: company status 'Inactive' renamed to 'Cancelled'; clients locked out on Cancelled or On Hold",
           "category": "enhancement",
           "createdAt": "2026-05-08T16:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-123456789012",
@@ -2820,7 +2891,7 @@
           "message": "Fixed: server auto-migrates any legacy 'inactive' company records to 'cancelled' on startup",
           "category": "bug",
           "createdAt": "2026-05-08T16:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-234567890123",
@@ -2828,7 +2899,7 @@
           "message": "Pro consultants: home page shows 3-tile layout with 'My Assigned Consultants' when staff exist",
           "category": "feature",
           "createdAt": "2026-05-08T17:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-012345678901",
@@ -2836,7 +2907,7 @@
           "message": "Admins and pro consultants can mark client users as Key Contacts at company and site level",
           "category": "feature",
           "createdAt": "2026-05-08T17:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-012345678901",
@@ -2844,7 +2915,7 @@
           "message": "Fixed: Key Contact validation moved into storage layer for defense in depth",
           "category": "bug",
           "createdAt": "2026-05-08T17:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-012345678901",
@@ -2852,7 +2923,7 @@
           "message": "Key Contacts now shown in company and site Overview tabs with name, email, and badge",
           "category": "feature",
           "createdAt": "2026-05-08T17:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-012345678901",
@@ -2860,7 +2931,7 @@
           "message": "Fixed: crash on company detail page after Key Contacts feature was deployed",
           "category": "bug",
           "createdAt": "2026-05-08T17:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fab0-012345678901",
@@ -2868,7 +2939,7 @@
           "message": "Improved: home page tiles now stretch to equal height in the 3-column layout",
           "category": "enhancement",
           "createdAt": "2026-05-08T18:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-abcd-012345678901",
@@ -2876,7 +2947,7 @@
           "message": "Fixed: sites list staff filter now correctly shows only the selected consultant's sites",
           "category": "bug",
           "createdAt": "2026-05-08T18:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b8c9d0e1-f2a3-4567-bcde-123456789012",
@@ -2884,7 +2955,7 @@
           "message": "Improved: sites list filter label changed to 'My client sites'",
           "category": "enhancement",
           "createdAt": "2026-05-08T18:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9d0e1f2-a3b4-5678-cdef-234567890123",
@@ -2892,7 +2963,7 @@
           "message": "Fixed: pro consultants now appear in the site Users tab alongside standard consultants",
           "category": "bug",
           "createdAt": "2026-05-08T18:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d0e1f2a3-b4c5-6789-defa-345678901234",
@@ -2900,7 +2971,7 @@
           "message": "Improved: My client sites now shows only directly assigned sites, not group member sites",
           "category": "enhancement",
           "createdAt": "2026-05-08T19:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e1f2a3b4-c5d6-7890-efab-456789012345",
@@ -2908,7 +2979,7 @@
           "message": "Added: staff scope filter to Site Documents page for pro consultants",
           "category": "feature",
           "createdAt": "2026-05-08T19:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f2a3b4c5-d6e7-8901-fabc-567890123456",
@@ -2916,7 +2987,7 @@
           "message": "Improved: Site Documents header filters now fit neatly on a single row",
           "category": "enhancement",
           "createdAt": "2026-05-08T19:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3b4c5d6-e7f8-9012-bcde-678901234567",
@@ -2924,7 +2995,7 @@
           "message": "Improved: 'Group Owners' filter label shortened to 'Groups'; filters widened",
           "category": "enhancement",
           "createdAt": "2026-05-08T19:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b4c5d6e7-f8a9-0123-cdef-789012345678",
@@ -2932,7 +3003,7 @@
           "message": "Improved: Site Documents filters are now uniform — no icons, consistent size",
           "category": "enhancement",
           "createdAt": "2026-05-08T20:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c5d6e7f8-a9b0-1234-defa-890123456789",
@@ -2940,7 +3011,7 @@
           "message": "Fixed: staff filter showed indented text when a staff member was selected",
           "category": "bug",
           "createdAt": "2026-05-08T20:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d6e7f8a9-b0c1-2345-efab-901234567890",
@@ -2948,7 +3019,7 @@
           "message": "Fixed: staff filter no longer shows yellow box or indent for staff members",
           "category": "bug",
           "createdAt": "2026-05-08T20:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e7f8a9b0-c1d2-3456-fabc-012345678901",
@@ -2956,7 +3027,7 @@
           "message": "Improved: dashboard overview — removed 'Need Support?' button; added staff filter for pro consultants; dropdowns match site documents style",
           "category": "enhancement",
           "createdAt": "2026-05-08T20:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f8a9b0c1-d2e3-4567-abcd-123456789012",
@@ -2964,7 +3035,7 @@
           "message": "Fixed: dashboard compliance cards now update when the staff filter changes",
           "category": "bug",
           "createdAt": "2026-05-08T21:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-bcde-234567890abc",
@@ -2972,7 +3043,7 @@
           "message": "Fixed: Activity cards (Incidents, Training, Cases) now filter correctly with the staff filter",
           "category": "bug",
           "createdAt": "2026-05-08T21:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-cdef-345678901bcd",
@@ -2980,7 +3051,7 @@
           "message": "Roadmap filters now persist when navigating away and back; added clear filters button",
           "category": "enhancement",
           "createdAt": "2026-05-08T21:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-defa-456789012cde",
@@ -2988,7 +3059,7 @@
           "message": "User profile now shows 'Managed by' for consultants with a manager, and 'Assigned Consultants' for those who manage staff",
           "category": "feature",
           "createdAt": "2026-05-08T21:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-efab-567890123def",
@@ -2996,7 +3067,7 @@
           "message": "Pro consultants can now filter client users by their own sites or a specific staff member's sites",
           "category": "feature",
           "createdAt": "2026-05-08T21:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-fabc-678901234efa",
@@ -3004,7 +3075,7 @@
           "message": "Client staff filter moved to header bar; Welcome Emails button now only shows on the Staff tab",
           "category": "enhancement",
           "createdAt": "2026-05-08T21:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-abcd-789012345fab",
@@ -3012,7 +3083,7 @@
           "message": "Client filter defaults to My clients; order is My clients, staff, then All clients",
           "category": "enhancement",
           "createdAt": "2026-05-08T22:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-bcde-890123456abc",
@@ -3020,7 +3091,7 @@
           "message": "Fixed: Set as Key Contact was failing due to missing database table",
           "category": "bug",
           "createdAt": "2026-05-08T22:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b8c9d0e1-f2a3-4567-cdef-901234567bcd",
@@ -3028,7 +3099,7 @@
           "message": "Key Contact badge now shown on client users in the Users list",
           "category": "enhancement",
           "createdAt": "2026-05-08T22:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9d0e1f2-a3b4-5678-defa-012345678cde",
@@ -3036,7 +3107,7 @@
           "message": "Fixed: Key Contact badge now updates immediately after setting or removing a key contact",
           "category": "bug",
           "createdAt": "2026-05-08T22:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d0e1f2a3-b4c5-6789-efab-123456789def",
@@ -3044,7 +3115,7 @@
           "message": "Fixed: Key Contact badge now always reflects the latest data on the client users list",
           "category": "bug",
           "createdAt": "2026-05-08T22:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e1f2a3b4-c5d6-7890-fabc-234567890ef1",
@@ -3052,7 +3123,7 @@
           "message": "Users page: tab toggle and filters now sit on a single row",
           "category": "enhancement",
           "createdAt": "2026-05-08T22:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f2a3b4c5-d6e7-8901-abcd-345678901f23",
@@ -3060,7 +3131,7 @@
           "message": "Company overview: Primary Contact now shows a blue badge next to the name",
           "category": "enhancement",
           "createdAt": "2026-05-08T23:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3b4c5d6-e7f8-9012-bcde-456789012a34",
@@ -3068,7 +3139,7 @@
           "message": "Company overview: Primary Contact layout now matches the Key Contact style",
           "category": "enhancement",
           "createdAt": "2026-05-08T23:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b4c5d6e7-f8a9-0123-cdef-567890123b45",
@@ -3076,7 +3147,7 @@
           "message": "Fixed: All Sites documents — folder view, table view and summary missing count now align",
           "category": "bug",
           "createdAt": "2026-05-08T23:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c5d6e7f8-a9b0-1234-defa-678901234c56",
@@ -3084,7 +3155,7 @@
           "message": "Fixed: All Sites folder view no longer shows duplicate missing slots from unrelated companies",
           "category": "bug",
           "createdAt": "2026-05-08T23:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d6e7f8a9-b0c1-2345-efab-789012345d67",
@@ -3092,7 +3163,7 @@
           "message": "Fixed: Folder view missing count now matches table view and summary exactly",
           "category": "bug",
           "createdAt": "2026-05-08T23:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e7f8a9b0-c1d2-3456-fabc-890123456e78",
@@ -3100,7 +3171,7 @@
           "message": "Fixed: Required docs with no folder assignment now appear in Unfiled section of folder view",
           "category": "bug",
           "createdAt": "2026-05-08T23:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f8a9b0c1-d2e3-4567-abcd-901234567f89",
@@ -3108,7 +3179,7 @@
           "message": "Fixed: Missing slots whose folder isn't provisioned on any site now fall into Unfiled",
           "category": "bug",
           "createdAt": "2026-05-09T00:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567891",
@@ -3116,7 +3187,7 @@
           "message": "Folder view now shows a Missing badge on collapsed folders so you know where to look",
           "category": "enhancement",
           "createdAt": "2026-05-09T00:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
@@ -3124,7 +3195,7 @@
           "message": "Documents now show a Required badge instead of Not Required in folder and table views",
           "category": "enhancement",
           "createdAt": "2026-05-09T14:40:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cdef-123456789013",
@@ -3132,7 +3203,7 @@
           "message": "Shared required documents now show the Required badge in folder views",
           "category": "enhancement",
           "createdAt": "2026-05-09T14:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-defa-234567890124",
@@ -3140,7 +3211,7 @@
           "message": "Folder summary now counts all documents and shows Approved instead of Compliant",
           "category": "enhancement",
           "createdAt": "2026-05-09T15:05:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-efab-345678901235",
@@ -3148,7 +3219,7 @@
           "message": "Fixed: folder summary Approved count no longer shows NaN after page changes",
           "category": "bug",
           "createdAt": "2026-05-09T15:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-fabc-456789012346",
@@ -3156,7 +3227,7 @@
           "message": "Documents summary bar now shows a Total Documents count",
           "category": "enhancement",
           "createdAt": "2026-05-09T15:25:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-abcd-567890123457",
@@ -3164,7 +3235,7 @@
           "message": "Table view now shows document count, updating to 'X of Y' when filters are active",
           "category": "enhancement",
           "createdAt": "2026-05-09T15:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b8c9d0e1-f2a3-4567-bcde-678901234568",
@@ -3172,7 +3243,7 @@
           "message": "Table view document count moved inline next to the Document column header",
           "category": "enhancement",
           "createdAt": "2026-05-09T15:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c9d0e1f2-a3b4-5678-cdef-789012345679",
@@ -3180,7 +3251,7 @@
           "message": "Fixed: overview Compliant/Not Compliant/Missing counts now match module card totals",
           "category": "bug",
           "createdAt": "2026-05-09T15:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d0e1f2a3-b4c5-6789-defa-890123456780",
@@ -3188,7 +3259,7 @@
           "message": "Fixed: overview module card totals now count shared docs once per covered site, matching the module page",
           "category": "bug",
           "createdAt": "2026-05-09T16:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "033b6b5b-0fc9-46d7-a95e-18cc3b547e49",
@@ -3196,7 +3267,7 @@
           "message": "Fixed: changelog patch versioning now stays in sync after production deploys",
           "category": "bug",
           "createdAt": "2026-05-09T16:57:53.763Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a3a55836-7598-4d2b-85f5-ea2603d46e47",
@@ -3204,7 +3275,7 @@
           "message": "Fixed: changelog on prod now shows all patches as released (no in-dev distinction)",
           "category": "bug",
           "createdAt": "2026-05-09T17:05:55.147Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "6627728c-426d-48f4-bd49-5775a488344d",
@@ -3212,7 +3283,7 @@
           "message": "Fixed: 13 dependency vulnerabilities (dompurify, fast-xml-parser, postcss, ip-address, urllib3, and others)",
           "category": "bug",
           "createdAt": "2026-05-11T07:07:47.825064Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "2c024d18-aba0-49cc-9552-06be4611c9d8",
@@ -3220,7 +3291,7 @@
           "message": "Pro consultants can now change who manages a consultant",
           "category": "feature",
           "createdAt": "2026-05-11T08:56:17.987Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e1fa7749-6cf3-46d5-a8c6-ed6b305c2bda",
@@ -3228,7 +3299,7 @@
           "message": "Fixed: pro consultants could not update a consultant user due to sources validation error",
           "category": "bug",
           "createdAt": "2026-05-11T09:00:59.027Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f847aeb5-8176-477b-862b-7bb4e16021a8",
@@ -3236,7 +3307,7 @@
           "message": "Fixed: pro consultants no longer get a sources error when editing a consultant profile",
           "category": "bug",
           "createdAt": "2026-05-11T09:09:30.336Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "093ee088-3778-48d6-b800-9457b993c029",
@@ -3244,7 +3315,7 @@
           "message": "Fixed: home page updates immediately when a consultant's manager is changed",
           "category": "bug",
           "createdAt": "2026-05-11T09:10:58.490Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "350ef7b8-e91b-4a4d-bc93-02d23d28b197",
@@ -3252,7 +3323,7 @@
           "message": "Users list defaults to My Staff filter for pro consultants who manage someone",
           "category": "feature",
           "createdAt": "2026-05-11T09:14:59.487Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "ea37f739-9fb4-405b-8406-0423bee4ebec",
@@ -3260,7 +3331,7 @@
           "message": "Home page View Staff button opens the Users list pre-filtered to My Staff",
           "category": "feature",
           "createdAt": "2026-05-11T09:14:59.487Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "54bdf731-19b0-4680-bcf4-1042809694c2",
@@ -3268,7 +3339,7 @@
           "message": "Fixed: View Staff link from home page was returning a 404",
           "category": "bug",
           "createdAt": "2026-05-11T09:17:46.652Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "1f9608f7-0049-44cc-92c7-ccfe931fbde5",
@@ -3276,7 +3347,7 @@
           "message": "Fixed: patch number now auto-increments in dev whenever a new deployment is published",
           "category": "bug",
           "createdAt": "2026-05-11T09:27:29.453Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d88511cc-584b-43b5-a92d-a7a3fc1e814d",
@@ -3284,7 +3355,7 @@
           "message": "Fixed: patch numbering corrected — dev shows patch 8, prod shows patch 7",
           "category": "bug",
           "createdAt": "2026-05-11T09:37:31.037Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "fbc47386-ff23-427a-bd28-a32ed94139b8",
@@ -3292,7 +3363,7 @@
           "message": "Fixed: prod version badge correctly shows the shipped patch number",
           "category": "bug",
           "createdAt": "2026-05-11T09:41:36.529Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "788f68f7-fec6-4854-9aad-60fee07b87de",
@@ -3300,7 +3371,7 @@
           "message": "Fixed: logging out now resets the URL so next login always opens the home page",
           "category": "bug",
           "createdAt": "2026-05-11T09:45:59.205Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "3d5984cd-ba4f-46ba-bad6-0750dc3c6e70",
@@ -3308,7 +3379,7 @@
           "message": "Improved: home page now loads instantly; unused page bundles removed from background prefetch",
           "category": "enhancement",
           "createdAt": "2026-05-11T11:24:47.389Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a9c21f84-3b57-4e12-8d6a-1f2e3c4d5b6e",
@@ -3316,7 +3387,7 @@
           "message": "Improved: sites and documents pages now show a branded loading animation instead of plain grey skeletons",
           "category": "enhancement",
           "createdAt": "2026-05-11T12:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b7d12e45-6c89-4f23-a1b2-3e4f5a6b7c8d",
@@ -3324,7 +3395,7 @@
           "message": "Streamlined document upload: context derived from page, new scope-decision step for company/group uploads, upload buttons disabled on 'All' views",
           "category": "enhancement",
           "createdAt": "2026-05-11T16:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c8e34f91-7a12-4b56-9d23-2e5f6a7b8c9d",
@@ -3332,7 +3403,7 @@
           "message": "Improved: upload wizards block gracefully when no site/company context is set, with amber warnings and back navigation",
           "category": "enhancement",
           "createdAt": "2026-05-11T16:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d9f45a02-8b23-5c67-ae34-3f6a7b8c9d0e",
@@ -3340,7 +3411,7 @@
           "message": "Improved: 'Share to all' scope cards show amber irreversibility warning before continuing",
           "category": "enhancement",
           "createdAt": "2026-05-11T16:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e0a56b13-9c34-6d78-bf45-4a7b8c9d0e1f",
@@ -3348,7 +3419,7 @@
           "message": "Improved: required-document badges now reflect the specific site or company context",
           "category": "enhancement",
           "createdAt": "2026-05-11T16:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f1b23c45-0d56-7e89-fa01-2b3c4d5e6f7a",
@@ -3356,7 +3427,7 @@
           "message": "Improved: all upload buttons on 'All Sites' views are now disabled with a guiding tooltip",
           "category": "enhancement",
           "createdAt": "2026-05-11T16:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a2c34d56-1e67-8f90-ab12-3c4d5e6f7a8b",
@@ -3364,7 +3435,7 @@
           "message": "Fixed: upload wizard will not silently send an empty share list if destination data hasn't loaded yet",
           "category": "bug",
           "createdAt": "2026-05-11T16:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b3d45e67-2f78-9a01-bc23-4d5e6f7a8b9c",
@@ -3372,7 +3443,7 @@
           "message": "Fixed: home page Sites metric now shows the correct total instead of being capped at 20",
           "category": "bug",
           "createdAt": "2026-05-11T19:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c4e56f78-3a89-0b12-cd34-5e6f7a8b9c0d",
@@ -3380,7 +3451,7 @@
           "message": "Fixed: home page Review Required count now matches the sum shown across module dashboards",
           "category": "bug",
           "createdAt": "2026-05-11T19:38:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d5f67a89-4b90-1c23-de45-6f7a8b9c0d1e",
@@ -3388,7 +3459,7 @@
           "message": "Fixed: clicking a document in urgent action drill-down now opens the correct module page",
           "category": "bug",
           "createdAt": "2026-05-11T19:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e6a78b90-5c01-2d34-ef56-7a8b9c0d1e2f",
@@ -3396,7 +3467,7 @@
           "message": "Fixed: home page metric counts now match the number of items shown in the drill-down modal",
           "category": "bug",
           "createdAt": "2026-05-11T20:22:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f7b89c01-6d12-3e45-fa67-8b9c0d1e2f3a",
@@ -3404,7 +3475,7 @@
           "message": "Removed 'Go to' navigation button from urgent action modals",
           "category": "enhancement",
           "createdAt": "2026-05-11T20:22:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a8c90d12-7e23-4f56-ab78-9c0d1e2f3a4b",
@@ -3412,7 +3483,7 @@
           "message": "Calendar now includes training request scheduled and renewal dates",
           "category": "enhancement",
           "createdAt": "2026-05-11T21:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b9d01e23-8f34-5a67-bc89-0d1e2f3a4b5c",
@@ -3420,7 +3491,7 @@
           "message": "Calendar now shows company-level document dates for admin users",
           "category": "enhancement",
           "createdAt": "2026-05-11T21:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c0e12f34-9a45-6b78-cd90-1e2f3a4b5c6d",
@@ -3428,7 +3499,7 @@
           "message": "Fixed: dashboard overdue count now matches calendar (date-based, not status-based)",
           "category": "bug",
           "createdAt": "2026-05-11T21:30:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d1f23a45-0b56-7c89-de01-2f3a4b5c6d7e",
@@ -3436,7 +3507,7 @@
           "message": "Fixed: docs with past expiry/review dates move from Complete to Overdue bucket",
           "category": "bug",
           "createdAt": "2026-05-11T22:35:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e2a34b56-1c67-8d90-ef12-3a4b5c6d7e8f",
@@ -3444,7 +3515,7 @@
           "message": "Fixed: dashboard Document Progress overdue count now uses date logic consistently",
           "category": "bug",
           "createdAt": "2026-05-11T22:45:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f3b45c67-2d78-9e01-fa23-4b5c6d7e8f9a",
@@ -3452,7 +3523,7 @@
           "message": "Fixed: module tile document count now shows actual docs, not required slot count",
           "category": "bug",
           "createdAt": "2026-05-11T22:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a4c56d78-3e89-0f12-ab34-5c6d7e8f9a0b",
@@ -3460,7 +3531,7 @@
           "message": "Fixed: Document Progress totals now match folder view by using server-computed counts",
           "category": "bug",
           "createdAt": "2026-05-11T23:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b5d67e89-4f90-1a23-bc45-6d7e8f9a0b1c",
@@ -3468,7 +3539,7 @@
           "message": "Fixed: folder view Review Required count now uses same date-based overdue logic as dashboard",
           "category": "bug",
           "createdAt": "2026-05-11T23:10:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c6e78f90-5a01-2b34-cd56-7e8f9a0b1c2d",
@@ -3476,7 +3547,7 @@
           "message": "Improved: Urgent Actions card now shows scope label (e.g. 'Across your assigned sites')",
           "category": "enhancement",
           "createdAt": "2026-05-11T23:20:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d7f89a01-6b12-3c45-de67-8f9a0b1c2d3e",
@@ -3484,7 +3555,7 @@
           "message": "Improved: branded loading animation now shown consistently across all pages",
           "category": "enhancement",
           "createdAt": "2026-05-12T10:55:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "e8a90b12-7c23-4d56-ef78-9a0b1c2d3e4f",
@@ -3492,7 +3563,7 @@
           "message": "Fixed: subfolder document counts now include shared documents, matching the badge status",
           "category": "bug",
           "createdAt": "2026-05-12T00:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "f9b01c23-8d34-5e67-fa89-0b1c2d3e4f5a",
@@ -3500,7 +3571,7 @@
           "message": "Users CSV export now includes Key Contact (Company) and Key Contact (Site) columns",
           "category": "enhancement",
           "createdAt": "2026-05-12T10:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
@@ -3508,7 +3579,7 @@
           "message": "Upload forms now show which sites or companies will receive a 'Share to all' document before you confirm",
           "category": "enhancement",
           "createdAt": "2026-05-12T10:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "a0c12d34-9e45-6f78-ab90-1c2d3e4f5a6b",
@@ -3516,7 +3587,7 @@
           "message": "New member companies now automatically receive group-level 'share to all' documents",
           "category": "feature",
           "createdAt": "2026-05-12T10:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
@@ -3524,7 +3595,7 @@
           "message": "DOCX preview now shows 'Converting document, please wait…' on first open",
           "category": "enhancement",
           "createdAt": "2026-05-12T10:50:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "c2e34f56-1a67-8b90-cd12-3e4f5a6b7c8d",
@@ -3532,7 +3603,7 @@
           "message": "Improved: branded loading animation now used consistently across all pages",
           "category": "enhancement",
           "createdAt": "2026-05-12T12:15:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
         },
         {
           "id": "d3f45a67-2b78-9c01-de23-4f5a6b7c8d9e",
@@ -3540,7 +3611,15 @@
           "message": "Improved: compact loading spinner available for narrow inline contexts",
           "category": "enhancement",
           "createdAt": "2026-05-12T13:00:00.000Z",
-          "createdBy": "agent"
+          "createdBy": "System"
+        },
+        {
+          "id": "983fb420-3ca3-4d8a-beb9-a79ecb041a48",
+          "patch": 10,
+          "message": "Fixed: changelog entries now show \"System\" instead of \"agent\"",
+          "category": "bug",
+          "createdAt": "2026-05-12T14:44:47.405Z",
+          "createdBy": "System"
         }
       ]
     }

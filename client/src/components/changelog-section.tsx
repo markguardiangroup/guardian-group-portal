@@ -422,7 +422,7 @@ export default function ChangelogSection() {
                                 <span className="text-xs text-muted-foreground shrink-0 tabular-nums" data-testid={`date-entry-${entry.id}`}>
                                   {formatEntryDate(entry.createdAt)}
                                   {entry.createdBy && (
-                                    <span className="ml-1">· {entry.createdBy}</span>
+                                    <span className="ml-1">· {entry.createdBy === "agent" ? "System" : entry.createdBy}</span>
                                   )}
                                 </span>
                               )}
