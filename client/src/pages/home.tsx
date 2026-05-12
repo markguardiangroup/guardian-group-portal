@@ -435,6 +435,17 @@ const MODULE_LABELS: Record<string, string> = {
   training: "Training",
 };
 
+const MODULE_DOC_PATHS: Record<string, string> = {
+  health_safety: "/health-safety/documents",
+  human_resources: "/human-resources/documents",
+  employment_law: "/employment-law/documents",
+};
+
+function docHref(module: string | null | undefined, siteId: string | null | undefined): string {
+  const base = MODULE_DOC_PATHS[module ?? ""] ?? "/documents";
+  return siteId ? `${base}?siteId=${siteId}` : base;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   overdue: "Overdue",
   review_required: "Review Required",
@@ -459,9 +470,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: d.title,
         subLabel: [MODULE_LABELS[d.module ?? ""] ?? d.module, formatLabel(d.status)].filter(Boolean).join(" · "),
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
-        href: d.site_id
-          ? `/documents?site=${d.site_id}${d.module ? `&module=${d.module}` : ""}`
-          : "/documents",
+        href: docHref(d.module, d.site_id),
       }));
     case "pendingApprovals":
       return data.pendingApprovals.items.map((d) => ({
@@ -469,9 +478,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: d.title,
         subLabel: MODULE_LABELS[d.module ?? ""] ?? d.module ?? null,
         badge: "pending approval",
-        href: d.site_id
-          ? `/documents?site=${d.site_id}${d.module ? `&module=${d.module}` : ""}`
-          : "/documents",
+        href: docHref(d.module, d.site_id),
       }));
     case "myIncidents":
       return data.myIncidents.items.map((i) => ({

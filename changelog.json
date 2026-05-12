@@ -3764,6 +3764,14 @@
           "category": "bug",
           "createdAt": "2026-05-12T21:35:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "h5d7i296-8e01-7fgh-e657-2k9j6h3g5i88",
+          "patch": 10,
+          "message": "Fixed: My Actions doc links now go to the correct module documents page",
+          "category": "bug",
+          "createdAt": "2026-05-12T21:40:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
