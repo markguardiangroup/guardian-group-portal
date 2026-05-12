@@ -1549,11 +1549,85 @@ export async function registerRoutes(
     module: ModuleType | undefined,
     siteFilter?: { siteId?: string; siteIds?: string }
   ) {
-    const sites = await storage.getSites();
-    const templates = await storage.getDocumentTemplates();
+    // Fetch all bulk data in a single parallel round-trip to avoid N+1 DB queries.
+    const [sites, templates, companies, allSharesRaw, allSiteOverridesRaw, allCompanyReqsRaw] = await Promise.all([
+      storage.getSites(),
+      storage.getDocumentTemplates(),
+      storage.getCompanies(),
+      storage.getAllDocumentSharesRaw(),
+      storage.getAllSiteTemplateOverridesRaw(),
+      storage.getAllCompanyRequiredTemplatesRaw(),
+    ]);
     const templateMap = new Map(templates.map(t => [t.id, t]));
-    const companyEffectiveCache = new Map<string, Set<string>>();
-    const siteExcludedCache = new Map<string, Set<string>>();
+    const companyMap = new Map(companies.map(c => [c.id, c]));
+
+    // Build lookup maps from the bulk data (all in-memory, zero additional DB calls).
+    const sharesByDocId = new Map<string, typeof allSharesRaw>();
+    for (const share of allSharesRaw) {
+      if (!sharesByDocId.has(share.documentId)) sharesByDocId.set(share.documentId, []);
+      sharesByDocId.get(share.documentId)!.push(share);
+    }
+    const excludedTemplatesBySiteId = new Map<string, Set<string>>();
+    for (const override of allSiteOverridesRaw) {
+      if (override.action !== "exclude") continue;
+      if (!excludedTemplatesBySiteId.has(override.siteId)) excludedTemplatesBySiteId.set(override.siteId, new Set());
+      excludedTemplatesBySiteId.get(override.siteId)!.add(override.templateId);
+    }
+    const companyReqsByCompanyId = new Map<string, Set<string>>();
+    for (const req of allCompanyReqsRaw) {
+      if (req.removedAt) continue;
+      if (!companyReqsByCompanyId.has(req.companyId)) companyReqsByCompanyId.set(req.companyId, new Set());
+      companyReqsByCompanyId.get(req.companyId)!.add(req.templateId);
+    }
+
+    // All scoped (non-site) docs for in-memory shared-doc computation.
+    const allScopedDocs = documents.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group"));
+
+    // In-memory equivalent of getSharedDocumentsForSite — no extra DB calls.
+    function computeSharedDocsForSite(site: typeof sites[0]) {
+      const company = companyMap.get(site.companyId);
+      if (!company) return [];
+      const seenIds = new Set<string>();
+      const results: any[] = [];
+      for (const doc of allScopedDocs) {
+        if (seenIds.has(doc.id)) continue;
+        if (doc.isArchived) continue;
+        if (module && doc.module !== module) continue;
+        const shares = sharesByDocId.get(doc.id) ?? [];
+        if (doc.scope === "company" && doc.entityId === site.companyId) {
+          if (shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          )) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          }
+        } else if (doc.scope === "group" && doc.entityId === site.companyId) {
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+        } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
+          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+            const goCompany = companyMap.get(company.groupOwnerId);
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+          }
+        }
+      }
+      return results;
+    }
+
+    // Batch access checks in parallel (admins short-circuit immediately).
+    const preFilteredSites = sites.filter(site => {
+      if (!site.companyId) return false;
+      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) return false;
+      if (siteFilter?.siteIds) {
+        const ids = siteFilter.siteIds.split(",");
+        if (!ids.includes(site.id)) return false;
+      }
+      return true;
+    });
+    const accessResults = await Promise.all(preFilteredSites.map(s => canUserAccessSite(user, s.id)));
+    const accessibleSites = preFilteredSites.filter((_, i) => accessResults[i]);
 
     let slotTotal = 0;
     let slotCompliantDocs = 0;  // individual compliant docs in required slots (used for display)
@@ -1561,33 +1635,17 @@ export async function registerRoutes(
     let slotOverdue = 0;
     let missingRequired = 0;
     const consumedDocIds = new Set<string>();
-    const filteredSiteIds = new Set<string>();
+    const filteredSiteIds = new Set<string>(accessibleSites.map(s => s.id));
     // Company/group-scoped required docs shared to any filtered site (keyed by id to deduplicate)
     const sharedRequiredCandidates = new Map<string, any>();
 
-    for (const site of sites) {
-      if (!site.companyId) continue;
-      const canAccess = await canUserAccessSite(user, site.id);
-      if (!canAccess) continue;
-      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
-      if (siteFilter?.siteIds) {
-        const ids = siteFilter.siteIds.split(",");
-        if (!ids.includes(site.id)) continue;
-      }
+    for (const site of accessibleSites) {
       filteredSiteIds.add(site.id);
-      if (!companyEffectiveCache.has(site.companyId)) {
-        companyEffectiveCache.set(site.companyId, await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId));
-      }
-      const requiredIds = companyEffectiveCache.get(site.companyId)!;
-      if (!siteExcludedCache.has(site.id)) {
-        const overrides = await storage.getSiteTemplateOverrides(site.id);
-        siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
-      }
-      const siteExcluded = siteExcludedCache.get(site.id)!;
+      const requiredIds = companyReqsByCompanyId.get(site.companyId) ?? new Set<string>();
+      const siteExcluded = excludedTemplatesBySiteId.get(site.id) ?? new Set<string>();
       const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId);
       // Include company/group-scoped documents shared to this site in compliance scoring
-      const sharedToSite = await storage.getSharedDocumentsForSite(site.id, module, false);
-      const validShared = sharedToSite.filter(sd => !sd.isArchived && !sd.caseId && !sd.incidentId);
+      const validShared = computeSharedDocsForSite(site).filter((sd: any) => !sd.isArchived && !sd.caseId && !sd.incidentId);
       const allSiteDocs = [...siteDocs, ...validShared];
 
       for (const rtTemplateId of requiredIds) {
@@ -1708,6 +1766,11 @@ export async function registerRoutes(
     const companyScopedDocs = allDocs.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group") && !d.isArchived && !d.caseId);
 
     // Collect fulfilled templateIds from company/group-scoped docs only.
+    // Fetch all share records for group-scoped docs in parallel rather than sequentially.
+    const groupScopedDocs = companyScopedDocs.filter(d => d.scope === "group" && d.templateId);
+    const groupSharesResults = await Promise.all(groupScopedDocs.map(d => storage.getDocumentShares(d.id)));
+    const groupSharesMap = new Map(groupScopedDocs.map((d, i) => [d.id, groupSharesResults[i]]));
+
     const fulfilledTemplateIds = new Set<string>();
     for (const d of companyScopedDocs) {
       // Company-owned docs count directly.
@@ -1717,7 +1780,7 @@ export async function registerRoutes(
       }
       // Group-scoped docs need an explicit share record pointing to this company.
       if (d.scope === "group" && d.templateId) {
-        const shares = await storage.getDocumentShares(d.id);
+        const shares = groupSharesMap.get(d.id) ?? [];
         const sharedToCompany = shares.some(s => s.entityType === "company" && s.entityId === companyId);
         if (sharedToCompany) fulfilledTemplateIds.add(d.templateId);
       }
@@ -1753,38 +1816,99 @@ export async function registerRoutes(
     siteFilter?: { siteId?: string; siteIds?: string }
   ): Promise<MissingRequiredTemplateDetail[]> {
     const results: MissingRequiredTemplateDetail[] = [];
-    const sites = await storage.getSites();
-    const templates = await storage.getDocumentTemplates();
+
+    // Fetch all data in one parallel round-trip — bulk methods avoid N+1 queries.
+    const [sites, templates, docs, companies, allSharesRaw, allSiteOverridesRaw, allCompanyReqsRaw] = await Promise.all([
+      storage.getSites(),
+      storage.getDocumentTemplates(),
+      storage.getDocuments(module),
+      storage.getCompanies(),
+      storage.getAllDocumentSharesRaw(),
+      storage.getAllSiteTemplateOverridesRaw(),
+      storage.getAllCompanyRequiredTemplatesRaw(),
+    ]);
     const templateMap = new Map(templates.map(t => [t.id, t]));
-    const docs = await storage.getDocuments(module);
-    const companyEffectiveCache = new Map<string, Set<string>>();
-    const siteExcludedCache = new Map<string, Set<string>>();
-    const companies = await storage.getCompanies();
     const companyMap = new Map(companies.map(c => [c.id, c]));
 
-    for (const site of sites) {
-      if (!site.companyId) continue;
-      const canAccess = await canUserAccessSite(user, site.id);
-      if (!canAccess) continue;
-      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) continue;
-      if (siteFilter?.siteIds) {
-        const ids = siteFilter.siteIds.split(",");
-        if (!ids.includes(site.id)) continue;
-      }
-      if (!companyEffectiveCache.has(site.companyId)) {
-        companyEffectiveCache.set(site.companyId, await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId));
-      }
-      const requiredIds = companyEffectiveCache.get(site.companyId)!;
-      if (!siteExcludedCache.has(site.id)) {
-        const overrides = await storage.getSiteTemplateOverrides(site.id);
-        siteExcludedCache.set(site.id, new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId)));
-      }
-      const siteExcluded = siteExcludedCache.get(site.id)!;
-      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
-      // Also include shared docs (company/group scope) that target this site
-      const sharedDocs = await storage.getSharedDocumentsForSite(site.id, module, false);
-      const allSiteDocs = [...siteDocs, ...sharedDocs.filter(d => !d.isArchived && !d.caseId)];
+    // Build in-memory lookup maps — zero additional DB calls from here on.
+    const sharesByDocId = new Map<string, typeof allSharesRaw>();
+    for (const share of allSharesRaw) {
+      if (!sharesByDocId.has(share.documentId)) sharesByDocId.set(share.documentId, []);
+      sharesByDocId.get(share.documentId)!.push(share);
+    }
+    const excludedTemplatesBySiteId = new Map<string, Set<string>>();
+    for (const override of allSiteOverridesRaw) {
+      if (override.action !== "exclude") continue;
+      if (!excludedTemplatesBySiteId.has(override.siteId)) excludedTemplatesBySiteId.set(override.siteId, new Set());
+      excludedTemplatesBySiteId.get(override.siteId)!.add(override.templateId);
+    }
+    const companyReqsByCompanyId = new Map<string, Set<string>>();
+    for (const req of allCompanyReqsRaw) {
+      if (req.removedAt) continue;
+      if (!companyReqsByCompanyId.has(req.companyId)) companyReqsByCompanyId.set(req.companyId, new Set());
+      companyReqsByCompanyId.get(req.companyId)!.add(req.templateId);
+    }
+
+    // All scoped (non-site) docs for in-memory shared-doc computation.
+    const allScopedDocs = docs.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group"));
+
+    // In-memory equivalent of getSharedDocumentsForSite — no DB calls.
+    function computeSharedDocsForSiteMRTD(site: typeof sites[0]) {
       const company = companyMap.get(site.companyId);
+      if (!company) return [];
+      const seenIds = new Set<string>();
+      const results: any[] = [];
+      for (const doc of allScopedDocs) {
+        if (seenIds.has(doc.id)) continue;
+        if (doc.isArchived) continue;
+        if (module && doc.module !== module) continue;
+        const shares = sharesByDocId.get(doc.id) ?? [];
+        if (doc.scope === "company" && doc.entityId === site.companyId) {
+          if (shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          )) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          }
+        } else if (doc.scope === "group" && doc.entityId === site.companyId) {
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+        } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
+          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+            const goCompany = companyMap.get(company.groupOwnerId);
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+          }
+        }
+      }
+      return results;
+    }
+
+    // Pre-filter by siteFilter before the access checks.
+    const filterSiteIds = siteFilter?.siteIds ? new Set(siteFilter.siteIds.split(",")) : null;
+    const candidateSites = sites.filter(site => {
+      if (!site.companyId) return false;
+      if (siteFilter?.siteId && siteFilter.siteId !== "all" && site.id !== siteFilter.siteId) return false;
+      if (filterSiteIds && !filterSiteIds.has(site.id)) return false;
+      return true;
+    });
+
+    // Batch all access checks in parallel (admins short-circuit immediately).
+    const accessResults = await Promise.all(candidateSites.map(s => canUserAccessSite(user, s.id)));
+    const accessibleSites = candidateSites.filter((_, i) => accessResults[i]);
+
+    if (accessibleSites.length === 0) return results;
+
+    // All data is now in-memory — synchronous loop, zero further DB calls.
+    for (const site of accessibleSites) {
+      const requiredIds = companyReqsByCompanyId.get(site.companyId) ?? new Set<string>();
+      const siteExcluded = excludedTemplatesBySiteId.get(site.id) ?? new Set<string>();
+      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+      const sharedDocs = computeSharedDocsForSiteMRTD(site);
+      const allSiteDocs = [...siteDocs, ...sharedDocs.filter((d: any) => !d.isArchived && !d.caseId)];
+      const company = companyMap.get(site.companyId);
+
       for (const templateId of requiredIds) {
         if (siteExcluded.has(templateId)) continue;
         const tmpl = templateMap.get(templateId);
@@ -1934,24 +2058,29 @@ export async function registerRoutes(
           .map(t => t.id)
       );
 
-      // Cache per-company effective required sets — many sites share a company.
-      const companyEffectiveCache = new Map<string, Set<string>>();
-      const result: Record<string, string[]> = {};
+      // Load bulk data to avoid N per-site DB calls.
+      const [allCompanyReqsERT, allSiteOverridesERT] = await Promise.all([
+        storage.getAllCompanyRequiredTemplatesRaw(),
+        storage.getAllSiteTemplateOverridesRaw(),
+      ]);
+      const companyReqsByCompanyERT = new Map<string, Set<string>>();
+      for (const req of allCompanyReqsERT) {
+        if (req.removedAt) continue;
+        if (!companyReqsByCompanyERT.has(req.companyId)) companyReqsByCompanyERT.set(req.companyId, new Set());
+        companyReqsByCompanyERT.get(req.companyId)!.add(req.templateId);
+      }
+      const excludedBySiteERT = new Map<string, Set<string>>();
+      for (const override of allSiteOverridesERT) {
+        if (override.action !== "exclude") continue;
+        if (!excludedBySiteERT.has(override.siteId)) excludedBySiteERT.set(override.siteId, new Set());
+        excludedBySiteERT.get(override.siteId)!.add(override.templateId);
+      }
 
-      await Promise.all(accessibleSites.map(async (site) => {
-        if (!site.companyId) {
-          result[site.id] = [];
-          return;
-        }
-        if (!companyEffectiveCache.has(site.companyId)) {
-          companyEffectiveCache.set(
-            site.companyId,
-            await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId),
-          );
-        }
-        const companyRequired = companyEffectiveCache.get(site.companyId)!;
-        const overrides = await storage.getSiteTemplateOverrides(site.id);
-        const excluded = new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId));
+      const result: Record<string, string[]> = {};
+      for (const site of accessibleSites) {
+        if (!site.companyId) { result[site.id] = []; continue; }
+        const companyRequired = companyReqsByCompanyERT.get(site.companyId) ?? new Set<string>();
+        const excluded = excludedBySiteERT.get(site.id) ?? new Set<string>();
         const effective: string[] = [];
         for (const tid of companyRequired) {
           if (excluded.has(tid)) continue;
@@ -1959,7 +2088,7 @@ export async function registerRoutes(
           effective.push(tid);
         }
         result[site.id] = effective;
-      }));
+      }
 
       res.json(result);
     } catch (error) {
@@ -7917,26 +8046,39 @@ export async function registerRoutes(
         }
       }
       
-      // Enrich with user names, unread count, and latest message
-      const enrichedRequests = await Promise.all(requests.map(async (request) => {
-        const createdByUser = await storage.getUser(request.createdBy);
-        const respondedByUser = request.respondedBy ? await storage.getUser(request.respondedBy) : null;
-        const unreadCount = await storage.getUnreadMessageCount(request.id, user.id);
-        const latestMessage = await storage.getLatestSupportMessage(request.id);
-        const latestMessageSender = latestMessage ? await storage.getUser(latestMessage.senderId) : null;
-        
+      // Enrich with user names, unread count, and latest message.
+      // Batch all async lookups to avoid N×5 sequential DB round-trips.
+      const [latestMessages, unreadCounts] = await Promise.all([
+        Promise.all(requests.map(r => storage.getLatestSupportMessage(r.id))),
+        Promise.all(requests.map(r => storage.getUnreadMessageCount(r.id, user.id))),
+      ]);
+
+      // Collect all unique user IDs needed (creators, responders, message senders).
+      const uniqueUserIds = [...new Set([
+        ...requests.map(r => r.createdBy),
+        ...requests.filter(r => r.respondedBy).map(r => r.respondedBy!),
+        ...latestMessages.filter(m => m?.senderId).map(m => m!.senderId),
+      ])];
+      const fetchedUsers = await Promise.all(uniqueUserIds.map(id => storage.getUser(id)));
+      const userMap = new Map(uniqueUserIds.map((id, i) => [id, fetchedUsers[i]]));
+
+      const enrichedRequests = requests.map((request, i) => {
+        const latestMsg = latestMessages[i];
+        const sender = latestMsg ? userMap.get(latestMsg.senderId) : null;
         return {
           ...request,
-          createdByName: createdByUser?.fullName || createdByUser?.username || "Unknown",
-          respondedByName: respondedByUser?.fullName || respondedByUser?.username || null,
-          unreadCount,
-          latestMessage: latestMessage ? {
-            message: latestMessage.message.length > 80 ? latestMessage.message.slice(0, 80) + "..." : latestMessage.message,
-            senderName: latestMessageSender?.fullName || latestMessageSender?.username || "Unknown",
-            createdAt: latestMessage.createdAt,
+          createdByName: userMap.get(request.createdBy)?.fullName || userMap.get(request.createdBy)?.username || "Unknown",
+          respondedByName: request.respondedBy
+            ? (userMap.get(request.respondedBy)?.fullName || userMap.get(request.respondedBy)?.username || null)
+            : null,
+          unreadCount: unreadCounts[i],
+          latestMessage: latestMsg ? {
+            message: latestMsg.message.length > 80 ? latestMsg.message.slice(0, 80) + "..." : latestMsg.message,
+            senderName: sender?.fullName || sender?.username || "Unknown",
+            createdAt: latestMsg.createdAt,
           } : null,
         };
-      }));
+      });
 
       res.json(enrichedRequests);
     } catch (error) {
@@ -8446,19 +8588,36 @@ export async function registerRoutes(
         sites = sites.filter((s: any) => s.companyId === companyId);
       }
 
-      const allDocs = await storage.getDocuments(undefined, false);
-      const allTemplates = await storage.getDocumentTemplates();
+      const [allDocs, allTemplates, allCompanyReqsGaps, allSiteOverridesGaps] = await Promise.all([
+        storage.getDocuments(undefined, false),
+        storage.getDocumentTemplates(),
+        storage.getAllCompanyRequiredTemplatesRaw(),
+        storage.getAllSiteTemplateOverridesRaw(),
+      ]);
       const templateMap = new Map(allTemplates.map((t: any) => [t.id, t]));
+
+      // Build in-memory lookup maps from bulk data.
+      const companyReqsByCompanyGaps = new Map<string, Set<string>>();
+      for (const req of allCompanyReqsGaps) {
+        if (req.removedAt) continue;
+        if (!companyReqsByCompanyGaps.has(req.companyId)) companyReqsByCompanyGaps.set(req.companyId, new Set());
+        companyReqsByCompanyGaps.get(req.companyId)!.add(req.templateId);
+      }
+      const overridesBySiteGaps = new Map<string, { excludedIds: Set<string>; includedIds: Set<string> }>();
+      for (const override of allSiteOverridesGaps) {
+        if (!overridesBySiteGaps.has(override.siteId)) overridesBySiteGaps.set(override.siteId, { excludedIds: new Set(), includedIds: new Set() });
+        const entry = overridesBySiteGaps.get(override.siteId)!;
+        if (override.action === "exclude") entry.excludedIds.add(override.templateId);
+        else entry.includedIds.add(override.templateId);
+      }
 
       const result: any[] = [];
       const now = new Date();
 
       for (const site of sites) {
         if (!site.companyId) continue;
-        const companyRequired = await storage.getEffectiveCompanyRequiredTemplateIds(site.companyId);
-        const siteOverrides = await storage.getSiteTemplateOverrides(site.id);
-        const excludedIds = new Set(siteOverrides.filter((o: any) => o.action === "exclude").map((o: any) => o.templateId));
-        const includedIds = new Set(siteOverrides.filter((o: any) => o.action === "include").map((o: any) => o.templateId));
+        const companyRequired = companyReqsByCompanyGaps.get(site.companyId) ?? new Set<string>();
+        const { excludedIds, includedIds } = overridesBySiteGaps.get(site.id) ?? { excludedIds: new Set<string>(), includedIds: new Set<string>() };
         const effectiveTemplateIds = [
           ...[...companyRequired].filter((id: string) => !excludedIds.has(id)),
           ...[...includedIds].filter((id: string) => !companyRequired.has(id)),
@@ -10871,36 +11030,38 @@ export async function registerRoutes(
       
       // Determine which sites to include
       let targetSiteIds: string[] = [];
+      let allSitesHierarchyEarly: Awaited<ReturnType<typeof storage.getSites>> = [];
       if (isAllSites) {
-        // Get all sites user can access
-        const allSites = await storage.getSites();
-        for (const site of allSites) {
-          const canAccess = await canUserAccessSite(user, site.id);
-          if (canAccess) {
-            // Apply company filter if specified
-            if (requestedCompanyId) {
-              if (site.companyId === requestedCompanyId) {
-                targetSiteIds.push(site.id);
-              }
-            } else {
-              targetSiteIds.push(site.id);
-            }
+        // Batch access checks (admins short-circuit immediately).
+        const allSitesForAccess = await storage.getSites();
+        allSitesHierarchyEarly = allSitesForAccess;
+        const accessChecks = await Promise.all(allSitesForAccess.map(s => canUserAccessSite(user, s.id)));
+        for (let i = 0; i < allSitesForAccess.length; i++) {
+          if (!accessChecks[i]) continue;
+          const site = allSitesForAccess[i];
+          if (requestedCompanyId) {
+            if (site.companyId === requestedCompanyId) targetSiteIds.push(site.id);
+          } else {
+            targetSiteIds.push(site.id);
           }
         }
       } else {
         targetSiteIds = [siteId];
       }
-      
-      // Get actual document folders provisioned for target sites
-      let siteFolders: any[] = [];
-      for (const targetId of targetSiteIds) {
-        const folders = await storage.getDocumentFolders(targetId, module as any);
-        siteFolders = siteFolders.concat(folders);
-      }
-      
+
       // Get all documents for target sites in this module
       const includeArchived = req.query.includeArchived === "true";
-      const allDocuments = await storage.getDocuments(module as any, includeArchived);
+
+      // Fetch document folders, documents, and bulk lookup data in parallel.
+      const [siteFolderArrays, allDocuments, allSharesHierarchy, allCompanyReqsHierarchy, allSiteOverridesHierarchy, allCompaniesHierarchy] = await Promise.all([
+        Promise.all(targetSiteIds.map(id => storage.getDocumentFolders(id, module as any))),
+        storage.getDocuments(module as any, includeArchived),
+        storage.getAllDocumentSharesRaw(),
+        storage.getAllCompanyRequiredTemplatesRaw(),
+        storage.getAllSiteTemplateOverridesRaw(),
+        storage.getCompanies(),
+      ]);
+      const siteFolders = siteFolderArrays.flat();
       // Exclude case docs, incident docs, and cloud share (source "external") — same as table view and dashboard
       const siteDocuments = allDocuments.filter(d =>
         targetSiteIds.includes(d.siteId) &&
@@ -10909,20 +11070,81 @@ export async function registerRoutes(
         d.source !== "external"
       );
 
-      // Pre-fetch shared (company/group-scoped) docs visible to each target site so
-      // they can be folded into per-folder fulfillment and per-site missing-slot
-      // computation. Works for both single-site and all-sites views.
-      // - sharedDocsByFolderTemplateId: dedupe by docId, used to render shared docs
-      //   inside the folder
-      // - sharedFulfillmentBySiteAndTemplate: per-site fulfillment map used to
-      //   compute per-site missing slots in all-sites view
+      // Build in-memory lookup maps from bulk data fetched above — no per-site DB calls.
+      const companyMapHierarchy = new Map(allCompaniesHierarchy.map(c => [c.id, c]));
+      const sharesByDocIdHierarchy = new Map<string, typeof allSharesHierarchy>();
+      for (const share of allSharesHierarchy) {
+        if (!sharesByDocIdHierarchy.has(share.documentId)) sharesByDocIdHierarchy.set(share.documentId, []);
+        sharesByDocIdHierarchy.get(share.documentId)!.push(share);
+      }
+      const companyReqCacheHierarchy = new Map<string, Set<string>>();
+      for (const req of allCompanyReqsHierarchy) {
+        if (req.removedAt) continue;
+        if (!companyReqCacheHierarchy.has(req.companyId)) companyReqCacheHierarchy.set(req.companyId, new Set());
+        companyReqCacheHierarchy.get(req.companyId)!.add(req.templateId);
+      }
+      const siteOverridesCache = new Map<string, { excludedIds: Set<string>; includedIds: Set<string> }>();
+      for (const override of allSiteOverridesHierarchy) {
+        if (!siteOverridesCache.has(override.siteId)) siteOverridesCache.set(override.siteId, { excludedIds: new Set(), includedIds: new Set() });
+        const entry = siteOverridesCache.get(override.siteId)!;
+        if (override.action === "exclude") entry.excludedIds.add(override.templateId);
+        else entry.includedIds.add(override.templateId);
+      }
+
+      // Reuse already-fetched sites list (from the isAllSites branch or fetch once).
+      const allSitesHierarchy = allSitesHierarchyEarly.length > 0
+        ? allSitesHierarchyEarly
+        : await storage.getSites();
+      // Site name lookup for per-site missing slot rendering
+      const siteNameById = new Map<string, string>(allSitesHierarchy.map(s => [s.id, s.name]));
+      const siteToCompanyHierarchy = new Map(allSitesHierarchy.map(s => [s.id, s.companyId]));
+
+      // All scoped docs (non-site) for in-memory shared-doc computation.
+      const allScopedDocsHierarchy = allDocuments.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group"));
+
+      // In-memory equivalent of getSharedDocumentsForSite — no DB calls per site.
+      function computeSharedDocsForSiteH(siteId: string) {
+        const companyId = siteToCompanyHierarchy.get(siteId) ?? null;
+        if (!companyId) return [];
+        const company = companyMapHierarchy.get(companyId);
+        if (!company) return [];
+        const seenIds = new Set<string>();
+        const results: any[] = [];
+        for (const doc of allScopedDocsHierarchy) {
+          if (seenIds.has(doc.id)) continue;
+          if (!includeArchived && doc.isArchived) continue;
+          if (module && doc.module !== module) continue;
+          const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
+          if (doc.scope === "company" && doc.entityId === companyId) {
+            if (shares.some((s: any) =>
+              (s.entityType === "site" && s.entityId === siteId) ||
+              (s.entityType === "company" && s.entityId === companyId)
+            )) {
+              seenIds.add(doc.id);
+              results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+            }
+          } else if (doc.scope === "group" && doc.entityId === companyId) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          } else if (doc.scope === "group" && (company as any).groupOwnerId && doc.entityId === (company as any).groupOwnerId) {
+            if (shares.some((s: any) => s.entityType === "company" && s.entityId === companyId)) {
+              const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
+              seenIds.add(doc.id);
+              results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+            }
+          }
+        }
+        return results;
+      }
+
+      // Build shared-doc maps using in-memory computation.
       const sharedDocsByFolderTemplateId = new Map<string, any[]>();
       const sharedFulfillmentBySiteAndTemplate = new Map<string, Set<string>>(); // siteId -> Set<templateId>
       {
         const sharedFolderIdsCollected = new Set<string>();
         const perSiteShared: { siteId: string; docs: any[] }[] = [];
         for (const sId of targetSiteIds) {
-          const sharedForSite = await storage.getSharedDocumentsForSite(sId, module as any, includeArchived);
+          const sharedForSite = computeSharedDocsForSiteH(sId);
           perSiteShared.push({ siteId: sId, docs: sharedForSite });
           for (const d of sharedForSite) {
             if (d.folderId) sharedFolderIdsCollected.add(d.folderId);
@@ -10940,8 +11162,6 @@ export async function registerRoutes(
         const seenSharedDocByFolderTpl = new Map<string, Set<string>>();
         for (const { siteId: sId, docs } of perSiteShared) {
           for (const d of docs) {
-            // Per-site fulfillment by template id (used for missing-slot computation
-            // even when the doc has no folderId)
             if (d.templateId) {
               const set = sharedFulfillmentBySiteAndTemplate.get(sId) ?? new Set<string>();
               set.add(d.templateId);
@@ -10959,17 +11179,7 @@ export async function registerRoutes(
           }
         }
       }
-      // Build company required-templates lookup so hierarchy document badges reflect
-      // effective compliance requirement (isRequired via company config OR per-document flag)
-      const allSitesHierarchy = await storage.getSites();
-      // Site name lookup for per-site missing slot rendering
-      const siteNameById = new Map<string, string>(allSitesHierarchy.map(s => [s.id, s.name]));
-      const siteToCompanyHierarchy = new Map(allSitesHierarchy.map(s => [s.id, s.companyId]));
-      const uniqueCompanyIdsHierarchy = [...new Set(targetSiteIds.map(id => siteToCompanyHierarchy.get(id)).filter(Boolean) as string[])];
-      const companyReqCacheHierarchy = new Map<string, Set<string>>();
-      await Promise.all(uniqueCompanyIdsHierarchy.map(async (companyId) => {
-        companyReqCacheHierarchy.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
-      }));
+
       const getEffectiveIsRequired = (doc: { isRequired: boolean; templateId?: string | null; siteId: string }, docTmpl?: { isRequired?: boolean } | null) => {
         const companyId = siteToCompanyHierarchy.get(doc.siteId);
         const isRequiredViaCompanyTemplate = companyId && doc.templateId
@@ -10983,16 +11193,6 @@ export async function registerRoutes(
       for (const reqSet of companyReqCacheHierarchy.values()) {
         for (const id of reqSet) allCompanyRequiredTemplateIds.add(id);
       }
-
-      // Load site-level overrides (exclude/include) for all target sites so the
-      // folder view correctly reflects what is/isn't required per site.
-      const siteOverridesCache = new Map<string, { excludedIds: Set<string>; includedIds: Set<string> }>();
-      await Promise.all(targetSiteIds.map(async (sid) => {
-        const overrides = await storage.getSiteTemplateOverrides(sid);
-        const excludedIds = new Set(overrides.filter(o => o.action === "exclude").map(o => o.templateId));
-        const includedIds = new Set(overrides.filter(o => o.action === "include").map(o => o.templateId));
-        siteOverridesCache.set(sid, { excludedIds, includedIds });
-      }));
 
       // For a single-site view, pre-compute the effective required set that
       // respects the site's exclude/include overrides so the folder Required/Missing
@@ -11302,7 +11502,7 @@ export async function registerRoutes(
       {
         const collected = new Map<string, any>(); // docId -> raw doc
         for (const sId of targetSiteIds) {
-          const sharedForSite = await storage.getSharedDocumentsForSite(sId, module as any, includeArchived);
+          const sharedForSite = computeSharedDocsForSiteH(sId); // in-memory, no DB call
           for (const d of sharedForSite) {
             if (!collected.has(d.id)) collected.set(d.id, d);
           }

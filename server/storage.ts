@@ -188,6 +188,7 @@ export interface IStorage {
   // Shared/scoped documents
   getSharedDocumentsForSite(siteId: string, module?: ModuleType, includeArchived?: boolean): Promise<(Document & { sharedScope: "company" | "group"; sharedFromEntityName: string | null })[]>;
   getDocumentShares(documentId: string): Promise<DocumentShare[]>;
+  getAllDocumentSharesRaw(): Promise<DocumentShare[]>;
   createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare>;
   deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
   autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number>;
@@ -466,6 +467,7 @@ export interface IStorage {
 
   // Site Template Overrides
   getSiteTemplateOverrides(siteId: string): Promise<SiteTemplateOverride[]>;
+  getAllSiteTemplateOverridesRaw(): Promise<SiteTemplateOverride[]>;
   setSiteTemplateOverride(siteId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<SiteTemplateOverride>;
   removeSiteTemplateOverride(siteId: string, templateId: string): Promise<boolean>;
 
@@ -474,6 +476,7 @@ export interface IStorage {
   setCompanyTemplateOverride(companyId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<CompanyTemplateOverride>;
   removeCompanyTemplateOverride(companyId: string, templateId: string): Promise<boolean>;
   getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>>;
+  getAllCompanyRequiredTemplatesRaw(): Promise<CompanyRequiredTemplate[]>;
 
   // Client Upload Folders
   // Extended types used by client upload methods
@@ -1357,6 +1360,10 @@ export class MemStorage implements IStorage {
 
   async getDocumentShares(documentId: string): Promise<DocumentShare[]> {
     return db.select().from(documentSharesTable).where(eq(documentSharesTable.documentId, documentId));
+  }
+
+  async getAllDocumentSharesRaw(): Promise<DocumentShare[]> {
+    return db.select().from(documentSharesTable);
   }
 
   async createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare> {
@@ -4768,6 +4775,10 @@ export class MemStorage implements IStorage {
       .where(eq(siteTemplateOverridesTable.siteId, siteId));
   }
 
+  async getAllSiteTemplateOverridesRaw(): Promise<SiteTemplateOverride[]> {
+    return db.select().from(siteTemplateOverridesTable);
+  }
+
   async setSiteTemplateOverride(siteId: string, templateId: string, action: "include" | "exclude", createdBy: string): Promise<SiteTemplateOverride> {
     const [result] = await db.insert(siteTemplateOverridesTable)
       .values({ siteId, templateId, action, createdBy })
@@ -4824,6 +4835,10 @@ export class MemStorage implements IStorage {
   async getEffectiveCompanyRequiredTemplateIds(companyId: string): Promise<Set<string>> {
     const ownReqs = await this.getCompanyRequiredTemplates(companyId);
     return new Set(ownReqs.filter(r => !r.removedAt).map(r => r.templateId));
+  }
+
+  async getAllCompanyRequiredTemplatesRaw(): Promise<CompanyRequiredTemplate[]> {
+    return db.select().from(companyRequiredTemplatesTable);
   }
 
   // Seed example pathways if none exist

@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "f3a9c2e1-perf-n1-query-elimination-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Improved: compliance reports, gap analysis, and document hierarchy pages load dramatically faster",
+          "createdAt": "2026-05-12T09:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b7c8d9e0-remove-incomplete-folder-badge-2026",
           "patch": 8,
           "category": "enhancement",
