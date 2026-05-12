@@ -306,7 +306,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Tr
   const totalBookings = filteredBookings.length;
 
   return (
-    <Card className="hover-elevate theme-training border-l-4 border-l-purple-400 bg-background shadow-sm" data-testid="card-module-training">
+    <Card className="hover-elevate theme-training border-l-4 border-l-purple-400 bg-white dark:bg-card shadow-sm" data-testid="card-module-training">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-800/40">
@@ -379,7 +379,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: T
   const totalCount = filteredIncidents.length;
 
   return (
-    <Card className="hover-elevate theme-hs border-l-4 border-l-emerald-400 bg-background shadow-sm" data-testid="card-module-incidents">
+    <Card className="hover-elevate theme-hs border-l-4 border-l-emerald-400 bg-white dark:bg-card shadow-sm" data-testid="card-module-incidents">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-800/40">
@@ -462,7 +462,7 @@ function CasesCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Train
   const totalCount = filteredCases.length;
 
   return (
-    <Card className="hover-elevate theme-el border-l-4 border-l-pink-400 bg-background shadow-sm" data-testid="card-module-cases">
+    <Card className="hover-elevate theme-el border-l-4 border-l-pink-400 bg-white dark:bg-card shadow-sm" data-testid="card-module-cases">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-800/40">
@@ -1771,14 +1771,23 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
       )}
 
       {/* Activity section — Incidents | Training | Cases aligned under their parent modules */}
-      <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/25 border border-slate-200/60 dark:border-slate-700/40 p-5 space-y-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 dark:bg-slate-700/60">
-            <TrendingUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+      <div className="rounded-2xl bg-primary/[0.04] dark:bg-primary/[0.09] border border-primary/20 dark:border-primary/25 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold leading-none">Activity</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Operational data — separate from compliance scoring</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 leading-none">Activity</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Operational metrics — not compliance status</p>
+          <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Live</span>
           </div>
         </div>
         <div className="grid gap-4 md:grid-cols-3">

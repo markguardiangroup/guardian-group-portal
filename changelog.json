@@ -3836,6 +3836,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T22:45:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "q4m6r185-7n90-6opq-n546-1t8s5q2p4r77",
+          "patch": 10,
+          "message": "Stronger visual treatment for Activity section with live indicator and brand tint",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T23:00:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
