@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "c9d1e2f3-revert-date-overdue-totals-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: compliance module totals restored to use document status (not date-based overdue logic)",
+          "createdAt": "2026-05-12T10:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "f3a9c2e1-perf-n1-query-elimination-2026",
           "patch": 8,
           "category": "enhancement",

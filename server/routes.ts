@@ -2600,7 +2600,7 @@ export async function registerRoutes(
         d.siteId == null
       );
 
-      type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number; reviewDate?: Date | null; expiryDate?: Date | null };
+      type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number };
       const scopedExpansions: ScopedExpansion[] = [];
       for (const doc of rawScopedDocs) {
         const canAccess = await canUserAccessDocument(user, doc);
@@ -2623,8 +2623,6 @@ export async function registerRoutes(
           status: doc.status,
           approvalStatus: doc.approvalStatus,
           siteCount: Math.max(count, 1),
-          reviewDate: doc.reviewDate,
-          expiryDate: doc.expiryDate,
         });
       }
 
@@ -2639,30 +2637,23 @@ export async function registerRoutes(
         ? { siteIds: accessibleSiteIds.join(",") }
         : undefined;
 
-      const _summaryNow = new Date();
-      const isSummaryDocOverdue = (d: { status: string; reviewDate?: Date | null; expiryDate?: Date | null }) =>
-        d.status === "overdue" ||
-        (d.reviewDate && new Date(d.reviewDate) < _summaryNow) ||
-        (d.expiryDate && new Date(d.expiryDate) < _summaryNow);
-
       const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
       const summaries = await Promise.all(modules.map(async (mod) => {
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
-        const siteCompliant = moduleDocs.filter(d => d.status === "compliant" && !isSummaryDocOverdue(d)).length;
-        const siteReview = moduleDocs.filter(d => d.status === "review_required" && !isSummaryDocOverdue(d)).length;
-        const siteOverdue = moduleDocs.filter(isSummaryDocOverdue).length;
+        const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const siteReview = moduleDocs.filter(d => d.status === "review_required").length;
+        const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
         const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
         // Add scoped doc expansion counts for this module
         const modScoped = scopedExpansions.filter(e => e.module === mod);
         let scopedTotal = 0, scopedCompliant = 0, scopedReview = 0, scopedOverdue = 0, scopedPending = 0;
-        for (const { status, approvalStatus, siteCount: n, reviewDate, expiryDate } of modScoped) {
-          const docOverdue = isSummaryDocOverdue({ status, reviewDate, expiryDate });
+        for (const { status, approvalStatus, siteCount: n } of modScoped) {
           scopedTotal += n;
-          if (!docOverdue && status === "compliant") scopedCompliant += n;
-          else if (!docOverdue && status === "review_required") scopedReview += n;
-          else if (docOverdue) scopedOverdue += n;
+          if (status === "compliant") scopedCompliant += n;
+          else if (status === "review_required") scopedReview += n;
+          else if (status === "overdue") scopedOverdue += n;
           if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
         }
 
@@ -11582,17 +11573,12 @@ export async function registerRoutes(
         }),
         sharedDocuments,
         summary: (() => {
-          const _hierNow = new Date();
-          const isHierDocOverdue = (d: any) =>
-            d.status === "overdue" ||
-            (d.expiryDate && new Date(d.expiryDate) < _hierNow) ||
-            (d.reviewDate && new Date(d.reviewDate) < _hierNow);
           return {
             totalFolders: hierarchy.length,
             totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
             approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
-            reviewRequired: allNonArchivedDocs.filter((d: any) => d.status === "review_required" && !isHierDocOverdue(d)).length,
-            overdue: allNonArchivedDocs.filter(isHierDocOverdue).length,
+            reviewRequired: allNonArchivedDocs.filter((d: any) => d.status === "review_required").length,
+            overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
           };
         })(),
       });
