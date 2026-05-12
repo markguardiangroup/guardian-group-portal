@@ -17103,16 +17103,23 @@ export async function registerRoutes(
         [userId]
       );
 
-      // 4. Open cases assigned to this user
-      const myCasesRes = await pool.query<{
-        id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string;
-      }>(
-        `SELECT id, case_reference, case_name, employee_name, site_id, status
-         FROM cases
-         WHERE assigned_consultant = $1 AND status NOT IN ('resolved','closed') AND is_archived = false
-         LIMIT 10`,
-        [userId]
-      );
+      // 4. Open cases assigned to this user — only for admins or consultants with caseAdvocate permission
+      const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+      const canViewCases = user.role === "admin" || (user.role === "consultant" && perms?.caseAdvocate === true);
+
+      let myCasesRows: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] = [];
+      if (canViewCases) {
+        const myCasesRes = await pool.query<{
+          id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string;
+        }>(
+          `SELECT id, case_reference, case_name, employee_name, site_id, status
+           FROM cases
+           WHERE assigned_consultant = $1 AND status NOT IN ('resolved','closed') AND is_archived = false
+           LIMIT 10`,
+          [userId]
+        );
+        myCasesRows = myCasesRes.rows;
+      }
 
       // 5. Support requests assigned to this user
       const mySupportRes = await pool.query<{ id: string; subject: string; status: string }>(
@@ -17124,7 +17131,8 @@ export async function registerRoutes(
         assignedDocs: { count: assignedDocsRes.rows.length, items: assignedDocsRes.rows },
         pendingApprovals: { count: pendingApprovalsRows.length, items: pendingApprovalsRows },
         myIncidents: { count: myIncidentsRes.rows.length, items: myIncidentsRes.rows },
-        myCases: { count: myCasesRes.rows.length, items: myCasesRes.rows },
+        myCases: { count: myCasesRows.length, items: myCasesRows },
+        canViewCases,
         mySupportRequests: { count: mySupportRes.rows.length, items: mySupportRes.rows },
       });
     } catch (err) {

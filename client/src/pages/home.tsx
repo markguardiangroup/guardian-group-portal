@@ -322,6 +322,7 @@ interface MyActionsData {
   pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
   myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
   myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
+  canViewCases: boolean;
   mySupportRequests: { count: number; items: { id: string; subject: string; status: string }[] };
 }
 
@@ -382,7 +383,7 @@ function MyActionsPanel({ role }: { role: string }) {
       bg: "bg-teal-50 dark:bg-teal-950/20",
       border: "border-teal-200 dark:border-teal-800",
       href: "/employment-law/cases",
-      show: isPrivileged,
+      show: isPrivileged && (data?.canViewCases ?? false),
     },
     {
       key: "mySupportRequests",

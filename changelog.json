@@ -3708,6 +3708,14 @@
           "category": "feature",
           "createdAt": "2026-05-12T20:43:51.405Z",
           "createdBy": "System"
+        },
+        {
+          "id": "e54cbc06-f405-48ca-b7c4-533a8bfbbcb3",
+          "patch": 10,
+          "message": "My Actions: Employment Law cases only shown to users with Case Advocate permission",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T20:52:10.205Z",
+          "createdBy": "System"
         }
       ]
     }
