@@ -359,6 +359,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "e5f6a7b8-home-portfolio-slot1-consultants-slot2-2026",
+          "patch": 8,
+          "category": "other",
+          "message": "Home page: Portfolio moved to slot 1, Assigned Consultants to slot 2",
+          "createdAt": "2026-05-12T12:13:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "d4e5f6a7-hide-urgent-actions-home-2026",
           "patch": 8,
           "category": "other",

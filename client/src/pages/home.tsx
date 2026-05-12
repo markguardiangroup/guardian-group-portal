@@ -900,11 +900,8 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
-        {/* Urgent Actions placeholder — panel hidden pending redesign */}
-        <div />
-
-        {/* Portfolio — always rendered to keep the grid stable during load */}
+      <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+        {/* Portfolio — slot 1 */}
         {isLoading ? (
           <Card className="h-full">
             <CardContent className="p-6 h-full">
@@ -915,7 +912,7 @@ export default function HomePage() {
           <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} animate={animate} />
         ) : null}
 
-        {/* My Assigned Consultants — pro consultants only, only if staff exist */}
+        {/* My Assigned Consultants — slot 2, pro consultants only */}
         {showThirdTile && (
           <AssignedConsultantsPanel consultants={assignedConsultants} animate={animate} />
         )}
