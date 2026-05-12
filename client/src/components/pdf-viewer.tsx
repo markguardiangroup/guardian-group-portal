@@ -16,7 +16,6 @@ interface PdfViewerProps {
 export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isConverting, setIsConverting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<ReturnType<typeof pdfjsLib.getDocument> | null>(null);
@@ -39,14 +38,8 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
       const response = await fetch(url, { credentials: "include", signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      if (response.headers.get("X-Docx-Converting") === "true") {
-        setIsConverting(true);
-      }
-
       const arrayBuffer = await response.arrayBuffer();
       if (signal.aborted) return;
-
-      setIsConverting(false);
 
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       loadingTaskRef.current = loadingTask;
@@ -143,16 +136,14 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
             className="h-12 w-12 rounded-full object-cover shadow animate-spin"
             style={{ animationDuration: "1.5s" }}
           />
-          {isConverting ? (
-            <div className="flex flex-col items-center gap-1.5 text-center px-6">
-              <p className="text-sm text-muted-foreground" data-testid="pdf-converting-message">
-                Converting document, please wait…
-              </p>
-              <p className="text-xs text-muted-foreground/70">
-                The preview format may differ slightly from the original document.
-              </p>
-            </div>
-          ) : null}
+          <div className="flex flex-col items-center gap-1.5 text-center px-6">
+            <p className="text-sm text-muted-foreground">
+              Loading preview, please wait…
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              The preview format may differ slightly from the original document.
+            </p>
+          </div>
         </div>
       )}
       {error && (

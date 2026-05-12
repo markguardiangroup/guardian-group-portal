@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "a1b2c3d4-docx-preview-broken-response-fix-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: document preview was silently broken when opening a Word document",
+          "createdAt": "2026-05-12T13:27:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "f6a7b8c0-docx-preview-speed-improvements-2026",
           "patch": 8,
           "category": "enhancement",
