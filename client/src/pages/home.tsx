@@ -428,8 +428,79 @@ interface MyActionsData {
   mySupportRequests: { count: number; items: { id: string; subject: string; status: string }[] };
 }
 
+const MODULE_LABELS: Record<string, string> = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
+  employment_law: "Employment Law",
+  training: "Training",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  overdue: "Overdue",
+  review_required: "Review Required",
+  pending: "Pending",
+  compliant: "Compliant",
+  open: "Open",
+  in_progress: "In Progress",
+  resolved: "Resolved",
+  closed: "Closed",
+};
+
+function formatLabel(s: string | null | undefined) {
+  if (!s) return "";
+  return STATUS_LABELS[s] ?? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getMyActionItems(key: string, data: MyActionsData): { id: string; label: string; subLabel: string | null; badge: string | null; href: string }[] {
+  switch (key) {
+    case "assignedDocs":
+      return data.assignedDocs.items.map((d) => ({
+        id: d.id,
+        label: d.title,
+        subLabel: [MODULE_LABELS[d.module ?? ""] ?? d.module, formatLabel(d.status)].filter(Boolean).join(" · "),
+        badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
+        href: "/documents",
+      }));
+    case "pendingApprovals":
+      return data.pendingApprovals.items.map((d) => ({
+        id: d.id,
+        label: d.title,
+        subLabel: MODULE_LABELS[d.module ?? ""] ?? d.module ?? null,
+        badge: "pending approval",
+        href: "/documents",
+      }));
+    case "myIncidents":
+      return data.myIncidents.items.map((i) => ({
+        id: i.id,
+        label: i.incident_reference ? `${i.incident_reference} — ${i.title}` : i.title,
+        subLabel: [formatLabel(i.severity), formatLabel(i.status)].filter(Boolean).join(" · "),
+        badge: i.severity,
+        href: "/health-safety/incidents",
+      }));
+    case "myCases":
+      return data.myCases.items.map((c) => ({
+        id: c.id,
+        label: c.case_reference ? `${c.case_reference}${c.case_name ? ` — ${c.case_name}` : ""}` : c.case_name,
+        subLabel: c.employee_name || null,
+        badge: c.status,
+        href: "/employment-law/cases",
+      }));
+    case "mySupportRequests":
+      return data.mySupportRequests.items.map((s) => ({
+        id: s.id,
+        label: s.subject,
+        subLabel: null,
+        badge: s.status,
+        href: "/support",
+      }));
+    default:
+      return [];
+  }
+}
+
 function MyActionsPanel({ role }: { role: string }) {
   const [, navigate] = useLocation();
+  const [activeKey, setActiveKey] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<MyActionsData>({
     queryKey: ["/api/my-actions"],
@@ -504,67 +575,151 @@ function MyActionsPanel({ role }: { role: string }) {
   const totalActions = tiles.reduce((s, t) => s + t.count, 0);
   const allClear = !isLoading && totalActions === 0;
 
+  const activeTile = tiles.find((t) => t.key === activeKey) ?? null;
+  const modalItems = data && activeKey ? getMyActionItems(activeKey, data) : [];
+
   return (
-    <Card data-testid="card-my-actions" className="border-t-4 border-t-amber-500">
-      <CardHeader className="pb-3 bg-gradient-to-br from-amber-50/60 to-transparent dark:from-amber-950/10">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
-              <ClipboardList className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+    <>
+      <Card data-testid="card-my-actions" className="border-t-4 border-t-amber-500">
+        <CardHeader className="pb-3 bg-gradient-to-br from-amber-50/60 to-transparent dark:from-amber-950/10">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
+                <ClipboardList className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              My Actions
+            </CardTitle>
+            {!isLoading && totalActions > 0 && (
+              <Badge className="bg-amber-500 text-white text-xs tabular-nums" data-testid="badge-my-actions-count">
+                {totalActions} pending
+              </Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">Actions assigned directly to you — overdue or due within 14 days</p>
+        </CardHeader>
+        <CardContent className="pt-3">
+          {isLoading ? (
+            <div className="h-16 flex items-center justify-center">
+              <FetchingOverlay />
             </div>
-            My Actions
-          </CardTitle>
-          {!isLoading && totalActions > 0 && (
-            <Badge className="bg-amber-500 text-white text-xs tabular-nums" data-testid="badge-my-actions-count">
-              {totalActions} pending
-            </Badge>
+          ) : allClear ? (
+            <div className="flex items-center gap-3 py-3 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+                <ListChecks className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">You're all caught up</p>
+                <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">No actions assigned to you right now</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              {tiles.map((tile) => {
+                const Icon = tile.icon;
+                const hasItems = tile.count > 0;
+                return (
+                  <button
+                    key={tile.key}
+                    onClick={() => hasItems ? setActiveKey(tile.key) : navigate(tile.href)}
+                    className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-all hover:shadow-sm hover:scale-[1.02] ${tile.bg} ${tile.border} ${!hasItems ? "opacity-50" : ""}`}
+                    data-testid={`button-my-action-${tile.key}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Icon className={`h-4 w-4 ${tile.color}`} />
+                      <span className={`text-xl font-bold tabular-nums ${hasItems ? tile.color : "text-muted-foreground"}`}>
+                        {tile.count}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground leading-tight">{tile.label}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{tile.sublabel}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
-        </div>
-        <p className="text-xs text-muted-foreground">Actions assigned directly to you — overdue or due within 14 days</p>
-      </CardHeader>
-      <CardContent className="pt-3">
-        {isLoading ? (
-          <div className="h-16 flex items-center justify-center">
-            <FetchingOverlay />
-          </div>
-        ) : allClear ? (
-          <div className="flex items-center gap-3 py-3 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
-              <ListChecks className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">You're all caught up</p>
-              <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">No actions assigned to you right now</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-            {tiles.map((tile) => {
-              const Icon = tile.icon;
-              return (
-                <button
-                  key={tile.key}
-                  onClick={() => navigate(tile.href)}
-                  className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-all hover:shadow-sm hover:scale-[1.02] ${tile.bg} ${tile.border} ${tile.count === 0 ? "opacity-50" : ""}`}
-                  data-testid={`button-my-action-${tile.key}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <Icon className={`h-4 w-4 ${tile.color}`} />
-                    <span className={`text-xl font-bold tabular-nums ${tile.count > 0 ? tile.color : "text-muted-foreground"}`}>
-                      {tile.count}
-                    </span>
+        </CardContent>
+      </Card>
+
+      {/* My Actions detail modal */}
+      <Dialog open={!!activeKey} onOpenChange={(v) => !v && setActiveKey(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col" data-testid="modal-my-action">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-base flex items-center gap-2">
+              {activeTile && (() => { const Icon = activeTile.icon; return <Icon className={`h-4 w-4 ${activeTile.color}`} />; })()}
+              {activeTile?.label ?? "Items"}
+              {modalItems.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">({modalItems.length})</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto -mx-6 px-6 py-1">
+            {modalItems.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-center">
+                <CheckCircle className="h-8 w-8 text-emerald-500" />
+                <p className="text-sm text-muted-foreground">Nothing to show right now.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 py-1">
+                {modalItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5 hover:bg-muted/40 transition-colors"
+                    data-testid={`my-action-item-${item.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.label}</p>
+                      {item.subLabel && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{item.subLabel}</p>
+                      )}
+                      {item.badge && (
+                        <Badge
+                          variant="secondary"
+                          className={`mt-1 text-[10px] px-1.5 py-0 capitalize ${badgeColorClass[item.badge] ?? ""}`}
+                        >
+                          {item.badge.replace(/_/g, " ")}
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="shrink-0 h-7 px-2 text-xs"
+                      onClick={() => {
+                        setActiveKey(null);
+                        navigate(item.href);
+                      }}
+                      data-testid={`my-action-item-view-${item.id}`}
+                    >
+                      View
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </Button>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-foreground leading-tight">{tile.label}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{tile.sublabel}</p>
-                  </div>
-                </button>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          <div className="shrink-0 pt-3 border-t">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full text-xs"
+              onClick={() => {
+                setActiveKey(null);
+                if (activeTile) navigate(activeTile.href);
+              }}
+              data-testid="button-my-action-go-to-section"
+            >
+              Go to {activeTile?.label ?? "Section"}
+              <ArrowRight className="ml-1.5 h-3 w-3" />
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
