@@ -482,18 +482,29 @@ function formatLabel(s: string | null | undefined) {
 interface MyActionItem {
   id: string;
   label: string;
+  siteLabel: string | null;
   subLabel: string | null;
   badge: string | null;
   module: string | null;
   href: string;
 }
 
-function getMyActionItems(key: string, data: MyActionsData): MyActionItem[] {
+type SiteMap = Map<string, { name: string; companyName?: string }>;
+
+function resolveSiteLabel(siteId: string | null | undefined, siteMap: SiteMap): string | null {
+  if (!siteId) return null;
+  const s = siteMap.get(siteId);
+  if (!s) return null;
+  return s.companyName ? `${s.companyName} — ${s.name}` : s.name;
+}
+
+function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): MyActionItem[] {
   switch (key) {
     case "assignedDocs":
       return data.assignedDocs.items.map((d) => ({
         id: d.id,
         label: d.title,
+        siteLabel: resolveSiteLabel(d.site_id, siteMap),
         subLabel: formatLabel(d.status),
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
         module: d.module ?? null,
@@ -503,6 +514,7 @@ function getMyActionItems(key: string, data: MyActionsData): MyActionItem[] {
       return data.pendingApprovals.items.map((d) => ({
         id: d.id,
         label: d.title,
+        siteLabel: resolveSiteLabel(d.site_id, siteMap),
         subLabel: null,
         badge: "pending approval",
         module: d.module ?? null,
@@ -512,6 +524,7 @@ function getMyActionItems(key: string, data: MyActionsData): MyActionItem[] {
       return data.myIncidents.items.map((i) => ({
         id: i.id,
         label: i.incident_reference ? `${i.incident_reference} — ${i.title}` : i.title,
+        siteLabel: resolveSiteLabel(i.site_id, siteMap),
         subLabel: formatLabel(i.status),
         badge: i.severity,
         module: "health_safety",
@@ -521,6 +534,7 @@ function getMyActionItems(key: string, data: MyActionsData): MyActionItem[] {
       return data.myCases.items.map((c) => ({
         id: c.id,
         label: c.case_reference ? `${c.case_reference}${c.case_name ? ` — ${c.case_name}` : ""}` : c.case_name,
+        siteLabel: resolveSiteLabel(c.site_id, siteMap),
         subLabel: c.employee_name || formatLabel(c.status),
         badge: c.status,
         module: "employment_law",
@@ -530,6 +544,7 @@ function getMyActionItems(key: string, data: MyActionsData): MyActionItem[] {
       return data.mySupportRequests.items.map((s) => ({
         id: s.id,
         label: s.subject,
+        siteLabel: null,
         subLabel: null,
         badge: s.status,
         module: null,
@@ -617,8 +632,25 @@ function MyActionsPanel({ role }: { role: string }) {
   const totalActions = tiles.reduce((s, t) => s + t.count, 0);
   const allClear = !isLoading && totalActions === 0;
 
+  const { data: homeSummary } = useQuery<HomeSummary>({
+    queryKey: ["/api/home-summary"],
+    staleTime: 60000,
+  });
+
+  const siteMap = useMemo<SiteMap>(() => {
+    const map: SiteMap = new Map();
+    const p = homeSummary?.portfolio;
+    if (!p) return map;
+    if ("assignedSites" in p) {
+      for (const s of p.assignedSites) map.set(s.id, { name: s.name, companyName: s.companyName });
+    } else if ("site" in p && p.site) {
+      map.set(p.site.id, { name: p.site.name, companyName: p.site.companyName });
+    }
+    return map;
+  }, [homeSummary]);
+
   const activeTile = tiles.find((t) => t.key === activeKey) ?? null;
-  const modalItems = data && activeKey ? getMyActionItems(activeKey, data) : [];
+  const modalItems = data && activeKey ? getMyActionItems(activeKey, data, siteMap) : [];
 
   return (
     <>
@@ -721,11 +753,14 @@ function MyActionsPanel({ role }: { role: string }) {
                         <TileIcon className={`h-4 w-4 ${activeTile?.color ?? "text-muted-foreground"}`} />
                       </div>
 
-                      {/* Title + subLabel */}
+                      {/* Title + site + subLabel */}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground leading-snug truncate">{item.label}</p>
+                        {item.siteLabel && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.siteLabel}</p>
+                        )}
                         {item.subLabel && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.subLabel}</p>
+                          <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">{item.subLabel}</p>
                         )}
                       </div>
 

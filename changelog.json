@@ -3788,6 +3788,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T21:50:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "k8g0l529-1h34-0ijk-h980-5n2m9k6j8l11",
+          "patch": 10,
+          "message": "Improved: My Actions modal items now show company and site details",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T21:55:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
