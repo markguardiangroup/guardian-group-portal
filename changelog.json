@@ -3620,8 +3620,17 @@
           "category": "bug",
           "createdAt": "2026-05-12T14:44:47.405Z",
           "createdBy": "System"
+        },
+        {
+          "id": "44fc589b-4233-478e-a572-ebf28dc7983a",
+          "patch": 10,
+          "message": "Changelog now shows who requested each change, switchable in the UI",
+          "category": "feature",
+          "createdAt": "2026-05-12T14:50:17.333Z",
+          "createdBy": "System"
         }
       ]
     }
-  ]
+  ],
+  "activeRequester": "System"
 }

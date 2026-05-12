@@ -42,6 +42,7 @@ export interface ChangelogVersion {
 
 export interface Changelog {
   activeVersionId: string;
+  activeRequester?: string;
   versions: ChangelogVersion[];
 }
 
