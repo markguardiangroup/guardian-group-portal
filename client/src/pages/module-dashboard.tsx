@@ -3,7 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { 
@@ -855,18 +855,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center gap-3 rounded-md border p-4">
-                    <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <Skeleton className="h-4 w-48" />
-                      <Skeleton className="h-3 w-32" />
-                    </div>
-                    <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
-                  </div>
-                ))}
-              </div>
+              <FetchingOverlay />
             ) : data?.recentDocuments && data.recentDocuments.length > 0 ? (
               <div className="space-y-3">
                 {data.recentDocuments.map((doc) => (
@@ -921,18 +910,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="divide-y">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center gap-3 py-3">
-                    <Skeleton className="h-9 w-9 shrink-0 rounded-md" />
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <Skeleton className="h-3.5 w-40" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <Skeleton className="h-3 w-8 shrink-0" />
-                  </div>
-                ))}
-              </div>
+              <FetchingOverlay />
             ) : data?.upcomingReviews && data.upcomingReviews.length > 0 ? (
               <div className="divide-y">
                 {data.upcomingReviews.slice(0, 5).map((doc) => {
@@ -1027,9 +1005,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </DialogTitle>
           </DialogHeader>
           {isMissingLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
-            </div>
+            <FetchingOverlay />
           ) : missingRequiredDetails.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No missing required documents found.</p>
           ) : (

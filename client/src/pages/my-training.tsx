@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { format } from "date-fns";
 import {
   GraduationCap,
@@ -340,11 +340,7 @@ export default function MyTraining() {
 
             <TabsContent value="booked" className="mt-0">
               {isLoading ? (
-                <div className="py-8 space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
+                <FetchingOverlay />
               ) : filteredBookings.length === 0 ? (
                 <div className="py-12 text-center">
                   <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -467,10 +463,7 @@ export default function MyTraining() {
 
         <TabsContent value="completed" className="mt-0">
           {isLoading ? (
-            <div className="py-8 space-y-4">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
+            <FetchingOverlay />
           ) : filteredBookings.length === 0 ? (
             <div className="py-12 text-center">
               <CheckCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

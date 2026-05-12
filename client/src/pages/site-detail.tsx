@@ -5,7 +5,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -341,13 +341,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
   );
 
   if (assignmentsLoading || consultantsLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2].map((i) => (
-          <Skeleton key={i} className="h-20 w-full" />
-        ))}
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   return (
@@ -703,13 +697,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   const hasAnyUsers = nonProConsultants.length > 0 || users.length > 0;
@@ -1679,13 +1667,7 @@ export default function SiteDetail() {
   };
 
   if (entityLoading) {
-    return (
-      <div className="p-6">
-        <Skeleton className="mb-6 h-8 w-48" />
-        <Skeleton className="mb-4 h-24 w-full" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   if (!entity) {

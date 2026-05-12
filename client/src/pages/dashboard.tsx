@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { CountUp } from "@/components/ui/count-up";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -837,11 +837,7 @@ function OverallComplianceCard({
               </DialogTitle>
             </DialogHeader>
             {isMissingLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-full" />
-              </div>
+              <FetchingOverlay />
             ) : Object.keys(groupedMissing).length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No missing required documents found.</p>
             ) : (
@@ -1435,18 +1431,7 @@ export default function Dashboard() {
     <div id="page-content" className="flex-1 overflow-auto space-y-8 p-8 dash-animate">
 
       {showContentSkeleton ? (
-        <>
-          <Skeleton className="h-64 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <div>
-            <Skeleton className="h-6 w-48 mb-4" />
-            <div className="grid gap-6 md:grid-cols-3">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
-            </div>
-          </div>
-        </>
+        <FetchingOverlay />
       ) : (
       <>
       <OverallComplianceCard 

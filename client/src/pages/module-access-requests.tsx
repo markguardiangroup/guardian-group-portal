@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -426,18 +426,7 @@ export default function ModuleAccessRequests() {
   }
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 md:grid-cols-4">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-        </div>
-        <Skeleton className="h-96" />
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   return (

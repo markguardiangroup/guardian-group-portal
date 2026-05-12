@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -268,13 +268,7 @@ export default function SiteModuleAccess() {
   }
 
   if (sitesLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-10 w-full max-w-sm" />
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   return (

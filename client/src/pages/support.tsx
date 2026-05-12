@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import {
   Form,
@@ -446,12 +446,7 @@ function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: 
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-16 w-full" />
-        <Skeleton className="h-16 w-3/4" />
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   return (
@@ -883,11 +878,7 @@ export default function Support() {
 
         <TabsContent value={activeTab} className="mt-6">
           {isLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-32 w-full" />
-              ))}
-            </div>
+            <FetchingOverlay />
           ) : filteredRequests && filteredRequests.length > 0 ? (
             <div className="space-y-4">
               {filteredRequests.map((request) => (

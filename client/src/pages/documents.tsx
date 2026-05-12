@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -729,15 +729,7 @@ function DocumentsListView() {
 
           {/* Folders Accordion */}
           {isLoadingHierarchy ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <FetchingOverlay />
           ) : hierarchy?.folders && hierarchy.folders.length > 0 ? (
             <Card>
               <CardContent className="p-0">
@@ -1040,11 +1032,7 @@ function DocumentsListView() {
           </CardHeader>
           <CardContent className="p-0">
           {isLoading ? (
-            <div className="space-y-3 p-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
+            <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <Table>
               <TableHeader>
@@ -1486,21 +1474,7 @@ function DocumentDetailView({ id }: { id: string }) {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-10" />
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Skeleton className="h-96 lg:col-span-2" />
-          <Skeleton className="h-96" />
-        </div>
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   if (!document) {

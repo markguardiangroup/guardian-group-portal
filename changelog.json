@@ -3353,13 +3353,21 @@
         {
           "id": "d7f89a01-6b12-3c45-de67-8f9a0b1c2d3e",
           "patch": 8,
+          "message": "Improved: branded loading animation now shown consistently across all pages",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T10:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "e8a90b12-7c23-4d56-ef78-9a0b1c2d3e4f",
+          "patch": 8,
           "message": "Fixed: subfolder document counts now include shared documents, matching the badge status",
           "category": "bug",
           "createdAt": "2026-05-12T00:00:00.000Z",
           "createdBy": "agent"
         },
         {
-          "id": "e8a90b12-7c23-4d56-ef78-9a0b1c2d3e4f",
+          "id": "f9b01c23-8d34-5e67-fa89-0b1c2d3e4f5a",
           "patch": 8,
           "message": "Users CSV export now includes Key Contact (Company) and Key Contact (Site) columns",
           "category": "enhancement",
@@ -3367,7 +3375,7 @@
           "createdBy": "agent"
         },
         {
-          "id": "f9b01c23-8d34-5e67-fa89-0b1c2d3e4f5a",
+          "id": "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
           "patch": 8,
           "message": "Upload forms now show which sites or companies will receive a 'Share to all' document before you confirm",
           "category": "enhancement",

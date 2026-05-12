@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
@@ -1971,12 +1972,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [tickedNotes, setTickedNotes] = useState<Set<string>>(new Set());
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 p-6">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64" />
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   if (!caseData) {

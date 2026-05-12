@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
@@ -379,18 +379,7 @@ function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; grou
   ];
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Module Access</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
-          ))}
-        </CardContent>
-      </Card>
-    );
+    return <FetchingOverlay />;
   }
 
   const hasAnyInherited = modules.some(({ key }) => moduleAccess?.inherited?.[key]);
@@ -583,19 +572,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   };
 
   if (requiredLoading) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-8 w-32" />
-        </div>
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   return (
@@ -1546,17 +1523,7 @@ export default function CompanyDetail() {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24 w-full" />
-          ))}
-        </div>
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   if (error || !company) {

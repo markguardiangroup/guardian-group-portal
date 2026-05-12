@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -763,15 +763,7 @@ export default function Training() {
 
       <div id="page-content" className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="p-6 space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-48 rounded-xl" />
-              ))}
-            </div>
-            <Skeleton className="h-32 rounded-xl" />
-            <Skeleton className="h-32 rounded-xl" />
-          </div>
+          <FetchingOverlay />
         ) : filteredCourses.length === 0 && (trainingFolders || []).length === 0 ? (
           <div className="p-6">
             <Card className="p-12 text-center max-w-lg mx-auto">

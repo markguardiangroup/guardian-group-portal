@@ -16,7 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -2133,18 +2132,7 @@ function IncidentDetailView({ id }: { id: string }) {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6 p-8">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-6">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-48" />
-          </div>
-          <Skeleton className="h-96" />
-        </div>
-      </div>
-    );
+    return <FetchingOverlay />;
   }
 
   if (!incident) {

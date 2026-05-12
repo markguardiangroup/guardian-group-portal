@@ -3,7 +3,7 @@ import { PdfViewer } from "@/components/pdf-viewer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -2040,33 +2040,7 @@ export default function TemplateLibraryPage() {
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
           {isLoading ? (
-            <div className="space-y-6">
-              {(["health_safety", "human_resources", "employment_law"] as const)
-                .filter(m => selectedModule === "all" || selectedModule === m)
-                .map(module => {
-                  const ModuleIcon = moduleIcons[module];
-                  return (
-                    <Card key={module} className={moduleBgColors[module]}>
-                      <CardHeader>
-                        <CardTitle className={`flex items-center gap-2 ${moduleColors[module]}`}>
-                          <ModuleIcon className="h-5 w-5" />
-                          {moduleNames[module]}
-                          <Skeleton className="h-5 w-16 ml-2 rounded-full" />
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {[1, 2, 3].map(i => (
-                          <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-background/60">
-                            <Skeleton className="h-4 w-4 rounded shrink-0" />
-                            <Skeleton className="h-4 flex-1 max-w-[200px]" />
-                            <Skeleton className="h-4 w-12 ml-auto" />
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-            </div>
+            <FetchingOverlay />
           ) : searchQuery ? (
             <Card>
               <CardHeader>
