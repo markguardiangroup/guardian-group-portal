@@ -336,27 +336,34 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
     const visibleCompanies = expanded ? p.assignedCompanies : p.assignedCompanies.slice(0, PORTFOLIO_INITIAL_ROWS);
 
     return (
-      <Card data-testid="card-portfolio" className="h-full">
-        <CardHeader className="pb-2">
+      <Card data-testid="card-portfolio" className="h-full border-t-4 border-t-primary overflow-hidden">
+        <CardHeader className="pb-3 bg-gradient-to-br from-primary/5 to-transparent">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-primary" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+              <Briefcase className="h-4 w-4 text-primary" />
+            </div>
             My Portfolio
           </CardTitle>
+          <p className="text-xs text-muted-foreground">Your assigned clients &amp; sites</p>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+        <CardContent className="flex flex-col gap-4 pt-4">
           {/* Summary stats */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-companies">
-              <p className="text-xl font-bold tabular-nums"><CountUp value={totalCompanies} animate={animate} /></p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-                <Landmark className="h-3 w-3" />
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-center" data-testid="stat-companies">
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <Landmark className="h-3.5 w-3.5 text-primary" />
+                <p className="text-2xl font-bold tabular-nums text-primary"><CountUp value={totalCompanies} animate={animate} /></p>
+              </div>
+              <p className="text-[11px] font-medium text-muted-foreground">
                 {totalCompanies === 1 ? "Company" : "Companies"}
               </p>
             </div>
-            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center" data-testid="stat-sites">
-              <p className="text-xl font-bold tabular-nums"><CountUp value={totalSites} animate={animate} /></p>
-              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-                <MapPin className="h-3 w-3" />
+            <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-center" data-testid="stat-sites">
+              <div className="flex items-center justify-center gap-1.5 mb-0.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                <p className="text-2xl font-bold tabular-nums text-primary"><CountUp value={totalSites} animate={animate} /></p>
+              </div>
+              <p className="text-[11px] font-medium text-muted-foreground">
                 {totalSites === 1 ? "Site" : "Sites"}
               </p>
             </div>
@@ -365,21 +372,23 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
           {/* Client list */}
           {totalCompanies > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-0.5">
                 Clients
               </p>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {visibleCompanies.map((c) => (
                   <div
                     key={c.name}
-                    className="flex items-center justify-between rounded-md px-2.5 py-1.5 hover:bg-muted/60 transition-colors"
+                    className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all group"
                     data-testid={`company-portfolio-${c.name}`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="text-sm truncate">{c.name}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary text-[10px] font-bold">
+                        {c.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm truncate font-medium">{c.name}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground shrink-0 ml-2 tabular-nums">
+                    <span className="text-xs text-muted-foreground shrink-0 ml-2 tabular-nums bg-muted rounded px-1.5 py-0.5">
                       {c.siteCount} {c.siteCount === 1 ? "site" : "sites"}
                     </span>
                   </div>
@@ -390,7 +399,7 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
                 <button
                   type="button"
                   onClick={() => setExpanded((v) => !v)}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors py-1.5 rounded-md hover:bg-primary/5"
                   data-testid="button-toggle-companies"
                 >
                   {expanded ? (
@@ -415,7 +424,7 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
             </div>
           )}
 
-          <Button variant="outline" size="sm" className="w-full" asChild>
+          <Button size="sm" className="w-full mt-auto" asChild>
             <Link href="/companies" data-testid="link-view-all-companies">
               View All Clients
               <ArrowRight className="ml-2 h-3.5 w-3.5" />
