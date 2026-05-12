@@ -547,6 +547,7 @@ function OverallComplianceCard({
   isMissingLoading,
   allDocuments,
   sites,
+  variant,
 }: { 
   summaries: ModuleSummary[];
   siteComplianceSummary?: SiteComplianceSummary | null;
@@ -554,6 +555,7 @@ function OverallComplianceCard({
   isMissingLoading?: boolean;
   allDocuments?: Document[];
   sites?: Array<{ id: string; name: string; companyName?: string | null }>;
+  variant?: "modules";
 }) {
   const [showMissingDialog, setShowMissingDialog] = useState(false);
   const [docsDialog, setDocsDialog] = useState<DocsDialogType>(null);
@@ -734,7 +736,66 @@ function OverallComplianceCard({
         </div>
 
         {/* Compliance stats: required docs only */}
-        {(() => {
+        {variant === "modules" ? (() => {
+          const moduleConfig: { module: string; label: string; shortLabel: string; icon: React.ReactNode; scoreColor: (s: number) => string; barColor: (s: number) => string; borderColor: string }[] = [
+            {
+              module: "health_safety",
+              label: "Health & Safety",
+              shortLabel: "H&S",
+              icon: <HardHat className="h-4 w-4" />,
+              scoreColor: (s) => s >= 90 ? "text-emerald-600 dark:text-emerald-400" : s >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
+              barColor: (s) => s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500",
+              borderColor: "border-emerald-200 dark:border-emerald-800",
+            },
+            {
+              module: "human_resources",
+              label: "Human Resources",
+              shortLabel: "HR",
+              icon: <Users className="h-4 w-4" />,
+              scoreColor: (s) => s >= 90 ? "text-emerald-600 dark:text-emerald-400" : s >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
+              barColor: (s) => s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500",
+              borderColor: "border-blue-200 dark:border-blue-800",
+            },
+            {
+              module: "employment_law",
+              label: "Employment Law",
+              shortLabel: "EL",
+              icon: <Scale className="h-4 w-4" />,
+              scoreColor: (s) => s >= 90 ? "text-emerald-600 dark:text-emerald-400" : s >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400",
+              barColor: (s) => s >= 90 ? "bg-emerald-500" : s >= 70 ? "bg-amber-500" : "bg-red-500",
+              borderColor: "border-pink-200 dark:border-pink-800",
+            },
+          ];
+          return (
+            <div className="grid grid-cols-3 gap-3">
+              {moduleConfig.map((mc) => {
+                const summary = summaries.find(s => s.module === mc.module);
+                const score = summary?.complianceScore ?? 0;
+                const docs = summary?.allDocuments ?? 0;
+                return (
+                  <div key={mc.module} className={`rounded-md border ${mc.borderColor} p-3`} data-testid={`stat-module-${mc.module}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        {mc.icon}
+                        <span className="text-xs font-medium">{mc.label}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-end justify-between mb-2">
+                      <span className={`text-2xl font-bold ${mc.scoreColor(score)}`}>
+                        <CountUp value={score} />%
+                      </span>
+                      <span className="text-xs text-muted-foreground">{docs} doc{docs !== 1 ? "s" : ""}</span>
+                    </div>
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div className={`h-full transition-all ${mc.barColor(score)}`} style={{ width: `${score}%` }} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5 text-center">Compliance</p>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })() : (() => {
           const nonCompliantDocs = overdueDocs + reviewRequiredSlots;
           return (
             <div className="grid grid-cols-3 gap-3">
@@ -1031,7 +1092,7 @@ function LockedModuleCard({ moduleName, module }: {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ overallComplianceVariant }: { overallComplianceVariant?: "modules" } = {}) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   const [, navigate] = useLocation();
@@ -1441,6 +1502,7 @@ export default function Dashboard() {
         isMissingLoading={isMissingLoading}
         allDocuments={allDocuments}
         sites={sites}
+        variant={overallComplianceVariant}
       />
 
       {/* Renewal Status Section */}

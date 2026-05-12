@@ -3636,6 +3636,14 @@
           "category": "feature",
           "createdAt": "2026-05-12T20:00:33.675Z",
           "createdBy": "System"
+        },
+        {
+          "id": "36350f73-320a-43c0-b2d1-4b74e1a4fd9b",
+          "patch": 10,
+          "message": "Dashboard 2 compliance tile now shows per-module % (H&S, HR, EL) instead of doc counts",
+          "category": "feature",
+          "createdAt": "2026-05-12T20:08:12.205Z",
+          "createdBy": "System"
         }
       ]
     }
