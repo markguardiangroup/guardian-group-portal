@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "c3d4e5f6-fulfilled-badge-template-upload-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Template upload shows a Fulfilled badge when a document already exists for that template",
+          "createdAt": "2026-05-12T12:55:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b2c3d4e5-back-button-module-dashboard-2026",
           "patch": 8,
           "category": "enhancement",

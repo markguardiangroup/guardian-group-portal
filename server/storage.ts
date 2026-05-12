@@ -181,6 +181,7 @@ export interface IStorage {
   
   // Documents
   getDocuments(module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
+  getFulfilledTemplateIds(scope: string, entityId?: string, siteId?: string): Promise<string[]>;
   getDocument(id: string): Promise<DocumentWithDetails | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
@@ -1189,6 +1190,26 @@ export class MemStorage implements IStorage {
       filtered = docs.filter(d => d.module === module);
     }
     return filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }
+
+  async getFulfilledTemplateIds(scope: string, entityId?: string, siteId?: string): Promise<string[]> {
+    const conditions: any[] = [
+      eq(documentsTable.isArchived, false),
+      isNotNull(documentsTable.templateId),
+    ];
+    if (scope === "site" && siteId) {
+      conditions.push(eq(documentsTable.siteId, siteId));
+    } else if ((scope === "company" || scope === "group") && entityId) {
+      conditions.push(eq(documentsTable.scope as any, scope));
+      conditions.push(eq(documentsTable.entityId, entityId));
+    } else {
+      return [];
+    }
+    const rows = await db
+      .selectDistinct({ templateId: documentsTable.templateId })
+      .from(documentsTable)
+      .where(and(...conditions));
+    return rows.map(r => r.templateId).filter(Boolean) as string[];
   }
 
   async getDocument(id: string): Promise<DocumentWithDetails | undefined> {

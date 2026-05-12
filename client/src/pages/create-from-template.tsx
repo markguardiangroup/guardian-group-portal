@@ -299,6 +299,26 @@ export default function CreateFromTemplate() {
     return new Set<string>();
   }, [docScope, selectedSiteIds, preselectedSiteId, selectedEntityId, requiredBySite, requiredByCompany]);
 
+  // Which templates already have a document uploaded for the current scope/entity
+  const fulfilledSiteId = docScope === "site" ? (selectedSiteIds[0] || preselectedSiteId || "") : undefined;
+  const fulfilledEntityId = (docScope === "company" || docScope === "group") ? (selectedEntityId || undefined) : undefined;
+  const { data: fulfilledData } = useQuery<{ templateIds: string[] }>({
+    queryKey: ["/api/fulfilled-template-ids", docScope, fulfilledEntityId, fulfilledSiteId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ scope: docScope });
+      if (fulfilledSiteId) params.set("siteId", fulfilledSiteId);
+      if (fulfilledEntityId) params.set("entityId", fulfilledEntityId);
+      const res = await fetch(`/api/fulfilled-template-ids?${params}`, { credentials: "include" });
+      if (!res.ok) return { templateIds: [] };
+      return res.json();
+    },
+    enabled: !!(fulfilledSiteId || fulfilledEntityId),
+  });
+  const fulfilledTemplateIdSet = useMemo(
+    () => new Set(fulfilledData?.templateIds ?? []),
+    [fulfilledData]
+  );
+
   const { data: folderTemplates = [] } = useQuery<FolderTemplate[]>({
     queryKey: ["/api/folder-templates"],
   });
@@ -1138,6 +1158,7 @@ export default function CreateFromTemplate() {
               const FolderIcon = folderName ? getFolderIcon(folderName) : Folder;
               const showModuleBadge = selectedModule === "all";
               const isRequired = requiredTemplateIdSet.has(template.id);
+              const isFulfilled = fulfilledTemplateIdSet.has(template.id);
 
               return (
                 <Card
@@ -1183,6 +1204,12 @@ export default function CreateFromTemplate() {
                         <Badge className="text-xs bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40">
                           <Shield className="h-3 w-3 mr-1 shrink-0" />
                           Required
+                        </Badge>
+                      )}
+                      {isFulfilled && (
+                        <Badge className="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/40">
+                          <CheckCircle2 className="h-3 w-3 mr-1 shrink-0" />
+                          Fulfilled
                         </Badge>
                       )}
                       {folderName && (

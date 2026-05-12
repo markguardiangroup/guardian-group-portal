@@ -2046,6 +2046,21 @@ export async function registerRoutes(
   // beyond the site's effective required count).
   // Filters templates the same way as getMissingRequiredTemplateDetails:
   // active + private + (if `module` is provided) matching module.
+  app.get("/api/fulfilled-template-ids", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const scope = (req.query.scope as string) || "";
+      const entityId = req.query.entityId as string | undefined;
+      const siteId = req.query.siteId as string | undefined;
+      const templateIds = await storage.getFulfilledTemplateIds(scope, entityId, siteId);
+      res.json({ templateIds });
+    } catch (error) {
+      console.error("Error fetching fulfilled template IDs:", error);
+      res.status(500).json({ error: "Failed to fetch fulfilled template IDs" });
+    }
+  });
+
   app.get("/api/effective-required-template-ids-by-site", async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
