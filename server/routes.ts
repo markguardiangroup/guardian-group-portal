@@ -11681,10 +11681,28 @@ export async function registerRoutes(
         visibleUsers = allUsers;
       }
 
+      // Fetch all key contacts once for enrichment
+      const allKeyContacts = await storage.getAllKeyContacts();
+      // Build a map: userId -> KeyContact[]
+      const keyContactsByUser = new Map<string, typeof allKeyContacts>();
+      for (const kc of allKeyContacts) {
+        if (!keyContactsByUser.has(kc.userId)) keyContactsByUser.set(kc.userId, []);
+        keyContactsByUser.get(kc.userId)!.push(kc);
+      }
+
       // Enrich users with site assignments
       const usersWithAssignments = await Promise.all(visibleUsers.map(async (u) => {
         const { password, ...safeUser } = u;
-        
+
+        // Determine key contact designations for this user
+        const userKCs = keyContactsByUser.get(u.id) ?? [];
+        const keyContactCompanies = userKCs
+          .filter(kc => kc.entityType === "company")
+          .map(kc => allCompanies.find(c => c.id === kc.entityId)?.name || kc.entityId);
+        const keyContactSites = userKCs
+          .filter(kc => kc.entityType === "site")
+          .map(kc => allSites.find(s => s.id === kc.entityId)?.name || kc.entityId);
+
         if (u.role === "consultant") {
           const assignments: { siteId: string; siteName: string; companyName: string; isPrimary: boolean }[] = [];
           for (const site of allSites) {
@@ -11695,7 +11713,7 @@ export async function registerRoutes(
               assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!userAssignment.isPrimary });
             }
           }
-          return { ...safeUser, siteAssignments: assignments };
+          return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites };
         } else if (u.role === "client") {
           const clientAssignments = await storage.getClientSites(u.id);
           const assignments = clientAssignments.map(a => {
@@ -11703,10 +11721,10 @@ export async function registerRoutes(
             const company = site ? allCompanies.find(c => c.id === site.companyId) : null;
             return { siteId: a.siteId, siteName: site?.name || "Unknown", companyName: company?.name || "Unknown", isPrimary: false };
           });
-          return { ...safeUser, siteAssignments: assignments };
+          return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites };
         }
         
-        return safeUser;
+        return { ...safeUser, keyContactCompanies, keyContactSites };
       }));
       
       res.json(usersWithAssignments);

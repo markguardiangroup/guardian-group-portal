@@ -73,6 +73,8 @@ interface UserReportData {
   companyId: string | null;
   jobTitle?: string | null;
   siteAssignments?: { siteId: string; siteName: string }[];
+  keyContactCompanies?: string[];
+  keyContactSites?: string[];
 }
 
 interface EmailSummary {
@@ -656,10 +658,12 @@ export default function AdminReports() {
     u.role === "consultant" && u.consultantTier === "pro" ? proConsultantColor : roleColors[u.role];
 
   const downloadUsersCSV = () => {
-    const headers = ["Reference", "Full Name", "Email", "Role", "Status", "Company", "Job Title", "Assigned Sites"];
+    const headers = ["Reference", "Full Name", "Email", "Role", "Status", "Company", "Job Title", "Assigned Sites", "Key Contact (Company)", "Key Contact (Site)"];
     const rows = usersData.map(u => {
       const company = companies.find(c => c.id === u.companyId);
       const sites = u.siteAssignments?.map(s => s.siteName).join("; ") || "";
+      const kcCompanies = u.keyContactCompanies?.join("; ") || "";
+      const kcSites = u.keyContactSites?.join("; ") || "";
       return [
         u.referenceNumber || "",
         u.fullName,
@@ -669,6 +673,8 @@ export default function AdminReports() {
         company?.name || "",
         u.jobTitle || "",
         sites,
+        kcCompanies,
+        kcSites,
       ];
     });
 

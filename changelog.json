@@ -3349,6 +3349,14 @@
           "category": "bug",
           "createdAt": "2026-05-12T00:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "e8a90b12-7c23-4d56-ef78-9a0b1c2d3e4f",
+          "patch": 8,
+          "message": "Users CSV export now includes Key Contact (Company) and Key Contact (Site) columns",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T10:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

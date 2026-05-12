@@ -530,6 +530,7 @@ export interface IStorage {
   // Key Contacts
   getKeyContacts(entityType: KeyContactEntityType, entityId: string): Promise<KeyContact[]>;
   getAllKeyContactUserIds(): Promise<string[]>;
+  getAllKeyContacts(): Promise<KeyContact[]>;
   addKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<KeyContact>;
   removeKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<boolean>;
 }
@@ -5321,6 +5322,10 @@ export class MemStorage implements IStorage {
   async getAllKeyContactUserIds(): Promise<string[]> {
     const rows = await db.selectDistinct({ userId: keyContactsTable.userId }).from(keyContactsTable);
     return rows.map(r => r.userId);
+  }
+
+  async getAllKeyContacts(): Promise<KeyContact[]> {
+    return db.select().from(keyContactsTable).orderBy(asc(keyContactsTable.createdAt));
   }
 
   async addKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<KeyContact> {
