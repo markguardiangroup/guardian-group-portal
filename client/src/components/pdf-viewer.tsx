@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import pdfjsWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -136,12 +137,22 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
     <div className={className} style={{ position: "relative" }}>
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" data-testid="pdf-loading">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          {isConverting && (
-            <p className="text-sm text-muted-foreground" data-testid="pdf-converting-message">
-              Converting document, please wait…
-            </p>
-          )}
+          <img
+            src={logoIcon}
+            alt="Loading"
+            className="h-12 w-12 rounded-full object-cover shadow animate-spin"
+            style={{ animationDuration: "1.5s" }}
+          />
+          {isConverting ? (
+            <div className="flex flex-col items-center gap-1.5 text-center px-6">
+              <p className="text-sm text-muted-foreground" data-testid="pdf-converting-message">
+                Converting document, please wait…
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                The preview format may differ slightly from the original document.
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
       {error && (

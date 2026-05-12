@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "e5f6a7b9-pdf-preview-spinner-logo-disclaimer-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Document preview now shows the branded spinner and a format disclaimer while converting",
+          "createdAt": "2026-05-12T13:12:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "d4e5f6a8-fulfilled-badge-fix-scope-query-2026",
           "patch": 8,
           "category": "bug",
