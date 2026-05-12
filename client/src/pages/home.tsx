@@ -694,8 +694,9 @@ function MyActionsPanel({ role }: { role: string }) {
                 return (
                   <button
                     key={tile.key}
-                    onClick={() => hasItems ? setActiveKey(tile.key) : navigate(tile.href)}
-                    className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-all hover:shadow-sm hover:scale-[1.02] ${tile.bg} ${tile.border} ${!hasItems ? "opacity-50" : ""}`}
+                    onClick={() => { if (hasItems) setActiveKey(tile.key); }}
+                    disabled={!hasItems}
+                    className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-all ${hasItems ? "hover:shadow-sm hover:scale-[1.02] cursor-pointer" : "opacity-50 cursor-default"} ${tile.bg} ${tile.border}`}
                     data-testid={`button-my-action-${tile.key}`}
                   >
                     <div className="flex items-center justify-between">
