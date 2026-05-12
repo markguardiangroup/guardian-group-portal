@@ -1058,24 +1058,6 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                    {(docScope === "company" || docScope === "group") && moduleTemplates && moduleTemplates.length > 0 && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Compliance Template (optional)</label>
-                        <select
-                          value={selectedTemplateId}
-                          onChange={e => setSelectedTemplateId(e.target.value)}
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                          data-testid="select-template-id"
-                        >
-                          <option value="">— No template —</option>
-                          {moduleTemplates.map((t) => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                          ))}
-                        </select>
-                        <p className="text-xs text-muted-foreground">Linking a template allows this document to satisfy required-document compliance checks at shared destinations.</p>
-                      </div>
-                    )}
-
                     {!isModulePreselected && (
                       <FormField
                         control={form.control}
