@@ -441,8 +441,9 @@ const MODULE_DOC_PATHS: Record<string, string> = {
   employment_law: "/employment-law/documents",
 };
 
-function docHref(module: string | null | undefined, siteId: string | null | undefined): string {
+function docHref(module: string | null | undefined, docId?: string | null, siteId?: string | null): string {
   const base = MODULE_DOC_PATHS[module ?? ""] ?? "/documents";
+  if (docId) return `${base}/${docId}`;
   return siteId ? `${base}?siteId=${siteId}` : base;
 }
 
@@ -470,7 +471,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: d.title,
         subLabel: [MODULE_LABELS[d.module ?? ""] ?? d.module, formatLabel(d.status)].filter(Boolean).join(" · "),
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
-        href: docHref(d.module, d.site_id),
+        href: docHref(d.module, d.id, d.site_id),
       }));
     case "pendingApprovals":
       return data.pendingApprovals.items.map((d) => ({
@@ -478,7 +479,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: d.title,
         subLabel: MODULE_LABELS[d.module ?? ""] ?? d.module ?? null,
         badge: "pending approval",
-        href: docHref(d.module, d.site_id),
+        href: docHref(d.module, d.id, d.site_id),
       }));
     case "myIncidents":
       return data.myIncidents.items.map((i) => ({

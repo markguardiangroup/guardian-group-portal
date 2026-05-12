@@ -3772,6 +3772,14 @@
           "category": "bug",
           "createdAt": "2026-05-12T21:40:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "i6e8j307-9f12-8ghi-f768-3l0k7i4h6j99",
+          "patch": 10,
+          "message": "Fixed: My Actions doc links now open the exact document detail page",
+          "category": "bug",
+          "createdAt": "2026-05-12T21:45:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
