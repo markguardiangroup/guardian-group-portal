@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
@@ -562,9 +563,7 @@ export default function TrainingDashboard() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        Loading...
-                      </TableCell>
+                      <TableCell colSpan={5}><FetchingOverlay /></TableCell>
                     </TableRow>
                   ) : filteredBookings.length === 0 ? (
                     <TableRow>
@@ -670,9 +669,7 @@ export default function TrainingDashboard() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        Loading...
-                      </TableCell>
+                      <TableCell colSpan={5}><FetchingOverlay /></TableCell>
                     </TableRow>
                   ) : filteredBookings.length === 0 ? (
                     <TableRow>

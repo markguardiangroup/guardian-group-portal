@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -848,7 +849,7 @@ export default function AdminPathways() {
       <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
       {isLoading ? (
-        <div className="text-center py-16 text-muted-foreground">Loading pathways...</div>
+        <FetchingOverlay />
       ) : !pathways || pathways.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Compass className="h-10 w-10 mx-auto mb-3 opacity-30" />

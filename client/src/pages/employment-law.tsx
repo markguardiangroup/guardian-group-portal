@@ -7,7 +7,6 @@ import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -178,15 +177,6 @@ function CaseTypeBadge({ type }: { type: string }) {
   );
 }
 
-function useDelayedSkeleton(loading: boolean, delay = 200): boolean {
-  const [show, setShow] = useState(false);
-  useEffect(() => {
-    if (!loading) { setShow(false); return; }
-    const t = setTimeout(() => setShow(true), delay);
-    return () => clearTimeout(t);
-  }, [loading, delay]);
-  return show;
-}
 
 // Cases list component (reused by cases tab)
 function CasesList() {
@@ -781,16 +771,7 @@ function CasesList() {
             ];
 
             if (isLoading) {
-              return (
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {KANBAN_COLS.map(col => (
-                    <div key={col.status} className="flex-none w-64 space-y-2">
-                      <Skeleton className="h-8 w-full rounded-md" />
-                      {[1, 2].map(i => <Skeleton key={i} className="h-28 w-full rounded-md" />)}
-                    </div>
-                  ))}
-                </div>
-              );
+              return <FetchingOverlay />;
             }
 
             return (
@@ -887,38 +868,7 @@ function CasesList() {
 
           {/* ── Table view ── */}
           {caseView === "table" && isLoading ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Case No.</TableHead>
-                  <TableHead>Case Name</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>ET3 Response Deadline</TableHead>
-                  <TableHead>Next Milestone</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-24 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-8 w-8 rounded" /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <FetchingOverlay />
           ) : caseView === "table" && filteredCases.length > 0 ? (
             <Table>
               <TableHeader>
@@ -4697,18 +4647,7 @@ function EmploymentLawDashboardView() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {isLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-16 w-32" />
-                    <Skeleton className="h-3 w-full rounded-full" />
-                    <div className="grid grid-cols-3 gap-3">
-                      {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
-                    </div>
-                    <div className="rounded-md border bg-muted/30 p-4">
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 rounded-md" />)}
-                      </div>
-                    </div>
-                  </div>
+                  <FetchingOverlay />
                 ) : (
                   <>
                     {/* Score */}
@@ -4784,9 +4723,7 @@ function EmploymentLawDashboardView() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 rounded-md" />)}
-              </div>
+              <FetchingOverlay />
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
@@ -4849,14 +4786,7 @@ function EmploymentLawDashboardView() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="grid gap-3 grid-cols-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="rounded-md border p-3 text-center">
-                    <Skeleton className="h-7 w-10 mx-auto mb-1" />
-                    <Skeleton className="h-3 w-16 mx-auto" />
-                  </div>
-                ))}
-              </div>
+              <FetchingOverlay />
             ) : (
               <div className="grid gap-3 grid-cols-3">
                 <div className="rounded-md border p-3 text-center" data-testid="card-el-active-cases">

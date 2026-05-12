@@ -3421,6 +3421,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T10:50:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "c2e34f56-1a67-8b90-cd12-3e4f5a6b7c8d",
+          "patch": 8,
+          "message": "Improved: branded loading animation now used consistently across all pages",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T12:15:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
