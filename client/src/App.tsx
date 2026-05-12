@@ -76,6 +76,7 @@ const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
 const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
 const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
 const Dashboard = lazyPage(() => import("@/pages/dashboard"));
+const Dashboard2 = lazyPage(() => import("@/pages/dashboard2"));
 const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
 
 function ScrollToTop() {
@@ -174,6 +175,7 @@ function Router() {
       <Route path="/">{() => <Redirect to="/home" />}</Route>
       <Route path="/home" component={HomePage} />
       <Route path="/dashboard" component={Dashboard} />
+      <Route path="/dashboard-2" component={Dashboard2} />
       
       <Route path="/health-safety" component={HealthSafetyDashboard} />
       <Route path="/health-safety/sites" component={HealthSafetySites} />

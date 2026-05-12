@@ -383,6 +383,23 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  isActive={location === "/dashboard-2"}
+                  className={cn(
+                    "transition-colors",
+                    location === "/dashboard-2"
+                      ? "bg-sidebar-accent font-medium"
+                      : ""
+                  )}
+                >
+                  <Link href="/dashboard-2" data-testid="nav-dashboard-2">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Dashboard 2</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
                   isActive={location === "/calendar" || location.startsWith("/calendar/")}
                   className={cn(
                     "transition-colors",

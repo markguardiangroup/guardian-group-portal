@@ -3628,6 +3628,14 @@
           "category": "feature",
           "createdAt": "2026-05-12T14:50:17.333Z",
           "createdBy": "System"
+        },
+        {
+          "id": "f45dbcc2-4f1a-4d33-8d59-4f8459977b8f",
+          "patch": 10,
+          "message": "Added Dashboard 2 — an exact copy of the main dashboard at /dashboard-2",
+          "category": "feature",
+          "createdAt": "2026-05-12T20:00:33.675Z",
+          "createdBy": "System"
         }
       ]
     }
