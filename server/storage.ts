@@ -192,6 +192,7 @@ export interface IStorage {
   createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare>;
   deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
   autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number>;
+  autoShareGroupDocumentsToCompany(groupOwnerId: string, memberCompanyId: string): Promise<number>;
   getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
   
   // Document Versions
@@ -1044,9 +1045,11 @@ export class MemStorage implements IStorage {
       supportAccess: insertCompany.supportAccess ?? false,
       reportsAccess: insertCompany.reportsAccess ?? false,
     }).returning();
-    // If joining a group at creation, copy the group's current required templates.
+    // If joining a group at creation, copy the group's current required templates
+    // and propagate any "share to all" group-scoped documents.
     if (company.groupOwnerId) {
       await this.cascadeGroupRequiredsToMember(company.groupOwnerId, company.id);
+      await this.autoShareGroupDocumentsToCompany(company.groupOwnerId, company.id);
     }
     return company;
   }
@@ -1058,9 +1061,10 @@ export class MemStorage implements IStorage {
       .where(eq(companiesTable.id, id))
       .returning();
     // If a company has been (re)assigned to a group, copy the group's current
-    // required templates into this company so they show up at the company level.
+    // required templates and propagate any "share to all" group-scoped documents.
     if (updatedCompany?.groupOwnerId && previous?.groupOwnerId !== updatedCompany.groupOwnerId) {
       await this.cascadeGroupRequiredsToMember(updatedCompany.groupOwnerId, updatedCompany.id);
+      await this.autoShareGroupDocumentsToCompany(updatedCompany.groupOwnerId, updatedCompany.id);
     }
     return updatedCompany;
   }
@@ -1449,6 +1453,83 @@ export class MemStorage implements IStorage {
         documentId,
         entityType: "site" as const,
         entityId: siteId,
+      }))
+    );
+    return toInsert.length;
+  }
+
+  /**
+   * When a new member company is linked to a group, automatically propagate
+   * existing group-level "share to all" document share records to the new
+   * member company so it receives all group-scoped documents that other
+   * member companies already see.
+   * Returns the number of share records created.
+   */
+  async autoShareGroupDocumentsToCompany(groupOwnerId: string, memberCompanyId: string): Promise<number> {
+    // Find all group-scoped documents owned by this group owner (scope="group", entityId=groupOwnerId).
+    // These use company-level share records (entityType="company") — one per covered member.
+    const groupDocs = await db
+      .select({ id: documentsTable.id })
+      .from(documentsTable)
+      .where(
+        and(
+          eq(documentsTable.scope, "group"),
+          eq(documentsTable.entityId, groupOwnerId),
+          isNull(documentsTable.siteId),
+          eq(documentsTable.isArchived, false),
+        )
+      );
+
+    if (groupDocs.length === 0) return 0;
+    const docIds = groupDocs.map(r => r.id);
+
+    // Get all OTHER member companies of this group so we can check which docs
+    // have been explicitly shared to at least one of them (i.e. "active" shares).
+    const allMembers = await this.getGroupMembers(groupOwnerId);
+    const otherMemberIds = allMembers.map(m => m.id).filter(id => id !== memberCompanyId);
+
+    let sharedDocIds: Set<string>;
+    if (otherMemberIds.length > 0) {
+      const existingShares = await db
+        .select({ documentId: documentSharesTable.documentId })
+        .from(documentSharesTable)
+        .where(
+          and(
+            eq(documentSharesTable.entityType, "company"),
+            inArray(documentSharesTable.entityId, otherMemberIds),
+            inArray(documentSharesTable.documentId, docIds),
+          )
+        );
+      sharedDocIds = new Set(existingShares.map(r => r.documentId));
+    } else {
+      // No other members yet — share all group docs to the first member
+      sharedDocIds = new Set(docIds);
+    }
+
+    if (sharedDocIds.size === 0) return 0;
+
+    // Exclude any docs already directly shared to the new member company
+    const alreadyForNewMember = await db
+      .select({ documentId: documentSharesTable.documentId })
+      .from(documentSharesTable)
+      .where(
+        and(
+          eq(documentSharesTable.entityType, "company"),
+          eq(documentSharesTable.entityId, memberCompanyId),
+          inArray(documentSharesTable.documentId, Array.from(sharedDocIds)),
+        )
+      );
+    const alreadySharedDocIds = new Set(alreadyForNewMember.map(r => r.documentId));
+
+    const toInsert = Array.from(sharedDocIds).filter(id => !alreadySharedDocIds.has(id));
+    if (toInsert.length === 0) return 0;
+
+    await db.insert(documentSharesTable).values(
+      toInsert.map(documentId => ({
+        id: randomUUID(),
+        documentId,
+        entityType: "company" as const,
+        entityId: memberCompanyId,
       }))
     );
     return toInsert.length;

@@ -7110,6 +7110,12 @@ export async function registerRoutes(
       const updated = await storage.setGroupOwner(req.params.companyId, groupOwnerId ?? null);
       if (!updated) return res.status(500).json({ error: "Failed to update" });
 
+      // When linking a member company to a GO, propagate any "share to all"
+      // group-scoped documents from the GO down to the new member company.
+      if (groupOwnerId) {
+        await storage.autoShareGroupDocumentsToCompany(groupOwnerId, req.params.companyId);
+      }
+
       // When linking a member company to a GO, auto-assign the GO's primary contact to all member's sites
       if (groupOwnerId) {
         const goCompany = await storage.getCompany(groupOwnerId);

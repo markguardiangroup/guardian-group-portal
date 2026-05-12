@@ -3365,6 +3365,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T10:00:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "a0c12d34-9e45-6f78-ab90-1c2d3e4f5a6b",
+          "patch": 8,
+          "message": "New member companies now automatically receive group-level 'share to all' documents",
+          "category": "feature",
+          "createdAt": "2026-05-12T10:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
