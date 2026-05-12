@@ -1752,6 +1752,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
         </DialogContent>
       </Dialog>
 
+      {overallComplianceVariant !== "modules" && (
       <div>
         <h2 className="mb-4 text-xl font-semibold">Compliance Modules</h2>
         <div className="grid gap-6 md:grid-cols-3">
@@ -1767,6 +1768,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
           ))}
         </div>
       </div>
+      )}
 
       {/* Activity section — Incidents | Training | Cases aligned under their parent modules */}
       <div>

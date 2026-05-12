@@ -3684,6 +3684,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:24:17.732Z",
           "createdBy": "System"
+        },
+        {
+          "id": "5641f19f-a07e-495d-99ad-41d4a841750a",
+          "patch": 10,
+          "message": "Dashboard 2 no longer shows the Compliance Modules section",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T20:28:01.968Z",
+          "createdBy": "System"
         }
       ]
     }
