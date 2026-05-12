@@ -900,7 +900,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className={`grid gap-6 items-stretch ${showThirdTile ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+      <div className="grid gap-6 items-stretch md:grid-cols-2">
         {/* Portfolio — slot 1 */}
         {isLoading ? (
           <Card className="h-full">
@@ -912,10 +912,11 @@ export default function HomePage() {
           <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} animate={animate} />
         ) : null}
 
-        {/* My Assigned Consultants — slot 2, pro consultants only */}
-        {showThirdTile && (
-          <AssignedConsultantsPanel consultants={assignedConsultants} animate={animate} />
-        )}
+        {/* My Assigned Consultants — slot 2, pro consultants only; empty div keeps portfolio width when not shown */}
+        {showThirdTile
+          ? <AssignedConsultantsPanel consultants={assignedConsultants} animate={animate} />
+          : <div />
+        }
       </div>
 
       {/* Portal Messages — full width below */}

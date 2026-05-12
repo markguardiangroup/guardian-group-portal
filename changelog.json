@@ -359,6 +359,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "f6a7b8c9-home-portfolio-fixed-width-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: Portfolio card stays half-width on home page regardless of whether Assigned Consultants is shown",
+          "createdAt": "2026-05-12T12:16:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e5f6a7b8-home-portfolio-slot1-consultants-slot2-2026",
           "patch": 8,
           "category": "other",
