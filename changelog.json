@@ -3676,6 +3676,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:21:45.463Z",
           "createdBy": "System"
+        },
+        {
+          "id": "2c84c8da-ffa6-405e-9771-ce5163b04ce0",
+          "patch": 10,
+          "message": "Renewal status dialogs now show document title, company/site, date label, and days overdue/remaining",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T20:24:17.732Z",
+          "createdBy": "System"
         }
       ]
     }

@@ -1678,6 +1678,10 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
               return docs.map(doc => {
                 const trackingDate = doc.renewalDate || doc.expiryDate;
                 const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const daysUntilRenewal = renewalDate
+                  ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  : null;
+
                 const moduleBadgeClass = doc.module === "health_safety" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                   : doc.module === "employment_law" ? "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300"
                   : doc.module === "human_resources" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
@@ -1688,19 +1692,58 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
                   : doc.module === "human_resources" ? "HR"
                   : "Support";
 
+                const modulePath = doc.module === "health_safety" ? "/health-safety"
+                  : doc.module === "employment_law" ? "/employment-law"
+                  : doc.module === "human_resources" ? "/human-resources"
+                  : "/support";
+
+                const docSite = sites?.find(s => s.id === doc.siteId);
+
+                const statusLabel = daysUntilRenewal !== null && daysUntilRenewal < 0
+                  ? `${Math.abs(daysUntilRenewal)}d overdue`
+                  : daysUntilRenewal !== null
+                  ? `${daysUntilRenewal}d remaining`
+                  : null;
+
+                const statusColor = daysUntilRenewal !== null && daysUntilRenewal < 0
+                  ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                  : daysUntilRenewal !== null && daysUntilRenewal <= 30
+                  ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                  : "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800";
+
                 return (
-                  <div key={doc.id} className="flex items-start justify-between p-3 border rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer" onClick={() => {
-                    const docSite = sites?.find(s => s.id === doc.siteId);
-                    if (docSite) {
-                      setSelectedCompany(docSite.companyName || null);
-                    }
-                  }}>
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">{doc.siteId && sites?.find(s => s.id === doc.siteId)?.name}</p>
-                      {renewalDate && <p className="text-xs text-muted-foreground">{format(renewalDate, "MMM dd, yyyy")}</p>}
+                  <div
+                    key={doc.id}
+                    className="flex items-start justify-between gap-4 p-3 border rounded-md hover:bg-muted/40 cursor-pointer transition-colors"
+                    onClick={() => {
+                      setRenewalMetricDialog(null);
+                      if (docSite) setSelectedCompany(docSite.companyName || null);
+                      navigate(`${modulePath}/documents/${doc.id}`);
+                    }}
+                    data-testid={`link-renewal-dialog-doc-${doc.id}`}
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="min-w-0 space-y-0.5">
+                        <p className="text-sm font-medium truncate">{doc.title}</p>
+                        {docSite && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {docSite.companyName} — {docSite.name}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {doc.renewalDate ? "Renewal" : "Expires"}: {renewalDate && format(renewalDate, "MMM d, yyyy")}
+                        </p>
+                      </div>
                     </div>
-                    <Badge variant="outline" className={moduleBadgeClass}>{moduleLabel}</Badge>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <Badge variant="secondary" className={moduleBadgeClass}>{moduleLabel}</Badge>
+                      {statusLabel && (
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${statusColor}`}>
+                          {statusLabel}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               });
