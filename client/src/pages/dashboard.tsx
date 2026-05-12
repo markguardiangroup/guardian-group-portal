@@ -306,7 +306,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Tr
   const totalBookings = filteredBookings.length;
 
   return (
-    <Card className="hover-elevate theme-training border-t-4 border-t-purple-500 bg-gradient-to-br from-purple-50/50 to-transparent dark:from-purple-950/20" data-testid="card-module-training">
+    <Card className="hover-elevate theme-training border-l-4 border-l-purple-400 bg-background shadow-sm" data-testid="card-module-training">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-800/40">
@@ -379,7 +379,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: T
   const totalCount = filteredIncidents.length;
 
   return (
-    <Card className="hover-elevate theme-hs border-t-4 border-t-emerald-500 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-950/20" data-testid="card-module-incidents">
+    <Card className="hover-elevate theme-hs border-l-4 border-l-emerald-400 bg-background shadow-sm" data-testid="card-module-incidents">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-800/40">
@@ -462,7 +462,7 @@ function CasesCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Train
   const totalCount = filteredCases.length;
 
   return (
-    <Card className="hover-elevate theme-el border-t-4 border-t-pink-500 bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20" data-testid="card-module-cases">
+    <Card className="hover-elevate theme-el border-l-4 border-l-pink-400 bg-background shadow-sm" data-testid="card-module-cases">
       <CardHeader className="flex flex-row items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-pink-100 dark:bg-pink-800/40">
@@ -1771,9 +1771,17 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
       )}
 
       {/* Activity section — Incidents | Training | Cases aligned under their parent modules */}
-      <div>
-        <h2 className="mb-4 text-xl font-semibold">Activity</h2>
-        <div className="grid gap-6 md:grid-cols-3">
+      <div className="rounded-2xl bg-slate-50/70 dark:bg-slate-900/25 border border-slate-200/60 dark:border-slate-700/40 p-5 space-y-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 dark:bg-slate-700/60">
+            <TrendingUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 leading-none">Activity</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Operational metrics — not compliance status</p>
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
           {hasActiveAccess("health_safety") ? (
             <IncidentsCard siteId={siteId} selectedCompany={selectedCompany} sites={sites} scopedSiteIds={scopedSiteIds} />
           ) : (

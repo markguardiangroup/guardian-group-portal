@@ -3828,6 +3828,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T22:15:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "p3l5q074-6m89-5nop-m435-0s7r4p1o3q66",
+          "patch": 10,
+          "message": "Activity section visually differentiated from compliance sections",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T22:45:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
