@@ -182,7 +182,7 @@ async function convertFileToPdf(
     await fs.writeFile(inputPath, fileBuffer);
 
     await execAsync(
-      `soffice --headless --norestore --convert-to pdf --outdir "${outDir}" "${inputPath}"`,
+      `soffice --headless --norestore --nologo --nolockcheck --convert-to pdf --outdir "${outDir}" "${inputPath}"`,
       { timeout: 60_000, env: { ...process.env, HOME: outDir } },
     );
     const outFiles = await fs.readdir(outDir);
@@ -200,11 +200,11 @@ const DOCX_PREVIEW_MIME_TYPES = new Set([
   "application/msword",
 ]);
 
-const docxPreviewCache = new Map<string, { gcsPath: string; cachedAt: number }>();
+// In-memory cache stores the PDF buffer directly so repeat views skip GCS entirely.
+const docxPreviewCache = new Map<string, { buffer: Buffer; gcsPath: string; cachedAt: number }>();
 const DOCX_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-// Periodic cleanup: delete GCS objects whose TTL has expired so they don't accumulate
-// after server restarts or when a file is previewed only once.
+// Periodic cleanup: evict expired entries and delete their backing GCS objects.
 setInterval(async () => {
   const now = Date.now();
   const svc = new ObjectStorageService();
@@ -214,7 +214,7 @@ setInterval(async () => {
       try { await svc.deleteObjectEntityFile(entry.gcsPath); } catch {}
     }
   }
-}, 15 * 60 * 1000).unref(); // runs every 15 min, does not keep process alive
+}, 15 * 60 * 1000).unref();
 
 function isDocxCached(fileUrl: string): boolean {
   const cacheKey = crypto.createHash("sha256").update(fileUrl).digest("hex").slice(0, 32);
@@ -222,22 +222,33 @@ function isDocxCached(fileUrl: string): boolean {
   return !!(cached && (Date.now() - cached.cachedAt) < DOCX_CACHE_TTL_MS);
 }
 
+// Pre-warm LibreOffice on startup so the first real conversion is faster.
+(async () => {
+  try {
+    const warmDir = await fs.mkdtemp(path.join(os.tmpdir(), "lowarm_"));
+    const dummyPath = path.join(warmDir, "warm.txt");
+    await fs.writeFile(dummyPath, "warm");
+    await execAsync(
+      `soffice --headless --norestore --nologo --nolockcheck --convert-to pdf --outdir "${warmDir}" "${dummyPath}"`,
+      { timeout: 30_000, env: { ...process.env, HOME: warmDir } },
+    ).catch(() => {});
+    await fs.rm(warmDir, { recursive: true, force: true }).catch(() => {});
+    console.log("[docx-preview] LibreOffice pre-warmed.");
+  } catch {}
+})();
+
 async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promise<Buffer> {
   const cacheKey = crypto.createHash("sha256").update(fileUrl).digest("hex").slice(0, 32);
   const objectStorageService = new ObjectStorageService();
   const now = Date.now();
   const cached = docxPreviewCache.get(cacheKey);
 
+  // Cache hit: return buffer directly from memory — no GCS round-trip needed.
   if (cached && (now - cached.cachedAt) < DOCX_CACHE_TTL_MS) {
-    try {
-      const cachedFile = await objectStorageService.getObjectEntityFile(cached.gcsPath);
-      const [buf] = await cachedFile.download();
-      return Buffer.from(buf);
-    } catch {
-      docxPreviewCache.delete(cacheKey);
-    }
+    return cached.buffer;
   }
 
+  // Stale entry: clean up GCS and remove from map.
   if (cached) {
     docxPreviewCache.delete(cacheKey);
     try { await objectStorageService.deleteObjectEntityFile(cached.gcsPath); } catch {}
@@ -249,7 +260,6 @@ async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promi
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "docxprev_"));
   let pdfBuffer: Buffer;
   try {
-    // Pass the real MIME type so .doc files use the correct LibreOffice extension
     const pdfPath = await convertFileToPdf(
       Buffer.from(docxBuf),
       mimeType,
@@ -261,8 +271,16 @@ async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promi
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
   }
 
-  const gcsPath = await objectStorageService.saveDocxPreview(pdfBuffer, cacheKey);
-  docxPreviewCache.set(cacheKey, { gcsPath, cachedAt: now });
+  // Store buffer in memory and back up to GCS asynchronously (non-blocking).
+  objectStorageService.saveDocxPreview(pdfBuffer, cacheKey)
+    .then(gcsPath => {
+      docxPreviewCache.set(cacheKey, { buffer: pdfBuffer, gcsPath, cachedAt: now });
+    })
+    .catch(() => {
+      // GCS save failed — still cache the buffer in memory so the session benefits.
+      docxPreviewCache.set(cacheKey, { buffer: pdfBuffer, gcsPath: "", cachedAt: now });
+    });
+
   return pdfBuffer;
 }
 

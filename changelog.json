@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "f6a7b8c0-docx-preview-speed-improvements-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Improved document preview speed: repeat views now served instantly from memory cache",
+          "createdAt": "2026-05-12T13:19:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e5f6a7b9-pdf-preview-spinner-logo-disclaimer-2026",
           "patch": 8,
           "category": "enhancement",
