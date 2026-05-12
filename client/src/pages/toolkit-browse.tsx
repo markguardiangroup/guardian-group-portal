@@ -946,7 +946,7 @@ export default function ToolkitBrowse() {
             {!selectedPathway ? (
               <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
                 {!pathwaysLoaded ? (
-                  <p className="text-sm text-muted-foreground">Loading...</p>
+                  <FetchingOverlay />
                 ) : activePathways.length === 0 ? (
                   // No pathways configured for this module
                   <div className="flex flex-col items-center text-center gap-4 py-10">

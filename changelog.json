@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "b1d4f2a8-135-loading-branded-anim-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Replaced remaining 'Loading...' text with the branded loading animation",
+          "createdAt": "2026-05-12T15:30:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a7c3e9f1-tdz-scan-all-pages-2026",
           "patch": 8,
           "category": "other",
