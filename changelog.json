@@ -3445,6 +3445,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T12:15:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "d3f45a67-2b78-9c01-de23-4f5a6b7c8d9e",
+          "patch": 8,
+          "message": "Improved: compact loading spinner available for narrow inline contexts",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T13:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
