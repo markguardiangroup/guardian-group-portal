@@ -17020,6 +17020,119 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/my-actions", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const userId = user.id;
+      const now = new Date();
+      const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+      // 1. Documents directly assigned to this user that are overdue or due within 14 days
+      const assignedDocsRes = await pool.query<{
+        id: string; title: string; site_id: string | null; module: string | null;
+        status: string; renewal_date: string | null; expiry_date: string | null;
+      }>(
+        `SELECT id, title, site_id, module, status, renewal_date, expiry_date
+         FROM documents
+         WHERE assigned_to = $1
+           AND is_archived = false
+           AND (
+             status = 'overdue'
+             OR (
+               COALESCE(renewal_date, expiry_date) IS NOT NULL
+               AND COALESCE(renewal_date, expiry_date) <= $2
+             )
+           )
+         ORDER BY COALESCE(renewal_date, expiry_date) ASC NULLS LAST
+         LIMIT 20`,
+        [userId, in14Days.toISOString()]
+      );
+
+      // 2. Documents awaiting this user's approval
+      let pendingApprovalsRows: { id: string; title: string; site_id: string | null; module: string | null }[] = [];
+      if (user.role === "consultant" || user.role === "admin") {
+        // Consultant/admin: docs where client has signed off, awaiting their final approval
+        let sitesFilter = "";
+        const params: unknown[] = ["client_signed_off"];
+        if (user.role === "consultant") {
+          const consultantSites = await storage.getConsultantSites(userId);
+          const siteIds = consultantSites.map((s) => s.entityId);
+          if (siteIds.length > 0) {
+            sitesFilter = "AND site_id = ANY($2::varchar[])";
+            params.push(siteIds);
+          }
+        }
+        const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null }>(
+          `SELECT id, title, site_id, module FROM documents WHERE approval_status = $1 AND is_archived = false ${sitesFilter} LIMIT 20`,
+          params
+        );
+        pendingApprovalsRows = res2.rows;
+      } else if (user.role === "client") {
+        // Client: docs with approval_status = "pending" uploaded by someone else on their site(s)
+        const clientSites = await storage.getClientSites(userId);
+        let siteIds = clientSites.map((s) => s.siteId);
+        if (user.companyId) {
+          const companySitesRes = await pool.query<{ id: string }>(
+            "SELECT id FROM sites WHERE entity_id = $1",
+            [user.companyId]
+          );
+          siteIds = [...new Set([...siteIds, ...companySitesRes.rows.map((r) => r.id)])];
+        }
+        if (siteIds.length > 0) {
+          const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null }>(
+            `SELECT id, title, site_id, module FROM documents
+             WHERE approval_status = 'pending' AND uploaded_by != $1
+               AND site_id = ANY($2::varchar[]) AND is_archived = false
+             LIMIT 20`,
+            [userId, siteIds]
+          );
+          pendingApprovalsRows = res2.rows;
+        }
+      }
+
+      // 3. Open incidents assigned to this user
+      const myIncidentsRes = await pool.query<{
+        id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string;
+      }>(
+        `SELECT id, incident_reference, title, site_id, severity, status
+         FROM incidents
+         WHERE assigned_consultant = $1 AND status NOT IN ('resolved','closed') AND is_archived = false
+         LIMIT 10`,
+        [userId]
+      );
+
+      // 4. Open cases assigned to this user
+      const myCasesRes = await pool.query<{
+        id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string;
+      }>(
+        `SELECT id, case_reference, case_name, employee_name, site_id, status
+         FROM cases
+         WHERE assigned_consultant = $1 AND status NOT IN ('resolved','closed') AND is_archived = false
+         LIMIT 10`,
+        [userId]
+      );
+
+      // 5. Support requests assigned to this user
+      const mySupportRes = await pool.query<{ id: string; subject: string; status: string }>(
+        `SELECT id, subject, status FROM support_requests WHERE assigned_to = $1 AND status = 'open' LIMIT 10`,
+        [userId]
+      );
+
+      return res.json({
+        assignedDocs: { count: assignedDocsRes.rows.length, items: assignedDocsRes.rows },
+        pendingApprovals: { count: pendingApprovalsRows.length, items: pendingApprovalsRows },
+        myIncidents: { count: myIncidentsRes.rows.length, items: myIncidentsRes.rows },
+        myCases: { count: myCasesRes.rows.length, items: myCasesRes.rows },
+        mySupportRequests: { count: mySupportRes.rows.length, items: mySupportRes.rows },
+      });
+    } catch (err) {
+      console.error("My actions error:", err);
+      res.status(500).json({ error: "Failed to fetch my actions" });
+    }
+  });
+
   app.delete("/api/portal-messages/:id", async (req, res) => {
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;

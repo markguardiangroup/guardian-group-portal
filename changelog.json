@@ -3700,6 +3700,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:37:53.516Z",
           "createdBy": "System"
+        },
+        {
+          "id": "bbb2efc4-17c5-403d-a1ec-9192d3f9710e",
+          "patch": 10,
+          "message": "Homepage: added My Actions panel showing actions assigned directly to the user",
+          "category": "feature",
+          "createdAt": "2026-05-12T20:43:51.405Z",
+          "createdBy": "System"
         }
       ]
     }

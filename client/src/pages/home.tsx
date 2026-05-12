@@ -41,6 +41,8 @@ import {
   ChevronDown,
   ChevronUp,
   UserCog,
+  ClipboardList,
+  ListChecks,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -308,6 +310,154 @@ function UrgentActionsPanel({
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <CheckCircle className="h-8 w-8 text-emerald-500" />
             <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">All clear — no urgent actions</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface MyActionsData {
+  assignedDocs: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
+  pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
+  myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
+  myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
+  mySupportRequests: { count: number; items: { id: string; subject: string; status: string }[] };
+}
+
+function MyActionsPanel({ role }: { role: string }) {
+  const [, navigate] = useLocation();
+
+  const { data, isLoading } = useQuery<MyActionsData>({
+    queryKey: ["/api/my-actions"],
+    staleTime: 60000,
+  });
+
+  const isPrivileged = role === "admin" || role === "consultant";
+
+  const tiles = [
+    {
+      key: "assignedDocs",
+      label: "Assigned Documents",
+      sublabel: "Overdue or due in 14 days",
+      count: data?.assignedDocs.count ?? 0,
+      icon: FileText,
+      color: "text-red-600 dark:text-red-400",
+      bg: "bg-red-50 dark:bg-red-950/20",
+      border: "border-red-200 dark:border-red-800",
+      href: "/documents",
+      show: true,
+    },
+    {
+      key: "pendingApprovals",
+      label: isPrivileged ? "Awaiting My Approval" : "Awaiting My Sign-off",
+      sublabel: isPrivileged ? "Client has signed off" : "Uploaded for your review",
+      count: data?.pendingApprovals.count ?? 0,
+      icon: FileCheck,
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-50 dark:bg-amber-950/20",
+      border: "border-amber-200 dark:border-amber-800",
+      href: "/documents",
+      show: true,
+    },
+    {
+      key: "myIncidents",
+      label: "My Open Incidents",
+      sublabel: "Assigned to you",
+      count: data?.myIncidents.count ?? 0,
+      icon: ShieldAlert,
+      color: "text-orange-600 dark:text-orange-400",
+      bg: "bg-orange-50 dark:bg-orange-950/20",
+      border: "border-orange-200 dark:border-orange-800",
+      href: "/health-safety/incidents",
+      show: isPrivileged,
+    },
+    {
+      key: "myCases",
+      label: "My Open Cases",
+      sublabel: "Assigned to you",
+      count: data?.myCases.count ?? 0,
+      icon: Briefcase,
+      color: "text-teal-600 dark:text-teal-400",
+      bg: "bg-teal-50 dark:bg-teal-950/20",
+      border: "border-teal-200 dark:border-teal-800",
+      href: "/employment-law/cases",
+      show: isPrivileged,
+    },
+    {
+      key: "mySupportRequests",
+      label: "My Support Requests",
+      sublabel: "Assigned to you",
+      count: data?.mySupportRequests.count ?? 0,
+      icon: Users,
+      color: "text-violet-600 dark:text-violet-400",
+      bg: "bg-violet-50 dark:bg-violet-950/20",
+      border: "border-violet-200 dark:border-violet-800",
+      href: "/support",
+      show: isPrivileged,
+    },
+  ].filter((t) => t.show);
+
+  const totalActions = tiles.reduce((s, t) => s + t.count, 0);
+  const allClear = !isLoading && totalActions === 0;
+
+  return (
+    <Card data-testid="card-my-actions" className="border-t-4 border-t-amber-500">
+      <CardHeader className="pb-3 bg-gradient-to-br from-amber-50/60 to-transparent dark:from-amber-950/10">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/10">
+              <ClipboardList className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            My Actions
+          </CardTitle>
+          {!isLoading && totalActions > 0 && (
+            <Badge className="bg-amber-500 text-white text-xs tabular-nums" data-testid="badge-my-actions-count">
+              {totalActions} pending
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">Actions assigned directly to you — overdue or due within 14 days</p>
+      </CardHeader>
+      <CardContent className="pt-3">
+        {isLoading ? (
+          <div className="h-16 flex items-center justify-center">
+            <FetchingOverlay />
+          </div>
+        ) : allClear ? (
+          <div className="flex items-center gap-3 py-3 px-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+              <ListChecks className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">You're all caught up</p>
+              <p className="text-xs text-emerald-600/70 dark:text-emerald-400/70">No actions assigned to you right now</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {tiles.map((tile) => {
+              const Icon = tile.icon;
+              return (
+                <button
+                  key={tile.key}
+                  onClick={() => navigate(tile.href)}
+                  className={`flex flex-col gap-1.5 rounded-lg border p-3 text-left transition-all hover:shadow-sm hover:scale-[1.02] ${tile.bg} ${tile.border} ${tile.count === 0 ? "opacity-50" : ""}`}
+                  data-testid={`button-my-action-${tile.key}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <Icon className={`h-4 w-4 ${tile.color}`} />
+                    <span className={`text-xl font-bold tabular-nums ${tile.count > 0 ? tile.color : "text-muted-foreground"}`}>
+                      {tile.count}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground leading-tight">{tile.label}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{tile.sublabel}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </CardContent>
@@ -927,6 +1077,9 @@ export default function HomePage() {
           : <div />
         }
       </div>
+
+      {/* My Actions — full width, between portfolio and messages */}
+      <MyActionsPanel role={user?.role ?? "client"} />
 
       {/* Portal Messages — full width below */}
       {data?.portalMessages && data.portalMessages.length > 0 && (
