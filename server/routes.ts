@@ -16607,8 +16607,10 @@ export async function registerRoutes(
         portfolio = { site: siteInfo, primaryConsultant };
       }
 
-      // Portal messages visible to this user
-      const messages = await storage.getPortalMessages({ publishedOnly: true, role: user.role });
+      // Portal messages visible to this user (banners separated)
+      const allMessages = await storage.getPortalMessages({ publishedOnly: true, role: user.role });
+      const messages = allMessages.filter((m) => m.type !== "banner");
+      const bannerMessages = allMessages.filter((m) => m.type === "banner");
 
       // Pending module access requests (admin only)
       let pendingAccessRequests = 0;
@@ -16665,6 +16667,7 @@ export async function registerRoutes(
         },
         portfolio,
         portalMessages: messages,
+        bannerMessages,
         assignedConsultants,
       });
     } catch (err) {
@@ -16998,7 +17001,7 @@ export async function registerRoutes(
       const patchSchema = z.object({
         title: z.string().min(1).optional(),
         body: z.string().min(1).optional(),
-        type: z.enum(["update", "feature", "training", "guidance", "news"]).optional(),
+        type: z.enum(["update", "feature", "training", "guidance", "news", "banner"]).optional(),
         targetRoles: z.array(z.string()).optional(),
         status: z.enum(["draft", "published", "archived"]).optional(),
         pinned: z.boolean().optional(),

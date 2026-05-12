@@ -56,6 +56,7 @@ const MESSAGE_TYPES = [
   { value: "training", label: "Training" },
   { value: "guidance", label: "Guidance" },
   { value: "news", label: "News" },
+  { value: "banner", label: "Homepage Banner" },
 ];
 
 type AudienceOption = "all" | "clients_only" | "consultants_only";

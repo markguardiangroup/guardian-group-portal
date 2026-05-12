@@ -43,6 +43,7 @@ import {
   UserCog,
   ClipboardList,
   ListChecks,
+  X,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -55,6 +56,14 @@ interface HomeSummary {
     pendingAccessRequests: number;
     openCases: number;
   };
+  bannerMessages: {
+    id: string;
+    title: string;
+    body: string;
+    ctaType: string | null;
+    ctaUrl: string | null;
+    ctaLabel: string | null;
+  }[];
   assignedConsultants?: { id: string; fullName: string; consultantTier: string | null; sources: string[] | null }[];
   portfolio:
     | {
@@ -141,6 +150,14 @@ const messageTypeConfig: Record<string, {
     gradient: "from-slate-600 to-slate-800",
     accentText: "text-slate-300",
     cardTop: "from-slate-500 to-slate-700",
+  },
+  banner: {
+    label: "Announcement",
+    icon: Megaphone,
+    color: "bg-primary/10 text-primary",
+    gradient: "from-primary to-primary/80",
+    accentText: "text-primary-foreground/80",
+    cardTop: "from-primary to-primary/80",
   },
 };
 
@@ -314,6 +331,88 @@ function UrgentActionsPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+type BannerMessage = HomeSummary["bannerMessages"][number];
+
+function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
+  const [dismissed, setDismissed] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("dismissed_banners");
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const dismiss = (id: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      try { localStorage.setItem("dismissed_banners", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
+  const active = banners.find((b) => !dismissed.has(b.id));
+  if (!active) return null;
+
+  const ctaLabels: Record<string, string> = {
+    make_enquiry: "Make an Enquiry",
+    navigate_to_link: "Learn More",
+    book_now: "Book Now",
+    contact_consultant: "Contact Consultant",
+    download: "Download",
+  };
+
+  const hasCta = active.ctaType && active.ctaType !== "none";
+  const ctaLabel = active.ctaLabel || (active.ctaType ? ctaLabels[active.ctaType] : null) || "Find Out More";
+  const ctaHref = active.ctaType === "make_enquiry" || active.ctaType === "contact_consultant"
+    ? (active.ctaUrl || "/support")
+    : (active.ctaUrl || "#");
+  const isExternal = ctaHref.startsWith("http");
+
+  return (
+    <div
+      className="flex items-start gap-4 rounded-xl border border-border bg-card shadow-sm px-4 py-3.5 animate-in slide-in-from-top-2 duration-300"
+      data-testid={`banner-message-${active.id}`}
+    >
+      {/* Brand mark */}
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 mt-0.5">
+        <Megaphone className="h-4 w-4 text-primary" />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold leading-snug">{active.title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{active.body}</p>
+      </div>
+
+      {/* CTA + close */}
+      <div className="flex items-center gap-2 shrink-0 mt-0.5">
+        {hasCta && (
+          <Button size="sm" className="h-8 text-xs rounded-full px-4" asChild>
+            <a
+              href={ctaHref}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noreferrer" : undefined}
+              data-testid="button-banner-cta"
+            >
+              {ctaLabel}
+            </a>
+          </Button>
+        )}
+        <button
+          onClick={() => dismiss(active.id)}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          aria-label="Dismiss banner"
+          data-testid="button-banner-dismiss"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -1048,8 +1147,15 @@ export default function HomePage() {
     return companyName ? `For ${companyName}` : "For your accessible sites";
   })();
 
+  const bannerMessages = data?.bannerMessages ?? [];
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto dash-animate" id="page-content">
+      {/* Homepage Banner */}
+      {bannerMessages.length > 0 && (
+        <HomepageBanner banners={bannerMessages} />
+      )}
+
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight" data-testid="text-home-greeting">

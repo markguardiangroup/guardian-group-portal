@@ -3716,6 +3716,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:52:10.205Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a3f7c812-bb34-41e9-9d72-0f1e8c6a2d45",
+          "patch": 10,
+          "message": "Admins can publish a Homepage Banner that appears at the top of the home page and can be dismissed",
+          "category": "feature",
+          "createdAt": "2026-05-12T21:00:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
