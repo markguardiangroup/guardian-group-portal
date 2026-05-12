@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "a1b2c3d4-fix-compliant-priority-slot-counter-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: overview compliant count now matches site documents page (status wins over date check)",
+          "createdAt": "2026-05-12T10:05:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "c9d1e2f3-revert-date-overdue-totals-2026",
           "patch": 8,
           "category": "bug",

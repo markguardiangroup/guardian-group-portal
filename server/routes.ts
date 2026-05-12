@@ -1673,8 +1673,8 @@ export async function registerRoutes(
           const dateOverdue =
             (d.reviewDate && new Date(d.reviewDate) < _now) ||
             (d.expiryDate && new Date(d.expiryDate) < _now);
-          if (d.status === "overdue" || dateOverdue) slotOverdue++;
-          else if (d.status === "compliant") slotCompliantDocs++;
+          if (d.status === "compliant") slotCompliantDocs++;
+          else if (d.status === "overdue" || dateOverdue) slotOverdue++;
           else if (d.status === "review_required") slotReview++;
         });
       }
