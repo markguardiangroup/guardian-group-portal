@@ -3756,6 +3756,14 @@
           "category": "bug",
           "createdAt": "2026-05-12T21:30:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "g4c6h185-7d90-6efg-d546-1j8i5g2f4h77",
+          "patch": 10,
+          "message": "Fixed: My Actions doc links now also pre-select the correct module tab",
+          "category": "bug",
+          "createdAt": "2026-05-12T21:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

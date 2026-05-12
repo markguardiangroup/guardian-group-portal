@@ -258,7 +258,9 @@ function DocumentsListView() {
   const [newFolderDescription, setNewFolderDescription] = useState("");
   const [newFolderModule, setNewFolderModule] = useState<string>("health_safety");
   const [viewMode, setViewMode] = useState<ViewMode>("folder");
-  const [selectedModule, setSelectedModule] = useState<string>("health_safety");
+  const [selectedModule, setSelectedModule] = useState<string>(() => {
+    try { return new URLSearchParams(window.location.search).get("module") ?? "health_safety"; } catch { return "health_safety"; }
+  });
 
   const [showArchived, setShowArchived] = useState(false);
 
