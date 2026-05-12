@@ -15,12 +15,14 @@ interface PdfViewerProps {
 export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isConverting, setIsConverting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
   const loadingTaskRef = useRef<ReturnType<typeof pdfjsLib.getDocument> | null>(null);
 
   const renderPdf = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
+    setIsConverting(false);
     setError(false);
 
     if (loadingTaskRef.current) {
@@ -35,8 +37,15 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
     try {
       const response = await fetch(url, { credentials: "include", signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      if (response.headers.get("X-Docx-Converting") === "true") {
+        setIsConverting(true);
+      }
+
       const arrayBuffer = await response.arrayBuffer();
       if (signal.aborted) return;
+
+      setIsConverting(false);
 
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       loadingTaskRef.current = loadingTask;
@@ -126,8 +135,13 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
   return (
     <div className={className} style={{ position: "relative" }}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center" data-testid="pdf-loading">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" data-testid="pdf-loading">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          {isConverting && (
+            <p className="text-sm text-muted-foreground" data-testid="pdf-converting-message">
+              Converting document, please wait…
+            </p>
+          )}
         </div>
       )}
       {error && (

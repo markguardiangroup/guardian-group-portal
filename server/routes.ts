@@ -216,6 +216,12 @@ setInterval(async () => {
   }
 }, 15 * 60 * 1000).unref(); // runs every 15 min, does not keep process alive
 
+function isDocxCached(fileUrl: string): boolean {
+  const cacheKey = crypto.createHash("sha256").update(fileUrl).digest("hex").slice(0, 32);
+  const cached = docxPreviewCache.get(cacheKey);
+  return !!(cached && (Date.now() - cached.cachedAt) < DOCX_CACHE_TTL_MS);
+}
+
 async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promise<Buffer> {
   const cacheKey = crypto.createHash("sha256").update(fileUrl).digest("hex").slice(0, 32);
   const objectStorageService = new ObjectStorageService();
@@ -3286,6 +3292,11 @@ export async function registerRoutes(
       // DOCX — convert via LibreOffice and stream as PDF
       if (mimeType && DOCX_PREVIEW_MIME_TYPES.has(mimeType)) {
         try {
+          const willConvert = !isDocxCached(fileUrl);
+          if (willConvert) {
+            res.setHeader("X-Docx-Converting", "true");
+            res.flushHeaders();
+          }
           const pdfBuffer = await getOrConvertDocxPreview(fileUrl, mimeType);
           const pdfName = fileName.replace(/\.(docx?|doc)$/i, ".pdf");
           res.setHeader("Content-Type", "application/pdf");
@@ -3341,6 +3352,11 @@ export async function registerRoutes(
 
       if (DOCX_PREVIEW_MIME_TYPES.has(mimeType)) {
         try {
+          const willConvert = !isDocxCached(template.fileUrl);
+          if (willConvert) {
+            res.setHeader("X-Docx-Converting", "true");
+            res.flushHeaders();
+          }
           const pdfBuffer = await getOrConvertDocxPreview(template.fileUrl, mimeType);
           const pdfName = template.fileName.replace(/\.(docx?|doc)$/i, ".pdf");
           res.setHeader("Content-Type", "application/pdf");

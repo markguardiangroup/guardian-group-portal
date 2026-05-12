@@ -3373,6 +3373,14 @@
           "category": "feature",
           "createdAt": "2026-05-12T10:50:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
+          "patch": 8,
+          "message": "DOCX preview now shows 'Converting document, please wait…' on first open",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T10:50:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }
