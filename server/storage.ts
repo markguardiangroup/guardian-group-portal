@@ -1193,22 +1193,27 @@ export class MemStorage implements IStorage {
   }
 
   async getFulfilledTemplateIds(scope: string, entityId?: string, siteId?: string): Promise<string[]> {
-    const conditions: any[] = [
+    const baseConditions: any[] = [
       eq(documentsTable.isArchived, false),
       isNotNull(documentsTable.templateId),
     ];
+    let scopeCondition: any;
     if (scope === "site" && siteId) {
-      conditions.push(eq(documentsTable.siteId, siteId));
-    } else if ((scope === "company" || scope === "group") && entityId) {
-      conditions.push(eq(documentsTable.scope as any, scope));
-      conditions.push(eq(documentsTable.entityId, entityId));
+      // Any doc at this specific site
+      scopeCondition = eq(documentsTable.siteId, siteId);
+    } else if ((scope === "company") && entityId) {
+      // Any doc belonging to this company (site-level OR company-level)
+      scopeCondition = eq(documentsTable.entityId, entityId);
+    } else if (scope === "group" && entityId) {
+      // Group-scoped docs for this group owner
+      scopeCondition = and(eq(documentsTable.scope as any, "group"), eq(documentsTable.entityId, entityId));
     } else {
       return [];
     }
     const rows = await db
       .selectDistinct({ templateId: documentsTable.templateId })
       .from(documentsTable)
-      .where(and(...conditions));
+      .where(and(...baseConditions, scopeCondition));
     return rows.map(r => r.templateId).filter(Boolean) as string[];
   }
 

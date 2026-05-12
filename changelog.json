@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "d4e5f6a8-fulfilled-badge-fix-scope-query-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: Fulfilled badge now correctly detects site-level documents when uploading at company scope",
+          "createdAt": "2026-05-12T13:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "c3d4e5f6-fulfilled-badge-template-upload-2026",
           "patch": 8,
           "category": "enhancement",
