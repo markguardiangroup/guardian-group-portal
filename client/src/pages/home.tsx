@@ -441,6 +441,22 @@ const MODULE_DOC_PATHS: Record<string, string> = {
   employment_law: "/employment-law/documents",
 };
 
+const MODULE_BADGE_CONFIG: Record<string, { label: string; cls: string }> = {
+  health_safety:  { label: "H&S", cls: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" },
+  human_resources: { label: "HR",  cls: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
+  employment_law:  { label: "EL",  cls: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300" },
+};
+
+const ACTION_BADGE_CLS: Record<string, string> = {
+  overdue:          "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  "due soon":       "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "pending approval": "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  open:             "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  in_progress:      "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  critical:         "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  high:             "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+};
+
 function docHref(module: string | null | undefined, docId?: string | null, siteId?: string | null): string {
   const base = MODULE_DOC_PATHS[module ?? ""] ?? "/documents";
   if (docId) return `${base}/${docId}`;
@@ -463,38 +479,51 @@ function formatLabel(s: string | null | undefined) {
   return STATUS_LABELS[s] ?? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function getMyActionItems(key: string, data: MyActionsData): { id: string; label: string; subLabel: string | null; badge: string | null; href: string }[] {
+interface MyActionItem {
+  id: string;
+  label: string;
+  subLabel: string | null;
+  badge: string | null;
+  module: string | null;
+  href: string;
+}
+
+function getMyActionItems(key: string, data: MyActionsData): MyActionItem[] {
   switch (key) {
     case "assignedDocs":
       return data.assignedDocs.items.map((d) => ({
         id: d.id,
         label: d.title,
-        subLabel: [MODULE_LABELS[d.module ?? ""] ?? d.module, formatLabel(d.status)].filter(Boolean).join(" · "),
+        subLabel: formatLabel(d.status),
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
+        module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
       }));
     case "pendingApprovals":
       return data.pendingApprovals.items.map((d) => ({
         id: d.id,
         label: d.title,
-        subLabel: MODULE_LABELS[d.module ?? ""] ?? d.module ?? null,
+        subLabel: null,
         badge: "pending approval",
+        module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
       }));
     case "myIncidents":
       return data.myIncidents.items.map((i) => ({
         id: i.id,
         label: i.incident_reference ? `${i.incident_reference} — ${i.title}` : i.title,
-        subLabel: [formatLabel(i.severity), formatLabel(i.status)].filter(Boolean).join(" · "),
+        subLabel: formatLabel(i.status),
         badge: i.severity,
+        module: "health_safety",
         href: "/health-safety/incidents",
       }));
     case "myCases":
       return data.myCases.items.map((c) => ({
         id: c.id,
         label: c.case_reference ? `${c.case_reference}${c.case_name ? ` — ${c.case_name}` : ""}` : c.case_name,
-        subLabel: c.employee_name || null,
+        subLabel: c.employee_name || formatLabel(c.status),
         badge: c.status,
+        module: "employment_law",
         href: "/employment-law/cases",
       }));
     case "mySupportRequests":
@@ -503,6 +532,7 @@ function getMyActionItems(key: string, data: MyActionsData): { id: string; label
         label: s.subject,
         subLabel: null,
         badge: s.status,
+        module: null,
         href: "/support",
       }));
     default:
@@ -674,42 +704,47 @@ function MyActionsPanel({ role }: { role: string }) {
                 <p className="text-sm text-muted-foreground">Nothing to show right now.</p>
               </div>
             ) : (
-              <div className="space-y-1.5 py-1">
-                {modalItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5 hover:bg-muted/40 transition-colors"
-                    data-testid={`my-action-item-${item.id}`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.label}</p>
-                      {item.subLabel && (
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">{item.subLabel}</p>
-                      )}
-                      {item.badge && (
-                        <Badge
-                          variant="secondary"
-                          className={`mt-1 text-[10px] px-1.5 py-0 capitalize ${badgeColorClass[item.badge] ?? ""}`}
-                        >
-                          {item.badge.replace(/_/g, " ")}
-                        </Badge>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="shrink-0 h-7 px-2 text-xs"
-                      onClick={() => {
-                        setActiveKey(null);
-                        navigate(item.href);
-                      }}
-                      data-testid={`my-action-item-view-${item.id}`}
+              <div className="space-y-2 py-1">
+                {modalItems.map((item) => {
+                  const modBadge = item.module ? MODULE_BADGE_CONFIG[item.module] : null;
+                  const badgeCls = item.badge ? (ACTION_BADGE_CLS[item.badge] ?? ACTION_BADGE_CLS[item.badge.toLowerCase()] ?? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300") : null;
+                  const TileIcon = activeTile?.icon ?? FileText;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { setActiveKey(null); navigate(item.href); }}
+                      className="w-full flex items-center gap-3 rounded-lg border bg-card px-4 py-3 text-left hover:bg-muted/50 hover:border-border/80 transition-colors group"
+                      data-testid={`my-action-item-${item.id}`}
                     >
-                      View
-                      <ExternalLink className="ml-1 h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                      {/* Left icon */}
+                      <div className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 group-hover:bg-muted">
+                        <TileIcon className={`h-4 w-4 ${activeTile?.color ?? "text-muted-foreground"}`} />
+                      </div>
+
+                      {/* Title + subLabel */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground leading-snug truncate">{item.label}</p>
+                        {item.subLabel && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{item.subLabel}</p>
+                        )}
+                      </div>
+
+                      {/* Right badges */}
+                      <div className="shrink-0 flex flex-col items-end gap-1">
+                        {modBadge && (
+                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${modBadge.cls}`}>
+                            {modBadge.label}
+                          </span>
+                        )}
+                        {item.badge && badgeCls && (
+                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium capitalize ${badgeCls}`}>
+                            {item.badge.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

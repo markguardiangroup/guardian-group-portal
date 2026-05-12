@@ -3780,6 +3780,14 @@
           "category": "bug",
           "createdAt": "2026-05-12T21:45:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "j7f9k418-0g23-9hij-g879-4m1l8j5i7k00",
+          "patch": 10,
+          "message": "Improved: My Actions modal items now show richer cards with module and status badges",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T21:50:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
