@@ -5,8 +5,8 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 8,
-      "publishedPatch": 7,
+      "patch": 10,
+      "publishedPatch": 9,
       "label": "",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
@@ -364,6 +364,14 @@
           "category": "enhancement",
           "message": "Changelog entries now show full timestamp and author name next to each entry",
           "createdAt": "2026-05-12T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
+          "id": "d4e5f6a7-csp-changelog-poller-fix-2026",
+          "patch": 10,
+          "category": "bug",
+          "message": "Fixed: dev changelog now auto-advances patch number after each publish",
+          "createdAt": "2026-05-12T13:57:00.000Z",
           "createdBy": "agent"
         },
         {
