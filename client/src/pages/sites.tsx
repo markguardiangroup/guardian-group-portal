@@ -384,20 +384,6 @@ export default function Sites() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isProConsultant && (
-            <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-[180px]" data-testid="select-staff-filter-sites">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="my">My client sites</SelectItem>
-                {myStaff.map(s => (
-                  <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-sites-${s.id}`}>{s.fullName}</SelectItem>
-                ))}
-                <SelectItem value="all">All sites</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
           {canCreateSite && (
             <Button size="sm" className="w-32" onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
               <Plus className="mr-2 h-4 w-4" />
@@ -420,6 +406,20 @@ export default function Sites() {
             data-testid="input-search-sites"
           />
         </div>
+        {isProConsultant && (
+          <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[200px]" data-testid="select-staff-filter-sites">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my">My client sites</SelectItem>
+              {myStaff.map(s => (
+                <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-sites-${s.id}`}>{s.fullName}'s clients</SelectItem>
+              ))}
+              <SelectItem value="all">All client sites</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         <Select value={companyFilter} onValueChange={setCompanyFilter}>
           <SelectTrigger className="w-[180px]" data-testid="select-company-filter">
             <SelectValue placeholder="All Companies" />

@@ -1263,29 +1263,6 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isPro && userTypeTab === "client" && (
-            <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-[205px] text-sm shrink-0" data-testid="select-client-staff-filter">
-                <span className="truncate pointer-events-none">
-                  {clientStaffFilter === "all"
-                    ? "All clients"
-                    : clientStaffFilter === "my"
-                    ? "My clients"
-                    : (() => {
-                        const s = myStaff.find(m => m.id === clientStaffFilter);
-                        return s ? `${s.fullName}'s clients` : "All clients";
-                      })()}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="my">My clients</SelectItem>
-                {myStaff.map(s => (
-                  <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
-                ))}
-                <SelectItem value="all">All clients</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
           {isAdmin && userTypeTab === "staff" && (() => {
             const pendingCount = allUsers.filter(
               u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"
@@ -1350,6 +1327,21 @@ export default function UserManagement() {
             data-testid="input-search-users"
           />
         </div>
+
+        {isPro && userTypeTab === "client" && (
+          <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[200px] shrink-0" data-testid="select-client-staff-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my">My clients</SelectItem>
+              {myStaff.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.fullName}'s clients</SelectItem>
+              ))}
+              <SelectItem value="all">All clients</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {canAddUser && userTypeTab === "staff" && (
           <Select value={roleFilter} onValueChange={(v) => { setRoleFilter(v as UserRole | "all" | "pro_consultant" | "my_staff"); setPage(1); }}>

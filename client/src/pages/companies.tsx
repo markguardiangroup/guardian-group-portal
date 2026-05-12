@@ -846,20 +846,6 @@ export default function Companies() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isProConsultant && (
-            <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-[180px]" data-testid="select-staff-filter-companies">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="my">My clients</SelectItem>
-                {myStaff.map(s => (
-                  <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-${s.id}`}>{s.fullName}</SelectItem>
-                ))}
-                <SelectItem value="all">All companies</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
           {canCreateCompany && (
             <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
@@ -882,6 +868,20 @@ export default function Companies() {
             data-testid="input-search-companies"
           />
         </div>
+        {isProConsultant && (
+          <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
+            <SelectTrigger className="w-[200px]" data-testid="select-staff-filter-companies">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my">My clients</SelectItem>
+              {myStaff.map(s => (
+                <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-${s.id}`}>{s.fullName}'s clients</SelectItem>
+              ))}
+              <SelectItem value="all">All clients</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
           <SelectTrigger className="w-[150px]" data-testid="select-status-filter">
             <SelectValue placeholder="All Status" />

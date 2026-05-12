@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "e5f6a7b8-my-clients-filter-in-filter-bar-2026",
+          "patch": 9,
+          "category": "enhancement",
+          "message": "My clients filter now visible in the filter bar on Companies, Sites, and Users",
+          "createdAt": "2026-05-12T14:15:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "d4e5f6a7-csp-changelog-poller-fix-2026",
           "patch": 9,
           "category": "bug",
