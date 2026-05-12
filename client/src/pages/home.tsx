@@ -1320,11 +1320,6 @@ function UrgentActionsModal({
           )}
         </div>
 
-        {config && (
-          <div className="shrink-0 pt-3 border-t">
-            <p className="text-xs text-muted-foreground">Showing all {config.listLabel}</p>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );

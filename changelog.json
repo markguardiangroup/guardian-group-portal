@@ -3820,6 +3820,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T22:10:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "o2k4p963-5l78-4mno-l324-9r6q3o0n2p55",
+          "patch": 10,
+          "message": "Removed footer text from Urgent Actions modals",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T22:15:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
