@@ -547,11 +547,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" asChild>
-              <Link href={`${basePath}/sites`} data-testid="link-sites-from-dashboard">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Sites
-              </Link>
+            <Button variant="outline" onClick={() => window.history.back()} data-testid="link-sites-from-dashboard">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
             </Button>
             <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents">

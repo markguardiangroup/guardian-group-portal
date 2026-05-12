@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "b2c3d4e5-back-button-module-dashboard-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Back button on site overview now returns to the previous page instead of always going to Sites",
+          "createdAt": "2026-05-12T12:45:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a1b2c3d4-remove-compliance-template-scratch-upload-2026",
           "patch": 8,
           "category": "enhancement",
