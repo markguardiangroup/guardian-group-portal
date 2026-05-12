@@ -3357,6 +3357,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T10:50:00.000Z",
           "createdBy": "agent"
+        },
+        {
+          "id": "f9b01c23-8d34-5e67-fa89-0b1c2d3e4f5a",
+          "patch": 8,
+          "message": "Upload forms now show which sites or companies will receive a 'Share to all' document before you confirm",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T10:00:00.000Z",
+          "createdBy": "agent"
         }
       ]
     }

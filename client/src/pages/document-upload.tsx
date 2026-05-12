@@ -1455,6 +1455,61 @@ export default function DocumentUpload() {
           </div>
 
           <div>
+            {(docScope === "company" || docScope === "group") && shareToAll && (
+              <Card className="mb-6 border-primary/30 bg-primary/5" data-testid="panel-share-destinations">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    {docScope === "company" ? "Sites that will receive this document" : "Companies that will receive this document"}
+                  </CardTitle>
+                  <CardDescription>
+                    {docScope === "company"
+                      ? "This document will be shared to all current sites in this company."
+                      : "This document will be shared to all current member companies in this group."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {docScope === "company" ? (
+                    companySites === undefined ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        Loading sites…
+                      </div>
+                    ) : companySites.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No sites found for this company.</p>
+                    ) : (
+                      <ul className="space-y-1.5" data-testid="list-share-destinations">
+                        {companySites.map(site => (
+                          <li key={site.id} className="flex items-center gap-2 text-sm" data-testid={`dest-site-${site.id}`}>
+                            <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="font-medium">{site.name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  ) : (
+                    groupMemberCompanies === undefined ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        Loading member companies…
+                      </div>
+                    ) : groupMemberCompanies.length === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No member companies found for this group.</p>
+                    ) : (
+                      <ul className="space-y-1.5" data-testid="list-share-destinations">
+                        {groupMemberCompanies.map(company => (
+                          <li key={company.id} className="flex items-center gap-2 text-sm" data-testid={`dest-company-${company.id}`}>
+                            <Building2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                            <span className="font-medium">{company.name}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Upload File <span className="text-destructive text-base">*</span></CardTitle>
