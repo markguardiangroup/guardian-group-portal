@@ -343,6 +343,14 @@
       ],
       "entries": [
         {
+          "id": "f9a1b2c3-changelog-meta-display-2026",
+          "patch": 8,
+          "category": "enhancement",
+          "message": "Changelog entries now show full timestamp and author name next to each entry",
+          "createdAt": "2026-05-12T14:00:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "b2c3d4e5-scheduled-expired-doc-sweep-2026",
           "patch": 8,
           "category": "feature",

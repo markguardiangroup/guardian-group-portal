@@ -96,7 +96,10 @@ function formatEntryDate(iso: string): string {
   const mon = d.toLocaleString("en-GB", { month: "short" });
   const yr = d.getFullYear();
   const thisYr = new Date().getFullYear();
-  return yr === thisYr ? `${day} ${mon}` : `${day} ${mon} ${yr}`;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const datePart = yr === thisYr ? `${day} ${mon}` : `${day} ${mon} ${yr}`;
+  return `${datePart}, ${hh}:${mm}`;
 }
 
 export default function ChangelogSection() {
@@ -418,6 +421,9 @@ export default function ChangelogSection() {
                               {entry.createdAt && (
                                 <span className="text-xs text-muted-foreground shrink-0 tabular-nums" data-testid={`date-entry-${entry.id}`}>
                                   {formatEntryDate(entry.createdAt)}
+                                  {entry.createdBy && (
+                                    <span className="ml-1">· {entry.createdBy}</span>
+                                  )}
                                 </span>
                               )}
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

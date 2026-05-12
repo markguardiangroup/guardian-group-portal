@@ -15979,7 +15979,7 @@ export async function registerRoutes(
         message: parsed.data.message,
         category: parsed.data.category as ChangelogCategory,
         createdAt: new Date().toISOString(),
-        createdBy: user.id,
+        createdBy: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.email || user.id,
       };
       version.entries.push(entry);
       // Keep patchedEntryIds in sync so this entry never triggers a spurious patch bump
@@ -16215,6 +16215,9 @@ export async function registerRoutes(
 
   app.post("/api/changelog/bump-after-publish", requireAuth, async (req, res) => {
     try {
+      if (process.env.NODE_ENV === "production") {
+        return res.status(403).json({ error: "Patch bumping is not allowed on the production server" });
+      }
       const user = await changelogAdminGuard(req, res);
       if (!user) return;
       await bumpDevPatchAfterPublish();
