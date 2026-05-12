@@ -22,7 +22,6 @@ export function PdfViewer({ url, className = "w-full h-full" }: PdfViewerProps) 
 
   const renderPdf = useCallback(async (signal: AbortSignal) => {
     setLoading(true);
-    setIsConverting(false);
     setError(false);
 
     if (loadingTaskRef.current) {

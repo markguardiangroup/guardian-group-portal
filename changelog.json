@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "b2c3d4e5-pdf-viewer-setisconverting-runtime-error-2026",
+          "patch": 8,
+          "category": "bug",
+          "message": "Fixed: document preview crashed immediately with a runtime error on open",
+          "createdAt": "2026-05-12T13:34:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "a1b2c3d4-docx-preview-broken-response-fix-2026",
           "patch": 8,
           "category": "bug",
