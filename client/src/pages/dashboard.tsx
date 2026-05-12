@@ -804,72 +804,11 @@ function OverallComplianceCard({
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div className={`h-full transition-all ${mc.barColor(score)}`} style={{ width: `${score}%` }} />
                     </div>
-                    {/* Mini attention docs list for this module */}
-                    {(() => {
-                      const now = Date.now();
-                      const moduleDocs = (allDocuments ?? [])
-                        .filter(d => d.module === mc.module)
-                        .map(d => {
-                          const trackDate = d.renewalDate || d.expiryDate;
-                          const ms = trackDate ? new Date(trackDate).getTime() : null;
-                          const days = ms !== null ? Math.ceil((ms - now) / 86400000) : null;
-                          return { d, days };
-                        })
-                        .filter(({ days }) => days !== null && days <= 60)
-                        .sort((a, b) => (a.days ?? 0) - (b.days ?? 0))
-                        .slice(0, 3);
-
-                      if (moduleDocs.length === 0) {
-                        return (
-                          <div className="mt-2 pt-2 border-t border-border/50">
-                            <Link href={mc.siteUrl} className={`text-xs font-medium inline-flex items-center gap-0.5 transition-colors ${mc.linkColor}`} data-testid={`link-module-sites-${mc.module}`}>
-                              View site documents <ArrowRight className="h-3 w-3" />
-                            </Link>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="mt-2 pt-2 border-t border-border/50 space-y-1.5">
-                          {moduleDocs.map(({ d, days }) => {
-                            const siteMeta = siteNameMap[d.siteId ?? ""];
-                            const siteLabel = siteMeta ? `${siteMeta.companyName ?? ""} · ${siteMeta.name}` : null;
-                            const trackDate = d.renewalDate || d.expiryDate;
-                            const dateLabel = trackDate ? format(new Date(trackDate), "d MMM yyyy") : null;
-                            const isOverdue = days !== null && days < 0;
-                            const isUrgent = days !== null && days >= 0 && days <= 30;
-                            const urgencyClass = isOverdue
-                              ? "text-red-600 dark:text-red-400"
-                              : isUrgent
-                              ? "text-amber-600 dark:text-amber-400"
-                              : "text-blue-600 dark:text-blue-400";
-                            const urgencyLabel = isOverdue
-                              ? `${Math.abs(days!)}d overdue`
-                              : `${days}d left`;
-                            return (
-                              <button
-                                key={d.id}
-                                onClick={() => navigate(`${mc.siteUrl.replace("/sites", "")}/documents/${d.id}`)}
-                                className="w-full text-left flex items-start justify-between gap-2 rounded px-1.5 py-1 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                data-testid={`link-module-attentiondoc-${d.id}`}
-                              >
-                                <div className="min-w-0">
-                                  <p className="text-xs font-medium leading-tight truncate">{d.title}</p>
-                                  {siteLabel && <p className="text-[10px] text-muted-foreground truncate">{siteLabel}</p>}
-                                  {dateLabel && <p className="text-[10px] text-muted-foreground">{d.renewalDate ? "Renewal" : "Expires"}: {dateLabel}</p>}
-                                </div>
-                                <span className={`text-[10px] font-semibold whitespace-nowrap shrink-0 mt-0.5 ${urgencyClass}`}>{urgencyLabel}</span>
-                              </button>
-                            );
-                          })}
-                          <div className="pt-1">
-                            <Link href={mc.siteUrl} className={`text-xs font-medium inline-flex items-center gap-0.5 transition-colors ${mc.linkColor}`} data-testid={`link-module-sites-${mc.module}`}>
-                              View all site documents <ArrowRight className="h-3 w-3" />
-                            </Link>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    <div className="mt-1.5 text-center">
+                      <Link href={mc.siteUrl} className={`text-xs font-medium inline-flex items-center gap-0.5 transition-colors ${mc.linkColor}`} data-testid={`link-module-sites-${mc.module}`}>
+                        View Site Documents <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
@@ -1627,7 +1566,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
             </button>
           </div>
           
-          {overallComplianceVariant !== "modules" && renewalMetrics.upcomingRenewals.length > 0 && (
+          {renewalMetrics.upcomingRenewals.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
               <div className="divide-y">
