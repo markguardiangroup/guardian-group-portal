@@ -3660,6 +3660,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:11:55.982Z",
           "createdBy": "System"
+        },
+        {
+          "id": "1c9362e2-e306-47d9-ac2a-53ecd6ba1a74",
+          "patch": 10,
+          "message": "Dashboard 2 no longer shows the Document Progress section",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T20:14:34.681Z",
+          "createdBy": "System"
         }
       ]
     }

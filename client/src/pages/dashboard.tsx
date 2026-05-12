@@ -992,7 +992,7 @@ function OverallComplianceCard({
       </CardContent>
     </Card>
 
-    <Card data-testid="card-overall-document-progress" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
+    {variant !== "modules" && <Card data-testid="card-overall-document-progress" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <FileText className="h-4 w-4" />
@@ -1048,7 +1048,7 @@ function OverallComplianceCard({
           </button>
         </div>
       </CardContent>
-    </Card>
+    </Card>}
     </>
   );
 }
