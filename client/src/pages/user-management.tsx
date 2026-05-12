@@ -1305,7 +1305,7 @@ export default function UserManagement() {
               {isAdmin ? "Consultants & Admins" : "Consultants"}
             </button>
             <button
-              onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setClientStaffFilter("all"); setPage(1); }}
+              onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setClientStaffFilter("my"); setPage(1); }}
               className={`inline-flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium transition-all ${userTypeTab === "client" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               data-testid="tab-clients"
             >

@@ -367,6 +367,14 @@
           "createdBy": "agent"
         },
         {
+          "id": "f6a7b8c9-clients-tab-default-my-clients-2026",
+          "patch": 9,
+          "category": "bug",
+          "message": "Fixed: Clients tab now defaults to My clients filter when switching to it",
+          "createdAt": "2026-05-12T14:22:00.000Z",
+          "createdBy": "agent"
+        },
+        {
           "id": "e5f6a7b8-my-clients-filter-in-filter-bar-2026",
           "patch": 9,
           "category": "enhancement",
