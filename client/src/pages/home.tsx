@@ -339,7 +339,7 @@ type BannerMessage = HomeSummary["bannerMessages"][number];
 function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
   const [dismissed, setDismissed] = useState<Set<string>>(() => {
     try {
-      const stored = localStorage.getItem("dismissed_banners");
+      const stored = sessionStorage.getItem("dismissed_banners");
       return new Set(stored ? JSON.parse(stored) : []);
     } catch {
       return new Set();
@@ -350,7 +350,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
     setDismissed((prev) => {
       const next = new Set(prev);
       next.add(id);
-      try { localStorage.setItem("dismissed_banners", JSON.stringify([...next])); } catch {}
+      try { sessionStorage.setItem("dismissed_banners", JSON.stringify([...next])); } catch {}
       return next;
     });
   };

@@ -3732,6 +3732,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T21:15:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "d1f3b852-4e67-49ac-a213-8g5f2d9c1e44",
+          "patch": 10,
+          "message": "Homepage Banner: dismissal now resets on next login (session only, not permanent)",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T21:20:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
