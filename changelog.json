@@ -3796,6 +3796,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T21:55:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "l9h1m630-2i45-1jkl-i091-6o3n0l7k9m22",
+          "patch": 10,
+          "message": "Fixed: blank screen caused by missing import on home page",
+          "category": "bug",
+          "createdAt": "2026-05-12T22:00:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
