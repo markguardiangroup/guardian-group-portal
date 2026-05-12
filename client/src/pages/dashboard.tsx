@@ -1566,7 +1566,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
             </button>
           </div>
           
-          {renewalMetrics.upcomingRenewals.length > 0 && (
+          {renewalMetrics.upcomingRenewals.length > 0 && overallComplianceVariant !== "modules" && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
               <div className="divide-y">

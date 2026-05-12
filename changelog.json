@@ -3668,6 +3668,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:14:34.681Z",
           "createdBy": "System"
+        },
+        {
+          "id": "02cc6a87-6d05-4971-9361-2c555a5850c6",
+          "patch": 10,
+          "message": "Dashboard 2 no longer shows the Documents Requiring Attention list",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T20:21:45.463Z",
+          "createdBy": "System"
         }
       ]
     }
