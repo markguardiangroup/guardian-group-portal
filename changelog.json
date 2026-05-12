@@ -3652,6 +3652,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T20:10:53.566Z",
           "createdBy": "System"
+        },
+        {
+          "id": "7245ffc7-9435-41d0-8985-e8cd820c3ee7",
+          "patch": 10,
+          "message": "Dashboard 2 module tiles now link to each module's site documents page",
+          "category": "enhancement",
+          "createdAt": "2026-05-12T20:11:55.982Z",
+          "createdBy": "System"
         }
       ]
     }

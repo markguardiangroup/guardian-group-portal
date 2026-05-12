@@ -737,7 +737,7 @@ function OverallComplianceCard({
 
         {/* Compliance stats: required docs only */}
         {variant === "modules" ? (() => {
-          const moduleConfig: { module: string; label: string; shortLabel: string; icon: React.ReactNode; scoreColor: (s: number) => string; barColor: (s: number) => string; leftBorder: string; avatarBg: string; avatarText: string; tileBg: string }[] = [
+          const moduleConfig: { module: string; label: string; shortLabel: string; icon: React.ReactNode; scoreColor: (s: number) => string; barColor: (s: number) => string; leftBorder: string; avatarBg: string; avatarText: string; tileBg: string; siteUrl: string; linkColor: string }[] = [
             {
               module: "health_safety",
               label: "Health & Safety",
@@ -749,6 +749,8 @@ function OverallComplianceCard({
               avatarBg: "bg-emerald-500",
               avatarText: "text-white",
               tileBg: "bg-emerald-50 dark:bg-emerald-950/20",
+              siteUrl: "/health-safety/sites",
+              linkColor: "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300",
             },
             {
               module: "human_resources",
@@ -761,6 +763,8 @@ function OverallComplianceCard({
               avatarBg: "bg-blue-500",
               avatarText: "text-white",
               tileBg: "bg-blue-50 dark:bg-blue-950/20",
+              siteUrl: "/human-resources/sites",
+              linkColor: "text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300",
             },
             {
               module: "employment_law",
@@ -773,6 +777,8 @@ function OverallComplianceCard({
               avatarBg: "bg-pink-500",
               avatarText: "text-white",
               tileBg: "bg-pink-50 dark:bg-pink-950/20",
+              siteUrl: "/employment-law/sites",
+              linkColor: "text-pink-600 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-300",
             },
           ];
           return (
@@ -798,7 +804,11 @@ function OverallComplianceCard({
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div className={`h-full transition-all ${mc.barColor(score)}`} style={{ width: `${score}%` }} />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1.5 text-center">Compliance</p>
+                    <div className="mt-1.5 text-center">
+                      <Link href={mc.siteUrl} className={`text-xs font-medium inline-flex items-center gap-0.5 transition-colors ${mc.linkColor}`} data-testid={`link-module-sites-${mc.module}`}>
+                        View Site Documents <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
