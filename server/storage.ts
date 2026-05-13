@@ -74,6 +74,10 @@ import {
   type DocumentScope,
   type Source, type InsertSource,
   sources as sourcesTable,
+  type Service, type InsertService,
+  type CompanyService, type InsertCompanyService,
+  services as servicesTable,
+  companyServices as companyServicesTable,
   type PortalMessage, type InsertPortalMessage,
   portalMessages as portalMessagesTable,
   type CaseBundle, type InsertCaseBundle,
@@ -517,6 +521,16 @@ export interface IStorage {
   getSource(id: string): Promise<Source | undefined>;
   createSource(source: InsertSource): Promise<Source>;
   updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
+
+  // Services
+  getServices(opts?: { activeOnly?: boolean; module?: string }): Promise<Service[]>;
+  getService(id: string): Promise<Service | undefined>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: string, updates: Partial<Service>): Promise<Service | undefined>;
+  deleteService(id: string): Promise<boolean>;
+  getCompanyServices(companyId: string): Promise<(CompanyService & { service: Service })[]>;
+  addCompanyService(companyId: string, serviceId: string, assignedBy?: string): Promise<CompanyService>;
+  removeCompanyService(companyId: string, serviceId: string): Promise<boolean>;
 
   // Group Owner
   getGroupMembers(groupOwnerId: string): Promise<Company[]>;
@@ -5349,6 +5363,59 @@ export class MemStorage implements IStorage {
   async updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined> {
     const [row] = await db.update(sourcesTable).set(updates).where(eq(sourcesTable.id, id)).returning();
     return row;
+  }
+
+  // Services
+  async getServices(opts: { activeOnly?: boolean; module?: string } = {}): Promise<Service[]> {
+    const conditions = [];
+    if (opts.activeOnly) conditions.push(eq(servicesTable.isActive, true));
+    if (opts.module) conditions.push(eq(servicesTable.module, opts.module as any));
+    const q = db.select().from(servicesTable);
+    const results = conditions.length > 0
+      ? await q.where(and(...conditions)).orderBy(asc(servicesTable.sortOrder), asc(servicesTable.title))
+      : await q.orderBy(asc(servicesTable.sortOrder), asc(servicesTable.title));
+    return results;
+  }
+
+  async getService(id: string): Promise<Service | undefined> {
+    const [row] = await db.select().from(servicesTable).where(eq(servicesTable.id, id));
+    return row;
+  }
+
+  async createService(service: InsertService): Promise<Service> {
+    const [row] = await db.insert(servicesTable).values(service as any).returning();
+    return row;
+  }
+
+  async updateService(id: string, updates: Partial<Service>): Promise<Service | undefined> {
+    const [row] = await db.update(servicesTable).set(updates as any).where(eq(servicesTable.id, id)).returning();
+    return row;
+  }
+
+  async deleteService(id: string): Promise<boolean> {
+    const result = await db.delete(servicesTable).where(eq(servicesTable.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getCompanyServices(companyId: string): Promise<(CompanyService & { service: Service })[]> {
+    const rows = await db
+      .select()
+      .from(companyServicesTable)
+      .innerJoin(servicesTable, eq(companyServicesTable.serviceId, servicesTable.id))
+      .where(eq(companyServicesTable.companyId, companyId))
+      .orderBy(asc(servicesTable.sortOrder), asc(servicesTable.title));
+    return rows.map(r => ({ ...r.company_services, service: r.services }));
+  }
+
+  async addCompanyService(companyId: string, serviceId: string, assignedBy?: string): Promise<CompanyService> {
+    const [row] = await db.insert(companyServicesTable).values({ companyId, serviceId, assignedBy: assignedBy ?? null }).returning();
+    return row;
+  }
+
+  async removeCompanyService(companyId: string, serviceId: string): Promise<boolean> {
+    const result = await db.delete(companyServicesTable)
+      .where(and(eq(companyServicesTable.companyId, companyId), eq(companyServicesTable.serviceId, serviceId)));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Group Owner

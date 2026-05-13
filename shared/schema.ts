@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex, jsonb, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, uniqueIndex, jsonb, bigint, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1802,6 +1802,39 @@ export const sources = pgTable("sources", {
 export const insertSourceSchema = createInsertSchema(sources).omit({ id: true, createdAt: true });
 export type InsertSource = z.infer<typeof insertSourceSchema>;
 export type Source = typeof sources.$inferSelect;
+
+// ==================== SERVICES ====================
+export type ServiceModule = "health_safety" | "human_resources" | "employment_law";
+
+export const services = pgTable("services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productCode: text("product_code").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  module: text("module").$type<ServiceModule>().notNull(),
+  sourceId: varchar("source_id").references(() => sources.id, { onDelete: "set null" }),
+  priceGbp: numeric("price_gbp", { precision: 10, scale: 2 }).notNull(),
+  benchmarkPriceGbp: numeric("benchmark_price_gbp", { precision: 10, scale: 2 }).notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
+export type InsertService = z.infer<typeof insertServiceSchema>;
+export type Service = typeof services.$inferSelect;
+
+export const companyServices = pgTable("company_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  serviceId: varchar("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  assignedBy: text("assigned_by"),
+});
+
+export const insertCompanyServiceSchema = createInsertSchema(companyServices).omit({ id: true, assignedAt: true });
+export type InsertCompanyService = z.infer<typeof insertCompanyServiceSchema>;
+export type CompanyService = typeof companyServices.$inferSelect;
 
 // ==================== KEY CONTACTS ====================
 export type KeyContactEntityType = "company" | "site";

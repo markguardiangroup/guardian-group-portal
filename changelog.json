@@ -3876,6 +3876,14 @@
           "category": "feature",
           "createdAt": "2026-05-13T08:10:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "v9r1w630-2s45-1tuv-s091-6y3x0v7u9w12",
+          "patch": 10,
+          "message": "Admins can manage a Services catalogue (product code, title, module, source, pricing) and assign services to companies",
+          "category": "feature",
+          "createdAt": "2026-05-13T08:20:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

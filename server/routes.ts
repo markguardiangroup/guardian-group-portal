@@ -15888,6 +15888,120 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== SERVICES ====================
+
+  const createServiceSchema = z.object({
+    productCode: z.string().min(1).max(50),
+    title: z.string().min(1),
+    description: z.string().optional().nullable(),
+    module: z.enum(["health_safety", "human_resources", "employment_law"]),
+    sourceId: z.string().nullable().optional(),
+    priceGbp: z.string().min(1),
+    benchmarkPriceGbp: z.string().min(1),
+    isActive: z.boolean().optional(),
+    sortOrder: z.number().optional(),
+  });
+
+  const updateServiceSchema = createServiceSchema.partial();
+
+  app.get("/api/services", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
+      const activeOnly = req.query.activeOnly === "true";
+      const module = req.query.module as string | undefined;
+      const svcs = await storage.getServices({ activeOnly, module });
+      res.json(svcs);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      res.status(500).json({ error: "Failed to fetch services" });
+    }
+  });
+
+  app.post("/api/services", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = createServiceSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const svc = await storage.createService(parsed.data as any);
+      res.status(201).json(svc);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "A service with that product code already exists" });
+      console.error("Error creating service:", error);
+      res.status(500).json({ error: "Failed to create service" });
+    }
+  });
+
+  app.patch("/api/services/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = updateServiceSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const svc = await storage.updateService(req.params.id, parsed.data as any);
+      if (!svc) return res.status(404).json({ error: "Service not found" });
+      res.json(svc);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "A service with that product code already exists" });
+      console.error("Error updating service:", error);
+      res.status(500).json({ error: "Failed to update service" });
+    }
+  });
+
+  app.delete("/api/services/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const deleted = await storage.deleteService(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Service not found" });
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting service:", error);
+      res.status(500).json({ error: "Failed to delete service" });
+    }
+  });
+
+  app.get("/api/companies/:id/services", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
+      const assigned = await storage.getCompanyServices(req.params.id);
+      res.json(assigned);
+    } catch (error) {
+      console.error("Error fetching company services:", error);
+      res.status(500).json({ error: "Failed to fetch company services" });
+    }
+  });
+
+  app.post("/api/companies/:id/services", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = z.object({ serviceId: z.string().min(1) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+      const row = await storage.addCompanyService(req.params.id, parsed.data.serviceId, user.fullName ?? user.username);
+      res.status(201).json(row);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "Service already assigned" });
+      console.error("Error adding company service:", error);
+      res.status(500).json({ error: "Failed to add service" });
+    }
+  });
+
+  app.delete("/api/companies/:id/services/:serviceId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const removed = await storage.removeCompanyService(req.params.id, req.params.serviceId);
+      if (!removed) return res.status(404).json({ error: "Assignment not found" });
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error removing company service:", error);
+      res.status(500).json({ error: "Failed to remove service" });
+    }
+  });
+
   // ─── Changelog ────────────────────────────────────────────────────────────
 
   const changelogAdminGuard = async (req: any, res: any) => {

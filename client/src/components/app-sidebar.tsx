@@ -28,6 +28,7 @@ import {
   Tag,
   Home,
   Megaphone,
+  PackageOpen,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -186,6 +187,11 @@ const adminNavItems = [
     title: "Sources",
     url: "/admin/sources",
     icon: Tag,
+  },
+  {
+    title: "Services",
+    url: "/admin/services",
+    icon: PackageOpen,
   },
   {
     title: "Portal Messages",

@@ -81,6 +81,7 @@ import {
   MessageSquare,
   LockKeyhole,
   Eye,
+  PackageOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -463,6 +464,254 @@ const MODULE_COLOR: Record<string, string> = {
   human_resources: "text-blue-700 dark:text-blue-400",
   employment_law: "text-pink-700 dark:text-pink-400",
 };
+
+type ServiceEntry = {
+  id: string;
+  companyId: string;
+  serviceId: string;
+  assignedAt: string;
+  assignedBy: string | null;
+  service: {
+    id: string;
+    productCode: string;
+    title: string;
+    description: string | null;
+    module: "health_safety" | "human_resources" | "employment_law";
+    sourceId: string | null;
+    priceGbp: string;
+    benchmarkPriceGbp: string;
+    isActive: boolean;
+    sortOrder: number;
+  };
+};
+
+type AllService = {
+  id: string;
+  productCode: string;
+  title: string;
+  description: string | null;
+  module: "health_safety" | "human_resources" | "employment_law";
+  priceGbp: string;
+  benchmarkPriceGbp: string;
+  isActive: boolean;
+};
+
+const SVC_MODULE_LABELS: Record<string, string> = {
+  health_safety: "H&S",
+  human_resources: "HR",
+  employment_law: "EL",
+};
+
+const SVC_MODULE_COLORS: Record<string, string> = {
+  health_safety: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  human_resources: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  employment_law: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+};
+
+function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin: boolean }) {
+  const { toast } = useToast();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState("");
+
+  const { data: assigned = [], isLoading } = useQuery<ServiceEntry[]>({
+    queryKey: ["/api/companies", companyId, "services"],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies/${companyId}/services`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch services");
+      return res.json();
+    },
+  });
+
+  const { data: allServices = [] } = useQuery<AllService[]>({
+    queryKey: ["/api/services"],
+    queryFn: async () => {
+      const res = await fetch("/api/services?activeOnly=true", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch services");
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
+
+  const assignedIds = new Set(assigned.map(a => a.serviceId));
+  const available = allServices.filter(s => !assignedIds.has(s.id));
+
+  const addMutation = useMutation({
+    mutationFn: async (serviceId: string) => {
+      const res = await apiRequest("POST", `/api/companies/${companyId}/services`, { serviceId });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "services"] });
+      setPickerOpen(false);
+      setSelectedServiceId("");
+      toast({ title: "Service assigned" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to assign service", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (serviceId: string) => {
+      await apiRequest("DELETE", `/api/companies/${companyId}/services/${serviceId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "services"] });
+      toast({ title: "Service removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to remove service", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Assigned Services</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Services assigned to this company for billing and reference.
+          </p>
+        </div>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setPickerOpen(true)} data-testid="button-add-company-service" disabled={available.length === 0}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Service
+          </Button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <FetchingOverlay />
+      ) : assigned.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+              <PackageOpen className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="mt-4 text-base font-medium">No services assigned</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isAdmin ? "Use the Add Service button to assign services to this company." : "No services have been assigned to this company yet."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm border rounded-lg overflow-hidden">
+            <thead className="bg-muted/40">
+              <tr className="border-b text-muted-foreground text-left">
+                <th className="px-4 py-2 font-medium">Code</th>
+                <th className="px-4 py-2 font-medium">Title</th>
+                <th className="px-4 py-2 font-medium">Module</th>
+                <th className="px-4 py-2 font-medium text-right">Price (£)</th>
+                <th className="px-4 py-2 font-medium text-right">Benchmark (£)</th>
+                {isAdmin && <th className="px-4 py-2 font-medium"></th>}
+              </tr>
+            </thead>
+            <tbody>
+              {assigned.map((entry) => (
+                <tr key={entry.id} data-testid={`row-company-service-${entry.serviceId}`} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                      {entry.service.productCode}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-medium">
+                    {entry.service.title}
+                    {entry.service.description && (
+                      <p className="text-xs text-muted-foreground font-normal truncate max-w-[200px]">{entry.service.description}</p>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SVC_MODULE_COLORS[entry.service.module]}`}>
+                      {SVC_MODULE_LABELS[entry.service.module]}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {parseFloat(entry.service.priceGbp).toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                    {parseFloat(entry.service.benchmarkPriceGbp).toFixed(2)}
+                  </td>
+                  {isAdmin && (
+                    <td className="px-4 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => removeMutation.mutate(entry.serviceId)}
+                        disabled={removeMutation.isPending}
+                        data-testid={`button-remove-company-service-${entry.serviceId}`}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Service picker dialog */}
+      {isAdmin && (
+        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Service</DialogTitle>
+              <DialogDescription>Select an active service to assign to this company.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              {available.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">All active services are already assigned.</p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {available.map(svc => (
+                    <button
+                      key={svc.id}
+                      data-testid={`option-service-${svc.id}`}
+                      onClick={() => setSelectedServiceId(svc.id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-md border text-sm transition-colors ${
+                        selectedServiceId === svc.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded shrink-0">{svc.productCode}</span>
+                          <span className="font-medium truncate">{svc.title}</span>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${SVC_MODULE_COLORS[svc.module]}`}>
+                          {SVC_MODULE_LABELS[svc.module]}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+                        <span>Price: £{parseFloat(svc.priceGbp).toFixed(2)}</span>
+                        <span>Benchmark: £{parseFloat(svc.benchmarkPriceGbp).toFixed(2)}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setPickerOpen(false); setSelectedServiceId(""); }}>Cancel</Button>
+              <Button
+                onClick={() => selectedServiceId && addMutation.mutate(selectedServiceId)}
+                disabled={!selectedServiceId || addMutation.isPending}
+                data-testid="button-confirm-add-service"
+              >
+                {addMutation.isPending ? "Assigning…" : "Assign Service"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
 
 function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   const { toast } = useToast();
@@ -1669,6 +1918,12 @@ export default function CompanyDetail() {
               Required Documents
             </TabsTrigger>
           )}
+          {(isAdmin || user?.role === "consultant") && (
+            <TabsTrigger value="services" data-testid="tab-services">
+              <PackageOpen className="mr-2 h-4 w-4" />
+              Services
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Overview Tab */}
@@ -2217,6 +2472,13 @@ export default function CompanyDetail() {
         {(isAdmin || user?.role === "consultant") && (
           <TabsContent value="required-documents" className="mt-6">
             <RequiredDocumentsCard companyId={companyId!} />
+          </TabsContent>
+        )}
+
+        {/* Services Tab */}
+        {(isAdmin || user?.role === "consultant") && (
+          <TabsContent value="services" className="mt-6">
+            <CompanyServicesTab companyId={companyId!} isAdmin={isAdmin} />
           </TabsContent>
         )}
 

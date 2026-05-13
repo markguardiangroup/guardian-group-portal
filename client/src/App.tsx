@@ -75,6 +75,7 @@ const ToolkitDashboard = lazyPage(() => import("@/pages/toolkit-dashboard"));
 const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
 const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
 const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
+const AdminServices = lazyPage(() => import("@/pages/admin-services"));
 const Dashboard = lazyPage(() => import("@/pages/dashboard"));
 const Dashboard2 = lazyPage(() => import("@/pages/dashboard2"));
 const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
@@ -232,6 +233,7 @@ function Router() {
       <Route path="/toolkit/browse" component={ToolkitBrowse} />
       <Route path="/admin/pathways">{() => <AccessGuard component={AdminPathways} allow={ADMIN_ONLY} />}</Route>
       <Route path="/admin/sources">{() => <AccessGuard component={AdminSources} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin/services">{() => <AccessGuard component={AdminServices} allow={NOT_CLIENT} />}</Route>
       <Route path="/admin/portal-messages">{() => <AccessGuard component={AdminPortalMessages} allow={ADMIN_ONLY} />}</Route>
       <Route component={NotFound} />
     </Switch>
