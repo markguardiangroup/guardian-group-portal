@@ -147,7 +147,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
           <div>
             <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
               <XCircle className="h-4 w-4" />
-              <span className="text-lg font-semibold"><CountUp value={summary.overdueDocuments + (summary.reviewRequired || 0)} /></span>
+              <span className="text-lg font-semibold"><CountUp value={summary.overdueDocuments + (summary.approvalRequired || 0)} /></span>
             </div>
             <p className="text-xs text-muted-foreground">Not Compliant</p>
           </div>
@@ -174,7 +174,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
             <div className="rounded-md border p-2.5">
               <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                 <Clock className="h-3.5 w-3.5" />
-                <span className="text-xl font-semibold"><CountUp value={summary.allReviewRequired ?? summary.reviewRequired} /></span>
+                <span className="text-xl font-semibold"><CountUp value={summary.allApprovalRequired ?? summary.approvalRequired} /></span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">Review</p>
             </div>
@@ -511,13 +511,13 @@ function CasesCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Train
 interface SiteComplianceSummary {
   totalDocuments: number;
   compliantDocuments: number;
-  reviewRequired: number;
+  approvalRequired: number;
   overdueDocuments: number;
   missingRequiredDocuments?: number;
   complianceScore: number;
   allDocuments?: number;
   allCompliantDocuments?: number;
-  allReviewRequired?: number;
+  allApprovalRequired?: number;
   allOverdueDocuments?: number;
   pendingApprovals?: number;
   awaitingYourApproval?: number;
@@ -563,14 +563,14 @@ function OverallComplianceCard({
   // Slot-based compliance (required docs)
   const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
   const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
-  const reviewRequiredSlots = siteComplianceSummary?.reviewRequired ?? summaries.reduce((acc, s) => acc + (s.reviewRequired || 0), 0);
+  const approvalRequiredSlots = siteComplianceSummary?.approvalRequired ?? summaries.reduce((acc, s) => acc + (s.approvalRequired || 0), 0);
   const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? summaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
-  const complianceDenominator = compliantDocs + reviewRequiredSlots + overdueDocs + missingDocs;
+  const complianceDenominator = compliantDocs + approvalRequiredSlots + overdueDocs + missingDocs;
   const overallScore = siteComplianceSummary?.complianceScore ?? (complianceDenominator > 0 ? Math.round((compliantDocs / complianceDenominator) * 100) : 0);
   // All-document progress stats
   const allDocs = siteComplianceSummary?.allDocuments ?? summaries.reduce((acc, s) => acc + (s.allDocuments ?? s.totalDocuments), 0);
   const allCompliant = siteComplianceSummary?.allCompliantDocuments ?? summaries.reduce((acc, s) => acc + (s.allCompliantDocuments ?? s.compliantDocuments), 0);
-  const reviewDocs = siteComplianceSummary?.allReviewRequired ?? summaries.reduce((acc, s) => acc + (s.allReviewRequired ?? s.reviewRequired), 0);
+  const reviewDocs = siteComplianceSummary?.allApprovalRequired ?? summaries.reduce((acc, s) => acc + (s.allApprovalRequired ?? s.approvalRequired), 0);
   const allOverdue = siteComplianceSummary?.allOverdueDocuments ?? summaries.reduce((acc, s) => acc + (s.allOverdueDocuments ?? s.overdueDocuments), 0);
   const pendingApprovals = siteComplianceSummary?.pendingApprovals ?? summaries.reduce((acc, s) => acc + s.pendingApprovals, 0);
   const awaitingYourApproval = siteComplianceSummary?.awaitingYourApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
@@ -616,7 +616,7 @@ function OverallComplianceCard({
 
   const statusColorMap: Record<string, string> = {
     compliant: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-    review_required: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+    approval_required: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
     overdue: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   };
 
@@ -638,7 +638,7 @@ function OverallComplianceCard({
     },
     non_compliant: {
       title: "Not Compliant (Required Documents)",
-      filter: (d) => isComplianceDoc(d) && !!d.isRequired && (d.status === "overdue" || d.status === "review_required"),
+      filter: (d) => isComplianceDoc(d) && !!d.isRequired && (d.status === "overdue" || d.status === "approval_required"),
     },
     overdue: {
       title: "Overdue Required Documents",
@@ -659,9 +659,9 @@ function OverallComplianceCard({
       },
     },
     all_review: {
-      title: "Review Required Documents",
+      title: "Approval Required Documents",
       filter: (d) => {
-        if (!isProgressDoc(d) || d.status !== "review_required") return false;
+        if (!isProgressDoc(d) || d.status !== "approval_required") return false;
         const now = new Date();
         if (d.reviewDate && new Date(d.reviewDate) < now) return false;
         if (d.expiryDate && new Date(d.expiryDate) < now) return false;
@@ -815,7 +815,7 @@ function OverallComplianceCard({
             </div>
           );
         })() : (() => {
-          const nonCompliantDocs = overdueDocs + reviewRequiredSlots;
+          const nonCompliantDocs = overdueDocs + approvalRequiredSlots;
           return (
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -876,7 +876,7 @@ function OverallComplianceCard({
                     const site = doc.siteId ? siteNameMap[doc.siteId] : null;
                     const modulePath = modulePathMap[doc.module] || "/";
                     const modLabel = moduleLabels[doc.module] || doc.module;
-                    const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
+                    const statusLabel = doc.status === "approval_required" ? "Approval Required" : doc.status === "overdue" ? "Overdue" : "Compliant";
                     return (
                       <div
                         key={doc.id}
@@ -1342,7 +1342,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
       if (summary) {
         acc.totalDocuments += summary.totalDocuments || 0;
         acc.compliantDocuments += summary.compliantDocuments || 0;
-        acc.reviewRequired += summary.reviewRequired || 0;
+        acc.approvalRequired += summary.approvalRequired || 0;
         acc.overdueDocuments += summary.overdueDocuments || 0;
         acc.missingRequiredDocuments += (summary as any).missingRequiredDocuments || 0;
         acc.pendingApprovals += summary.pendingApprovals || 0;
@@ -1351,7 +1351,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
     }, { 
       totalDocuments: 0, 
       compliantDocuments: 0, 
-      reviewRequired: 0, 
+      approvalRequired: 0, 
       overdueDocuments: 0, 
       missingRequiredDocuments: 0,
       pendingApprovals: 0,
@@ -1390,14 +1390,14 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
         moduleName: m.name,
         totalDocuments: 0,
         compliantDocuments: 0,
-        reviewRequired: 0,
+        approvalRequired: 0,
         overdueDocuments: 0,
         missingRequiredDocuments: 0,
         pendingApprovals: 0,
         complianceScore: 0,
         allDocuments: 0,
         allCompliantDocuments: 0,
-        allReviewRequired: 0,
+        allApprovalRequired: 0,
         allOverdueDocuments: 0,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,

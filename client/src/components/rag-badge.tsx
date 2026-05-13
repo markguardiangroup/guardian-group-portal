@@ -42,8 +42,8 @@ export function DocumentStatusBadge({ status, approvalStatus, className }: Docum
     label = "Overdue";
     Icon = XCircle;
     statusClassName = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
-  } else if (status === "review_required") {
-    label = "Review Required";
+  } else if (status === "approval_required") {
+    label = "Approval Required";
     Icon = AlertTriangle;
     statusClassName = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
   } else if (approvalStatus === "changes_requested") {
@@ -67,7 +67,7 @@ export function DocumentStatusBadge({ status, approvalStatus, className }: Docum
     Icon = CheckCircle;
     statusClassName = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
   } else {
-    label = "Review Required";
+    label = "Approval Required";
     Icon = AlertTriangle;
     statusClassName = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
   }
@@ -109,8 +109,8 @@ export function RAGBadge({ status, approvalStatus, className }: RAGBadgeProps) {
       icon: CheckCircle,
       className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
     },
-    review_required: {
-      label: "Review Required",
+    approval_required: {
+      label: "Approval Required",
       icon: AlertTriangle,
       className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20",
     },

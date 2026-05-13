@@ -49,7 +49,7 @@ import {
 interface HomeSummary {
   urgentActions: {
     overdueDocuments: number;
-    reviewRequiredDocuments: number;
+    approvalRequiredDocuments: number;
     pendingApprovals: number;
     openIncidents: number;
     pendingSignOffs: number;
@@ -163,7 +163,7 @@ const messageTypeConfig: Record<string, {
 
 const actionTypeConfig: Record<string, { label: string; listLabel: string; navHref: string }> = {
   overdue_documents: { label: "Overdue Documents", listLabel: "overdue documents", navHref: "/documents" },
-  review_required: { label: "Review Required", listLabel: "documents requiring review", navHref: "/documents" },
+  approval_required: { label: "Approval Required", listLabel: "documents requiring approval", navHref: "/documents" },
   pending_approvals: { label: "Pending Approvals", listLabel: "pending approvals", navHref: "/documents" },
   open_incidents: { label: "Open Incidents", listLabel: "open incidents", navHref: "/health-safety/incidents" },
   pending_sign_offs: { label: "Pending Sign-offs", listLabel: "documents awaiting your sign-off", navHref: "/documents" },
@@ -211,9 +211,9 @@ function UrgentActionsPanel({
     },
     {
       show: true,
-      count: actions.reviewRequiredDocuments,
-      type: "review_required",
-      label: "Review Required",
+      count: actions.approvalRequiredDocuments,
+      type: "approval_required",
+      label: "Approval Required",
       icon: Clock,
       color: "text-amber-600 dark:text-amber-400",
       bg: "bg-amber-50 dark:bg-amber-950/20",
@@ -465,7 +465,7 @@ function docHref(module: string | null | undefined, docId?: string | null, siteI
 
 const STATUS_LABELS: Record<string, string> = {
   overdue: "Overdue",
-  review_required: "Review Required",
+  approval_required: "Approval Required",
   pending: "Pending",
   compliant: "Compliant",
   open: "Open",
@@ -1327,7 +1327,7 @@ function UrgentActionsModal({
 
 const EMPTY_URGENT_ACTIONS: HomeSummary["urgentActions"] = {
   overdueDocuments: 0,
-  reviewRequiredDocuments: 0,
+  approvalRequiredDocuments: 0,
   pendingApprovals: 0,
   openIncidents: 0,
   pendingSignOffs: 0,

@@ -30,7 +30,7 @@ export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
 export type SiteStatus = "active" | "inactive" | "pending";
 
 // Document status for RAG indicators
-export type DocumentStatus = "compliant" | "review_required" | "overdue";
+export type DocumentStatus = "compliant" | "approval_required" | "overdue";
 
 // Approval status
 // - pending: Initial state, awaiting first review
@@ -774,7 +774,7 @@ export const documents = pgTable("documents", {
   fileSize: integer("file_size").notNull(),
   mimeType: text("mime_type").notNull(),
   version: integer("version").notNull().default(1),
-  status: text("status").$type<DocumentStatus>().notNull().default("review_required"),
+  status: text("status").$type<DocumentStatus>().notNull().default("approval_required"),
   approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default("pending"),
   reviewDate: timestamp("review_date"),
   expiryDate: timestamp("expiry_date"),
@@ -1023,14 +1023,14 @@ export interface ComplianceSummary {
   // Slot-based compliance (required documents only)
   totalDocuments: number;
   compliantDocuments: number;
-  reviewRequired: number;
+  approvalRequired: number;
   overdueDocuments: number;
   missingRequiredDocuments: number;
   complianceScore: number;
   // All-document progress stats (includes non-required docs)
   allDocuments: number;
   allCompliantDocuments: number;
-  allReviewRequired: number;
+  allApprovalRequired: number;
   allOverdueDocuments: number;
   // Approval workflow (all docs)
   pendingApprovals: number;

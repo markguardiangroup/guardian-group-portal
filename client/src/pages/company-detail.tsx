@@ -1880,12 +1880,12 @@ export default function CompanyDetail() {
       if (site.complianceSummary) {
         acc.totalDocuments += site.complianceSummary.totalDocuments;
         acc.compliantDocuments += site.complianceSummary.compliantDocuments;
-        acc.reviewRequired += site.complianceSummary.reviewRequired;
+        acc.approvalRequired += site.complianceSummary.approvalRequired;
         acc.overdueDocuments += site.complianceSummary.overdueDocuments;
       }
       return acc;
     },
-    { totalDocuments: 0, compliantDocuments: 0, reviewRequired: 0, overdueDocuments: 0 }
+    { totalDocuments: 0, compliantDocuments: 0, approvalRequired: 0, overdueDocuments: 0 }
   );
 
   const complianceScore = aggregatedCompliance.totalDocuments > 0

@@ -713,7 +713,7 @@ export class MemStorage implements IStorage {
       for (const d of matchingDocs) {
         if (d.status === "compliant") slotCompliantDocs++;
         else if (d.status === "overdue") slotOverdue++;
-        else if (d.status === "review_required") slotReview++;
+        else if (d.status === "approval_required") slotReview++;
       }
     }
 
@@ -724,15 +724,15 @@ export class MemStorage implements IStorage {
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const review = slotReview + manualRequired.filter(d => d.status === "review_required").length;
+    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
     const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    const scoreDenominator = compliant + review + overdue + missingRequired;
+    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
 
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      reviewRequired: review,
+      approvalRequired,
       overdueDocuments: overdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
@@ -1178,7 +1178,7 @@ export class MemStorage implements IStorage {
         matchingDocs.forEach(d => {
           if (d.status === "compliant") slotCompliantDocs++;
           else if (d.status === "overdue") slotOverdue++;
-          else if (d.status === "review_required") slotReview++;
+          else if (d.status === "approval_required") slotReview++;
         });
       }
     }
@@ -1190,17 +1190,17 @@ export class MemStorage implements IStorage {
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const review = slotReview + manualRequired.filter(d => d.status === "review_required").length;
+    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
     const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     // Compliance score: compliant / (compliant + not compliant + missing)
-    // Ties the percentage directly to the three tiles shown on the dashboard card.
-    const scoreDenominator = compliant + review + overdue + missingRequired;
+    // Ties the percentage directly to the four tiles shown on the dashboard card.
+    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
     
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      reviewRequired: review,
+      approvalRequired,
       overdueDocuments: overdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
@@ -1299,7 +1299,7 @@ export class MemStorage implements IStorage {
       documentTypeId: insertDocument.documentTypeId ?? null,
       folderId: insertDocument.folderId ?? null,
       version: insertDocument.version ?? 1,
-      status: (insertDocument.status ?? "review_required") as any,
+      status: (insertDocument.status ?? "approval_required") as any,
       approvalStatus: (insertDocument.approvalStatus ?? "pending") as any,
       reviewDate: insertDocument.reviewDate ?? null,
       expiryDate: insertDocument.expiryDate ?? null,
@@ -1867,14 +1867,14 @@ export class MemStorage implements IStorage {
 
     const total = docs.length + missingRequired;
     const compliant = docs.filter(d => d.status === "compliant").length;
-    const review = docs.filter(d => d.status === "review_required").length;
+    const review = docs.filter(d => d.status === "approval_required").length;
     const overdue = docs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      reviewRequired: review,
+      approvalRequired: review,
       overdueDocuments: overdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
@@ -1927,7 +1927,7 @@ export class MemStorage implements IStorage {
       
       const total = docs.length;
       const compliant = docs.filter(d => d.status === "compliant").length;
-      const review = docs.filter(d => d.status === "review_required").length;
+      const review = docs.filter(d => d.status === "approval_required").length;
       const overdue = docs.filter(d => d.status === "overdue").length;
       const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       
@@ -1936,7 +1936,7 @@ export class MemStorage implements IStorage {
         moduleName: moduleNames[module],
         totalDocuments: total,
         compliantDocuments: compliant,
-        reviewRequired: review,
+        approvalRequired: review,
         overdueDocuments: overdue,
         missingRequiredDocuments: 0,
         pendingApprovals: pending,
@@ -4703,7 +4703,6 @@ export class MemStorage implements IStorage {
           eq(documentsTable.status, "compliant"),
           eq(documentsTable.isArchived, false),
           or(
-            and(isNotNull(documentsTable.reviewDate), sql`${documentsTable.reviewDate} < ${now}`),
             and(isNotNull(documentsTable.expiryDate), sql`${documentsTable.expiryDate} < ${now}`)
           )
         )

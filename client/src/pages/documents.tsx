@@ -137,7 +137,7 @@ function getFileExtension(fileName?: string | null): string {
 interface FolderStats {
   totalDocuments: number;
   compliant: number;
-  reviewRequired: number;
+  approvalRequired: number;
   overdue: number;
   pendingApproval?: number;
   requiredTemplates: number;
@@ -185,7 +185,7 @@ interface DocumentsHierarchyResponse {
     totalFolders: number;
     totalDocuments: number;
     compliant: number;
-    reviewRequired: number;
+    approvalRequired: number;
     overdue: number;
   };
 }
@@ -719,7 +719,7 @@ function DocumentsListView() {
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{hierarchy.summary.reviewRequired} Review Required</span>
+                      <span>{hierarchy.summary.approvalRequired} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
@@ -1027,7 +1027,7 @@ function DocumentsListView() {
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="compliant">Compliant</SelectItem>
-                    <SelectItem value="review_required">Review Required</SelectItem>
+                    <SelectItem value="approval_required">Approval Required</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
                   </SelectContent>
                 </Select>

@@ -1652,7 +1652,7 @@ export async function registerRoutes(
 
     let slotTotal = 0;
     let slotCompliantDocs = 0;  // individual compliant docs in required slots (used for display)
-    let slotReview = 0;
+    let slotApprovalRequired = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
     const consumedDocIds = new Set<string>();
@@ -1691,12 +1691,10 @@ export async function registerRoutes(
         // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
         const _now = new Date();
         matchingDocs.forEach(d => {
-          const dateOverdue =
-            (d.reviewDate && new Date(d.reviewDate) < _now) ||
-            (d.expiryDate && new Date(d.expiryDate) < _now);
+          const dateOverdue = d.expiryDate && new Date(d.expiryDate) < _now;
           if (d.status === "compliant") slotCompliantDocs++;
           else if (d.status === "overdue" || dateOverdue) slotOverdue++;
-          else if (d.status === "review_required") slotReview++;
+          else if (d.status === "approval_required") slotApprovalRequired++;
         });
       }
 
@@ -1734,19 +1732,18 @@ export async function registerRoutes(
     const _manualNow = new Date();
     const isManualOverdue = (d: any) =>
       d.status === "overdue" ||
-      (d.reviewDate && new Date(d.reviewDate) < _manualNow) ||
       (d.expiryDate && new Date(d.expiryDate) < _manualNow);
     const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d)).length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
-    const reviewRequired = slotReview + manualRequired.filter(d => d.status === "review_required" && !isManualOverdue(d)).length;
+    const approvalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isManualOverdue(d)).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
     // Compliance score: compliant / (compliant + not compliant + missing)
-    // This ties the percentage directly to the three tiles shown on the dashboard card.
-    const complianceScoreDenominator = compliantDocuments + reviewRequired + overdueDocuments + missingRequiredDocuments;
+    // This ties the percentage directly to the four tiles shown on the dashboard card.
+    const complianceScoreDenominator = compliantDocuments + approvalRequired + overdueDocuments + missingRequiredDocuments;
     const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
-    return { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
+    return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
 
   interface MissingRequiredTemplateDetail {
@@ -2269,7 +2266,7 @@ export async function registerRoutes(
       const complianceResult = await computeSlotBasedCompliance(
         user, documents, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
-      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
@@ -2284,11 +2281,10 @@ export async function registerRoutes(
       const _progNow = new Date();
       const isDocOverdue = (d: any) =>
         d.status === "overdue" ||
-        (d.reviewDate && new Date(d.reviewDate) < _progNow) ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow);
       const allDocumentsCount = docProgressSet.length;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
-      const allReviewRequired = docProgressSet.filter(d => d.status === "review_required" && !isDocOverdue(d)).length;
+      const allApprovalRequired = docProgressSet.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
       const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2326,13 +2322,13 @@ export async function registerRoutes(
       const summary = {
         totalDocuments,
         compliantDocuments,
-        reviewRequired,
+        approvalRequired,
         overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
         allDocuments: allDocumentsCount,
         allCompliantDocuments,
-        allReviewRequired,
+        allApprovalRequired,
         allOverdueDocuments,
         pendingApprovals,
         awaitingYourApproval,
@@ -2345,8 +2341,8 @@ export async function registerRoutes(
       
       const now = new Date();
       const upcomingReviews = documents
-        .filter(doc => doc.reviewDate && new Date(doc.reviewDate) > now)
-        .sort((a, b) => new Date(a.reviewDate!).getTime() - new Date(b.reviewDate!).getTime())
+        .filter(doc => doc.renewalDate && new Date(doc.renewalDate) > now)
+        .sort((a, b) => new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime())
         .slice(0, 5);
       
       const recentActivity = auditLogs.slice(0, 10);
@@ -2436,7 +2432,7 @@ export async function registerRoutes(
       
       // Slot-based compliance calculation: each required template contributes exactly one slot
       const complianceResult = await computeSlotBasedCompliance(user, documents, module);
-      const { totalDocuments, compliantDocuments, reviewRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
@@ -2451,11 +2447,10 @@ export async function registerRoutes(
       const _progNow2 = new Date();
       const isDocOverdue2 = (d: any) =>
         d.status === "overdue" ||
-        (d.reviewDate && new Date(d.reviewDate) < _progNow2) ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow2);
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
-      const allReviewProgress = allNonCaseDocs.filter(d => d.status === "review_required" && !isDocOverdue2(d)).length;
+      const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.status === "approval_required" && !isDocOverdue2(d)).length;
       const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2493,13 +2488,13 @@ export async function registerRoutes(
       const summary = {
         totalDocuments,
         compliantDocuments,
-        reviewRequired,
+        approvalRequired,
         overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
         allDocuments: allDocsProgress,
         allCompliantDocuments: allCompliantProgress,
-        allReviewRequired: allReviewProgress,
+        allApprovalRequired: allApprovalRequiredProgress,
         allOverdueDocuments: allOverdueProgress,
         pendingApprovals,
         awaitingYourApproval,
@@ -2512,8 +2507,8 @@ export async function registerRoutes(
       
       const now = new Date();
       const upcomingReviews = documents
-        .filter(doc => doc.reviewDate && new Date(doc.reviewDate) > now)
-        .sort((a, b) => new Date(a.reviewDate!).getTime() - new Date(b.reviewDate!).getTime())
+        .filter(doc => doc.renewalDate && new Date(doc.renewalDate) > now)
+        .sort((a, b) => new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime())
         .slice(0, 5);
       
       const recentActivity = auditLogs.slice(0, 10);
@@ -2678,24 +2673,24 @@ export async function registerRoutes(
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
         const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
-        const siteReview = moduleDocs.filter(d => d.status === "review_required").length;
+        const siteApprovalRequired = moduleDocs.filter(d => d.status === "approval_required").length;
         const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
         const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
         // Add scoped doc expansion counts for this module
         const modScoped = scopedExpansions.filter(e => e.module === mod);
-        let scopedTotal = 0, scopedCompliant = 0, scopedReview = 0, scopedOverdue = 0, scopedPending = 0;
+        let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0, scopedPending = 0;
         for (const { status, approvalStatus, siteCount: n } of modScoped) {
           scopedTotal += n;
           if (status === "compliant") scopedCompliant += n;
-          else if (status === "review_required") scopedReview += n;
+          else if (status === "approval_required") scopedApprovalRequired += n;
           else if (status === "overdue") scopedOverdue += n;
           if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
         }
 
         const allDocsCount = siteCount + scopedTotal;
         const allCompliant = siteCompliant + scopedCompliant;
-        const allReview = siteReview + scopedReview;
+        const allApprovalRequired = siteApprovalRequired + scopedApprovalRequired;
         const allOverdue = siteOverdue + scopedOverdue;
         const pending = sitePending + scopedPending;
 
@@ -2713,7 +2708,7 @@ export async function registerRoutes(
             ...compliance,
             allDocuments: allDocsCount,
             allCompliantDocuments: allCompliant,
-            allReviewRequired: allReview,
+            allApprovalRequired,
             allOverdueDocuments: allOverdue,
             pendingApprovals: pending,
             awaitingYourApproval: 0,
@@ -2725,13 +2720,13 @@ export async function registerRoutes(
           moduleName: moduleNames[mod],
           totalDocuments: allDocsCount,
           compliantDocuments: allCompliant,
-          reviewRequired: allReview,
+          approvalRequired: allApprovalRequired,
           overdueDocuments: allOverdue,
           missingRequiredDocuments: 0,
           complianceScore: allDocsCount > 0 ? Math.round((allCompliant / allDocsCount) * 100) : 0,
           allDocuments: allDocsCount,
           allCompliantDocuments: allCompliant,
-          allReviewRequired: allReview,
+          allApprovalRequired,
           allOverdueDocuments: allOverdue,
           pendingApprovals: pending,
           awaitingYourApproval: 0,
@@ -3118,7 +3113,7 @@ export async function registerRoutes(
       });
       
       // Check if template requires approval
-      let newStatus: "review_required" | "compliant" = "review_required";
+      let newStatus: "approval_required" | "compliant" = "approval_required";
       let newApprovalStatus: "pending" | null = "pending";
       
       if (document.templateId) {
@@ -3544,7 +3539,7 @@ export async function registerRoutes(
       }
       
       // Check if approval is required
-      let documentStatus: "review_required" | "compliant" = "review_required";
+      let documentStatus: "approval_required" | "compliant" = "approval_required";
       let documentApprovalStatus: string = "pending";
       let isAutoApproved = false;
       
@@ -3636,7 +3631,7 @@ export async function registerRoutes(
       }
 
       // Send approval notification emails if document requires approval
-      if (documentStatus === "review_required" && body.notifyUserIds && body.notifyUserIds.length > 0) {
+      if (documentStatus === "approval_required" && body.notifyUserIds && body.notifyUserIds.length > 0) {
         const site = body.siteId ? await storage.getSite(body.siteId) : null;
         const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
         
@@ -3940,7 +3935,7 @@ export async function registerRoutes(
       }
 
       let approvalStatus: "approved" | "rejected" | "changes_requested" | "client_signed_off";
-      let documentStatus: "compliant" | "review_required" | "overdue";
+      let documentStatus: "compliant" | "approval_required" | "overdue";
       let auditAction: "document_approved" | "document_rejected" | "changes_requested" | "document_signed_off";
 
       switch (action) {
@@ -3948,7 +3943,7 @@ export async function registerRoutes(
           if (isClientSignOff) {
             // Client sign-off: move to awaiting consultant final approval
             approvalStatus = "client_signed_off";
-            documentStatus = "review_required"; // Still needs final approval
+            documentStatus = "approval_required"; // Still needs final approval
             auditAction = "document_signed_off";
           } else {
             // Consultant final approval or direct approval of client doc
@@ -3964,7 +3959,7 @@ export async function registerRoutes(
           break;
         case "changes":
           approvalStatus = "changes_requested";
-          documentStatus = "review_required";
+          documentStatus = "approval_required";
           auditAction = "changes_requested";
           break;
         default:
@@ -4288,10 +4283,6 @@ export async function registerRoutes(
       if ("renewalDate" in body) {
         body.renewalDate = body.renewalDate ? new Date(body.renewalDate) : null;
       }
-      if ("reviewDate" in body) {
-        body.reviewDate = body.reviewDate ? new Date(body.reviewDate) : null;
-      }
-
       // When renewalPeriodMonths is being updated, recalculate renewalDate server-side.
       // Renewal date only exists when the document is approved.
       if ("renewalPeriodMonths" in body) {
@@ -4314,7 +4305,7 @@ export async function registerRoutes(
         if (newExpiryDate && new Date(newExpiryDate) < now) {
           body.status = "overdue";
         } else if (newRenewalDate && new Date(newRenewalDate) < now) {
-          body.status = "review_required";
+          body.status = "approval_required";
         } else {
           body.status = "compliant";
         }
@@ -8737,7 +8728,6 @@ export async function registerRoutes(
         const dates: { date: Date; type: string }[] = [];
         if (doc.expiryDate) dates.push({ date: new Date(doc.expiryDate), type: "expiry" });
         if (doc.renewalDate) dates.push({ date: new Date(doc.renewalDate), type: "renewal" });
-        if (doc.reviewDate) dates.push({ date: new Date(doc.reviewDate), type: "review" });
 
         if (dates.length === 0) continue;
 
@@ -11282,7 +11272,7 @@ export async function registerRoutes(
           });
           const nonArchivedRequired = requiredFolderDocuments.filter(d => !d.isArchived);
           const compliantCount = nonArchivedRequired.filter(d => d.status === "compliant").length;
-          const reviewRequiredCount = nonArchivedRequired.filter(d => d.status === "review_required").length;
+          const reviewRequiredCount = nonArchivedRequired.filter(d => d.status === "approval_required").length;
           const overdueCount = nonArchivedRequired.filter(d => d.status === "overdue").length;
           const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")).length;
           
@@ -11354,7 +11344,7 @@ export async function registerRoutes(
               stats: {
                 totalDocuments: childFolderDocs.length + sharedForChildFolder.length,
                 compliant: childFolderDocs.filter(d => !d.isArchived && d.status === "compliant" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
-                reviewRequired: childFolderDocs.filter(d => !d.isArchived && d.status === "review_required" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                approvalRequired: childFolderDocs.filter(d => !d.isArchived && d.status === "approval_required" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 overdue: childFolderDocs.filter(d => !d.isArchived && d.status === "overdue" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 requiredTemplates: childRequiredTemplates.length,
                 fulfilledRequired: childFulfilledCount,
@@ -11432,7 +11422,7 @@ export async function registerRoutes(
                 stats: {
                   totalDocuments: dynamicFolderDocs.length,
                   compliant: dynamicFolderDocs.filter(d => d.status === "compliant").length,
-                  reviewRequired: dynamicFolderDocs.filter(d => d.status === "review_required").length,
+                  approvalRequired: dynamicFolderDocs.filter(d => d.status === "approval_required").length,
                   overdue: dynamicFolderDocs.filter(d => d.status === "overdue").length,
                   requiredTemplates: 0,
                   fulfilledRequired: 0,
@@ -11445,7 +11435,7 @@ export async function registerRoutes(
           // Calculate aggregate stats including child folder documents
           const childDocsTotal = childFolders.reduce((sum, cf) => sum + (cf.stats?.totalDocuments || 0), 0);
           const childCompliant = childFolders.reduce((sum, cf) => sum + (cf.stats?.compliant || 0), 0);
-          const childReviewRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.reviewRequired || 0), 0);
+          const childReviewRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.approvalRequired || 0), 0);
           const childOverdue = childFolders.reduce((sum, cf) => sum + (cf.stats?.overdue || 0), 0);
           
           return {
@@ -11482,7 +11472,7 @@ export async function registerRoutes(
             stats: {
               totalDocuments: folderDocuments.length + childDocsTotal + sharedForThisFolder.length,
               compliant: compliantCount + childCompliant,
-              reviewRequired: reviewRequiredCount + childReviewRequired,
+              approvalRequired: reviewRequiredCount + childReviewRequired,
               overdue: overdueCount + childOverdue,
               pendingApproval: pendingApprovalCount,
               requiredTemplates: requiredTemplates.length,
@@ -11619,7 +11609,7 @@ export async function registerRoutes(
             totalFolders: hierarchy.length,
             totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
             approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
-            reviewRequired: allNonArchivedDocs.filter((d: any) => d.status === "review_required").length,
+            approvalRequired: allNonArchivedDocs.filter((d: any) => d.status === "approval_required").length,
             overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
           };
         })(),
@@ -16746,7 +16736,7 @@ export async function registerRoutes(
         : filteredDocs; // admins see everything, including company-scoped docs
 
       const overdueCount = countableDocs.filter((d) => d.status === "overdue").length;
-      const reviewCount = countableDocs.filter((d) => d.status === "review_required").length;
+      const reviewCount = countableDocs.filter((d) => d.status === "approval_required").length;
       const pendingCount = countableDocs.filter((d) => d.approvalStatus === "pending").length;
       // Docs awaiting THIS client's sign-off: pending status, uploaded by someone else (consultant/admin)
       const pendingSignOffs = user.role === "client"
@@ -16925,7 +16915,7 @@ export async function registerRoutes(
       res.json({
         urgentActions: {
           overdueDocuments: overdueCount,
-          reviewRequiredDocuments: reviewCount,
+          approvalRequiredDocuments: reviewCount,
           pendingApprovals: pendingCount,
           openIncidents: openIncidentCount,
           pendingSignOffs,
@@ -16974,13 +16964,13 @@ export async function registerRoutes(
       type SummaryItem = { id: string; label: string; subLabel: string | null; href: string; badge: string | null; badgeColor: string | null };
       let items: SummaryItem[] = [];
 
-      if (["overdue_documents", "review_required", "pending_approvals", "pending_sign_offs"].includes(type)) {
+      if (["overdue_documents", "approval_required", "pending_approvals", "pending_sign_offs"].includes(type)) {
         if (type === "pending_approvals" && !isPrivileged) return res.json({ type, items: [] });
         if (userSiteIds?.length === 0) return res.json({ type, items: [] });
 
         const filterClause =
           type === "overdue_documents" ? "d.status = 'overdue'" :
-          type === "review_required" ? "d.status = 'review_required'" :
+          type === "approval_required" ? "d.status = 'approval_required'" :
           "d.approval_status = 'pending'";
 
         const params: unknown[] = [];

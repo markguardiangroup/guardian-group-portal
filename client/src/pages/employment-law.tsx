@@ -4545,11 +4545,11 @@ function EmploymentLawDashboardView() {
     if (!docsDialogFilter) return [];
     switch (docsDialogFilter) {
       case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
-      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "review_required"));
+      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "approval_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
       case "total": return filteredModuleDocs.filter(d => !!d.isRequired);
       case "all_compliant": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "compliant");
-      case "all_review": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "review_required");
+      case "all_review": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "approval_required");
       case "all_overdue": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "overdue");
       default: return [];
     }
@@ -4557,7 +4557,7 @@ function EmploymentLawDashboardView() {
 
   const statusColorMap: Record<string, string> = {
     compliant: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    review_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    approval_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   };
 
@@ -4632,7 +4632,7 @@ function EmploymentLawDashboardView() {
         {(() => {
           const score = summary?.complianceScore || 0;
           const compliantCount = summary?.compliantDocuments || 0;
-          const nonCompliantCount = (summary?.overdueDocuments || 0) + (summary?.reviewRequired || 0);
+          const nonCompliantCount = (summary?.overdueDocuments || 0) + (summary?.approvalRequired || 0);
           const documentsMissingCount = summary?.missingRequiredDocuments || 0;
           const scoreColor = score >= 90 ? "text-emerald-600 dark:text-emerald-400" : score >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = score >= 90 ? "bg-emerald-500" : score >= 70 ? "bg-amber-500" : "bg-red-500";
@@ -4749,15 +4749,15 @@ function EmploymentLawDashboardView() {
                   <p className="text-xs text-muted-foreground">Complete</p>
                 </button>
                 <button
-                  onClick={() => (summary?.allReviewRequired || 0) > 0 && setDocsDialogFilter("all_review")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(summary?.allReviewRequired || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => (summary?.allApprovalRequired || 0) > 0 && setDocsDialogFilter("all_review")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(summary?.allApprovalRequired || 0) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-el-review"
                 >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                     <Clock className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary?.allReviewRequired || 0}</span>
+                    <span className="text-2xl font-semibold">{summary?.allApprovalRequired || 0}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Review Required</p>
+                  <p className="text-xs text-muted-foreground">Approval Required</p>
                 </button>
                 <button
                   onClick={() => (summary?.allOverdueDocuments || 0) > 0 && setDocsDialogFilter("all_overdue")}
@@ -4957,11 +4957,11 @@ function EmploymentLawDashboardView() {
                         </div>
                       </div>
                       <Badge 
-                        variant={doc.status === "compliant" ? "default" : doc.status === "review_required" ? "secondary" : "destructive"}
+                        variant={doc.status === "compliant" ? "default" : doc.status === "approval_required" ? "secondary" : "destructive"}
                         className={doc.status === "compliant" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : ""}
                         data-testid={`badge-document-status-${doc.id}`}
                       >
-                        {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review" : "Overdue"}
+                        {doc.status === "compliant" ? "Compliant" : doc.status === "approval_required" ? "Approval Required" : "Overdue"}
                       </Badge>
                     </div>
                   ))}
@@ -5061,7 +5061,7 @@ function EmploymentLawDashboardView() {
                       <p className="text-xs text-muted-foreground">{siteNameMap[doc.siteId] || doc.siteId}</p>
                     </div>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${statusColorMap[doc.status] || ""}`}>
-                      {doc.status === "compliant" ? "Compliant" : doc.status === "review_required" ? "Review Required" : "Overdue"}
+                      {doc.status === "compliant" ? "Compliant" : doc.status === "approval_required" ? "Approval Required" : "Overdue"}
                     </span>
                   </div>
                 ))}

@@ -3980,6 +3980,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T12:56:01.809Z",
           "createdBy": "System"
+        },
+        {
+          "id": "b7e3d1c2-approval-required-redesign-2026",
+          "patch": 10,
+          "message": "Compliance engine redesigned: 'Review Required' renamed to 'Approval Required' throughout, compliance tiles updated to Total|Non Compliant|Overdue|Approval Required across all views",
+          "category": "feature",
+          "createdAt": "2026-05-13T15:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

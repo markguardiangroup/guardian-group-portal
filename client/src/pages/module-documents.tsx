@@ -252,7 +252,7 @@ interface HierarchyFolder {
   stats: {
     totalDocuments: number;
     compliant: number;
-    reviewRequired: number;
+    approvalRequired: number;
     overdue: number;
   };
 }
@@ -264,7 +264,7 @@ interface DocumentHierarchy {
   summary: {
     totalDocuments: number;
     approved: number;
-    reviewRequired: number;
+    approvalRequired: number;
     overdue: number;
     totalFolders: number;
     requiredFolders: number;
@@ -913,7 +913,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Get folder status badge - colors match document-level RAGBadge for consistency
   const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
     if (stats.overdue > 0) return { variant: "outline" as const, label: "Attention Needed", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" };
-    if (stats.reviewRequired > 0) return { variant: "outline" as const, label: "Review Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" };
+    if (stats.approvalRequired > 0) return { variant: "outline" as const, label: "Approval Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" };
     return null;
   };
   
@@ -1232,10 +1232,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Compute how many extra virtual rows were added per folder (and a banner total)
   // so that displayed counts stay consistent with the expanded rows.
   const sharedExpansionDeltas = useMemo(() => {
-    const empty = { byFolder: new Map<string, { totalDocuments: number; approved: number; reviewRequired: number; overdue: number }>(), summary: { totalDocuments: 0, approved: 0, reviewRequired: 0, overdue: 0 } };
+    const empty = { byFolder: new Map<string, { totalDocuments: number; approved: number; approvalRequired: number; overdue: number }>(), summary: { totalDocuments: 0, approved: 0, approvalRequired: 0, overdue: 0 } };
     const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
     if (!isAllSites || filteredSites.length <= 1) return empty;
-    const byFolder = new Map<string, { totalDocuments: number; approved: number; reviewRequired: number; overdue: number }>();
+    const byFolder = new Map<string, { totalDocuments: number; approved: number; approvalRequired: number; overdue: number }>();
     let sTotal = 0, sApproved = 0, sReview = 0, sOverdue = 0;
     for (const [folderId, expandedDocs] of expandedSharedByFolderTemplate.entries()) {
       const originalDocs = sharedByFolderTemplate.get(folderId) ?? [];
@@ -1244,13 +1244,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const delta = {
         totalDocuments: expandedDocs.length - originalDocs.length,
         approved: virtualRows.filter(d => (d as any).approvalStatus === "approved").length - originalDocs.filter(d => (d as any).approvalStatus === "approved").length,
-        reviewRequired: virtualRows.filter(d => d.status === "review_required").length - originalDocs.filter(d => d.status === "review_required").length,
+        approvalRequired: virtualRows.filter(d => d.status === "approval_required").length - originalDocs.filter(d => d.status === "approval_required").length,
         overdue: virtualRows.filter(d => d.status === "overdue").length - originalDocs.filter(d => d.status === "overdue").length,
       };
       byFolder.set(folderId, delta);
-      sTotal += delta.totalDocuments; sApproved += delta.approved; sReview += delta.reviewRequired; sOverdue += delta.overdue;
+      sTotal += delta.totalDocuments; sApproved += delta.approved; sReview += delta.approvalRequired; sOverdue += delta.overdue;
     }
-    return { byFolder, summary: { totalDocuments: sTotal, approved: sApproved, reviewRequired: sReview, overdue: sOverdue } };
+    return { byFolder, summary: { totalDocuments: sTotal, approved: sApproved, approvalRequired: sReview, overdue: sOverdue } };
   }, [expandedSharedByFolderTemplate, sharedByFolderTemplate, selectedSiteId, filteredSites]);
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
@@ -1581,7 +1581,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const computeStats = (docs: any[]) => ({
                     totalDocuments: docs.length,
                     compliant: docs.filter((d: any) => d.status === "compliant").length,
-                    reviewRequired: docs.filter((d: any) => d.status === "review_required").length,
+                    approvalRequired: docs.filter((d: any) => d.status === "approval_required").length,
                     overdue: docs.filter((d: any) => d.status === "overdue").length,
                     requiredTemplates: 0,
                     fulfilledRequired: 0,
@@ -1781,7 +1781,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{((hierarchy.summary.reviewRequired ?? 0) + (sharedExpansionDeltas.summary.reviewRequired ?? 0))} Review Required</span>
+                      <span>{((hierarchy.summary.approvalRequired ?? 0) + (sharedExpansionDeltas.summary.approvalRequired ?? 0))} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
@@ -1811,7 +1811,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     const adjustedFolderStats = folderDelta ? {
                       totalDocuments: folder.stats.totalDocuments + folderDelta.totalDocuments,
                       compliant: folder.stats.compliant + folderDelta.compliant,
-                      reviewRequired: folder.stats.reviewRequired + folderDelta.reviewRequired,
+                      approvalRequired: folder.stats.approvalRequired + folderDelta.approvalRequired,
                       overdue: folder.stats.overdue + folderDelta.overdue,
                     } : folder.stats;
                     const statusBadge = getFolderStatusBadge(adjustedFolderStats);
@@ -1850,11 +1850,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               <Accordion type="multiple" className="space-y-2 mb-4">
                                 {(folder as any).childFolders.map((childFolder: any) => {
                                   const childDelta = sharedExpansionDeltas.byFolder.get(childFolder.id);
-                                  const baseChildStats = childFolder.stats || { totalDocuments: 0, compliant: 0, reviewRequired: 0, overdue: 0 };
+                                  const baseChildStats = childFolder.stats || { totalDocuments: 0, compliant: 0, approvalRequired: 0, overdue: 0 };
                                   const adjustedChildStats = childDelta ? {
                                     totalDocuments: baseChildStats.totalDocuments + childDelta.totalDocuments,
                                     compliant: baseChildStats.compliant + childDelta.compliant,
-                                    reviewRequired: baseChildStats.reviewRequired + childDelta.reviewRequired,
+                                    approvalRequired: baseChildStats.approvalRequired + childDelta.approvalRequired,
                                     overdue: baseChildStats.overdue + childDelta.overdue,
                                   } : baseChildStats;
                                   const childStatusBadge = getFolderStatusBadge(adjustedChildStats);
@@ -2256,7 +2256,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="compliant">Compliant</SelectItem>
-                  <SelectItem value="review_required">Review Required</SelectItem>
+                  <SelectItem value="approval_required">Approval Required</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
               </Select>

@@ -354,13 +354,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const summary = data?.summary || {
     totalDocuments: 0,
     compliantDocuments: 0,
-    reviewRequired: 0,
+    approvalRequired: 0,
     overdueDocuments: 0,
     missingRequiredDocuments: 0,
     complianceScore: 0,
     allDocuments: 0,
     allCompliantDocuments: 0,
-    allReviewRequired: 0,
+    allApprovalRequired: 0,
     allOverdueDocuments: 0,
     pendingApprovals: 0,
     awaitingYourApproval: 0,
@@ -417,11 +417,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     if (!docsDialogFilter) return [];
     switch (docsDialogFilter) {
       case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
-      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "review_required"));
+      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "approval_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
       case "total": return filteredModuleDocs;
       case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
-      case "all_review": return filteredModuleDocs.filter(d => d.status === "review_required");
+      case "all_review": return filteredModuleDocs.filter(d => d.status === "approval_required");
       case "all_overdue": return filteredModuleDocs.filter(d => d.status === "overdue");
       default: return [];
     }
@@ -433,14 +433,14 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     req_overdue: { title: "Overdue (Required Documents)" },
     total: { title: "All Documents" },
     all_compliant: { title: "All Compliant Documents" },
-    all_review: { title: "Review Required" },
+    all_review: { title: "Approval Required" },
     all_overdue: { title: "All Overdue Documents" },
   };
 
   const statusColorMap: Record<string, string> = {
     compliant: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
     complete: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    review_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    approval_required: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
   };
 
@@ -482,7 +482,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       const m = scopedDocMultiplier(doc);
       total += m;
       if (doc.status === "compliant") compliant += m;
-      else if (doc.status === "review_required") review += m;
+      else if (doc.status === "approval_required") review += m;
       else if (doc.status === "overdue") overdue += m;
     }
     return { total, compliant, review, overdue };
@@ -567,7 +567,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
         {(() => {
           const scoreColor = summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
           const scoreBg = summary.complianceScore >= 90 ? "bg-emerald-500" : summary.complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
-          const nonCompliantCount = summary.overdueDocuments + (summary.reviewRequired || 0);
+          const nonCompliantCount = summary.overdueDocuments + (summary.approvalRequired || 0);
           const documentsMissingCount = summary.missingRequiredDocuments || 0;
           return (
             <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-compliance-summary">
@@ -672,15 +672,15 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-xs text-muted-foreground">Complete</p>
                 </button>
                 <button
-                  onClick={() => summary.allReviewRequired > 0 && setDocsDialogFilter("all_review")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allReviewRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => summary.allApprovalRequired > 0 && setDocsDialogFilter("all_review")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allApprovalRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-review"
                 >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                     <Clock className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allReviewRequired}</span>
+                    <span className="text-2xl font-semibold">{summary.allApprovalRequired}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Review Required</p>
+                  <p className="text-xs text-muted-foreground">Approval Required</p>
                 </button>
                 <button
                   onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
@@ -969,7 +969,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 {expandedDocsDialogRows.map(({ doc, key, siteName }) => {
                   const isNonRequired = !doc.isRequired && doc.status === "compliant";
                   const statusKey = isNonRequired ? "complete" : doc.status;
-                  const statusLabel = doc.status === "review_required" ? "Review Required" : doc.status === "overdue" ? "Overdue" : isNonRequired ? "Complete" : "Compliant";
+                  const statusLabel = doc.status === "approval_required" ? "Approval Required" : doc.status === "overdue" ? "Overdue" : isNonRequired ? "Complete" : "Compliant";
                   return (
                     <div
                       key={key}

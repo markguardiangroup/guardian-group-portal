@@ -1003,7 +1003,7 @@ interface SiteWithCompliance {
   complianceSummary?: {
     totalDocuments: number;
     compliantDocuments: number;
-    reviewRequired: number;
+    approvalRequired: number;
     overdueDocuments: number;
     complianceScore: number;
   };
