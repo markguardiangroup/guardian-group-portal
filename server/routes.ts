@@ -15980,6 +15980,8 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const parsed = z.object({ serviceId: z.string().min(1) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+      const svc = await storage.getService(parsed.data.serviceId);
+      if (!svc || !svc.isActive) return res.status(400).json({ error: "Service is not active" });
       const row = await storage.addCompanyService(req.params.id, parsed.data.serviceId, user.fullName ?? user.username);
       res.status(201).json(row);
     } catch (error: any) {

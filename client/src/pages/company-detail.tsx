@@ -511,7 +511,14 @@ const SVC_MODULE_COLORS: Record<string, string> = {
 function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin: boolean }) {
   const { toast } = useToast();
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
+
+  const toggleServiceId = (id: string) =>
+    setSelectedServiceIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
 
   const { data: assigned = [], isLoading } = useQuery<ServiceEntry[]>({
     queryKey: ["/api/companies", companyId, "services"],
@@ -536,15 +543,20 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
   const available = allServices.filter(s => !assignedIds.has(s.id));
 
   const addMutation = useMutation({
-    mutationFn: async (serviceId: string) => {
-      const res = await apiRequest("POST", `/api/companies/${companyId}/services`, { serviceId });
-      return res.json();
+    mutationFn: async (serviceIds: string[]) => {
+      for (const serviceId of serviceIds) {
+        const res = await apiRequest("POST", `/api/companies/${companyId}/services`, { serviceId });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? "Failed to assign service");
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "services"] });
       setPickerOpen(false);
-      setSelectedServiceId("");
-      toast({ title: "Service assigned" });
+      setSelectedServiceIds(new Set());
+      toast({ title: "Service(s) assigned" });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to assign service", description: error.message, variant: "destructive" });
@@ -656,54 +668,66 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
 
       {/* Service picker dialog */}
       {isAdmin && (
-        <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <Dialog open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (!open) setSelectedServiceIds(new Set()); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Add Service</DialogTitle>
-              <DialogDescription>Select an active service to assign to this company.</DialogDescription>
+              <DialogTitle>Add Services</DialogTitle>
+              <DialogDescription>Select one or more active services to assign to this company.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               {available.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">All active services are already assigned.</p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {available.map(svc => (
-                    <button
-                      key={svc.id}
-                      data-testid={`option-service-${svc.id}`}
-                      onClick={() => setSelectedServiceId(svc.id)}
-                      className={`w-full text-left px-3 py-2.5 rounded-md border text-sm transition-colors ${
-                        selectedServiceId === svc.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-muted/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded shrink-0">{svc.productCode}</span>
-                          <span className="font-medium truncate">{svc.title}</span>
+                  {available.map(svc => {
+                    const checked = selectedServiceIds.has(svc.id);
+                    return (
+                      <button
+                        key={svc.id}
+                        data-testid={`option-service-${svc.id}`}
+                        onClick={() => toggleServiceId(svc.id)}
+                        className={`w-full text-left px-3 py-2.5 rounded-md border text-sm transition-colors ${
+                          checked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <input
+                              type="checkbox"
+                              readOnly
+                              checked={checked}
+                              className="shrink-0 accent-primary pointer-events-none"
+                              data-testid={`checkbox-service-${svc.id}`}
+                            />
+                            <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded shrink-0">{svc.productCode}</span>
+                            <span className="font-medium truncate">{svc.title}</span>
+                          </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${SVC_MODULE_COLORS[svc.module]}`}>
+                            {SVC_MODULE_LABELS[svc.module]}
+                          </span>
                         </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${SVC_MODULE_COLORS[svc.module]}`}>
-                          {SVC_MODULE_LABELS[svc.module]}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
-                        <span>Price: £{parseFloat(svc.priceGbp).toFixed(2)}</span>
-                        <span>Benchmark: £{parseFloat(svc.benchmarkPriceGbp).toFixed(2)}</span>
-                      </div>
-                    </button>
-                  ))}
+                        <div className="mt-1 ml-5 flex gap-4 text-xs text-muted-foreground">
+                          <span>Price: £{parseFloat(svc.priceGbp).toFixed(2)}</span>
+                          <span>Benchmark: £{parseFloat(svc.benchmarkPriceGbp).toFixed(2)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => { setPickerOpen(false); setSelectedServiceId(""); }}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setPickerOpen(false); setSelectedServiceIds(new Set()); }}>Cancel</Button>
               <Button
-                onClick={() => selectedServiceId && addMutation.mutate(selectedServiceId)}
-                disabled={!selectedServiceId || addMutation.isPending}
+                onClick={() => addMutation.mutate(Array.from(selectedServiceIds))}
+                disabled={selectedServiceIds.size === 0 || addMutation.isPending}
                 data-testid="button-confirm-add-service"
               >
-                {addMutation.isPending ? "Assigning…" : "Assign Service"}
+                {addMutation.isPending
+                  ? "Assigning…"
+                  : selectedServiceIds.size > 1
+                    ? `Assign ${selectedServiceIds.size} Services`
+                    : "Assign Service"}
               </Button>
             </DialogFooter>
           </DialogContent>
