@@ -3399,10 +3399,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   <p>{document.uploadedByName || "Unknown"}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Review Date</p>
-                  <p>{document.renewalDate ? format(new Date(document.renewalDate), "MMM d, yyyy") : "Not set"}</p>
-                </div>
-                <div>
                   <p className="text-sm font-medium text-muted-foreground">Location</p>
                   <p>{getFolderPath((document as any).folderId)}</p>
                 </div>

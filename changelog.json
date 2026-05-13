@@ -4132,6 +4132,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T22:05:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "i8g2e5f9-remove-review-date-module-docs-panel-2026",
+          "patch": 10,
+          "message": "Fixed: Review Date row removed from Document Details panel",
+          "category": "bug",
+          "createdAt": "2026-05-13T22:15:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
