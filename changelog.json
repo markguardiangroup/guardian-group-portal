@@ -4100,6 +4100,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T21:15:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "e4c8a1b5-isrequired-toggle-updates-status-2026",
+          "patch": 10,
+          "message": "Toggling Required for Compliance now immediately updates document status",
+          "category": "bug",
+          "createdAt": "2026-05-13T21:25:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

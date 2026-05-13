@@ -4303,6 +4303,17 @@ export async function registerRoutes(
         }
       }
 
+      // Recalculate compliance status when isRequired is toggled
+      if ("isRequired" in body && doc.approvalStatus === "approved") {
+        if (body.isRequired && doc.status === "approved") {
+          // Toggled ON — doc was approved (non-required) → now required → compliant
+          body.status = "compliant";
+        } else if (!body.isRequired && doc.status === "compliant") {
+          // Toggled OFF — doc was compliant (required) → no longer required → approved
+          body.status = "approved";
+        }
+      }
+
       // Recalculate compliance status when dates are changed
       if (("expiryDate" in body || "renewalDate" in body) && doc.approvalStatus === "approved") {
         const now = new Date();
