@@ -669,7 +669,7 @@ function MyActionsPanel({ role }: { role: string }) {
               </Badge>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">Actions assigned directly to you — overdue or due within 14 days</p>
+          <p className="text-sm text-muted-foreground">Actions assigned directly to you — overdue or due within 14 days</p>
         </CardHeader>
         <CardContent className="pt-3">
           {isLoading ? (
