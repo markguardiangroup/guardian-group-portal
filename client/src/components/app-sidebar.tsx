@@ -250,6 +250,11 @@ const consultantNavItems = [
     permission: "trainingLibrary" as const,
   },
   {
+    title: "Services",
+    url: "/admin/services",
+    icon: PackageOpen,
+  },
+  {
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,

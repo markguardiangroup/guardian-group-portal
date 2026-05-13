@@ -629,7 +629,12 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
                     </span>
                   </td>
                   <td className="px-4 py-3 font-medium">
-                    {entry.service.title}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {entry.service.title}
+                      {!entry.service.isActive && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-normal">inactive</span>
+                      )}
+                    </div>
                     {entry.service.description && (
                       <p className="text-xs text-muted-foreground font-normal truncate max-w-[200px]">{entry.service.description}</p>
                     )}
