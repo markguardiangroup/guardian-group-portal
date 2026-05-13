@@ -4116,6 +4116,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T21:35:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "g6e0c3d7-sweep-approved-status-overdue-2026",
+          "patch": 10,
+          "message": "Fixed: nightly sweep now correctly marks expired Approved documents as Overdue",
+          "category": "bug",
+          "createdAt": "2026-05-13T21:50:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
