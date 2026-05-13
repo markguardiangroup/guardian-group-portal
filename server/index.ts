@@ -251,6 +251,23 @@ process.on("uncaughtException", (err) => {
     console.error("Startup company-status migration warning (non-fatal):", err);
   }
 
+  // One-time data migration: rename legacy document status "review_required" → "approval_required".
+  // Idempotent — safe to run on every startup.
+  try {
+    const { db } = await import("./db");
+    const { documents: documentsTable } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    const result = await db.update(documentsTable)
+      .set({ status: "approval_required" as any })
+      .where(eq(documentsTable.status, "review_required" as any));
+    const count = (result as any).rowCount ?? (result as any).count ?? 0;
+    if (count > 0) {
+      console.log(`[migration] Renamed ${count} document status(es) from 'review_required' to 'approval_required'.`);
+    }
+  } catch (err) {
+    console.error("Startup document-status migration warning (non-fatal):", err);
+  }
+
   // Run expired folder cleanup on startup and then daily
   storage.cleanupExpiredFolders().catch((err) =>
     console.error("Startup folder cleanup error:", err)

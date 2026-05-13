@@ -1691,10 +1691,11 @@ export async function registerRoutes(
         // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
         const _now = new Date();
         matchingDocs.forEach(d => {
-          const dateOverdue = d.expiryDate && new Date(d.expiryDate) < _now;
-          if (d.status === "compliant") slotCompliantDocs++;
-          else if (d.status === "overdue" || dateOverdue) slotOverdue++;
+          const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _now) ||
+            (d.renewalDate && new Date(d.renewalDate) < _now);
+          if (d.status === "overdue" || dateOverdue) slotOverdue++;
           else if (d.status === "approval_required") slotApprovalRequired++;
+          else if (d.status === "compliant") slotCompliantDocs++;
         });
       }
 
