@@ -42,11 +42,6 @@ export function DocumentStatusBadge({ status, approvalStatus, className }: Docum
     label = "Overdue";
     Icon = XCircle;
     statusClassName = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
-  } else if (status === "compliant") {
-    // A compliant document is always "Approved" regardless of how approvalStatus is stored
-    label = "Approved";
-    Icon = CheckCircle;
-    statusClassName = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
   } else if (status === "approval_required") {
     label = "Approval Required";
     Icon = AlertTriangle;
