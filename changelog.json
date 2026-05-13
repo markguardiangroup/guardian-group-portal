@@ -4140,6 +4140,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T22:15:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "j9h3f6g0-dashboard2-filters-sync-2026",
+          "patch": 10,
+          "message": "Fixed: company & site filters now populate when navigating to Compliance Overview from documents",
+          "category": "bug",
+          "createdAt": "2026-05-13T22:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

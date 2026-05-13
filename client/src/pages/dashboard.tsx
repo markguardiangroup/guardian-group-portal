@@ -1154,6 +1154,14 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
     }
   }, [sites, setSelectedSiteId, setSelectedCompany]);
 
+  // If a site is already selected (e.g. navigated from documents page) but the
+  // company filter is not yet set, sync it once sites data has loaded.
+  useEffect(() => {
+    if (!sites || !selectedSiteId || selectedSiteId === "all" || selectedCompany) return;
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (site?.companyName) setSelectedCompany(site.companyName);
+  }, [sites, selectedSiteId, selectedCompany, setSelectedCompany]);
+
   // Filter sites by selected company for the site dropdown
   const filteredSites = useMemo(() => {
     if (!sites) return [];
