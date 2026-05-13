@@ -4076,6 +4076,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T20:21:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "b1f5d8e2-approved-status-badges-stats-sweep-2026",
+          "patch": 10,
+          "message": "Approved documents now show correctly in folder/table views, stats, and the daily overdue sweep",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T20:29:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

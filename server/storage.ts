@@ -4700,7 +4700,7 @@ export class MemStorage implements IStorage {
       .set({ status: "overdue", updatedAt: now })
       .where(
         and(
-          inArray(documentsTable.status, ["compliant", "approval_required"]),
+          inArray(documentsTable.status, ["compliant", "approved", "approval_required"]),
           eq(documentsTable.isArchived, false),
           or(
             and(isNotNull(documentsTable.expiryDate), sql`${documentsTable.expiryDate} < ${now}`),

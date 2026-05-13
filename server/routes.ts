@@ -2676,7 +2676,7 @@ export async function registerRoutes(
       const summaries = await Promise.all(modules.map(async (mod) => {
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
-        const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const siteCompliant = moduleDocs.filter(d => d.status === "compliant" || d.status === "approved").length;
         const siteApprovalRequired = moduleDocs.filter(d => d.status === "approval_required").length;
         const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
         const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
@@ -2686,7 +2686,7 @@ export async function registerRoutes(
         let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0, scopedPending = 0;
         for (const { status, approvalStatus, siteCount: n } of modScoped) {
           scopedTotal += n;
-          if (status === "compliant") scopedCompliant += n;
+          if (status === "compliant" || status === "approved") scopedCompliant += n;
           else if (status === "approval_required") scopedApprovalRequired += n;
           else if (status === "overdue") scopedOverdue += n;
           if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
@@ -8800,7 +8800,7 @@ export async function registerRoutes(
         for (const mod of complianceModules) {
           const modDocs = siteDocs.filter((d: any) => d.module === mod);
           const total = modDocs.length;
-          const compliant = modDocs.filter((d: any) => d.status === "compliant").length;
+          const compliant = modDocs.filter((d: any) => d.status === "compliant" || d.status === "approved").length;
           const overdue = modDocs.filter((d: any) => d.status === "overdue").length;
           scores[mod] = { score: total > 0 ? Math.round((compliant / total) * 100) : 0, total, compliant, overdue };
           allTotal += total;
@@ -11426,7 +11426,7 @@ export async function registerRoutes(
                 }),
                 stats: {
                   totalDocuments: dynamicFolderDocs.length,
-                  compliant: dynamicFolderDocs.filter(d => d.status === "compliant").length,
+                  compliant: dynamicFolderDocs.filter(d => d.status === "compliant" || d.status === "approved").length,
                   approvalRequired: dynamicFolderDocs.filter(d => d.status === "approval_required").length,
                   overdue: dynamicFolderDocs.filter(d => d.status === "overdue").length,
                   requiredTemplates: 0,
