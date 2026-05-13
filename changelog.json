@@ -4012,6 +4012,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T16:25:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "f3d8c5b1-company-shared-doc-rows-style-2026",
+          "patch": 10,
+          "message": "Shared group docs at company level now display with the same dashed-blue style as site level",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T16:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

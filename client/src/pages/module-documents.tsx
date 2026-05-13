@@ -1451,6 +1451,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       ? ((doc as any).scope === "group" ? "group" : "company")
                       : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
                         : ((doc as any).scope === "group" ? "group" : (doc as any).scope === "company" ? "company" : null));
+                    if (isLinkedRow) {
+                      const sharedSubtitle = doc.sharedFromEntityName
+                        ? `Shared from ${linkedFromScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                        : `Shared ${linkedFromScope ?? "document"} (read-only)`;
+                      return (
+                        <Link
+                          key={doc.id}
+                          href={`${basePath}/documents/${doc.id}`}
+                          className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                          data-testid={`row-folder-doc-${doc.id}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <div>
+                              <p className="font-medium text-sm">{doc.title}</p>
+                              <p className="text-xs text-muted-foreground">{sharedSubtitle}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
+                              Shared
+                            </Badge>
+                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </Link>
+                      );
+                    }
                     return (
                       <Link
                         key={doc.id}
@@ -1465,12 +1494,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{doc.title}</p>
                             <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
-                            {isLinkedRow && (
-                              <Badge variant="outline" className={`mt-1 text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`}>
-                                <LinkIcon className="h-3 w-3 mr-1" />
-                                Shared from {linkedFromScope === "group" ? "Group" : "Company"}
-                              </Badge>
-                            )}
                             {doc.isArchived && (
                               <Badge variant="secondary" className="mt-1 gap-1 bg-muted">
                                 <Archive className="h-3 w-3" />
