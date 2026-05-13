@@ -3996,6 +3996,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T16:15:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "d9f1a3b2-total-tile-green-2026",
+          "patch": 10,
+          "message": "Total tile on site cards now highlights green when documents are present",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T16:20:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
