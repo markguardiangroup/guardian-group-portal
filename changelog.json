@@ -3964,6 +3964,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T12:00:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "c7f3a2e1-5d84-4b69-9c12-3e6a0f8b2d47",
+          "patch": 10,
+          "message": "Fixed: creating or editing a service failed with a validation error",
+          "category": "bug",
+          "createdAt": "2026-05-13T12:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
