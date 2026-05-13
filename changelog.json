@@ -4020,6 +4020,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T16:35:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a1b2c3d4-assigned-consultants-card-style-2026",
+          "patch": 10,
+          "message": "My Assigned Consultants card now matches the layout and style of My Portfolio card",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T18:58:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

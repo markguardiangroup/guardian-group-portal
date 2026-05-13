@@ -983,45 +983,65 @@ function AssignedConsultantsPanel({
   animate: boolean;
 }) {
   return (
-    <Card data-testid="card-assigned-consultants" className="h-full">
-      <CardHeader className="pb-2">
+    <Card data-testid="card-assigned-consultants" className="h-full border-t-4 border-t-primary overflow-hidden">
+      <CardHeader className="pb-3 bg-gradient-to-br from-primary/5 to-transparent">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <UserCog className="h-4 w-4 text-primary" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <UserCog className="h-4 w-4 text-primary" />
+          </div>
           My Assigned Consultants
         </CardTitle>
+        <p className="text-xs text-muted-foreground">Your assigned H&amp;S consultants</p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-center">
-          <p className="text-xl font-bold tabular-nums"><CountUp value={consultants.length} animate={animate} /></p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center justify-center gap-1">
-            <Users className="h-3 w-3" />
+      <CardContent className="flex flex-col gap-4 pt-4">
+        <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-center" data-testid="stat-consultants">
+          <div className="flex items-center justify-center gap-1.5 mb-0.5">
+            <Users className="h-3.5 w-3.5 text-primary" />
+            <p className="text-2xl font-bold tabular-nums text-primary"><CountUp value={consultants.length} animate={animate} /></p>
+          </div>
+          <p className="text-[11px] font-medium text-muted-foreground">
             {consultants.length === 1 ? "Consultant" : "Consultants"}
           </p>
         </div>
-        <div className="space-y-1">
-          {consultants.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between rounded-md px-2.5 py-2 hover:bg-muted/60 transition-colors"
-              data-testid={`assigned-consultant-${c.id}`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <UserCog className="h-3.5 w-3.5 text-primary" />
+
+        {consultants.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-0.5">
+              Consultants
+            </p>
+            <div className="space-y-0.5">
+              {consultants.map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all group"
+                  data-testid={`assigned-consultant-${c.id}`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary text-[10px] font-bold">
+                      {c.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm truncate font-medium">{c.fullName}</span>
+                  </div>
+                  {c.consultantTier === "pro" && (
+                    <span className="shrink-0 ml-2 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">
+                      Pro
+                    </span>
+                  )}
                 </div>
-                <span className="text-sm font-medium truncate">{c.fullName}</span>
-              </div>
-              {c.consultantTier === "pro" && (
-                <span className="shrink-0 ml-2 rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">
-                  Pro
-                </span>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-        <Button variant="outline" size="sm" className="w-full" asChild>
+          </div>
+        )}
+
+        {consultants.length === 0 && (
+          <div className="flex items-center justify-center text-center py-4">
+            <p className="text-sm text-muted-foreground">No consultants assigned yet.</p>
+          </div>
+        )}
+
+        <Button size="sm" className="w-full mt-auto" asChild>
           <Link href="/users?staffFilter=my_staff" data-testid="link-view-all-consultants">
-            View Staff
+            View All Consultants
             <ArrowRight className="ml-2 h-3.5 w-3.5" />
           </Link>
         </Button>
