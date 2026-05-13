@@ -244,7 +244,7 @@ export default function UserManagement() {
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "full" as "full",
     sources: [] as string[],
-    consultantPermissions: { caseAdvocate: false, trainingLibrary: false, templateLibrary: false } as { caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean },
+    consultantPermissions: { caseAdvocate: false, trainingLibrary: false, templateLibrary: false, services: false } as { caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean; services: boolean },
   });
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
@@ -288,7 +288,7 @@ export default function UserManagement() {
   } | null>(null);
 
   const [permissionsUser, setPermissionsUser] = useState<UserWithAssignments | null>(null);
-  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean }>({ caseAdvocate: false, trainingLibrary: false, templateLibrary: false });
+  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean; services: boolean }>({ caseAdvocate: false, trainingLibrary: false, templateLibrary: false, services: false });
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
 
   const generateUsername = (firstName: string, lastName: string): string => {
@@ -1574,6 +1574,7 @@ export default function UserManagement() {
                           { key: "caseAdvocate", label: "Case Advocate", className: "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700" },
                           { key: "trainingLibrary", label: "Training Lib", className: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" },
                           { key: "templateLibrary", label: "Template Lib", className: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" },
+                          { key: "services", label: "Services", className: "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700" },
                         ];
                         const active = PERMS.filter(p => (u.consultantPermissions as any)?.[p.key]);
                         if (active.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
@@ -1682,7 +1683,7 @@ export default function UserManagement() {
                           <DropdownMenuItem
                             onClick={() => {
                               setPermissionsUser(u);
-                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false, trainingLibrary: u.consultantPermissions?.trainingLibrary ?? false, templateLibrary: u.consultantPermissions?.templateLibrary ?? false });
+                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false, trainingLibrary: u.consultantPermissions?.trainingLibrary ?? false, templateLibrary: u.consultantPermissions?.templateLibrary ?? false, services: (u.consultantPermissions as any)?.services ?? false });
                             }}
                             data-testid={`button-edit-permissions-${u.id}`}
                           >
@@ -2875,6 +2876,21 @@ export default function UserManagement() {
                       data-testid="switch-new-permission-training-library"
                     />
                   </div>
+                  <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Services</p>
+                      <p className="text-xs text-muted-foreground">
+                        Grants full rights to manage the Services catalogue and assign services to client companies.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={newUser.consultantPermissions.services}
+                      onCheckedChange={(checked) =>
+                        setNewUser({ ...newUser, consultantPermissions: { ...newUser.consultantPermissions, services: checked } })
+                      }
+                      data-testid="switch-new-permission-services"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -3746,6 +3762,20 @@ export default function UserManagement() {
                 checked={permissionsForm.trainingLibrary}
                 onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, trainingLibrary: checked })}
                 data-testid="switch-permission-training-library"
+              />
+            </div>
+            {/* Permission row: Services */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Services</p>
+                <p className="text-xs text-muted-foreground">
+                  Grants full rights to create, edit and delete services in the catalogue, and to add or remove services on client companies. Only applicable to Pro consultants.
+                </p>
+              </div>
+              <Switch
+                checked={permissionsForm.services}
+                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, services: checked })}
+                data-testid="switch-permission-services"
               />
             </div>
           </div>

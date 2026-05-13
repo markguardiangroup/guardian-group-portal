@@ -508,7 +508,7 @@ const SVC_MODULE_COLORS: Record<string, string> = {
   employment_law: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
 };
 
-function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin: boolean }) {
+function CompanyServicesTab({ companyId, canManage }: { companyId: string; canManage: boolean }) {
   const { toast } = useToast();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
@@ -536,7 +536,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
       if (!res.ok) throw new Error("Failed to fetch services");
       return res.json();
     },
-    enabled: isAdmin,
+    enabled: canManage,
   });
 
   const assignedIds = new Set(assigned.map(a => a.serviceId));
@@ -585,7 +585,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
             Services assigned to this company for billing and reference.
           </p>
         </div>
-        {isAdmin && (
+        {canManage && (
           <Button size="sm" onClick={() => setPickerOpen(true)} data-testid="button-add-company-service" disabled={available.length === 0}>
             <Plus className="mr-2 h-4 w-4" />
             Add Service
@@ -603,7 +603,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
             </div>
             <h3 className="mt-4 text-base font-medium">No services assigned</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isAdmin ? "Use the Add Service button to assign services to this company." : "No services have been assigned to this company yet."}
+              {canManage ? "Use the Add Service button to assign services to this company." : "No services have been assigned to this company yet."}
             </p>
           </CardContent>
         </Card>
@@ -617,7 +617,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
                 <th className="px-4 py-2 font-medium">Module</th>
                 <th className="px-4 py-2 font-medium text-right">Price (£)</th>
                 <th className="px-4 py-2 font-medium text-right">Benchmark (£)</th>
-                {isAdmin && <th className="px-4 py-2 font-medium"></th>}
+                {canManage && <th className="px-4 py-2 font-medium"></th>}
               </tr>
             </thead>
             <tbody>
@@ -650,7 +650,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
                     {parseFloat(entry.service.benchmarkPriceGbp).toFixed(2)}
                   </td>
-                  {isAdmin && (
+                  {canManage && (
                     <td className="px-4 py-3 text-right">
                       <Button
                         variant="ghost"
@@ -672,7 +672,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
       )}
 
       {/* Service picker dialog */}
-      {isAdmin && (
+      {canManage && (
         <Dialog open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (!open) setSelectedServiceIds(new Set()); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -2507,7 +2507,7 @@ export default function CompanyDetail() {
         {/* Services Tab */}
         {(isAdmin || user?.role === "consultant") && (
           <TabsContent value="services" className="mt-6">
-            <CompanyServicesTab companyId={companyId!} isAdmin={isAdmin} />
+            <CompanyServicesTab companyId={companyId!} canManage={isAdmin || !!(user?.consultantPermissions as { services?: boolean } | null)?.services} />
           </TabsContent>
         )}
 

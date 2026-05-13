@@ -13072,6 +13072,7 @@ export async function registerRoutes(
         caseAdvocate: z.boolean(),
         trainingLibrary: z.boolean().optional(),
         templateLibrary: z.boolean().optional(),
+        services: z.boolean().optional(),
       });
       const parsed = permissionsSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -15925,7 +15926,8 @@ export async function registerRoutes(
   app.post("/api/services", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = createServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const svc = await storage.createService(parsed.data);
@@ -15940,7 +15942,8 @@ export async function registerRoutes(
   app.patch("/api/services/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = updateServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const svc = await storage.updateService(req.params.id, parsed.data);
@@ -15956,7 +15959,8 @@ export async function registerRoutes(
   app.delete("/api/services/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const deleted = await storage.deleteService(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Service not found" });
       res.status(204).end();
@@ -15981,7 +15985,8 @@ export async function registerRoutes(
   app.post("/api/companies/:id/services", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = z.object({ serviceId: z.string().min(1) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
       const svc = await storage.getService(parsed.data.serviceId);
@@ -15998,7 +16003,8 @@ export async function registerRoutes(
   app.delete("/api/companies/:id/services/:serviceId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const removed = await storage.removeCompanyService(req.params.id, req.params.serviceId);
       if (!removed) return res.status(404).json({ error: "Assignment not found" });
       res.status(204).end();

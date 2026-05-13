@@ -20,6 +20,7 @@ export type ConsultantPermissions = {
   caseAdvocate?: boolean;
   trainingLibrary?: boolean;
   templateLibrary?: boolean;
+  services?: boolean;
 };
 
 // Site request status

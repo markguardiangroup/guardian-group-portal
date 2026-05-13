@@ -105,6 +105,8 @@ export default function AdminServices() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+  const canManage = isAdmin || hasServicesPermission;
 
   const [moduleFilter, setModuleFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -248,7 +250,7 @@ export default function AdminServices() {
             Manage the services catalogue used for company assignments and pricing.
           </p>
         </div>
-        {isAdmin && (
+        {canManage && (
           <Button onClick={openCreate} data-testid="button-add-service">
             <Plus className="h-4 w-4 mr-2" />
             Add Service
@@ -283,7 +285,7 @@ export default function AdminServices() {
           </CardTitle>
           <CardDescription>
             {filtered.length} service{filtered.length !== 1 ? "s" : ""}.
-            {!isAdmin && " Viewing in read-only mode."}
+            {!canManage && " Viewing in read-only mode."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -302,9 +304,9 @@ export default function AdminServices() {
                     <th className="pb-2 pr-4 font-medium">Source</th>
                     <th className="pb-2 pr-4 font-medium text-right">Price (£)</th>
                     <th className="pb-2 pr-4 font-medium text-right">Benchmark (£)</th>
-                    {isAdmin && <th className="pb-2 pr-4 font-medium text-center">Active</th>}
-                    {!isAdmin && <th className="pb-2 pr-4 font-medium text-center">Status</th>}
-                    {isAdmin && <th className="pb-2 font-medium"></th>}
+                    {canManage && <th className="pb-2 pr-4 font-medium text-center">Active</th>}
+                    {!canManage && <th className="pb-2 pr-4 font-medium text-center">Status</th>}
+                    {canManage && <th className="pb-2 font-medium"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -333,7 +335,7 @@ export default function AdminServices() {
                       <td className="py-3 pr-4 text-right tabular-nums text-muted-foreground">
                         {parseFloat(svc.benchmarkPriceGbp).toFixed(2)}
                       </td>
-                      {isAdmin ? (
+                      {canManage ? (
                         <td className="py-3 pr-4 text-center">
                           <Switch
                             checked={svc.isActive}
@@ -349,7 +351,7 @@ export default function AdminServices() {
                           </Badge>
                         </td>
                       )}
-                      {isAdmin && (
+                      {canManage && (
                         <td className="py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <Button
