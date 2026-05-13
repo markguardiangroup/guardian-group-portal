@@ -162,6 +162,7 @@ const INCIDENT_EFFECTS = [
   "Strains and sprains",
   "Superficial injuries",
   "Electric shock",
+  "Other",
 ];
 
 const CAUSE_EFFECT_MAP: Record<string, string[]> = {
@@ -605,6 +606,8 @@ function ReportIncidentDialog({
   const [docFiles, setDocFiles] = useState<File[]>([]);
   const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
   const [selectedEffects, setSelectedEffects] = useState<string[]>([]);
+  const [causeOtherText, setCauseOtherText] = useState("");
+  const [effectOtherText, setEffectOtherText] = useState("");
   const [bodyZones, setBodyZones] = useState<string[]>([]);
   const [witnessEntries, setWitnessEntries] = useState<{ name: string; jobRole: string; company: string }[]>([]);
   const [firstAidGiven, setFirstAidGiven] = useState<boolean | null>(null);
@@ -759,16 +762,26 @@ function ReportIncidentDialog({
   });
 
   const onSubmit = (values: ReportFormValues) => {
+    if (selectedCauses.includes("Other") && !causeOtherText.trim()) {
+      toast({ title: "Please describe the 'Other' cause", variant: "destructive" });
+      return;
+    }
+    if (selectedEffects.includes("Other") && !effectOtherText.trim()) {
+      toast({ title: "Please describe the 'Other' effect", variant: "destructive" });
+      return;
+    }
+    const finalCauses = selectedCauses.map(c => c === "Other" ? `Other: ${causeOtherText.trim()}` : c);
+    const finalEffects = selectedEffects.map(e => e === "Other" ? `Other: ${effectOtherText.trim()}` : e);
     const dateStr = format(new Date(values.incidentDate), "dd/MM/yyyy");
-    const causeLabel = selectedCauses.length === 0
+    const causeLabel = finalCauses.length === 0
       ? "Incident"
-      : selectedCauses.length === 1
-        ? selectedCauses[0]
-        : `${selectedCauses[0]} (+${selectedCauses.length - 1} more)`;
+      : finalCauses.length === 1
+        ? finalCauses[0]
+        : `${finalCauses[0]} (+${finalCauses.length - 1} more)`;
     const autoTitle = `${causeLabel} – ${dateStr}`;
     const filledWitnesses = witnessEntries.filter(w => w.name.trim() || w.jobRole.trim() || w.company.trim());
     const witnessesJson = filledWitnesses.length > 0 ? JSON.stringify(filledWitnesses) : "";
-    mutation.mutate({ ...values, title: autoTitle, witnesses: witnessesJson, riddorReportable: false, invFirstAidGiven: firstAidGiven, invHospitalVisit: hospitalVisit });
+    mutation.mutate({ ...values, incidentCause: finalCauses, incidentEffect: finalEffects, title: autoTitle, witnesses: witnessesJson, riddorReportable: false, invFirstAidGiven: firstAidGiven, invHospitalVisit: hospitalVisit });
   };
 
   const handleConfirmationClose = () => {
@@ -896,6 +909,21 @@ function ReportIncidentDialog({
                 onChange={setSelectedCauses}
                 placeholder="Select cause(s)…"
               />
+              {selectedCauses.includes("Other") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    Please describe the 'Other' cause <span className="text-destructive">*</span>
+                  </label>
+                  <Textarea
+                    value={causeOtherText}
+                    onChange={e => setCauseOtherText(e.target.value)}
+                    placeholder="Describe the cause not listed above…"
+                    className="resize-none"
+                    rows={3}
+                    data-testid="textarea-cause-other"
+                  />
+                </div>
+              )}
             </FormSection>
 
             {/* ── Section 4: Effect / Affect ── */}
@@ -919,6 +947,21 @@ function ReportIncidentDialog({
                 placeholder="Select effect(s)…"
                 filtered={selectedCauses.length > 0}
               />
+              {selectedEffects.includes("Other") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    Please describe the 'Other' effect <span className="text-destructive">*</span>
+                  </label>
+                  <Textarea
+                    value={effectOtherText}
+                    onChange={e => setEffectOtherText(e.target.value)}
+                    placeholder="Describe the effect/affect not listed above…"
+                    className="resize-none"
+                    rows={3}
+                    data-testid="textarea-effect-other"
+                  />
+                </div>
+              )}
             </FormSection>
 
             {/* ── Section 5: Affected / Injured Person ── */}

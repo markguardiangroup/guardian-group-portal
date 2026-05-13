@@ -3868,6 +3868,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T07:55:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "u8q0v529-1r34-0stu-r980-5x2w9u6t8v11",
+          "patch": 10,
+          "message": "Incident cause and effect dropdowns now include an 'Other' option with mandatory explanation field",
+          "category": "feature",
+          "createdAt": "2026-05-13T08:10:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
