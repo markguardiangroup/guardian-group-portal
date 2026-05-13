@@ -455,8 +455,10 @@ export default function AdminServices() {
                   <SelectValue placeholder="Select source" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sources.filter(s => s.isActive).map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.code} — {s.label}</SelectItem>
+                  {sources.filter(s => s.isActive || s.id === form.sourceId).map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.code} — {s.label}{!s.isActive ? " (inactive)" : ""}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
