@@ -3860,6 +3860,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T07:50:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "t7p9u418-0q23-9rst-q879-4w1v8t5s7u00",
+          "patch": 10,
+          "message": "Fixed: Activity section subtitle text size aligned with title",
+          "category": "bug",
+          "createdAt": "2026-05-13T07:55:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

@@ -1779,7 +1779,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
             </div>
             <div>
               <h2 className="text-base font-semibold leading-none">Activity</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">Operational data — separate from compliance scoring</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Operational data — separate from compliance scoring</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 px-2.5 py-1">
