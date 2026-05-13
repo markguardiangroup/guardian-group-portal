@@ -1615,7 +1615,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
                   const computeStats = (docs: any[]) => ({
                     totalDocuments: docs.length,
-                    compliant: docs.filter((d: any) => d.status === "compliant" || d.status === "approved").length,
+                    compliant: docs.filter((d: any) => d.status === "compliant").length,
                     approvalRequired: docs.filter((d: any) => d.status === "approval_required").length,
                     overdue: docs.filter((d: any) => d.status === "overdue").length,
                     requiredTemplates: 0,
@@ -2291,7 +2291,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="compliant">Compliant</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="approval_required">Approval Required</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                 </SelectContent>
