@@ -3988,6 +3988,14 @@
           "category": "feature",
           "createdAt": "2026-05-13T15:30:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "c4e8f2a1-all-sites-tile-shared-doc-count-2026",
+          "patch": 10,
+          "message": "Fixed: All Sites tile now counts shared documents once per site they apply to",
+          "category": "bug",
+          "createdAt": "2026-05-13T16:15:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

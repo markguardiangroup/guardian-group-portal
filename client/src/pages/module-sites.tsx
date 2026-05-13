@@ -892,33 +892,31 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   ))
                 )
               );
-              const allTotal = allDocs.length;
-              // Count compliance contributions across all sites. Site-specific docs
-              // count once. Shared/scoped docs (siteId === null) count once per site
-              // they cover within filteredSites — consistent with per-site card logic.
+              // All counts expand shared docs once per covered site so that a shared
+              // document registers as a separate entry for each site it applies to.
+              const coveredSites = (d: typeof allDocs[0]) =>
+                d.siteId !== null ? 1 : filteredSites.filter((s) =>
+                  (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
+                  (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
+                  (d as any).entityId === s.companyId
+                ).length;
+              let allTotal = 0;
               let allCompliant = 0;
               let allOverdue = 0;
               let allApprovalRequired = 0;
+              let allOverdueAll = 0;
+              let allPending = 0;
               for (const d of allDocs) {
-                if (!d.isRequired) continue;
-                if (d.siteId !== null) {
-                  if (d.status === "compliant") allCompliant++;
-                  else if (d.status === "overdue") allOverdue++;
-                  else if (d.status === "approval_required") allApprovalRequired++;
-                } else {
-                  // Expand shared doc: one contribution per covered site
-                  const coveredCount = filteredSites.filter((s) =>
-                    (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
-                    (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-                    (d as any).entityId === s.companyId
-                  ).length;
-                  if (d.status === "compliant") allCompliant += coveredCount;
-                  else if (d.status === "overdue") allOverdue += coveredCount;
-                  else if (d.status === "approval_required") allApprovalRequired += coveredCount;
+                const n = coveredSites(d);
+                allTotal += n;
+                if (d.isRequired) {
+                  if (d.status === "compliant") allCompliant += n;
+                  else if (d.status === "overdue") allOverdue += n;
+                  else if (d.status === "approval_required") allApprovalRequired += n;
                 }
+                if (d.status === "overdue") allOverdueAll += n;
+                if (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off") allPending += n;
               }
-              const allOverdueAll = allDocs.filter((d) => d.status === "overdue").length;
-              const allPending = allDocs.filter((d) => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
               ).length;
