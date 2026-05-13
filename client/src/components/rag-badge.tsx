@@ -109,6 +109,11 @@ export function RAGBadge({ status, approvalStatus, className }: RAGBadgeProps) {
       icon: CheckCircle,
       className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
     },
+    approved: {
+      label: "Approved",
+      icon: CheckCircle,
+      className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+    },
     approval_required: {
       label: "Approval Required",
       icon: AlertTriangle,

@@ -3117,14 +3117,14 @@ export async function registerRoutes(
       });
       
       // Check if template requires approval
-      let newStatus: "approval_required" | "compliant" = "approval_required";
+      let newStatus: "approval_required" | "compliant" | "approved" = "approval_required";
       let newApprovalStatus: "pending" | null = "pending";
       
       if (document.templateId) {
         const template = await storage.getDocumentTemplate(document.templateId);
         if (template && template.requiresApproval === false) {
-          // Template doesn't require approval - auto-mark as compliant
-          newStatus = "compliant";
+          // Template doesn't require approval — required docs → compliant, non-required → approved
+          newStatus = document.isRequired ? "compliant" : "approved";
           newApprovalStatus = null;
         }
       }
@@ -3543,7 +3543,7 @@ export async function registerRoutes(
       }
       
       // Check if approval is required
-      let documentStatus: "approval_required" | "compliant" = "approval_required";
+      let documentStatus: "approval_required" | "compliant" | "approved" = "approval_required";
       let documentApprovalStatus: string = "pending";
       let isAutoApproved = false;
       
@@ -3554,14 +3554,15 @@ export async function registerRoutes(
         isAutoApproved = true;
       } else if (body.requiresApproval === false) {
         // Uploader explicitly set no approval required
-        documentStatus = "compliant";
+        documentStatus = body.isRequired ? "compliant" : "approved";
         documentApprovalStatus = "approved";
         isAutoApproved = true;
       } else if (body.templateId) {
         const template = await storage.getDocumentTemplate(body.templateId);
         if (template && template.requiresApproval === false) {
-          // Template doesn't require approval - auto-mark as compliant
-          documentStatus = "compliant";
+          // Template doesn't require approval — required docs → compliant, non-required → approved
+          const effectiveIsRequired = body.isRequired ?? template.isRequired ?? false;
+          documentStatus = effectiveIsRequired ? "compliant" : "approved";
           documentApprovalStatus = "approved";
           isAutoApproved = true;
         }
@@ -3939,7 +3940,7 @@ export async function registerRoutes(
       }
 
       let approvalStatus: "approved" | "rejected" | "changes_requested" | "client_signed_off";
-      let documentStatus: "compliant" | "approval_required" | "overdue";
+      let documentStatus: "compliant" | "approval_required" | "overdue" | "approved";
       let auditAction: "document_approved" | "document_rejected" | "changes_requested" | "document_signed_off";
 
       switch (action) {
@@ -3951,8 +3952,9 @@ export async function registerRoutes(
             auditAction = "document_signed_off";
           } else {
             // Consultant final approval or direct approval of client doc
+            // Required docs → compliant; non-required docs → approved
             approvalStatus = "approved";
-            documentStatus = "compliant";
+            documentStatus = existingDoc.isRequired ? "compliant" : "approved";
             auditAction = "document_approved";
           }
           break;
@@ -4309,7 +4311,8 @@ export async function registerRoutes(
         if ((newExpiryDate && new Date(newExpiryDate) < now) || (newRenewalDate && new Date(newRenewalDate) < now)) {
           body.status = "overdue";
         } else {
-          body.status = "compliant";
+          // Required docs → compliant; non-required docs → approved
+          body.status = doc.isRequired ? "compliant" : "approved";
         }
       }
 

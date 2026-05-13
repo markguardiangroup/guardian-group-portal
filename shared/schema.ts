@@ -30,7 +30,7 @@ export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
 export type SiteStatus = "active" | "inactive" | "pending";
 
 // Document status for RAG indicators
-export type DocumentStatus = "compliant" | "approval_required" | "overdue";
+export type DocumentStatus = "compliant" | "approval_required" | "overdue" | "approved";
 
 // Approval status
 // - pending: Initial state, awaiting first review

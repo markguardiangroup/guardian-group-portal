@@ -3899,7 +3899,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       );
                     }
                     const now = new Date();
-                    const isFullyCompliant = document.approvalStatus === "approved" && document.status === "compliant";
+                    const isFullyCompliant = document.approvalStatus === "approved" && (document.status === "compliant" || document.status === "approved");
                     if (isFullyCompliant) {
                       return (
                         <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-dashed border-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700" data-testid="compliance-status-indicator">

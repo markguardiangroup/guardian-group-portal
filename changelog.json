@@ -4060,6 +4060,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T19:42:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "f9d3a6b0-document-status-approved-non-required-2026",
+          "patch": 10,
+          "message": "Non-required documents now save with status 'approved' instead of 'compliant' in the database",
+          "category": "bug",
+          "createdAt": "2026-05-13T20:10:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
