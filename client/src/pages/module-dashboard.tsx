@@ -912,9 +912,8 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             ) : data?.upcomingReviews && data.upcomingReviews.length > 0 ? (
               <div className="divide-y">
                 {data.upcomingReviews.slice(0, 5).map((doc) => {
-                  const reviewDate = doc.reviewDate ? new Date(doc.reviewDate) : null;
-                  const daysUntil = reviewDate 
-                    ? Math.ceil((reviewDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  const daysUntil = doc.renewalDate
+                    ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                     : null;
                   
                   return (
@@ -925,7 +924,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">
-                          {reviewDate && format(reviewDate, "MMM d, yyyy")}
+                          {doc.renewalDate && format(new Date(doc.renewalDate), "MMM d, yyyy")}
                         </p>
                       </div>
                       {daysUntil !== null && (

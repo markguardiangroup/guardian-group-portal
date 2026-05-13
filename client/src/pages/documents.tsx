@@ -1637,12 +1637,6 @@ function DocumentDetailView({ id }: { id: string }) {
                     {document.updatedAt && format(new Date(document.updatedAt), "PPP")}
                   </p>
                 </div>
-                {document.reviewDate && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground">Review Date</h4>
-                    <p className="mt-1">{format(new Date(document.reviewDate), "PPP")}</p>
-                  </div>
-                )}
                 {document.expiryDate && (
                   <div>
                     <h4 className="text-sm font-medium text-muted-foreground">Expiry Date</h4>

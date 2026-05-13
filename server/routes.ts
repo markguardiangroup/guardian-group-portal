@@ -364,7 +364,6 @@ const createDocumentSchema = z.object({
   fileUrl: z.string().optional(),
   fileSize: z.number().positive(),
   mimeType: z.string().min(1),
-  reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
   renewalDate: z.string().optional(),
   source: z.enum(["template", "upload", "external"]).optional(),
@@ -3597,7 +3596,6 @@ export async function registerRoutes(
         version: 1,
         status: documentStatus,
         approvalStatus: documentApprovalStatus,
-        reviewDate: body.reviewDate ? new Date(body.reviewDate) : null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
         lastApprovedAt: autoApprovalTime,
         uploadedBy: user.id,
@@ -14883,9 +14881,6 @@ export async function registerRoutes(
             ? `${moduleDocUrlBase[doc.module]}/${doc.id}${doc.siteId ? `?siteId=${doc.siteId}` : ""}`
             : "/training";
 
-          if (doc.reviewDate && inDateRange(new Date(doc.reviewDate))) {
-            events.push({ id: `doc-review-${doc.id}`, title: `Review: ${doc.title}`, date: doc.reviewDate, type: "review_due", module: doc.module, siteId: doc.siteId, url: docUrl, isOverdue: new Date(doc.reviewDate) < now });
-          }
           if (doc.expiryDate && inDateRange(new Date(doc.expiryDate))) {
             events.push({ id: `doc-expiry-${doc.id}`, title: `Expiry: ${doc.title}`, date: doc.expiryDate, type: "expiry", module: doc.module, siteId: doc.siteId, url: docUrl, isOverdue: new Date(doc.expiryDate) < now });
           }

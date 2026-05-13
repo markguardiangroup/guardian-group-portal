@@ -51,7 +51,6 @@ const uploadSchema = z.object({
   folderId: z.string().min(1, "Please select a folder"),
   requiresApproval: z.boolean().default(true),
   isRequired: z.boolean().default(false),
-  reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
   complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
   renewalPeriodMonths: z.number().nullable().optional(),
@@ -121,7 +120,6 @@ export function UploadDocumentDialog({
       folderId: initialFolderId || "",
       requiresApproval: true,
       isRequired: false,
-      reviewDate: "",
       expiryDate: "",
       complianceMode: "none",
       renewalPeriodMonths: null,
@@ -140,7 +138,6 @@ export function UploadDocumentDialog({
         folderId: initialFolderId || "",
         requiresApproval: true,
         isRequired: false,
-        reviewDate: "",
         expiryDate: "",
         complianceMode: "none",
         renewalPeriodMonths: null,
@@ -245,7 +242,6 @@ export function UploadDocumentDialog({
         folderId: data.folderId || undefined,
         requiresApproval: data.requiresApproval,
         isRequired: data.isRequired,
-        reviewDate: data.reviewDate,
         expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
         renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
         type: "supporting_document",
@@ -512,23 +508,6 @@ export function UploadDocumentDialog({
               />
             </div>
 
-            {/* Review date */}
-            <FormField
-              control={form.control}
-              name="reviewDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Review Date</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input type="date" className="pl-10" {...field} data-testid="input-upload-dialog-review-date" />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* Compliance tracking */}
             <div className="space-y-3">

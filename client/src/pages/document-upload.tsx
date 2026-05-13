@@ -68,7 +68,6 @@ const documentUploadSchema = z.object({
   folderId: z.string().optional(),
   requiresApproval: z.boolean().default(true),
   isRequired: z.boolean().default(false),
-  reviewDate: z.string().optional(),
   expiryDate: z.string().optional(),
   complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
   renewalPeriodMonths: z.number().nullable().optional(),
@@ -131,7 +130,6 @@ interface DocumentUploadPayload {
   mimeType: string;
   requiresApproval: boolean;
   isRequired: boolean;
-  reviewDate?: string | null;
   expiryDate?: string | null;
   renewalPeriodMonths?: number | null;
   notifyUserIds: string[];
@@ -310,7 +308,6 @@ export default function DocumentUpload() {
       folderId: "",
       requiresApproval: true,
       isRequired: false,
-      reviewDate: "",
       expiryDate: "",
       complianceMode: "none",
       renewalPeriodMonths: null,
@@ -632,7 +629,6 @@ export default function DocumentUpload() {
           folderId: data.folderId || undefined,
           requiresApproval: data.requiresApproval,
           isRequired: data.isRequired,
-          reviewDate: data.reviewDate,
           expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
           renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
           type: "supporting_document",
@@ -685,7 +681,6 @@ export default function DocumentUpload() {
           folderId: siteFolderId || undefined,
           requiresApproval: data.requiresApproval,
           isRequired: data.isRequired,
-          reviewDate: data.reviewDate,
           expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
           renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
           type: "supporting_document",
@@ -1330,23 +1325,6 @@ export default function DocumentUpload() {
                         )}
                       />
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="reviewDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>When should this document be reviewed by?</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input type="date" className="pl-10" {...field} data-testid="input-review-date" />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Compliance Tracking</Label>

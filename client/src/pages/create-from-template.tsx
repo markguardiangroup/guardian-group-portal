@@ -225,18 +225,14 @@ export default function CreateFromTemplate() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
-  const [reviewDate, setReviewDate] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [complianceMode, setComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
   const [renewalPeriodMonths, setRenewalPeriodMonths] = useState<number | null>(null);
   const [documentComments, setDocumentComments] = useState<string>("");
   const [isRequiredForCompliance, setIsRequiredForCompliance] = useState(false);
-  const [reviewDateInteracted, setReviewDateInteracted] = useState(false);
-  const [reviewDateBlurred, setReviewDateBlurred] = useState(false);
   const [expiryDateInteracted, setExpiryDateInteracted] = useState(false);
   const [expiryDateBlurred, setExpiryDateBlurred] = useState(false);
-  const reviewDateRef = useRef<HTMLInputElement>(null);
   const expiryDateRef = useRef<HTMLInputElement>(null);
 
   const [templateSearch, setTemplateSearch] = useState("");
@@ -749,7 +745,6 @@ export default function CreateFromTemplate() {
           isRequired: isRequiredForCompliance,
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
-          reviewDate: reviewDate || undefined,
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalDate: complianceMode === "renewal" && renewalPeriodMonths
             ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
@@ -812,7 +807,6 @@ export default function CreateFromTemplate() {
           isRequired: isRequiredForCompliance,
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
-          reviewDate: reviewDate || undefined,
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalDate: complianceMode === "renewal" && renewalPeriodMonths
             ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
@@ -903,7 +897,6 @@ export default function CreateFromTemplate() {
     return date < today;
   };
 
-  const isReviewDateInvalid = (reviewDateBlurred && !reviewDate) || isDateInPast(reviewDate);
   const isExpiryDateInvalid = (expiryDateBlurred && !expiryDate) || isDateInPast(expiryDate);
 
   const handleComplete = () => {
@@ -916,17 +909,7 @@ export default function CreateFromTemplate() {
       toast({ title: "Folder Required", description: "Please select a folder.", variant: "destructive" });
       return;
     }
-    const reviewRefEmpty = reviewDateRef.current ? reviewDateRef.current.value === "" : !reviewDate;
     const expiryRefEmpty = expiryDateRef.current ? expiryDateRef.current.value === "" : !expiryDate;
-    if (reviewDateInteracted && reviewRefEmpty) {
-      setReviewDateBlurred(true);
-      toast({ title: "Invalid Review Date", description: "Please enter a complete review date.", variant: "destructive" });
-      return;
-    }
-    if (reviewDate && isDateInPast(reviewDate)) {
-      toast({ title: "Invalid Review Date", description: "Review date must be today or in the future.", variant: "destructive" });
-      return;
-    }
     if (complianceMode === "expiry") {
       if (expiryDateInteracted && expiryRefEmpty) {
         setExpiryDateBlurred(true);
@@ -1518,50 +1501,6 @@ export default function CreateFromTemplate() {
             )}
 
             <div className="pt-4 border-t space-y-4">
-              <div>
-                <Label htmlFor="reviewDate" className="text-sm font-medium">
-                  When should this document be reviewed by?
-                </Label>
-                <div className="relative mt-1">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <Input
-                    ref={reviewDateRef}
-                    id="reviewDate"
-                    type="date"
-                    className={`pl-10 ${reviewDate || reviewDateBlurred ? "pr-8" : ""} ${isReviewDateInvalid ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                    value={reviewDate}
-                    onChange={(e) => setReviewDate(e.target.value)}
-                    onKeyDown={() => setReviewDateInteracted(true)}
-                    onInput={() => setReviewDateInteracted(true)}
-                    onBlur={() => { if (reviewDateInteracted) setReviewDateBlurred(true); }}
-                    data-testid="input-review-date"
-                  />
-                  {(reviewDate || reviewDateBlurred) && (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setReviewDate("");
-                        setReviewDateInteracted(false);
-                        setReviewDateBlurred(false);
-                        if (reviewDateRef.current) reviewDateRef.current.value = "";
-                      }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      data-testid="button-clear-review-date"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-                {reviewDateBlurred && !reviewDate ? (
-                  <p className="text-xs text-destructive mt-1">Review date is incomplete — please finish entering or clear it</p>
-                ) : isDateInPast(reviewDate) ? (
-                  <p className="text-xs text-destructive mt-1">Review date must be today or in the future</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-1">Optional — sets the compliance review reminder date</p>
-                )}
-              </div>
-
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Compliance Tracking</Label>
                 <div className="space-y-2">
