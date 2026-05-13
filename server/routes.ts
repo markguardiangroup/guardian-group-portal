@@ -15896,8 +15896,8 @@ export async function registerRoutes(
     description: z.string().optional().nullable(),
     module: z.enum(["health_safety", "human_resources", "employment_law"]),
     sourceId: z.string().min(1),
-    priceGbp: z.string().min(1),
-    benchmarkPriceGbp: z.string().min(1),
+    priceGbp: z.string().regex(/^\d+(\.\d{1,2})?$/, "Must be a valid decimal amount"),
+    benchmarkPriceGbp: z.string().regex(/^\d+(\.\d{1,2})?$/, "Must be a valid decimal amount"),
     isActive: z.boolean().optional(),
     sortOrder: z.number().optional(),
   });

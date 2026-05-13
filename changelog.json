@@ -3892,6 +3892,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T08:30:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "b4e9d3f2-0c85-5e67-9a23-8f6b2e4d1a90",
+          "patch": 10,
+          "message": "Improved: Services price fields validated as decimal format; page preloads for admin users",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T08:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

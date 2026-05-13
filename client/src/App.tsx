@@ -387,6 +387,7 @@ function RoutePrefetcher({
       if (isAdmin) {
         AdminPathways.preload();
         AdminSources.preload();
+        AdminServices.preload();
         AdminPortalMessages.preload();
       }
 
