@@ -4036,6 +4036,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T19:15:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "c6a0d3e7-shared-badge-group-company-docs-2026",
+          "patch": 10,
+          "message": "Group and company-level documents now show the Shared badge in the folder view",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T19:27:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
