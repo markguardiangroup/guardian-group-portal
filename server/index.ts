@@ -172,6 +172,42 @@ process.on("uncaughtException", (err) => {
         END IF;
       END $$;
     `);
+    // 0007_add_services_enhancements
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "badge_types" (
+        "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        "label" text NOT NULL UNIQUE,
+        "sort_order" integer NOT NULL DEFAULT 0,
+        "is_active" boolean NOT NULL DEFAULT true,
+        "created_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await pool.query(`ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "service_type" text`);
+    await pool.query(`ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "price_period" text`);
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'services' AND column_name = 'badge_type_id'
+        ) THEN
+          ALTER TABLE "services" ADD COLUMN "badge_type_id" varchar REFERENCES "badge_types"("id") ON DELETE SET NULL;
+        END IF;
+      END $$;
+    `);
+    await pool.query(`ALTER TABLE "services" ADD COLUMN IF NOT EXISTS "is_multi_service" boolean NOT NULL DEFAULT false`);
+    await pool.query(`ALTER TABLE "services" ALTER COLUMN "benchmark_price_gbp" DROP NOT NULL`);
+    await pool.query(`ALTER TABLE "services" ALTER COLUMN "sort_order" DROP NOT NULL`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "service_components" (
+        "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        "parent_service_id" varchar NOT NULL REFERENCES "services"("id") ON DELETE CASCADE,
+        "component_service_id" varchar NOT NULL REFERENCES "services"("id") ON DELETE CASCADE
+      );
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "service_components_parent_component_unique"
+        ON "service_components" ("parent_service_id", "component_service_id");
+    `);
   } catch (err) {
     console.error("Startup migration warning (non-fatal):", err);
   }
