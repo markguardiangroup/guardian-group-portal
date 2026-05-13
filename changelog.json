@@ -3972,6 +3972,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T12:30:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a9f2c1d3-services-badge-types-migration-2026",
+          "patch": 10,
+          "message": "Fixed: Services and Badge Types admin area restored after applying missing migration",
+          "category": "bug",
+          "createdAt": "2026-05-13T12:56:01.809Z",
+          "createdBy": "System"
         }
       ]
     }
