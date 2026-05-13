@@ -267,10 +267,20 @@ process.on("uncaughtException", (err) => {
   }
 
   // One-time data migration: non-required documents that are compliant should
-  // have status "approved" not "compliant". Idempotent — safe to run on every startup.
+  // have status "approved" not "compliant". Excludes documents whose template is
+  // in company_required_templates for their company (they are effectively required).
+  // Idempotent — safe to run on every startup.
   try {
     const result = await pool.query(
-      `UPDATE documents SET status = 'approved', updated_at = NOW() WHERE status = 'compliant' AND is_required = false`
+      `UPDATE documents d
+       SET status = 'approved', updated_at = NOW()
+       WHERE d.status = 'compliant'
+         AND d.is_required = false
+         AND NOT EXISTS (
+           SELECT 1 FROM company_required_templates crt
+           WHERE crt.template_id = d.template_id
+             AND crt.company_id = d.entity_id
+         )`
     );
     const count = result.rowCount ?? 0;
     if (count > 0) {
@@ -278,6 +288,32 @@ process.on("uncaughtException", (err) => {
     }
   } catch (err) {
     console.error("Startup non-required document status migration warning (non-fatal):", err);
+  }
+
+  // One-time data migration: legacy documents whose template is in company_required_templates
+  // for their company should have is_required = true and status = 'compliant' (not 'approved').
+  // Idempotent — safe to run on every startup.
+  try {
+    const result = await pool.query(
+      `UPDATE documents d
+       SET is_required = true,
+           status = CASE WHEN d.status = 'approved' THEN 'compliant' ELSE d.status END,
+           updated_at = NOW()
+       WHERE d.is_required = false
+         AND d.is_archived = false
+         AND d.template_id IS NOT NULL
+         AND EXISTS (
+           SELECT 1 FROM company_required_templates crt
+           WHERE crt.template_id = d.template_id
+             AND crt.company_id = d.entity_id
+         )`
+    );
+    const count = result.rowCount ?? 0;
+    if (count > 0) {
+      console.log(`[migration] Backfilled is_required=true for ${count} legacy document(s) required via company templates.`);
+    }
+  } catch (err) {
+    console.error("Startup company-required-template is_required backfill warning (non-fatal):", err);
   }
 
   // Run expired folder cleanup on startup and then daily

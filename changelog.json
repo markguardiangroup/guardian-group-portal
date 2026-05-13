@@ -4084,6 +4084,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T20:34:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "c2a6e9f3-legacy-required-docs-backfill-2026",
+          "patch": 10,
+          "message": "Fixed: legacy documents required via company templates now correctly marked as required and compliant",
+          "category": "bug",
+          "createdAt": "2026-05-13T21:05:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
