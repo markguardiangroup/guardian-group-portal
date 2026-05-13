@@ -11613,7 +11613,8 @@ export async function registerRoutes(
           return {
             totalFolders: hierarchy.length,
             totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
-            approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
+            compliant: allNonArchivedDocs.filter((d: any) => d.status === "compliant").length,
+            approved: allNonArchivedDocs.filter((d: any) => d.status === "approved").length,
             approvalRequired: allNonArchivedDocs.filter((d: any) => d.status === "approval_required").length,
             overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
           };
