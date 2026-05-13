@@ -176,7 +176,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
                 <Clock className="h-3.5 w-3.5" />
                 <span className="text-xl font-semibold"><CountUp value={summary.allApprovalRequired ?? summary.approvalRequired} /></span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">Review</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Approval Required</p>
             </div>
             <div className="rounded-md border p-2.5">
               <div className="flex items-center justify-center gap-1 text-muted-foreground">
@@ -653,7 +653,6 @@ function OverallComplianceCard({
       filter: (d) => {
         if (!isProgressDoc(d) || d.status !== "compliant") return false;
         const now = new Date();
-        if (d.reviewDate && new Date(d.reviewDate) < now) return false;
         if (d.expiryDate && new Date(d.expiryDate) < now) return false;
         return true;
       },
@@ -663,7 +662,6 @@ function OverallComplianceCard({
       filter: (d) => {
         if (!isProgressDoc(d) || d.status !== "approval_required") return false;
         const now = new Date();
-        if (d.reviewDate && new Date(d.reviewDate) < now) return false;
         if (d.expiryDate && new Date(d.expiryDate) < now) return false;
         return true;
       },
@@ -674,7 +672,6 @@ function OverallComplianceCard({
         if (!isProgressDoc(d)) return false;
         if (d.status === "overdue") return true;
         const now = new Date();
-        if (d.reviewDate && new Date(d.reviewDate) < now) return true;
         if (d.expiryDate && new Date(d.expiryDate) < now) return true;
         return false;
       },
@@ -1033,7 +1030,7 @@ function OverallComplianceCard({
               <Clock className="h-4 w-4" />
               <span className="text-2xl font-semibold"><CountUp value={reviewDocs} /></span>
             </div>
-            <p className="text-xs text-muted-foreground">Review Required</p>
+            <p className="text-xs text-muted-foreground">Approval Required</p>
           </button>
           <button
             onClick={() => openDocs("all_overdue")}
