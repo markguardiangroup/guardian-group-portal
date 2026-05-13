@@ -4076,6 +4076,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T20:21:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "b1f5d8e2-document-status-badge-compliant-approved-2026",
+          "patch": 10,
+          "message": "Document status badges now show Compliant or Approved based on actual document status",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T20:34:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
