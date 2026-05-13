@@ -1804,8 +1804,23 @@ export const insertSourceSchema = createInsertSchema(sources).omit({ id: true, c
 export type InsertSource = z.infer<typeof insertSourceSchema>;
 export type Source = typeof sources.$inferSelect;
 
+// ==================== BADGE TYPES ====================
+export const badgeTypes = pgTable("badge_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  label: text("label").notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBadgeTypeSchema = createInsertSchema(badgeTypes).omit({ id: true, createdAt: true });
+export type InsertBadgeType = z.infer<typeof insertBadgeTypeSchema>;
+export type BadgeType = typeof badgeTypes.$inferSelect;
+
 // ==================== SERVICES ====================
 export type ServiceModule = "health_safety" | "human_resources" | "employment_law";
+export type ServiceType = "retained" | "recurring" | "pay_as_you_go" | "subscription" | "training";
+export type PricePeriod = "one_off" | "monthly" | "annually";
 
 export const services = pgTable("services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1815,17 +1830,36 @@ export const services = pgTable("services", {
   module: text("module").$type<ServiceModule>().notNull(),
   sourceId: varchar("source_id").notNull().references(() => sources.id, { onDelete: "restrict" }),
   priceGbp: numeric("price_gbp", { precision: 10, scale: 2 }).notNull(),
-  benchmarkPriceGbp: numeric("benchmark_price_gbp", { precision: 10, scale: 2 }).notNull(),
+  benchmarkPriceGbp: numeric("benchmark_price_gbp", { precision: 10, scale: 2 }),
+  serviceType: text("service_type").$type<ServiceType>(),
+  pricePeriod: text("price_period").$type<PricePeriod>(),
+  badgeTypeId: varchar("badge_type_id").references(() => badgeTypes.id, { onDelete: "set null" }),
+  isMultiService: boolean("is_multi_service").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
-  sortOrder: integer("sort_order").notNull().default(0),
+  sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertServiceSchema = createInsertSchema(services, {
   module: z.enum(["health_safety", "human_resources", "employment_law"]),
+  serviceType: z.enum(["retained", "recurring", "pay_as_you_go", "subscription", "training"]),
+  pricePeriod: z.enum(["one_off", "monthly", "annually"]),
 }).omit({ id: true, createdAt: true });
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type Service = typeof services.$inferSelect;
+
+// ==================== SERVICE COMPONENTS ====================
+export const serviceComponents = pgTable("service_components", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  parentServiceId: varchar("parent_service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  componentServiceId: varchar("component_service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+}, (table) => ({
+  uniqueComponent: uniqueIndex("service_components_parent_component_unique").on(table.parentServiceId, table.componentServiceId),
+}));
+
+export const insertServiceComponentSchema = createInsertSchema(serviceComponents).omit({ id: true });
+export type InsertServiceComponent = z.infer<typeof insertServiceComponentSchema>;
+export type ServiceComponent = typeof serviceComponents.$inferSelect;
 
 export const companyServices = pgTable("company_services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

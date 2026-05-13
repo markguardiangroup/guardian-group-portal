@@ -3908,6 +3908,54 @@
           "category": "feature",
           "createdAt": "2026-05-13T09:00:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "d6a1f5b4-2e07-7089-1c45-0b8d4f6a3c12",
+          "patch": 10,
+          "message": "Services: new fields for service type, price period, badge type, and multi-service flag",
+          "category": "feature",
+          "createdAt": "2026-05-13T11:40:00.000Z",
+          "createdBy": "System"
+        },
+        {
+          "id": "e7b2a6c5-3f18-8190-2d56-1c9e5a7b4d23",
+          "patch": 10,
+          "message": "Services: badge types lookup table for assigning visual badges to services",
+          "category": "feature",
+          "createdAt": "2026-05-13T11:41:00.000Z",
+          "createdBy": "System"
+        },
+        {
+          "id": "f8c3b7d6-4a29-9201-3e67-2d0f6b8c5e34",
+          "patch": 10,
+          "message": "Services: multi-service component picker links related services together",
+          "category": "feature",
+          "createdAt": "2026-05-13T11:42:00.000Z",
+          "createdBy": "System"
+        },
+        {
+          "id": "a9d4c8e7-5b30-0312-4f78-3e1a7c9d6f45",
+          "patch": 10,
+          "message": "Services: source and module ringfencing limits assignable services to those matching a company's profile",
+          "category": "feature",
+          "createdAt": "2026-05-13T11:43:00.000Z",
+          "createdBy": "System"
+        },
+        {
+          "id": "b0e5d9f8-6c41-1423-5a89-4f2b8d0e7a56",
+          "patch": 10,
+          "message": "Services: confirmation dialogs added for assigning and removing company services",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T11:44:00.000Z",
+          "createdBy": "System"
+        },
+        {
+          "id": "c1f6e0a9-7d52-2534-6b90-5a3c9e1f8b67",
+          "patch": 10,
+          "message": "Services: additional filters for service type, badge type, and source on the admin catalogue page",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T11:45:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

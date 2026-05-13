@@ -479,7 +479,7 @@ type ServiceEntry = {
     module: "health_safety" | "human_resources" | "employment_law";
     sourceId: string | null;
     priceGbp: string;
-    benchmarkPriceGbp: string;
+    benchmarkPriceGbp: string | null;
     isActive: boolean;
     sortOrder: number;
   };
@@ -492,7 +492,7 @@ type AllService = {
   description: string | null;
   module: "health_safety" | "human_resources" | "employment_law";
   priceGbp: string;
-  benchmarkPriceGbp: string;
+  benchmarkPriceGbp: string | null;
   isActive: boolean;
 };
 
@@ -512,6 +512,8 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
   const { toast } = useToast();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
+  const [confirmAssign, setConfirmAssign] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<ServiceEntry | null>(null);
 
   const toggleServiceId = (id: string) =>
     setSelectedServiceIds(prev => {
@@ -530,9 +532,9 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
   });
 
   const { data: allServices = [] } = useQuery<AllService[]>({
-    queryKey: ["/api/services", "active"],
+    queryKey: ["/api/services", "active", companyId],
     queryFn: async () => {
-      const res = await fetch("/api/services?activeOnly=true", { credentials: "include" });
+      const res = await fetch(`/api/services?activeOnly=true&companyId=${companyId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch services");
       return res.json();
     },
@@ -555,10 +557,12 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "services"] });
       setPickerOpen(false);
+      setConfirmAssign(false);
       setSelectedServiceIds(new Set());
       toast({ title: "Service(s) assigned" });
     },
     onError: (error: Error) => {
+      setConfirmAssign(false);
       toast({ title: "Failed to assign service", description: error.message, variant: "destructive" });
     },
   });
@@ -569,9 +573,11 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "services"] });
+      setRemoveTarget(null);
       toast({ title: "Service removed" });
     },
     onError: (error: Error) => {
+      setRemoveTarget(null);
       toast({ title: "Failed to remove service", description: error.message, variant: "destructive" });
     },
   });
@@ -648,7 +654,7 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
                     {parseFloat(entry.service.priceGbp).toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                    {parseFloat(entry.service.benchmarkPriceGbp).toFixed(2)}
+                    {entry.service.benchmarkPriceGbp ? parseFloat(entry.service.benchmarkPriceGbp).toFixed(2) : "—"}
                   </td>
                   {canManage && (
                     <td className="px-4 py-3 text-right">
@@ -656,7 +662,7 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => removeMutation.mutate(entry.serviceId)}
+                        onClick={() => setRemoveTarget(entry)}
                         disabled={removeMutation.isPending}
                         data-testid={`button-remove-company-service-${entry.serviceId}`}
                       >
@@ -671,17 +677,60 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
         </div>
       )}
 
+      {/* Remove service confirmation */}
+      <AlertDialog open={!!removeTarget} onOpenChange={(open) => { if (!open) setRemoveTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Service?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove <strong>{removeTarget?.service.title}</strong> ({removeTarget?.service.productCode}) from this company? The service record will remain in the catalogue.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => removeTarget && removeMutation.mutate(removeTarget.serviceId)}
+              data-testid="button-confirm-remove-company-service"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Assign confirmation dialog */}
+      <AlertDialog open={confirmAssign} onOpenChange={(open) => { if (!open) setConfirmAssign(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Assign Service{selectedServiceIds.size !== 1 ? "s" : ""}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Assign {selectedServiceIds.size} service{selectedServiceIds.size !== 1 ? "s" : ""} to this company?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => addMutation.mutate(Array.from(selectedServiceIds))}
+              data-testid="button-confirm-assign-service"
+            >
+              {addMutation.isPending ? "Assigning…" : "Assign"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Service picker dialog */}
       {canManage && (
         <Dialog open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (!open) setSelectedServiceIds(new Set()); }}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add Services</DialogTitle>
-              <DialogDescription>Select one or more active services to assign to this company.</DialogDescription>
+              <DialogDescription>Select one or more eligible services to assign to this company. Only services matching this company's sources and active modules are shown.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               {available.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">All active services are already assigned.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No eligible services available to assign.</p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {available.map(svc => {
@@ -713,7 +762,7 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
                         </div>
                         <div className="mt-1 ml-5 flex gap-4 text-xs text-muted-foreground">
                           <span>Price: £{parseFloat(svc.priceGbp).toFixed(2)}</span>
-                          <span>Benchmark: £{parseFloat(svc.benchmarkPriceGbp).toFixed(2)}</span>
+                          {svc.benchmarkPriceGbp && <span>Benchmark: £{parseFloat(svc.benchmarkPriceGbp).toFixed(2)}</span>}
                         </div>
                       </button>
                     );
@@ -724,15 +773,13 @@ function CompanyServicesTab({ companyId, canManage }: { companyId: string; canMa
             <DialogFooter>
               <Button variant="outline" onClick={() => { setPickerOpen(false); setSelectedServiceIds(new Set()); }}>Cancel</Button>
               <Button
-                onClick={() => addMutation.mutate(Array.from(selectedServiceIds))}
+                onClick={() => setConfirmAssign(true)}
                 disabled={selectedServiceIds.size === 0 || addMutation.isPending}
                 data-testid="button-confirm-add-service"
               >
-                {addMutation.isPending
-                  ? "Assigning…"
-                  : selectedServiceIds.size > 1
-                    ? `Assign ${selectedServiceIds.size} Services`
-                    : "Assign Service"}
+                {selectedServiceIds.size > 1
+                  ? `Assign ${selectedServiceIds.size} Services`
+                  : "Assign Service"}
               </Button>
             </DialogFooter>
           </DialogContent>

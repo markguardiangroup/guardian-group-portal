@@ -76,8 +76,12 @@ import {
   sources as sourcesTable,
   type Service, type InsertService, type ServiceModule,
   type CompanyService, type InsertCompanyService,
+  type BadgeType, type InsertBadgeType,
+  type ServiceComponent, type InsertServiceComponent,
   services as servicesTable,
   companyServices as companyServicesTable,
+  badgeTypes as badgeTypesTable,
+  serviceComponents as serviceComponentsTable,
   type PortalMessage, type InsertPortalMessage,
   portalMessages as portalMessagesTable,
   type CaseBundle, type InsertCaseBundle,
@@ -522,8 +526,15 @@ export interface IStorage {
   createSource(source: InsertSource): Promise<Source>;
   updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
 
+  // Badge Types
+  getBadgeTypes(activeOnly?: boolean): Promise<BadgeType[]>;
+  getBadgeType(id: string): Promise<BadgeType | undefined>;
+  createBadgeType(data: InsertBadgeType): Promise<BadgeType>;
+  updateBadgeType(id: string, updates: Partial<InsertBadgeType>): Promise<BadgeType | undefined>;
+  deleteBadgeType(id: string): Promise<boolean>;
+
   // Services
-  getServices(opts?: { activeOnly?: boolean; module?: ServiceModule }): Promise<Service[]>;
+  getServices(opts?: { activeOnly?: boolean; module?: ServiceModule; companyId?: string }): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]>;
   getService(id: string): Promise<Service | undefined>;
   createService(service: InsertService): Promise<Service>;
   updateService(id: string, updates: Partial<InsertService>): Promise<Service | undefined>;
@@ -531,6 +542,11 @@ export interface IStorage {
   getCompanyServices(companyId: string): Promise<(CompanyService & { service: Service })[]>;
   addCompanyService(companyId: string, serviceId: string, assignedBy?: string): Promise<CompanyService>;
   removeCompanyService(companyId: string, serviceId: string): Promise<boolean>;
+
+  // Service Components
+  getServiceComponents(parentServiceId: string): Promise<Service[]>;
+  addServiceComponent(parentServiceId: string, componentServiceId: string): Promise<ServiceComponent>;
+  removeServiceComponent(parentServiceId: string, componentServiceId: string): Promise<boolean>;
 
   // Group Owner
   getGroupMembers(groupOwnerId: string): Promise<Company[]>;
@@ -5365,16 +5381,98 @@ export class MemStorage implements IStorage {
     return row;
   }
 
-  // Services
-  async getServices(opts: { activeOnly?: boolean; module?: ServiceModule } = {}): Promise<Service[]> {
+  // Badge Types
+  async getBadgeTypes(activeOnly = false): Promise<BadgeType[]> {
+    const q = db.select().from(badgeTypesTable);
+    return activeOnly
+      ? await q.where(eq(badgeTypesTable.isActive, true)).orderBy(asc(badgeTypesTable.sortOrder), asc(badgeTypesTable.label))
+      : await q.orderBy(asc(badgeTypesTable.sortOrder), asc(badgeTypesTable.label));
+  }
+
+  async getBadgeType(id: string): Promise<BadgeType | undefined> {
+    const [row] = await db.select().from(badgeTypesTable).where(eq(badgeTypesTable.id, id));
+    return row;
+  }
+
+  async createBadgeType(data: InsertBadgeType): Promise<BadgeType> {
+    const [row] = await db.insert(badgeTypesTable).values(data).returning();
+    return row;
+  }
+
+  async updateBadgeType(id: string, updates: Partial<InsertBadgeType>): Promise<BadgeType | undefined> {
+    const [row] = await db.update(badgeTypesTable).set(updates).where(eq(badgeTypesTable.id, id)).returning();
+    return row;
+  }
+
+  async deleteBadgeType(id: string): Promise<boolean> {
+    const result = await db.delete(badgeTypesTable).where(eq(badgeTypesTable.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getServices(opts: { activeOnly?: boolean; module?: ServiceModule; companyId?: string } = {}): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]> {
     const conditions = [];
     if (opts.activeOnly) conditions.push(eq(servicesTable.isActive, true));
     if (opts.module) conditions.push(eq(servicesTable.module, opts.module));
+
+    // If companyId is provided, ringfence by the company's sources and active modules
+    if (opts.companyId) {
+      const [company] = await db.select().from(companiesTable).where(eq(companiesTable.id, opts.companyId));
+      if (company) {
+        // Filter by source: service's sourceId must join to a source whose code is in company.sources
+        const companySources = company.sources ?? [];
+        if (companySources.length > 0) {
+          const matchingSources = await db.select({ id: sourcesTable.id }).from(sourcesTable).where(inArray(sourcesTable.code, companySources));
+          const matchingSourceIds = matchingSources.map(s => s.id);
+          if (matchingSourceIds.length > 0) {
+            conditions.push(inArray(servicesTable.sourceId, matchingSourceIds));
+          } else {
+            return [];
+          }
+        } else {
+          return [];
+        }
+        // Filter by module: only modules the company has active
+        const allowedModules: ServiceModule[] = [];
+        if (company.healthSafetyAccess) allowedModules.push("health_safety");
+        if (company.humanResourcesAccess) allowedModules.push("human_resources");
+        if (company.employmentLawAccess) allowedModules.push("employment_law");
+        if (allowedModules.length > 0) {
+          conditions.push(inArray(servicesTable.module, allowedModules));
+        } else {
+          return [];
+        }
+      }
+    }
+
     const q = db.select().from(servicesTable);
     const results = conditions.length > 0
       ? await q.where(and(...conditions)).orderBy(asc(servicesTable.sortOrder), asc(servicesTable.title))
       : await q.orderBy(asc(servicesTable.sortOrder), asc(servicesTable.title));
-    return results;
+
+    // Attach badge type label
+    const allBadgeTypes = await db.select().from(badgeTypesTable);
+    const badgeMap = new Map(allBadgeTypes.map(b => [b.id, b.label]));
+
+    // Attach components for multi-services
+    const multiIds = results.filter(s => s.isMultiService).map(s => s.id);
+    const componentRows = multiIds.length > 0
+      ? await db.select().from(serviceComponentsTable)
+          .innerJoin(servicesTable, eq(serviceComponentsTable.componentServiceId, servicesTable.id))
+          .where(inArray(serviceComponentsTable.parentServiceId, multiIds))
+      : [];
+
+    const componentsByParent = new Map<string, Service[]>();
+    for (const row of componentRows) {
+      const parentId = row.service_components.parentServiceId;
+      if (!componentsByParent.has(parentId)) componentsByParent.set(parentId, []);
+      componentsByParent.get(parentId)!.push(row.services);
+    }
+
+    return results.map(s => ({
+      ...s,
+      badgeTypeLabel: s.badgeTypeId ? (badgeMap.get(s.badgeTypeId) ?? null) : null,
+      components: s.isMultiService ? (componentsByParent.get(s.id) ?? []) : undefined,
+    }));
   }
 
   async getService(id: string): Promise<Service | undefined> {
@@ -5415,6 +5513,28 @@ export class MemStorage implements IStorage {
   async removeCompanyService(companyId: string, serviceId: string): Promise<boolean> {
     const result = await db.delete(companyServicesTable)
       .where(and(eq(companyServicesTable.companyId, companyId), eq(companyServicesTable.serviceId, serviceId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Service Components
+  async getServiceComponents(parentServiceId: string): Promise<Service[]> {
+    const rows = await db.select().from(serviceComponentsTable)
+      .innerJoin(servicesTable, eq(serviceComponentsTable.componentServiceId, servicesTable.id))
+      .where(eq(serviceComponentsTable.parentServiceId, parentServiceId));
+    return rows.map(r => r.services);
+  }
+
+  async addServiceComponent(parentServiceId: string, componentServiceId: string): Promise<ServiceComponent> {
+    const [row] = await db.insert(serviceComponentsTable).values({ parentServiceId, componentServiceId }).returning();
+    return row;
+  }
+
+  async removeServiceComponent(parentServiceId: string, componentServiceId: string): Promise<boolean> {
+    const result = await db.delete(serviceComponentsTable)
+      .where(and(
+        eq(serviceComponentsTable.parentServiceId, parentServiceId),
+        eq(serviceComponentsTable.componentServiceId, componentServiceId),
+      ));
     return (result.rowCount ?? 0) > 0;
   }
 

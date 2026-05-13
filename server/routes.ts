@@ -10,7 +10,7 @@ import path from "path";
 import os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
-import type { ModuleType, InvitationPurpose } from "@shared/schema";
+import type { ModuleType, InvitationPurpose, InsertService } from "@shared/schema";
 import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
@@ -15889,6 +15889,65 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== BADGE TYPES ====================
+
+  app.get("/api/badge-types", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
+      const activeOnly = req.query.activeOnly === "true";
+      const types = await storage.getBadgeTypes(activeOnly);
+      res.json(types);
+    } catch (error) {
+      console.error("Error fetching badge types:", error);
+      res.status(500).json({ error: "Failed to fetch badge types" });
+    }
+  });
+
+  app.post("/api/badge-types", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = z.object({ label: z.string().min(1), sortOrder: z.number().optional(), isActive: z.boolean().optional() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const bt = await storage.createBadgeType({ label: parsed.data.label, sortOrder: parsed.data.sortOrder ?? 0, isActive: parsed.data.isActive ?? true });
+      res.status(201).json(bt);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "A badge type with that label already exists" });
+      console.error("Error creating badge type:", error);
+      res.status(500).json({ error: "Failed to create badge type" });
+    }
+  });
+
+  app.patch("/api/badge-types/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const parsed = z.object({ label: z.string().min(1).optional(), sortOrder: z.number().optional(), isActive: z.boolean().optional() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const bt = await storage.updateBadgeType(req.params.id, parsed.data);
+      if (!bt) return res.status(404).json({ error: "Badge type not found" });
+      res.json(bt);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "A badge type with that label already exists" });
+      console.error("Error updating badge type:", error);
+      res.status(500).json({ error: "Failed to update badge type" });
+    }
+  });
+
+  app.delete("/api/badge-types/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const deleted = await storage.deleteBadgeType(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Badge type not found" });
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting badge type:", error);
+      res.status(500).json({ error: "Failed to delete badge type" });
+    }
+  });
+
   // ==================== SERVICES ====================
 
   const createServiceSchema = z.object({
@@ -15897,8 +15956,12 @@ export async function registerRoutes(
     description: z.string().optional().nullable(),
     module: z.enum(["health_safety", "human_resources", "employment_law"]),
     sourceId: z.string().min(1),
+    serviceType: z.enum(["retained", "recurring", "pay_as_you_go", "subscription", "training"]),
+    pricePeriod: z.enum(["one_off", "monthly", "annually"]),
+    badgeTypeId: z.string().optional().nullable(),
+    isMultiService: z.boolean().optional(),
     priceGbp: z.string().regex(/^\d+(\.\d{1,2})?$/, "Must be a valid decimal amount"),
-    benchmarkPriceGbp: z.string().regex(/^\d+(\.\d{1,2})?$/, "Must be a valid decimal amount"),
+    benchmarkPriceGbp: z.string().regex(/^\d+(\.\d{1,2})?$/, "Must be a valid decimal amount").optional().nullable(),
     isActive: z.boolean().optional(),
     sortOrder: z.number().optional(),
   });
@@ -15915,7 +15978,8 @@ export async function registerRoutes(
       const module = rawModule && (validModules as readonly string[]).includes(rawModule)
         ? rawModule as typeof validModules[number]
         : undefined;
-      const svcs = await storage.getServices({ activeOnly, module });
+      const companyId = req.query.companyId as string | undefined;
+      const svcs = await storage.getServices({ activeOnly, module, companyId });
       res.json(svcs);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -15930,7 +15994,7 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = createServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
-      const svc = await storage.createService(parsed.data);
+      const svc = await storage.createService(parsed.data as InsertService);
       res.status(201).json(svc);
     } catch (error: any) {
       if (error?.code === "23505") return res.status(409).json({ error: "A service with that product code already exists" });
@@ -15946,7 +16010,7 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = updateServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
-      const svc = await storage.updateService(req.params.id, parsed.data);
+      const svc = await storage.updateService(req.params.id, parsed.data as Partial<InsertService>);
       if (!svc) return res.status(404).json({ error: "Service not found" });
       res.json(svc);
     } catch (error: any) {
@@ -15967,6 +16031,55 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting service:", error);
       res.status(500).json({ error: "Failed to delete service" });
+    }
+  });
+
+  app.get("/api/services/:id/components", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
+      const components = await storage.getServiceComponents(req.params.id);
+      res.json(components);
+    } catch (error) {
+      console.error("Error fetching service components:", error);
+      res.status(500).json({ error: "Failed to fetch service components" });
+    }
+  });
+
+  app.post("/api/services/:id/components", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
+      const parsed = z.object({ componentServiceId: z.string().min(1) }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
+      const parent = await storage.getService(req.params.id);
+      const component = await storage.getService(parsed.data.componentServiceId);
+      if (!parent || !component) return res.status(404).json({ error: "Service not found" });
+      if (!parent.isMultiService) return res.status(400).json({ error: "Parent service is not a multi-service" });
+      if (component.isMultiService) return res.status(400).json({ error: "Components must be single services" });
+      if (parent.sourceId !== component.sourceId) return res.status(400).json({ error: "Component must have the same source as the parent" });
+      if (parent.module !== component.module) return res.status(400).json({ error: "Component must be in the same module as the parent" });
+      const link = await storage.addServiceComponent(req.params.id, parsed.data.componentServiceId);
+      res.status(201).json(link);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "Component already linked" });
+      console.error("Error adding service component:", error);
+      res.status(500).json({ error: "Failed to add component" });
+    }
+  });
+
+  app.delete("/api/services/:id/components/:componentId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
+      const removed = await storage.removeServiceComponent(req.params.id, req.params.componentId);
+      if (!removed) return res.status(404).json({ error: "Component link not found" });
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error removing service component:", error);
+      res.status(500).json({ error: "Failed to remove component" });
     }
   });
 
@@ -15991,6 +16104,34 @@ export async function registerRoutes(
       if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
       const svc = await storage.getService(parsed.data.serviceId);
       if (!svc || !svc.isActive) return res.status(400).json({ error: "Service is not active" });
+
+      // Ringfencing: validate source matches one of the company's configured sources
+      const company = await storage.getCompany(req.params.id);
+      if (!company) return res.status(404).json({ error: "Company not found" });
+      const companySources = company.sources ?? [];
+      if (companySources.length === 0) {
+        return res.status(400).json({ error: "This company has no configured sources; no services can be assigned" });
+      }
+      const { pool: pgPool } = await import("./db");
+      const { rows: srcRows } = await pgPool.query<{ code: string }>(
+        "SELECT code FROM sources WHERE id = $1", [svc.sourceId]
+      );
+      const svcSourceCode = srcRows[0]?.code;
+      if (!svcSourceCode || !companySources.includes(svcSourceCode)) {
+        return res.status(400).json({ error: "This service's source does not match any of this company's configured sources" });
+      }
+
+      // Ringfencing: validate module matches an active module on the company
+      const moduleMap: Record<string, keyof typeof company> = {
+        health_safety: "healthSafetyAccess",
+        human_resources: "humanResourcesAccess",
+        employment_law: "employmentLawAccess",
+      };
+      const accessKey = moduleMap[svc.module];
+      if (accessKey && !company[accessKey]) {
+        return res.status(400).json({ error: `This company does not have ${svc.module.replace(/_/g, " ")} access enabled` });
+      }
+
       const row = await storage.addCompanyService(req.params.id, parsed.data.serviceId, user.fullName ?? user.username);
       res.status(201).json(row);
     } catch (error: any) {
