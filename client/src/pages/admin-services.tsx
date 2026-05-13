@@ -296,7 +296,7 @@ export default function AdminServices() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-muted-foreground text-left">
-                    <th className="pb-2 pr-4 font-medium">Code</th>
+                    <th className="pb-2 pr-4 font-medium">Product Code</th>
                     <th className="pb-2 pr-4 font-medium">Title</th>
                     <th className="pb-2 pr-4 font-medium">Module</th>
                     <th className="pb-2 pr-4 font-medium">Source</th>
