@@ -523,7 +523,7 @@ function CompanyServicesTab({ companyId, isAdmin }: { companyId: string; isAdmin
   });
 
   const { data: allServices = [] } = useQuery<AllService[]>({
-    queryKey: ["/api/services"],
+    queryKey: ["/api/services", "active"],
     queryFn: async () => {
       const res = await fetch("/api/services?activeOnly=true", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch services");

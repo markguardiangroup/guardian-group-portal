@@ -113,7 +113,7 @@ export default function AdminServices() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
 
   const { data: services = [], isLoading } = useQuery<Service[]>({
-    queryKey: ["/api/services"],
+    queryKey: ["/api/services", "all"],
   });
 
   const { data: sources = [] } = useQuery<Source[]>({
