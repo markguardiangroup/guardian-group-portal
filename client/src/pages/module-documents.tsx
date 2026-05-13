@@ -648,6 +648,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return companyScopeMissingTemplates.filter(m => m.module === module);
     }
     if (!allMissingTemplates) return [];
+    const filteredSiteIds = filteredSites.length > 0 ? new Set(filteredSites.map(s => s.id)) : null;
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
       if (urlScope === "group" && urlEntityId) {
@@ -655,9 +656,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         if (m.companyId !== urlEntityId && m.groupOwnerId !== urlEntityId) return false;
       }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
+      // No specific site selected — restrict to the currently visible (company-filtered) sites.
+      if (!urlScope && filteredSiteIds) return filteredSiteIds.has(m.siteId);
       return true;
     });
-  }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId]);
+  }, [allMissingTemplates, companyScopeMissingTemplates, module, selectedSiteId, urlScope, urlEntityId, filteredSites]);
 
   // For the flat table view, deduplicate by (templateId, siteId) so each missing
   // (template, site) pair gets its own row. In scoped (group/company) views where

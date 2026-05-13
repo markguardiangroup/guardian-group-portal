@@ -4044,6 +4044,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T19:27:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "d7b1e4f8-missing-slots-company-filter-2026",
+          "patch": 10,
+          "message": "Fixed: Missing documents count on All Sites view now scoped to the selected company only",
+          "category": "bug",
+          "createdAt": "2026-05-13T19:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
