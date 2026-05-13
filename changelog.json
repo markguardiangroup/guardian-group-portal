@@ -4028,6 +4028,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T18:58:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "b5e9f2c6-company-shared-doc-entity-name-2026",
+          "patch": 10,
+          "message": "Fixed: shared docs at company level now show the correct 'Shared from group: Name' subtitle",
+          "category": "bug",
+          "createdAt": "2026-05-13T19:15:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

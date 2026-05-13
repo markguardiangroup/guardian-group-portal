@@ -1452,8 +1452,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
                         : ((doc as any).scope === "group" ? "group" : (doc as any).scope === "company" ? "company" : null));
                     if (isLinkedRow) {
-                      const sharedSubtitle = doc.sharedFromEntityName
-                        ? `Shared from ${linkedFromScope === "group" ? "group" : "company"}: ${doc.sharedFromEntityName}`
+                      const resolvedEntityName = doc.sharedFromEntityName
+                        ?? companies.find((c: any) => c.id === (doc as any).entityId)?.name
+                        ?? null;
+                      const sharedSubtitle = resolvedEntityName
+                        ? `Shared from ${linkedFromScope === "group" ? "group" : "company"}: ${resolvedEntityName}`
                         : `Shared ${linkedFromScope ?? "document"} (read-only)`;
                       return (
                         <Link
