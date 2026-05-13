@@ -114,6 +114,11 @@ export default function AdminServices() {
 
   const { data: services = [], isLoading } = useQuery<Service[]>({
     queryKey: ["/api/services", "all"],
+    queryFn: async () => {
+      const res = await fetch("/api/services", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch services");
+      return res.json();
+    },
   });
 
   const { data: sources = [] } = useQuery<Source[]>({
