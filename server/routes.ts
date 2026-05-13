@@ -15909,7 +15909,11 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
       const activeOnly = req.query.activeOnly === "true";
-      const module = req.query.module as string | undefined;
+      const validModules = ["health_safety", "human_resources", "employment_law"] as const;
+      const rawModule = req.query.module as string | undefined;
+      const module = rawModule && (validModules as readonly string[]).includes(rawModule)
+        ? rawModule as typeof validModules[number]
+        : undefined;
       const svcs = await storage.getServices({ activeOnly, module });
       res.json(svcs);
     } catch (error) {
