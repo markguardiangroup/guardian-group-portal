@@ -1732,7 +1732,8 @@ export async function registerRoutes(
     const _manualNow = new Date();
     const isManualOverdue = (d: any) =>
       d.status === "overdue" ||
-      (d.expiryDate && new Date(d.expiryDate) < _manualNow);
+      (d.expiryDate && new Date(d.expiryDate) < _manualNow) ||
+      (d.renewalDate && new Date(d.renewalDate) < _manualNow);
     const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d)).length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
     const approvalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isManualOverdue(d)).length;
@@ -2281,7 +2282,8 @@ export async function registerRoutes(
       const _progNow = new Date();
       const isDocOverdue = (d: any) =>
         d.status === "overdue" ||
-        (d.expiryDate && new Date(d.expiryDate) < _progNow);
+        (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
+        (d.renewalDate && new Date(d.renewalDate) < _progNow);
       const allDocumentsCount = docProgressSet.length;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
       const allApprovalRequired = docProgressSet.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
@@ -2447,7 +2449,8 @@ export async function registerRoutes(
       const _progNow2 = new Date();
       const isDocOverdue2 = (d: any) =>
         d.status === "overdue" ||
-        (d.expiryDate && new Date(d.expiryDate) < _progNow2);
+        (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
+        (d.renewalDate && new Date(d.renewalDate) < _progNow2);
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
       const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.status === "approval_required" && !isDocOverdue2(d)).length;
@@ -4302,10 +4305,8 @@ export async function registerRoutes(
         const now = new Date();
         const newExpiryDate = "expiryDate" in body ? body.expiryDate : doc.expiryDate;
         const newRenewalDate = "renewalDate" in body ? body.renewalDate : doc.renewalDate;
-        if (newExpiryDate && new Date(newExpiryDate) < now) {
+        if ((newExpiryDate && new Date(newExpiryDate) < now) || (newRenewalDate && new Date(newRenewalDate) < now)) {
           body.status = "overdue";
-        } else if (newRenewalDate && new Date(newRenewalDate) < now) {
-          body.status = "approval_required";
         } else {
           body.status = "compliant";
         }
