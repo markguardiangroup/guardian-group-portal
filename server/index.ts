@@ -252,15 +252,13 @@ process.on("uncaughtException", (err) => {
   }
 
   // One-time data migration: rename legacy document status "review_required" → "approval_required".
-  // Idempotent — safe to run on every startup.
+  // Idempotent — safe to run on every startup. Uses raw SQL to avoid TypeScript
+  // enum constraints on a value that no longer exists in the schema type.
   try {
-    const { db } = await import("./db");
-    const { documents: documentsTable } = await import("@shared/schema");
-    const { eq } = await import("drizzle-orm");
-    const result = await db.update(documentsTable)
-      .set({ status: "approval_required" as any })
-      .where(eq(documentsTable.status, "review_required" as any));
-    const count = (result as any).rowCount ?? (result as any).count ?? 0;
+    const result = await pool.query(
+      `UPDATE documents SET status = 'approval_required', updated_at = NOW() WHERE status = 'review_required'`
+    );
+    const count = result.rowCount ?? 0;
     if (count > 0) {
       console.log(`[migration] Renamed ${count} document status(es) from 'review_required' to 'approval_required'.`);
     }
