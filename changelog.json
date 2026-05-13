@@ -4068,6 +4068,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T20:10:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a0e4c7d1-backfill-approved-status-existing-docs-2026",
+          "patch": 10,
+          "message": "Existing non-required documents backfilled from 'compliant' to 'approved' status; applied automatically on next deployment",
+          "category": "bug",
+          "createdAt": "2026-05-13T20:21:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

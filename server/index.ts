@@ -266,6 +266,20 @@ process.on("uncaughtException", (err) => {
     console.error("Startup document-status migration warning (non-fatal):", err);
   }
 
+  // One-time data migration: non-required documents that are compliant should
+  // have status "approved" not "compliant". Idempotent — safe to run on every startup.
+  try {
+    const result = await pool.query(
+      `UPDATE documents SET status = 'approved', updated_at = NOW() WHERE status = 'compliant' AND is_required = false`
+    );
+    const count = result.rowCount ?? 0;
+    if (count > 0) {
+      console.log(`[migration] Updated ${count} non-required document status(es) from 'compliant' to 'approved'.`);
+    }
+  } catch (err) {
+    console.error("Startup non-required document status migration warning (non-fatal):", err);
+  }
+
   // Run expired folder cleanup on startup and then daily
   storage.cleanupExpiredFolders().catch((err) =>
     console.error("Startup folder cleanup error:", err)
