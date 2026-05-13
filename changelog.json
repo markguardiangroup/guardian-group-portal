@@ -3844,6 +3844,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-12T23:00:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "r5n7s296-8o01-7pqr-o657-2u9t6r3q5s88",
+          "patch": 10,
+          "message": "Fixed: banner body text now matches title text size",
+          "category": "bug",
+          "createdAt": "2026-05-13T07:45:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

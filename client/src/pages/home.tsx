@@ -389,7 +389,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
       {/* Content */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold leading-snug text-foreground">{active.title}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{active.body}</p>
+        <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{active.body}</p>
       </div>
 
       {/* CTA + close */}
