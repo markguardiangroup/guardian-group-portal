@@ -4052,6 +4052,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T19:35:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "e8c2f5a9-folder-badges-overdue-approval-2026",
+          "patch": 10,
+          "message": "Folders now show separate Overdue and Approval Required badges instead of a single Attention Needed badge",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T19:42:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

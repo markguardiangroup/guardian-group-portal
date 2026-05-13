@@ -913,11 +913,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     moveDocumentMutation.mutate({ docId, folderId: targetFolderId });
   };
   
-  // Get folder status badge - colors match document-level RAGBadge for consistency
+  // Get folder status badges - returns up to two badges (Overdue + Approval Required) simultaneously
   const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
-    if (stats.overdue > 0) return { variant: "outline" as const, label: "Attention Needed", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" };
-    if (stats.approvalRequired > 0) return { variant: "outline" as const, label: "Approval Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" };
-    return null;
+    const badges: { variant: "outline"; label: string; className: string }[] = [];
+    if (stats.overdue > 0) badges.push({ variant: "outline", label: "Overdue", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" });
+    if (stats.approvalRequired > 0) badges.push({ variant: "outline", label: "Approval Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" });
+    return badges;
   };
   
   // Get folder templates for current module (exclude Toolkit roots and mirrored subfolders)
@@ -1647,7 +1648,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   {childMissing.length} Missing
                                 </Badge>
                               )}
-                              {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
+                              {childStatusBadge.map(b => <Badge key={b.label} variant={b.variant} className={b.className}>{b.label}</Badge>)}
                               <span className="text-xs text-muted-foreground">
                                 {(childFolder.stats?.totalDocuments ?? childDocs.length)} document{(childFolder.stats?.totalDocuments ?? childDocs.length) !== 1 ? "s" : ""}
                               </span>
@@ -1706,7 +1707,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   {totalMissing} Missing
                                 </Badge>
                               )}
-                              {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
+                              {statusBadge.map(b => <Badge key={b.label} variant={b.variant} className={b.className}>{b.label}</Badge>)}
                               <span className="text-sm text-muted-foreground">
                                 {stats.totalDocuments} document{stats.totalDocuments !== 1 ? "s" : ""}
                               </span>
@@ -1870,7 +1871,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   {parentMissingCount} Missing
                                 </Badge>
                               )}
-                              {statusBadge && <Badge variant={statusBadge.variant} className={statusBadge.className}>{statusBadge.label}</Badge>}
+                              {statusBadge.map(b => <Badge key={b.label} variant={b.variant} className={b.className}>{b.label}</Badge>)}
                               <span className="text-sm text-muted-foreground">
                                 {adjustedFolderStats.totalDocuments} document{adjustedFolderStats.totalDocuments !== 1 ? "s" : ""}
                               </span>
@@ -1914,7 +1915,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                 {missingByFolderTemplateId.get(childFolder.id)!.length} Missing
                                               </Badge>
                                             )}
-                                            {childStatusBadge && <Badge variant={childStatusBadge.variant} className={childStatusBadge.className}>{childStatusBadge.label}</Badge>}
+                                            {childStatusBadge.map(b => <Badge key={b.label} variant={b.variant} className={b.className}>{b.label}</Badge>)}
                                             <span className="text-xs text-muted-foreground">
                                               {adjustedChildStats.totalDocuments} doc{adjustedChildStats.totalDocuments !== 1 ? "s" : ""}
                                             </span>
