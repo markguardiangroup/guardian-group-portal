@@ -4004,6 +4004,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T16:20:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "e2c7b4a3-company-total-tile-green-2026",
+          "patch": 10,
+          "message": "Fixed: Company-level Total tile now turns green when documents are present",
+          "category": "bug",
+          "createdAt": "2026-05-13T16:25:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
