@@ -3884,6 +3884,14 @@
           "category": "feature",
           "createdAt": "2026-05-13T08:20:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a3f8c2e1-9b74-4d56-8f12-7e5a1d3c0b89",
+          "patch": 10,
+          "message": "Fixed: Services catalogue enforces required source field and removes type-unsafe casts",
+          "category": "bug",
+          "createdAt": "2026-05-13T08:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

@@ -54,17 +54,21 @@ type Service = {
   createdAt: string;
 };
 
-type FormData = {
+type ServiceModule = "health_safety" | "human_resources" | "employment_law";
+
+type ServicePayload = {
   productCode: string;
   title: string;
   description: string;
-  module: "health_safety" | "human_resources" | "employment_law" | "";
+  module: ServiceModule;
   sourceId: string;
   priceGbp: string;
   benchmarkPriceGbp: string;
   isActive: boolean;
   sortOrder: number;
 };
+
+type FormData = Omit<ServicePayload, "module"> & { module: ServiceModule | "" };
 
 const EMPTY_FORM: FormData = {
   productCode: "",
@@ -122,10 +126,9 @@ export default function AdminServices() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Omit<FormData, "module"> & { module: string }) => {
+    mutationFn: async (data: ServicePayload) => {
       const res = await apiRequest("POST", "/api/services", {
         ...data,
-        sourceId: data.sourceId || null,
         description: data.description || null,
       });
       return res.json();
@@ -142,10 +145,9 @@ export default function AdminServices() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<FormData> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ServicePayload> }) => {
       const res = await apiRequest("PATCH", `/api/services/${id}`, {
         ...data,
-        sourceId: data.sourceId || null,
         description: data.description || null,
       });
       return res.json();
@@ -211,11 +213,12 @@ export default function AdminServices() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.module) return;
+    if (!form.module || !form.sourceId) return;
+    const payload: ServicePayload = { ...form, module: form.module };
     if (editingService) {
-      updateMutation.mutate({ id: editingService.id, data: form });
+      updateMutation.mutate({ id: editingService.id, data: payload });
     } else {
-      createMutation.mutate(form as any);
+      createMutation.mutate(payload);
     }
   };
 
@@ -400,7 +403,7 @@ export default function AdminServices() {
                 <Label htmlFor="svc-module">Module *</Label>
                 <Select
                   value={form.module}
-                  onValueChange={v => setForm(f => ({ ...f, module: v as any }))}
+                  onValueChange={v => setForm(f => ({ ...f, module: v as ServiceModule }))}
                   required
                 >
                   <SelectTrigger id="svc-module" data-testid="select-service-module">
@@ -437,16 +440,16 @@ export default function AdminServices() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="svc-source">Source</Label>
+              <Label htmlFor="svc-source">Source *</Label>
               <Select
-                value={form.sourceId || "__none__"}
-                onValueChange={v => setForm(f => ({ ...f, sourceId: v === "__none__" ? "" : v }))}
+                value={form.sourceId}
+                onValueChange={v => setForm(f => ({ ...f, sourceId: v }))}
+                required
               >
                 <SelectTrigger id="svc-source" data-testid="select-service-source">
-                  <SelectValue placeholder="Select source (optional)" />
+                  <SelectValue placeholder="Select source" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">None</SelectItem>
                   {sources.filter(s => s.isActive).map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.code} — {s.label}</SelectItem>
                   ))}
@@ -512,7 +515,7 @@ export default function AdminServices() {
               <Button
                 type="submit"
                 data-testid="button-save-service"
-                disabled={isPending || !form.module}
+                disabled={isPending || !form.module || !form.sourceId}
               >
                 {isPending ? "Saving…" : editingService ? "Save Changes" : "Add Service"}
               </Button>

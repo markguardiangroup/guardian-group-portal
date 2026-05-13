@@ -15895,7 +15895,7 @@ export async function registerRoutes(
     title: z.string().min(1),
     description: z.string().optional().nullable(),
     module: z.enum(["health_safety", "human_resources", "employment_law"]),
-    sourceId: z.string().nullable().optional(),
+    sourceId: z.string().min(1),
     priceGbp: z.string().min(1),
     benchmarkPriceGbp: z.string().min(1),
     isActive: z.boolean().optional(),
@@ -15924,7 +15924,7 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const parsed = createServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
-      const svc = await storage.createService(parsed.data as any);
+      const svc = await storage.createService(parsed.data);
       res.status(201).json(svc);
     } catch (error: any) {
       if (error?.code === "23505") return res.status(409).json({ error: "A service with that product code already exists" });
@@ -15939,7 +15939,7 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const parsed = updateServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
-      const svc = await storage.updateService(req.params.id, parsed.data as any);
+      const svc = await storage.updateService(req.params.id, parsed.data);
       if (!svc) return res.status(404).json({ error: "Service not found" });
       res.json(svc);
     } catch (error: any) {

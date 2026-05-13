@@ -74,7 +74,7 @@ import {
   type DocumentScope,
   type Source, type InsertSource,
   sources as sourcesTable,
-  type Service, type InsertService,
+  type Service, type InsertService, type ServiceModule,
   type CompanyService, type InsertCompanyService,
   services as servicesTable,
   companyServices as companyServicesTable,
@@ -523,10 +523,10 @@ export interface IStorage {
   updateSource(id: string, updates: Partial<Source>): Promise<Source | undefined>;
 
   // Services
-  getServices(opts?: { activeOnly?: boolean; module?: string }): Promise<Service[]>;
+  getServices(opts?: { activeOnly?: boolean; module?: ServiceModule }): Promise<Service[]>;
   getService(id: string): Promise<Service | undefined>;
   createService(service: InsertService): Promise<Service>;
-  updateService(id: string, updates: Partial<Service>): Promise<Service | undefined>;
+  updateService(id: string, updates: Partial<InsertService>): Promise<Service | undefined>;
   deleteService(id: string): Promise<boolean>;
   getCompanyServices(companyId: string): Promise<(CompanyService & { service: Service })[]>;
   addCompanyService(companyId: string, serviceId: string, assignedBy?: string): Promise<CompanyService>;
@@ -5366,10 +5366,10 @@ export class MemStorage implements IStorage {
   }
 
   // Services
-  async getServices(opts: { activeOnly?: boolean; module?: string } = {}): Promise<Service[]> {
+  async getServices(opts: { activeOnly?: boolean; module?: ServiceModule } = {}): Promise<Service[]> {
     const conditions = [];
     if (opts.activeOnly) conditions.push(eq(servicesTable.isActive, true));
-    if (opts.module) conditions.push(eq(servicesTable.module, opts.module as any));
+    if (opts.module) conditions.push(eq(servicesTable.module, opts.module));
     const q = db.select().from(servicesTable);
     const results = conditions.length > 0
       ? await q.where(and(...conditions)).orderBy(asc(servicesTable.sortOrder), asc(servicesTable.title))
@@ -5383,12 +5383,12 @@ export class MemStorage implements IStorage {
   }
 
   async createService(service: InsertService): Promise<Service> {
-    const [row] = await db.insert(servicesTable).values(service as any).returning();
+    const [row] = await db.insert(servicesTable).values(service).returning();
     return row;
   }
 
-  async updateService(id: string, updates: Partial<Service>): Promise<Service | undefined> {
-    const [row] = await db.update(servicesTable).set(updates as any).where(eq(servicesTable.id, id)).returning();
+  async updateService(id: string, updates: Partial<InsertService>): Promise<Service | undefined> {
+    const [row] = await db.update(servicesTable).set(updates).where(eq(servicesTable.id, id)).returning();
     return row;
   }
 

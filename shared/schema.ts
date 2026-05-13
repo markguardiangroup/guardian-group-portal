@@ -1812,7 +1812,7 @@ export const services = pgTable("services", {
   title: text("title").notNull(),
   description: text("description"),
   module: text("module").$type<ServiceModule>().notNull(),
-  sourceId: varchar("source_id").references(() => sources.id, { onDelete: "set null" }),
+  sourceId: varchar("source_id").notNull().references(() => sources.id, { onDelete: "restrict" }),
   priceGbp: numeric("price_gbp", { precision: 10, scale: 2 }).notNull(),
   benchmarkPriceGbp: numeric("benchmark_price_gbp", { precision: 10, scale: 2 }).notNull(),
   isActive: boolean("is_active").notNull().default(true),
@@ -1820,7 +1820,9 @@ export const services = pgTable("services", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
+export const insertServiceSchema = createInsertSchema(services, {
+  module: z.enum(["health_safety", "human_resources", "employment_law"]),
+}).omit({ id: true, createdAt: true });
 export type InsertService = z.infer<typeof insertServiceSchema>;
 export type Service = typeof services.$inferSelect;
 
@@ -1830,7 +1832,9 @@ export const companyServices = pgTable("company_services", {
   serviceId: varchar("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
   assignedAt: timestamp("assigned_at").notNull().defaultNow(),
   assignedBy: text("assigned_by"),
-});
+}, (table) => ({
+  uniqueAssignment: uniqueIndex("company_services_company_service_unique").on(table.companyId, table.serviceId),
+}));
 
 export const insertCompanyServiceSchema = createInsertSchema(companyServices).omit({ id: true, assignedAt: true });
 export type InsertCompanyService = z.infer<typeof insertCompanyServiceSchema>;
