@@ -1026,7 +1026,7 @@ function DocumentsListView() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="compliant">Compliant</SelectItem>
+                    <SelectItem value="compliant">Approved</SelectItem>
                     <SelectItem value="approval_required">Approval Required</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
                   </SelectContent>

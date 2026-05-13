@@ -4060,6 +4060,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T19:42:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "f9d3a6b0-document-status-approved-not-compliant-2026",
+          "patch": 10,
+          "message": "Documents now show Approved (not Compliant) once they pass review; status filter updated to match",
+          "category": "enhancement",
+          "createdAt": "2026-05-13T20:05:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
