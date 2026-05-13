@@ -316,6 +316,27 @@ process.on("uncaughtException", (err) => {
     console.error("Startup company-required-template is_required backfill warning (non-fatal):", err);
   }
 
+  // One-time data migration: documents marked is_required=true that are approved
+  // should have status='compliant' not 'approved'. Covers cases where the toggle
+  // was flipped before the status-recalculation logic was in place.
+  // Idempotent — safe to run on every startup.
+  try {
+    const result = await pool.query(
+      `UPDATE documents
+       SET status = 'compliant', updated_at = NOW()
+       WHERE is_required = true
+         AND approval_status = 'approved'
+         AND status = 'approved'
+         AND is_archived = false`
+    );
+    const count = result.rowCount ?? 0;
+    if (count > 0) {
+      console.log(`[migration] Fixed ${count} required document(s) with status='approved' → 'compliant'.`);
+    }
+  } catch (err) {
+    console.error("Startup required-doc status fix warning (non-fatal):", err);
+  }
+
   // Run expired folder cleanup on startup and then daily
   storage.cleanupExpiredFolders().catch((err) =>
     console.error("Startup folder cleanup error:", err)

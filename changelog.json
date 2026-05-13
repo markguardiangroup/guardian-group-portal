@@ -4108,6 +4108,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T21:25:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "f5d9b2c6-required-approved-to-compliant-backfill-2026",
+          "patch": 10,
+          "message": "Fixed: required documents showing Approved instead of Compliant now corrected",
+          "category": "bug",
+          "createdAt": "2026-05-13T21:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
