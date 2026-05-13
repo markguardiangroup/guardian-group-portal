@@ -4305,20 +4305,13 @@ export async function registerRoutes(
 
       // Recalculate compliance status when isRequired is toggled
       if ("isRequired" in body && doc.approvalStatus === "approved") {
-        console.log(`[isRequired toggle] doc.status=${doc.status} doc.approvalStatus=${doc.approvalStatus} body.isRequired=${body.isRequired}`);
         if (body.isRequired && doc.status === "approved") {
           // Toggled ON — doc was approved (non-required) → now required → compliant
           body.status = "compliant";
-          console.log(`[isRequired toggle] setting status → compliant`);
         } else if (!body.isRequired && doc.status === "compliant") {
           // Toggled OFF — doc was compliant (required) → no longer required → approved
           body.status = "approved";
-          console.log(`[isRequired toggle] setting status → approved`);
-        } else {
-          console.log(`[isRequired toggle] no status change needed`);
         }
-      } else if ("isRequired" in body) {
-        console.log(`[isRequired toggle] skipped — doc.approvalStatus=${doc.approvalStatus} (not approved)`);
       }
 
       // Recalculate compliance status when dates are changed
