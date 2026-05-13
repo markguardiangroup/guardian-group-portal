@@ -4148,6 +4148,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T22:30:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "k0i4g7h1-dashboard-useeffect-import-2026",
+          "patch": 10,
+          "message": "Fixed: runtime error caused by missing useEffect import on Compliance Overview",
+          "category": "bug",
+          "createdAt": "2026-05-13T22:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
