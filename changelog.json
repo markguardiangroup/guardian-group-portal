@@ -3956,6 +3956,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-13T11:45:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a4e2d1b8-9f3c-4a71-8e56-2b7c0f5d3e91",
+          "patch": 10,
+          "message": "Fixed: badge type creation failed with 'string did not match expected pattern' error",
+          "category": "bug",
+          "createdAt": "2026-05-13T12:00:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

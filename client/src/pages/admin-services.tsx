@@ -732,7 +732,7 @@ export default function AdminServices() {
               {editingService ? "Update the service details below." : "Fill in the details for the new service."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label htmlFor="svc-code">Product Code *</Label>
@@ -897,7 +897,8 @@ export default function AdminServices() {
                   type="number"
                   min="0"
                   value={form.sortOrder}
-                  onChange={e => setForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
+                  onChange={e => { const n = Number(e.target.value); setForm(f => ({ ...f, sortOrder: isNaN(n) ? 0 : Math.max(0, Math.floor(n)) })); }}
+                  onBlur={e => { if (e.target.value === "" || isNaN(Number(e.target.value))) setForm(f => ({ ...f, sortOrder: 0 })); }}
                 />
               </div>
               <div className="flex items-center gap-2 pt-5">
@@ -1006,7 +1007,7 @@ export default function AdminServices() {
           <DialogHeader>
             <DialogTitle>{btEditTarget ? "Edit Badge Type" : "Add Badge Type"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleBtSubmit} className="space-y-4">
+          <form onSubmit={handleBtSubmit} noValidate className="space-y-4">
             <div className="space-y-1">
               <Label htmlFor="bt-label">Label *</Label>
               <Input
@@ -1026,7 +1027,8 @@ export default function AdminServices() {
                 type="number"
                 min="0"
                 value={btForm.sortOrder}
-                onChange={e => setBtForm(f => ({ ...f, sortOrder: parseInt(e.target.value) || 0 }))}
+                onChange={e => { const n = Number(e.target.value); setBtForm(f => ({ ...f, sortOrder: isNaN(n) ? 0 : Math.max(0, Math.floor(n)) })); }}
+                onBlur={e => { if (e.target.value === "" || isNaN(Number(e.target.value))) setBtForm(f => ({ ...f, sortOrder: 0 })); }}
               />
             </div>
             <div className="flex items-center gap-2">

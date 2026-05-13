@@ -15908,13 +15908,13 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const parsed = z.object({ label: z.string().min(1), sortOrder: z.number().optional(), isActive: z.boolean().optional() }).safeParse(req.body);
+      const parsed = z.object({ label: z.string().min(1), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const bt = await storage.createBadgeType({ label: parsed.data.label, sortOrder: parsed.data.sortOrder ?? 0, isActive: parsed.data.isActive ?? true });
       res.status(201).json(bt);
     } catch (error: any) {
       if (error?.code === "23505") return res.status(409).json({ error: "A badge type with that label already exists" });
-      console.error("Error creating badge type:", error);
+      console.error("Error creating badge type:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       res.status(500).json({ error: "Failed to create badge type" });
     }
   });
@@ -15923,14 +15923,14 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const parsed = z.object({ label: z.string().min(1).optional(), sortOrder: z.number().optional(), isActive: z.boolean().optional() }).safeParse(req.body);
+      const parsed = z.object({ label: z.string().min(1).optional(), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const bt = await storage.updateBadgeType(req.params.id, parsed.data);
       if (!bt) return res.status(404).json({ error: "Badge type not found" });
       res.json(bt);
     } catch (error: any) {
       if (error?.code === "23505") return res.status(409).json({ error: "A badge type with that label already exists" });
-      console.error("Error updating badge type:", error);
+      console.error("Error updating badge type:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
       res.status(500).json({ error: "Failed to update badge type" });
     }
   });
