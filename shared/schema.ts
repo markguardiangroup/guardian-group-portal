@@ -23,9 +23,6 @@ export type ConsultantPermissions = {
   services?: boolean;
 };
 
-// Site request status
-export type SiteRequestStatus = "draft" | "pending" | "approved" | "rejected";
-
 // Site status
 export type SiteStatus = "active" | "inactive" | "pending";
 
@@ -195,36 +192,6 @@ export type SiteWithCompany = Site & {
   companyName?: string;
   companyNumber?: string | null;
 };
-
-// Site Requests (consultants request, admins approve) - uses entity_requests table
-export const siteRequests = pgTable("entity_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  proposedName: text("proposed_name").notNull(),
-  companyNumber: text("company_number"),
-  address: text("address"),
-  contactEmail: text("contact_email"),
-  contactPhone: text("contact_phone"),
-  contactName: text("contact_name"),
-  notes: text("notes"),
-  status: text("status").$type<SiteRequestStatus>().notNull().default("draft"),
-  requestedBy: varchar("requested_by").notNull(),
-  reviewedBy: varchar("reviewed_by"),
-  adminNotes: text("admin_notes"),
-  approvedEntityId: varchar("approved_entity_id"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const insertSiteRequestSchema = createInsertSchema(siteRequests).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true,
-  reviewedBy: true,
-  adminNotes: true,
-  approvedEntityId: true
-});
-export type InsertSiteRequest = z.infer<typeof insertSiteRequestSchema>;
-export type SiteRequest = typeof siteRequests.$inferSelect;
 
 // Consultant-Site assignments (which consultants work with which sites)
 // Note: entityId is the site ID (legacy naming from original design)
@@ -1200,12 +1167,6 @@ export function getConsultantCapabilities(tier: ConsultantTier | null | undefine
   return consultantTierCapabilities[tier];
 }
 
-// Site request with requester info
-export interface SiteRequestWithDetails extends SiteRequest {
-  requesterName?: string;
-  reviewerName?: string;
-}
-
 // User with site name
 export interface UserWithDetails extends User {
   siteName?: string;
@@ -1216,18 +1177,16 @@ export interface UserWithDetails extends User {
 // ============================================
 
 // Login attempts tracking (for account lockout)
-export const loginAttempts = pgTable("login_attempts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  success: boolean("success").notNull().default(false),
-  failureReason: text("failure_reason"),
-  attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
-});
-
-export type LoginAttempt = typeof loginAttempts.$inferSelect;
-export type InsertLoginAttempt = typeof loginAttempts.$inferInsert;
+export interface LoginAttempt {
+  id: string;
+  username: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  success: boolean;
+  failureReason: string | null;
+  attemptedAt: Date;
+}
+export type InsertLoginAttempt = Omit<LoginAttempt, "id" | "attemptedAt">;
 
 // Training Folders (unique folder structure for training, separate from document folders)
 export const trainingFolders = pgTable("training_folders", {

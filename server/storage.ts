@@ -36,7 +36,6 @@ import {
   type FolderDocumentTypeRule, type InsertFolderDocumentTypeRule,
   type DocumentTemplate, type InsertDocumentTemplate,
   type DocumentTemplateVersion, type InsertDocumentTemplateVersion,
-  type LoginAttempt, type InsertLoginAttempt,
   type TrainingModule, type InsertTrainingModule,
   type TrainingFolder, type InsertTrainingFolder,
   type TrainingCourse, type InsertTrainingCourse,

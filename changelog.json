@@ -4383,6 +4383,13 @@
           "message": "Removed unused site_manager field — contact_name covers the same purpose",
           "category": "other",
           "createdAt": "2026-05-14T16:05:00.000Z"
+        },
+        {
+          "id": "c4f8a2e9-remove-ghost-tables-2026",
+          "patch": 12,
+          "message": "Removed two unused tables: login_attempts (in-memory only) and entity_requests (never built)",
+          "category": "other",
+          "createdAt": "2026-05-14T16:20:00.000Z"
         }
       ]
     }
