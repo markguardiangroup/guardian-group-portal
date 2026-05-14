@@ -4172,6 +4172,14 @@
           "category": "bug",
           "createdAt": "2026-05-14T09:10:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "n3l7j0k4-el-dashboard-two-tiles-2026",
+          "patch": 10,
+          "message": "Employment Law dashboard compliance section updated to match H&S and HR layout",
+          "category": "enhancement",
+          "createdAt": "2026-05-14T09:20:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
