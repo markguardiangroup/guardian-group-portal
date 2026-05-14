@@ -154,6 +154,23 @@ export async function autoRecordPublishedPatch(): Promise<void> {
   await writeChangelog(cl);
 }
 
+/**
+ * Called on server startup (dev and prod).
+ *
+ * If activeRequester is missing or still the placeholder "System", seeds it
+ * from the REPLIT_USER environment variable so changelog entries are
+ * automatically attributed to the Replit account owner.
+ * Safe to call on every restart — idempotent if already set.
+ */
+export async function autoInitRequester(): Promise<void> {
+  const replitUser = process.env.REPLIT_USER || process.env.REPL_OWNER;
+  if (!replitUser) return;
+  const cl = await readChangelog();
+  if (cl.activeRequester && cl.activeRequester !== "System") return;
+  cl.activeRequester = replitUser;
+  await writeChangelog(cl);
+}
+
 export function generateChangelogId(): string {
   return crypto.randomUUID();
 }

@@ -8,7 +8,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
-import { autoRecordPublishedPatch } from "./changelog";
+import { autoRecordPublishedPatch, autoInitRequester } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -408,6 +408,11 @@ process.on("uncaughtException", (err) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
+  // Seed activeRequester from the Replit account name on every startup (idempotent).
+  autoInitRequester().catch((e) =>
+    console.error("[changelog] autoInitRequester failed:", e)
+  );
+
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
     // Record publishedPatch = current patch so the /api/changelog/published-patch

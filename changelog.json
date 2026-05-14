@@ -1,5 +1,6 @@
 {
   "activeVersionId": "init-v1-0",
+  "activeRequester": "adamabrams2",
   "versions": [
     {
       "id": "init-v1-0",
@@ -494,6 +495,14 @@
         "x3v7t0u4-legal-docs-draft-2026"
       ],
       "entries": [
+        {
+          "id": "a3f8c1d2-changelog-replit-requester-2026",
+          "patch": 12,
+          "category": "enhancement",
+          "message": "Changelog now auto-attributes entries to the Replit account name",
+          "createdAt": "2026-05-14T00:00:00.000Z",
+          "createdBy": "adamabrams2"
+        },
         {
           "id": "b1d4f2a8-135-loading-branded-anim-2026",
           "patch": 8,
