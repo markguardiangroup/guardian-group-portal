@@ -4164,6 +4164,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-14T09:00:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "m2k6i9j3-noncompliant-includes-missing-2026",
+          "patch": 10,
+          "message": "Fixed: Non Compliant dialog now includes missing required documents",
+          "category": "bug",
+          "createdAt": "2026-05-14T09:10:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

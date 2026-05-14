@@ -429,7 +429,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   const docsDialogMeta: Record<DocsDialogFilter, { title: string }> = {
     req_compliant: { title: "Compliant (Required Documents)" },
-    req_non_compliant: { title: "Not Compliant (Required Documents)" },
+    req_non_compliant: { title: "Non Compliant (Required Documents)" },
     req_overdue: { title: "Overdue (Required Documents)" },
     total: { title: "All Documents" },
     all_compliant: { title: "All Compliant Documents" },
@@ -948,7 +948,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {expandedDocsDialogRows.length === 0 ? (
+            {expandedDocsDialogRows.length === 0 && (docsDialogFilter !== "req_non_compliant" || missingRequiredDetails.length === 0) ? (
               <p className="text-sm text-muted-foreground py-6 text-center">No documents to display.</p>
             ) : (
               <>
@@ -973,6 +973,32 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     </div>
                   );
                 })}
+                {docsDialogFilter === "req_non_compliant" && missingRequiredDetails.length > 0 && (
+                  <>
+                    {expandedDocsDialogRows.length > 0 && (
+                      <p className="text-xs font-medium text-muted-foreground pt-2 pb-1 uppercase tracking-wide">Missing Required Documents</p>
+                    )}
+                    {missingRequiredDetails.map((item, idx) => (
+                      <div
+                        key={`missing-${item.templateId}-${item.siteId}-${idx}`}
+                        className="flex items-center justify-between rounded-md border p-3 gap-3"
+                        data-testid={`row-missing-noncompliant-${item.templateId}-${idx}`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{item.templateName}</p>
+                          {(item.siteName || item.companyName) && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {item.siteName}{item.companyName ? ` — ${item.companyName}` : ""}
+                            </p>
+                          )}
+                        </div>
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium shrink-0 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                          Not Uploaded
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </>
             )}
           </div>
