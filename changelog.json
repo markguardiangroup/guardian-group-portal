@@ -4188,6 +4188,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-14T09:25:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "p5n9l2m6-overdue-status-section-2026",
+          "patch": 10,
+          "message": "Renewal Status section renamed to Overdue Status and now counts overdue documents by status",
+          "category": "enhancement",
+          "createdAt": "2026-05-14T09:35:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
