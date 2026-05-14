@@ -3601,7 +3601,6 @@ export async function registerRoutes(
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
         lastApprovedAt: autoApprovalTime,
         uploadedBy: user.id,
-        assignedTo: null,
         isArchived: false,
         isRequired: body.isRequired || false,
         source: body.source || "upload",

@@ -1263,7 +1263,6 @@ export class MemStorage implements IStorage {
     // Get company from database
     const company = site?.companyId ? await this.getCompany(site.companyId) : undefined;
     const uploader = doc.uploadedBy ? await this.getUser(doc.uploadedBy) : undefined;
-    const assignee = doc.assignedTo ? await this.getUser(doc.assignedTo) : undefined;
     const versions = await this.getDocumentVersions(id);
     
     return {
@@ -1271,7 +1270,6 @@ export class MemStorage implements IStorage {
       siteName: site?.name,
       companyName: company?.name,
       uploadedByName: uploader?.fullName,
-      assignedToName: assignee?.fullName,
       versions,
     };
   }
@@ -1308,7 +1306,6 @@ export class MemStorage implements IStorage {
       status: (insertDocument.status ?? "approval_required") as any,
       approvalStatus: (insertDocument.approvalStatus ?? "pending") as any,
       expiryDate: insertDocument.expiryDate ?? null,
-      assignedTo: insertDocument.assignedTo ?? null,
       isArchived: insertDocument.isArchived ?? false,
       source: (insertDocument.source ?? "external") as any,
       templateId: insertDocument.templateId ?? null,
@@ -4073,7 +4070,6 @@ export class MemStorage implements IStorage {
             lastApprovedAt: doc.lastApprovedAt ?? null,
             renewalDate: doc.renewalDate ?? null,
             uploadedBy: doc.uploadedBy,
-            assignedTo: doc.assignedTo ?? null,
             isArchived: doc.isArchived ?? false,
             source: (doc.source ?? "consultant") as any,
             templateId: doc.templateId ?? null,

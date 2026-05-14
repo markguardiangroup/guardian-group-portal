@@ -4369,6 +4369,13 @@
           "category": "feature",
           "createdAt": "2026-05-14T11:30:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "a9f2c1d4-remove-assigned-approver-cols-2026",
+          "patch": 12,
+          "message": "Removed two unused document fields (assigned_to, approver_id) from schema and database",
+          "category": "other",
+          "createdAt": "2026-05-14T15:50:00.000Z"
         }
       ]
     }
