@@ -20,6 +20,8 @@ import {
   Users,
   FileQuestion,
   ShieldCheck,
+  Scale,
+  Briefcase,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
@@ -166,13 +168,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "employment_law" ? "/employment-law" : "/human-resources";
-  const ModuleIcon = module === "health_safety" ? HardHat : Users;
+  const ModuleIcon = module === "health_safety" ? HardHat : module === "employment_law" ? Scale : Users;
   const dashboardSubtitle = module === "health_safety"
     ? "Safety Document Compliance"
     : module === "human_resources"
     ? "HR Document Compliance"
     : "Legal Document Compliance";
-  const themeClass = module === "health_safety" ? "theme-hs" : "theme-hr";
+  const themeClass = module === "health_safety" ? "theme-hs" : module === "employment_law" ? "theme-el" : "theme-hr";
   
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   
@@ -558,6 +560,14 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
+            {module === "employment_law" && (
+              <Button variant="outline" asChild>
+                <Link href="/employment-law/cases" data-testid="link-view-cases">
+                  <Briefcase className="mr-2 h-4 w-4" />
+                  View Cases
+                </Link>
+              </Button>
+            )}
             <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
               <Link href={viewDocumentsUrl} data-testid="link-view-documents">
                 <FileText className="mr-2 h-4 w-4" />

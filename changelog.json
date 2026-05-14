@@ -495,6 +495,13 @@
       ],
       "entries": [
         {
+          "id": "a3b7c9d1-el-cases-split-2026",
+          "patch": 12,
+          "category": "enhancement",
+          "message": "Employment Law dashboard now uses the same layout as H&S and HR; cases moved to their own page",
+          "createdAt": "2026-05-14T14:00:00.000Z"
+        },
+        {
           "id": "c5f2e4a8-compliance-engine-fixes-2026",
           "patch": 12,
           "category": "bug",

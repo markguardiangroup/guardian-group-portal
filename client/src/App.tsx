@@ -44,7 +44,7 @@ function lazyPage<T extends ComponentType<any>>(loader: Loader<T>): LazyPage<T> 
 const ModuleDashboard = lazyPage(() => import("@/pages/module-dashboard"));
 const ModuleDocuments = lazyPage(() => import("@/pages/module-documents"));
 const ModuleSites = lazyPage(() => import("@/pages/module-sites"));
-const EmploymentLawPage = lazyPage(() => import("@/pages/employment-law"));
+const ElCasesPage = lazyPage(() => import("@/pages/el-cases"));
 const Documents = lazyPage(() => import("@/pages/documents"));
 const DocumentUpload = lazyPage(() => import("@/pages/document-upload"));
 const Sites = lazyPage(() => import("@/pages/sites"));
@@ -109,6 +109,10 @@ function HealthSafetyDashboard() {
 
 function HumanResourcesDashboard() {
   return <ModuleDashboard module="human_resources" />;
+}
+
+function EmploymentLawDashboard() {
+  return <ModuleDashboard module="employment_law" />;
 }
 
 function HealthSafetyDocuments() {
@@ -192,13 +196,13 @@ function Router() {
       <Route path="/human-resources/documents/:id" component={HumanResourcesDocuments} />
       <Route path="/human-resources/cloud-share" component={HRClientUploads} />
       
-      <Route path="/employment-law" component={EmploymentLawPage} />
+      <Route path="/employment-law" component={EmploymentLawDashboard} />
       <Route path="/employment-law/sites" component={EmploymentLawSites} />
       <Route path="/employment-law/documents" component={EmploymentLawDocuments} />
       <Route path="/employment-law/documents/upload" component={DocumentUpload} />
       <Route path="/employment-law/documents/:id" component={EmploymentLawDocuments} />
-      <Route path="/employment-law/cases" component={EmploymentLawPage} />
-      <Route path="/employment-law/cases/:id" component={EmploymentLawPage} />
+      <Route path="/employment-law/cases" component={ElCasesPage} />
+      <Route path="/employment-law/cases/:id" component={ElCasesPage} />
       <Route path="/employment-law/cloud-share" component={ELClientUploads} />
       
       <Route path="/documents" component={Documents} />
@@ -355,7 +359,8 @@ function RoutePrefetcher({
         ModuleSites.preload();
       }
       if (canAccess("employment_law")) {
-        EmploymentLawPage.preload();
+        ModuleDashboard.preload();
+        ElCasesPage.preload();
         ModuleDocuments.preload();
         ModuleSites.preload();
       }
