@@ -200,6 +200,7 @@ function CasesList() {
   const [caseToDelete, setCaseToDelete] = useState<Case | null>(null);
   const [caseDeleteConfirmText, setCaseDeleteConfirmText] = useState("");
   const [metricDialog, setMetricDialog] = useState<null | "cases_active" | "cases_resolved" | "overdue" | "upcoming">(null);
+  const [renewalMetricDialog, setRenewalMetricDialog] = useState<null | "overdue" | "due30" | "due60">(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -4949,6 +4950,68 @@ function EmploymentLawDashboardView() {
           </Card>
         </div>
       </div>
+
+      {/* Overdue Status Dialog */}
+      <Dialog open={renewalMetricDialog !== null} onOpenChange={(open) => { if (!open) setRenewalMetricDialog(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {renewalMetricDialog === "overdue" && <><AlertTriangle className="h-5 w-5 text-red-600" /> Overdue Renewals</>}
+              {renewalMetricDialog === "due30" && <><Clock className="h-5 w-5 text-amber-600" /> Due in 30 Days</>}
+              {renewalMetricDialog === "due60" && <><Calendar className="h-5 w-5 text-blue-600" /> Due in 60 Days</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {(() => {
+              const docs = renewalMetrics.upcomingRenewals.filter(doc => {
+                const trackingDate = doc.renewalDate || doc.expiryDate;
+                const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                if (renewalMetricDialog === "overdue") return daysUntilRenewal !== null && daysUntilRenewal < 0;
+                if (renewalMetricDialog === "due30") return daysUntilRenewal !== null && daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
+                if (renewalMetricDialog === "due60") return daysUntilRenewal !== null && daysUntilRenewal > 30 && daysUntilRenewal <= 60;
+                return false;
+              });
+              if (docs.length === 0) {
+                return <div className="py-8 text-center text-muted-foreground text-sm">No documents to display.</div>;
+              }
+              return docs.map(doc => {
+                const trackingDate = doc.renewalDate || doc.expiryDate;
+                const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                const docSite = sites?.find(s => s.id === doc.siteId);
+                return (
+                  <Link key={doc.id} href={`/employment-law/documents/${doc.id}`} className="flex items-start justify-between gap-3 p-3 border rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{doc.title}</p>
+                        {docSite && (
+                          <p className="text-xs text-muted-foreground truncate">{docSite.name}{docSite.companyName ? ` — ${docSite.companyName}` : ""}</p>
+                        )}
+                        {renewalDate && (
+                          <p className="text-xs text-muted-foreground">{doc.renewalDate ? "Renewal" : "Expires"}: {format(renewalDate, "MMM d, yyyy")}</p>
+                        )}
+                      </div>
+                    </div>
+                    {daysUntilRenewal !== null && (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap mt-0.5 ${
+                        daysUntilRenewal < 0
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : daysUntilRenewal <= 30
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      }`}>
+                        {daysUntilRenewal < 0 ? `${Math.abs(daysUntilRenewal)}d overdue` : `${daysUntilRenewal}d remaining`}
+                      </span>
+                    )}
+                  </Link>
+                );
+              });
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Missing Required Dialog */}
       <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>

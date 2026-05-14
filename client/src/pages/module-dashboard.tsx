@@ -755,14 +755,34 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
               return docs.map(doc => {
                 const trackingDate = doc.renewalDate || doc.expiryDate;
                 const renewalDate = trackingDate ? new Date(trackingDate) : null;
+                const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                const docSite = sites?.find(s => s.id === doc.siteId);
 
                 return (
-                  <Link key={doc.id} href={`${basePath}/documents/${doc.id}`} className="flex items-start justify-between p-3 border rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm">{doc.name || doc.title}</p>
-                      {renewalDate && <p className="text-xs text-muted-foreground">{format(renewalDate, "MMM dd, yyyy")}</p>}
+                  <Link key={doc.id} href={`${basePath}/documents/${doc.id}`} className="flex items-start justify-between gap-3 p-3 border rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{doc.title}</p>
+                        {docSite && (
+                          <p className="text-xs text-muted-foreground truncate">{docSite.name}{docSite.companyName ? ` — ${docSite.companyName}` : ""}</p>
+                        )}
+                        {renewalDate && (
+                          <p className="text-xs text-muted-foreground">{doc.renewalDate ? "Renewal" : "Expires"}: {format(renewalDate, "MMM d, yyyy")}</p>
+                        )}
+                      </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                    {daysUntilRenewal !== null && (
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap mt-0.5 ${
+                        daysUntilRenewal < 0
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : daysUntilRenewal <= 30
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                          : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      }`}>
+                        {daysUntilRenewal < 0 ? `${Math.abs(daysUntilRenewal)}d overdue` : `${daysUntilRenewal}d remaining`}
+                      </span>
+                    )}
                   </Link>
                 );
               });

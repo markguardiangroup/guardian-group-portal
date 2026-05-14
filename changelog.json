@@ -4196,6 +4196,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-14T09:35:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "q6o0m3n7-overdue-dialog-rich-style-2026",
+          "patch": 10,
+          "message": "Overdue Status dialog tiles now show site, company, date label and overdue badge",
+          "category": "enhancement",
+          "createdAt": "2026-05-14T09:45:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
