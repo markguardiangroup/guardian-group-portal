@@ -4156,6 +4156,14 @@
           "category": "bug",
           "createdAt": "2026-05-13T22:35:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "l1j5h8i2-module-dashboard-two-tiles-2026",
+          "patch": 10,
+          "message": "Module dashboards now show Compliant and Non Compliant tiles only",
+          "category": "enhancement",
+          "createdAt": "2026-05-14T09:00:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
