@@ -684,25 +684,17 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           </CardContent>
         </Card>
 
-      {/* Renewal Status Section */}
+      {/* Overdue Status Section */}
       <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-renewal-compliance">
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Renewal Status
-              </CardTitle>
-              <CardDescription>Documents approaching or past renewal dates</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`${basePath}/documents?renewal=30days`} data-testid="link-view-renewals">
-                View All Renewals
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Overdue Status
+            </CardTitle>
+            <CardDescription>Documents approaching or past renewal dates</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3 mb-6">
+            <div className="grid gap-4 md:grid-cols-3">
               <button onClick={() => setRenewalMetricDialog("overdue")} className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-overdue">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -731,51 +723,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 </div>
               </button>
             </div>
-            
-            {renewalMetrics.upcomingRenewals.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
-                <div className="divide-y">
-                  {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
-                    const trackingDate = doc.renewalDate || doc.expiryDate;
-                    const renewalDate = trackingDate ? new Date(trackingDate) : null;
-                    const daysUntilRenewal = renewalDate 
-                      ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                      : null;
-                    
-                    return (
-                      <Link 
-                        key={doc.id} 
-                        href={`${basePath}/documents/${doc.id}`}
-                        className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
-                        data-testid={`link-renewal-doc-${doc.id}`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{doc.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {doc.renewalDate ? "Renewal" : "Expires"}: {renewalDate && format(renewalDate, "MMM d, yyyy")}
-                            </p>
-                          </div>
-                        </div>
-                        <span className={`text-xs font-medium whitespace-nowrap ${
-                          daysUntilRenewal !== null && daysUntilRenewal < 0
-                            ? "text-red-600 dark:text-red-400" 
-                            : daysUntilRenewal !== null && daysUntilRenewal <= 30 
-                            ? "text-amber-600 dark:text-amber-400" 
-                            : "text-blue-600 dark:text-blue-400"
-                        }`}>
-                          {daysUntilRenewal !== null && daysUntilRenewal < 0 
-                            ? `${Math.abs(daysUntilRenewal)}d overdue` 
-                            : `${daysUntilRenewal}d remaining`}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

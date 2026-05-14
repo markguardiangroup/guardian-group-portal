@@ -1529,19 +1529,17 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
         variant={overallComplianceVariant}
       />
 
-      {/* Renewal Status Section */}
+      {/* Overdue Status Section */}
       <Card data-testid="card-renewal-compliance-overview" className="border-t-4 border-t-module-accent bg-module-accent-subtle">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Renewal Status
-            </CardTitle>
-            <CardDescription>Documents approaching or past renewal dates across all modules</CardDescription>
-          </div>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Overdue Status
+          </CardTitle>
+          <CardDescription>Documents approaching or past renewal dates across all modules</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3 mb-6">
+          <div className="grid gap-4 md:grid-cols-3">
             <button onClick={() => setRenewalMetricDialog("overdue")} className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-overdue">
               <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
                 <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -1571,86 +1569,6 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
             </button>
           </div>
           
-          {renewalMetrics.upcomingRenewals.length > 0 && overallComplianceVariant !== "modules" && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
-              <div className="divide-y">
-                {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
-                  const trackingDate = doc.renewalDate || doc.expiryDate;
-                  const renewalDate = trackingDate ? new Date(trackingDate) : null;
-                  const daysUntilRenewal = renewalDate 
-                    ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                    : null;
-                  
-                  // Determine module path for linking
-                  const modulePath = doc.module === "health_safety" ? "/health-safety" 
-                    : doc.module === "employment_law" ? "/employment-law" 
-                    : doc.module === "human_resources" ? "/human-resources" 
-                    : "/support";
-                  
-                  // Module badge color
-                  const moduleBadgeClass = doc.module === "health_safety" 
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                    : doc.module === "employment_law"
-                    ? "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300"
-                    : doc.module === "human_resources"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                    : "bg-slate-100 text-slate-700 dark:bg-slate-800/40 dark:text-slate-300";
-                  
-                  const moduleLabel = doc.module === "health_safety" ? "H&S"
-                    : doc.module === "employment_law" ? "EL"
-                    : doc.module === "human_resources" ? "HR"
-                    : "Support";
-                  
-                  return (
-                    <div 
-                      key={doc.id} 
-                      onClick={() => {
-                        const docSite = sites?.find(s => s.id === doc.siteId);
-                        if (docSite) {
-                          setSelectedCompany(docSite.companyName || null);
-                          setSelectedSiteId(docSite.id);
-                        }
-                        navigate(`${modulePath}/documents/${doc.id}`);
-                      }}
-                      className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2 cursor-pointer"
-                      data-testid={`link-overview-renewal-doc-${doc.id}`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-medium">{doc.title}</p>
-                            <Badge variant="secondary" className={`text-xs shrink-0 ${moduleBadgeClass}`}>{moduleLabel}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {(() => {
-                              const docSite = sites?.find(s => s.id === doc.siteId);
-                              return docSite ? `${docSite.companyName} - ${docSite.name}` : null;
-                            })()}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.renewalDate ? "Renewal" : "Expires"}: {renewalDate && format(renewalDate, "MMM d, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-                      <span className={`text-xs font-medium whitespace-nowrap ${
-                        daysUntilRenewal !== null && daysUntilRenewal < 0
-                          ? "text-red-600 dark:text-red-400" 
-                          : daysUntilRenewal !== null && daysUntilRenewal <= 30 
-                          ? "text-amber-600 dark:text-amber-400" 
-                          : "text-blue-600 dark:text-blue-400"
-                      }`}>
-                        {daysUntilRenewal !== null && daysUntilRenewal < 0 
-                          ? `${Math.abs(daysUntilRenewal)}d overdue` 
-                          : `${daysUntilRenewal}d remaining`}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 

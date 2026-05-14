@@ -4802,26 +4802,18 @@ function EmploymentLawDashboardView() {
           </CardContent>
         </Card>
 
-        {/* Renewal Status Section */}
+        {/* Overdue Status Section */}
         <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-renewal-compliance">
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Renewal Status
-              </CardTitle>
-              <CardDescription>Documents approaching or past renewal dates</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link href={`${viewDocumentsUrl}${viewDocumentsUrl.includes("?") ? "&" : "?"}renewal=30days`} data-testid="link-view-renewals-el">
-                View All Renewals
-                <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Overdue Status
+            </CardTitle>
+            <CardDescription>Documents approaching or past renewal dates</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+              <button onClick={() => setRenewalMetricDialog("overdue")} className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-overdue">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
@@ -4829,8 +4821,8 @@ function EmploymentLawDashboardView() {
                   <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{dashboardLoading ? "–" : renewalMetrics.overdue}</p>
                   <p className="text-sm text-muted-foreground">Overdue Renewals</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              </button>
+              <button onClick={() => setRenewalMetricDialog("due30")} className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-30days">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/20">
                   <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
@@ -4838,8 +4830,8 @@ function EmploymentLawDashboardView() {
                   <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-el-renewals-30days">{dashboardLoading ? "–" : renewalMetrics.due30Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 30 Days</p>
                 </div>
-              </div>
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              </button>
+              <button onClick={() => setRenewalMetricDialog("due60")} className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer text-left" data-testid="button-renewals-60days">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/20">
                   <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
@@ -4847,52 +4839,8 @@ function EmploymentLawDashboardView() {
                   <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-el-renewals-60days">{dashboardLoading ? "–" : renewalMetrics.due60Days}</p>
                   <p className="text-sm text-muted-foreground">Due in 60 Days</p>
                 </div>
-              </div>
+              </button>
             </div>
-            
-            {renewalMetrics.upcomingRenewals.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
-                <div className="divide-y">
-                  {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
-                    const renewalDate = doc.renewalDate ? new Date(doc.renewalDate) : null;
-                    const daysUntilRenewal = renewalDate 
-                      ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-                      : null;
-                    
-                    return (
-                      <Link 
-                        key={doc.id} 
-                        href={`/employment-law/documents/${doc.id}`}
-                        className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
-                        data-testid={`link-el-renewal-doc-${doc.id}`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium">{doc.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Renewal: {renewalDate && format(renewalDate, "MMM d, yyyy")}
-                            </p>
-                          </div>
-                        </div>
-                        <span className={`text-xs font-medium whitespace-nowrap ${
-                          daysUntilRenewal !== null && daysUntilRenewal < 0
-                            ? "text-red-600 dark:text-red-400" 
-                            : daysUntilRenewal !== null && daysUntilRenewal <= 30 
-                            ? "text-amber-600 dark:text-amber-400" 
-                            : "text-blue-600 dark:text-blue-400"
-                        }`}>
-                          {daysUntilRenewal !== null && daysUntilRenewal < 0 
-                            ? `${Math.abs(daysUntilRenewal)}d overdue` 
-                            : `${daysUntilRenewal}d remaining`}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 
