@@ -18,3 +18,9 @@ id = "woTg8i-31T84X5PordA9s"
 uri = "file://attached_assets/privacy-policy.pdf"
 type = "pdf"
 title = "Privacy Policy — Draft v1.0"
+
+[[outputs]]
+id = "ErhW1dvk0qnnrXSg4bngt"
+uri = "file://documents_export.csv"
+type = "table"
+title = "Documents Export"
