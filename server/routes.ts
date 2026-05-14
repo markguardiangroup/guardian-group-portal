@@ -16378,32 +16378,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/changelog/requester", requireAuth, async (req, res) => {
-    try {
-      const user = await changelogAdminGuard(req, res);
-      if (!user) return;
-      const cl = await readChangelog();
-      res.json({ activeRequester: cl.activeRequester ?? "System" });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to read requester" });
-    }
-  });
-
-  app.patch("/api/changelog/requester", requireAuth, async (req, res) => {
-    try {
-      const user = await changelogAdminGuard(req, res);
-      if (!user) return;
-      const parsed = z.object({ name: z.string().min(1).max(80) }).safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: "Invalid name" });
-      const cl = await readChangelog();
-      cl.activeRequester = parsed.data.name;
-      await writeChangelog(cl);
-      res.json({ activeRequester: cl.activeRequester });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to update requester" });
-    }
-  });
-
   /**
    * POST /api/changelog/bump-after-publish
    * Called immediately after a confirmed production deploy.

@@ -1,6 +1,5 @@
 {
   "activeVersionId": "init-v1-0",
-  "activeRequester": "adamabrams2",
   "versions": [
     {
       "id": "init-v1-0",
@@ -496,12 +495,11 @@
       ],
       "entries": [
         {
-          "id": "a3f8c1d2-changelog-replit-requester-2026",
+          "id": "b4e1d3f7-changelog-remove-requester-2026",
           "patch": 12,
           "category": "enhancement",
-          "message": "Changelog now auto-attributes entries to the Replit account name",
-          "createdAt": "2026-05-14T00:00:00.000Z",
-          "createdBy": "adamabrams2"
+          "message": "Removed name attribution from changelog entries",
+          "createdAt": "2026-05-14T10:00:00.000Z"
         },
         {
           "id": "b1d4f2a8-135-loading-branded-anim-2026",
@@ -4353,6 +4351,5 @@
         }
       ]
     }
-  ],
-  "activeRequester": "System"
+  ]
 }

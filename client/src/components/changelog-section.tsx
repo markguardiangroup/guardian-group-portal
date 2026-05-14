@@ -33,7 +33,6 @@ import {
   GitBranch,
   FileDown,
   History,
-  User,
 } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -47,7 +46,6 @@ export interface ChangelogEntry {
   message: string;
   category: ChangelogCategory;
   createdAt: string;
-  createdBy: string;
 }
 
 export interface ChangelogVersion {
@@ -65,7 +63,6 @@ export interface ChangelogVersion {
 
 export interface ChangelogData {
   activeVersionId: string;
-  activeRequester?: string;
   versions: ChangelogVersion[];
 }
 
@@ -118,9 +115,6 @@ export default function ChangelogSection() {
   const [addEntryVersionId, setAddEntryVersionId] = useState<string | null>(null);
   const [newEntryMessage, setNewEntryMessage] = useState("");
   const [newEntryCategory, setNewEntryCategory] = useState<ChangelogCategory>("feature");
-  const [editingRequester, setEditingRequester] = useState(false);
-  const [requesterDraft, setRequesterDraft] = useState("");
-
   const { data: changelog, isLoading } = useQuery<ChangelogData>({
     queryKey: ["/api/changelog/versions"],
     staleTime: 0,
@@ -165,27 +159,6 @@ export default function ChangelogSection() {
     mutationFn: () => apiRequest("POST", "/api/changelog/bump-after-publish"),
     onSuccess: () => { invalidate(); setNewVersionOpen(false); },
   });
-
-  const updateRequesterMutation = useMutation({
-    mutationFn: (name: string) => apiRequest("PATCH", "/api/changelog/requester", { name }),
-    onSuccess: () => { invalidate(); setEditingRequester(false); },
-  });
-
-  const activeRequester = changelog?.activeRequester ?? "System";
-
-  const startEditRequester = () => {
-    setRequesterDraft(activeRequester);
-    setEditingRequester(true);
-  };
-
-  const saveRequester = () => {
-    const trimmed = requesterDraft.trim();
-    if (trimmed && trimmed !== activeRequester) {
-      updateRequesterMutation.mutate(trimmed);
-    } else {
-      setEditingRequester(false);
-    }
-  };
 
   // Auto-detect publish: poll the production /api/changelog/published-patch
   // endpoint and, if prod's active patch has caught up to dev's current patch
@@ -285,48 +258,6 @@ export default function ChangelogSection() {
             New Version
           </Button>
         </div>
-      </div>
-
-      {/* Active requester bar */}
-      <div className="flex items-center gap-2 text-sm px-1">
-        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-muted-foreground">Changes requested by:</span>
-        {editingRequester ? (
-          <div className="flex items-center gap-1">
-            <Input
-              autoFocus
-              value={requesterDraft}
-              onChange={(e) => setRequesterDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") saveRequester(); if (e.key === "Escape") setEditingRequester(false); }}
-              className="h-6 text-sm py-0 px-2 w-40"
-              data-testid="input-requester-name"
-            />
-            <button
-              onClick={saveRequester}
-              disabled={updateRequesterMutation.isPending}
-              className="text-emerald-600 hover:text-emerald-700 transition-colors"
-              data-testid="button-save-requester"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={() => setEditingRequester(false)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="button-cancel-requester"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={startEditRequester}
-            className="flex items-center gap-1 font-medium text-foreground hover:text-primary transition-colors group"
-            data-testid="button-edit-requester"
-          >
-            {activeRequester}
-            <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-0.5" />
-          </button>
-        )}
       </div>
 
       {/* Version cards */}
@@ -488,9 +419,6 @@ export default function ChangelogSection() {
                               {entry.createdAt && (
                                 <span className="text-xs text-muted-foreground shrink-0 tabular-nums" data-testid={`date-entry-${entry.id}`}>
                                   {formatEntryDate(entry.createdAt)}
-                                  {entry.createdBy && (
-                                    <span className="ml-1">· {entry.createdBy === "agent" ? "System" : entry.createdBy}</span>
-                                  )}
                                 </span>
                               )}
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 After EVERY user-requested change (bug fix, enhancement, or new feature), the agent MUST append a short entry to the active version in `changelog.json` before ending the turn. This is automatic, mandatory, and applies to every change no matter how small. Never batch entries up across turns and never wait to be reminded.
 
 How to add an entry:
-- Append a new object to `versions[active].entries` in `changelog.json` with: `id` (uuid), `patch` (current `patch` of the active version), `message`, `category` (`bug` | `enhancement` | `feature` | `other`), `createdAt` (ISO timestamp), `createdBy` (read the top-level `activeRequester` field from `changelog.json` and use that value; fallback to `"System"` if absent).
+- Append a new object to `versions[active].entries` in `changelog.json` with: `id` (uuid), `patch` (current `patch` of the active version), `message`, `category` (`bug` | `enhancement` | `feature` | `other`), `createdAt` (ISO timestamp).
 - Do NOT bump the `patch` number — that happens automatically on publish.
 
 Message style — concise, user-facing impact, under ~80 chars. No technical detail, no file lists. Examples:
