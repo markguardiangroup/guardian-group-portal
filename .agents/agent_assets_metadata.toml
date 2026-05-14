@@ -6,3 +6,15 @@ id = "Gd6-e_j82NPYA1yRNlo0g"
 uri = "file://client/public/favicon.png"
 type = "image"
 title = "Guardian Group Favicon"
+
+[[outputs]]
+id = "1BB8yEmJEJgFvIpILkVmA"
+uri = "file://attached_assets/terms-and-conditions.pdf"
+type = "pdf"
+title = "Terms and Conditions of Use — Draft v1.0"
+
+[[outputs]]
+id = "woTg8i-31T84X5PordA9s"
+uri = "file://attached_assets/privacy-policy.pdf"
+type = "pdf"
+title = "Privacy Policy — Draft v1.0"

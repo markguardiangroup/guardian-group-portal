@@ -4331,6 +4331,14 @@
           "category": "bug",
           "createdAt": "2026-05-14T11:10:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "x3v7t0u4-legal-docs-draft-2026",
+          "patch": 11,
+          "message": "First draft T&Cs and Privacy Policy PDFs generated for Guardian Compliance Group Limited",
+          "category": "feature",
+          "createdAt": "2026-05-14T11:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
