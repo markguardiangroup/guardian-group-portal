@@ -4390,6 +4390,13 @@
           "message": "Removed two unused tables: login_attempts (in-memory only) and entity_requests (never built)",
           "category": "other",
           "createdAt": "2026-05-14T16:20:00.000Z"
+        },
+        {
+          "id": "d1e7b3a5-fix-contract-overdue-2026",
+          "patch": 12,
+          "message": "Fixed: Contract doc incorrectly stuck as overdue despite being fully approved with renewal due April 2027",
+          "category": "bug",
+          "createdAt": "2026-05-14T16:35:00.000Z"
         }
       ]
     }
