@@ -16419,6 +16419,54 @@ export async function registerRoutes(
    * Custom from/to (when both are provided) take priority over the preset.
    * For backwards-compat, ?date=YYYY-MM-DD acts as a single-day window.
    */
+  app.get("/api/admin/export/documents", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session?.userId;
+      const user = userId ? await storage.getUser(userId) : null;
+      if (!user || user.role !== "admin") {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      const { Pool } = await import("pg");
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const result = await pool.query(`
+        SELECT
+          d.id, d.title, d.module, d.type, d.status, d.approval_status,
+          d.source, d.scope, d.is_required, d.is_archived,
+          d.version, d.file_name, d.file_size, d.mime_type,
+          u.full_name AS uploaded_by,
+          s.name AS site_name, c.name AS company_name,
+          t.name AS template_name,
+          f.name AS folder_name,
+          d.expiry_date, d.renewal_date, d.renewal_period_months, d.last_approved_at,
+          d.case_id, d.incident_id,
+          d.training_course_title, d.training_course_code, d.training_date,
+          d.comments, d.created_at, d.updated_at
+        FROM documents d
+        LEFT JOIN users u ON u.id = d.uploaded_by
+        LEFT JOIN sites s ON s.id = d.site_id
+        LEFT JOIN companies c ON c.id = d.entity_id
+        LEFT JOIN document_templates t ON t.id = d.template_id
+        LEFT JOIN document_folders f ON f.id = d.folder_id
+        ORDER BY d.created_at DESC
+      `);
+      await pool.end();
+      const fields = result.fields.map((f: any) => f.name);
+      const escape = (v: any) => {
+        if (v === null || v === undefined) return "";
+        const s = String(v);
+        return s.includes(",") || s.includes('"') || s.includes("\n")
+          ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const csv = [fields.join(","), ...result.rows.map((r: any) => fields.map((f: string) => escape(r[f])).join(","))].join("\n");
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="documents_export_${new Date().toISOString().slice(0,10)}.csv"`);
+      return res.send(csv);
+    } catch (err) {
+      console.error("Documents export error:", err);
+      return res.status(500).json({ error: "Export failed" });
+    }
+  });
+
   app.get("/api/admin/login-report", requireAuth, async (req: any, res) => {
     try {
       const userId = req.session?.userId;
