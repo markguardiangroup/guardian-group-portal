@@ -4485,10 +4485,40 @@ function EmploymentLawDashboardView() {
       .slice(0, 5);
   }, [cases]);
   
-  // Overdue documents — based purely on document status
-  const overdueDocuments = useMemo(() => {
-    if (!recentDocuments) return [];
-    return recentDocuments.filter(doc => !doc.isArchived && doc.status === "overdue");
+  // Calculate renewal metrics
+  const renewalMetrics = useMemo(() => {
+    if (!recentDocuments) return { overdue: 0, due30Days: 0, due60Days: 0, upcomingRenewals: [] as Document[] };
+
+    const now = Date.now();
+    let overdue = 0;
+    let due30Days = 0;
+    let due60Days = 0;
+    const upcomingRenewals: Document[] = [];
+
+    recentDocuments.forEach((doc) => {
+      if (!doc.renewalDate) return;
+      const renewalDate = new Date(doc.renewalDate).getTime();
+      const daysUntilRenewal = Math.ceil((renewalDate - now) / (1000 * 60 * 60 * 24));
+
+      if (daysUntilRenewal < 0) {
+        overdue++;
+        upcomingRenewals.push(doc);
+      } else if (daysUntilRenewal <= 30) {
+        due30Days++;
+        upcomingRenewals.push(doc);
+      } else if (daysUntilRenewal <= 60) {
+        due60Days++;
+        upcomingRenewals.push(doc);
+      }
+    });
+
+    upcomingRenewals.sort((a, b) => {
+      const aDate = a.renewalDate ? new Date(a.renewalDate).getTime() : Infinity;
+      const bDate = b.renewalDate ? new Date(b.renewalDate).getTime() : Infinity;
+      return aDate - bDate;
+    });
+
+    return { overdue, due30Days, due60Days, upcomingRenewals };
   }, [recentDocuments]);
 
   const filteredModuleDocs = useMemo(() => {
@@ -4772,58 +4802,94 @@ function EmploymentLawDashboardView() {
           </CardContent>
         </Card>
 
-        {/* Overdue Status Section */}
-        <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-overdue-status-el">
+        {/* Renewal Status Section */}
+        <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-renewal-compliance">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Overdue Status
+                <Calendar className="h-5 w-5" />
+                Renewal Status
               </CardTitle>
-              <CardDescription>Documents with overdue status</CardDescription>
+              <CardDescription>Documents approaching or past renewal dates</CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>
-              <Link href={`${viewDocumentsUrl}${viewDocumentsUrl.includes("?") ? "&" : "?"}status=overdue`} data-testid="link-view-overdue-el">
-                View Overdue
+              <Link href={`${viewDocumentsUrl}${viewDocumentsUrl.includes("?") ? "&" : "?"}renewal=30days`} data-testid="link-view-renewals-el">
+                View All Renewals
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div>
-              <button
-                onClick={() => overdueDocuments.length > 0 && setDocsDialogFilter("req_overdue")}
-                className={`flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 transition-colors text-left ${overdueDocuments.length > 0 ? "hover:bg-red-500/20 cursor-pointer" : "cursor-default"}`}
-                data-testid="button-el-overdue-count"
-              >
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
                 <div className="flex h-10 w-10 items-center justify-center rounded-md bg-red-500/20">
                   <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-overdue-count">{dashboardLoading ? "–" : overdueDocuments.length}</p>
-                  <p className="text-sm text-muted-foreground">Overdue Documents</p>
+                  <p className="text-2xl font-semibold text-red-600 dark:text-red-400" data-testid="text-el-renewals-overdue">{dashboardLoading ? "–" : renewalMetrics.overdue}</p>
+                  <p className="text-sm text-muted-foreground">Overdue Renewals</p>
                 </div>
-              </button>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-amber-500/20">
+                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-amber-600 dark:text-amber-400" data-testid="text-el-renewals-30days">{dashboardLoading ? "–" : renewalMetrics.due30Days}</p>
+                  <p className="text-sm text-muted-foreground">Due in 30 Days</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-500/20">
+                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold text-blue-600 dark:text-blue-400" data-testid="text-el-renewals-60days">{dashboardLoading ? "–" : renewalMetrics.due60Days}</p>
+                  <p className="text-sm text-muted-foreground">Due in 60 Days</p>
+                </div>
+              </div>
             </div>
-
-            {overdueDocuments.length > 0 && (
+            
+            {renewalMetrics.upcomingRenewals.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Overdue Documents</h4>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Documents Requiring Attention</h4>
                 <div className="divide-y">
-                  {overdueDocuments.slice(0, 5).map((doc) => (
-                    <Link
-                      key={doc.id}
-                      href={`/employment-law/documents/${doc.id}`}
-                      className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
-                      data-testid={`link-el-overdue-doc-${doc.id}`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <p className="truncate text-sm font-medium">{doc.title}</p>
-                      </div>
-                      <span className="text-xs font-medium whitespace-nowrap text-red-600 dark:text-red-400">Overdue</span>
-                    </Link>
-                  ))}
+                  {renewalMetrics.upcomingRenewals.slice(0, 5).map((doc) => {
+                    const renewalDate = doc.renewalDate ? new Date(doc.renewalDate) : null;
+                    const daysUntilRenewal = renewalDate 
+                      ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                      : null;
+                    
+                    return (
+                      <Link 
+                        key={doc.id} 
+                        href={`/employment-law/documents/${doc.id}`}
+                        className="flex items-center justify-between gap-4 py-3 hover-elevate rounded-md px-2 -mx-2"
+                        data-testid={`link-el-renewal-doc-${doc.id}`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{doc.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Renewal: {renewalDate && format(renewalDate, "MMM d, yyyy")}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-xs font-medium whitespace-nowrap ${
+                          daysUntilRenewal !== null && daysUntilRenewal < 0
+                            ? "text-red-600 dark:text-red-400" 
+                            : daysUntilRenewal !== null && daysUntilRenewal <= 30 
+                            ? "text-amber-600 dark:text-amber-400" 
+                            : "text-blue-600 dark:text-blue-400"
+                        }`}>
+                          {daysUntilRenewal !== null && daysUntilRenewal < 0 
+                            ? `${Math.abs(daysUntilRenewal)}d overdue` 
+                            : `${daysUntilRenewal}d remaining`}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             )}
