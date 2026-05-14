@@ -4180,6 +4180,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-14T09:20:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "o4m8k1l5-missing-required-label-2026",
+          "patch": 10,
+          "message": "Folder stat bar label shortened from 'Missing Required' to 'Missing'",
+          "category": "enhancement",
+          "createdAt": "2026-05-14T09:25:00.000Z",
+          "createdBy": "System"
         }
       ]
     }

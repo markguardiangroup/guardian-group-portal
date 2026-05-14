@@ -1830,7 +1830,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4 text-amber-500" />
-                        <span>{displayedMissingCount} Missing Required</span>
+                        <span>{displayedMissingCount} Missing</span>
                       </div>
                     )}
                   </div>
