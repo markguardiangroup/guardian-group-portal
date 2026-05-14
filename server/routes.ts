@@ -7762,7 +7762,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins and pro consultants can create sites" });
       }
       
-      const { name, companyId, address, siteManager, contactPhone, addressLine1, addressLine2, city, county, postalCode, country, contactName, contactPosition, contactEmail } = req.body;
+      const { name, companyId, address, contactPhone, addressLine1, addressLine2, city, county, postalCode, country, contactName, contactPosition, contactEmail } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Site name is required" });
@@ -7776,7 +7776,6 @@ export async function registerRoutes(
         name: name.trim(),
         companyId,
         address: address || null,
-        siteManager: siteManager || null,
         contactPhone: contactPhone || null,
         addressLine1: addressLine1 || null,
         addressLine2: addressLine2 || null,

@@ -4376,6 +4376,13 @@
           "message": "Removed two unused document fields (assigned_to, approver_id) from schema and database",
           "category": "other",
           "createdAt": "2026-05-14T15:50:00.000Z"
+        },
+        {
+          "id": "b7e3d2f1-remove-site-manager-col-2026",
+          "patch": 12,
+          "message": "Removed unused site_manager field — contact_name covers the same purpose",
+          "category": "other",
+          "createdAt": "2026-05-14T16:05:00.000Z"
         }
       ]
     }
