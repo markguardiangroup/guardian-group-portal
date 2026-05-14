@@ -22,7 +22,6 @@ const routeLabels: Record<string, string> = {
   "training": "Training",
   "home": "Home",
   "dashboard": "Dashboard",
-  "dashboard-2": "Dashboard 2",
   "admin": "Admin",
   "portal-messages": "Portal Messages",
   "my-training": "My Training",

@@ -4323,6 +4323,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-14T11:00:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "w2u6s9t3-dashboard-rename-sidebar-2026",
+          "patch": 11,
+          "message": "Dashboard link in sidebar renamed and now navigates correctly",
+          "category": "bug",
+          "createdAt": "2026-05-14T11:10:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
