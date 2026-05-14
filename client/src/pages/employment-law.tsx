@@ -4543,7 +4543,7 @@ function EmploymentLawDashboardView() {
     req_overdue: { title: "Overdue (Required Documents)" },
     total: { title: "All Documents" },
     all_compliant: { title: "All Compliant Documents" },
-    all_review: { title: "Review Required" },
+    all_review: { title: "Needs Approval" },
     all_overdue: { title: "All Overdue Documents" },
   };
 
@@ -4553,10 +4553,10 @@ function EmploymentLawDashboardView() {
       case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
       case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "approval_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
-      case "total": return filteredModuleDocs.filter(d => !!d.isRequired);
-      case "all_compliant": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "compliant");
-      case "all_review": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "approval_required");
-      case "all_overdue": return filteredModuleDocs.filter(d => !!d.isRequired && d.status === "overdue");
+      case "total": return filteredModuleDocs;
+      case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
+      case "all_review": return filteredModuleDocs.filter(d => d.status === "approval_required");
+      case "all_overdue": return filteredModuleDocs.filter(d => d.status === "overdue");
       default: return [];
     }
   }, [docsDialogFilter, filteredModuleDocs]);

@@ -495,6 +495,13 @@
       ],
       "entries": [
         {
+          "id": "c5f2e4a8-compliance-engine-fixes-2026",
+          "patch": 12,
+          "category": "bug",
+          "message": "Fixed: compliance scores now correctly exclude external-source documents",
+          "createdAt": "2026-05-14T11:00:00.000Z"
+        },
+        {
           "id": "b4e1d3f7-changelog-remove-requester-2026",
           "patch": 12,
           "category": "enhancement",

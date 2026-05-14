@@ -1663,9 +1663,9 @@ export async function registerRoutes(
       filteredSiteIds.add(site.id);
       const requiredIds = companyReqsByCompanyId.get(site.companyId) ?? new Set<string>();
       const siteExcluded = excludedTemplatesBySiteId.get(site.id) ?? new Set<string>();
-      const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId);
+      const siteDocs = documents.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external");
       // Include company/group-scoped documents shared to this site in compliance scoring
-      const validShared = computeSharedDocsForSite(site).filter((sd: any) => !sd.isArchived && !sd.caseId && !sd.incidentId);
+      const validShared = computeSharedDocsForSite(site).filter((sd: any) => !sd.isArchived && !sd.caseId && !sd.incidentId && sd.source !== "external");
       const allSiteDocs = [...siteDocs, ...validShared];
 
       for (const rtTemplateId of requiredIds) {

@@ -1884,7 +1884,7 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummaries(companyId?: string, siteId?: string): Promise<ModuleSummary[]> {
-    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
       human_resources: "Human Resources",
@@ -1904,7 +1904,7 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]> {
-    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
+    const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
       human_resources: "Human Resources",
