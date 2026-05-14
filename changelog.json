@@ -4302,6 +4302,14 @@
           "category": "bug",
           "createdAt": "2026-05-14T10:20:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "u0s4q7r1-remove-dashboard-nav-2026",
+          "patch": 10,
+          "message": "Removed Dashboard from the left navigation menu",
+          "category": "enhancement",
+          "createdAt": "2026-05-14T10:30:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
