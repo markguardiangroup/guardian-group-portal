@@ -813,12 +813,15 @@ export class MemStorage implements IStorage {
       assignmentsBySite.get(key)!.push(a);
     }
 
+    const COMPLIANCE_MODULES = new Set(["health_safety", "human_resources", "employment_law"]);
+
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
+      // Restrict to compliance modules only and exclude external-source documents
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...(docsByCompany.get(site.companyId) ?? []),
-      ];
+      ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
         siteDocs,
@@ -918,11 +921,14 @@ export class MemStorage implements IStorage {
       assignmentsBySite.get(key)!.push(a);
     }
 
+    const COMPLIANCE_MODULES_COMPANY = new Set(["health_safety", "human_resources", "employment_law"]);
+
     return companySites.map(site => {
+      // Restrict to compliance modules only and exclude external-source documents
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...companyDocs,
-      ];
+      ].filter(d => d.source !== "external" && COMPLIANCE_MODULES_COMPANY.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
         siteDocs,

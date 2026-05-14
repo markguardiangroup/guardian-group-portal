@@ -2636,9 +2636,11 @@ export async function registerRoutes(
 
       type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number };
       const scopedExpansions: ScopedExpansion[] = [];
+      const accessibleScopedDocIds = new Set<string>();
       for (const doc of rawScopedDocs) {
         const canAccess = await canUserAccessDocument(user, doc);
         if (!canAccess) continue;
+        accessibleScopedDocIds.add(doc.id);
 
         const shareRecords = await storage.getDocumentShares(doc.id);
         const sharedWithCompanyIds = new Set(shareRecords.filter(s => s.entityType === "company").map(s => s.entityId));
@@ -2671,7 +2673,7 @@ export async function registerRoutes(
         ? { siteIds: accessibleSiteIds.join(",") }
         : undefined;
 
-      const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law", "support"];
+      const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
       const summaries = await Promise.all(modules.map(async (mod) => {
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
@@ -2700,7 +2702,7 @@ export async function registerRoutes(
         // Compliance calculation uses all docs (site-scoped + scoped) for the module
         const allModuleDocs = [
           ...moduleDocs,
-          ...rawScopedDocs.filter(d => d.module === mod && scopedExpansions.some(e => e.module === mod)),
+          ...rawScopedDocs.filter(d => d.module === mod && accessibleScopedDocIds.has(d.id)),
         ];
 
         if (complianceModules.includes(mod)) {
@@ -16991,7 +16993,7 @@ export async function registerRoutes(
         };
         const badgeColorMap: Record<string, string> = {
           overdue_documents: "red",
-          review_required: "amber",
+          approval_required: "amber",
           pending_approvals: "blue",
           pending_sign_offs: "violet",
         };

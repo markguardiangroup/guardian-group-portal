@@ -15,15 +15,34 @@ export function ComplianceBadge({ isRequired, status, approvalStatus, className 
     return null;
   }
 
+  const statusConfig: Partial<Record<string, { label: string; Icon: typeof CheckCircle; cls: string }>> = {
+    compliant: { label: "Compliant", Icon: CheckCircle, cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
+    approval_required: { label: "Approval Required", Icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" },
+    overdue: { label: "Overdue", Icon: XCircle, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" },
+  };
+  const primary = statusConfig[status];
+
   return (
-    <Badge
-      variant="outline"
-      className={cn("gap-1.5 font-medium", "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", className)}
-      data-testid="badge-compliance"
-    >
-      <ShieldAlert className="h-3 w-3" />
-      Required
-    </Badge>
+    <div className={cn("flex items-center gap-1 flex-wrap", className)}>
+      {primary && (
+        <Badge
+          variant="outline"
+          className={cn("gap-1.5 font-medium", primary.cls)}
+          data-testid="badge-compliance-status"
+        >
+          <primary.Icon className="h-3 w-3" />
+          {primary.label}
+        </Badge>
+      )}
+      <Badge
+        variant="outline"
+        className="gap-1.5 font-medium bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20"
+        data-testid="badge-compliance"
+      >
+        <ShieldAlert className="h-3 w-3" />
+        Required
+      </Badge>
+    </div>
   );
 }
 
