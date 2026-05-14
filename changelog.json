@@ -495,6 +495,13 @@
       ],
       "entries": [
         {
+          "id": "b9c2d4e6-orphaned-test-doc-removed-2026",
+          "patch": 12,
+          "category": "other",
+          "message": "Removed orphaned test document left behind by deleted case CSE-00001",
+          "createdAt": "2026-05-14T14:30:00.000Z"
+        },
+        {
           "id": "a3b7c9d1-el-cases-split-2026",
           "patch": 12,
           "category": "enhancement",
