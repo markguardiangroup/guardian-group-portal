@@ -1258,20 +1258,25 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
     allDocuments.forEach((doc) => {
       // Exclude archived, case, incident, and external-upload documents
       if (doc.isArchived || doc.caseId || (doc as any).incidentId || (doc as any).source === "external") return;
-      // Use renewalDate if set, otherwise fall back to expiryDate
+
+      // Overdue bucket: trust the compliance engine status, not date arithmetic
+      if (doc.status === "overdue") {
+        overdue++;
+        upcomingRenewals.push(doc);
+        return; // don't double-count in due30/due60
+      }
+
+      // Due in 30/60 days: date-based, only for non-overdue docs
       const trackingDate = doc.renewalDate || doc.expiryDate;
       if (!trackingDate) return;
       
       const renewalDate = new Date(trackingDate);
       const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
-      if (daysUntilRenewal < 0) {
-        overdue++;
-        upcomingRenewals.push(doc);
-      } else if (daysUntilRenewal <= 30) {
+      if (daysUntilRenewal >= 0 && daysUntilRenewal <= 30) {
         due30Days++;
         upcomingRenewals.push(doc);
-      } else if (daysUntilRenewal <= 60) {
+      } else if (daysUntilRenewal > 30 && daysUntilRenewal <= 60) {
         due60Days++;
         upcomingRenewals.push(doc);
       }
@@ -1590,7 +1595,7 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
                 const renewalDate = trackingDate ? new Date(trackingDate) : null;
                 const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
                 
-                if (renewalMetricDialog === "overdue") return daysUntilRenewal !== null && daysUntilRenewal < 0;
+                if (renewalMetricDialog === "overdue") return doc.status === "overdue";
                 if (renewalMetricDialog === "due30") return daysUntilRenewal !== null && daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
                 if (renewalMetricDialog === "due60") return daysUntilRenewal !== null && daysUntilRenewal > 30 && daysUntilRenewal <= 60;
                 return false;

@@ -4294,6 +4294,14 @@
           "category": "bug",
           "createdAt": "2026-05-14T10:05:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "t9r3p6q0-overdue-status-engine-align-2026",
+          "patch": 10,
+          "message": "Fixed: Overdue Renewals count now matches compliance engine instead of date maths",
+          "category": "bug",
+          "createdAt": "2026-05-14T10:20:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
