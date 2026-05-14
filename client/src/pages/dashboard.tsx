@@ -1256,6 +1256,8 @@ export default function Dashboard({ overallComplianceVariant }: { overallComplia
     const upcomingRenewals: Document[] = [];
     
     allDocuments.forEach((doc) => {
+      // Exclude archived, case, incident, and external-upload documents
+      if (doc.isArchived || doc.caseId || (doc as any).incidentId || (doc as any).source === "external") return;
       // Use renewalDate if set, otherwise fall back to expiryDate
       const trackingDate = doc.renewalDate || doc.expiryDate;
       if (!trackingDate) return;

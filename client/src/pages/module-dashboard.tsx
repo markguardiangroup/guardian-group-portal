@@ -277,6 +277,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     // Filter by selected site/company if applicable
     const filteredDocs = documents.filter(doc => {
       if (doc.isArchived) return false;
+      if (doc.caseId) return false;
+      if ((doc as any).incidentId) return false;
+      if ((doc as any).source === "external") return false;
       if (siteId) return doc.siteId === siteId;
       if (companySiteIds && companySiteIds.length > 0) {
         return companySiteIds.includes(doc.siteId);

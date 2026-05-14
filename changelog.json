@@ -4286,6 +4286,14 @@
           "category": "enhancement",
           "createdAt": "2026-05-14T09:55:00.000Z",
           "createdBy": "System"
+        },
+        {
+          "id": "s8q2o5p9-overdue-status-filter-fix-2026",
+          "patch": 10,
+          "message": "Fixed: Overdue Status tiles excluded archived, case, incident and external docs",
+          "category": "bug",
+          "createdAt": "2026-05-14T10:05:00.000Z",
+          "createdBy": "System"
         }
       ]
     }
