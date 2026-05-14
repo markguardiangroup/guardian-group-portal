@@ -5,8 +5,8 @@
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 11,
-      "publishedPatch": 10,
+      "patch": 12,
+      "publishedPatch": 11,
       "label": "",
       "isActive": true,
       "createdAt": "2026-04-10T00:00:00.000Z",
@@ -484,7 +484,12 @@
         "n3l7j0k4-el-dashboard-two-tiles-2026",
         "o4m8k1l5-missing-required-label-2026",
         "p5n9l2m6-overdue-status-rename-2026",
-        "q6o0m3n7-overdue-dialog-rich-style-2026"
+        "q6o0m3n7-overdue-dialog-rich-style-2026",
+        "r7p1n4o8-remove-recent-docs-panels-2026",
+        "s8q2o5p9-overdue-status-filter-fix-2026",
+        "t9r3p6q0-overdue-status-engine-align-2026",
+        "u0s4q7r1-remove-dashboard-nav-2026",
+        "v1t5r8s2-dashboard2-standalone-2026"
       ],
       "entries": [
         {
