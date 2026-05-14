@@ -76,7 +76,6 @@ const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
 const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
 const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
 const AdminServices = lazyPage(() => import("@/pages/admin-services"));
-const Dashboard = lazyPage(() => import("@/pages/dashboard"));
 const Dashboard2 = lazyPage(() => import("@/pages/dashboard2"));
 const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
 
@@ -175,8 +174,7 @@ function Router() {
     <Switch>
       <Route path="/">{() => <Redirect to="/home" />}</Route>
       <Route path="/home" component={HomePage} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/dashboard-2" component={Dashboard2} />
+      <Route path="/dashboard" component={Dashboard2} />
       
       <Route path="/health-safety" component={HealthSafetyDashboard} />
       <Route path="/health-safety/sites" component={HealthSafetySites} />
@@ -310,7 +308,7 @@ function RoutePrefetcher({
     ModuleDocuments.preload();
     ModuleSites.preload();
     ModuleDashboard.preload();
-    Dashboard.preload();
+    Dashboard2.preload();
     CalendarPage.preload();
   }, []);
 
@@ -342,7 +340,7 @@ function RoutePrefetcher({
       DocumentUpload.preload();
       Support.preload();
       CalendarPage.preload();
-      Dashboard.preload();
+      Dashboard2.preload();
 
       // Module-gated pages — only fetch chunks for modules the user can access.
       if (canAccess("health_safety")) {
