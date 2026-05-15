@@ -3510,12 +3510,9 @@ export async function registerRoutes(
         }
       }
 
-      // For company/group scope: at least 1 share destination is required and must be within hierarchy bounds
-      if (docScope !== "site") {
-        if (!Array.isArray(body.shareDestinations) || body.shareDestinations.length === 0) {
-          return res.status(400).json({ error: "At least one share destination is required for company or group scoped documents" });
-        }
-        // Validate destinations are within allowed hierarchy boundaries
+      // For company/group scope: validate destinations are within allowed hierarchy boundaries
+      // An empty (or absent) destinations list is valid — it means company/group-level only with no site push-down
+      if (docScope !== "site" && Array.isArray(body.shareDestinations) && body.shareDestinations.length > 0) {
         if (docScope === "company" && body.entityId) {
           const companySites = await storage.getSitesByCompanyId(body.entityId);
           const validSiteIds = new Set(companySites.map(s => s.id));

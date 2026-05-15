@@ -4528,6 +4528,13 @@
           "message": "Roadmap task view and edit dialogs are now wider for easier editing",
           "category": "enhancement",
           "createdAt": "2026-05-15T14:10:00.000Z"
+        },
+        {
+          "id": "r9t1v3x5-company-group-upload-folder-fix-2026",
+          "patch": 3,
+          "message": "Fixed: folder picker now shows and uploads succeed for company/group level documents",
+          "category": "bug",
+          "createdAt": "2026-05-15T14:30:00.000Z"
         }
       ],
       "publishedPatch": 2,

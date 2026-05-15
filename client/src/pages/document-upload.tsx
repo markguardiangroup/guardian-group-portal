@@ -1105,13 +1105,14 @@ export default function DocumentUpload() {
                       </div>
                     )}
 
-                    {docScope === "site" && (
                     <FormField
                       control={form.control}
                       name="folderId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Folder *</FormLabel>
+                          <FormLabel>
+                            Folder {docScope === "site" && <span className="text-destructive">*</span>}
+                          </FormLabel>
                           {provisionFoldersMutation.isPending ? (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
                               <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -1124,7 +1125,7 @@ export default function DocumentUpload() {
                             >
                               <FormControl>
                                 <SelectTrigger data-testid="select-folder">
-                                  <SelectValue placeholder="Select a folder" />
+                                  <SelectValue placeholder="Select a folder (optional)" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -1141,13 +1142,12 @@ export default function DocumentUpload() {
                             </div>
                           )}
                           <FormDescription>
-                            Select a folder to organise this document
+                            {docScope === "site" ? "Select a folder to organise this document" : "Optionally organise this document into a folder"}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    )}
 
                     <FormField
                       control={form.control}
