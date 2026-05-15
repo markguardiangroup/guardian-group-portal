@@ -4472,6 +4472,13 @@
           "message": "Company page: Linked Companies renamed to Groups and moved to its own tab (admin and Pro Consultant only)",
           "category": "enhancement",
           "createdAt": "2026-05-15T12:20:00.000Z"
+        },
+        {
+          "id": "i0e2f4g6-groups-add-members-button-text-2026",
+          "patch": 2,
+          "message": "Fixed: Add Members dialog button showed raw code instead of company count",
+          "category": "bug",
+          "createdAt": "2026-05-15T12:35:00.000Z"
         }
       ],
       "publishedPatch": 2,

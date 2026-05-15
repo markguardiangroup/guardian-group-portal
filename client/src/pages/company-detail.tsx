@@ -2296,7 +2296,7 @@ export default function CompanyDetail() {
                               <button
                                 key={c.id}
                                 type="button"
-                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors \${selected ? "bg-primary/5" : ""}`}
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors ${selected ? "bg-primary/5" : ""}`}
                                 onClick={() => {
                                   setAddMembersSelected((prev) => {
                                     const next = new Set(prev);
@@ -2304,9 +2304,9 @@ export default function CompanyDetail() {
                                     return next;
                                   });
                                 }}
-                                data-testid={`add-member-option-\${c.id}`}
+                                data-testid={`add-member-option-${c.id}`}
                               >
-                                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border \${selected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
                                   {selected && <CheckCircle className="h-3 w-3" />}
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -2336,7 +2336,7 @@ export default function CompanyDetail() {
                       >
                         {bulkAddGroupMembersMutation.isPending
                           ? "Linking..."
-                          : `Link \${addMembersSelected.size > 0 ? addMembersSelected.size : ""} \${addMembersSelected.size === 1 ? "Company" : "Companies"}`}
+                          : `Link ${addMembersSelected.size > 0 ? addMembersSelected.size : ""} ${addMembersSelected.size === 1 ? "Company" : "Companies"}`}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -2396,7 +2396,7 @@ export default function CompanyDetail() {
                                   .filter(c => c.id !== companyId && !c.groupOwnerId)
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map(c => (
-                                    <SelectItem key={c.id} value={c.id} data-testid={`go-option-\${c.id}`}>
+                                    <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
                                       {c.name}
                                     </SelectItem>
                                   ))}
@@ -2409,7 +2409,7 @@ export default function CompanyDetail() {
                               <Building2 className="h-4 w-4 text-primary" />
                             </div>
                             <Link
-                              href={`/companies/\${company.groupOwnerId}`}
+                              href={`/companies/${company.groupOwnerId}`}
                               className="text-sm font-medium text-primary underline-offset-4 hover:underline"
                               data-testid="link-group-owner"
                             >
@@ -2429,11 +2429,11 @@ export default function CompanyDetail() {
                               <div
                                 key={member.id}
                                 className="flex items-center justify-between py-2"
-                                data-testid={`group-member-\${member.id}`}
+                                data-testid={`group-member-${member.id}`}
                               >
                                 <div
                                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
-                                  onClick={() => navigate(`/companies/\${member.id}`)}
+                                  onClick={() => navigate(`/companies/${member.id}`)}
                                 >
                                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                                     <Building2 className="h-4 w-4 text-primary" />
@@ -2449,7 +2449,7 @@ export default function CompanyDetail() {
                                   <Badge
                                     variant={member.status === "active" ? "default" : "secondary"}
                                     className="text-xs"
-                                    data-testid={`badge-member-status-\${member.id}`}
+                                    data-testid={`badge-member-status-${member.id}`}
                                   >
                                     {member.status}
                                   </Badge>
@@ -2460,7 +2460,7 @@ export default function CompanyDetail() {
                                       className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                       onClick={() => setMemberToUnlink({ id: member.id, name: member.name })}
                                       disabled={setGroupOwnerMutation.isPending}
-                                      data-testid={`button-remove-member-\${member.id}`}
+                                      data-testid={`button-remove-member-${member.id}`}
                                     >
                                       <X className="h-3.5 w-3.5" />
                                     </Button>
@@ -2479,7 +2479,7 @@ export default function CompanyDetail() {
                             </p>
                             <div className="flex flex-wrap gap-1">
                               {inheritedSources.map((code) => (
-                                <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-inherited-source-\${code}`}>
+                                <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-inherited-source-${code}`}>
                                   {code}
                                 </Badge>
                               ))}
@@ -2514,7 +2514,7 @@ export default function CompanyDetail() {
                                   .filter(c => c.id !== companyId && !c.groupOwnerId)
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map(c => (
-                                    <SelectItem key={c.id} value={c.id} data-testid={`go-option-\${c.id}`}>
+                                    <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
                                       {c.name}
                                     </SelectItem>
                                   ))}
