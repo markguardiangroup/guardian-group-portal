@@ -4563,6 +4563,13 @@
           "message": "Fixed: group/company origin documents no longer show a spurious Shared badge",
           "category": "bug",
           "createdAt": "2026-05-15T15:55:00.000Z"
+        },
+        {
+          "id": "w4y6a8c0-linked-doc-scope-colour-consistency-2026",
+          "patch": 3,
+          "message": "Improved: shared doc borders now use purple for group-linked and blue for company-linked, consistently",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T16:05:00.000Z"
         }
       ],
       "publishedPatch": 4,

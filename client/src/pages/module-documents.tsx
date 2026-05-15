@@ -1463,23 +1463,24 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       const sharedSubtitle = resolvedEntityName
                         ? `Shared from ${linkedFromScope === "group" ? "group" : "company"}: ${resolvedEntityName}`
                         : `Shared ${linkedFromScope ?? "document"} (read-only)`;
+                      const isGroupScope = linkedFromScope === "group";
                       return (
                         <Link
                           key={doc.id}
                           href={`${basePath}/documents/${doc.id}`}
-                          className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                          className={`flex items-center justify-between p-2 rounded-md border-2 border-dashed hover-elevate ${isGroupScope ? "border-purple-300 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-950/20" : "border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20"}`}
                           data-testid={`row-folder-doc-${doc.id}`}
                         >
                           <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <FileText className={`h-4 w-4 ${isGroupScope ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}`} />
                             <div>
                               <p className="font-medium text-sm">{doc.title}</p>
                               <p className="text-xs text-muted-foreground">{sharedSubtitle}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
-                              Shared
+                            <Badge variant="outline" className={`text-xs ${isGroupScope ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
+                              {isGroupScope ? "From Group" : "Shared"}
                             </Badge>
                             <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                             <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
