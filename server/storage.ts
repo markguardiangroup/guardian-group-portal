@@ -5563,10 +5563,19 @@ export class MemStorage implements IStorage {
 
   async setGroupOwner(companyId: string, groupOwnerId: string | null): Promise<Company | undefined> {
     if (groupOwnerId === null) {
+      // Capture the former group owner ID before clearing it — needed to find
+      // which group-scoped document shares to remove.
+      const [current] = await db
+        .select({ groupOwnerId: companiesTable.groupOwnerId })
+        .from(companiesTable)
+        .where(eq(companiesTable.id, companyId));
+      const formerGroupOwnerId = current?.groupOwnerId ?? null;
+
       const [updated] = await db.update(companiesTable)
         .set({ groupOwnerId: sql`NULL` })
         .where(eq(companiesTable.id, companyId))
         .returning();
+
       // Hard-delete all required templates that were inherited from any group owner.
       // These were written by cascadeGroupRequiredsToMember when the company joined.
       // Soft-removal is only meaningful while a company is still a group member
@@ -5577,6 +5586,30 @@ export class MemStorage implements IStorage {
           eq(companyRequiredTemplatesTable.companyId, companyId),
           isNotNull(companyRequiredTemplatesTable.inheritedFromCompanyId),
         ));
+
+      // Remove all document share records that were created when this company
+      // joined the group (autoShareGroupDocumentsToCompany). These are
+      // entityType="company" rows pointing to group-scoped docs owned by the
+      // former group owner. Sites derive visibility from these company-level
+      // records so deleting them is sufficient to hide the docs at every site.
+      if (formerGroupOwnerId) {
+        const groupDocIds = await db
+          .select({ id: documentsTable.id })
+          .from(documentsTable)
+          .where(and(
+            eq(documentsTable.scope, "group"),
+            eq(documentsTable.entityId, formerGroupOwnerId),
+          ));
+        if (groupDocIds.length > 0) {
+          await db.delete(documentSharesTable)
+            .where(and(
+              eq(documentSharesTable.entityType, "company"),
+              eq(documentSharesTable.entityId, companyId),
+              inArray(documentSharesTable.documentId, groupDocIds.map(d => d.id)),
+            ));
+        }
+      }
+
       return updated;
     }
     const [updated] = await db.update(companiesTable)

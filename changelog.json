@@ -4486,6 +4486,13 @@
           "message": "Fixed: inherited required documents are fully removed when a company leaves a group",
           "category": "bug",
           "createdAt": "2026-05-15T12:37:00.000Z"
+        },
+        {
+          "id": "k2g4h6i8-group-doc-shares-removed-on-leave-2026",
+          "patch": 2,
+          "message": "Fixed: group-shared documents are unshared when a company is removed from a group",
+          "category": "bug",
+          "createdAt": "2026-05-15T12:50:00.000Z"
         }
       ],
       "publishedPatch": 2,
