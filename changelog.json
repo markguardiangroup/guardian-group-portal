@@ -4444,6 +4444,13 @@
           "message": "Public templates no longer show the Renewal Period field (auto-cleared)",
           "category": "enhancement",
           "createdAt": "2026-05-15T08:30:00.000Z"
+        },
+        {
+          "id": "e6a8b0c2-feedback-message-scroll-2026",
+          "patch": 1,
+          "message": "Feedback entries now scroll when the message is long",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T08:40:00.000Z"
         }
       ],
       "publishedPatch": 1,

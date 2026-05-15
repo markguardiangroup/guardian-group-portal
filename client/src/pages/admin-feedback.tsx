@@ -314,8 +314,8 @@ export default function AdminFeedback() {
                               <DialogHeader>
                                 <DialogTitle>Comments ({item.commentCount || 0})</DialogTitle>
                               </DialogHeader>
-                              <div className="rounded-md border-l-4 border-l-primary bg-muted/50 px-4 py-3 space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground">
+                              <div className="rounded-md border-l-4 border-l-primary bg-muted/50 px-4 py-3 space-y-1 max-h-[220px] overflow-y-auto">
+                                <p className="text-xs font-medium text-muted-foreground sticky top-0 bg-muted/50 pb-1">
                                   {item.userName} &middot; {format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}
                                 </p>
                                 <p className="text-sm whitespace-pre-wrap">{item.message}</p>
