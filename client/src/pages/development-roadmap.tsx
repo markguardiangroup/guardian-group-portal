@@ -475,7 +475,7 @@ export default function DevelopmentRoadmap() {
 
         {/* Detail Dialog */}
         <Dialog open={!!viewingItem} onOpenChange={(open) => !open && setViewingItem(null)}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {viewingItem && (() => {
@@ -674,7 +674,7 @@ export default function DevelopmentRoadmap() {
 
         {/* Edit Dialog */}
         <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-3xl">
             <DialogHeader>
               <DialogTitle>Edit Roadmap Item</DialogTitle>
             </DialogHeader>

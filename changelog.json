@@ -4521,6 +4521,13 @@
           "message": "Fixed: compliance stats on Site Documents pages now always show up-to-date values",
           "category": "bug",
           "createdAt": "2026-05-15T13:45:00.000Z"
+        },
+        {
+          "id": "q8s0u2w4-roadmap-edit-dialog-wider-2026",
+          "patch": 3,
+          "message": "Roadmap task view and edit dialogs are now wider for easier editing",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T14:10:00.000Z"
         }
       ],
       "publishedPatch": 2,
