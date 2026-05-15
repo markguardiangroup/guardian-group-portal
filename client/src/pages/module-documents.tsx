@@ -1480,7 +1480,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className={`text-xs ${isGroupScope ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
-                              {isGroupScope ? "From Group" : "Shared"}
+                              Shared
                             </Badge>
                             <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                             <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
@@ -2008,7 +2008,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                               </div>
                                               <div className="flex items-center gap-2">
                                                 <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
-                                                  {isGrp ? "From Group" : "Shared"}
+                                                  Shared
                                                 </Badge>
                                                 <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                                                 <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
@@ -2129,7 +2129,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
-                                        {isGrp ? "From Group" : "Shared"}
+                                        Shared
                                       </Badge>
                                       <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
@@ -2265,7 +2265,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
-                        {isGrp ? "From Group" : "Shared"}
+                        Shared
                       </Badge>
                       <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />

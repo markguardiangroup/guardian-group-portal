@@ -4584,6 +4584,13 @@
           "message": "Improved: purple/blue scope colours now applied to shared docs at all folder view levels",
           "category": "enhancement",
           "createdAt": "2026-05-15T16:16:00.000Z"
+        },
+        {
+          "id": "z7b9d1f3-shared-badge-label-group-purple-2026",
+          "patch": 3,
+          "message": "Improved: group-shared docs now show purple Shared badge (matching company blue Shared badge)",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T16:25:00.000Z"
         }
       ],
       "publishedPatch": 4,
