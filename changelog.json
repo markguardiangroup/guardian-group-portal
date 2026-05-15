@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 0,
+      "patch": 2,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4423,7 +4423,18 @@
           "message": "Fixed: approved documents incorrectly showing as overdue are now auto-corrected on startup - Fixes a live issue",
           "category": "bug",
           "createdAt": "2026-05-15T08:00:00.000Z"
+        },
+        {
+          "id": "b3d5f7a9-patch-bump-after-build-not-before-2026",
+          "patch": 1,
+          "message": "Fixed: live site now shows the same patch number as dev at publish time",
+          "category": "bug",
+          "createdAt": "2026-05-15T08:10:00.000Z"
         }
+      ],
+      "publishedPatch": 1,
+      "patchedEntryIds": [
+        "a2c4e6f8-doc-misclassified-overdue-selfheal-2026"
       ]
     }
   ]

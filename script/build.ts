@@ -45,7 +45,6 @@ async function bumpChangelogPatch() {
 }
 
 async function buildAll() {
-  await bumpChangelogPatch();
   await rm("dist", { recursive: true, force: true });
 
   console.log("building client...");
@@ -72,6 +71,10 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // Bump dev patch AFTER the bundle is sealed so production gets
+  // an exact copy of the current dev patch, and dev moves ahead by 1.
+  await bumpChangelogPatch();
 }
 
 buildAll().catch((err) => {
