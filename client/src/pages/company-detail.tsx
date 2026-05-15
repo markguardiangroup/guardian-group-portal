@@ -1323,6 +1323,14 @@ export default function CompanyDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"], refetchType: "all" });
       toast({ title: "Group Owner updated" });
     },
     onError: async (err: unknown) => {
@@ -1351,6 +1359,13 @@ export default function CompanyDetail() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"], refetchType: "all" });
       if (data.failed === 0) {
         toast({ title: `${data.succeeded} ${data.succeeded === 1 ? "company" : "companies"} linked to group` });
       } else if (data.succeeded > 0) {
