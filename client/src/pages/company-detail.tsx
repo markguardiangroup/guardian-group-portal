@@ -1209,7 +1209,7 @@ export default function CompanyDetail() {
   const { data: company, isLoading, error } = useQuery<CompanyWithSites>({
     queryKey: ["/api/companies", companyId],
     queryFn: async () => {
-      const response = await fetch(`/api/companies/${companyId}`, { credentials: "include" });
+      const response = await fetch(`/api/companies/${companyId}`, { credentials: "include", cache: "no-store" });
       if (!response.ok) throw new Error("Failed to fetch company");
       return response.json();
     },
@@ -1321,8 +1321,8 @@ export default function CompanyDetail() {
       return await apiRequest("PATCH", `/api/companies/${companyId}/group-owner`, { groupOwnerId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
@@ -1357,8 +1357,8 @@ export default function CompanyDetail() {
       return { succeeded, failed, total: memberCompanyIds.length };
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });

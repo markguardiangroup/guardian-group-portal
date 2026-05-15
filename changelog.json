@@ -4511,7 +4511,7 @@
         {
           "id": "n5j7k9l1-site-totals-refresh-on-group-change-2026",
           "patch": 2,
-          "message": "Fixed: site document totals update immediately when joining or leaving a group",
+          "message": "Fixed: site compliance totals now update instantly after joining or leaving a group",
           "category": "bug",
           "createdAt": "2026-05-15T13:10:00.000Z"
         }
