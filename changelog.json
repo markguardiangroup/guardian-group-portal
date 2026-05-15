@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 3,
+      "patch": 4,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4535,9 +4535,16 @@
           "message": "Fixed: folder picker now shows and uploads succeed for company/group level documents",
           "category": "bug",
           "createdAt": "2026-05-15T14:30:00.000Z"
+        },
+        {
+          "id": "s0u2w4y6-changelog-auto-bump-replit-deploy-2026",
+          "patch": 3,
+          "message": "Changelog patch now auto-bumps after Replit deploy button publish",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T15:25:00.000Z"
         }
       ],
-      "publishedPatch": 2,
+      "publishedPatch": 3,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -4553,7 +4560,9 @@
         "l3h5i7j9-join-group-only-shows-group-owners-2026",
         "m4i6j8k0-required-docs-propagate-on-join-group-2026",
         "n5j7k9l1-site-totals-refresh-on-group-change-2026",
-        "p7r9t1v3-module-sites-compliance-always-fresh-2026"
+        "p7r9t1v3-module-sites-compliance-always-fresh-2026",
+        "q8s0u2w4-roadmap-edit-dialog-wider-2026",
+        "r9t1v3x5-company-group-upload-folder-fix-2026"
       ]
     }
   ]

@@ -198,6 +198,13 @@ process.on("uncaughtException", (err) => {
     await pool.query(`ALTER TABLE "services" ALTER COLUMN "benchmark_price_gbp" DROP NOT NULL`);
     await pool.query(`ALTER TABLE "services" ALTER COLUMN "sort_order" DROP NOT NULL`);
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS "system_settings" (
+        "key" text PRIMARY KEY,
+        "value" text NOT NULL,
+        "updated_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS "service_components" (
         "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
         "parent_service_id" varchar NOT NULL REFERENCES "services"("id") ON DELETE CASCADE,

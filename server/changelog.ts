@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { pool } from "./db";
 
 const CHANGELOG_PATH = path.resolve(process.cwd(), "changelog.json");
 
@@ -115,10 +116,16 @@ export async function bumpDevPatchAfterPublish(): Promise<void> {
 }
 
 /**
- * Called automatically on production server startup.
+ * Called automatically on dev server startup.
  *
- * Bumps the patch only when there are entries not covered by patchedEntryIds
- * (i.e. new changes have been deployed since the last recorded publish).
+ * First checks the shared database for a deploy breadcrumb left by the
+ * production server. If production shipped a patch >= the current dev patch,
+ * it means a Replit deploy happened without going through the changelog UI,
+ * so the patch is bumped now automatically.
+ *
+ * Falls back to the legacy patchedEntryIds check for any remaining cases
+ * (e.g. manual edits to changelog.json between restarts).
+ *
  * Safe to call on every restart — idempotent if nothing has changed.
  */
 export async function autoIncrementPatchIfChanged(): Promise<void> {
@@ -129,6 +136,16 @@ export async function autoIncrementPatchIfChanged(): Promise<void> {
   const active = cl.versions.find((v) => v.id === cl.activeVersionId);
   if (!active) return;
 
+  // Primary check: did production deploy a patch that dev hasn't advanced past yet?
+  // Both environments share the same DB, so this catches Replit-button deploys.
+  const dbPublishedPatch = await getPublishedPatchFromDB();
+  if (dbPublishedPatch !== null && dbPublishedPatch >= active.patch) {
+    await bumpDevPatchAfterPublish();
+    console.log(`[changelog] Auto-bumped patch: detected production deploy of patch ${dbPublishedPatch}`);
+    return;
+  }
+
+  // Fallback: bump if there are entries not yet covered by patchedEntryIds
   const patchedSet = new Set(active.patchedEntryIds ?? []);
   const hasNewEntries = active.entries.some((e) => !patchedSet.has(e.id));
   if (!hasNewEntries) return;
@@ -141,18 +158,56 @@ export async function autoIncrementPatchIfChanged(): Promise<void> {
  *
  * Records publishedPatch = current patch so the /api/changelog/published-patch
  * endpoint can return what was actually shipped, without changing the patch
- * counter itself. Safe to call on every restart — idempotent if nothing changed.
+ * counter itself. Also writes the deployed patch to the shared PostgreSQL
+ * database so the dev server can detect the deploy on next restart and
+ * auto-bump without any manual action.
+ * Safe to call on every restart — idempotent if nothing changed.
  */
 export async function autoRecordPublishedPatch(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
   const cl = await readChangelog();
   const active = cl.versions.find((v) => v.id === cl.activeVersionId);
   if (!active) return;
-  if (active.publishedPatch === active.patch) return; // already recorded, nothing to do
+
+  // Write to shared DB so dev can detect this deploy on next startup
+  await setPublishedPatchInDB(active.patch).catch((e) =>
+    console.error("[changelog] Failed to write published patch to DB:", e)
+  );
+
+  if (active.publishedPatch === active.patch) return; // already recorded in file, nothing more to do
   active.publishedPatch = active.patch;
   await writeChangelog(cl);
 }
 
 export function generateChangelogId(): string {
   return crypto.randomUUID();
+}
+
+// ---------------------------------------------------------------------------
+// Shared-DB helpers — used to bridge the prod→dev deploy detection gap.
+// Both environments connect to the same PostgreSQL instance, so production
+// can leave a breadcrumb that dev picks up on next startup.
+// ---------------------------------------------------------------------------
+
+async function getPublishedPatchFromDB(): Promise<number | null> {
+  try {
+    const result = await pool.query(
+      `SELECT value FROM system_settings WHERE key = 'changelog_published_patch'`
+    );
+    if (result.rows.length === 0) return null;
+    const val = parseInt(result.rows[0].value, 10);
+    return isNaN(val) ? null : val;
+  } catch {
+    return null; // table may not exist yet on first startup
+  }
+}
+
+async function setPublishedPatchInDB(patch: number): Promise<void> {
+  await pool.query(
+    `INSERT INTO system_settings (key, value, updated_at)
+       VALUES ('changelog_published_patch', $1, now())
+     ON CONFLICT (key) DO UPDATE
+       SET value = EXCLUDED.value, updated_at = now()`,
+    [String(patch)]
+  );
 }
