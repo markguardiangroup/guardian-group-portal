@@ -1734,7 +1734,7 @@ export default function CreateFromTemplate() {
         </Button>
         <Button
           onClick={handleComplete}
-          disabled={!selectedFile || createDocumentMutation.isPending || isReviewDateInvalid || isExpiryDateInvalid}
+          disabled={!selectedFile || createDocumentMutation.isPending || isExpiryDateInvalid}
           data-testid="button-create-document"
         >
           {createDocumentMutation.isPending ? (

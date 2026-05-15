@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 4,
+      "patch": 5,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4549,9 +4549,16 @@
           "message": "Fixed: folder selection is now required for company and group level uploads",
           "category": "bug",
           "createdAt": "2026-05-15T15:35:00.000Z"
+        },
+        {
+          "id": "u2v4x6z8-create-from-template-review-date-crash-2026",
+          "patch": 3,
+          "message": "Fixed: crash when uploading via template at group level (undefined variable)",
+          "category": "bug",
+          "createdAt": "2026-05-15T15:45:00.000Z"
         }
       ],
-      "publishedPatch": 3,
+      "publishedPatch": 4,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -4569,7 +4576,9 @@
         "n5j7k9l1-site-totals-refresh-on-group-change-2026",
         "p7r9t1v3-module-sites-compliance-always-fresh-2026",
         "q8s0u2w4-roadmap-edit-dialog-wider-2026",
-        "r9t1v3x5-company-group-upload-folder-fix-2026"
+        "r9t1v3x5-company-group-upload-folder-fix-2026",
+        "s0u2w4y6-changelog-auto-bump-replit-deploy-2026",
+        "t1v3x5z7-company-group-upload-folder-required-2026"
       ]
     }
   ]
