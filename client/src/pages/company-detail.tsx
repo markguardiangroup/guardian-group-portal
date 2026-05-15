@@ -3258,8 +3258,19 @@ export default function CompanyDetail() {
                 if (!memberToUnlink) return;
                 apiRequest("PATCH", `/api/companies/${memberToUnlink.id}/group-owner`, { groupOwnerId: null })
                   .then(() => {
-                    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
-                    queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+                    // Invalidate the group owner's data (current page)
+                    queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/companies"], refetchType: "all" });
+                    // Invalidate the unlinked member's data so its compliance totals update
+                    queryClient.invalidateQueries({ queryKey: ["/api/companies", memberToUnlink.id], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/companies", memberToUnlink.id, "required-templates"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/dashboard"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids"], refetchType: "all" });
+                    queryClient.invalidateQueries({ queryKey: ["/api/required-template-ids-by-company"], refetchType: "all" });
                     toast({ title: `${memberToUnlink.name} unlinked from Group Owner` });
                     setMemberToUnlink(null);
                   })
