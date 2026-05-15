@@ -780,6 +780,14 @@ export default function DocumentUpload() {
         });
         return;
       }
+      if (!data.folderId) {
+        toast({
+          title: "No Folder Selected",
+          description: "Please select a folder to organise this document.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     if (docScope === "site" && data.requiresApproval && siteClientUsers.length > 0 && !selectedApproverId) {
       toast({
@@ -1111,7 +1119,7 @@ export default function DocumentUpload() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>
-                            Folder {docScope === "site" && <span className="text-destructive">*</span>}
+                            Folder <span className="text-destructive">*</span>
                           </FormLabel>
                           {provisionFoldersMutation.isPending ? (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
@@ -1125,7 +1133,7 @@ export default function DocumentUpload() {
                             >
                               <FormControl>
                                 <SelectTrigger data-testid="select-folder">
-                                  <SelectValue placeholder="Select a folder (optional)" />
+                                  <SelectValue placeholder="Select a folder" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -1142,7 +1150,7 @@ export default function DocumentUpload() {
                             </div>
                           )}
                           <FormDescription>
-                            {docScope === "site" ? "Select a folder to organise this document" : "Optionally organise this document into a folder"}
+                            Select a folder to organise this document
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

@@ -4542,6 +4542,13 @@
           "message": "Changelog patch now auto-bumps after Replit deploy button publish",
           "category": "enhancement",
           "createdAt": "2026-05-15T15:25:00.000Z"
+        },
+        {
+          "id": "t1v3x5z7-company-group-upload-folder-required-2026",
+          "patch": 3,
+          "message": "Fixed: folder selection is now required for company and group level uploads",
+          "category": "bug",
+          "createdAt": "2026-05-15T15:35:00.000Z"
         }
       ],
       "publishedPatch": 3,
