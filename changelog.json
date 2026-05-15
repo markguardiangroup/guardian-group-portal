@@ -4420,7 +4420,7 @@
         {
           "id": "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
           "patch": 0,
-          "message": "Fixed: approved documents incorrectly showing as overdue are now auto-corrected on startup",
+          "message": "Fixed: approved documents incorrectly showing as overdue are now auto-corrected on startup - Fixes a live issue",
           "category": "bug",
           "createdAt": "2026-05-15T08:00:00.000Z"
         }
