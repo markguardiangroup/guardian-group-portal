@@ -870,7 +870,7 @@ export class MemStorage implements IStorage {
       db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId)),
       this.getCompany(companyId),
       db.select().from(siteTemplateOverridesTable),
-      db.select().from(companyRequiredTemplatesTable).where(eq(companyRequiredTemplatesTable.companyId, companyId)),
+      db.select().from(companyRequiredTemplatesTable).where(eq(companyRequiredTemplatesTable.companyId, companyId)).then(rows => { console.log(`[getSitesWithDetails] company=${companyId} required=${rows.length} rows:`, rows.map(r => r.templateId + (r.inheritedFromCompanyId ? `(inh:${r.inheritedFromCompanyId})` : ""))); return rows; }),
       db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
       db.select().from(siteModuleAccessTable),
       db.select().from(consultantAssignmentsTable),
@@ -5582,11 +5582,13 @@ export class MemStorage implements IStorage {
       // Soft-removal is only meaningful while a company is still a group member
       // (to show "parent removed this template"); once the company has left the group
       // there is no parent, so the rows must disappear completely.
-      await db.delete(companyRequiredTemplatesTable)
+      const deleteResult = await db.delete(companyRequiredTemplatesTable)
         .where(and(
           eq(companyRequiredTemplatesTable.companyId, companyId),
           isNotNull(companyRequiredTemplatesTable.inheritedFromCompanyId),
-        ));
+        ))
+        .returning();
+      console.log(`[setGroupOwner] Removed ${deleteResult.length} inherited required template(s) for company ${companyId}`);
 
       // Remove all document share records that were created when this company
       // joined the group (autoShareGroupDocumentsToCompany). These are
