@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 2,
+      "patch": 3,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4523,7 +4523,7 @@
           "createdAt": "2026-05-15T13:45:00.000Z"
         }
       ],
-      "publishedPatch": 1,
+      "publishedPatch": 2,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -4538,7 +4538,8 @@
         "k2g4h6i8-group-doc-shares-removed-on-leave-2026",
         "l3h5i7j9-join-group-only-shows-group-owners-2026",
         "m4i6j8k0-required-docs-propagate-on-join-group-2026",
-        "n5j7k9l1-site-totals-refresh-on-group-change-2026"
+        "n5j7k9l1-site-totals-refresh-on-group-change-2026",
+        "p7r9t1v3-module-sites-compliance-always-fresh-2026"
       ]
     }
   ]
