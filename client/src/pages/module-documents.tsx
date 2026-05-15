@@ -1489,6 +1489,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </Link>
                       );
                     }
+                    const hasShares = ((doc as any).sharedWithSiteIds?.length ?? 0) + ((doc as any).sharedWithCompanyIds?.length ?? 0) > 0;
+                    const originIsGroup = (doc as any).scope === "group";
+                    if (hasShares) {
+                      const shareCount = ((doc as any).sharedWithSiteIds?.length ?? 0) + ((doc as any).sharedWithCompanyIds?.length ?? 0);
+                      return (
+                        <Link
+                          key={doc.id}
+                          href={`${basePath}/documents/${doc.id}`}
+                          className={`flex items-center justify-between p-2 rounded-md border-2 border-dashed hover-elevate ${originIsGroup ? "border-purple-300 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-950/20" : "border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20"}`}
+                          data-testid={`row-folder-doc-${doc.id}`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <FileText className={`h-4 w-4 shrink-0 ${originIsGroup ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}`} />
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{doc.title}</p>
+                              <p className="text-xs text-muted-foreground truncate">{docMetaLine(doc)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge variant="outline" className={`text-xs ${originIsGroup ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
+                              Shared to {shareCount} {shareCount === 1 ? "site" : "sites"}
+                            </Badge>
+                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        </Link>
+                      );
+                    }
                     return (
                       <Link
                         key={doc.id}
@@ -1955,15 +1984,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             </DraggableDocRow>
                                           ))}
                                           {/* Shared (Group/Company-scope) documents filed under this child folder template — read-only */}
-                                          {(expandedSharedByFolderTemplate.get(childFolder.id) ?? []).map((doc) => (
+                                          {(expandedSharedByFolderTemplate.get(childFolder.id) ?? []).map((doc) => {
+                                            const isGrp = doc.sharedScope === "group";
+                                            return (
                                             <Link
                                               key={(doc as any)._virtualKey ?? doc.id}
                                               href={`${basePath}/documents/${doc.id}`}
-                                              className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                                              className={`flex items-center justify-between p-2 rounded-md border-2 border-dashed hover-elevate ${isGrp ? "border-purple-300 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-950/20" : "border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20"}`}
                                               data-testid={`link-shared-document-${(doc as any)._virtualKey ?? doc.id}`}
                                             >
                                               <div className="flex items-center gap-3">
-                                                <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                <FileText className={`h-4 w-4 ${isGrp ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}`} />
                                                 <div>
                                                   <p className="font-medium text-sm">{doc.title}</p>
                                                   <p className="text-xs text-muted-foreground">
@@ -1976,15 +2007,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                 </div>
                                               </div>
                                               <div className="flex items-center gap-2">
-                                                <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
-                                                  Shared
+                                                <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
+                                                  {isGrp ? "From Group" : "Shared"}
                                                 </Badge>
                                                 <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                                                 <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                               </div>
                                             </Link>
-                                          ))}
+                                            );
+                                          })}
                                           {/* Missing required slots for child folder — sourced from missingSlots for accuracy */}
                                           {(missingByFolderTemplateId.get(childFolder.id) ?? []).map((slot: any) => (
                                             <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
@@ -2071,15 +2103,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {/* Shared (Group/Company-scope) documents filed under this folder template — read-only */}
                             {(expandedSharedByFolderTemplate.get(folder.id) ?? []).length > 0 && (
                               <div className="space-y-2">
-                                {(expandedSharedByFolderTemplate.get(folder.id) ?? []).map((doc) => (
+                                {(expandedSharedByFolderTemplate.get(folder.id) ?? []).map((doc) => {
+                                  const isGrp = doc.sharedScope === "group";
+                                  return (
                                   <Link
                                     key={(doc as any)._virtualKey ?? doc.id}
                                     href={`${basePath}/documents/${doc.id}`}
-                                    className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                                    className={`flex items-center justify-between p-3 rounded-md border-2 border-dashed hover-elevate ${isGrp ? "border-purple-300 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-950/20" : "border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20"}`}
                                     data-testid={`link-shared-document-${(doc as any)._virtualKey ?? doc.id}`}
                                   >
                                     <div className="flex items-center gap-3">
-                                      <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                      <FileText className={`h-4 w-4 ${isGrp ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}`} />
                                       <div>
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <p className="font-medium text-sm">{doc.title}</p>
@@ -2094,15 +2128,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
-                                        Shared
+                                      <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
+                                        {isGrp ? "From Group" : "Shared"}
                                       </Badge>
                                       <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </Link>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
 
@@ -2206,15 +2241,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </Link>
                   </DraggableDocRow>
                 ))}
-                {expandedUnmatchedShared.map((doc) => (
+                {expandedUnmatchedShared.map((doc) => {
+                  const isGrp = doc.sharedScope === "group";
+                  return (
                   <Link
                     key={(doc as any)._virtualKey ?? doc.id}
                     href={`${basePath}/documents/${doc.id}`}
-                    className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20 hover-elevate"
+                    className={`flex items-center justify-between p-3 rounded-md border-2 border-dashed hover-elevate ${isGrp ? "border-purple-300 dark:border-purple-700 bg-purple-50/40 dark:bg-purple-950/20" : "border-blue-300 dark:border-blue-700 bg-blue-50/40 dark:bg-blue-950/20"}`}
                     data-testid={`link-shared-document-${(doc as any)._virtualKey ?? doc.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <FileText className={`h-4 w-4 ${isGrp ? "text-purple-600 dark:text-purple-400" : "text-blue-600 dark:text-blue-400"}`} />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
                         <p className="text-xs text-muted-foreground">
@@ -2227,15 +2264,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
-                        Shared
+                      <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
+                        {isGrp ? "From Group" : "Shared"}
                       </Badge>
                       <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
                 {(missingByFolderTemplateId.get("__unfiled__") ?? []).map((slot: any) => (
                   <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
                     <div className="flex items-center gap-3">

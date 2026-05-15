@@ -4570,6 +4570,20 @@
           "message": "Improved: shared doc borders now use purple for group-linked and blue for company-linked, consistently",
           "category": "enhancement",
           "createdAt": "2026-05-15T16:05:00.000Z"
+        },
+        {
+          "id": "x5z7b9d1-shared-origin-doc-dashed-border-group-level-2026",
+          "patch": 3,
+          "message": "Fixed: shared-to-sites docs now show dashed border and site count at group/company origin level",
+          "category": "bug",
+          "createdAt": "2026-05-15T16:15:00.000Z"
+        },
+        {
+          "id": "y6a8c0e2-scope-colour-all-folder-levels-2026",
+          "patch": 3,
+          "message": "Improved: purple/blue scope colours now applied to shared docs at all folder view levels",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T16:16:00.000Z"
         }
       ],
       "publishedPatch": 4,
