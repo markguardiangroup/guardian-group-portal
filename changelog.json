@@ -4556,6 +4556,13 @@
           "message": "Fixed: crash when uploading via template at group level (undefined variable)",
           "category": "bug",
           "createdAt": "2026-05-15T15:45:00.000Z"
+        },
+        {
+          "id": "v3x5z7b9-group-doc-shared-badge-false-positive-2026",
+          "patch": 3,
+          "message": "Fixed: group/company origin documents no longer show a spurious Shared badge",
+          "category": "bug",
+          "createdAt": "2026-05-15T15:55:00.000Z"
         }
       ],
       "publishedPatch": 4,

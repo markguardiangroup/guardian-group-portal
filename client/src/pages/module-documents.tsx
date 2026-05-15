@@ -1511,11 +1511,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          {doc.siteId === null && (
-                            <Badge variant="outline" className="text-xs border-blue-400 text-blue-700 dark:text-blue-300">
-                              Shared
-                            </Badge>
-                          )}
                           <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
                           <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                         </div>
