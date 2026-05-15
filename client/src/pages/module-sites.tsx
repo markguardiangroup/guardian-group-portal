@@ -233,6 +233,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       const res = await fetch(`/api/documents/module/${module}`, { credentials: "include" });
       return res.json();
     },
+    staleTime: 0,
   });
 
   const { data: missingRequiredDetails = [] } = useQuery<MissingRequired[]>({
@@ -241,6 +242,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       const res = await fetch(`/api/missing-required-templates?module=${module}`, { credentials: "include" });
       return res.json();
     },
+    staleTime: 0,
   });
 
   // Company-level missing slots (no per-site exclusions) — used by company tiles
@@ -251,6 +253,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       const res = await fetch(`/api/missing-required-templates/by-company?module=${module}`, { credentials: "include" });
       return res.json();
     },
+    staleTime: 0,
   });
 
   // Effective required template IDs per site (after site-level overrides),
@@ -265,6 +268,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       const res = await fetch(`/api/effective-required-template-ids-by-site?module=${module}`, { credentials: "include" });
       return res.json();
     },
+    staleTime: 0,
   });
 
   const isLoading = isLoadingSites || isLoadingDocs;

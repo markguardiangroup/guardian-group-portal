@@ -4514,6 +4514,13 @@
           "message": "Fixed: site compliance totals update immediately when a member is removed from a group",
           "category": "bug",
           "createdAt": "2026-05-15T13:10:00.000Z"
+        },
+        {
+          "id": "p7r9t1v3-module-sites-compliance-always-fresh-2026",
+          "patch": 2,
+          "message": "Fixed: compliance stats on Site Documents pages now always show up-to-date values",
+          "category": "bug",
+          "createdAt": "2026-05-15T13:45:00.000Z"
         }
       ],
       "publishedPatch": 4,
