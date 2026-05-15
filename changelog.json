@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 3,
+      "patch": 4,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4509,7 +4509,7 @@
           "createdAt": "2026-05-15T13:00:00.000Z"
         }
       ],
-      "publishedPatch": 2,
+      "publishedPatch": 3,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -4517,7 +4517,13 @@
         "d5f7a9b1-public-template-hides-renewal-period-2026",
         "e6a8b0c2-feedback-message-scroll-2026",
         "f7b9c1d3-patch-bump-build-script-removed-2026",
-        "g8c0d2e4-my-actions-assigned-to-removed-2026"
+        "g8c0d2e4-my-actions-assigned-to-removed-2026",
+        "h9d1e3f5-groups-tab-company-detail-2026",
+        "i0e2f4g6-groups-add-members-button-text-2026",
+        "j1f3g5h7-inherited-required-docs-leave-group-2026",
+        "k2g4h6i8-group-doc-shares-removed-on-leave-2026",
+        "l3h5i7j9-join-group-only-shows-group-owners-2026",
+        "m4i6j8k0-required-docs-propagate-on-join-group-2026"
       ]
     }
   ]
