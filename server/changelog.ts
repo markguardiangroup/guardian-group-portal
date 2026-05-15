@@ -136,21 +136,26 @@ export async function autoIncrementPatchIfChanged(): Promise<void> {
   const active = cl.versions.find((v) => v.id === cl.activeVersionId);
   if (!active) return;
 
-  // Primary check: did production deploy a patch that dev hasn't advanced past yet?
+  // Only trigger: did production deploy a patch that dev hasn't advanced past yet?
   // Both environments share the same DB, so this catches Replit-button deploys.
+  // The patchedEntryIds fallback has been intentionally removed — it fired on every
+  // dev restart whenever new changelog entries existed, causing spurious patch bumps.
   const dbPublishedPatch = await getPublishedPatchFromDB();
-  if (dbPublishedPatch !== null && dbPublishedPatch >= active.patch) {
-    await bumpDevPatchAfterPublish();
-    console.log(`[changelog] Auto-bumped patch: detected production deploy of patch ${dbPublishedPatch}`);
+  if (dbPublishedPatch === null) return;
+
+  // Guard: if the DB value is somehow higher than active.patch, the DB is stale
+  // (e.g. patch counter was manually corrected after spurious bumps). Reset the
+  // DB to the file's publishedPatch so future restarts don't trigger false bumps.
+  if (dbPublishedPatch > active.patch) {
+    await setPublishedPatchInDB(active.publishedPatch ?? 0).catch(() => {});
+    console.log(`[changelog] DB patch (${dbPublishedPatch}) was stale — reset to ${active.publishedPatch ?? 0}`);
     return;
   }
 
-  // Fallback: bump if there are entries not yet covered by patchedEntryIds
-  const patchedSet = new Set(active.patchedEntryIds ?? []);
-  const hasNewEntries = active.entries.some((e) => !patchedSet.has(e.id));
-  if (!hasNewEntries) return;
-
-  await bumpDevPatchAfterPublish();
+  if (dbPublishedPatch >= active.patch) {
+    await bumpDevPatchAfterPublish();
+    console.log(`[changelog] Auto-bumped patch: detected production deploy of patch ${dbPublishedPatch}`);
+  }
 }
 
 /**
