@@ -2518,7 +2518,7 @@ export default function TemplateLibraryPage() {
                 <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
                   checked={bulkShared.visibility === "public"}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : bulkShared.requiresApproval })}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : bulkShared.requiresApproval, renewalPeriodMonths: checked ? null : bulkShared.renewalPeriodMonths })}
                   data-testid="switch-bulk-visibility"
                 />
               </div>
@@ -2618,6 +2618,7 @@ export default function TemplateLibraryPage() {
                 />
               </div>
               )}
+              {bulkShared.visibility !== "public" && (
               <div className="space-y-1">
                 <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period</Label>
                 <Select
@@ -2638,6 +2639,7 @@ export default function TemplateLibraryPage() {
                 </Select>
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
+              )}
             </div>
 
             {/* Source Restrictions */}
@@ -2867,7 +2869,7 @@ export default function TemplateLibraryPage() {
                 <Switch
                   id="edit-template-visibility"
                   checked={templateFormData.visibility === "public"}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : templateFormData.requiresApproval })}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : templateFormData.requiresApproval, renewalPeriodMonths: checked ? null : templateFormData.renewalPeriodMonths })}
                   data-testid="switch-edit-template-visibility"
                 />
               </div>
@@ -2954,6 +2956,7 @@ export default function TemplateLibraryPage() {
                 />
               </div>
               )}
+              {templateFormData.visibility !== "public" && (
               <div className="space-y-1">
                 <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period</Label>
                 <Select
@@ -2974,6 +2977,7 @@ export default function TemplateLibraryPage() {
                 </Select>
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
+              )}
             </div>
             {/* Source Restrictions */}
             {allSources.filter(s => s.isActive).length > 0 && (

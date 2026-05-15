@@ -4437,6 +4437,13 @@
           "message": "Public templates no longer show the Client Approval toggle (auto-set to off)",
           "category": "enhancement",
           "createdAt": "2026-05-15T08:20:00.000Z"
+        },
+        {
+          "id": "d5f7a9b1-public-template-hides-renewal-period-2026",
+          "patch": 1,
+          "message": "Public templates no longer show the Renewal Period field (auto-cleared)",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T08:30:00.000Z"
         }
       ],
       "publishedPatch": 1,
