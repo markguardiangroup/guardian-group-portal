@@ -4430,6 +4430,13 @@
           "message": "Fixed: live site now shows the same patch number as dev at publish time",
           "category": "bug",
           "createdAt": "2026-05-15T08:10:00.000Z"
+        },
+        {
+          "id": "c4e6f8a0-public-template-hides-approval-toggle-2026",
+          "patch": 1,
+          "message": "Public templates no longer show the Client Approval toggle (auto-set to off)",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T08:20:00.000Z"
         }
       ],
       "publishedPatch": 1,

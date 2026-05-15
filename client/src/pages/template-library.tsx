@@ -2518,7 +2518,7 @@ export default function TemplateLibraryPage() {
                 <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
                   checked={bulkShared.visibility === "public"}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : bulkShared.requiresApproval })}
                   data-testid="switch-bulk-visibility"
                 />
               </div>
@@ -2605,6 +2605,7 @@ export default function TemplateLibraryPage() {
             {/* Compliance Settings */}
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
+              {bulkShared.visibility !== "public" && (
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
                   <Label className="font-medium text-sm">Client Approval</Label>
@@ -2616,6 +2617,7 @@ export default function TemplateLibraryPage() {
                   data-testid="switch-bulk-requires-approval"
                 />
               </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period</Label>
                 <Select
@@ -2865,7 +2867,7 @@ export default function TemplateLibraryPage() {
                 <Switch
                   id="edit-template-visibility"
                   checked={templateFormData.visibility === "public"}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : templateFormData.requiresApproval })}
                   data-testid="switch-edit-template-visibility"
                 />
               </div>
@@ -2938,6 +2940,7 @@ export default function TemplateLibraryPage() {
             {/* Compliance Settings */}
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
+              {templateFormData.visibility !== "public" && (
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
                   <Label htmlFor="edit-template-requiresApproval" className="font-medium text-sm">Client Approval</Label>
@@ -2950,6 +2953,7 @@ export default function TemplateLibraryPage() {
                   data-testid="switch-edit-template-requires-approval"
                 />
               </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period</Label>
                 <Select
