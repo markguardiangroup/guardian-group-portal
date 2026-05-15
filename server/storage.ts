@@ -5567,6 +5567,16 @@ export class MemStorage implements IStorage {
         .set({ groupOwnerId: sql`NULL` })
         .where(eq(companiesTable.id, companyId))
         .returning();
+      // Soft-remove all required templates that were inherited from the group owner.
+      // These were written by cascadeGroupRequiredsToMember when the company joined;
+      // leaving them active would cause phantom required-document slots after leaving.
+      await db.update(companyRequiredTemplatesTable)
+        .set({ removedAt: new Date() })
+        .where(and(
+          eq(companyRequiredTemplatesTable.companyId, companyId),
+          isNotNull(companyRequiredTemplatesTable.inheritedFromCompanyId),
+          isNull(companyRequiredTemplatesTable.removedAt),
+        ));
       return updated;
     }
     const [updated] = await db.update(companiesTable)

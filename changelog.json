@@ -4479,6 +4479,13 @@
           "message": "Fixed: Add Members dialog button showed raw code instead of company count",
           "category": "bug",
           "createdAt": "2026-05-15T12:35:00.000Z"
+        },
+        {
+          "id": "j1f3g5h7-inherited-required-docs-leave-group-2026",
+          "patch": 2,
+          "message": "Fixed: removing a company from a group no longer leaves inherited required documents behind",
+          "category": "bug",
+          "createdAt": "2026-05-15T12:37:00.000Z"
         }
       ],
       "publishedPatch": 2,
