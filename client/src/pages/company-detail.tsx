@@ -82,6 +82,7 @@ import {
   LockKeyhole,
   Eye,
   PackageOpen,
+  Network,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -2000,6 +2001,12 @@ export default function CompanyDetail() {
               Services
             </TabsTrigger>
           )}
+          {(isAdmin || isProConsultant) && (
+            <TabsTrigger value="groups" data-testid="tab-groups">
+              <Network className="mr-2 h-4 w-4" />
+              Groups
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Overview Tab */}
@@ -2148,364 +2155,6 @@ export default function CompanyDetail() {
 
           </div>
 
-          {/* Linked Companies / Group Owner panel — mutually exclusive states */}
-          {(isAdmin || company.groupOwnerId || (company.groupMembers && company.groupMembers.length > 0)) && (() => {
-            const members = company.groupMembers ?? [];
-            const hasGroupOwner = !!company.groupOwnerId;
-            const isGroupOwnerCompany = company.isGroupOwner || members.length > 0;
-
-            // Non-admin: only show if there's something to display
-            if (!isAdmin && !hasGroupOwner && !isGroupOwnerCompany) return null;
-
-            // Companies eligible to add as members (only relevant when this is a GO)
-            const eligibleToAdd = allCompanies.filter(
-              (c) => c.id !== companyId && !c.groupOwnerId && !members.some((m) => m.id === c.id) && !c.isGroupOwner
-            );
-
-            // Inherited sources: union of all member company sources
-            const inheritedSources = Array.from(
-              new Set(members.flatMap((m) => m.sources ?? []))
-            ).sort();
-
-            const filteredEligible = eligibleToAdd
-              .filter((c) => c.name.toLowerCase().includes(addMembersSearch.toLowerCase()))
-              .sort((a, b) => a.name.localeCompare(b.name));
-
-            const allFilteredSelected =
-              filteredEligible.length > 0 && filteredEligible.every((c) => addMembersSelected.has(c.id));
-
-            return (
-              <>
-              {/* Bulk-add members dialog — only used when this company is/can be a GO */}
-              <Dialog open={addMembersDialogOpen} onOpenChange={(open) => {
-                setAddMembersDialogOpen(open);
-                if (!open) { setAddMembersSelected(new Set()); setAddMembersSearch(""); }
-              }}>
-                <DialogContent className="max-w-md" data-testid="dialog-add-group-members">
-                  <DialogHeader>
-                    <DialogTitle>Add Member Companies</DialogTitle>
-                    <DialogDescription>
-                      Select one or more companies to link to this Group Owner.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        className="pl-8"
-                        placeholder="Search companies..."
-                        value={addMembersSearch}
-                        onChange={(e) => setAddMembersSearch(e.target.value)}
-                        data-testid="input-add-members-search"
-                      />
-                    </div>
-                    {filteredEligible.length > 0 && (
-                      <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
-                        <span>{addMembersSelected.size} selected</span>
-                        <button
-                          type="button"
-                          className="underline underline-offset-2 hover:text-foreground transition-colors"
-                          onClick={() => {
-                            if (allFilteredSelected) {
-                              setAddMembersSelected((prev) => {
-                                const next = new Set(prev);
-                                filteredEligible.forEach((c) => next.delete(c.id));
-                                return next;
-                              });
-                            } else {
-                              setAddMembersSelected((prev) => {
-                                const next = new Set(prev);
-                                filteredEligible.forEach((c) => next.add(c.id));
-                                return next;
-                              });
-                            }
-                          }}
-                          data-testid="button-toggle-all-members"
-                        >
-                          {allFilteredSelected ? "Deselect all" : "Select all"}
-                        </button>
-                      </div>
-                    )}
-                    <div className="max-h-60 overflow-y-auto divide-y border rounded-md" data-testid="list-eligible-companies">
-                      {filteredEligible.length === 0 ? (
-                        <p className="text-sm text-muted-foreground p-3" data-testid="text-no-eligible-companies">
-                          {eligibleToAdd.length === 0
-                            ? "All eligible companies have already been added to a group."
-                            : "No companies found."}
-                        </p>
-                      ) : (
-                        filteredEligible.map((c) => {
-                          const selected = addMembersSelected.has(c.id);
-                          return (
-                            <button
-                              key={c.id}
-                              type="button"
-                              className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors ${selected ? "bg-primary/5" : ""}`}
-                              onClick={() => {
-                                setAddMembersSelected((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
-                                  return next;
-                                });
-                              }}
-                              data-testid={`add-member-option-${c.id}`}
-                            >
-                              <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${selected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
-                                {selected && <CheckCircle className="h-3 w-3" />}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium truncate">{c.name}</p>
-                                {c.referenceNumber && (
-                                  <p className="text-xs text-muted-foreground font-mono">{c.referenceNumber}</p>
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setAddMembersDialogOpen(false)}
-                      data-testid="button-cancel-add-members"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      disabled={addMembersSelected.size === 0 || bulkAddGroupMembersMutation.isPending}
-                      onClick={() => bulkAddGroupMembersMutation.mutate(Array.from(addMembersSelected))}
-                      data-testid="button-confirm-add-members"
-                    >
-                      {bulkAddGroupMembersMutation.isPending
-                        ? "Linking..."
-                        : `Link ${addMembersSelected.size > 0 ? addMembersSelected.size : ""} ${addMembersSelected.size === 1 ? "Company" : "Companies"}`}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <Card className="mt-6" data-testid="card-group-members">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      Linked Companies
-                      {members.length > 0 && (
-                        <Badge variant="secondary" className="ml-1">{members.length}</Badge>
-                      )}
-                    </CardTitle>
-                    {/* Add Members button — only when this company is the GO */}
-                    {isAdmin && isGroupOwnerCompany && eligibleToAdd.length > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 text-sm gap-1"
-                        onClick={() => {
-                          setAddMembersSelected(new Set());
-                          setAddMembersSearch("");
-                          setAddMembersDialogOpen(true);
-                        }}
-                        data-testid="button-add-group-members"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        Add Members
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* State 1: This company has a Group Owner (it's a member) */}
-                  {hasGroupOwner ? (
-                    <div className="space-y-3">
-                      <p className="text-xs text-muted-foreground">This company is a member of a group.</p>
-                      {isAdmin ? (
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium">Group Owner</label>
-                          <Select
-                            value={company.groupOwnerId ?? "none"}
-                            onValueChange={(val) => {
-                              const goId = val === "none" ? null : val;
-                              setGroupOwnerMutation.mutate(goId);
-                            }}
-                            disabled={setGroupOwnerMutation.isPending}
-                          >
-                            <SelectTrigger className="h-9 text-sm w-[360px]" data-testid="select-group-owner">
-                              <SelectValue placeholder="None (standalone)" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">None (remove from group)</SelectItem>
-                              {allCompanies
-                                .filter(c => c.id !== companyId && !c.groupOwnerId)
-                                .sort((a, b) => a.name.localeCompare(b.name))
-                                .map(c => (
-                                  <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
-                                    {c.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                            <Building2 className="h-4 w-4 text-primary" />
-                          </div>
-                          <Link
-                            href={`/companies/${company.groupOwnerId}`}
-                            className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                            data-testid="link-group-owner"
-                          >
-                            {company.groupOwnerName}
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  ) : isGroupOwnerCompany ? (
-                    /* State 2: This company is a Group Owner (has members) */
-                    <>
-                      {members.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No companies linked yet. Use "Add Members" to link companies to this Group Owner.</p>
-                      ) : (
-                        <div className="divide-y">
-                          {members.map((member) => (
-                            <div
-                              key={member.id}
-                              className="flex items-center justify-between py-2"
-                              data-testid={`group-member-${member.id}`}
-                            >
-                              <div
-                                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
-                                onClick={() => navigate(`/companies/${member.id}`)}
-                              >
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                                  <Building2 className="h-4 w-4 text-primary" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium truncate">{member.name}</p>
-                                  {member.referenceNumber && (
-                                    <p className="text-xs text-muted-foreground font-mono">{member.referenceNumber}</p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Badge
-                                  variant={member.status === "active" ? "default" : "secondary"}
-                                  className="text-xs"
-                                  data-testid={`badge-member-status-${member.id}`}
-                                >
-                                  {member.status}
-                                </Badge>
-                                {isAdmin && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                                    onClick={() => setMemberToUnlink({ id: member.id, name: member.name })}
-                                    disabled={setGroupOwnerMutation.isPending}
-                                    data-testid={`button-remove-member-${member.id}`}
-                                  >
-                                    <X className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {/* Inherited sources: computed union of all member sources */}
-                      {inheritedSources.length > 0 && (
-                        <div className="mt-4 pt-4 border-t">
-                          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
-                            <Shield className="h-3.5 w-3.5" />
-                            Sources (inherited — union of all linked companies)
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {inheritedSources.map((code) => (
-                              <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-inherited-source-${code}`}>
-                                {code}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* State 3: Standalone company — admin can assign a Group Owner OR make this company one */
-                    isAdmin ? (
-                      <div className="space-y-4">
-                        {/* Option A: Join an existing group */}
-                        <div className="rounded-lg border p-4 space-y-2.5">
-                          <div>
-                            <p className="text-sm font-medium">Join a group</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Assign this company as a member under an existing Group Owner.
-                            </p>
-                          </div>
-                          <Select
-                            value="none"
-                            onValueChange={(val) => {
-                              if (val !== "none") setGroupOwnerMutation.mutate(val);
-                            }}
-                            disabled={setGroupOwnerMutation.isPending}
-                          >
-                            <SelectTrigger className="h-9 text-sm w-[360px]" data-testid="select-group-owner">
-                              <SelectValue placeholder="Select a Group Owner…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {allCompanies
-                                .filter(c => c.id !== companyId && !c.groupOwnerId)
-                                .sort((a, b) => a.name.localeCompare(b.name))
-                                .map(c => (
-                                  <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
-                                    {c.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <div className="flex-1 border-t" />
-                          <span>or</span>
-                          <div className="flex-1 border-t" />
-                        </div>
-
-                        {/* Option B: Become a Group Owner */}
-                        {eligibleToAdd.length > 0 && (
-                          <div className="rounded-lg border p-4 space-y-2.5">
-                            <div>
-                              <p className="text-sm font-medium">Become a Group Owner</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Link other companies under this one to make it a Group Owner.
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 text-sm gap-1"
-                              onClick={() => {
-                                setAddMembersSelected(new Set());
-                                setAddMembersSearch("");
-                                setAddMembersDialogOpen(true);
-                              }}
-                              data-testid="button-add-group-members"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              Add Members
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ) : null
-                  )}
-                </CardContent>
-              </Card>
-              </>
-            );
-          })()}
 
           {/* Module Document Summary */}
           {companyStats && (
@@ -2555,6 +2204,366 @@ export default function CompanyDetail() {
         {(isAdmin || user?.role === "consultant") && (
           <TabsContent value="services" className="mt-6">
             <CompanyServicesTab companyId={companyId!} canManage={isAdmin || !!(user?.consultantPermissions as { services?: boolean } | null)?.services} />
+          </TabsContent>
+        )}
+
+        {/* Groups Tab — admin and Pro Consultant only */}
+        {(isAdmin || isProConsultant) && (
+          <TabsContent value="groups" className="mt-6">
+            {(() => {
+              const members = company.groupMembers ?? [];
+              const hasGroupOwner = !!company.groupOwnerId;
+              const isGroupOwnerCompany = company.isGroupOwner || members.length > 0;
+
+              const eligibleToAdd = allCompanies.filter(
+                (c) => c.id !== companyId && !c.groupOwnerId && !members.some((m) => m.id === c.id) && !c.isGroupOwner
+              );
+
+              const inheritedSources = Array.from(
+                new Set(members.flatMap((m) => m.sources ?? []))
+              ).sort();
+
+              const filteredEligible = eligibleToAdd
+                .filter((c) => c.name.toLowerCase().includes(addMembersSearch.toLowerCase()))
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+              const allFilteredSelected =
+                filteredEligible.length > 0 && filteredEligible.every((c) => addMembersSelected.has(c.id));
+
+              return (
+                <>
+                {/* Bulk-add members dialog — only used when this company is/can be a GO */}
+                <Dialog open={addMembersDialogOpen} onOpenChange={(open) => {
+                  setAddMembersDialogOpen(open);
+                  if (!open) { setAddMembersSelected(new Set()); setAddMembersSearch(""); }
+                }}>
+                  <DialogContent className="max-w-md" data-testid="dialog-add-group-members">
+                    <DialogHeader>
+                      <DialogTitle>Add Member Companies</DialogTitle>
+                      <DialogDescription>
+                        Select one or more companies to link to this Group Owner.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          className="pl-8"
+                          placeholder="Search companies..."
+                          value={addMembersSearch}
+                          onChange={(e) => setAddMembersSearch(e.target.value)}
+                          data-testid="input-add-members-search"
+                        />
+                      </div>
+                      {filteredEligible.length > 0 && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground px-0.5">
+                          <span>{addMembersSelected.size} selected</span>
+                          <button
+                            type="button"
+                            className="underline underline-offset-2 hover:text-foreground transition-colors"
+                            onClick={() => {
+                              if (allFilteredSelected) {
+                                setAddMembersSelected((prev) => {
+                                  const next = new Set(prev);
+                                  filteredEligible.forEach((c) => next.delete(c.id));
+                                  return next;
+                                });
+                              } else {
+                                setAddMembersSelected((prev) => {
+                                  const next = new Set(prev);
+                                  filteredEligible.forEach((c) => next.add(c.id));
+                                  return next;
+                                });
+                              }
+                            }}
+                            data-testid="button-toggle-all-members"
+                          >
+                            {allFilteredSelected ? "Deselect all" : "Select all"}
+                          </button>
+                        </div>
+                      )}
+                      <div className="max-h-60 overflow-y-auto divide-y border rounded-md" data-testid="list-eligible-companies">
+                        {filteredEligible.length === 0 ? (
+                          <p className="text-sm text-muted-foreground p-3" data-testid="text-no-eligible-companies">
+                            {eligibleToAdd.length === 0
+                              ? "All eligible companies have already been added to a group."
+                              : "No companies found."}
+                          </p>
+                        ) : (
+                          filteredEligible.map((c) => {
+                            const selected = addMembersSelected.has(c.id);
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className={`w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors \${selected ? "bg-primary/5" : ""}`}
+                                onClick={() => {
+                                  setAddMembersSelected((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(c.id)) next.delete(c.id); else next.add(c.id);
+                                    return next;
+                                  });
+                                }}
+                                data-testid={`add-member-option-\${c.id}`}
+                              >
+                                <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border \${selected ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                                  {selected && <CheckCircle className="h-3 w-3" />}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium truncate">{c.name}</p>
+                                  {c.referenceNumber && (
+                                    <p className="text-xs text-muted-foreground font-mono">{c.referenceNumber}</p>
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setAddMembersDialogOpen(false)}
+                        data-testid="button-cancel-add-members"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        disabled={addMembersSelected.size === 0 || bulkAddGroupMembersMutation.isPending}
+                        onClick={() => bulkAddGroupMembersMutation.mutate(Array.from(addMembersSelected))}
+                        data-testid="button-confirm-add-members"
+                      >
+                        {bulkAddGroupMembersMutation.isPending
+                          ? "Linking..."
+                          : `Link \${addMembersSelected.size > 0 ? addMembersSelected.size : ""} \${addMembersSelected.size === 1 ? "Company" : "Companies"}`}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+
+                <Card data-testid="card-group-members">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Network className="h-4 w-4 text-muted-foreground" />
+                        Groups
+                        {members.length > 0 && (
+                          <Badge variant="secondary" className="ml-1">{members.length}</Badge>
+                        )}
+                      </CardTitle>
+                      {/* Add Members button — only when this company is the GO */}
+                      {isAdmin && isGroupOwnerCompany && eligibleToAdd.length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-sm gap-1"
+                          onClick={() => {
+                            setAddMembersSelected(new Set());
+                            setAddMembersSearch("");
+                            setAddMembersDialogOpen(true);
+                          }}
+                          data-testid="button-add-group-members"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Add Members
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {/* State 1: This company has a Group Owner (it's a member) */}
+                    {hasGroupOwner ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">This company is a member of a group.</p>
+                        {isAdmin ? (
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Group Owner</label>
+                            <Select
+                              value={company.groupOwnerId ?? "none"}
+                              onValueChange={(val) => {
+                                const goId = val === "none" ? null : val;
+                                setGroupOwnerMutation.mutate(goId);
+                              }}
+                              disabled={setGroupOwnerMutation.isPending}
+                            >
+                              <SelectTrigger className="h-9 text-sm w-[360px]" data-testid="select-group-owner">
+                                <SelectValue placeholder="None (standalone)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None (remove from group)</SelectItem>
+                                {allCompanies
+                                  .filter(c => c.id !== companyId && !c.groupOwnerId)
+                                  .sort((a, b) => a.name.localeCompare(b.name))
+                                  .map(c => (
+                                    <SelectItem key={c.id} value={c.id} data-testid={`go-option-\${c.id}`}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                              <Building2 className="h-4 w-4 text-primary" />
+                            </div>
+                            <Link
+                              href={`/companies/\${company.groupOwnerId}`}
+                              className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                              data-testid="link-group-owner"
+                            >
+                              {company.groupOwnerName}
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    ) : isGroupOwnerCompany ? (
+                      /* State 2: This company is a Group Owner (has members) */
+                      <>
+                        {members.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No companies linked yet. Use "Add Members" to link companies to this Group Owner.</p>
+                        ) : (
+                          <div className="divide-y">
+                            {members.map((member) => (
+                              <div
+                                key={member.id}
+                                className="flex items-center justify-between py-2"
+                                data-testid={`group-member-\${member.id}`}
+                              >
+                                <div
+                                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity flex-1 min-w-0"
+                                  onClick={() => navigate(`/companies/\${member.id}`)}
+                                >
+                                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                                    <Building2 className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">{member.name}</p>
+                                    {member.referenceNumber && (
+                                      <p className="text-xs text-muted-foreground font-mono">{member.referenceNumber}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Badge
+                                    variant={member.status === "active" ? "default" : "secondary"}
+                                    className="text-xs"
+                                    data-testid={`badge-member-status-\${member.id}`}
+                                  >
+                                    {member.status}
+                                  </Badge>
+                                  {isAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                      onClick={() => setMemberToUnlink({ id: member.id, name: member.name })}
+                                      disabled={setGroupOwnerMutation.isPending}
+                                      data-testid={`button-remove-member-\${member.id}`}
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Inherited sources: computed union of all member sources */}
+                        {inheritedSources.length > 0 && (
+                          <div className="mt-4 pt-4 border-t">
+                            <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                              <Shield className="h-3.5 w-3.5" />
+                              Sources (inherited — union of all linked companies)
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {inheritedSources.map((code) => (
+                                <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-inherited-source-\${code}`}>
+                                  {code}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* State 3: Standalone company */
+                      isAdmin ? (
+                        <div className="space-y-4">
+                          {/* Option A: Join an existing group */}
+                          <div className="rounded-lg border p-4 space-y-2.5">
+                            <div>
+                              <p className="text-sm font-medium">Join a group</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Assign this company as a member under an existing Group Owner.
+                              </p>
+                            </div>
+                            <Select
+                              value="none"
+                              onValueChange={(val) => {
+                                if (val !== "none") setGroupOwnerMutation.mutate(val);
+                              }}
+                              disabled={setGroupOwnerMutation.isPending}
+                            >
+                              <SelectTrigger className="h-9 text-sm w-[360px]" data-testid="select-group-owner">
+                                <SelectValue placeholder="Select a Group Owner…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {allCompanies
+                                  .filter(c => c.id !== companyId && !c.groupOwnerId)
+                                  .sort((a, b) => a.name.localeCompare(b.name))
+                                  .map(c => (
+                                    <SelectItem key={c.id} value={c.id} data-testid={`go-option-\${c.id}`}>
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Divider */}
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="flex-1 border-t" />
+                            <span>or</span>
+                            <div className="flex-1 border-t" />
+                          </div>
+
+                          {/* Option B: Become a Group Owner */}
+                          {eligibleToAdd.length > 0 && (
+                            <div className="rounded-lg border p-4 space-y-2.5">
+                              <div>
+                                <p className="text-sm font-medium">Become a Group Owner</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  Link other companies under this one to make it a Group Owner.
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-sm gap-1"
+                                onClick={() => {
+                                  setAddMembersSelected(new Set());
+                                  setAddMembersSearch("");
+                                  setAddMembersDialogOpen(true);
+                                }}
+                                data-testid="button-add-group-members"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add Members
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">This company is not part of any group.</p>
+                      )
+                    )}
+                  </CardContent>
+                </Card>
+                </>
+              );
+            })()}
           </TabsContent>
         )}
 

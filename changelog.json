@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 2,
+      "patch": 3,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4465,9 +4465,16 @@
           "message": "Fixed: My Actions page no longer errors due to removed document field",
           "category": "bug",
           "createdAt": "2026-05-15T09:05:00.000Z"
+        },
+        {
+          "id": "h9d1e3f5-groups-tab-company-detail-2026",
+          "patch": 2,
+          "message": "Company page: Linked Companies renamed to Groups and moved to its own tab (admin and Pro Consultant only)",
+          "category": "enhancement",
+          "createdAt": "2026-05-15T12:20:00.000Z"
         }
       ],
-      "publishedPatch": 1,
+      "publishedPatch": 2,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
