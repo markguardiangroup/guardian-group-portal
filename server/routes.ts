@@ -7153,9 +7153,11 @@ export async function registerRoutes(
       if (!updated) return res.status(500).json({ error: "Failed to update" });
 
       // When linking a member company to a GO, propagate any "share to all"
-      // group-scoped documents from the GO down to the new member company.
+      // group-scoped documents and required templates from the GO down to the
+      // new member company.
       if (groupOwnerId) {
         await storage.autoShareGroupDocumentsToCompany(groupOwnerId, req.params.companyId);
+        await storage.cascadeGroupRequiredsToMember(groupOwnerId, req.params.companyId);
       }
 
       // When linking a member company to a GO, auto-assign the GO's primary contact to all member's sites

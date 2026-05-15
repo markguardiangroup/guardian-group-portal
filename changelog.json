@@ -4500,6 +4500,13 @@
           "message": "Fixed: Join a group dropdown now only lists existing Group Owners",
           "category": "bug",
           "createdAt": "2026-05-15T12:55:00.000Z"
+        },
+        {
+          "id": "m4i6j8k0-required-docs-propagate-on-join-group-2026",
+          "patch": 2,
+          "message": "Fixed: required documents now propagate to a company when it joins a group",
+          "category": "bug",
+          "createdAt": "2026-05-15T13:00:00.000Z"
         }
       ],
       "publishedPatch": 2,

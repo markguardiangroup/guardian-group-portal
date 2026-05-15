@@ -201,6 +201,7 @@ export interface IStorage {
   deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
   autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number>;
   autoShareGroupDocumentsToCompany(groupOwnerId: string, memberCompanyId: string): Promise<number>;
+  cascadeGroupRequiredsToMember(groupOwnerId: string, memberCompanyId: string): Promise<void>;
   getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
   
   // Document Versions
@@ -1106,7 +1107,7 @@ export class MemStorage implements IStorage {
     return updatedCompany;
   }
 
-  private async cascadeGroupRequiredsToMember(groupOwnerId: string, memberCompanyId: string): Promise<void> {
+  async cascadeGroupRequiredsToMember(groupOwnerId: string, memberCompanyId: string): Promise<void> {
     const groupReqs = await db.select().from(companyRequiredTemplatesTable)
       .where(eq(companyRequiredTemplatesTable.companyId, groupOwnerId));
     if (groupReqs.length === 0) return;
