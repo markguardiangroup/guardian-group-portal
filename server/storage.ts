@@ -503,6 +503,7 @@ export interface IStorage {
   deleteClientUpload(id: string): Promise<boolean>;
   cleanupExpiredFolders(): Promise<number>;
   markExpiredDocumentsOverdue(): Promise<number>;
+  correctMisclassifiedDocuments(): Promise<number>;
 
   // Testing Task Lists
   getTestingTaskLists(includeArchived?: boolean): Promise<TestingTaskList[]>;
@@ -4708,6 +4709,24 @@ export class MemStorage implements IStorage {
         )
       );
     return (result as any).rowCount ?? 0;
+  }
+
+  async correctMisclassifiedDocuments(): Promise<number> {
+    const now = new Date();
+    const notExpired = and(
+      eq(documentsTable.approvalStatus, "approved"),
+      eq(documentsTable.status, "overdue"),
+      eq(documentsTable.isArchived, false),
+      or(isNull(documentsTable.expiryDate), sql`${documentsTable.expiryDate} > ${now}`),
+      or(isNull(documentsTable.renewalDate), sql`${documentsTable.renewalDate} > ${now}`)
+    );
+    const r1 = await db.update(documentsTable)
+      .set({ status: "compliant", updatedAt: now })
+      .where(and(notExpired, eq(documentsTable.isRequired, true)));
+    const r2 = await db.update(documentsTable)
+      .set({ status: "approved", updatedAt: now })
+      .where(and(notExpired, eq(documentsTable.isRequired, false)));
+    return ((r1 as any).rowCount ?? 0) + ((r2 as any).rowCount ?? 0);
   }
 
   async getCompanyRequiredTemplates(companyId: string): Promise<CompanyRequiredTemplate[]> {

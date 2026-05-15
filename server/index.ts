@@ -372,9 +372,13 @@ process.on("uncaughtException", (err) => {
 
   async function runExpiredDocumentSweep() {
     try {
-      const count = await storage.markExpiredDocumentsOverdue();
-      if (count > 0) {
-        console.log(`[scheduler] Marked ${count} expired document(s) as overdue.`);
+      const expired = await storage.markExpiredDocumentsOverdue();
+      if (expired > 0) {
+        console.log(`[scheduler] Marked ${expired} expired document(s) as overdue.`);
+      }
+      const corrected = await storage.correctMisclassifiedDocuments();
+      if (corrected > 0) {
+        console.log(`[scheduler] Corrected ${corrected} misclassified document(s) back to compliant/approved.`);
       }
     } catch (err) {
       console.error("[scheduler] Expired document sweep error:", err);

@@ -1,16 +1,20 @@
 {
-  "activeVersionId": "init-v1-0",
+  "activeVersionId": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
   "versions": [
     {
       "id": "init-v1-0",
       "major": 1,
       "minor": 0,
-      "patch": 12,
-      "publishedPatch": 11,
+      "patch": 14,
+      "publishedPatch": 13,
       "label": "",
-      "isActive": true,
+      "isActive": false,
       "createdAt": "2026-04-10T00:00:00.000Z",
       "patchedEntryIds": [
+        "b9c2d4e6-orphaned-test-doc-removed-2026",
+        "a3b7c9d1-el-cases-split-2026",
+        "c5f2e4a8-compliance-engine-fixes-2026",
+        "b4e1d3f7-changelog-remove-requester-2026",
         "b1d4f2a8-135-loading-branded-anim-2026",
         "a7c3e9f1-tdz-scan-all-pages-2026",
         "f9a1b2c3-changelog-meta-display-2026",
@@ -491,7 +495,11 @@
         "u0s4q7r1-remove-dashboard-nav-2026",
         "v1t5r8s2-dashboard2-standalone-2026",
         "w2u6s9t3-dashboard-rename-sidebar-2026",
-        "x3v7t0u4-legal-docs-draft-2026"
+        "x3v7t0u4-legal-docs-draft-2026",
+        "a9f2c1d4-remove-assigned-approver-cols-2026",
+        "b7e3d2f1-remove-site-manager-col-2026",
+        "c4f8a2e9-remove-ghost-tables-2026",
+        "d1e7b3a5-fix-contract-overdue-2026"
       ],
       "entries": [
         {
@@ -4397,6 +4405,24 @@
           "message": "Fixed: Contract doc incorrectly stuck as overdue despite being fully approved with renewal due April 2027",
           "category": "bug",
           "createdAt": "2026-05-14T16:35:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
+      "major": 1,
+      "minor": 1,
+      "patch": 0,
+      "label": "Stable Modules and Documents",
+      "isActive": true,
+      "createdAt": "2026-05-14T18:51:27.375Z",
+      "entries": [
+        {
+          "id": "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
+          "patch": 0,
+          "message": "Fixed: approved documents incorrectly showing as overdue are now auto-corrected on startup",
+          "category": "bug",
+          "createdAt": "2026-05-15T08:00:00.000Z"
         }
       ]
     }
