@@ -17323,26 +17323,8 @@ export async function registerRoutes(
       const now = new Date();
       const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-      // 1. Documents directly assigned to this user that are overdue or due within 14 days
-      const assignedDocsRes = await pool.query<{
-        id: string; title: string; site_id: string | null; module: string | null;
-        status: string; renewal_date: string | null; expiry_date: string | null;
-      }>(
-        `SELECT id, title, site_id, module, status, renewal_date, expiry_date
-         FROM documents
-         WHERE assigned_to = $1
-           AND is_archived = false
-           AND (
-             status = 'overdue'
-             OR (
-               COALESCE(renewal_date, expiry_date) IS NOT NULL
-               AND COALESCE(renewal_date, expiry_date) <= $2
-             )
-           )
-         ORDER BY COALESCE(renewal_date, expiry_date) ASC NULLS LAST
-         LIMIT 20`,
-        [userId, in14Days.toISOString()]
-      );
+      // 1. Documents directly assigned to this user — column removed; always empty
+      const assignedDocsRes = { rows: [] as { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
 
       // 2. Documents awaiting this user's approval
       let pendingApprovalsRows: { id: string; title: string; site_id: string | null; module: string | null }[] = [];

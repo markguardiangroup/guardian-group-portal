@@ -72,9 +72,9 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // Bump dev patch AFTER the bundle is sealed so production gets
-  // an exact copy of the current dev patch, and dev moves ahead by 1.
-  await bumpChangelogPatch();
+  // changelog.json is a runtime file deployed alongside the code, so any
+  // bump here would land on production too. Dev patch advancement is handled
+  // by autoIncrementPatchIfChanged() on the next dev server restart instead.
 }
 
 buildAll().catch((err) => {

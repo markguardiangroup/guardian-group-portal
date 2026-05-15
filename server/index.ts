@@ -8,7 +8,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
-import { autoRecordPublishedPatch } from "./changelog";
+import { autoRecordPublishedPatch, autoIncrementPatchIfChanged } from "./changelog";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -422,6 +422,12 @@ process.on("uncaughtException", (err) => {
   } else {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
+    // On dev restart, advance the patch counter if new entries have been added
+    // since the last publish. This is the only place the patch is incremented —
+    // the build script must NOT touch changelog.json.
+    autoIncrementPatchIfChanged().catch((e) =>
+      console.error("[changelog] autoIncrementPatchIfChanged failed:", e)
+    );
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT

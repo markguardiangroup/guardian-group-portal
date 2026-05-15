@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 1,
+      "patch": 2,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4451,11 +4451,31 @@
           "message": "Feedback entries now scroll when the message is long",
           "category": "enhancement",
           "createdAt": "2026-05-15T08:40:00.000Z"
+        },
+        {
+          "id": "f7b9c1d3-patch-bump-build-script-removed-2026",
+          "patch": 1,
+          "message": "Fixed: live patch version no longer bumps on every publish",
+          "category": "bug",
+          "createdAt": "2026-05-15T09:00:00.000Z"
+        },
+        {
+          "id": "g8c0d2e4-my-actions-assigned-to-removed-2026",
+          "patch": 1,
+          "message": "Fixed: My Actions page no longer errors due to removed document field",
+          "category": "bug",
+          "createdAt": "2026-05-15T09:05:00.000Z"
         }
       ],
       "publishedPatch": 1,
       "patchedEntryIds": [
-        "a2c4e6f8-doc-misclassified-overdue-selfheal-2026"
+        "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
+        "b3d5f7a9-patch-bump-after-build-not-before-2026",
+        "c4e6f8a0-public-template-hides-approval-toggle-2026",
+        "d5f7a9b1-public-template-hides-renewal-period-2026",
+        "e6a8b0c2-feedback-message-scroll-2026",
+        "f7b9c1d3-patch-bump-build-script-removed-2026",
+        "g8c0d2e4-my-actions-assigned-to-removed-2026"
       ]
     }
   ]
