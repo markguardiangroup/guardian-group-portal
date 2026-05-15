@@ -5567,15 +5567,15 @@ export class MemStorage implements IStorage {
         .set({ groupOwnerId: sql`NULL` })
         .where(eq(companiesTable.id, companyId))
         .returning();
-      // Soft-remove all required templates that were inherited from the group owner.
-      // These were written by cascadeGroupRequiredsToMember when the company joined;
-      // leaving them active would cause phantom required-document slots after leaving.
-      await db.update(companyRequiredTemplatesTable)
-        .set({ removedAt: new Date() })
+      // Hard-delete all required templates that were inherited from any group owner.
+      // These were written by cascadeGroupRequiredsToMember when the company joined.
+      // Soft-removal is only meaningful while a company is still a group member
+      // (to show "parent removed this template"); once the company has left the group
+      // there is no parent, so the rows must disappear completely.
+      await db.delete(companyRequiredTemplatesTable)
         .where(and(
           eq(companyRequiredTemplatesTable.companyId, companyId),
           isNotNull(companyRequiredTemplatesTable.inheritedFromCompanyId),
-          isNull(companyRequiredTemplatesTable.removedAt),
         ));
       return updated;
     }
