@@ -4710,6 +4710,13 @@
           "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:10:00.000Z"
+        },
+        {
+          "id": "i9k1m3o5-create-client-user-title-select-error-2026",
+          "patch": 6,
+          "message": "Fixed: Create Client User dialog no longer crashes when opened (empty Title value)",
+          "category": "bug",
+          "createdAt": "2026-05-19T20:15:00.000Z"
         }
       ],
       "publishedPatch": 5,

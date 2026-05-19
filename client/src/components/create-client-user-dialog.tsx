@@ -130,7 +130,7 @@ export function CreateClientUserDialog({
     const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || form.email.split("@")[0];
     createUserMutation.mutate({
       username, email: form.email.trim(), fullName,
-      title: form.title, firstName, lastName,
+      title: form.title === "_none" ? "" : form.title, firstName, lastName,
       jobTitle: form.jobTitle, department: form.department,
       phone: form.phone, mobile: form.mobile, notes: form.notes,
       role: "client", companyId, clientPermissionRole: form.clientPermissionRole, sources: [],
@@ -192,7 +192,7 @@ export function CreateClientUserDialog({
                 <Select value={form.title} onValueChange={(v) => setForm(f => ({ ...f, title: v }))}>
                   <SelectTrigger id="ccu-title" data-testid="select-ccu-title"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">—</SelectItem>
+                    <SelectItem value="_none">—</SelectItem>
                     <SelectItem value="Mr">Mr</SelectItem>
                     <SelectItem value="Mrs">Mrs</SelectItem>
                     <SelectItem value="Miss">Miss</SelectItem>
