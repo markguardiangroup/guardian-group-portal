@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { CreateClientUserDialog } from "@/components/create-client-user-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -239,6 +240,7 @@ export default function UserManagement() {
   } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [lockedClientCompanyId, setLockedClientCompanyId] = useState<string | null>(null);
+  const [showLockedClientDialog, setShowLockedClientDialog] = useState(false);
   const [showDomainConfirmDialog, setShowDomainConfirmDialog] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -382,9 +384,8 @@ export default function UserManagement() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("action") === "createClient") {
       const prefilledCompanyId = params.get("companyId") || "";
-      setNewUser(prev => ({ ...prev, role: "client", companyId: prefilledCompanyId }));
       setLockedClientCompanyId(prefilledCompanyId);
-      setIsAddUserOpen(true);
+      setShowLockedClientDialog(true);
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -3203,6 +3204,25 @@ export default function UserManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Locked-flow Create Client User Dialog (from company page URL param) */}
+      {lockedClientCompanyId && (
+        <CreateClientUserDialog
+          open={showLockedClientDialog}
+          onOpenChange={(open) => {
+            setShowLockedClientDialog(open);
+            if (!open) setLockedClientCompanyId(null);
+          }}
+          companyId={lockedClientCompanyId}
+          companyName={lockedCompanyData?.name ?? companies.find(c => c.id === lockedClientCompanyId)?.name}
+          companyWebsite={lockedCompanyData?.website ?? companies.find(c => c.id === lockedClientCompanyId)?.website}
+          companySites={sites.filter(s => s.companyId === lockedClientCompanyId).map(s => ({ id: s.id, name: s.name }))}
+          onCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/companies", lockedClientCompanyId] });
+          }}
+        />
+      )}
 
       {/* Client Site Assignment Dialog */}
       <Dialog open={showSiteAssignmentMessage} onOpenChange={(open) => {

@@ -4703,6 +4703,13 @@
           "message": "Create Client User now opens an inline dialog on the company page instead of navigating away",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:00:00.000Z"
+        },
+        {
+          "id": "h8j0l2n4-create-client-user-shared-component-2026",
+          "patch": 6,
+          "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T20:10:00.000Z"
         }
       ],
       "publishedPatch": 5,
