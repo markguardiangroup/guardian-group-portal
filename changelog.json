@@ -4682,6 +4682,13 @@
           "message": "Fixed: site assignment section no longer disappears when Set as Key Contact is checked",
           "category": "bug",
           "createdAt": "2026-05-19T16:20:00.000Z"
+        },
+        {
+          "id": "e5g7i9k1-assign-sites-inline-list-2026",
+          "patch": 6,
+          "message": "Improved: site assignment dialog now shows an inline list with Add/Add All, matching Manage Sites",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T19:30:00.000Z"
         }
       ],
       "publishedPatch": 5,

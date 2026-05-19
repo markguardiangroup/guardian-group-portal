@@ -284,6 +284,8 @@ export default function UserManagement() {
     siteName: string;
   } | null>(null);
   const [selectedSiteToAdd, setSelectedSiteToAdd] = useState<string>("");
+  const [assignSitesPendingAdds, setAssignSitesPendingAdds] = useState<string[]>([]);
+  const [assignSitesSearch, setAssignSitesSearch] = useState("");
   const [manageSitesUser, setManageSitesUser] = useState<UserWithAssignments | null>(null);
   const [pendingAddSiteIds, setPendingAddSiteIds] = useState<string[]>([]);
   const [pendingRemoveSiteIds, setPendingRemoveSiteIds] = useState<string[]>([]);
@@ -1027,6 +1029,35 @@ export default function UserManagement() {
         userId: activeUser.id,
         siteId: siteAssignmentConfirm.siteId,
       });
+    }
+  };
+
+  const [isAssignSitesSaving, setIsAssignSitesSaving] = useState(false);
+  const handleAssignSitesDone = async () => {
+    if (!userNeedingSiteAssignment) { setShowSiteAssignmentMessage(false); return; }
+    if (assignSitesPendingAdds.length === 0) {
+      setShowSiteAssignmentMessage(false);
+      setUserNeedingSiteAssignment(null);
+      setAssignSitesPendingAdds([]);
+      setAssignSitesSearch("");
+      return;
+    }
+    setIsAssignSitesSaving(true);
+    try {
+      for (const siteId of assignSitesPendingAdds) {
+        await apiRequest("POST", `/api/users/${userNeedingSiteAssignment.id}/site-assignments/${siteId}`, {});
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+      toast({ title: "Sites assigned", description: `${assignSitesPendingAdds.length} site${assignSitesPendingAdds.length > 1 ? "s" : ""} assigned successfully.` });
+    } catch {
+      toast({ title: "Failed to assign some sites", variant: "destructive" });
+    } finally {
+      setIsAssignSitesSaving(false);
+      setShowSiteAssignmentMessage(false);
+      setUserNeedingSiteAssignment(null);
+      setAssignSitesPendingAdds([]);
+      setAssignSitesSearch("");
     }
   };
 
@@ -3138,7 +3169,7 @@ export default function UserManagement() {
       {/* Client Site Assignment Dialog */}
       <Dialog open={showSiteAssignmentMessage} onOpenChange={(open) => {
         setShowSiteAssignmentMessage(open);
-        if (!open) { setUserNeedingSiteAssignment(null); setSetPrimaryContact(false); setSetKeyContactFlag(false); setSelectedSiteToAdd(""); }
+        if (!open) { setUserNeedingSiteAssignment(null); setSetPrimaryContact(false); setSetKeyContactFlag(false); setSelectedSiteToAdd(""); setAssignSitesPendingAdds([]); setAssignSitesSearch(""); }
       }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -3153,7 +3184,8 @@ export default function UserManagement() {
           {userNeedingSiteAssignment && (() => {
             const userCompany = companies.find(c => c.id === userNeedingSiteAssignment.companyId);
             const companySites = sites ? sites.filter(s => s.companyId === userNeedingSiteAssignment.companyId) : [];
-            const unassignedSites = companySites.filter(s => !userNeedingSiteAssignment.siteAssignments?.some(a => a.siteId === s.id));
+            const alreadyAssignedIds = new Set((userNeedingSiteAssignment.siteAssignments || []).map(a => a.siteId));
+            const unassignedSites = companySites.filter(s => !alreadyAssignedIds.has(s.id) && !assignSitesPendingAdds.includes(s.id));
             const existingPrimaryContact = userCompany?.contactUserId
               ? allUsers.find(u => u.id === userCompany.contactUserId)
               : null;
@@ -3245,69 +3277,98 @@ export default function UserManagement() {
 
                 {/* Site selection — hidden only when primary contact is set (auto-assigned to all sites); key contacts still need explicit site assignment */}
                 {!setPrimaryContact && (
-                  <div className="space-y-3">
-                    {/* Currently assigned */}
-                    {userNeedingSiteAssignment.siteAssignments && userNeedingSiteAssignment.siteAssignments.length > 0 && (
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Currently assigned sites</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {userNeedingSiteAssignment.siteAssignments.map((assignment) => (
-                            <Badge key={assignment.siteId} variant="secondary" className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3 shrink-0" />
-                              <span>{assignment.siteName}</span>
+                  <div className="border-t pt-4 space-y-3">
+                    {/* Assigned + pending badges */}
+                    <div>
+                      <Label className="text-sm font-medium mb-2 block">
+                        Assigned Sites {userCompany ? <span className="font-normal text-muted-foreground">({userCompany.name})</span> : ""}
+                      </Label>
+                      {(alreadyAssignedIds.size > 0 || assignSitesPendingAdds.length > 0) ? (
+                        <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto pr-1">
+                          {(userNeedingSiteAssignment.siteAssignments || []).map((a) => (
+                            <Badge key={a.siteId} variant="secondary" className="flex items-center gap-1 pr-1">
+                              <span>{a.siteName}</span>
                             </Badge>
                           ))}
+                          {assignSitesPendingAdds.map((siteId) => {
+                            const site = companySites.find(s => s.id === siteId);
+                            return (
+                              <Badge key={siteId} variant="default" className="flex items-center gap-1 pr-1" data-testid={`badge-pending-site-${siteId}`}>
+                                <span>{site?.name ?? siteId}</span>
+                                <span className="text-xs opacity-70 ml-0.5">+new</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 ml-1 hover:bg-destructive/20"
+                                  onClick={() => setAssignSitesPendingAdds(prev => prev.filter(id => id !== siteId))}
+                                  data-testid={`button-unstage-site-${siteId}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            );
+                          })}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No sites assigned yet.</p>
+                      )}
+                    </div>
 
-                    {/* Add from company's sites */}
-                    {unassignedSites.length > 0 ? (
-                      <div className="flex items-end gap-2">
-                        <div className="flex-1 grid gap-1.5">
-                          <Label htmlFor="assign-site" className="text-xs text-muted-foreground">
-                            Add site {userCompany ? `(${userCompany.name})` : ""}
-                          </Label>
-                          <Select value={selectedSiteToAdd} onValueChange={setSelectedSiteToAdd}>
-                            <SelectTrigger id="assign-site" data-testid="select-assign-site">
-                              <SelectValue placeholder="Select a site to add" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {unassignedSites.map((site) => (
-                                <SelectItem key={site.id} value={site.id}>
-                                  {site.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            if (selectedSiteToAdd && userNeedingSiteAssignment) {
-                              setSiteAssignmentConfirm({
-                                type: "add",
-                                siteId: selectedSiteToAdd,
-                                siteName: sites?.find(s => s.id === selectedSiteToAdd)?.name || "",
-                              });
-                            }
-                          }}
-                          disabled={!selectedSiteToAdd}
-                          data-testid="button-assign-site"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add
-                        </Button>
-                      </div>
-                    ) : companySites.length === 0 ? (
+                    {/* Available sites */}
+                    {companySites.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No sites exist for this company yet. Add a site first or set this user as primary contact.</p>
+                    ) : unassignedSites.length > 0 ? (
+                      <div className="border-t pt-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Available Sites</Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-xs px-2"
+                            onClick={() => setAssignSitesPendingAdds(prev => {
+                              const toAdd = unassignedSites.map(s => s.id).filter(id => !prev.includes(id));
+                              return [...prev, ...toAdd];
+                            })}
+                            data-testid="button-assign-add-all"
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add All
+                          </Button>
+                        </div>
+                        {companySites.length > 3 && (
+                          <div className="relative">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              value={assignSitesSearch}
+                              onChange={(e) => setAssignSitesSearch(e.target.value)}
+                              placeholder="Search sites…"
+                              className="pl-8 h-8 text-sm"
+                              data-testid="input-assign-site-search"
+                            />
+                          </div>
+                        )}
+                        <div className="rounded-md border divide-y max-h-48 overflow-y-auto">
+                          {unassignedSites
+                            .filter(s => !assignSitesSearch || s.name.toLowerCase().includes(assignSitesSearch.toLowerCase()))
+                            .map((site) => (
+                              <div key={site.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-muted/50">
+                                <span className="text-sm">{site.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs px-2"
+                                  onClick={() => setAssignSitesPendingAdds(prev => [...prev, site.id])}
+                                  data-testid={`button-assign-add-site-${site.id}`}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add
+                                </Button>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
                     ) : (
                       <p className="text-sm text-muted-foreground">All company sites have been assigned.</p>
-                    )}
-
-                    {(!userNeedingSiteAssignment.siteAssignments || userNeedingSiteAssignment.siteAssignments.length === 0) && companySites.length > 0 && !selectedSiteToAdd && (
-                      <p className="text-sm text-muted-foreground">No sites assigned yet. Select a site above.</p>
                     )}
                   </div>
                 )}
@@ -3315,7 +3376,11 @@ export default function UserManagement() {
             );
           })()}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowSiteAssignmentMessage(false); setSetPrimaryContact(false); setSetKeyContactFlag(false); setSelectedSiteToAdd(""); }} data-testid="button-cancel-site-assignment">
+            <Button
+              variant="outline"
+              onClick={() => { setShowSiteAssignmentMessage(false); setSetPrimaryContact(false); setSetKeyContactFlag(false); setSelectedSiteToAdd(""); setAssignSitesPendingAdds([]); setAssignSitesSearch(""); }}
+              data-testid="button-cancel-site-assignment"
+            >
               Cancel
             </Button>
             {setPrimaryContact && userNeedingSiteAssignment?.companyId && (
@@ -3339,8 +3404,12 @@ export default function UserManagement() {
               </Button>
             )}
             {!setPrimaryContact && !setKeyContactFlag && (
-              <Button onClick={() => { setShowSiteAssignmentMessage(false); setUserNeedingSiteAssignment(null); setSelectedSiteToAdd(""); }} data-testid="button-done-site-assignment">
-                Done
+              <Button
+                onClick={handleAssignSitesDone}
+                disabled={isAssignSitesSaving}
+                data-testid="button-done-site-assignment"
+              >
+                {isAssignSitesSaving ? "Saving..." : "Done"}
               </Button>
             )}
           </DialogFooter>
