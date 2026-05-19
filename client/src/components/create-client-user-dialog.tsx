@@ -63,7 +63,7 @@ const FORM_INITIAL = {
   title: "", firstName: "", lastName: "", username: "",
   jobTitle: "", department: "",
   phone: "", mobile: "", preferredContactMethod: "any" as "any" | "email" | "phone" | "mobile",
-  email: "", notes: "", clientPermissionRole: "full",
+  email: "", notes: "",
 };
 
 export interface CreateClientUserDialogProps {
@@ -150,7 +150,7 @@ export function CreateClientUserDialog({
       phone: form.phone, mobile: form.mobile,
       preferredContactMethod: form.preferredContactMethod,
       notes: form.notes,
-      role: "client", companyId, clientPermissionRole: form.clientPermissionRole, sources: [],
+      role: "client", companyId, sources: [],
     });
   };
 
@@ -228,18 +228,6 @@ export function CreateClientUserDialog({
                     <span className="truncate">{companyName ?? companyId}</span>
                   </div>
                 </div>
-              </div>
-              <div className="grid gap-2 mt-3">
-                <Label htmlFor="ccu-permission">Permission Role</Label>
-                <Select value={form.clientPermissionRole} onValueChange={(v) => setForm(f => ({ ...f, clientPermissionRole: v }))}>
-                  <SelectTrigger id="ccu-permission" data-testid="select-ccu-permission"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Full Access</SelectItem>
-                    <SelectItem value="limited">Limited Access</SelectItem>
-                    <SelectItem value="compliance_only">Compliance Only</SelectItem>
-                    <SelectItem value="none">No Access</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 

@@ -4724,6 +4724,13 @@
           "message": "Create Client User form now matches the full Add User form: sections, username preview, preferred contact, phone validation",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:20:00.000Z"
+        },
+        {
+          "id": "k1m3o5q7-remove-permission-role-from-ccu-2026",
+          "patch": 6,
+          "message": "Removed Permission Role field from Create Client User form to match the original",
+          "category": "bug",
+          "createdAt": "2026-05-19T20:30:00.000Z"
         }
       ],
       "publishedPatch": 5,
