@@ -4647,6 +4647,13 @@
           "message": "Fixed: email domain warning now reliably appears in Create Client User flow",
           "category": "bug",
           "createdAt": "2026-05-19T14:54:36.906Z"
+        },
+        {
+          "id": "f681bb25-6bec-403d-a63c-a7db5f72fd8c",
+          "patch": 6,
+          "message": "Set as Key Contact option added to the new-user site assignment dialog",
+          "category": "feature",
+          "createdAt": "2026-05-19T15:01:24.396Z"
         }
       ],
       "publishedPatch": 5,

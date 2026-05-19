@@ -93,6 +93,7 @@ import {
   ShieldCheck,
   Info,
   UserPlus,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -292,6 +293,7 @@ export default function UserManagement() {
   const [expandedCompanyIds, setExpandedCompanyIds] = useState<Set<string>>(new Set());
   const [companyWideInfoName, setCompanyWideInfoName] = useState<string | null>(null);
   const [setPrimaryContact, setSetPrimaryContact] = useState(false);
+  const [setKeyContactFlag, setSetKeyContactFlag] = useState(false);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [pendingEmailUser, setPendingEmailUser] = useState<(typeof newUser & { fullName: string; sendEmailNow?: boolean }) | null>(null);
@@ -901,6 +903,32 @@ export default function UserManagement() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to set primary contact", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const setKeyContactMutation = useMutation({
+    mutationFn: async ({ userId, companyId }: { userId: string; companyId: string }) => {
+      const response = await apiRequest("POST", "/api/key-contacts", {
+        userId,
+        entityType: "company",
+        entityId: companyId,
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to set key contact");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
+      setShowSiteAssignmentMessage(false);
+      setUserNeedingSiteAssignment(null);
+      setSetKeyContactFlag(false);
+      toast({ title: "Key contact set", description: "User has been designated as a key contact for their company." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to set key contact", description: error.message, variant: "destructive" });
     },
   });
 
@@ -3104,7 +3132,7 @@ export default function UserManagement() {
       {/* Client Site Assignment Dialog */}
       <Dialog open={showSiteAssignmentMessage} onOpenChange={(open) => {
         setShowSiteAssignmentMessage(open);
-        if (!open) { setUserNeedingSiteAssignment(null); setSetPrimaryContact(false); setSelectedSiteToAdd(""); }
+        if (!open) { setUserNeedingSiteAssignment(null); setSetPrimaryContact(false); setSetKeyContactFlag(false); setSelectedSiteToAdd(""); }
       }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -3113,7 +3141,7 @@ export default function UserManagement() {
               Assign Sites to {userNeedingSiteAssignment?.fullName}
             </DialogTitle>
             <DialogDescription>
-              Please assign at least one site, or set this user as the primary contact for their company. Each company can only have one primary contact.
+              Please assign at least one site, or choose a contact designation for this user. Primary contact and Key Contact are mutually exclusive.
             </DialogDescription>
           </DialogHeader>
           {userNeedingSiteAssignment && (() => {
@@ -3132,7 +3160,10 @@ export default function UserManagement() {
                       type="checkbox"
                       id="primary-contact-check"
                       checked={setPrimaryContact}
-                      onChange={e => { setSetPrimaryContact(e.target.checked); if (e.target.checked) setSelectedSiteToAdd(""); }}
+                      onChange={e => {
+                        setSetPrimaryContact(e.target.checked);
+                        if (e.target.checked) { setSetKeyContactFlag(false); setSelectedSiteToAdd(""); }
+                      }}
                       className="h-4 w-4 mt-0.5 rounded border-input accent-primary cursor-pointer shrink-0"
                       data-testid="checkbox-primary-contact"
                     />
@@ -3172,8 +3203,42 @@ export default function UserManagement() {
                   )}
                 </div>
 
-                {/* Site selection — only shown when not primary contact */}
-                {!setPrimaryContact && (
+                {/* Key Contact toggle — mutually exclusive with Primary Contact */}
+                <div className={`rounded-lg border p-4 space-y-3 transition-colors ${setKeyContactFlag ? "border-teal-500/50 bg-teal-50/50 dark:bg-teal-950/20" : ""}`}>
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="key-contact-check"
+                      checked={setKeyContactFlag}
+                      onChange={e => {
+                        setSetKeyContactFlag(e.target.checked);
+                        if (e.target.checked) { setSetPrimaryContact(false); setSelectedSiteToAdd(""); }
+                      }}
+                      className="h-4 w-4 mt-0.5 rounded border-input accent-teal-600 cursor-pointer shrink-0"
+                      data-testid="checkbox-key-contact"
+                    />
+                    <div className="space-y-0.5">
+                      <Label htmlFor="key-contact-check" className="cursor-pointer font-medium leading-snug">
+                        Set as key contact
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Designates this user as a key contact for {userCompany?.name ?? "their company"}.
+                      </p>
+                    </div>
+                  </div>
+                  {setKeyContactFlag && userCompany && (
+                    <div className="flex items-start gap-2 text-sm bg-muted/60 rounded-md p-3">
+                      <Star className="h-4 w-4 mt-0.5 text-teal-600 shrink-0" />
+                      <span className="text-muted-foreground">
+                        <strong className="text-foreground">{userNeedingSiteAssignment.fullName}</strong> will be marked as a key contact for{" "}
+                        <strong className="text-foreground">{userCompany.name}</strong>.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Site selection — only shown when neither primary nor key contact is selected */}
+                {!setPrimaryContact && !setKeyContactFlag && (
                   <div className="space-y-3">
                     {/* Currently assigned */}
                     {userNeedingSiteAssignment.siteAssignments && userNeedingSiteAssignment.siteAssignments.length > 0 && (
@@ -3244,7 +3309,7 @@ export default function UserManagement() {
             );
           })()}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowSiteAssignmentMessage(false); setSetPrimaryContact(false); setSelectedSiteToAdd(""); }} data-testid="button-cancel-site-assignment">
+            <Button variant="outline" onClick={() => { setShowSiteAssignmentMessage(false); setSetPrimaryContact(false); setSetKeyContactFlag(false); setSelectedSiteToAdd(""); }} data-testid="button-cancel-site-assignment">
               Cancel
             </Button>
             {setPrimaryContact && userNeedingSiteAssignment?.companyId && (
@@ -3256,7 +3321,18 @@ export default function UserManagement() {
                 {setPrimaryContactMutation.isPending ? "Saving..." : "Set as Primary Contact"}
               </Button>
             )}
-            {!setPrimaryContact && (
+            {setKeyContactFlag && userNeedingSiteAssignment?.companyId && (
+              <Button
+                onClick={() => setKeyContactMutation.mutate({ userId: userNeedingSiteAssignment.id, companyId: userNeedingSiteAssignment.companyId! })}
+                disabled={setKeyContactMutation.isPending}
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+                data-testid="button-confirm-key-contact"
+              >
+                <Star className="h-4 w-4 mr-2" />
+                {setKeyContactMutation.isPending ? "Saving..." : "Set as Key Contact"}
+              </Button>
+            )}
+            {!setPrimaryContact && !setKeyContactFlag && (
               <Button onClick={() => { setShowSiteAssignmentMessage(false); setUserNeedingSiteAssignment(null); setSelectedSiteToAdd(""); }} data-testid="button-done-site-assignment">
                 Done
               </Button>
