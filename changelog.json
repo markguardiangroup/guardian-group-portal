@@ -4612,6 +4612,13 @@
           "message": "Client user creation warns when email domain doesn't match company website",
           "category": "feature",
           "createdAt": "2026-05-19T13:26:24.737Z"
+        },
+        {
+          "id": "96b23640-7356-4ed9-bef4-1310cdb440e9",
+          "patch": 6,
+          "message": "Role and company fields moved to top of the Add User form",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T13:36:05.038Z"
         }
       ],
       "publishedPatch": 5,

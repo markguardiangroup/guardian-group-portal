@@ -2489,6 +2489,103 @@ export default function UserManagement() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Role & Access</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="new-role-top">Role <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(value: "admin" | "consultant" | "client") => {
+                        const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
+                        setNewUser({ ...newUser, role: value, sources: value === "admin" ? allSourceCodes : newUser.sources });
+                      }}
+                    >
+                      <SelectTrigger id="new-role-top" data-testid="select-new-role">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
+                        {isAdmin && <SelectItem value="consultant">Consultant</SelectItem>}
+                        <SelectItem value="client">Client</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newUser.role === "consultant" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-tier-top">Consultant Tier *</Label>
+                      <Select
+                        value={newUser.consultantTier}
+                        onValueChange={(value) => setNewUser({ ...newUser, consultantTier: value })}
+                      >
+                        <SelectTrigger id="new-tier-top" data-testid="select-new-tier">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="standard">Standard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {newUser.role === "client" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="new-company-top">Company <span className="text-destructive">*</span></Label>
+                      <Popover open={isCompanyDropdownOpen} onOpenChange={setIsCompanyDropdownOpen}>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm text-left hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                            data-testid="button-company-dropdown"
+                          >
+                            {newUser.companyId ? companies.find(c => c.id === newUser.companyId)?.name : "Select company..."}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                          <div className="p-2 border-b">
+                            <input
+                              type="text"
+                              placeholder="Search company..."
+                              className="w-full px-2 py-1 border border-input rounded text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring"
+                              onChange={(e) => setCompanySearchQuery(e.target.value)}
+                              value={companySearchQuery}
+                              autoFocus
+                              data-testid="input-company-search"
+                            />
+                          </div>
+                          <div className="max-h-48 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                            {createFormCompanies.length === 0 ? (
+                              <div className="px-3 py-2 text-sm text-muted-foreground">No companies found</div>
+                            ) : (
+                              createFormCompanies.map((company) => (
+                                <button
+                                  key={company.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setNewUser({ ...newUser, companyId: company.id });
+                                    setCompanySearchQuery("");
+                                    setIsCompanyDropdownOpen(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center text-sm"
+                                  data-testid={`button-select-company-${company.id}`}
+                                >
+                                  <span>{company.name}</span>
+                                  {newUser.companyId === company.id && (
+                                    <span className="text-primary">✓</span>
+                                  )}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-b pb-4">
               <h4 className="text-sm font-medium mb-3">Personal Details</h4>
               <div className="space-y-3">
                 <div className="grid grid-cols-4 gap-4">
@@ -2766,103 +2863,6 @@ export default function UserManagement() {
                       <SelectItem value="mobile">Mobile</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-b pb-4">
-              <h4 className="text-sm font-medium mb-3">Role & Access</h4>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="new-role">Role <span className="text-destructive">*</span></Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value: "admin" | "consultant" | "client") => {
-                        const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
-                        setNewUser({ ...newUser, role: value, sources: value === "admin" ? allSourceCodes : newUser.sources });
-                      }}
-                    >
-                      <SelectTrigger id="new-role" data-testid="select-new-role">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
-                        {isAdmin && <SelectItem value="consultant">Consultant</SelectItem>}
-                        <SelectItem value="client">Client</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {newUser.role === "consultant" && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-tier">Consultant Tier *</Label>
-                      <Select
-                        value={newUser.consultantTier}
-                        onValueChange={(value) => setNewUser({ ...newUser, consultantTier: value })}
-                      >
-                        <SelectTrigger id="new-tier" data-testid="select-new-tier">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pro">Pro</SelectItem>
-                          <SelectItem value="standard">Standard</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  {newUser.role === "client" && (
-                    <div className="grid gap-2">
-                      <Label htmlFor="new-company">Company <span className="text-destructive">*</span></Label>
-                      <Popover open={isCompanyDropdownOpen} onOpenChange={setIsCompanyDropdownOpen}>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm text-left hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-                            data-testid="button-company-dropdown"
-                          >
-                            {newUser.companyId ? companies.find(c => c.id === newUser.companyId)?.name : "Select company..."}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                          <div className="p-2 border-b">
-                            <input
-                              type="text"
-                              placeholder="Search company..."
-                              className="w-full px-2 py-1 border border-input rounded text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring"
-                              onChange={(e) => setCompanySearchQuery(e.target.value)}
-                              value={companySearchQuery}
-                              autoFocus
-                              data-testid="input-company-search"
-                            />
-                          </div>
-                          <div className="max-h-48 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
-                            {createFormCompanies.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-muted-foreground">No companies found</div>
-                            ) : (
-                              createFormCompanies.map((company) => (
-                                <button
-                                  key={company.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setNewUser({ ...newUser, companyId: company.id });
-                                    setCompanySearchQuery("");
-                                    setIsCompanyDropdownOpen(false);
-                                  }}
-                                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center text-sm"
-                                  data-testid={`button-select-company-${company.id}`}
-                                >
-                                  <span>{company.name}</span>
-                                  {newUser.companyId === company.id && (
-                                    <span className="text-primary">✓</span>
-                                  )}
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
