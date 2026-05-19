@@ -484,6 +484,12 @@ export async function registerRoutes(
   // Register object storage routes for file uploads
   registerObjectStorageRoutes(app);
 
+  // Health check endpoint — no auth, no DB queries, responds immediately.
+  // Used by uptime monitors and load balancers to confirm the process is alive.
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", ts: Date.now() });
+  });
+
   // Destroy all active sessions belonging to client users of a given company.
   // Uses direct SQL to avoid loading the entire users table into memory.
   async function destroyCompanyClientSessions(companyId: string): Promise<number> {

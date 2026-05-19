@@ -4654,6 +4654,13 @@
           "message": "Set as Key Contact option added to the new-user site assignment dialog",
           "category": "feature",
           "createdAt": "2026-05-19T15:01:24.396Z"
+        },
+        {
+          "id": "a1c3e5f7-vm-deployment-always-on-2026",
+          "patch": 6,
+          "message": "Fixed: app no longer restarts unexpectedly — switched to always-on deployment",
+          "category": "bug",
+          "createdAt": "2026-05-19T15:30:00.000Z"
         }
       ],
       "publishedPatch": 5,
