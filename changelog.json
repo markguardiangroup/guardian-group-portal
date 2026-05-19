@@ -4689,6 +4689,13 @@
           "message": "Improved: site assignment dialog now shows an inline list with Add/Add All, matching Manage Sites",
           "category": "enhancement",
           "createdAt": "2026-05-19T19:30:00.000Z"
+        },
+        {
+          "id": "f6h8j0l2-assign-sites-done-saves-staged-2026",
+          "patch": 6,
+          "message": "Fixed: staged site assignments are now correctly saved when clicking Done or Set as Key Contact",
+          "category": "bug",
+          "createdAt": "2026-05-19T19:45:00.000Z"
         }
       ],
       "publishedPatch": 5,

@@ -1033,6 +1033,19 @@ export default function UserManagement() {
   };
 
   const [isAssignSitesSaving, setIsAssignSitesSaving] = useState(false);
+
+  // Applies any staged site assignments for the current userNeedingSiteAssignment.
+  // Returns true on success, false on failure.
+  const applyPendingSiteAssignments = async (userId: string): Promise<boolean> => {
+    if (assignSitesPendingAdds.length === 0) return true;
+    for (const siteId of assignSitesPendingAdds) {
+      await apiRequest("POST", `/api/users/${userId}/site-assignments/${siteId}`, {});
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+    return true;
+  };
+
   const handleAssignSitesDone = async () => {
     if (!userNeedingSiteAssignment) { setShowSiteAssignmentMessage(false); return; }
     if (assignSitesPendingAdds.length === 0) {
@@ -1044,11 +1057,7 @@ export default function UserManagement() {
     }
     setIsAssignSitesSaving(true);
     try {
-      for (const siteId of assignSitesPendingAdds) {
-        await apiRequest("POST", `/api/users/${userNeedingSiteAssignment.id}/site-assignments/${siteId}`, {});
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] });
+      await applyPendingSiteAssignments(userNeedingSiteAssignment.id);
       toast({ title: "Sites assigned", description: `${assignSitesPendingAdds.length} site${assignSitesPendingAdds.length > 1 ? "s" : ""} assigned successfully.` });
     } catch {
       toast({ title: "Failed to assign some sites", variant: "destructive" });
@@ -1056,6 +1065,35 @@ export default function UserManagement() {
       setIsAssignSitesSaving(false);
       setShowSiteAssignmentMessage(false);
       setUserNeedingSiteAssignment(null);
+      setAssignSitesPendingAdds([]);
+      setAssignSitesSearch("");
+    }
+  };
+
+  const handleSetKeyContactWithSites = async () => {
+    if (!userNeedingSiteAssignment?.companyId) return;
+    setIsAssignSitesSaving(true);
+    try {
+      // Save any staged site assignments first
+      if (assignSitesPendingAdds.length > 0) {
+        await applyPendingSiteAssignments(userNeedingSiteAssignment.id);
+      }
+      // Then set key contact designation
+      await apiRequest("POST", "/api/key-contacts", {
+        userId: userNeedingSiteAssignment.id,
+        entityType: "company",
+        entityId: userNeedingSiteAssignment.companyId,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
+      toast({ title: "Key contact set", description: assignSitesPendingAdds.length > 0 ? "Key contact set and sites assigned." : "User has been designated as a key contact for their company." });
+    } catch (err: any) {
+      toast({ title: "Failed to save", description: err?.message || "An error occurred.", variant: "destructive" });
+    } finally {
+      setIsAssignSitesSaving(false);
+      setShowSiteAssignmentMessage(false);
+      setUserNeedingSiteAssignment(null);
+      setSetKeyContactFlag(false);
       setAssignSitesPendingAdds([]);
       setAssignSitesSearch("");
     }
@@ -3394,13 +3432,13 @@ export default function UserManagement() {
             )}
             {setKeyContactFlag && userNeedingSiteAssignment?.companyId && (
               <Button
-                onClick={() => setKeyContactMutation.mutate({ userId: userNeedingSiteAssignment.id, companyId: userNeedingSiteAssignment.companyId! })}
-                disabled={setKeyContactMutation.isPending}
+                onClick={handleSetKeyContactWithSites}
+                disabled={isAssignSitesSaving}
                 className="bg-teal-600 hover:bg-teal-700 text-white"
                 data-testid="button-confirm-key-contact"
               >
                 <Star className="h-4 w-4 mr-2" />
-                {setKeyContactMutation.isPending ? "Saving..." : "Set as Key Contact"}
+                {isAssignSitesSaving ? "Saving..." : "Set as Key Contact"}
               </Button>
             )}
             {!setPrimaryContact && !setKeyContactFlag && (
