@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 6,
+      "patch": 7,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4670,7 +4670,7 @@
           "createdAt": "2026-05-19T20:10:00.000Z"
         }
       ],
-      "publishedPatch": 5,
+      "publishedPatch": 6,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -4697,7 +4697,17 @@
         "x5z7b9d1-shared-origin-doc-dashed-border-group-level-2026",
         "y6a8c0e2-scope-colour-all-folder-levels-2026",
         "z7b9d1f3-shared-badge-label-group-purple-2026",
-        "26e82d5a-d4ae-4932-877d-71fad4fa39fd"
+        "26e82d5a-d4ae-4932-877d-71fad4fa39fd",
+        "f0d60ebb-f96f-4198-969b-03a725900088",
+        "d3166b4f-006f-494d-9b25-b5440858f5ac",
+        "96b23640-7356-4ed9-bef4-1310cdb440e9",
+        "4cc3a20c-0cad-48ec-95b4-cd4800c28494",
+        "b5731431-d932-482b-b5b4-e4ff9895b6f7",
+        "f681bb25-6bec-403d-a63c-a7db5f72fd8c",
+        "a1c3e5f7-vm-deployment-always-on-2026",
+        "c3e5g7i9-domain-check-no-website-note-2026",
+        "d4f6h8j0-key-contact-site-section-visible-2026",
+        "h8j0l2n4-create-client-user-shared-component-2026"
       ]
     }
   ]
