@@ -92,6 +92,7 @@ import {
   MessageSquare,
   ShieldCheck,
   Info,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -236,6 +237,7 @@ export default function UserManagement() {
     sources: string[];
   } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [lockedClientCompanyId, setLockedClientCompanyId] = useState<string | null>(null);
   const [showDomainConfirmDialog, setShowDomainConfirmDialog] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -369,6 +371,18 @@ export default function UserManagement() {
       setRoleFilter("my_staff");
     }
   }, [isPro, myStaff.length]);
+
+  // Auto-open "Create Client User" when arriving from a company page
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "createClient") {
+      const prefilledCompanyId = params.get("companyId") || "";
+      setNewUser(prev => ({ ...prev, role: "client", companyId: prefilledCompanyId }));
+      setLockedClientCompanyId(prefilledCompanyId);
+      setIsAddUserOpen(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const staffScopeSitesUrl = useMemo(() => {
     if (!isPro || clientStaffFilter === "all") return null;
@@ -2478,13 +2492,19 @@ export default function UserManagement() {
         if (!open) {
           setCompanySearchQuery("");
           setIsCompanyDropdownOpen(false);
+          setLockedClientCompanyId(null);
         }
       }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {lockedClientCompanyId && <UserPlus className="h-5 w-5 text-primary" />}
+              {lockedClientCompanyId ? "Create Client User" : "Add New User"}
+            </DialogTitle>
             <DialogDescription>
-              Create a new user account with full profile details
+              {lockedClientCompanyId
+                ? `Create a new client account for ${companies.find(c => c.id === lockedClientCompanyId)?.name ?? "this company"}`
+                : "Create a new user account with full profile details"}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -2494,22 +2514,29 @@ export default function UserManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="new-role-top">Role <span className="text-destructive">*</span></Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value: "admin" | "consultant" | "client") => {
-                        const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
-                        setNewUser({ ...newUser, role: value, sources: value === "admin" ? allSourceCodes : newUser.sources });
-                      }}
-                    >
-                      <SelectTrigger id="new-role-top" data-testid="select-new-role">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
-                        {isAdmin && <SelectItem value="consultant">Consultant</SelectItem>}
-                        <SelectItem value="client">Client</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {lockedClientCompanyId ? (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-muted text-sm text-muted-foreground" data-testid="locked-role">
+                        <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+                        <span>Client</span>
+                      </div>
+                    ) : (
+                      <Select
+                        value={newUser.role}
+                        onValueChange={(value: "admin" | "consultant" | "client") => {
+                          const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
+                          setNewUser({ ...newUser, role: value, sources: value === "admin" ? allSourceCodes : newUser.sources });
+                        }}
+                      >
+                        <SelectTrigger id="new-role-top" data-testid="select-new-role">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
+                          {isAdmin && <SelectItem value="consultant">Consultant</SelectItem>}
+                          <SelectItem value="client">Client</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   {newUser.role === "consultant" && (
                     <div className="grid gap-2">
@@ -2531,54 +2558,61 @@ export default function UserManagement() {
                   {newUser.role === "client" && (
                     <div className="grid gap-2">
                       <Label htmlFor="new-company-top">Company <span className="text-destructive">*</span></Label>
-                      <Popover open={isCompanyDropdownOpen} onOpenChange={setIsCompanyDropdownOpen}>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm text-left hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-                            data-testid="button-company-dropdown"
-                          >
-                            {newUser.companyId ? companies.find(c => c.id === newUser.companyId)?.name : "Select company..."}
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                          <div className="p-2 border-b">
-                            <input
-                              type="text"
-                              placeholder="Search company..."
-                              className="w-full px-2 py-1 border border-input rounded text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring"
-                              onChange={(e) => setCompanySearchQuery(e.target.value)}
-                              value={companySearchQuery}
-                              autoFocus
-                              data-testid="input-company-search"
-                            />
-                          </div>
-                          <div className="max-h-48 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
-                            {createFormCompanies.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-muted-foreground">No companies found</div>
-                            ) : (
-                              createFormCompanies.map((company) => (
-                                <button
-                                  key={company.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setNewUser({ ...newUser, companyId: company.id });
-                                    setCompanySearchQuery("");
-                                    setIsCompanyDropdownOpen(false);
-                                  }}
-                                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center text-sm"
-                                  data-testid={`button-select-company-${company.id}`}
-                                >
-                                  <span>{company.name}</span>
-                                  {newUser.companyId === company.id && (
-                                    <span className="text-primary">✓</span>
-                                  )}
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                      {lockedClientCompanyId ? (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-muted text-sm text-muted-foreground" data-testid="locked-company">
+                          <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+                          <span>{companies.find(c => c.id === lockedClientCompanyId)?.name ?? lockedClientCompanyId}</span>
+                        </div>
+                      ) : (
+                        <Popover open={isCompanyDropdownOpen} onOpenChange={setIsCompanyDropdownOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="w-full px-3 py-2 border border-input rounded-md bg-background text-sm text-left hover:bg-accent focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                              data-testid="button-company-dropdown"
+                            >
+                              {newUser.companyId ? companies.find(c => c.id === newUser.companyId)?.name : "Select company..."}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                            <div className="p-2 border-b">
+                              <input
+                                type="text"
+                                placeholder="Search company..."
+                                className="w-full px-2 py-1 border border-input rounded text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring"
+                                onChange={(e) => setCompanySearchQuery(e.target.value)}
+                                value={companySearchQuery}
+                                autoFocus
+                                data-testid="input-company-search"
+                              />
+                            </div>
+                            <div className="max-h-48 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+                              {createFormCompanies.length === 0 ? (
+                                <div className="px-3 py-2 text-sm text-muted-foreground">No companies found</div>
+                              ) : (
+                                createFormCompanies.map((company) => (
+                                  <button
+                                    key={company.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setNewUser({ ...newUser, companyId: company.id });
+                                      setCompanySearchQuery("");
+                                      setIsCompanyDropdownOpen(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex justify-between items-center text-sm"
+                                    data-testid={`button-select-company-${company.id}`}
+                                  >
+                                    <span>{company.name}</span>
+                                    {newUser.companyId === company.id && (
+                                      <span className="text-primary">✓</span>
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      )}
                     </div>
                   )}
                 </div>

@@ -48,6 +48,7 @@ import {
   Mail,
   ArrowLeft,
   Users,
+  UserPlus,
   User as UserIcon,
   Settings,
   CheckCircle,
@@ -2634,12 +2635,25 @@ export default function CompanyDetail() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Users ({companyTabUsers.length})</h2>
-                {(isAdmin || isProConsultant) && (
-                  <Button size="sm" variant="outline" onClick={() => setAssignConsultantOpen(true)} data-testid="button-assign-consultant-users">
-                    <Users className="mr-2 h-4 w-4" />
-                    Assign Consultant
-                  </Button>
-                )}
+                <div className="flex items-center gap-2">
+                  {(isAdmin || isProConsultant) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/users?action=createClient&companyId=${companyId}`)}
+                      data-testid="button-create-client-user"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Client User
+                    </Button>
+                  )}
+                  {(isAdmin || isProConsultant) && (
+                    <Button size="sm" variant="outline" onClick={() => setAssignConsultantOpen(true)} data-testid="button-assign-consultant-users">
+                      <Users className="mr-2 h-4 w-4" />
+                      Assign Consultant
+                    </Button>
+                  )}
+                </div>
               </div>
               {companyTabUsers.length > 0 ? (
                 <Card>

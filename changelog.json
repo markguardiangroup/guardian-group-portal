@@ -4619,6 +4619,13 @@
           "message": "Role and company fields moved to top of the Add User form",
           "category": "enhancement",
           "createdAt": "2026-05-19T13:36:05.038Z"
+        },
+        {
+          "id": "4cc3a20c-0cad-48ec-95b4-cd4800c28494",
+          "patch": 6,
+          "message": "Create Client User button added to company Users tab with pre-filled locked fields",
+          "category": "feature",
+          "createdAt": "2026-05-19T13:56:34.521Z"
         }
       ],
       "publishedPatch": 5,
