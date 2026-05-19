@@ -416,6 +416,20 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
   const companies = companiesResponse?.companies || [];
+
+  // When arriving from a company page via the locked flow, fetch that company directly
+  // so the email domain check always has access to its website field regardless of list caching
+  const { data: lockedCompanyData } = useQuery<{ id: string; name: string; website?: string | null }>({
+    queryKey: ["/api/companies", lockedClientCompanyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies/${lockedClientCompanyId}`, { credentials: "include" });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.company ?? data;
+    },
+    enabled: !!lockedClientCompanyId,
+    staleTime: 5 * 60 * 1000,
+  });
   const filteredCompanies = companySearchQuery.trim() === "" 
     ? companies 
     : companies.filter(c => c.name.toLowerCase().includes(companySearchQuery.toLowerCase()));
@@ -443,13 +457,17 @@ export default function UserManagement() {
     if (newUser.role !== "client" || !newUser.companyId || !newUser.email) return null;
     const emailDomain = extractEmailDomain(newUser.email);
     if (!emailDomain) return null;
-    const company = companies.find(c => c.id === newUser.companyId);
+    // In the locked flow use the directly-fetched company so we don't depend on
+    // the paginated list being loaded or containing this specific company
+    const company = lockedCompanyData?.id === newUser.companyId
+      ? lockedCompanyData
+      : companies.find(c => c.id === newUser.companyId);
     if (!company?.website) return null;
     const websiteDomain = extractWebsiteDomain(company.website);
     if (!websiteDomain) return null;
     if (emailDomain === websiteDomain) return null;
     return { emailDomain, websiteDomain, companyName: company.name };
-  }, [newUser.role, newUser.companyId, newUser.email, companies]);
+  }, [newUser.role, newUser.companyId, newUser.email, companies, lockedCompanyData]);
 
   // Helper to check if a user is a primary contact for their company
   const isPrimaryContact = (u: UserWithAssignments) => {

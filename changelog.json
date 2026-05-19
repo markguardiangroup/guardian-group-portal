@@ -4640,6 +4640,13 @@
           "message": "Fixed: email domain mismatch warning not showing in Create Client User flow",
           "category": "bug",
           "createdAt": "2026-05-19T14:40:48.916Z"
+        },
+        {
+          "id": "8049233f-72ef-44d3-a421-e87409455752",
+          "patch": 6,
+          "message": "Fixed: email domain warning now reliably appears in Create Client User flow",
+          "category": "bug",
+          "createdAt": "2026-05-19T14:54:36.906Z"
         }
       ],
       "publishedPatch": 5,
