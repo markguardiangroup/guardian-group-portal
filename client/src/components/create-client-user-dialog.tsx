@@ -32,10 +32,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AlertTriangle, MapPin, Plus, Search, Shield, Star, X } from "lucide-react";
+import { AlertTriangle, LockKeyhole, MapPin, Plus, Search, Shield, Star, UserPlus, X } from "lucide-react";
 
 function toTitleCase(str: string): string {
   return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+}
+
+function generateUsername(firstName: string, lastName: string): string {
+  return `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
+    .replace(/\s+/g, "")
+    .replace(/[^a-z0-9.]/g, "");
 }
 
 function extractEmailDomain(email: string): string {
@@ -54,8 +60,10 @@ function extractWebsiteDomain(website: string): string {
 }
 
 const FORM_INITIAL = {
-  title: "", firstName: "", lastName: "", jobTitle: "", department: "",
-  phone: "", mobile: "", email: "", notes: "", clientPermissionRole: "full",
+  title: "", firstName: "", lastName: "", username: "",
+  jobTitle: "", department: "",
+  phone: "", mobile: "", preferredContactMethod: "any" as "any" | "email" | "phone" | "mobile",
+  email: "", notes: "", clientPermissionRole: "full",
 };
 
 export interface CreateClientUserDialogProps {
@@ -74,6 +82,8 @@ export function CreateClientUserDialog({
   const { toast } = useToast();
   const [form, setForm] = useState(FORM_INITIAL);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [mobileError, setMobileError] = useState<string | null>(null);
   const [domainMismatch, setDomainMismatch] = useState<{ emailDomain: string; websiteDomain: string } | null>(null);
   const [showDomainConfirm, setShowDomainConfirm] = useState(false);
 
@@ -88,6 +98,8 @@ export function CreateClientUserDialog({
   const resetForm = () => {
     setForm(FORM_INITIAL);
     setEmailError(null);
+    setPhoneError(null);
+    setMobileError(null);
     setDomainMismatch(null);
   };
 
@@ -121,18 +133,23 @@ export function CreateClientUserDialog({
   });
 
   const doSubmit = () => {
+    if (!form.firstName.trim()) { toast({ title: "First name is required", variant: "destructive" }); return; }
+    if (!form.lastName.trim()) { toast({ title: "Surname is required", variant: "destructive" }); return; }
     if (!form.email.trim()) { toast({ title: "Email is required", variant: "destructive" }); return; }
     if (emailError) { toast({ title: "Please fix email errors before saving", variant: "destructive" }); return; }
+    if (phoneError || mobileError) { toast({ title: "Please fix phone errors before saving", variant: "destructive" }); return; }
     if (domainMismatch) { setShowDomainConfirm(true); return; }
     const firstName = form.firstName.trim();
     const lastName = form.lastName.trim();
     const fullName = `${firstName} ${lastName}`.trim() || form.email.split("@")[0];
-    const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || form.email.split("@")[0];
+    const username = form.username || generateUsername(firstName, lastName) || form.email.split("@")[0];
     createUserMutation.mutate({
       username, email: form.email.trim(), fullName,
-      title: form.title === "_none" ? "" : form.title, firstName, lastName,
+      title: form.title, firstName, lastName,
       jobTitle: form.jobTitle, department: form.department,
-      phone: form.phone, mobile: form.mobile, notes: form.notes,
+      phone: form.phone, mobile: form.mobile,
+      preferredContactMethod: form.preferredContactMethod,
+      notes: form.notes,
       role: "client", companyId, clientPermissionRole: form.clientPermissionRole, sources: [],
     });
   };
@@ -178,123 +195,318 @@ export function CreateClientUserDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) { onOpenChange(false); resetForm(); } }}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Client User</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Create Client User
+            </DialogTitle>
             <DialogDescription>
-              Add a new client user{companyName ? <> to <span className="font-medium">{companyName}</span></> : ""}.
+              {companyName
+                ? `Create a new client account for ${companyName}`
+                : "Create a new client user account"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-[100px_1fr_1fr] gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="ccu-title">Title</Label>
-                <Select value={form.title} onValueChange={(v) => setForm(f => ({ ...f, title: v }))}>
-                  <SelectTrigger id="ccu-title" data-testid="select-ccu-title"><SelectValue placeholder="—" /></SelectTrigger>
+
+          <div className="grid gap-4 py-4">
+
+            {/* Role & Access */}
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Role & Access</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Role</Label>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-muted text-sm text-muted-foreground" data-testid="locked-role-ccu">
+                    <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+                    <span>Client</span>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Company</Label>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-input bg-muted text-sm text-muted-foreground" data-testid="locked-company-ccu">
+                    <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{companyName ?? companyId}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-2 mt-3">
+                <Label htmlFor="ccu-permission">Permission Role</Label>
+                <Select value={form.clientPermissionRole} onValueChange={(v) => setForm(f => ({ ...f, clientPermissionRole: v }))}>
+                  <SelectTrigger id="ccu-permission" data-testid="select-ccu-permission"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="_none">—</SelectItem>
-                    <SelectItem value="Mr">Mr</SelectItem>
-                    <SelectItem value="Mrs">Mrs</SelectItem>
-                    <SelectItem value="Miss">Miss</SelectItem>
-                    <SelectItem value="Ms">Ms</SelectItem>
-                    <SelectItem value="Dr">Dr</SelectItem>
+                    <SelectItem value="full">Full Access</SelectItem>
+                    <SelectItem value="limited">Limited Access</SelectItem>
+                    <SelectItem value="compliance_only">Compliance Only</SelectItem>
+                    <SelectItem value="none">No Access</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="ccu-firstname">First Name</Label>
-                <Input id="ccu-firstname" value={form.firstName} onChange={(e) => setForm(f => ({ ...f, firstName: e.target.value }))} placeholder="First name" data-testid="input-ccu-firstname" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="ccu-lastname">Last Name</Label>
-                <Input id="ccu-lastname" value={form.lastName} onChange={(e) => setForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Last name" data-testid="input-ccu-lastname" />
-              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ccu-email">Email <span className="text-destructive">*</span></Label>
-              <Input
-                id="ccu-email"
-                type="email"
-                value={form.email}
-                onChange={(e) => { setForm(f => ({ ...f, email: e.target.value })); setEmailError(null); setDomainMismatch(null); }}
-                onBlur={async (e) => {
-                  const val = e.target.value.trim();
-                  if (!val) return;
-                  try {
-                    const res = await fetch(`/api/users/check-email?email=${encodeURIComponent(val)}`, { credentials: "include" });
-                    if (!res.ok) {
-                      const d = await res.json();
-                      setEmailError(d.error || "This email address is already in use.");
-                      return;
-                    }
-                    setEmailError(null);
-                    if (companyWebsite) {
-                      const emailDomain = extractEmailDomain(val);
-                      const websiteDomain = extractWebsiteDomain(companyWebsite);
-                      if (emailDomain && websiteDomain && emailDomain !== websiteDomain) {
-                        setDomainMismatch({ emailDomain, websiteDomain });
-                      } else {
-                        setDomainMismatch(null);
-                      }
-                    }
-                  } catch { setEmailError(null); }
-                }}
-                placeholder="email@company.com"
-                data-testid="input-ccu-email"
-              />
-              {emailError && <p className="text-xs font-medium text-destructive">{emailError}</p>}
-              {!emailError && domainMismatch && (
-                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>Email domain <strong>@{domainMismatch.emailDomain}</strong> doesn't match <strong>{domainMismatch.websiteDomain}</strong>. You can still save.</span>
+
+            {/* Personal Details */}
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Personal Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-title">Title</Label>
+                    <div className="relative flex items-center">
+                      <Select value={form.title} onValueChange={(v) => setForm(f => ({ ...f, title: v }))}>
+                        <SelectTrigger id="ccu-title" data-testid="select-ccu-title">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mr">Mr</SelectItem>
+                          <SelectItem value="Mrs">Mrs</SelectItem>
+                          <SelectItem value="Ms">Ms</SelectItem>
+                          <SelectItem value="Miss">Miss</SelectItem>
+                          <SelectItem value="Dr">Dr</SelectItem>
+                          <SelectItem value="Prof">Prof</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {form.title && (
+                        <button
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, title: "" }))}
+                          className="absolute right-8 text-muted-foreground hover:text-foreground transition-colors z-10"
+                          data-testid="button-ccu-clear-title"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-3 grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="ccu-firstname">First Name <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="ccu-firstname"
+                        value={form.firstName}
+                        onChange={(e) => {
+                          const firstName = e.target.value;
+                          setForm(f => ({ ...f, firstName, username: generateUsername(firstName, f.lastName) }));
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+                            setForm(f => ({ ...f, firstName: capitalized, username: generateUsername(capitalized, f.lastName) }));
+                          }
+                        }}
+                        placeholder="First name"
+                        data-testid="input-ccu-firstname"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="ccu-lastname">Surname <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="ccu-lastname"
+                        value={form.lastName}
+                        onChange={(e) => {
+                          const lastName = e.target.value;
+                          setForm(f => ({ ...f, lastName, username: generateUsername(f.firstName, lastName) }));
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+                            setForm(f => ({ ...f, lastName: capitalized, username: generateUsername(f.firstName, capitalized) }));
+                          }
+                        }}
+                        placeholder="Surname"
+                        data-testid="input-ccu-lastname"
+                      />
+                    </div>
+                  </div>
                 </div>
-              )}
-              {!emailError && !domainMismatch && !companyWebsite && (
-                <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                  <span>No website on file — email domain check unavailable.</span>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-username" className="text-muted-foreground">
+                      Username <span className="text-xs">(auto-generated)</span>
+                    </Label>
+                    <Input
+                      id="ccu-username"
+                      value={form.username}
+                      readOnly
+                      placeholder="firstname.surname"
+                      className="bg-muted"
+                      data-testid="input-ccu-username"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-email">Email <span className="text-destructive">*</span></Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        id="ccu-email"
+                        type="email"
+                        value={form.email}
+                        className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onChange={(e) => {
+                          setForm(f => ({ ...f, email: e.target.value }));
+                          if (emailError) setEmailError(null);
+                          setDomainMismatch(null);
+                        }}
+                        onBlur={async (e) => {
+                          const val = e.target.value.trim();
+                          if (!val) { setEmailError(null); return; }
+                          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                          if (!emailRegex.test(val)) { setEmailError("Please enter a valid email address"); return; }
+                          try {
+                            const res = await fetch(`/api/users/check-email?email=${encodeURIComponent(val)}`, { credentials: "include" });
+                            if (!res.ok) {
+                              const d = await res.json();
+                              setEmailError(d.error || "This email address is already in use.");
+                              return;
+                            }
+                            setEmailError(null);
+                            if (companyWebsite) {
+                              const emailDomain = extractEmailDomain(val);
+                              const websiteDomain = extractWebsiteDomain(companyWebsite);
+                              if (emailDomain && websiteDomain && emailDomain !== websiteDomain) {
+                                setDomainMismatch({ emailDomain, websiteDomain });
+                              } else {
+                                setDomainMismatch(null);
+                              }
+                            }
+                          } catch { setEmailError(null); }
+                        }}
+                        placeholder="email@company.com"
+                        data-testid="input-ccu-email"
+                      />
+                      {emailError && <p className="text-xs font-medium text-destructive">{emailError}</p>}
+                      {!emailError && domainMismatch && (
+                        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400" data-testid="warning-domain-mismatch-ccu">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>
+                            The email domain <strong>@{domainMismatch.emailDomain}</strong> doesn't match the company website domain <strong>{domainMismatch.websiteDomain}</strong>. You can still save, but you'll need to confirm.
+                          </span>
+                        </div>
+                      )}
+                      {!emailError && !domainMismatch && !companyWebsite && (
+                        <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground" data-testid="note-no-website-ccu">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>No website on file for this company — email domain check unavailable.</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="ccu-jobtitle">Job Title</Label>
-                <Input id="ccu-jobtitle" value={form.jobTitle} onChange={(e) => setForm(f => ({ ...f, jobTitle: e.target.value }))} onBlur={(e) => { const v = e.target.value.trim(); if (v) setForm(f => ({ ...f, jobTitle: toTitleCase(v) })); }} placeholder="e.g., Safety Manager" data-testid="input-ccu-jobtitle" />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-jobtitle">Job Title</Label>
+                    <Input
+                      id="ccu-jobtitle"
+                      value={form.jobTitle}
+                      onChange={(e) => setForm(f => ({ ...f, jobTitle: e.target.value }))}
+                      onBlur={(e) => { const v = e.target.value.trim(); if (v) setForm(f => ({ ...f, jobTitle: toTitleCase(v) })); }}
+                      placeholder="e.g., Safety Manager"
+                      data-testid="input-ccu-jobtitle"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-department">Department</Label>
+                    <Input
+                      id="ccu-department"
+                      value={form.department}
+                      onChange={(e) => setForm(f => ({ ...f, department: e.target.value }))}
+                      onBlur={(e) => { const v = e.target.value.trim(); if (v) setForm(f => ({ ...f, department: toTitleCase(v) })); }}
+                      placeholder="e.g., Operations"
+                      data-testid="input-ccu-department"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="ccu-department">Department</Label>
-                <Input id="ccu-department" value={form.department} onChange={(e) => setForm(f => ({ ...f, department: e.target.value }))} onBlur={(e) => { const v = e.target.value.trim(); if (v) setForm(f => ({ ...f, department: toTitleCase(v) })); }} placeholder="e.g., Operations" data-testid="input-ccu-department" />
+            </div>
+
+            {/* Contact Details */}
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Contact Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-phone">Phone</Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        id="ccu-phone"
+                        value={form.phone}
+                        className={phoneError ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onChange={(e) => { setForm(f => ({ ...f, phone: e.target.value })); if (phoneError) setPhoneError(null); }}
+                        onBlur={(e) => {
+                          const phone = e.target.value.trim();
+                          if (!phone) { setPhoneError(null); return; }
+                          if (!/^[\d\s\-\+\(\)]{10,}$/.test(phone)) {
+                            setPhoneError("Please enter a valid phone number (at least 10 digits)");
+                          } else { setPhoneError(null); }
+                        }}
+                        placeholder="+44 123 456 7890"
+                        data-testid="input-ccu-phone"
+                      />
+                      {phoneError && <p className="text-xs font-medium text-destructive">{phoneError}</p>}
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="ccu-mobile">Mobile</Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        id="ccu-mobile"
+                        value={form.mobile}
+                        className={mobileError ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onChange={(e) => { setForm(f => ({ ...f, mobile: e.target.value })); if (mobileError) setMobileError(null); }}
+                        onBlur={(e) => {
+                          const mobile = e.target.value.trim();
+                          if (!mobile) { setMobileError(null); return; }
+                          if (!/^[\d\s\-\+\(\)]{10,}$/.test(mobile)) {
+                            setMobileError("Please enter a valid mobile number (at least 10 digits)");
+                          } else { setMobileError(null); }
+                        }}
+                        placeholder="+44 7xx xxx xxxx"
+                        data-testid="input-ccu-mobile"
+                      />
+                      {mobileError && <p className="text-xs font-medium text-destructive">{mobileError}</p>}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="ccu-preferred-contact">Preferred Contact Method</Label>
+                  <Select
+                    value={form.preferredContactMethod}
+                    onValueChange={(v: "any" | "email" | "phone" | "mobile") => setForm(f => ({ ...f, preferredContactMethod: v }))}
+                  >
+                    <SelectTrigger id="ccu-preferred-contact" data-testid="select-ccu-preferred-contact">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            {/* Additional Notes */}
+            <div>
+              <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
               <div className="grid gap-2">
-                <Label htmlFor="ccu-phone">Phone</Label>
-                <Input id="ccu-phone" value={form.phone} onChange={(e) => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="+44 1234 567890" data-testid="input-ccu-phone" />
+                <Textarea
+                  value={form.notes}
+                  onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Any additional notes about this user..."
+                  className="min-h-[80px]"
+                  data-testid="textarea-ccu-notes"
+                />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="ccu-mobile">Mobile</Label>
-                <Input id="ccu-mobile" value={form.mobile} onChange={(e) => setForm(f => ({ ...f, mobile: e.target.value }))} placeholder="+44 7700 900000" data-testid="input-ccu-mobile" />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ccu-permission">Permission Role</Label>
-              <Select value={form.clientPermissionRole} onValueChange={(v) => setForm(f => ({ ...f, clientPermissionRole: v }))}>
-                <SelectTrigger id="ccu-permission" data-testid="select-ccu-permission"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full">Full Access</SelectItem>
-                  <SelectItem value="limited">Limited Access</SelectItem>
-                  <SelectItem value="compliance_only">Compliance Only</SelectItem>
-                  <SelectItem value="none">No Access</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="ccu-notes">Notes</Label>
-              <Textarea id="ccu-notes" value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional notes…" rows={2} data-testid="textarea-ccu-notes" />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { onOpenChange(false); resetForm(); }} data-testid="button-ccu-cancel">Cancel</Button>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { onOpenChange(false); resetForm(); }} data-testid="button-ccu-cancel">
+              Cancel
+            </Button>
             <Button onClick={doSubmit} disabled={createUserMutation.isPending || !!emailError} data-testid="button-ccu-save">
               {createUserMutation.isPending ? "Creating..." : "Create User"}
             </Button>

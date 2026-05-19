@@ -4717,6 +4717,13 @@
           "message": "Fixed: Create Client User dialog no longer crashes when opened (empty Title value)",
           "category": "bug",
           "createdAt": "2026-05-19T20:15:00.000Z"
+        },
+        {
+          "id": "j0l2n4p6-create-client-user-form-parity-2026",
+          "patch": 6,
+          "message": "Create Client User form now matches the full Add User form: sections, username preview, preferred contact, phone validation",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T20:20:00.000Z"
         }
       ],
       "publishedPatch": 5,
