@@ -84,6 +84,8 @@ import {
   Eye,
   PackageOpen,
   Network,
+  Star,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1106,6 +1108,28 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   );
 }
 
+function cdToTitleCase(str: string): string {
+  return str.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+}
+function cdExtractEmailDomain(email: string): string {
+  const at = email.indexOf("@");
+  return at >= 0 ? email.slice(at + 1).toLowerCase().trim() : "";
+}
+function cdExtractWebsiteDomain(website: string): string {
+  try {
+    const url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+    const host = new URL(url).hostname.toLowerCase();
+    return host.startsWith("www.") ? host.slice(4) : host;
+  } catch {
+    return website.toLowerCase().replace(/^www\./i, "").split("/")[0].trim();
+  }
+}
+
+const CCU_FORM_INITIAL = {
+  title: "", firstName: "", lastName: "", jobTitle: "", department: "",
+  phone: "", mobile: "", email: "", notes: "", clientPermissionRole: "full",
+};
+
 export default function CompanyDetail() {
   const { companyId } = useParams<{ companyId: string }>();
   const [, navigate] = useLocation();
@@ -1140,6 +1164,22 @@ export default function CompanyDetail() {
   const [memberToUnlink, setMemberToUnlink] = useState<{ id: string; name: string } | null>(null);
   const [inviteConfirmUser, setInviteConfirmUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
+
+  // Create Client User — inline dialog state
+  const [showCreateClientUser, setShowCreateClientUser] = useState(false);
+  const [ccuForm, setCcuForm] = useState(CCU_FORM_INITIAL);
+  const [ccuEmailError, setCcuEmailError] = useState<string | null>(null);
+  const [ccuDomainMismatch, setCcuDomainMismatch] = useState<{ emailDomain: string; websiteDomain: string } | null>(null);
+  const [ccuShowDomainConfirm, setCcuShowDomainConfirm] = useState(false);
+  // Post-creation site assignment
+  const [ccuNewUserId, setCcuNewUserId] = useState<string | null>(null);
+  const [ccuNewUserName, setCcuNewUserName] = useState("");
+  const [ccuShowSiteAssign, setCcuShowSiteAssign] = useState(false);
+  const [ccuPendingSiteAdds, setCcuPendingSiteAdds] = useState<string[]>([]);
+  const [ccuSiteSearch, setCcuSiteSearch] = useState("");
+  const [ccuSetPrimary, setCcuSetPrimary] = useState(false);
+  const [ccuSetKeyContact, setCcuSetKeyContact] = useState(false);
+  const [ccuIsSaving, setCcuIsSaving] = useState(false);
   const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
     queryKey: ["/api/users", viewingUser?.id, "activity"],
     queryFn: async () => {
@@ -1590,6 +1630,134 @@ export default function CompanyDetail() {
       toast({ title: "Failed to send invitation", variant: "destructive" });
     },
   });
+
+  // Create Client User — mutation
+  const createClientUserMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      const response = await apiRequest("POST", "/api/users", data);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error((err as any).error || "Failed to create user");
+      }
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setShowCreateClientUser(false);
+      setCcuForm(CCU_FORM_INITIAL);
+      setCcuEmailError(null);
+      setCcuDomainMismatch(null);
+      setCcuNewUserId(data.id);
+      setCcuNewUserName(data.fullName || `${ccuForm.firstName} ${ccuForm.lastName}`.trim());
+      setCcuShowSiteAssign(true);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to create user", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleCcuSubmit = () => {
+    if (!ccuForm.email.trim()) {
+      toast({ title: "Email is required", variant: "destructive" });
+      return;
+    }
+    if (ccuEmailError) {
+      toast({ title: "Please fix email errors before saving", variant: "destructive" });
+      return;
+    }
+    if (ccuDomainMismatch) {
+      setCcuShowDomainConfirm(true);
+      return;
+    }
+    const firstName = ccuForm.firstName.trim();
+    const lastName = ccuForm.lastName.trim();
+    const fullName = `${firstName} ${lastName}`.trim() || ccuForm.email.split("@")[0];
+    const username = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || ccuForm.email.split("@")[0];
+    createClientUserMutation.mutate({
+      username,
+      email: ccuForm.email.trim(),
+      fullName,
+      title: ccuForm.title,
+      firstName,
+      lastName,
+      jobTitle: ccuForm.jobTitle,
+      department: ccuForm.department,
+      phone: ccuForm.phone,
+      mobile: ccuForm.mobile,
+      notes: ccuForm.notes,
+      role: "client",
+      companyId,
+      clientPermissionRole: ccuForm.clientPermissionRole,
+      sources: [],
+    });
+  };
+
+  const handleCcuSiteAssignDone = async () => {
+    if (!ccuNewUserId) { setCcuShowSiteAssign(false); return; }
+    if (ccuPendingSiteAdds.length === 0) {
+      const name = ccuNewUserName;
+      setCcuShowSiteAssign(false);
+      setCcuNewUserId(null);
+      setCcuNewUserName("");
+      setCcuSetPrimary(false);
+      setCcuSetKeyContact(false);
+      toast({ title: "User created", description: `${name} has been created successfully.` });
+      return;
+    }
+    setCcuIsSaving(true);
+    try {
+      for (const siteId of ccuPendingSiteAdds) {
+        await apiRequest("POST", `/api/users/${ccuNewUserId}/site-assignments/${siteId}`, {});
+      }
+      if (ccuSetPrimary) {
+        await apiRequest("PATCH", `/api/companies/${companyId}/primary-contact`, { userId: ccuNewUserId });
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "User created", description: `${ccuPendingSiteAdds.length} site${ccuPendingSiteAdds.length !== 1 ? "s" : ""} assigned.` });
+    } catch {
+      toast({ title: "Failed to assign some sites", variant: "destructive" });
+    } finally {
+      setCcuIsSaving(false);
+      setCcuShowSiteAssign(false);
+      setCcuNewUserId(null);
+      setCcuNewUserName("");
+      setCcuPendingSiteAdds([]);
+      setCcuSiteSearch("");
+      setCcuSetPrimary(false);
+      setCcuSetKeyContact(false);
+    }
+  };
+
+  const handleCcuSetKeyContactWithSites = async () => {
+    if (!ccuNewUserId || !companyId) return;
+    setCcuIsSaving(true);
+    try {
+      for (const siteId of ccuPendingSiteAdds) {
+        await apiRequest("POST", `/api/users/${ccuNewUserId}/site-assignments/${siteId}`, {});
+      }
+      if (ccuSetPrimary) {
+        await apiRequest("PATCH", `/api/companies/${companyId}/primary-contact`, { userId: ccuNewUserId });
+        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      }
+      await apiRequest("POST", "/api/key-contacts", { userId: ccuNewUserId, entityType: "company", entityId: companyId });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
+      toast({ title: "User created", description: "Key contact set" + (ccuPendingSiteAdds.length > 0 ? " and sites assigned." : ".") });
+    } catch (err: any) {
+      toast({ title: "Failed to save", description: err?.message || "An error occurred.", variant: "destructive" });
+    } finally {
+      setCcuIsSaving(false);
+      setCcuShowSiteAssign(false);
+      setCcuNewUserId(null);
+      setCcuNewUserName("");
+      setCcuPendingSiteAdds([]);
+      setCcuSiteSearch("");
+      setCcuSetPrimary(false);
+      setCcuSetKeyContact(false);
+    }
+  };
 
   const handleAddSiteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -2640,7 +2808,7 @@ export default function CompanyDetail() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => navigate(`/users?action=createClient&companyId=${companyId}`)}
+                      onClick={() => { setCcuForm(CCU_FORM_INITIAL); setCcuEmailError(null); setCcuDomainMismatch(null); setShowCreateClientUser(true); }}
                       data-testid="button-create-client-user"
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
@@ -3916,6 +4084,272 @@ export default function CompanyDetail() {
       </Dialog>
 
       {AddressSyncDialog}
+
+      {/* Create Client User — inline dialog */}
+      <Dialog open={showCreateClientUser} onOpenChange={(open) => { if (!open) { setShowCreateClientUser(false); setCcuEmailError(null); setCcuDomainMismatch(null); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Client User</DialogTitle>
+            <DialogDescription>Add a new client user to <span className="font-medium">{company?.name}</span>.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Title + Name */}
+            <div className="grid grid-cols-[100px_1fr_1fr] gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-title">Title</Label>
+                <Select value={ccuForm.title} onValueChange={(v) => setCcuForm({ ...ccuForm, title: v })}>
+                  <SelectTrigger id="ccu-title" data-testid="select-ccu-title"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">—</SelectItem>
+                    <SelectItem value="Mr">Mr</SelectItem>
+                    <SelectItem value="Mrs">Mrs</SelectItem>
+                    <SelectItem value="Miss">Miss</SelectItem>
+                    <SelectItem value="Ms">Ms</SelectItem>
+                    <SelectItem value="Dr">Dr</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-firstname">First Name</Label>
+                <Input id="ccu-firstname" value={ccuForm.firstName} onChange={(e) => setCcuForm({ ...ccuForm, firstName: e.target.value })} placeholder="First name" data-testid="input-ccu-firstname" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-lastname">Last Name</Label>
+                <Input id="ccu-lastname" value={ccuForm.lastName} onChange={(e) => setCcuForm({ ...ccuForm, lastName: e.target.value })} placeholder="Last name" data-testid="input-ccu-lastname" />
+              </div>
+            </div>
+            {/* Email */}
+            <div className="grid gap-2">
+              <Label htmlFor="ccu-email">Email <span className="text-destructive">*</span></Label>
+              <Input
+                id="ccu-email"
+                type="email"
+                value={ccuForm.email}
+                onChange={(e) => {
+                  setCcuForm({ ...ccuForm, email: e.target.value });
+                  setCcuEmailError(null);
+                  setCcuDomainMismatch(null);
+                }}
+                onBlur={async (e) => {
+                  const val = e.target.value.trim();
+                  if (!val) return;
+                  try {
+                    const res = await fetch(`/api/users/check-email?email=${encodeURIComponent(val)}`, { credentials: "include" });
+                    if (!res.ok) {
+                      const d = await res.json();
+                      setCcuEmailError(d.error || "This email address is already in use.");
+                      return;
+                    }
+                    setCcuEmailError(null);
+                    const website = company?.website;
+                    if (website) {
+                      const emailDomain = cdExtractEmailDomain(val);
+                      const websiteDomain = cdExtractWebsiteDomain(website);
+                      if (emailDomain && websiteDomain && emailDomain !== websiteDomain) {
+                        setCcuDomainMismatch({ emailDomain, websiteDomain });
+                      } else {
+                        setCcuDomainMismatch(null);
+                      }
+                    }
+                  } catch {
+                    setCcuEmailError(null);
+                  }
+                }}
+                placeholder="email@company.com"
+                data-testid="input-ccu-email"
+              />
+              {ccuEmailError && <p className="text-xs font-medium text-destructive">{ccuEmailError}</p>}
+              {!ccuEmailError && ccuDomainMismatch && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>Email domain <strong>@{ccuDomainMismatch.emailDomain}</strong> doesn't match <strong>{ccuDomainMismatch.websiteDomain}</strong>. You can still save.</span>
+                </div>
+              )}
+              {!ccuEmailError && !ccuDomainMismatch && !company?.website && (
+                <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                  <span>No website on file — email domain check unavailable.</span>
+                </div>
+              )}
+            </div>
+            {/* Job Title + Department */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-jobtitle">Job Title</Label>
+                <Input id="ccu-jobtitle" value={ccuForm.jobTitle} onChange={(e) => setCcuForm({ ...ccuForm, jobTitle: e.target.value })} onBlur={(e) => { const v = e.target.value.trim(); if (v) setCcuForm(f => ({ ...f, jobTitle: cdToTitleCase(v) })); }} placeholder="e.g., Safety Manager" data-testid="input-ccu-jobtitle" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-department">Department</Label>
+                <Input id="ccu-department" value={ccuForm.department} onChange={(e) => setCcuForm({ ...ccuForm, department: e.target.value })} onBlur={(e) => { const v = e.target.value.trim(); if (v) setCcuForm(f => ({ ...f, department: cdToTitleCase(v) })); }} placeholder="e.g., Operations" data-testid="input-ccu-department" />
+              </div>
+            </div>
+            {/* Phone + Mobile */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-phone">Phone</Label>
+                <Input id="ccu-phone" value={ccuForm.phone} onChange={(e) => setCcuForm({ ...ccuForm, phone: e.target.value })} placeholder="+44 1234 567890" data-testid="input-ccu-phone" />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="ccu-mobile">Mobile</Label>
+                <Input id="ccu-mobile" value={ccuForm.mobile} onChange={(e) => setCcuForm({ ...ccuForm, mobile: e.target.value })} placeholder="+44 7700 900000" data-testid="input-ccu-mobile" />
+              </div>
+            </div>
+            {/* Permission Role */}
+            <div className="grid gap-2">
+              <Label htmlFor="ccu-permission">Permission Role</Label>
+              <Select value={ccuForm.clientPermissionRole} onValueChange={(v) => setCcuForm({ ...ccuForm, clientPermissionRole: v })}>
+                <SelectTrigger id="ccu-permission" data-testid="select-ccu-permission"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Full Access</SelectItem>
+                  <SelectItem value="limited">Limited Access</SelectItem>
+                  <SelectItem value="compliance_only">Compliance Only</SelectItem>
+                  <SelectItem value="none">No Access</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Notes */}
+            <div className="grid gap-2">
+              <Label htmlFor="ccu-notes">Notes</Label>
+              <Textarea id="ccu-notes" value={ccuForm.notes} onChange={(e) => setCcuForm({ ...ccuForm, notes: e.target.value })} placeholder="Optional notes about this user..." rows={2} data-testid="textarea-ccu-notes" />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowCreateClientUser(false)} data-testid="button-ccu-cancel">Cancel</Button>
+            <Button onClick={handleCcuSubmit} disabled={createClientUserMutation.isPending || !!ccuEmailError} data-testid="button-ccu-save">
+              {createClientUserMutation.isPending ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Domain mismatch confirmation */}
+      <AlertDialog open={ccuShowDomainConfirm} onOpenChange={setCcuShowDomainConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Email domain mismatch</AlertDialogTitle>
+            <AlertDialogDescription>
+              The email domain <strong>@{ccuDomainMismatch?.emailDomain}</strong> doesn't match the company website domain <strong>{ccuDomainMismatch?.websiteDomain}</strong>. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setCcuShowDomainConfirm(false); setCcuDomainMismatch(null); handleCcuSubmit(); }}>Continue anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Post-creation site assignment dialog */}
+      <Dialog open={ccuShowSiteAssign} onOpenChange={(open) => { if (!open) handleCcuSiteAssignDone(); }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Assign Sites</DialogTitle>
+            <DialogDescription>
+              <strong>{ccuNewUserName}</strong> has been created. Assign them to sites and optionally set contact roles.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Primary Contact */}
+            <div className="flex items-center justify-between rounded-md border px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Set as Primary Contact</p>
+                <p className="text-xs text-muted-foreground">Replaces the current primary contact for this company.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCcuSetPrimary(v => !v)}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${ccuSetPrimary ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                data-testid="button-ccu-set-primary"
+              >
+                <UserCheck className="h-4 w-4" />
+              </button>
+            </div>
+            {/* Key Contact */}
+            <div className="flex items-center justify-between rounded-md border px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Set as Key Contact</p>
+                <p className="text-xs text-muted-foreground">Designates this user as a key contact for the company.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCcuSetKeyContact(v => !v)}
+                className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${ccuSetKeyContact ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                data-testid="button-ccu-set-keycontact"
+              >
+                <Star className="h-4 w-4" />
+              </button>
+            </div>
+            {/* Site search + list */}
+            {(company?.sites || []).length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Sites</Label>
+                  {ccuPendingSiteAdds.length < (company?.sites || []).length && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:underline"
+                      onClick={() => setCcuPendingSiteAdds((company?.sites || []).map((s: SiteWithDetails) => s.id))}
+                      data-testid="button-ccu-add-all-sites"
+                    >
+                      Add All
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-8" placeholder="Search sites..." value={ccuSiteSearch} onChange={(e) => setCcuSiteSearch(e.target.value)} data-testid="input-ccu-site-search" />
+                </div>
+                {/* Assigned list */}
+                {ccuPendingSiteAdds.length > 0 && (
+                  <div className="space-y-1">
+                    {ccuPendingSiteAdds.map(siteId => {
+                      const site = (company?.sites || []).find((s: SiteWithDetails) => s.id === siteId);
+                      if (!site) return null;
+                      return (
+                        <div key={siteId} className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm truncate">{site.name}</span>
+                          </div>
+                          <button type="button" onClick={() => setCcuPendingSiteAdds(prev => prev.filter(id => id !== siteId))} className="ml-2 text-muted-foreground hover:text-destructive" data-testid={`button-ccu-remove-site-${siteId}`}>
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {/* Available list */}
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {(company?.sites || [])
+                    .filter((s: SiteWithDetails) => !ccuPendingSiteAdds.includes(s.id) && s.name.toLowerCase().includes(ccuSiteSearch.toLowerCase()))
+                    .map((site: SiteWithDetails) => (
+                      <div key={site.id} className="flex items-center justify-between rounded-md border px-3 py-2 hover:bg-muted/40 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate">{site.name}</span>
+                        </div>
+                        <button type="button" onClick={() => setCcuPendingSiteAdds(prev => [...prev, site.id])} className="ml-2 text-primary hover:text-primary/80" data-testid={`button-ccu-add-site-${site.id}`}>
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button variant="outline" onClick={handleCcuSiteAssignDone} disabled={ccuIsSaving} data-testid="button-ccu-site-done">
+              {ccuIsSaving ? "Saving..." : "Done"}
+            </Button>
+            {ccuSetKeyContact && (
+              <Button onClick={handleCcuSetKeyContactWithSites} disabled={ccuIsSaving} data-testid="button-ccu-set-keycontact-save">
+                <Star className="mr-2 h-4 w-4" />
+                {ccuIsSaving ? "Saving..." : "Set as Key Contact"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       </div>
     </div>

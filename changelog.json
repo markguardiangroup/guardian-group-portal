@@ -4696,6 +4696,13 @@
           "message": "Fixed: staged site assignments are now correctly saved when clicking Done or Set as Key Contact",
           "category": "bug",
           "createdAt": "2026-05-19T19:45:00.000Z"
+        },
+        {
+          "id": "g7i9k1m3-create-client-user-inline-company-detail-2026",
+          "patch": 6,
+          "message": "Create Client User now opens an inline dialog on the company page instead of navigating away",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T20:00:00.000Z"
         }
       ],
       "publishedPatch": 5,
