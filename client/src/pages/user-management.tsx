@@ -165,6 +165,21 @@ const toTitleCase = (str: string): string => {
 // Persists across component mounts within a session — animation plays only on first load
 let _usersShown = false;
 
+function extractEmailDomain(email: string): string {
+  const at = email.indexOf("@");
+  return at >= 0 ? email.slice(at + 1).toLowerCase().trim() : "";
+}
+
+function extractWebsiteDomain(website: string): string {
+  try {
+    const url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+    const host = new URL(url).hostname.toLowerCase();
+    return host.startsWith("www.") ? host.slice(4) : host;
+  } catch {
+    return website.toLowerCase().replace(/^www\./i, "").split("/")[0].trim();
+  }
+}
+
 export default function UserManagement() {
   const { user } = useAuth();
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
@@ -221,6 +236,7 @@ export default function UserManagement() {
     sources: string[];
   } | null>(null);
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
+  const [showDomainConfirmDialog, setShowDomainConfirmDialog] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [mobileError, setMobileError] = useState<string | null>(null);
@@ -408,6 +424,18 @@ export default function UserManagement() {
   const createFormCompanies = consultantAccessibleCompanyIds
     ? filteredCompanies.filter(c => consultantAccessibleCompanyIds.has(c.id))
     : filteredCompanies;
+
+  const emailDomainMismatch = useMemo(() => {
+    if (newUser.role !== "client" || !newUser.companyId || !newUser.email) return null;
+    const emailDomain = extractEmailDomain(newUser.email);
+    if (!emailDomain) return null;
+    const company = companies.find(c => c.id === newUser.companyId);
+    if (!company?.website) return null;
+    const websiteDomain = extractWebsiteDomain(company.website);
+    if (!websiteDomain) return null;
+    if (emailDomain === websiteDomain) return null;
+    return { emailDomain, websiteDomain, companyName: company.name };
+  }, [newUser.role, newUser.companyId, newUser.email, companies]);
 
   // Helper to check if a user is a primary contact for their company
   const isPrimaryContact = (u: UserWithAssignments) => {
@@ -1011,6 +1039,11 @@ export default function UserManagement() {
     if (newUser.role === "consultant" || newUser.role === "admin") {
       setPendingEmailUser({ ...newUser, fullName });
       setIsAddUserOpen(false);
+      return;
+    }
+    // For client users — show domain mismatch confirmation if needed
+    if (emailDomainMismatch) {
+      setShowDomainConfirmDialog(true);
       return;
     }
     createUserMutation.mutate({ ...newUser, fullName });
@@ -2606,6 +2639,14 @@ export default function UserManagement() {
                           {emailError}
                         </p>
                       )}
+                      {!emailError && emailDomainMismatch && (
+                        <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400" data-testid="warning-domain-mismatch">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>
+                            The email domain <strong>@{emailDomainMismatch.emailDomain}</strong> doesn't match the company website domain <strong>{emailDomainMismatch.websiteDomain}</strong>. You can still save, but you'll need to confirm.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -3539,6 +3580,49 @@ export default function UserManagement() {
               data-testid="button-confirm-delete-user"
             >
               {deleteUserMutation.isPending ? "Deleting..." : "Yes, Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Domain Mismatch Confirmation Dialog */}
+      <AlertDialog open={showDomainConfirmDialog} onOpenChange={setShowDomainConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Email Domain Mismatch
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>The email address you've entered doesn't match the company's registered website domain.</p>
+                <div className="rounded-md border bg-muted/50 px-4 py-3 space-y-2 text-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Company website domain</span>
+                    <strong className="text-foreground font-mono">{emailDomainMismatch?.websiteDomain}</strong>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-muted-foreground">Email domain</span>
+                    <strong className="text-foreground font-mono">@{emailDomainMismatch?.emailDomain}</strong>
+                  </div>
+                </div>
+                <p className="text-muted-foreground">Please check that this is the correct email address for a user at <strong className="text-foreground">{emailDomainMismatch?.companyName}</strong> before continuing.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-domain-mismatch-cancel">Go Back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDomainConfirmDialog(false);
+                const fullName = newUser.fullName.trim() ||
+                  `${newUser.firstName} ${newUser.lastName}`.trim() ||
+                  newUser.username;
+                createUserMutation.mutate({ ...newUser, fullName });
+              }}
+              data-testid="button-domain-mismatch-confirm"
+            >
+              Yes, Create User
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

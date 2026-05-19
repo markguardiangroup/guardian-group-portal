@@ -4605,6 +4605,13 @@
           "message": "Improved: home page data loads up to 10× faster on first visit",
           "category": "enhancement",
           "createdAt": "2026-05-19T12:39:08.482Z"
+        },
+        {
+          "id": "d3166b4f-006f-494d-9b25-b5440858f5ac",
+          "patch": 6,
+          "message": "Client user creation warns when email domain doesn't match company website",
+          "category": "feature",
+          "createdAt": "2026-05-19T13:26:24.737Z"
         }
       ],
       "publishedPatch": 5,
