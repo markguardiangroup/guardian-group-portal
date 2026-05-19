@@ -4635,20 +4635,6 @@
           "createdAt": "2026-05-19T14:04:50.670Z"
         },
         {
-          "id": "b2939ec9-3963-47cc-a893-192b18687e8e",
-          "patch": 6,
-          "message": "Fixed: email domain mismatch warning not showing in Create Client User flow",
-          "category": "bug",
-          "createdAt": "2026-05-19T14:40:48.916Z"
-        },
-        {
-          "id": "8049233f-72ef-44d3-a421-e87409455752",
-          "patch": 6,
-          "message": "Fixed: email domain warning now reliably appears in Create Client User flow",
-          "category": "bug",
-          "createdAt": "2026-05-19T14:54:36.906Z"
-        },
-        {
           "id": "f681bb25-6bec-403d-a63c-a7db5f72fd8c",
           "patch": 6,
           "message": "Set as Key Contact option added to the new-user site assignment dialog",
@@ -4661,13 +4647,6 @@
           "message": "Fixed: app no longer restarts unexpectedly — switched to always-on deployment",
           "category": "bug",
           "createdAt": "2026-05-19T15:30:00.000Z"
-        },
-        {
-          "id": "b2d4f6h8-add-user-domain-check-stale-role-2026",
-          "patch": 6,
-          "message": "Fixed: email domain mismatch warning now reliably shows when adding a client user",
-          "category": "bug",
-          "createdAt": "2026-05-19T15:45:00.000Z"
         },
         {
           "id": "c3e5g7i9-domain-check-no-website-note-2026",
@@ -4684,60 +4663,11 @@
           "createdAt": "2026-05-19T16:20:00.000Z"
         },
         {
-          "id": "e5g7i9k1-assign-sites-inline-list-2026",
-          "patch": 6,
-          "message": "Improved: site assignment dialog now shows an inline list with Add/Add All, matching Manage Sites",
-          "category": "enhancement",
-          "createdAt": "2026-05-19T19:30:00.000Z"
-        },
-        {
-          "id": "f6h8j0l2-assign-sites-done-saves-staged-2026",
-          "patch": 6,
-          "message": "Fixed: staged site assignments are now correctly saved when clicking Done or Set as Key Contact",
-          "category": "bug",
-          "createdAt": "2026-05-19T19:45:00.000Z"
-        },
-        {
-          "id": "g7i9k1m3-create-client-user-inline-company-detail-2026",
-          "patch": 6,
-          "message": "Create Client User now opens an inline dialog on the company page instead of navigating away",
-          "category": "enhancement",
-          "createdAt": "2026-05-19T20:00:00.000Z"
-        },
-        {
           "id": "h8j0l2n4-create-client-user-shared-component-2026",
           "patch": 6,
           "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:10:00.000Z"
-        },
-        {
-          "id": "i9k1m3o5-create-client-user-title-select-error-2026",
-          "patch": 6,
-          "message": "Fixed: Create Client User dialog no longer crashes when opened (empty Title value)",
-          "category": "bug",
-          "createdAt": "2026-05-19T20:15:00.000Z"
-        },
-        {
-          "id": "j0l2n4p6-create-client-user-form-parity-2026",
-          "patch": 6,
-          "message": "Create Client User form now matches the full Add User form: sections, username preview, preferred contact, phone validation",
-          "category": "enhancement",
-          "createdAt": "2026-05-19T20:20:00.000Z"
-        },
-        {
-          "id": "k1m3o5q7-remove-permission-role-from-ccu-2026",
-          "patch": 6,
-          "message": "Removed Permission Role field from Create Client User form to match the original",
-          "category": "bug",
-          "createdAt": "2026-05-19T20:30:00.000Z"
-        },
-        {
-          "id": "l2n4p6r8-ccu-preferred-contact-default-2026",
-          "patch": 6,
-          "message": "Fixed: Preferred Contact Method now defaults to Email in Create Client User form",
-          "category": "bug",
-          "createdAt": "2026-05-19T20:35:00.000Z"
         }
       ],
       "publishedPatch": 5,
