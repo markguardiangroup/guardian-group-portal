@@ -411,7 +411,7 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
-  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
+  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; website?: string | null; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
     queryKey: ["/api/companies?limit=1000"],
     enabled: isAdmin || isConsultant,
   });

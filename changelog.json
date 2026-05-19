@@ -4633,6 +4633,13 @@
           "message": "Standard consultants can now create client users; Add User button hidden for them",
           "category": "enhancement",
           "createdAt": "2026-05-19T14:04:50.670Z"
+        },
+        {
+          "id": "b2939ec9-3963-47cc-a893-192b18687e8e",
+          "patch": 6,
+          "message": "Fixed: email domain mismatch warning not showing in Create Client User flow",
+          "category": "bug",
+          "createdAt": "2026-05-19T14:40:48.916Z"
         }
       ],
       "publishedPatch": 5,
