@@ -187,7 +187,7 @@ export default function UserManagement() {
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
   const isStandardConsultant = isConsultant && !isPro;
-  const canAddUser = isAdmin || isConsultant;
+  const canAddUser = isAdmin || isPro;
   const { toast } = useToast();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const companyFilter = selectedCompany || "all";

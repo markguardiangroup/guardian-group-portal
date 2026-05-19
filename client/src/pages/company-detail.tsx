@@ -2636,7 +2636,7 @@ export default function CompanyDetail() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Users ({companyTabUsers.length})</h2>
                 <div className="flex items-center gap-2">
-                  {(isAdmin || isProConsultant) && (
+                  {(isAdmin || isConsultant) && (
                     <Button
                       size="sm"
                       variant="outline"

@@ -4626,6 +4626,13 @@
           "message": "Create Client User button added to company Users tab with pre-filled locked fields",
           "category": "feature",
           "createdAt": "2026-05-19T13:56:34.521Z"
+        },
+        {
+          "id": "b5731431-d932-482b-b5b4-e4ff9895b6f7",
+          "patch": 6,
+          "message": "Standard consultants can now create client users; Add User button hidden for them",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T14:04:50.670Z"
         }
       ],
       "publishedPatch": 5,
