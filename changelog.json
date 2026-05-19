@@ -4675,6 +4675,13 @@
           "message": "Domain check now shows a clear note when a company has no website on file",
           "category": "enhancement",
           "createdAt": "2026-05-19T16:10:00.000Z"
+        },
+        {
+          "id": "d4f6h8j0-key-contact-site-section-visible-2026",
+          "patch": 6,
+          "message": "Fixed: site assignment section no longer disappears when Set as Key Contact is checked",
+          "category": "bug",
+          "createdAt": "2026-05-19T16:20:00.000Z"
         }
       ],
       "publishedPatch": 5,

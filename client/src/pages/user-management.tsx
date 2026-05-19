@@ -3243,8 +3243,8 @@ export default function UserManagement() {
                   )}
                 </div>
 
-                {/* Site selection — only shown when neither primary nor key contact is selected */}
-                {!setPrimaryContact && !setKeyContactFlag && (
+                {/* Site selection — hidden only when primary contact is set (auto-assigned to all sites); key contacts still need explicit site assignment */}
+                {!setPrimaryContact && (
                   <div className="space-y-3">
                     {/* Currently assigned */}
                     {userNeedingSiteAssignment.siteAssignments && userNeedingSiteAssignment.siteAssignments.length > 0 && (
