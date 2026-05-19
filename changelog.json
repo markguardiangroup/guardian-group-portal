@@ -4731,6 +4731,13 @@
           "message": "Removed Permission Role field from Create Client User form to match the original",
           "category": "bug",
           "createdAt": "2026-05-19T20:30:00.000Z"
+        },
+        {
+          "id": "l2n4p6r8-ccu-preferred-contact-default-2026",
+          "patch": 6,
+          "message": "Fixed: Preferred Contact Method now defaults to Email in Create Client User form",
+          "category": "bug",
+          "createdAt": "2026-05-19T20:35:00.000Z"
         }
       ],
       "publishedPatch": 5,

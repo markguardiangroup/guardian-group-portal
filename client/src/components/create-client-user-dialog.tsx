@@ -62,7 +62,7 @@ function extractWebsiteDomain(website: string): string {
 const FORM_INITIAL = {
   title: "", firstName: "", lastName: "", username: "",
   jobTitle: "", department: "",
-  phone: "", mobile: "", preferredContactMethod: "any" as "any" | "email" | "phone" | "mobile",
+  phone: "", mobile: "", preferredContactMethod: "email" as "any" | "email" | "phone" | "mobile",
   email: "", notes: "",
 };
 
