@@ -4668,6 +4668,13 @@
           "message": "Fixed: email domain mismatch warning now reliably shows when adding a client user",
           "category": "bug",
           "createdAt": "2026-05-19T15:45:00.000Z"
+        },
+        {
+          "id": "c3e5g7i9-domain-check-no-website-note-2026",
+          "patch": 6,
+          "message": "Domain check now shows a clear note when a company has no website on file",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T16:10:00.000Z"
         }
       ],
       "publishedPatch": 5,

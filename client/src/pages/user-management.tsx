@@ -456,21 +456,32 @@ export default function UserManagement() {
     ? filteredCompanies.filter(c => consultantAccessibleCompanyIds.has(c.id))
     : filteredCompanies;
 
+  // Resolve the selected company object from whichever source is available first.
+  // Locked flow: use the directly-fetched company (avoids depending on the paginated list).
+  // Regular flow: use the paginated companies list.
+  const resolvedCompany = useMemo(() => {
+    if (newUser.role !== "client" || !newUser.companyId) return null;
+    if (lockedCompanyData?.id === newUser.companyId) return lockedCompanyData;
+    return companies.find(c => c.id === newUser.companyId) ?? null;
+  }, [newUser.role, newUser.companyId, companies, lockedCompanyData]);
+
+  // True when the company is resolved but has no website — domain check cannot run.
+  const companyHasNoWebsite = useMemo(() => {
+    if (newUser.role !== "client" || !newUser.companyId || !newUser.email) return false;
+    if (!resolvedCompany) return false; // still loading — don't show the note yet
+    return !resolvedCompany.website;
+  }, [newUser.role, newUser.companyId, newUser.email, resolvedCompany]);
+
   const emailDomainMismatch = useMemo(() => {
     if (newUser.role !== "client" || !newUser.companyId || !newUser.email) return null;
     const emailDomain = extractEmailDomain(newUser.email);
     if (!emailDomain) return null;
-    // In the locked flow use the directly-fetched company so we don't depend on
-    // the paginated list being loaded or containing this specific company
-    const company = lockedCompanyData?.id === newUser.companyId
-      ? lockedCompanyData
-      : companies.find(c => c.id === newUser.companyId);
-    if (!company?.website) return null;
-    const websiteDomain = extractWebsiteDomain(company.website);
+    if (!resolvedCompany?.website) return null;
+    const websiteDomain = extractWebsiteDomain(resolvedCompany.website);
     if (!websiteDomain) return null;
     if (emailDomain === websiteDomain) return null;
-    return { emailDomain, websiteDomain, companyName: company.name };
-  }, [newUser.role, newUser.companyId, newUser.email, companies, lockedCompanyData]);
+    return { emailDomain, websiteDomain, companyName: resolvedCompany.name };
+  }, [newUser.role, newUser.companyId, newUser.email, resolvedCompany]);
 
   // Helper to check if a user is a primary contact for their company
   const isPrimaryContact = (u: UserWithAssignments) => {
@@ -2811,6 +2822,12 @@ export default function UserManagement() {
                           <span>
                             The email domain <strong>@{emailDomainMismatch.emailDomain}</strong> doesn't match the company website domain <strong>{emailDomainMismatch.websiteDomain}</strong>. You can still save, but you'll need to confirm.
                           </span>
+                        </div>
+                      )}
+                      {!emailError && !emailDomainMismatch && companyHasNoWebsite && (
+                        <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground" data-testid="note-no-website">
+                          <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                          <span>No website on file for this company — email domain check unavailable.</span>
                         </div>
                       )}
                     </div>
