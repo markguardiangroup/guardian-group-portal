@@ -245,7 +245,7 @@ export default function UserManagement() {
   const [mobileError, setMobileError] = useState<string | null>(null);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
   const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
+  const newUserInitial = {
     username: "",
     email: "",
     fullName: "",
@@ -264,7 +264,8 @@ export default function UserManagement() {
     clientPermissionRole: "full" as "full",
     sources: [] as string[],
     consultantPermissions: { caseAdvocate: false, trainingLibrary: false, templateLibrary: false, services: false } as { caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean; services: boolean },
-  });
+  };
+  const [newUser, setNewUser] = useState(newUserInitial);
   
   const [showSiteAssignmentMessage, setShowSiteAssignmentMessage] = useState(false);
   const [userNeedingSiteAssignment, setUserNeedingSiteAssignment] = useState<UserWithAssignments | null>(null);
@@ -1035,26 +1036,10 @@ export default function UserManagement() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsAddUserOpen(false);
-      setNewUser({
-        username: "",
-        email: "",
-        fullName: "",
-        title: "",
-        firstName: "",
-        lastName: "",
-        jobTitle: "",
-        department: "",
-        phone: "",
-        mobile: "",
-        preferredContactMethod: "email",
-        notes: "",
-        role: "client",
-        companyId: "",
-        consultantTier: "pro",
-        clientPermissionRole: "full",
-        sources: [],
-        consultantPermissions: { caseAdvocate: false, trainingLibrary: false, templateLibrary: false },
-      });
+      setNewUser(newUserInitial);
+      setEmailError(null);
+      setPhoneError(null);
+      setMobileError(null);
       if (data.requiresSiteAssignment) {
         setUserNeedingSiteAssignment(data);
         setShowSiteAssignmentMessage(true);
@@ -2536,6 +2521,10 @@ export default function UserManagement() {
       <Dialog open={isAddUserOpen} onOpenChange={(open) => {
         setIsAddUserOpen(open);
         if (!open) {
+          setNewUser(newUserInitial);
+          setEmailError(null);
+          setPhoneError(null);
+          setMobileError(null);
           setCompanySearchQuery("");
           setIsCompanyDropdownOpen(false);
           setLockedClientCompanyId(null);

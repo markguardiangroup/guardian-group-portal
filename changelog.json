@@ -4661,6 +4661,13 @@
           "message": "Fixed: app no longer restarts unexpectedly — switched to always-on deployment",
           "category": "bug",
           "createdAt": "2026-05-19T15:30:00.000Z"
+        },
+        {
+          "id": "b2d4f6h8-add-user-domain-check-stale-role-2026",
+          "patch": 6,
+          "message": "Fixed: email domain mismatch warning now reliably shows when adding a client user",
+          "category": "bug",
+          "createdAt": "2026-05-19T15:45:00.000Z"
         }
       ],
       "publishedPatch": 5,
