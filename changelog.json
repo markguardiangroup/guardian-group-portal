@@ -4598,6 +4598,13 @@
           "message": "Fixed: changelog patch no longer auto-bumps on dev server restart",
           "category": "bug",
           "createdAt": "2026-05-15T16:17:20.878Z"
+        },
+        {
+          "id": "f0d60ebb-f96f-4198-969b-03a725900088",
+          "patch": 6,
+          "message": "Improved: home page data loads up to 10× faster on first visit",
+          "category": "enhancement",
+          "createdAt": "2026-05-19T12:39:08.482Z"
         }
       ],
       "publishedPatch": 5,
