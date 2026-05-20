@@ -1628,13 +1628,9 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          if (shares.some(s =>
-            (s.entityType === "site" && s.entityId === site.id) ||
-            (s.entityType === "company" && s.entityId === site.companyId)
-          )) {
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
-          }
+          // Company-scoped docs are implicitly visible to all sites of that company.
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
@@ -1710,7 +1706,7 @@ export async function registerRoutes(
           const pendingApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
           if (dateOverdue) slotOverdue++;
           if (pendingApproval) slotApprovalRequired++;
-          if (!dateOverdue && !pendingApproval && d.status === "compliant") slotCompliantDocs++;
+          if (!dateOverdue && !pendingApproval) slotCompliantDocs++;
         });
       }
 
@@ -1752,7 +1748,7 @@ export async function registerRoutes(
       (d.renewalDate && new Date(d.renewalDate) < _manualNow);
     const isManualApprovalRequired = (d: any) =>
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d) && !isManualApprovalRequired(d)).length;
+    const manualCompliant = manualRequired.filter(d => !isManualOverdue(d) && !isManualApprovalRequired(d)).length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
     const approvalRequired = slotApprovalRequired + manualRequired.filter(isManualApprovalRequired).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
@@ -1912,13 +1908,9 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          if (shares.some(s =>
-            (s.entityType === "site" && s.entityId === site.id) ||
-            (s.entityType === "company" && s.entityId === site.companyId)
-          )) {
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
-          }
+          // Company-scoped docs are implicitly visible to all sites of that company.
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
@@ -2315,7 +2307,7 @@ export async function registerRoutes(
         (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow);
       const allDocumentsCount = allDocumentsInScope;
-      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+      const allCompliantDocuments = docProgressSet.filter(d => !isDocOverdue(d) && d.approvalStatus !== "pending" && d.approvalStatus !== "client_signed_off").length;
       const allApprovalRequired = docProgressSet.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
       ).length;
@@ -2487,7 +2479,7 @@ export async function registerRoutes(
         (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow2);
       const allDocsProgress = allDocumentsInScope2;
-      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
+      const allCompliantProgress = allNonCaseDocs.filter(d => !isDocOverdue2(d) && d.approvalStatus !== "pending" && d.approvalStatus !== "client_signed_off").length;
       const allApprovalRequiredProgress = allNonCaseDocs.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
       ).length;
@@ -8882,9 +8874,16 @@ export async function registerRoutes(
 
         for (const mod of complianceModules) {
           const modDocs = siteDocs.filter((d: any) => d.module === mod);
+          const _mNow = new Date();
           const total = modDocs.length;
-          const compliant = modDocs.filter((d: any) => d.status === "compliant").length;
-          const overdue = modDocs.filter((d: any) => d.status === "overdue").length;
+          const compliant = modDocs.filter((d: any) => {
+            const ov = (d.expiryDate && new Date(d.expiryDate) < _mNow) || (d.renewalDate && new Date(d.renewalDate) < _mNow);
+            const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+            return !ov && !ap;
+          }).length;
+          const overdue = modDocs.filter((d: any) =>
+            (d.expiryDate && new Date(d.expiryDate) < _mNow) || (d.renewalDate && new Date(d.renewalDate) < _mNow)
+          ).length;
           scores[mod] = { score: total > 0 ? Math.round((compliant / total) * 100) : 0, total, compliant, overdue };
           allTotal += total;
           allCompliant += compliant;
@@ -11701,13 +11700,19 @@ export async function registerRoutes(
         }),
         sharedDocuments,
         summary: (() => {
+          const _sumNow = new Date();
+          const sumIsOverdue = (d: any) =>
+            (d.renewalDate && new Date(d.renewalDate) < _sumNow) ||
+            (d.expiryDate && new Date(d.expiryDate) < _sumNow);
+          const sumIsApprovalRequired = (d: any) =>
+            d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
           return {
             totalFolders: hierarchy.length,
             totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
-            compliant: allNonArchivedDocs.filter((d: any) => d.status === "compliant").length,
-            approved: allNonArchivedDocs.filter((d: any) => d.status === "approved").length,
-            approvalRequired: allNonArchivedDocs.filter((d: any) => d.status === "approval_required").length,
-            overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
+            compliant: allNonArchivedDocs.filter((d: any) => !sumIsOverdue(d) && !sumIsApprovalRequired(d)).length,
+            approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
+            approvalRequired: allNonArchivedDocs.filter((d: any) => sumIsApprovalRequired(d)).length,
+            overdue: allNonArchivedDocs.filter((d: any) => sumIsOverdue(d)).length,
           };
         })(),
       });
