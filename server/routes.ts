@@ -1639,6 +1639,13 @@ export async function registerRoutes(
           const goCompany = companyMap.get(company.groupOwnerId);
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+        } else if (shares.some(s =>
+          (s.entityType === "site" && s.entityId === site.id) ||
+          (s.entityType === "company" && s.entityId === site.companyId)
+        )) {
+          // Explicitly shared from another entity via document_shares.
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: null });
         }
       }
       return results;
@@ -1918,6 +1925,13 @@ export async function registerRoutes(
           const goCompany = companyMap.get(company.groupOwnerId);
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+        } else if (shares.some(s =>
+          (s.entityType === "site" && s.entityId === site.id) ||
+          (s.entityType === "company" && s.entityId === site.companyId)
+        )) {
+          // Explicitly shared from another entity via document_shares.
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: null });
         }
       }
       return results;
@@ -11235,6 +11249,13 @@ export async function registerRoutes(
             const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+          } else if (shares.some((s: any) =>
+            (s.entityType === "site" && s.entityId === siteId) ||
+            (s.entityType === "company" && s.entityId === companyId)
+          )) {
+            // Explicitly shared from another entity via document_shares.
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: null });
           }
         }
         return results;
