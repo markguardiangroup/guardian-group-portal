@@ -1617,13 +1617,9 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          if (shares.some(s =>
-            (s.entityType === "site" && s.entityId === site.id) ||
-            (s.entityType === "company" && s.entityId === site.companyId)
-          )) {
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
-          }
+          // Company docs auto-inherit to all sites of that company (no explicit share required)
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
@@ -1885,13 +1881,9 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          if (shares.some(s =>
-            (s.entityType === "site" && s.entityId === site.id) ||
-            (s.entityType === "company" && s.entityId === site.companyId)
-          )) {
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
-          }
+          // Company docs auto-inherit to all sites of that company (no explicit share required)
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
@@ -2273,15 +2265,15 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — regular module folder documents only
-      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
-      // Restrict to H&S/HR/EL for compliance module dashboards; training keeps its own scope
+      // Document Progress stats — compliance modules only (H&S/HR/EL).
+      // Training, Toolkit, and Support are excluded from all compliance counts.
       const _modComplianceModules = new Set(["health_safety", "human_resources", "employment_law"]);
       const docProgressSet = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
         d.source !== "external" &&
+        _modComplianceModules.has(d.module ?? "") &&
         (_modComplianceModules.has(module) ? d.module === module : true)
       );
       const _progNow = new Date();
@@ -2333,6 +2325,7 @@ export async function registerRoutes(
         overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
+        totalAllDocuments: allDocumentsCount,
         allDocuments: allDocumentsCount,
         allCompliantDocuments,
         allApprovalRequired,
@@ -2503,6 +2496,7 @@ export async function registerRoutes(
         overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
+        totalAllDocuments: allDocsProgress,
         allDocuments: allDocsProgress,
         allCompliantDocuments: allCompliantProgress,
         allApprovalRequired: allApprovalRequiredProgress,
@@ -2719,6 +2713,7 @@ export async function registerRoutes(
             module: mod,
             moduleName: moduleNames[mod],
             ...compliance,
+            totalAllDocuments: allDocsCount,
             allDocuments: allDocsCount,
             allCompliantDocuments: allCompliant,
             allApprovalRequired,
@@ -2737,6 +2732,7 @@ export async function registerRoutes(
           overdueDocuments: allOverdue,
           missingRequiredDocuments: 0,
           complianceScore: allDocsCount > 0 ? Math.round((allCompliant / allDocsCount) * 100) : 0,
+          totalAllDocuments: allDocsCount,
           allDocuments: allDocsCount,
           allCompliantDocuments: allCompliant,
           allApprovalRequired,

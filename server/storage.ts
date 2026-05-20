@@ -760,6 +760,7 @@ export class MemStorage implements IStorage {
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      totalAllDocuments: allDocuments,
       allDocuments,
       allCompliantDocuments,
       allApprovalRequired,
@@ -1914,6 +1915,7 @@ export class MemStorage implements IStorage {
     }
 
     // Slot-based required-only counts (mirrors getSiteComplianceSummary / computeSlotBasedCompliance)
+    let slotTotal = 0;
     let slotCompliantDocs = 0;
     let slotApprovalRequired = 0;
     let slotOverdue = 0;
@@ -1957,6 +1959,7 @@ export class MemStorage implements IStorage {
         if (module && tmpl.module !== module) continue;
         if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
 
+        slotTotal++;
         const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
         matchingDocs.forEach(d => consumedDocIds.add(d.id));
 
@@ -1984,6 +1987,8 @@ export class MemStorage implements IStorage {
     const compliant = slotCompliantDocs + manualCompliant;
     const requiredApprovalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
     const requiredOverdue = slotOverdue + manualRequired.filter(isDocOverdue).length;
+    // Required-slot total (slots + manual required docs without a slot)
+    const requiredSlotTotal = slotTotal + manualRequired.length;
 
     // All-doc stats (required + non-required) for Total/Overdue/Approval tiles
     const allDocuments = docs.length;
@@ -1995,15 +2000,18 @@ export class MemStorage implements IStorage {
     const scoreDenominator = compliant + requiredApprovalRequired + requiredOverdue + missingRequired;
 
     return {
-      totalDocuments: allDocuments,
+      // Required-slot primary fields
+      totalDocuments: requiredSlotTotal,
       compliantDocuments: compliant,
-      approvalRequired: allApprovalRequired,
-      overdueDocuments: allOverdueDocuments,
+      approvalRequired: requiredApprovalRequired,
+      overdueDocuments: requiredOverdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: allApprovalRequired,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      // All-doc tile fields
+      totalAllDocuments: allDocuments,
       allDocuments,
       allCompliantDocuments,
       allApprovalRequired,
@@ -2084,6 +2092,7 @@ export class MemStorage implements IStorage {
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
         complianceScore: scoreDenom > 0 ? Math.round((compliant / scoreDenom) * 100) : 0,
+        totalAllDocuments: total,
         allDocuments: total,
         allCompliantDocuments: compliant,
         allApprovalRequired: approvalRequired,

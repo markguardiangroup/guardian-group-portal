@@ -4773,6 +4773,34 @@
           "message": "Fixed: group-owner shared docs now included in site compliance metrics",
           "category": "bug",
           "createdAt": "2026-05-20T21:41:09.009Z"
+        },
+        {
+          "id": "3656191c-76c8-43ab-a6c9-20cae91df1ff",
+          "patch": 6,
+          "message": "Fixed: compliance summary primary fields now use required-slot values",
+          "category": "bug",
+          "createdAt": "2026-05-20T21:53:55.047Z"
+        },
+        {
+          "id": "43e53cc7-344e-42cb-8ea4-002eae24baf7",
+          "patch": 6,
+          "message": "Fixed: company docs auto-inherit to all sites without needing explicit share records",
+          "category": "bug",
+          "createdAt": "2026-05-20T21:53:55.049Z"
+        },
+        {
+          "id": "527d7040-4fe2-4e1d-bd47-acb2bc2af8b9",
+          "patch": 6,
+          "message": "Fixed: training/toolkit/support docs excluded from compliance progress stats",
+          "category": "bug",
+          "createdAt": "2026-05-20T21:53:55.049Z"
+        },
+        {
+          "id": "458196a2-ec70-4ab8-a4d2-6daa18d9ce83",
+          "patch": 6,
+          "message": "Added totalAllDocuments field to compliance summary across all endpoints",
+          "category": "enhancement",
+          "createdAt": "2026-05-20T21:53:55.049Z"
         }
       ],
       "publishedPatch": 5,

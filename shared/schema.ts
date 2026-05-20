@@ -986,17 +986,18 @@ export interface DocumentTypeWithAccess {
 // Compliance summary (computed/cached data for dashboard)
 export interface ComplianceSummary {
   // Slot-based compliance (required documents only)
-  totalDocuments: number;
+  totalDocuments: number;        // count of required template slots
   compliantDocuments: number;
-  approvalRequired: number;
-  overdueDocuments: number;
+  approvalRequired: number;      // required docs in approval_required status
+  overdueDocuments: number;      // required docs that are overdue
   missingRequiredDocuments: number;
   complianceScore: number;
-  // All-document progress stats (includes non-required docs)
-  allDocuments: number;
+  // All-document progress stats (includes non-required docs) — used for metric tiles
+  totalAllDocuments: number;     // count of ALL uploaded docs (required + non-required)
+  allDocuments: number;          // alias for totalAllDocuments (backwards compat)
   allCompliantDocuments: number;
-  allApprovalRequired: number;
-  allOverdueDocuments: number;
+  allApprovalRequired: number;   // ALL docs (required + non-required) in approval workflow
+  allOverdueDocuments: number;   // ALL docs (required + non-required) that are overdue
   // Approval workflow (all docs)
   pendingApprovals: number;
   awaitingYourApproval: number;
