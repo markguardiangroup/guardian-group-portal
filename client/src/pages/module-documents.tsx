@@ -482,25 +482,27 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     queryKey: ["/api/sites"],
   });
 
-  // Fetch companies for group scope filtering (only when a group is selected)
+  // Fetch companies for group scope filtering (when a group is selected or navigated via URL group scope)
   const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
     queryKey: ["/api/companies"],
     queryFn: async () => {
       const res = await fetch(`/api/companies?limit=1000`, { credentials: "include" });
       return res.json();
     },
-    enabled: selectedGroup !== "all",
+    enabled: selectedGroup !== "all" || (urlScope === "group" && !!urlEntityId),
   });
   const companies = companiesResp?.companies ?? [];
 
-  // Set of company IDs that belong to the selected group (owner + members)
+  // Set of company IDs that belong to the selected group (owner + members).
+  // Works both for sidebar group-picker selection and URL-param group navigation.
   const groupCompanyIds = useMemo(() => {
-    if (selectedGroup === "all" || !companies.length) return null;
+    const groupId = selectedGroup !== "all" ? selectedGroup : (urlScope === "group" ? urlEntityId : null);
+    if (!groupId || !companies.length) return null;
     const ids = companies
-      .filter(c => c.id === selectedGroup || c.groupOwnerId === selectedGroup)
+      .filter(c => c.id === groupId || c.groupOwnerId === groupId)
       .map(c => c.id);
     return ids.length > 0 ? new Set(ids) : null;
-  }, [selectedGroup, companies]);
+  }, [selectedGroup, companies, urlScope, urlEntityId]);
 
   // With company-level module access, all sites in a company have the same access
   // So no per-site filtering needed - just show all sites for the user's company
@@ -783,10 +785,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Build hierarchy URL - always fetch with includeArchived=true, filter client-side
   const hierarchyUrl = useMemo(() => {
     const params = new URLSearchParams();
-    if (selectedCompanyId) params.set("companyId", selectedCompanyId);
+    if (urlScope === "group" && urlEntityId) {
+      // Pass groupOwnerId so the server restricts the hierarchy to the group's
+      // own sites and all member-company sites only.
+      params.set("groupOwnerId", urlEntityId);
+    } else if (selectedCompanyId) {
+      params.set("companyId", selectedCompanyId);
+    }
     params.set("includeArchived", "true");
     return `/api/sites/${hierarchySiteId}/modules/${module}/documents-hierarchy?${params.toString()}`;
-  }, [hierarchySiteId, module, selectedCompanyId]);
+  }, [hierarchySiteId, module, selectedCompanyId, urlScope, urlEntityId]);
 
   // Fetch document hierarchy — fetch whenever hierarchySiteId is set, including
   // the "all" aggregate view which the backend handles by spanning all accessible sites.
@@ -987,7 +995,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         urlScope === "company" &&
         Array.isArray((doc as any).sharedWithCompanyIds) &&
         (doc as any).sharedWithCompanyIds.includes(urlEntityId);
-      if (!ownedAtScope && !sharedToCompany) {
+      // For group scope: also include site-scoped docs that belong to a site within
+      // the group (group owner's sites + member companies' sites). Uses filteredSites
+      // which is already scoped to group member companies via groupCompanyIds.
+      const siteInGroup =
+        urlScope === "group" &&
+        doc.siteId !== null &&
+        filteredSites.some(s => s.id === doc.siteId);
+      if (!ownedAtScope && !sharedToCompany && !siteInGroup) {
         return false;
       }
     }

@@ -11052,6 +11052,7 @@ export async function registerRoutes(
       
       const { siteId, module } = req.params;
       const requestedCompanyId = req.query.companyId as string | undefined;
+      const requestedGroupOwnerId = req.query.groupOwnerId as string | undefined;
       
       // Handle "all" siteId - aggregate across multiple sites
       const isAllSites = siteId === "all";
@@ -11082,6 +11083,13 @@ export async function registerRoutes(
       let targetSiteIds: string[] = [];
       let allSitesHierarchyEarly: Awaited<ReturnType<typeof storage.getSites>> = [];
       if (isAllSites) {
+        // Pre-build group member company ID set when filtering by group scope.
+        let groupMemberCompanyIds: Set<string> | null = null;
+        if (requestedGroupOwnerId) {
+          const groupMembers = await storage.getGroupMembers(requestedGroupOwnerId);
+          groupMemberCompanyIds = new Set([requestedGroupOwnerId, ...groupMembers.map(c => c.id)]);
+        }
+
         // Batch access checks (admins short-circuit immediately).
         const allSitesForAccess = await storage.getSites();
         allSitesHierarchyEarly = allSitesForAccess;
@@ -11089,7 +11097,9 @@ export async function registerRoutes(
         for (let i = 0; i < allSitesForAccess.length; i++) {
           if (!accessChecks[i]) continue;
           const site = allSitesForAccess[i];
-          if (requestedCompanyId) {
+          if (groupMemberCompanyIds) {
+            if (site.companyId && groupMemberCompanyIds.has(site.companyId)) targetSiteIds.push(site.id);
+          } else if (requestedCompanyId) {
             if (site.companyId === requestedCompanyId) targetSiteIds.push(site.id);
           } else {
             targetSiteIds.push(site.id);

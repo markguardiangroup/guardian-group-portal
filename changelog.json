@@ -4668,6 +4668,13 @@
           "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:10:00.000Z"
+        },
+        {
+          "id": "i9k1m3o5-group-documents-scope-filter-fix-2026",
+          "patch": 6,
+          "message": "Fixed: group documents view no longer shows documents from unrelated companies",
+          "category": "bug",
+          "createdAt": "2026-05-20T16:25:00.000Z"
         }
       ],
       "publishedPatch": 5,
