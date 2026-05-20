@@ -1735,6 +1735,7 @@ export async function registerRoutes(
         if (!d.isRequired) return false;
         if (consumedDocIds.has(d.id)) return false;
         if (d.isArchived || d.caseId || d.incidentId) return false;
+        if (d.source === "external") return false;
         if (!filteredSiteIds.has(d.siteId)) return false;
         if (module && d.module !== module) return false;
         if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
@@ -2289,22 +2290,25 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — regular module folder documents only
-      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
+      // Document Progress stats — H&S/HR/EL module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external"), other modules
+      const _complianceMods = ["health_safety", "human_resources", "employment_law"];
       const docProgressSet = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
-        d.source !== "external"
+        d.source !== "external" &&
+        _complianceMods.includes(d.module as string)
       );
       const _progNow = new Date();
       const isDocOverdue = (d: any) =>
-        d.status === "overdue" ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow);
       const allDocumentsCount = docProgressSet.length;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
-      const allApprovalRequired = docProgressSet.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
+      const allApprovalRequired = docProgressSet.filter(d =>
+        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+      ).length;
       const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2456,22 +2460,25 @@ export async function registerRoutes(
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — regular module folder documents only
-      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
+      // Document Progress stats — H&S/HR/EL module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external"), other modules
+      const _complianceMods2 = ["health_safety", "human_resources", "employment_law"];
       const allNonCaseDocs = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
-        d.source !== "external"
+        d.source !== "external" &&
+        _complianceMods2.includes(d.module as string)
       );
       const _progNow2 = new Date();
       const isDocOverdue2 = (d: any) =>
-        d.status === "overdue" ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow2);
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
-      const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.status === "approval_required" && !isDocOverdue2(d)).length;
+      const allApprovalRequiredProgress = allNonCaseDocs.filter(d =>
+        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+      ).length;
       const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2696,26 +2703,26 @@ export async function registerRoutes(
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
         const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
-        const siteApprovalRequired = moduleDocs.filter(d => d.status === "approval_required").length;
+        const siteApprovalRequired = moduleDocs.filter(d =>
+          d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+        ).length;
         const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
-        const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
         // Add scoped doc expansion counts for this module
         const modScoped = scopedExpansions.filter(e => e.module === mod);
-        let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0, scopedPending = 0;
+        let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0;
         for (const { status, approvalStatus, siteCount: n } of modScoped) {
           scopedTotal += n;
           if (status === "compliant") scopedCompliant += n;
-          else if (status === "approval_required") scopedApprovalRequired += n;
           else if (status === "overdue") scopedOverdue += n;
-          if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
+          if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedApprovalRequired += n;
         }
 
         const allDocsCount = siteCount + scopedTotal;
         const allCompliant = siteCompliant + scopedCompliant;
         const allApprovalRequired = siteApprovalRequired + scopedApprovalRequired;
         const allOverdue = siteOverdue + scopedOverdue;
-        const pending = sitePending + scopedPending;
+        const pending = allApprovalRequired;
 
         // Compliance calculation uses all docs (site-scoped + scoped) for the module
         const allModuleDocs = [
