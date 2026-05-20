@@ -1705,9 +1705,10 @@ export async function registerRoutes(
         matchingDocs.forEach(d => {
           const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _now) ||
             (d.renewalDate && new Date(d.renewalDate) < _now);
-          if (d.status === "overdue" || dateOverdue) slotOverdue++;
-          else if (d.status === "approval_required") slotApprovalRequired++;
-          else if (d.status === "compliant") slotCompliantDocs++;
+          const pendingApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+          if (dateOverdue) slotOverdue++;
+          if (pendingApproval) slotApprovalRequired++;
+          if (!dateOverdue && !pendingApproval && d.status === "compliant") slotCompliantDocs++;
         });
       }
 
@@ -1744,12 +1745,13 @@ export async function registerRoutes(
     // Per-document counts (match what the dialog list shows)
     const _manualNow = new Date();
     const isManualOverdue = (d: any) =>
-      d.status === "overdue" ||
       (d.expiryDate && new Date(d.expiryDate) < _manualNow) ||
       (d.renewalDate && new Date(d.renewalDate) < _manualNow);
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d)).length;
+    const isManualApprovalRequired = (d: any) =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d) && !isManualApprovalRequired(d)).length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isManualOverdue(d)).length;
+    const approvalRequired = slotApprovalRequired + manualRequired.filter(isManualApprovalRequired).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
     // Compliance score: compliant / (compliant + not compliant + missing)

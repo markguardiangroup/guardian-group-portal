@@ -35,7 +35,7 @@ export type DocumentStatus = "compliant" | "approval_required" | "overdue" | "ap
 // - approved: Consultant has given final approval (triggers renewal date)
 // - rejected: Document was rejected
 // - changes_requested: Changes requested by reviewer
-export type ApprovalStatus = "pending" | "review_required" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
+export type ApprovalStatus = "pending" | "client_signed_off" | "approved" | "rejected" | "changes_requested";
 
 // Company status
 export type CompanyStatus = "pending" | "active" | "on_hold" | "cancelled";

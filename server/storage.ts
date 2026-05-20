@@ -677,7 +677,7 @@ export class MemStorage implements IStorage {
    * so that no per-site DB queries are needed.
    */
   private computeComplianceSummaryInMemory(
-    siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null }[],
+    siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null; renewalDate?: string | Date | null; expiryDate?: string | Date | null }[],
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null }>,
@@ -701,6 +701,7 @@ export class MemStorage implements IStorage {
     let slotOverdue = 0;
     let missingRequired = 0;
     const consumedTemplateIds = new Set<string>();
+    const _ciNow = new Date();
 
     for (const templateId of effectiveTemplateIds) {
       const tmpl = templateMap.get(templateId);
@@ -710,29 +711,47 @@ export class MemStorage implements IStorage {
       const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
       if (matchingDocs.length === 0) { missingRequired++; continue; }
       for (const d of matchingDocs) {
-        if (d.status === "compliant") slotCompliantDocs++;
-        else if (d.status === "overdue") slotOverdue++;
-        else if (d.status === "approval_required") slotReview++;
+        const docOverdue = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
+                           (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
+        const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+        if (docOverdue) slotOverdue++;
+        if (docApproval) slotReview++;
+        if (!docOverdue && !docApproval && d.status === "compliant") slotCompliantDocs++;
       }
     }
 
     const manualRequired = siteDocs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
+    const manualCompliant = manualRequired.filter(d => {
+      const ov = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
+                 (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
+      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+      return d.status === "compliant" && !ov && !ap;
+    }).length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
-    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const approvalRequired = slotReview + manualRequired.filter(d =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+    ).length;
+    const overdue = slotOverdue + manualRequired.filter(d =>
+      (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
+      (d.expiryDate && new Date(d.expiryDate as string) < _ciNow)
+    ).length;
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
 
-    // All-docs stats for metric tiles (Total, Overdue, Approval Required)
+    // All-docs stats for metric tiles (Total, Overdue, Approval Required — derived from conditions)
     const allDocumentsCount = siteDocs.length;
     const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant").length;
-    const allApprovalRequired = siteDocs.filter(d => d.status === "approval_required").length;
-    const allOverdueDocuments = siteDocs.filter(d => d.status === "overdue").length;
+    const allApprovalRequired = siteDocs.filter(d =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+    ).length;
+    const allOverdueDocuments = siteDocs.filter(d =>
+      (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
+      (d.expiryDate && new Date(d.expiryDate as string) < _ciNow)
+    ).length;
 
     return {
       totalDocuments: total,
@@ -1140,16 +1159,30 @@ export class MemStorage implements IStorage {
   }
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
-    const allDocs = await db.select().from(documentsTable)
+    const complianceMods: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
+
+    const siteScopedDocs = await db.select().from(documentsTable)
       .where(and(
-        eq(documentsTable.siteId, siteId), 
+        eq(documentsTable.siteId, siteId),
         eq(documentsTable.isArchived, false),
         isNull(documentsTable.caseId),
         isNull(documentsTable.incidentId)
       ));
-    const docs = allDocs;
-
-    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
+    let companySharedDocs: typeof siteScopedDocs = [];
+    if (site?.companyId) {
+      companySharedDocs = await db.select().from(documentsTable)
+        .where(and(
+          eq(documentsTable.entityId, site.companyId),
+          isNull(documentsTable.siteId),
+          eq(documentsTable.isArchived, false),
+          isNull(documentsTable.caseId),
+          isNull(documentsTable.incidentId)
+        ));
+    }
+    const docs = [...siteScopedDocs, ...companySharedDocs].filter(d =>
+      d.source !== "external" && complianceMods.includes(d.module as ModuleType)
+    );
 
     let slotTotal = 0;
     // per-document counts for display (matching computeSlotBasedCompliance in routes.ts)
@@ -1189,11 +1222,15 @@ export class MemStorage implements IStorage {
           missingRequired++;
           continue;
         }
-        // Per-document display counts — so the dialog list matches the card numbers
+        // Per-document display counts — derived from conditions (allows overlap)
+        const _sn = new Date();
         matchingDocs.forEach(d => {
-          if (d.status === "compliant") slotCompliantDocs++;
-          else if (d.status === "overdue") slotOverdue++;
-          else if (d.status === "approval_required") slotReview++;
+          const docOverdue = (d.renewalDate && new Date(d.renewalDate) < _sn) ||
+                             (d.expiryDate && new Date(d.expiryDate) < _sn);
+          const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+          if (docOverdue) slotOverdue++;
+          if (docApproval) slotReview++;
+          if (!docOverdue && !docApproval && d.status === "compliant") slotCompliantDocs++;
         });
       }
     }
@@ -1201,22 +1238,38 @@ export class MemStorage implements IStorage {
     const manualRequired = docs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
+    const _scNow = new Date();
+    const manualCompliant = manualRequired.filter(d => {
+      const ov = (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
+                 (d.expiryDate && new Date(d.expiryDate) < _scNow);
+      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+      return d.status === "compliant" && !ov && !ap;
+    }).length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
-    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const approvalRequired = slotReview + manualRequired.filter(d =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+    ).length;
+    const overdue = slotOverdue + manualRequired.filter(d =>
+      (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
+      (d.expiryDate && new Date(d.expiryDate) < _scNow)
+    ).length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     // Compliance score: compliant / (compliant + not compliant + missing)
     // Ties the percentage directly to the four tiles shown on the dashboard card.
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
     
-    // All-docs stats for metric tiles (Total, Overdue, Approval Required)
+    // All-docs stats for metric tiles (Total, Overdue, Approval Required — derived from conditions)
     const allDocumentsCount = docs.length;
     const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
-    const allApprovalRequired = docs.filter(d => d.status === "approval_required").length;
-    const allOverdueDocuments = docs.filter(d => d.status === "overdue").length;
+    const allApprovalRequired = docs.filter(d =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+    ).length;
+    const allOverdueDocuments = docs.filter(d =>
+      (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
+      (d.expiryDate && new Date(d.expiryDate) < _scNow)
+    ).length;
 
     return {
       totalDocuments: total,
@@ -1839,7 +1892,10 @@ export class MemStorage implements IStorage {
       // Filter by company: get all sites for this company from database
       const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
       const companySiteIds = companySites.map(s => s.id);
-      docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
+      docs = docs.filter(d =>
+        (d.siteId && companySiteIds.includes(d.siteId)) ||
+        (!d.siteId && d.entityId === companyId)
+      );
     }
     // Calculate missing required templates
     let missingRequired = 0;
@@ -1879,23 +1935,22 @@ export class MemStorage implements IStorage {
         if (!tmpl || tmpl.visibility !== "private") continue;
         if (module && tmpl.module !== module) continue;
         if (!module && !complianceModulesList.includes(tmpl.module as ModuleType)) continue;
-        const isFulfilled = siteDocs.some(d => {
-          if (d.templateId !== templateId) return false;
-          if (d.status !== "compliant") return false;
-          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-          if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
-          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-          return true;
-        });
+        const isFulfilled = siteDocs.some(d => d.templateId === templateId);
         if (!isFulfilled) missingRequired++;
       }
     }
 
-    // All-docs stats (for metric tiles: Total, Overdue, Approval Required)
+    // All-docs stats (for metric tiles: Total, Overdue, Approval Required — derived from conditions)
     const allDocuments = docs.length;
     const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
-    const allApprovalRequired = docs.filter(d => d.status === "approval_required").length;
-    const allOverdueDocuments = docs.filter(d => d.status === "overdue").length;
+    const _gcNow = new Date();
+    const allOverdueDocuments = docs.filter(d =>
+      (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
+      (d.expiryDate && new Date(d.expiryDate) < _gcNow)
+    ).length;
+    const allApprovalRequired = docs.filter(d =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+    ).length;
     // Required-docs-only stats (for compliance score denominator)
     const requiredDocs = docs.filter(d => d.isRequired);
     const requiredCompliant = requiredDocs.filter(d => d.status === "compliant").length;
@@ -1971,8 +2026,14 @@ export class MemStorage implements IStorage {
       // All-docs stats (for metric tiles)
       const total = docs.length;
       const allCompliant = docs.filter(d => d.status === "compliant").length;
-      const allApprovalRequired = docs.filter(d => d.status === "approval_required").length;
-      const allOverdue = docs.filter(d => d.status === "overdue").length;
+      const _msfNow = new Date();
+      const allApprovalRequired = docs.filter(d =>
+        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
+      ).length;
+      const allOverdue = docs.filter(d =>
+        (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
+        (d.expiryDate && new Date(d.expiryDate) < _msfNow)
+      ).length;
       const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       // Required-docs stats (for compliance score)
       const requiredDocs = docs.filter(d => d.isRequired);
