@@ -215,6 +215,21 @@ process.on("uncaughtException", (err) => {
       CREATE UNIQUE INDEX IF NOT EXISTS "service_components_parent_component_unique"
         ON "service_components" ("parent_service_id", "component_service_id");
     `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "login_attempts" (
+        "id" varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        "username" text NOT NULL,
+        "ip_address" text,
+        "user_agent" text,
+        "success" boolean NOT NULL DEFAULT false,
+        "failure_reason" text,
+        "attempted_at" timestamp NOT NULL DEFAULT now()
+      );
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS "login_attempts_username_attempted_at_idx"
+        ON "login_attempts" ("username", "attempted_at" DESC);
+    `);
   } catch (err) {
     console.error("Startup migration warning (non-fatal):", err);
   }

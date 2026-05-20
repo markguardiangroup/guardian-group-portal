@@ -4696,6 +4696,13 @@
           "message": "Fixed: Overdue/Approval Required tile values now consistent across all compliance endpoints; group-scoped docs included in site compliance summaries; module summary overdue uses date conditions throughout",
           "category": "bug",
           "createdAt": "2026-05-20T11:10:00.000Z"
+        },
+        {
+          "id": "e3f5h7i9-login-attempts-table-missing-2026",
+          "patch": 7,
+          "message": "Fixed: login was broken on dev due to a missing database table — now created automatically on startup",
+          "category": "bug",
+          "createdAt": "2026-05-20T14:35:00.000Z"
         }
       ],
       "publishedPatch": 6,
