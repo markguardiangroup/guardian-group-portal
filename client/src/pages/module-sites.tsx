@@ -1075,7 +1075,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const siteEffectiveRequired = new Set(effectiveRequiredBySite[site.id] ?? []);
               // Count each required doc individually (raw count, no slot-dedup).
               // Pass 1: docs whose template is in the effective required set.
-              // This means both a compliant AND a review_required copy of the
+              // This means both a compliant AND an approval_required copy of the
               // same template are each counted — so the card reflects every doc
               // that needs attention without hiding the compliant ones.
               let compliant = 0;

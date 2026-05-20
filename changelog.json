@@ -4675,6 +4675,13 @@
           "message": "Fixed: group documents view no longer shows documents from unrelated companies",
           "category": "bug",
           "createdAt": "2026-05-20T16:25:00.000Z"
+        },
+        {
+          "id": "j0l2n4p6-compliance-badge-multi-chip-redesign-2026",
+          "patch": 6,
+          "message": "Document rows now show stackable secondary badges: Required, Non Compliant, Past Renewal/Expiry Date, Client Sign Off Required, Consultant Approval Required",
+          "category": "enhancement",
+          "createdAt": "2026-05-20T20:35:00.000Z"
         }
       ],
       "publishedPatch": 5,

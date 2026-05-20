@@ -825,7 +825,7 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                   <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                   <span className="text-sm text-muted-foreground">
                                     {format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -902,7 +902,7 @@ function DocumentsListView() {
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                             <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                           </div>
                                         </Link>
@@ -962,7 +962,7 @@ function DocumentsListView() {
                         <span className="font-medium">{doc.title}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                        <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                         <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -1087,7 +1087,7 @@ function DocumentsListView() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
                     <TableCell>
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />

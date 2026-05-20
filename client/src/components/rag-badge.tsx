@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert, CalendarX } from "lucide-react";
 import type { DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -7,41 +7,60 @@ interface ComplianceBadgeProps {
   isRequired: boolean;
   status: DocumentStatus;
   approvalStatus: ApprovalStatus;
+  renewalDate?: string | Date | null;
+  expiryDate?: string | Date | null;
   className?: string;
 }
 
-export function ComplianceBadge({ isRequired, status, approvalStatus, className }: ComplianceBadgeProps) {
-  if (!isRequired) {
-    return null;
+export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDate, expiryDate, className }: ComplianceBadgeProps) {
+  const now = new Date();
+  const isPastRenewal = !!renewalDate && new Date(renewalDate as string) < now;
+  const isPastExpiry = !!expiryDate && new Date(expiryDate as string) < now;
+
+  interface ChipDef { label: string; Icon: typeof CheckCircle; cls: string; testId: string }
+  const chips: ChipDef[] = [];
+
+  if (isRequired && status !== "compliant") {
+    chips.push({ label: "Non Compliant", Icon: ShieldAlert, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", testId: "badge-non-compliant" });
+  } else if (!isRequired && status !== "approved") {
+    chips.push({ label: "Not Approved", Icon: ShieldAlert, cls: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20", testId: "badge-not-approved" });
   }
 
-  const statusConfig: Partial<Record<string, { label: string; Icon: typeof CheckCircle; cls: string }>> = {
-    compliant: { label: "Compliant", Icon: CheckCircle, cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
-    approval_required: { label: "Approval Required", Icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" },
-    overdue: { label: "Overdue", Icon: XCircle, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" },
-  };
-  const primary = statusConfig[status];
+  if (isRequired) {
+    chips.push({ label: "Required", Icon: ShieldCheck, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", testId: "badge-required" });
+  }
+
+  if (isPastRenewal) {
+    chips.push({ label: "Past Renewal Date", Icon: CalendarX, cls: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20", testId: "badge-past-renewal" });
+  }
+
+  if (isPastExpiry) {
+    chips.push({ label: "Past Expiry Date", Icon: CalendarX, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", testId: "badge-past-expiry" });
+  }
+
+  if (approvalStatus === "pending") {
+    chips.push({ label: "Client Sign Off Required", Icon: UserCheck, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20", testId: "badge-client-signoff" });
+  }
+
+  if (approvalStatus === "client_signed_off") {
+    chips.push({ label: "Consultant Approval Required", Icon: ShieldCheck, cls: "bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/20", testId: "badge-consultant-approval" });
+  }
+
+  if (chips.length === 0) return null;
 
   return (
     <div className={cn("flex items-center gap-1 flex-wrap", className)}>
-      {primary && (
+      {chips.map(chip => (
         <Badge
+          key={chip.label}
           variant="outline"
-          className={cn("gap-1.5 font-medium", primary.cls)}
-          data-testid="badge-compliance-status"
+          className={cn("gap-1.5 font-medium", chip.cls)}
+          data-testid={chip.testId}
         >
-          <primary.Icon className="h-3 w-3" />
-          {primary.label}
+          <chip.Icon className="h-3 w-3" />
+          {chip.label}
         </Badge>
-      )}
-      <Badge
-        variant="outline"
-        className="gap-1.5 font-medium bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20"
-        data-testid="badge-compliance"
-      >
-        <ShieldAlert className="h-3 w-3" />
-        Required
-      </Badge>
+      ))}
     </div>
   );
 }

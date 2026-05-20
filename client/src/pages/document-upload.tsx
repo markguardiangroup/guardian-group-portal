@@ -1555,7 +1555,7 @@ export default function DocumentUpload() {
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                  <span>Set review dates for compliance tracking</span>
+                  <span>Set renewal dates for compliance tracking</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
