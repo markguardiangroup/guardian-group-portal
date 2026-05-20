@@ -1911,14 +1911,32 @@ export class MemStorage implements IStorage {
     docs = docs.filter(d => d.source !== "external");
 
     if (siteId) {
-      docs = docs.filter(d => d.siteId === siteId);
+      // Include site-scoped docs + company-scoped + group-scoped shared docs for this site
+      const siteRows = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId));
+      const siteRecord = siteRows[0];
+      const siteCompanyId = siteRecord?.companyId ?? null;
+      let gcsSiteGroupOwnerId: string | null = null;
+      if (siteCompanyId) {
+        const companyRows = await db.select().from(companiesTable).where(eq(companiesTable.id, siteCompanyId));
+        gcsSiteGroupOwnerId = companyRows[0]?.groupOwnerId ?? null;
+      }
+      docs = docs.filter(d =>
+        d.siteId === siteId ||
+        (!d.siteId && siteCompanyId && d.entityId === siteCompanyId) ||
+        (!d.siteId && gcsSiteGroupOwnerId && d.entityId === gcsSiteGroupOwnerId)
+      );
     } else if (companyId) {
-      // Filter by company: get all sites for this company from database
-      const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
+      // Filter by company: include site-scoped docs + company-scoped + group-scoped shared docs
+      const [companySites, companyRows] = await Promise.all([
+        db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId)),
+        db.select().from(companiesTable).where(eq(companiesTable.id, companyId)),
+      ]);
       const companySiteIds = companySites.map(s => s.id);
+      const gcsCompanyGroupOwnerId = companyRows[0]?.groupOwnerId ?? null;
       docs = docs.filter(d =>
         (d.siteId && companySiteIds.includes(d.siteId)) ||
-        (!d.siteId && d.entityId === companyId)
+        (!d.siteId && d.entityId === companyId) ||
+        (!d.siteId && gcsCompanyGroupOwnerId && d.entityId === gcsCompanyGroupOwnerId)
       );
     }
     // Calculate missing required templates
