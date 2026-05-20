@@ -10,10 +10,11 @@ interface ComplianceBadgeProps {
   renewalDate?: string | Date | null;
   expiryDate?: string | Date | null;
   hideApprovalChips?: boolean;
+  hideDateChips?: boolean;
   className?: string;
 }
 
-export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, className }: ComplianceBadgeProps) {
+export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, hideDateChips = false, className }: ComplianceBadgeProps) {
   const now = new Date();
   const isPastRenewal = !!renewalDate && new Date(renewalDate as string) < now;
   const isPastExpiry = !!expiryDate && new Date(expiryDate as string) < now;
@@ -31,11 +32,11 @@ export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDat
     chips.push({ label: "Required", Icon: ShieldCheck, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", testId: "badge-required" });
   }
 
-  if (isPastRenewal) {
+  if (!hideDateChips && isPastRenewal) {
     chips.push({ label: "Past Renewal Date", Icon: CalendarX, cls: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20", testId: "badge-past-renewal" });
   }
 
-  if (isPastExpiry) {
+  if (!hideDateChips && isPastExpiry) {
     chips.push({ label: "Past Expiry Date", Icon: CalendarX, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", testId: "badge-past-expiry" });
   }
 
