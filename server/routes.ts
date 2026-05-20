@@ -1952,9 +1952,9 @@ export async function registerRoutes(
     for (const site of accessibleSites) {
       const requiredIds = companyReqsByCompanyId.get(site.companyId) ?? new Set<string>();
       const siteExcluded = excludedTemplatesBySiteId.get(site.id) ?? new Set<string>();
-      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
+      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external");
       const sharedDocs = computeSharedDocsForSiteMRTD(site);
-      const allSiteDocs = [...siteDocs, ...sharedDocs.filter((d: any) => !d.isArchived && !d.caseId)];
+      const allSiteDocs = [...siteDocs, ...sharedDocs.filter((d: any) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external")];
       const company = companyMap.get(site.companyId);
 
       for (const templateId of requiredIds) {

@@ -1953,7 +1953,10 @@ export class MemStorage implements IStorage {
         ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
       ];
 
-      const siteDocs = docs.filter(d => d.siteId === sid);
+      // Include both site-scoped AND company-scoped docs when checking slot fulfillment
+      const siteDocs = docs.filter(d =>
+        d.siteId === sid || (!d.siteId && d.entityId === site?.companyId)
+      );
       for (const templateId of effectiveTemplateIds) {
         const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
@@ -2032,6 +2035,8 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]> {
+    if (siteIds.length === 0) return [];
+
     const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
@@ -2040,26 +2045,66 @@ export class MemStorage implements IStorage {
       support: "Support",
       reports: "Reports",
     };
-    
-    // Aggregate compliance summary across multiple sites
-    const allDocs = await db.select().from(documentsTable)
-      .where(and(
+
+    // ── Batch-load everything upfront — zero N+1 queries ──────────────────
+    const sitesData = await db.select().from(sitesTable).where(inArray(sitesTable.id, siteIds));
+    const siteMapMSF = new Map(sitesData.map(s => [s.id, s]));
+    const companyIdsMSF = [...new Set(sitesData.map(s => s.companyId).filter(Boolean))] as string[];
+    const companyIdsSetMSF = new Set(companyIdsMSF);
+
+    const [companiesData, allDocs, allTemplates, allCompanyRequired, allSiteOverridesMSF] = await Promise.all([
+      companyIdsMSF.length > 0
+        ? db.select().from(companiesTable).where(inArray(companiesTable.id, companyIdsMSF))
+        : Promise.resolve([]),
+      db.select().from(documentsTable).where(and(
         eq(documentsTable.isArchived, false),
         isNull(documentsTable.caseId),
         isNull(documentsTable.incidentId),
-      ));
-    
-    return Promise.all(modules.map(async (module) => {
-      // Get documents from all specified sites (exclude external/cloud-share docs)
+      )),
+      db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
+      companyIdsMSF.length > 0
+        ? db.select().from(companyRequiredTemplatesTable).where(inArray(companyRequiredTemplatesTable.companyId, companyIdsMSF))
+        : Promise.resolve([]),
+      db.select().from(siteTemplateOverridesTable).where(inArray(siteTemplateOverridesTable.siteId, siteIds)),
+    ]);
+
+    const groupOwnerIdsMSF = new Set(companiesData.map(c => c.groupOwnerId).filter(Boolean) as string[]);
+    const templateMapMSF = new Map(allTemplates.map(t => [t.id, t]));
+
+    // Company required templates (excluding soft-removed inherited rows)
+    const companyReqMSF = new Map<string, Set<string>>();
+    for (const r of allCompanyRequired) {
+      if (r.removedAt) continue;
+      if (!companyReqMSF.has(r.companyId)) companyReqMSF.set(r.companyId, new Set());
+      companyReqMSF.get(r.companyId)!.add(r.templateId);
+    }
+
+    // Site override sets
+    const overridesBySiteMSF = new Map<string, { exc: Set<string>; inc: Set<string> }>();
+    for (const o of allSiteOverridesMSF) {
+      if (!overridesBySiteMSF.has(o.siteId)) overridesBySiteMSF.set(o.siteId, { exc: new Set(), inc: new Set() });
+      if (o.action === "exclude") overridesBySiteMSF.get(o.siteId)!.exc.add(o.templateId);
+      else if (o.action === "include") overridesBySiteMSF.get(o.siteId)!.inc.add(o.templateId);
+    }
+
+    const _msfNow = new Date();
+
+    return modules.map(module => {
+      // Site-scoped + company-scoped + group-scoped docs for this module (same rules as getComplianceSummary)
       const docs = allDocs.filter(d =>
         d.module === module &&
-        d.siteId && siteIds.includes(d.siteId) &&
-        d.source !== "external"
+        d.source !== "external" &&
+        (
+          (d.siteId != null && siteIds.includes(d.siteId)) ||
+          (d.siteId == null && d.entityId != null && (
+            companyIdsSetMSF.has(d.entityId) ||
+            groupOwnerIdsMSF.has(d.entityId)
+          ))
+        )
       );
 
-      // All-docs stats (for metric tiles: Total, Overdue, Approval Required — derived conditions)
+      // All-docs tile stats (derived conditions, not stored status)
       const total = docs.length;
-      const _msfNow = new Date();
       const allApprovalRequired = docs.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
       ).length;
@@ -2067,8 +2112,6 @@ export class MemStorage implements IStorage {
         (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
         (d.expiryDate && new Date(d.expiryDate) < _msfNow)
       ).length;
-      const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      // Required-docs stats (for compliance score — derived conditions, not stored status)
       const requiredDocs = docs.filter(d => d.isRequired);
       const requiredCompliant = requiredDocs.filter(d => {
         const ov = (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
@@ -2082,18 +2125,48 @@ export class MemStorage implements IStorage {
         const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
         return d.approvalStatus === "approved" && !ov && !ap;
       }).length;
-      // Score = Compliant / RequiredUploaded — NonCompliant = RequiredUploaded - Compliant
-      const scoreDenominator = requiredDocs.length;
-      
+      const pending = allApprovalRequired;
+
+      // Missing required slots — same algorithm as getComplianceSummary
+      let missingRequired = 0;
+      for (const sid of siteIds) {
+        const site = siteMapMSF.get(sid);
+        if (!site?.companyId) continue;
+        const siteReqIds = companyReqMSF.get(site.companyId) ?? new Set<string>();
+        const { exc, inc } = overridesBySiteMSF.get(sid) ?? { exc: new Set<string>(), inc: new Set<string>() };
+        const effectiveIds = [
+          ...[...siteReqIds].filter(id => !exc.has(id)),
+          ...[...inc].filter(id => !siteReqIds.has(id)),
+        ];
+        // Fulfilled by site-scoped or company-scoped docs
+        const fulfilledIds = new Set(
+          allDocs
+            .filter(d => !d.isArchived && d.module === module && (
+              d.siteId === sid ||
+              (!d.siteId && d.entityId === site.companyId)
+            ))
+            .map(d => d.templateId)
+            .filter(Boolean)
+        );
+        for (const templateId of effectiveIds) {
+          const tmpl = templateMapMSF.get(templateId);
+          if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
+          if (tmpl.module !== module) continue;
+          if (!fulfilledIds.has(templateId)) missingRequired++;
+        }
+      }
+
+      // Score = Compliant / (RequiredUploaded + Missing) per spec
+      const scoreDenominator = requiredDocs.length + missingRequired;
+
       return {
         module,
         moduleName: moduleNames[module],
         totalDocuments: total,
         compliantDocuments: requiredCompliant,
-        // Tile values use ALL docs in scope (required + non-required) per spec
         approvalRequired: allApprovalRequired,
         overdueDocuments: allOverdue,
-        missingRequiredDocuments: 0,
+        missingRequiredDocuments: missingRequired,
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
@@ -2104,7 +2177,7 @@ export class MemStorage implements IStorage {
         allApprovalRequired,
         allOverdueDocuments: allOverdue,
       };
-    }));
+    });
   }
 
   // Entity Document Type Access (Database-backed)

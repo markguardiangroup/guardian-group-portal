@@ -4703,6 +4703,13 @@
           "message": "Fixed: login was broken on dev due to a missing database table — now created automatically on startup",
           "category": "bug",
           "createdAt": "2026-05-20T14:35:00.000Z"
+        },
+        {
+          "id": "f4g6i8j0-compliance-reports-shared-docs-missing-2026",
+          "patch": 7,
+          "message": "Fixed: reports compliance figures now include company/group-scoped shared docs and correctly compute missing required slots and score",
+          "category": "bug",
+          "createdAt": "2026-05-20T14:44:00.000Z"
         }
       ],
       "publishedPatch": 6,
