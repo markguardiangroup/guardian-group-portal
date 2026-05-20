@@ -4710,6 +4710,13 @@
           "message": "Fixed: reports compliance figures now include company/group-scoped shared docs and correctly compute missing required slots and score",
           "category": "bug",
           "createdAt": "2026-05-20T14:44:00.000Z"
+        },
+        {
+          "id": "a9b1c3d5-shared-doc-explicit-share-compliance-2026",
+          "patch": 7,
+          "message": "Fixed: documents explicitly shared from other entities (via share records) now count correctly in site compliance totals",
+          "category": "bug",
+          "createdAt": "2026-05-20T15:35:00.000Z"
         }
       ],
       "publishedPatch": 6,
@@ -4749,7 +4756,8 @@
         "a1c3e5f7-vm-deployment-always-on-2026",
         "c3e5g7i9-domain-check-no-website-note-2026",
         "d4f6h8j0-key-contact-site-section-visible-2026",
-        "h8j0l2n4-create-client-user-shared-component-2026"
+        "h8j0l2n4-create-client-user-shared-component-2026",
+        "a9b1c3d5-shared-doc-explicit-share-compliance-2026"
       ]
     }
   ]
