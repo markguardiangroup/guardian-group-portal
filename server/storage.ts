@@ -1198,16 +1198,31 @@ export class MemStorage implements IStorage {
   }
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
-    const allDocs = await db.select().from(documentsTable)
+    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
+
+    // Site-scoped docs (exclude external/cloud-share per module scope rule)
+    const siteScopedDocs = await db.select().from(documentsTable)
       .where(and(
-        eq(documentsTable.siteId, siteId), 
+        eq(documentsTable.siteId, siteId),
         eq(documentsTable.isArchived, false),
         isNull(documentsTable.caseId),
         isNull(documentsTable.incidentId)
-      ));
-    const docs = allDocs;
+      )).then(rows => rows.filter(d => d.source !== "external"));
 
-    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
+    // Company-scoped docs inherited by this site (siteId=null, entityId=companyId)
+    const companyScopedDocs = site?.companyId
+      ? await db.select().from(documentsTable)
+          .where(and(
+            isNull(documentsTable.siteId),
+            eq(documentsTable.entityId, site.companyId),
+            eq(documentsTable.isArchived, false),
+            isNull(documentsTable.caseId),
+            isNull(documentsTable.incidentId)
+          )).then(rows => rows.filter(d => d.source !== "external"))
+      : [];
+
+    // Combined doc set: site-scoped + inherited company-scoped
+    const docs = [...siteScopedDocs, ...companyScopedDocs];
 
     let slotTotal = 0;
     // per-document counts for display (matching computeSlotBasedCompliance in routes.ts)
@@ -1920,7 +1935,14 @@ export class MemStorage implements IStorage {
     // company-scoped docs (siteId=null, entityId=companyId) keyed by companyId for per-site inheritance
     const companyDocsByCompanyId = new Map<string, typeof docs>();
     if (siteId) {
-      docs = docs.filter(d => d.siteId === siteId || (!d.siteId && false));
+      // Look up the site's companyId to include company-scoped inherited docs
+      const siteRecord = (await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)))[0];
+      const siteCompanyId = siteRecord?.companyId;
+      // Include site-scoped docs AND company-scoped docs inherited by this site
+      docs = docs.filter(d =>
+        d.siteId === siteId ||
+        (!d.siteId && siteCompanyId && d.entityId === siteCompanyId)
+      );
       relevantSiteIds = [siteId];
     } else if (companyId) {
       const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
@@ -2018,13 +2040,18 @@ export class MemStorage implements IStorage {
     // Required-slot total (slots + manual required docs without a slot)
     const requiredSlotTotal = slotTotal + manualRequired.length;
 
-    // All-doc stats (required + non-required) for Total/Overdue/Approval tiles
-    // Use the site-scoped docs view for all-doc stats (excludes duplication of company-scoped per-site)
+    // All-doc stats (required + non-required) for Total/Overdue/Approval tiles.
+    // Per spec: company-scoped docs are counted independently at each site (per-site expansion, not unique-dedup).
     const allDocsSiteScoped = docs.filter(d => d.siteId && relevantSiteIds.includes(d.siteId));
-    const allDocsCompanyScoped = [...new Map(
-      [...companyDocsByCompanyId.values()].flat().map(d => [d.id, d])
-    ).values()];
-    const allDocsCombined = [...allDocsSiteScoped, ...allDocsCompanyScoped];
+    // Expand company-scoped docs per covered site (spec: counted at each site level independently)
+    const expandedCompanyDocs: typeof docs = [];
+    for (const sid of relevantSiteIds) {
+      const site = siteMap.get(sid);
+      if (!site?.companyId) continue;
+      const compDocs = companyDocsByCompanyId.get(site.companyId) ?? [];
+      expandedCompanyDocs.push(...compDocs);
+    }
+    const allDocsCombined = [...allDocsSiteScoped, ...expandedCompanyDocs];
     const allDocuments = allDocsCombined.length;
     const allCompliantDocuments = allDocsCombined.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
     const allApprovalRequired = allDocsCombined.filter(isDocApprovalRequired).length;

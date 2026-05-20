@@ -4829,6 +4829,20 @@
           "message": "Fixed: cloud-share docs no longer counted as manually required documents",
           "category": "bug",
           "createdAt": "2026-05-20T22:09:30.000Z"
+        },
+        {
+          "id": "e5f6a7b8-site-summary-inherits-company-docs-2026",
+          "patch": 6,
+          "message": "Fixed: site compliance now includes company-level documents correctly",
+          "category": "bug",
+          "createdAt": "2026-05-20T22:25:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-company-docs-per-site-expansion-2026",
+          "patch": 6,
+          "message": "Fixed: shared company docs now counted once per site in aggregate totals",
+          "category": "bug",
+          "createdAt": "2026-05-20T22:25:30.000Z"
         }
       ],
       "publishedPatch": 5,
