@@ -1682,16 +1682,14 @@ export async function registerRoutes(
           continue;
         }
 
-        // Count individual docs in this slot by status.
-        // We count per-document so the display cards match the dialog list —
-        // a slot with two compliant docs shows 2 compliant, and a non-compliant
-        // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
-        const _now = new Date();
+        // Count individual docs in this slot — overdue from dates only, approval from workflow state.
+        const _slotNow = new Date();
         matchingDocs.forEach(d => {
-          const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _now) ||
-            (d.renewalDate && new Date(d.renewalDate) < _now);
-          if (d.status === "overdue" || dateOverdue) slotOverdue++;
-          else if (d.status === "approval_required") slotApprovalRequired++;
+          const dateOverdue = !!(d.expiryDate && new Date(d.expiryDate) < _slotNow) ||
+            !!(d.renewalDate && new Date(d.renewalDate) < _slotNow);
+          const approvalPending = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+          if (dateOverdue) slotOverdue++;
+          else if (approvalPending) slotApprovalRequired++;
           else if (d.status === "compliant") slotCompliantDocs++;
         });
       }
@@ -1717,6 +1715,7 @@ export async function registerRoutes(
         if (!d.isRequired) return false;
         if (consumedDocIds.has(d.id)) return false;
         if (d.isArchived || d.caseId || d.incidentId) return false;
+        if (d.source === "external") return false;
         if (!filteredSiteIds.has(d.siteId)) return false;
         if (module && d.module !== module) return false;
         if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
@@ -1726,15 +1725,16 @@ export async function registerRoutes(
     ];
 
     const totalDocuments = slotTotal + manualRequired.length;
-    // Per-document counts (match what the dialog list shows)
+    // Per-document counts — overdue is strictly date-based; approval required from workflow state
     const _manualNow = new Date();
-    const isManualOverdue = (d: any) =>
-      d.status === "overdue" ||
-      (d.expiryDate && new Date(d.expiryDate) < _manualNow) ||
-      (d.renewalDate && new Date(d.renewalDate) < _manualNow);
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d)).length;
+    const isManualOverdue = (d: any): boolean =>
+      !!(d.expiryDate && new Date(d.expiryDate) < _manualNow) ||
+      !!(d.renewalDate && new Date(d.renewalDate) < _manualNow);
+    const isManualApprovalRequired = (d: any): boolean =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d) && !isManualApprovalRequired(d)).length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isManualOverdue(d)).length;
+    const approvalRequired = slotApprovalRequired + manualRequired.filter(d => !isManualOverdue(d) && isManualApprovalRequired(d)).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
     // Compliance score: compliant / (compliant + not compliant + missing)
@@ -2277,13 +2277,15 @@ export async function registerRoutes(
         (_modComplianceModules.has(module) ? d.module === module : true)
       );
       const _progNow = new Date();
-      const isDocOverdue = (d: any) =>
-        d.status === "overdue" ||
-        (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
-        (d.renewalDate && new Date(d.renewalDate) < _progNow);
+      // Overdue strictly date-based; approval from workflow state
+      const isDocOverdue = (d: any): boolean =>
+        !!(d.expiryDate && new Date(d.expiryDate) < _progNow) ||
+        !!(d.renewalDate && new Date(d.renewalDate) < _progNow);
+      const isDocApprovalRequired = (d: any): boolean =>
+        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
       const allDocumentsCount = docProgressSet.length;
-      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
-      const allApprovalRequired = docProgressSet.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
+      const allApprovalRequired = docProgressSet.filter(isDocApprovalRequired).length;
       const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2448,13 +2450,15 @@ export async function registerRoutes(
         (module ? true : _dashComplianceModules.has(d.module))
       );
       const _progNow2 = new Date();
-      const isDocOverdue2 = (d: any) =>
-        d.status === "overdue" ||
-        (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
-        (d.renewalDate && new Date(d.renewalDate) < _progNow2);
+      // Overdue strictly date-based; approval from workflow state
+      const isDocOverdue2 = (d: any): boolean =>
+        !!(d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
+        !!(d.renewalDate && new Date(d.renewalDate) < _progNow2);
+      const isDocApprovalRequired2 = (d: any): boolean =>
+        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
       const allDocsProgress = allNonCaseDocs.length;
-      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
-      const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d) && !isDocApprovalRequired2(d)).length;
+      const allApprovalRequiredProgress = allNonCaseDocs.filter(isDocApprovalRequired2).length;
       const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2677,35 +2681,23 @@ export async function registerRoutes(
 
       const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
       const summaries = await Promise.all(modules.map(async (mod) => {
-        const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
-        const siteCount = moduleDocs.length;
-        const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
-        const siteApprovalRequired = moduleDocs.filter(d => d.status === "approval_required").length;
-        const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
-        const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-
-        // Add scoped doc expansion counts for this module
-        const modScoped = scopedExpansions.filter(e => e.module === mod);
-        let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0, scopedPending = 0;
-        for (const { status, approvalStatus, siteCount: n } of modScoped) {
-          scopedTotal += n;
-          if (status === "compliant") scopedCompliant += n;
-          else if (status === "approval_required") scopedApprovalRequired += n;
-          else if (status === "overdue") scopedOverdue += n;
-          if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
-        }
-
-        const allDocsCount = siteCount + scopedTotal;
-        const allCompliant = siteCompliant + scopedCompliant;
-        const allApprovalRequired = siteApprovalRequired + scopedApprovalRequired;
-        const allOverdue = siteOverdue + scopedOverdue;
-        const pending = sitePending + scopedPending;
-
         // Compliance calculation uses all docs (site-scoped + scoped) for the module
         const allModuleDocs = [
-          ...moduleDocs,
+          ...siteScopedDocs.filter(d => d.module === mod),
           ...rawScopedDocs.filter(d => d.module === mod && accessibleScopedDocIds.has(d.id)),
         ];
+        // All-doc tile stats — overdue strictly date-based; approval from workflow state
+        const _modNow = new Date();
+        const isModOverdue = (d: any): boolean =>
+          !!(d.expiryDate && new Date(d.expiryDate) < _modNow) ||
+          !!(d.renewalDate && new Date(d.renewalDate) < _modNow);
+        const isModApprovalRequired = (d: any): boolean =>
+          d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+        const allDocsCount = allModuleDocs.length;
+        const allCompliant = allModuleDocs.filter(d => d.status === "compliant" && !isModOverdue(d) && !isModApprovalRequired(d)).length;
+        const allApprovalRequired = allModuleDocs.filter(isModApprovalRequired).length;
+        const allOverdue = allModuleDocs.filter(isModOverdue).length;
+        const pending = allApprovalRequired;
 
         if (complianceModules.includes(mod)) {
           const compliance = await computeSlotBasedCompliance(user, allModuleDocs, mod, siteFilter);
@@ -8816,10 +8808,10 @@ export async function registerRoutes(
       const complianceModules = ["health_safety", "human_resources", "employment_law"] as const;
 
       const _cmpNow = new Date();
-      const isCmpOverdue = (d: any) =>
-        d.status === "overdue" ||
-        (d.expiryDate && new Date(d.expiryDate) < _cmpNow) ||
-        (d.renewalDate && new Date(d.renewalDate) < _cmpNow);
+      // Strictly date-based overdue — status field is not authoritative
+      const isCmpOverdue = (d: any): boolean =>
+        !!(d.expiryDate && new Date(d.expiryDate) < _cmpNow) ||
+        !!(d.renewalDate && new Date(d.renewalDate) < _cmpNow);
 
       const result = sites.map((site: any) => {
         const siteDocs = allDocs.filter((d: any) =>

@@ -705,10 +705,13 @@ export class MemStorage implements IStorage {
     ];
 
     const _now = new Date();
-    const isOverdue = (d: { status?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }) =>
-      d.status === "overdue" ||
-      (d.expiryDate && new Date(d.expiryDate as string) < _now) ||
-      (d.renewalDate && new Date(d.renewalDate as string) < _now);
+    // Overdue is strictly date-based (renewalDate or expiryDate in the past)
+    const isOverdue = (d: { expiryDate?: Date | string | null; renewalDate?: Date | string | null }) =>
+      !!(d.expiryDate && new Date(d.expiryDate as string) < _now) ||
+      !!(d.renewalDate && new Date(d.renewalDate as string) < _now);
+    // Approval Required is derived from the approval workflow state, not the status label
+    const isApprovalRequired = (d: { approvalStatus?: string | null }) =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
 
     let slotTotal = 0;
     let slotCompliantDocs = 0;
@@ -726,7 +729,7 @@ export class MemStorage implements IStorage {
       if (matchingDocs.length === 0) { missingRequired++; continue; }
       for (const d of matchingDocs) {
         if (isOverdue(d)) slotOverdue++;
-        else if (d.status === "approval_required") slotReview++;
+        else if (isApprovalRequired(d)) slotReview++;
         else if (d.status === "compliant") slotCompliantDocs++;
       }
     }
@@ -734,19 +737,19 @@ export class MemStorage implements IStorage {
     const manualRequired = siteDocs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isOverdue(d)).length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isOverdue(d) && !isApprovalRequired(d)).length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const requiredApprovalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required" && !isOverdue(d)).length;
+    const requiredApprovalRequired = slotReview + manualRequired.filter(d => !isOverdue(d) && isApprovalRequired(d)).length;
     const requiredOverdue = slotOverdue + manualRequired.filter(isOverdue).length;
-    const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+    const pending = siteDocs.filter(d => isApprovalRequired(d)).length;
     // Score: compliant / (compliant + nonCompliant_required + missing)
     const scoreDenominator = compliant + requiredApprovalRequired + requiredOverdue + missingRequired;
 
     // All-document stats (required + non-required) for the Total/Overdue/Approval tiles.
     const allDocuments = siteDocs.length;
-    const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant" && !isOverdue(d)).length;
+    const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant" && !isOverdue(d) && !isApprovalRequired(d)).length;
     const allApprovalRequired = pending;
     const allOverdueDocuments = siteDocs.filter(isOverdue).length;
 
@@ -1244,34 +1247,36 @@ export class MemStorage implements IStorage {
           missingRequired++;
           continue;
         }
-        // Per-document display counts — so the dialog list matches the card numbers
+        // Per-document display counts — overdue strictly date-based; approval from workflow state
         const _slotNow = new Date();
         matchingDocs.forEach(d => {
-          const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _slotNow) ||
-            (d.renewalDate && new Date(d.renewalDate) < _slotNow);
-          if (d.status === "overdue" || dateOverdue) slotOverdue++;
-          else if (d.status === "approval_required") slotReview++;
+          const dateOverdue = !!(d.expiryDate && new Date(d.expiryDate) < _slotNow) ||
+            !!(d.renewalDate && new Date(d.renewalDate) < _slotNow);
+          const approvalPending = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+          if (dateOverdue) slotOverdue++;
+          else if (approvalPending) slotReview++;
           else if (d.status === "compliant") slotCompliantDocs++;
         });
       }
     }
 
     const _now = new Date();
-    const isDocOverdue = (d: any) =>
-      d.status === "overdue" ||
-      (d.expiryDate && new Date(d.expiryDate) < _now) ||
-      (d.renewalDate && new Date(d.renewalDate) < _now);
+    const isDocOverdue = (d: any): boolean =>
+      !!(d.expiryDate && new Date(d.expiryDate) < _now) ||
+      !!(d.renewalDate && new Date(d.renewalDate) < _now);
+    const isDocApprovalRequired = (d: any): boolean =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
 
     const manualRequired = docs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
+    const approvalRequired = slotReview + manualRequired.filter(d => !isDocOverdue(d) && isDocApprovalRequired(d)).length;
     const overdue = slotOverdue + manualRequired.filter(isDocOverdue).length;
-    const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+    const pending = docs.filter(d => isDocApprovalRequired(d)).length;
     // Compliance score: compliant / (compliant + not compliant + missing)
     // Ties the percentage directly to the four tiles shown on the dashboard card.
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
@@ -1900,18 +1905,41 @@ export class MemStorage implements IStorage {
       return complianceModules.includes(d.module as ModuleType);
     });
 
+    // Strictly date-based overdue (no status fallback — dates are authoritative)
+    const _now = new Date();
+    const isDocOverdue = (d: any): boolean =>
+      !!(d.expiryDate && new Date(d.expiryDate) < _now) ||
+      !!(d.renewalDate && new Date(d.renewalDate) < _now);
+    // Approval Required is derived from the approval workflow state, not the status label
+    const isDocApprovalRequired = (d: any): boolean =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+
     // Apply site/company filter
     let relevantSiteIds: string[];
+    // company-scoped docs (siteId=null, entityId=companyId) keyed by companyId for per-site inheritance
+    const companyDocsByCompanyId = new Map<string, typeof docs>();
     if (siteId) {
-      docs = docs.filter(d => d.siteId === siteId);
+      docs = docs.filter(d => d.siteId === siteId || (!d.siteId && false));
       relevantSiteIds = [siteId];
     } else if (companyId) {
       const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
       const companySiteIds = companySites.map(s => s.id);
-      docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
+      // Include site-scoped docs AND company-scoped docs owned by this company
+      docs = docs.filter(d =>
+        (d.siteId && companySiteIds.includes(d.siteId)) ||
+        (!d.siteId && d.entityId === companyId)
+      );
       relevantSiteIds = companySiteIds;
     } else {
       relevantSiteIds = (await db.select().from(sitesTable)).map(s => s.id);
+    }
+
+    // Build company-doc lookup for per-site inheritance (company-scoped docs count at each site)
+    for (const d of docs) {
+      if (!d.siteId && d.entityId) {
+        if (!companyDocsByCompanyId.has(d.entityId)) companyDocsByCompanyId.set(d.entityId, []);
+        companyDocsByCompanyId.get(d.entityId)!.push(d);
+      }
     }
 
     // Slot-based required-only counts (mirrors getSiteComplianceSummary / computeSlotBasedCompliance)
@@ -1930,12 +1958,6 @@ export class MemStorage implements IStorage {
     const siteMap = new Map(siteList.map(s => [s.id, s]));
     const companyReqCache = new Map<string, Awaited<ReturnType<typeof this.getCompanyRequiredTemplates>>>();
 
-    const _now = new Date();
-    const isDocOverdue = (d: any) =>
-      d.status === "overdue" ||
-      (d.expiryDate && new Date(d.expiryDate) < _now) ||
-      (d.renewalDate && new Date(d.renewalDate) < _now);
-
     for (const sid of relevantSiteIds) {
       const site = siteMap.get(sid);
       if (!site?.companyId) continue;
@@ -1952,7 +1974,12 @@ export class MemStorage implements IStorage {
         ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
       ];
 
-      const siteDocs = docs.filter(d => d.siteId === sid);
+      // Site-scoped docs + company-scoped docs inherited by this site
+      const siteDocs = [
+        ...docs.filter(d => d.siteId === sid),
+        ...(companyDocsByCompanyId.get(site.companyId) ?? []),
+      ];
+
       for (const templateId of effectiveTemplateIds) {
         const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
@@ -1970,7 +1997,7 @@ export class MemStorage implements IStorage {
 
         matchingDocs.forEach(d => {
           if (isDocOverdue(d)) slotOverdue++;
-          else if (d.status === "approval_required") slotApprovalRequired++;
+          else if (isDocApprovalRequired(d)) slotApprovalRequired++;
           else if (d.status === "compliant") slotCompliantDocs++;
         });
       }
@@ -1983,18 +2010,24 @@ export class MemStorage implements IStorage {
     );
     manualRequired.forEach(d => consumedDocIds.add(d.id));
 
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const requiredApprovalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
+    const requiredApprovalRequired = slotApprovalRequired + manualRequired.filter(d => !isDocOverdue(d) && isDocApprovalRequired(d)).length;
     const requiredOverdue = slotOverdue + manualRequired.filter(isDocOverdue).length;
     // Required-slot total (slots + manual required docs without a slot)
     const requiredSlotTotal = slotTotal + manualRequired.length;
 
     // All-doc stats (required + non-required) for Total/Overdue/Approval tiles
-    const allDocuments = docs.length;
-    const allCompliantDocuments = docs.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
-    const allApprovalRequired = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    const allOverdueDocuments = docs.filter(isDocOverdue).length;
+    // Use the site-scoped docs view for all-doc stats (excludes duplication of company-scoped per-site)
+    const allDocsSiteScoped = docs.filter(d => d.siteId && relevantSiteIds.includes(d.siteId));
+    const allDocsCompanyScoped = [...new Map(
+      [...companyDocsByCompanyId.values()].flat().map(d => [d.id, d])
+    ).values()];
+    const allDocsCombined = [...allDocsSiteScoped, ...allDocsCompanyScoped];
+    const allDocuments = allDocsCombined.length;
+    const allCompliantDocuments = allDocsCombined.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
+    const allApprovalRequired = allDocsCombined.filter(isDocApprovalRequired).length;
+    const allOverdueDocuments = allDocsCombined.filter(isDocOverdue).length;
 
     // Score: compliant ÷ (compliant + nonCompliant_required + missing)
     const scoreDenominator = compliant + requiredApprovalRequired + requiredOverdue + missingRequired;
@@ -2058,10 +2091,12 @@ export class MemStorage implements IStorage {
       ));
 
     const _now = new Date();
-    const isDocOverdue = (d: any) =>
-      d.status === "overdue" ||
-      (d.expiryDate && new Date(d.expiryDate) < _now) ||
-      (d.renewalDate && new Date(d.renewalDate) < _now);
+    // Strictly date-based overdue; approval from workflow state
+    const isDocOverdue = (d: any): boolean =>
+      !!(d.expiryDate && new Date(d.expiryDate) < _now) ||
+      !!(d.renewalDate && new Date(d.renewalDate) < _now);
+    const isDocApprovalRequired = (d: any): boolean =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
 
     return Promise.all(modules.map(async (module) => {
       // Scope: specific module, specific sites, exclude external (cloud share)
@@ -2073,9 +2108,9 @@ export class MemStorage implements IStorage {
       );
 
       const total = docs.length;
-      const compliant = docs.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+      const compliant = docs.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
       const overdue = docs.filter(isDocOverdue).length;
-      const approvalRequired = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+      const approvalRequired = docs.filter(isDocApprovalRequired).length;
       const pending = approvalRequired;
       // Score: compliant / (total) for module summaries (all-doc denominator, no slot logic here)
       const scoreDenom = total;
