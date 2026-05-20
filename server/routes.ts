@@ -1635,11 +1635,10 @@ export async function registerRoutes(
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
-            const goCompany = companyMap.get(company.groupOwnerId);
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-          }
+          // Group-owner docs are auto-shared to all member companies — no explicit share record required.
+          const goCompany = companyMap.get(company.groupOwnerId);
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
         }
       }
       return results;
@@ -1915,11 +1914,10 @@ export async function registerRoutes(
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
-            const goCompany = companyMap.get(company.groupOwnerId);
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-          }
+          // Group-owner docs are auto-shared to all member companies — no explicit share record required.
+          const goCompany = companyMap.get(company.groupOwnerId);
+          seenIds.add(doc.id);
+          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
         }
       }
       return results;
@@ -11233,11 +11231,10 @@ export async function registerRoutes(
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && (company as any).groupOwnerId && doc.entityId === (company as any).groupOwnerId) {
-            if (shares.some((s: any) => s.entityType === "company" && s.entityId === companyId)) {
-              const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
-              seenIds.add(doc.id);
-              results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-            }
+            // Group-owner docs are auto-shared to all member companies — no explicit share record required.
+            const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
           }
         }
         return results;
