@@ -1142,40 +1142,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [filteredDocuments, sortBy, sortDir]);
 
-  // When in "All Sites" view, expand shared/scoped docs (siteId=null) so that each
-  // one appears once per covered site rather than as a single ambiguous row.
+  // Each document appears exactly once in the table view regardless of how many
+  // sites a shared/group doc covers. Compliance counts are handled server-side;
+  // the "Shared from Group/Company" badge already conveys the scope to users.
   const expandedTableDocuments = useMemo(() => {
-    const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
-    if (!isAllSites || filteredSites.length <= 1) {
-      return sortedDocuments.map(doc => ({ doc, rowKey: doc.id }));
-    }
-    const result: { doc: any; rowKey: string }[] = [];
-    for (const doc of sortedDocuments) {
-      if (doc.siteId !== null) {
-        result.push({ doc, rowKey: doc.id });
-      } else {
-        const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
-        const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
-        const docEntityId = (doc as any).entityId as string | undefined;
-        const coveredSites = filteredSites.filter(s =>
-          sharedWithSiteIds?.includes(s.id) ||
-          sharedWithCompanyIds?.includes(s.companyId) ||
-          (docEntityId !== undefined && docEntityId === s.companyId)
-        );
-        if (coveredSites.length === 0) {
-          result.push({ doc, rowKey: doc.id });
-        } else {
-          for (const site of coveredSites) {
-            result.push({
-              doc: { ...doc, siteId: site.id, _originalSiteIdWasNull: true },
-              rowKey: `${doc.id}-${site.id}`,
-            });
-          }
-        }
-      }
-    }
-    return result;
-  }, [sortedDocuments, selectedSiteId, filteredSites]);
+    return sortedDocuments.map(doc => ({ doc, rowKey: doc.id }));
+  }, [sortedDocuments]);
 
   // In "All Sites" folder view the hierarchy deduplicates shared docs to one entry.
   // Expand them here (per covered site) so the unfiled section shows one row per site,

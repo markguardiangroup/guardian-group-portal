@@ -4696,6 +4696,13 @@
           "message": "Document rows now show stackable secondary badges: Required, Non Compliant, Past Renewal/Expiry Date, Client Sign Off Required, Consultant Approval Required",
           "category": "enhancement",
           "createdAt": "2026-05-20T20:35:00.000Z"
+        },
+        {
+          "id": "l2n4p6r8-table-view-shared-doc-no-per-site-rows-2026",
+          "patch": 6,
+          "message": "Fixed: shared/group documents no longer appear multiple times in the table view",
+          "category": "bug",
+          "createdAt": "2026-05-20T22:00:00.000Z"
         }
       ],
       "publishedPatch": 5,
