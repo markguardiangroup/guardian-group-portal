@@ -357,7 +357,7 @@ process.on("uncaughtException", (err) => {
   );
 
   // Run expired document status sweep on startup, then every day at 05:00 UK time.
-  // Finds compliant documents whose reviewDate or expiryDate has passed and marks them overdue.
+  // Finds compliant documents whose renewalDate or expiryDate has passed and marks them overdue.
   function msUntilNextUKTime(hour: number, minute: number): number {
     const now = new Date();
     const parts = new Intl.DateTimeFormat("en-GB", {

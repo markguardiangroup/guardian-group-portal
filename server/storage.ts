@@ -124,7 +124,7 @@ import {
   keyContacts as keyContactsTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, or, asc, desc, isNull, isNotNull, gt, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
@@ -570,8 +570,6 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   // All data is now stored in the PostgreSQL database
-  // Only loginAttempts is kept in-memory for rate limiting (intentionally non-persistent)
-  private loginAttempts: Map<string, LoginAttempt> = new Map();
   
   // Reference number counter for users only (companies/sites use DB-based counters)
   private userCounter: number = 0;
@@ -730,6 +728,12 @@ export class MemStorage implements IStorage {
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
 
+    // All-docs stats for metric tiles (Total, Overdue, Approval Required)
+    const allDocumentsCount = siteDocs.length;
+    const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant").length;
+    const allApprovalRequired = siteDocs.filter(d => d.status === "approval_required").length;
+    const allOverdueDocuments = siteDocs.filter(d => d.status === "overdue").length;
+
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
@@ -740,6 +744,10 @@ export class MemStorage implements IStorage {
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      allDocuments: allDocumentsCount,
+      allCompliantDocuments,
+      allApprovalRequired,
+      allOverdueDocuments,
     };
   }
 
@@ -1204,6 +1212,12 @@ export class MemStorage implements IStorage {
     // Ties the percentage directly to the four tiles shown on the dashboard card.
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
     
+    // All-docs stats for metric tiles (Total, Overdue, Approval Required)
+    const allDocumentsCount = docs.length;
+    const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
+    const allApprovalRequired = docs.filter(d => d.status === "approval_required").length;
+    const allOverdueDocuments = docs.filter(d => d.status === "overdue").length;
+
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
@@ -1214,6 +1228,10 @@ export class MemStorage implements IStorage {
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      allDocuments: allDocumentsCount,
+      allCompliantDocuments,
+      allApprovalRequired,
+      allOverdueDocuments,
     };
   }
 
@@ -1798,18 +1816,23 @@ export class MemStorage implements IStorage {
 
   // Dashboard
   async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
+    const complianceModulesList: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     let allDocs = await db.select().from(documentsTable)
       .where(and(
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId) // Exclude case documents from metrics
+        isNull(documentsTable.caseId),
+        isNull(documentsTable.incidentId),
       ));
     let docs = allDocs;
     if (module) {
       docs = docs.filter(d => d.module === module);
     } else {
-      // Exclude training documents from overall compliance metrics (training is tracked separately)
-      docs = docs.filter(d => d.module !== "training");
+      // Only count H&S, HR, EL — exclude training, toolkit, support
+      docs = docs.filter(d => complianceModulesList.includes(d.module as ModuleType));
     }
+    // Exclude cloud-share / client-upload folder documents
+    docs = docs.filter(d => d.source !== "external");
+
     if (siteId) {
       docs = docs.filter(d => d.siteId === siteId);
     } else if (companyId) {
@@ -1855,7 +1878,7 @@ export class MemStorage implements IStorage {
         const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
         if (module && tmpl.module !== module) continue;
-        if (!module && tmpl.module === "training") continue;
+        if (!module && !complianceModulesList.includes(tmpl.module as ModuleType)) continue;
         const isFulfilled = siteDocs.some(d => {
           if (d.templateId !== templateId) return false;
           if (d.status !== "compliant") return false;
@@ -1868,22 +1891,34 @@ export class MemStorage implements IStorage {
       }
     }
 
-    const total = docs.length + missingRequired;
-    const compliant = docs.filter(d => d.status === "compliant").length;
-    const review = docs.filter(d => d.status === "approval_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length;
+    // All-docs stats (for metric tiles: Total, Overdue, Approval Required)
+    const allDocuments = docs.length;
+    const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
+    const allApprovalRequired = docs.filter(d => d.status === "approval_required").length;
+    const allOverdueDocuments = docs.filter(d => d.status === "overdue").length;
+    // Required-docs-only stats (for compliance score denominator)
+    const requiredDocs = docs.filter(d => d.isRequired);
+    const requiredCompliant = requiredDocs.filter(d => d.status === "compliant").length;
+    const requiredApprovalRequired = requiredDocs.filter(d => d.status === "approval_required").length;
+    const requiredOverdue = requiredDocs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    
+    // Score: required_compliant / (required_compliant + required_non_compliant + missing_slots)
+    const scoreDenominator = requiredCompliant + requiredApprovalRequired + requiredOverdue + missingRequired;
+
     return {
-      totalDocuments: total,
-      compliantDocuments: compliant,
-      approvalRequired: review,
-      overdueDocuments: overdue,
+      totalDocuments: allDocuments,
+      compliantDocuments: requiredCompliant,
+      approvalRequired: requiredApprovalRequired,
+      overdueDocuments: requiredOverdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
+      complianceScore: scoreDenominator > 0 ? Math.round((requiredCompliant / scoreDenominator) * 100) : 0,
+      allDocuments,
+      allCompliantDocuments,
+      allApprovalRequired,
+      allOverdueDocuments,
     };
   }
 
@@ -1921,31 +1956,47 @@ export class MemStorage implements IStorage {
     const allDocs = await db.select().from(documentsTable)
       .where(and(
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId) // Exclude case documents from metrics
+        isNull(documentsTable.caseId),
+        isNull(documentsTable.incidentId),
       ));
     
     return Promise.all(modules.map(async (module) => {
-      // Get documents from all specified sites
-      const docs = allDocs.filter(d => d.module === module && d.siteId && siteIds.includes(d.siteId));
-      
+      // Get documents from all specified sites (exclude external/cloud-share docs)
+      const docs = allDocs.filter(d =>
+        d.module === module &&
+        d.siteId && siteIds.includes(d.siteId) &&
+        d.source !== "external"
+      );
+
+      // All-docs stats (for metric tiles)
       const total = docs.length;
-      const compliant = docs.filter(d => d.status === "compliant").length;
-      const review = docs.filter(d => d.status === "approval_required").length;
-      const overdue = docs.filter(d => d.status === "overdue").length;
+      const allCompliant = docs.filter(d => d.status === "compliant").length;
+      const allApprovalRequired = docs.filter(d => d.status === "approval_required").length;
+      const allOverdue = docs.filter(d => d.status === "overdue").length;
       const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+      // Required-docs stats (for compliance score)
+      const requiredDocs = docs.filter(d => d.isRequired);
+      const requiredCompliant = requiredDocs.filter(d => d.status === "compliant").length;
+      const requiredApprovalRequired = requiredDocs.filter(d => d.status === "approval_required").length;
+      const requiredOverdue = requiredDocs.filter(d => d.status === "overdue").length;
+      const scoreDenominator = requiredCompliant + requiredApprovalRequired + requiredOverdue;
       
       return {
         module,
         moduleName: moduleNames[module],
         totalDocuments: total,
-        compliantDocuments: compliant,
-        approvalRequired: review,
-        overdueDocuments: overdue,
+        compliantDocuments: requiredCompliant,
+        approvalRequired: requiredApprovalRequired,
+        overdueDocuments: requiredOverdue,
         missingRequiredDocuments: 0,
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
-        complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
+        complianceScore: scoreDenominator > 0 ? Math.round((requiredCompliant / scoreDenominator) * 100) : 0,
+        allDocuments: total,
+        allCompliantDocuments: allCompliant,
+        allApprovalRequired,
+        allOverdueDocuments: allOverdue,
       };
     }));
   }
@@ -3601,42 +3652,45 @@ export class MemStorage implements IStorage {
   
   async recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
     const id = randomUUID();
-    const loginAttempt: LoginAttempt = {
-      id,
-      username: attempt.username,
-      ipAddress: attempt.ipAddress ?? null,
-      userAgent: attempt.userAgent ?? null,
-      success: attempt.success ?? false,
-      failureReason: attempt.failureReason ?? null,
-      attemptedAt: new Date(),
-    };
-    this.loginAttempts.set(id, loginAttempt);
-    return loginAttempt;
+    const result = await pool.query<LoginAttempt>(
+      `INSERT INTO login_attempts (id, username, ip_address, user_agent, success, failure_reason)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, username, ip_address AS "ipAddress", user_agent AS "userAgent",
+                 success, failure_reason AS "failureReason", attempted_at AS "attemptedAt"`,
+      [id, attempt.username, attempt.ipAddress ?? null, attempt.userAgent ?? null,
+       attempt.success ?? false, attempt.failureReason ?? null]
+    );
+    // Clean up records older than 24 hours to keep the table lean
+    pool.query(`DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '24 hours'`).catch(() => {});
+    return result.rows[0];
   }
-  
+
   async getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]> {
     const cutoffTime = new Date(Date.now() - minutes * 60 * 1000);
-    return Array.from(this.loginAttempts.values())
-      .filter(attempt => 
-        attempt.username.toLowerCase() === username.toLowerCase() &&
-        attempt.attemptedAt >= cutoffTime
-      )
-      .sort((a, b) => b.attemptedAt.getTime() - a.attemptedAt.getTime());
+    const result = await pool.query<LoginAttempt>(
+      `SELECT id, username, ip_address AS "ipAddress", user_agent AS "userAgent",
+              success, failure_reason AS "failureReason", attempted_at AS "attemptedAt"
+       FROM login_attempts
+       WHERE LOWER(username) = LOWER($1) AND attempted_at > $2
+       ORDER BY attempted_at DESC`,
+      [username, cutoffTime]
+    );
+    return result.rows;
   }
-  
+
   async isAccountLocked(username: string): Promise<boolean> {
     const recentAttempts = await this.getRecentLoginAttempts(
-      username, 
+      username,
       SECURITY_CONFIG.lockoutDurationMinutes
     );
-    
-    // Count consecutive failures (until last success)
+
+    // Count consecutive failures from newest — stop at first success
     let failedAttempts = 0;
     for (const attempt of recentAttempts) {
       if (attempt.success) break;
       failedAttempts++;
     }
-    
+
     return failedAttempts >= SECURITY_CONFIG.maxLoginAttempts;
   }
 

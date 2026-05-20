@@ -4668,6 +4668,13 @@
           "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:10:00.000Z"
+        },
+        {
+          "id": "a9b1c3d5-doc-status-badge-compliance-redesign-2026",
+          "patch": 7,
+          "message": "Redesigned document status, badges & compliance metrics: Approval Required replaces Review Required, Total/Non Compliant/Overdue/Approval Required tiles, stackable badge chips per document, and corrected compliance score",
+          "category": "feature",
+          "createdAt": "2026-05-20T09:58:00.000Z"
         }
       ],
       "publishedPatch": 6,

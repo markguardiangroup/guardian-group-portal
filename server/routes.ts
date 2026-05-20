@@ -319,6 +319,15 @@ async function addPageNumbers(inputPath: string, outputPath: string): Promise<vo
 
 const BCRYPT_SALT_ROUNDS = 12;
 
+// Password strength validation — applied to all password set/change flows
+function validatePasswordStrength(password: string): string | null {
+  if (password.length < 8) return "Password must be at least 8 characters";
+  if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
+  if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter";
+  if (!/[0-9]/.test(password)) return "Password must contain at least one number";
+  return null;
+}
+
 // Invitation token configuration
 const INVITE_TOKEN_EXPIRY_HOURS = 48; // 48 hours for new user invites
 const RESET_TOKEN_EXPIRY_HOURS = 1; // 1 hour for password resets
@@ -900,8 +909,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Token and password are required" });
       }
       
-      if (password.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      const passwordError = validatePasswordStrength(password);
+      if (passwordError) {
+        return res.status(400).json({ error: passwordError });
       }
       
       const tokenHash = hashToken(token);
@@ -1114,8 +1124,9 @@ export async function registerRoutes(
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: "Current password and new password are required" });
       }
-      if (newPassword.length < 8) {
-        return res.status(400).json({ error: "New password must be at least 8 characters" });
+      const passwordError = validatePasswordStrength(newPassword);
+      if (passwordError) {
+        return res.status(400).json({ error: passwordError });
       }
 
       const user = await storage.getUser(userId);
@@ -4226,7 +4237,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (existingDoc.approvalStatus !== "pending" && existingDoc.approvalStatus !== "review_required") {
+      if (existingDoc.approvalStatus !== "pending") {
         return res.status(400).json({ error: "Document is not awaiting client approval" });
       }
 
@@ -11299,7 +11310,7 @@ export async function registerRoutes(
           });
           const nonArchivedRequired = requiredFolderDocuments.filter(d => !d.isArchived);
           const compliantCount = nonArchivedRequired.filter(d => d.status === "compliant").length;
-          const reviewRequiredCount = nonArchivedRequired.filter(d => d.status === "approval_required").length;
+          const approvalRequiredCount = nonArchivedRequired.filter(d => d.status === "approval_required").length;
           const overdueCount = nonArchivedRequired.filter(d => d.status === "overdue").length;
           const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")).length;
           
@@ -11316,7 +11327,7 @@ export async function registerRoutes(
           let folderStatus: "compliant" | "incomplete" | "attention_needed" = "compliant";
           if (requiredTemplates.length > 0 && fulfilledRequiredCount < requiredTemplates.length) {
             folderStatus = "incomplete";
-          } else if (overdueCount > 0 || reviewRequiredCount > 0) {
+          } else if (overdueCount > 0 || approvalRequiredCount > 0) {
             folderStatus = "attention_needed";
           }
           
@@ -11462,7 +11473,7 @@ export async function registerRoutes(
           // Calculate aggregate stats including child folder documents
           const childDocsTotal = childFolders.reduce((sum, cf) => sum + (cf.stats?.totalDocuments || 0), 0);
           const childCompliant = childFolders.reduce((sum, cf) => sum + (cf.stats?.compliant || 0), 0);
-          const childReviewRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.approvalRequired || 0), 0);
+          const childApprovalRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.approvalRequired || 0), 0);
           const childOverdue = childFolders.reduce((sum, cf) => sum + (cf.stats?.overdue || 0), 0);
           
           return {
@@ -11499,7 +11510,7 @@ export async function registerRoutes(
             stats: {
               totalDocuments: folderDocuments.length + childDocsTotal + sharedForThisFolder.length,
               compliant: compliantCount + childCompliant,
-              approvalRequired: reviewRequiredCount + childReviewRequired,
+              approvalRequired: approvalRequiredCount + childApprovalRequired,
               overdue: overdueCount + childOverdue,
               pendingApproval: pendingApprovalCount,
               requiredTemplates: requiredTemplates.length,

@@ -2,6 +2,35 @@ import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
 import { randomUUID } from "crypto";
 
+const ALLOWED_MIME_TYPES = new Set([
+  // Documents
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.oasis.opendocument.text",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "application/vnd.oasis.opendocument.presentation",
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  // Text / markup
+  "text/plain",
+  "text/html",
+  "text/csv",
+  // Archives (bundles)
+  "application/zip",
+  "application/x-zip-compressed",
+]);
+
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
+
 /**
  * Register object storage routes for file uploads.
  *
@@ -29,12 +58,20 @@ export function registerObjectStorageRoutes(app: Express): void {
       }
 
       const rawFileName = req.headers["x-file-name"] as string;
-      const contentType = req.headers["content-type"] || "application/octet-stream";
-      
+      // Strip any parameters (e.g. "application/pdf; charset=utf-8") for allowlist check
+      const rawContentType = req.headers["content-type"] || "application/octet-stream";
+      const contentType = rawContentType.split(";")[0].trim().toLowerCase();
+
       if (!rawFileName) {
         return res.status(400).json({ error: "Missing x-file-name header" });
       }
-      
+
+      if (!ALLOWED_MIME_TYPES.has(contentType)) {
+        return res.status(415).json({
+          error: `File type '${contentType}' is not permitted. Allowed types include PDF, Word, Excel, PowerPoint, images, and plain text.`,
+        });
+      }
+
       // Decode the filename (client encodes it for safe header transmission)
       const fileName = decodeURIComponent(rawFileName);
 
@@ -50,9 +87,14 @@ export function registerObjectStorageRoutes(app: Express): void {
       const bucket = objectStorageClient.bucket(bucketName);
       const file = bucket.file(objectName);
       
-      // Collect request body chunks
+      // Collect request body chunks, enforcing the size limit
       const chunks: Buffer[] = [];
+      let totalBytes = 0;
       for await (const chunk of req) {
+        totalBytes += chunk.length;
+        if (totalBytes > MAX_UPLOAD_BYTES) {
+          return res.status(413).json({ error: "File exceeds the maximum allowed size of 50 MB" });
+        }
         chunks.push(chunk);
       }
       const buffer = Buffer.concat(chunks);
