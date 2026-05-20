@@ -730,6 +730,12 @@ export class MemStorage implements IStorage {
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
 
+    // All-document stats (required + non-required) for the Total/Overdue/Approval tiles.
+    const allDocuments = siteDocs.length;
+    const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant").length;
+    const allApprovalRequired = pending;
+    const allOverdueDocuments = siteDocs.filter(d => d.status === "overdue").length;
+
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
@@ -740,6 +746,10 @@ export class MemStorage implements IStorage {
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      allDocuments,
+      allCompliantDocuments,
+      allApprovalRequired,
+      allOverdueDocuments,
     };
   }
 
@@ -1203,7 +1213,13 @@ export class MemStorage implements IStorage {
     // Compliance score: compliant / (compliant + not compliant + missing)
     // Ties the percentage directly to the four tiles shown on the dashboard card.
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
-    
+
+    // All-document stats (required + non-required) for Total/Overdue/Approval tiles.
+    const allDocuments = docs.filter(d => d.source !== "external").length;
+    const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
+    const allApprovalRequired = pending;
+    const allOverdueDocuments = docs.filter(d => d.status === "overdue").length;
+
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
@@ -1214,6 +1230,10 @@ export class MemStorage implements IStorage {
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      allDocuments,
+      allCompliantDocuments,
+      allApprovalRequired,
+      allOverdueDocuments,
     };
   }
 

@@ -4703,6 +4703,27 @@
           "message": "Fixed: shared/group documents no longer appear multiple times in the table view",
           "category": "bug",
           "createdAt": "2026-05-20T22:00:00.000Z"
+        },
+        {
+          "id": "m3o5q7s9-compliance-all-doc-fields-populated-2026",
+          "patch": 6,
+          "message": "Fixed: site compliance summaries now correctly include all-document counts for Total, Overdue, and Approval tiles",
+          "category": "bug",
+          "createdAt": "2026-05-20T22:10:00.000Z"
+        },
+        {
+          "id": "n4p6r8t0-approval-chips-visible-in-doc-rows-2026",
+          "patch": 6,
+          "message": "Document rows now show Client Sign Off and Consultant Approval chips when applicable",
+          "category": "enhancement",
+          "createdAt": "2026-05-20T22:15:00.000Z"
+        },
+        {
+          "id": "o5q7s9u1-company-tile-non-compliant-required-only-2026",
+          "patch": 6,
+          "message": "Fixed: company tile Non Compliant count now reflects required documents only; Overdue tile counts all documents",
+          "category": "bug",
+          "createdAt": "2026-05-20T22:20:00.000Z"
         }
       ],
       "publishedPatch": 5,

@@ -739,10 +739,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     //     document, computed WITHOUT per-site exclusions so the count
                     //     matches the company Documents page (uses the batch
                     //     /api/missing-required-templates/by-company endpoint).
+                    // Required-only counts — used for Non Compliant tile and compliance score.
                     let cCompliant = 0;
                     let cApprovalRequired = 0;
                     let cOverdue = 0;
+                    // All-docs overdue — used for Overdue tile (spec: all docs, not just required).
+                    let cOverdueAll = 0;
                     for (const d of companyDocs) {
+                      if (d.status === "overdue") cOverdueAll++;
+                      if (!d.isRequired) continue;
                       if (d.status === "compliant") cCompliant++;
                       else if (d.status === "approval_required") cApprovalRequired++;
                       else if (d.status === "overdue") cOverdue++;
@@ -851,9 +856,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cApprovalRequired + cOverdue + cMissing}</p>}
                               <p className={`text-[10px] ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                             </div>
-                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cOverdue > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{cOverdue}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && cOverdue > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cOverdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{cOverdueAll}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && cOverdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
                             </div>
                             <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending}</p>}
