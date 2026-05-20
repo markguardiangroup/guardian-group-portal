@@ -11332,6 +11332,17 @@ export async function registerRoutes(
         return dt.isRequired || allCompanyRequiredTemplateIds.has(dt.id);
       };
 
+      // Derived compliance predicates — consistent with summary engine rules.
+      // A document can satisfy multiple conditions simultaneously (e.g. overdue AND approval_required).
+      const _hierNow = new Date();
+      const hierIsOverdue = (d: { renewalDate?: string | Date | null; expiryDate?: string | Date | null }) =>
+        (d.renewalDate != null && new Date(d.renewalDate) < _hierNow) ||
+        (d.expiryDate != null && new Date(d.expiryDate) < _hierNow);
+      const hierIsApprovalRequired = (d: { approvalStatus?: string | null }) =>
+        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+      const hierIsCompliant = (d: { approvalStatus?: string | null; renewalDate?: string | Date | null; expiryDate?: string | Date | null }) =>
+        d.approvalStatus === "approved" && !hierIsOverdue(d);
+
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
         .filter(ft => !ft.parentId) // Only top-level folders
@@ -11359,10 +11370,10 @@ export async function registerRoutes(
             return getEffectiveIsRequired(d, docTmpl);
           });
           const nonArchivedRequired = requiredFolderDocuments.filter(d => !d.isArchived);
-          const compliantCount = nonArchivedRequired.filter(d => d.status === "compliant").length;
-          const approvalRequiredCount = nonArchivedRequired.filter(d => d.status === "approval_required").length;
-          const overdueCount = nonArchivedRequired.filter(d => d.status === "overdue").length;
-          const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")).length;
+          const compliantCount = nonArchivedRequired.filter(d => hierIsCompliant(d)).length;
+          const approvalRequiredCount = nonArchivedRequired.filter(d => hierIsApprovalRequired(d)).length;
+          const overdueCount = nonArchivedRequired.filter(d => hierIsOverdue(d)).length;
+          const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && hierIsApprovalRequired(d)).length;
           
           // Shared (company/group-scoped) docs that target this folder template
           const sharedForThisFolder = sharedDocsByFolderTemplateId.get(folderTemplate.id) ?? [];
@@ -11431,9 +11442,9 @@ export async function registerRoutes(
               }),
               stats: {
                 totalDocuments: childFolderDocs.length + sharedForChildFolder.length,
-                compliant: childFolderDocs.filter(d => !d.isArchived && d.status === "compliant" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
-                approvalRequired: childFolderDocs.filter(d => !d.isArchived && d.status === "approval_required" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
-                overdue: childFolderDocs.filter(d => !d.isArchived && d.status === "overdue" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                compliant: childFolderDocs.filter(d => !d.isArchived && hierIsCompliant(d) && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                approvalRequired: childFolderDocs.filter(d => !d.isArchived && hierIsApprovalRequired(d) && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                overdue: childFolderDocs.filter(d => !d.isArchived && hierIsOverdue(d) && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 requiredTemplates: childRequiredTemplates.length,
                 fulfilledRequired: childFulfilledCount,
               },
@@ -11509,9 +11520,9 @@ export async function registerRoutes(
                 }),
                 stats: {
                   totalDocuments: dynamicFolderDocs.length,
-                  compliant: dynamicFolderDocs.filter(d => d.status === "compliant").length,
-                  approvalRequired: dynamicFolderDocs.filter(d => d.status === "approval_required").length,
-                  overdue: dynamicFolderDocs.filter(d => d.status === "overdue").length,
+                  compliant: dynamicFolderDocs.filter(d => !d.isArchived && hierIsCompliant(d)).length,
+                  approvalRequired: dynamicFolderDocs.filter(d => !d.isArchived && hierIsApprovalRequired(d)).length,
+                  overdue: dynamicFolderDocs.filter(d => !d.isArchived && hierIsOverdue(d)).length,
                   requiredTemplates: 0,
                   fulfilledRequired: 0,
                 },
