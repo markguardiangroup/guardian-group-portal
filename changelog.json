@@ -4759,6 +4759,20 @@
           "message": "Fixed: site comparison report now excludes incident and cloud-share documents from scores",
           "category": "bug",
           "createdAt": "2026-05-20T22:39:00.000Z"
+        },
+        {
+          "id": "f2073545-e4dd-43fd-b156-c6bbe92d2d71",
+          "patch": 6,
+          "message": "Fixed: compliance overdue calc now uses actual dates, not status field only",
+          "category": "bug",
+          "createdAt": "2026-05-20T21:41:09.007Z"
+        },
+        {
+          "id": "1e0d6817-d3e7-4aee-8a40-1ec83ab820f5",
+          "patch": 6,
+          "message": "Fixed: group-owner shared docs now included in site compliance metrics",
+          "category": "bug",
+          "createdAt": "2026-05-20T21:41:09.009Z"
         }
       ],
       "publishedPatch": 5,

@@ -679,7 +679,14 @@ export class MemStorage implements IStorage {
    * so that no per-site DB queries are needed.
    */
   private computeComplianceSummaryInMemory(
-    siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null }[],
+    siteDocs: {
+      templateId?: string | null;
+      isRequired?: boolean | null;
+      status?: string | null;
+      approvalStatus?: string | null;
+      expiryDate?: Date | string | null;
+      renewalDate?: Date | string | null;
+    }[],
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null }>,
@@ -697,6 +704,12 @@ export class MemStorage implements IStorage {
       ...[...includedIds].filter(id => !activeCompanyRequired.some(r => r.templateId === id)),
     ];
 
+    const _now = new Date();
+    const isOverdue = (d: { status?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }) =>
+      d.status === "overdue" ||
+      (d.expiryDate && new Date(d.expiryDate as string) < _now) ||
+      (d.renewalDate && new Date(d.renewalDate as string) < _now);
+
     let slotTotal = 0;
     let slotCompliantDocs = 0;
     let slotReview = 0;
@@ -712,35 +725,36 @@ export class MemStorage implements IStorage {
       const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
       if (matchingDocs.length === 0) { missingRequired++; continue; }
       for (const d of matchingDocs) {
-        if (d.status === "compliant") slotCompliantDocs++;
-        else if (d.status === "overdue") slotOverdue++;
+        if (isOverdue(d)) slotOverdue++;
         else if (d.status === "approval_required") slotReview++;
+        else if (d.status === "compliant") slotCompliantDocs++;
       }
     }
 
     const manualRequired = siteDocs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isOverdue(d)).length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
-    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const requiredApprovalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required" && !isOverdue(d)).length;
+    const requiredOverdue = slotOverdue + manualRequired.filter(isOverdue).length;
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
+    // Score: compliant / (compliant + nonCompliant_required + missing)
+    const scoreDenominator = compliant + requiredApprovalRequired + requiredOverdue + missingRequired;
 
     // All-document stats (required + non-required) for the Total/Overdue/Approval tiles.
     const allDocuments = siteDocs.length;
-    const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant").length;
+    const allCompliantDocuments = siteDocs.filter(d => d.status === "compliant" && !isOverdue(d)).length;
     const allApprovalRequired = pending;
-    const allOverdueDocuments = siteDocs.filter(d => d.status === "overdue").length;
+    const allOverdueDocuments = siteDocs.filter(isOverdue).length;
 
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      approvalRequired,
-      overdueDocuments: overdue,
+      approvalRequired: requiredApprovalRequired,
+      overdueDocuments: requiredOverdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
@@ -768,6 +782,7 @@ export class MemStorage implements IStorage {
       allModuleAccess,
       allAssignments,
       allUsers,
+      allShares,
     ] = await Promise.all([
       db.select().from(sitesTable),
       db.select().from(companiesTable),
@@ -782,15 +797,25 @@ export class MemStorage implements IStorage {
       db.select().from(siteModuleAccessTable),
       db.select().from(consultantAssignmentsTable),
       db.select().from(usersTable),
+      db.select().from(documentSharesTable),
     ]);
 
     const companiesMap = new Map(companies.map(c => [c.id, c]));
     const templateMap = new Map(allActiveTemplates.map(t => [t.id, t]));
     const usersMap = new Map(allUsers.map(u => [u.id, u]));
 
+    // Build share lookup: docId → shares
+    const sharesByDocId = new Map<string, typeof allShares>();
+    for (const s of allShares) {
+      if (!sharesByDocId.has(s.documentId)) sharesByDocId.set(s.documentId, []);
+      sharesByDocId.get(s.documentId)!.push(s);
+    }
+
     // Group by siteId / companyId for O(1) lookups
     const docsBySite = new Map<string, typeof allDocs>();
     const docsByCompany = new Map<string, typeof allDocs>();
+    // Group-owner docs (scope=group, siteId=null) keyed by their entityId (group owner companyId)
+    const docsByGroupOwner = new Map<string, typeof allDocs>();
     for (const d of allDocs) {
       if (d.siteId) {
         if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
@@ -799,6 +824,11 @@ export class MemStorage implements IStorage {
         // Company-scoped documents (siteId IS NULL) count toward all sites of that company
         if (!docsByCompany.has(d.entityId)) docsByCompany.set(d.entityId, []);
         docsByCompany.get(d.entityId)!.push(d);
+        // Also index group-scoped docs by group owner so member companies can inherit them
+        if (d.scope === "group") {
+          if (!docsByGroupOwner.has(d.entityId)) docsByGroupOwner.set(d.entityId, []);
+          docsByGroupOwner.get(d.entityId)!.push(d);
+        }
       }
     }
     const overridesBySite = new Map<string, typeof allSiteOverrides>();
@@ -828,10 +858,18 @@ export class MemStorage implements IStorage {
 
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
+      // Group-owner docs shared to this site's company (member company inherits from group owner)
+      const groupOwnerDocs = company?.groupOwnerId
+        ? (docsByGroupOwner.get(company.groupOwnerId) ?? []).filter(d => {
+            const shares = sharesByDocId.get(d.id) ?? [];
+            return shares.some(s => s.entityType === "company" && s.entityId === site.companyId);
+          })
+        : [];
       // Restrict to compliance modules only and exclude external-source documents
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...(docsByCompany.get(site.companyId) ?? []),
+        ...groupOwnerDocs,
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
@@ -876,7 +914,7 @@ export class MemStorage implements IStorage {
 
   async getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]> {
     // Filter sites first then batch the rest — avoids per-site queries
-    const [companySites, company, allSiteOverrides, allCompanyRequired, allActiveTemplates, allModuleAccess, allAssignments, allUsers] = await Promise.all([
+    const [companySites, company, allSiteOverrides, allCompanyRequired, allActiveTemplates, allModuleAccess, allAssignments, allUsers, allShares] = await Promise.all([
       db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId)),
       this.getCompany(companyId),
       db.select().from(siteTemplateOverridesTable),
@@ -885,6 +923,7 @@ export class MemStorage implements IStorage {
       db.select().from(siteModuleAccessTable),
       db.select().from(consultantAssignmentsTable),
       db.select().from(usersTable),
+      db.select().from(documentSharesTable),
     ]);
 
     if (companySites.length === 0) return [];
@@ -900,8 +939,20 @@ export class MemStorage implements IStorage {
     const templateMap = new Map(allActiveTemplates.map(t => [t.id, t]));
     const usersMap = new Map(allUsers.map(u => [u.id, u]));
 
+    // Build share lookup for group-doc propagation
+    const sharesByDocId = new Map<string, typeof allShares>();
+    for (const s of allShares) {
+      if (!sharesByDocId.has(s.documentId)) sharesByDocId.set(s.documentId, []);
+      sharesByDocId.get(s.documentId)!.push(s);
+    }
+
     const docsBySite = new Map<string, typeof allDocs>();
     const companyDocs: typeof allDocs = [];
+    // Group docs from the group owner shared to this company (member inheritance)
+    const groupOwnerDocs: typeof allDocs = company?.groupOwnerId
+      ? allDocs.filter(d => !d.siteId && d.scope === "group" && d.entityId === company.groupOwnerId &&
+          (sharesByDocId.get(d.id) ?? []).some(s => s.entityType === "company" && s.entityId === companyId))
+      : [];
     for (const d of allDocs) {
       if (d.siteId) {
         if (!siteIds.has(d.siteId)) continue;
@@ -939,6 +990,7 @@ export class MemStorage implements IStorage {
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...companyDocs,
+        ...groupOwnerDocs,
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES_COMPANY.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
