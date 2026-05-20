@@ -1706,7 +1706,7 @@ export async function registerRoutes(
           const pendingApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
           if (dateOverdue) slotOverdue++;
           if (pendingApproval) slotApprovalRequired++;
-          if (!dateOverdue && !pendingApproval) slotCompliantDocs++;
+          if (!dateOverdue && d.approvalStatus === "approved") slotCompliantDocs++;
         });
       }
 
@@ -1748,7 +1748,7 @@ export async function registerRoutes(
       (d.renewalDate && new Date(d.renewalDate) < _manualNow);
     const isManualApprovalRequired = (d: any) =>
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-    const manualCompliant = manualRequired.filter(d => !isManualOverdue(d) && !isManualApprovalRequired(d)).length;
+    const manualCompliant = manualRequired.filter(d => !isManualOverdue(d) && d.approvalStatus === "approved").length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
     const approvalRequired = slotApprovalRequired + manualRequired.filter(isManualApprovalRequired).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
@@ -2307,7 +2307,7 @@ export async function registerRoutes(
         (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow);
       const allDocumentsCount = allDocumentsInScope;
-      const allCompliantDocuments = docProgressSet.filter(d => !isDocOverdue(d) && d.approvalStatus !== "pending" && d.approvalStatus !== "client_signed_off").length;
+      const allCompliantDocuments = docProgressSet.filter(d => !isDocOverdue(d) && d.approvalStatus === "approved").length;
       const allApprovalRequired = docProgressSet.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
       ).length;
@@ -2479,7 +2479,7 @@ export async function registerRoutes(
         (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow2);
       const allDocsProgress = allDocumentsInScope2;
-      const allCompliantProgress = allNonCaseDocs.filter(d => !isDocOverdue2(d) && d.approvalStatus !== "pending" && d.approvalStatus !== "client_signed_off").length;
+      const allCompliantProgress = allNonCaseDocs.filter(d => !isDocOverdue2(d) && d.approvalStatus === "approved").length;
       const allApprovalRequiredProgress = allNonCaseDocs.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
       ).length;
@@ -8778,7 +8778,7 @@ export async function registerRoutes(
       const companyId = req.query.companyId as string | undefined;
       const siteId = req.query.siteId as string | undefined;
       const VALID_WINDOWS = ["30", "60", "90", "all"];
-      const VALID_MODULES = ["health_safety", "human_resources", "employment_law", "training", "support"];
+      const VALID_MODULES = ["health_safety", "human_resources", "employment_law"];
       const windowParam = VALID_WINDOWS.includes(req.query.window as string) ? (req.query.window as string) : "90";
       const rawModule = req.query.module as string | undefined;
       const moduleParam = rawModule && VALID_MODULES.includes(rawModule) ? rawModule : undefined;
@@ -8878,8 +8878,7 @@ export async function registerRoutes(
           const total = modDocs.length;
           const compliant = modDocs.filter((d: any) => {
             const ov = (d.expiryDate && new Date(d.expiryDate) < _mNow) || (d.renewalDate && new Date(d.renewalDate) < _mNow);
-            const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-            return !ov && !ap;
+            return !ov && d.approvalStatus === "approved";
           }).length;
           const overdue = modDocs.filter((d: any) =>
             (d.expiryDate && new Date(d.expiryDate) < _mNow) || (d.renewalDate && new Date(d.renewalDate) < _mNow)

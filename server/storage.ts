@@ -718,7 +718,7 @@ export class MemStorage implements IStorage {
         const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
         if (docOverdue) slotOverdue++;
         if (docApproval) slotReview++;
-        if (!docOverdue && !docApproval) slotCompliantDocs++;
+        if (!docOverdue && d.approvalStatus === "approved") slotCompliantDocs++;
       }
     }
 
@@ -728,8 +728,7 @@ export class MemStorage implements IStorage {
     const manualCompliant = manualRequired.filter(d => {
       const ov = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
                  (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
-      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      return !ov && !ap;
+      return !ov && d.approvalStatus === "approved";
     }).length;
 
     const total = slotTotal + manualRequired.length;
@@ -751,8 +750,7 @@ export class MemStorage implements IStorage {
     const allCompliantDocuments = siteDocs.filter(d => {
       const ov = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
                  (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
-      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      return !ov && !ap;
+      return !ov && d.approvalStatus === "approved";
     }).length;
     const allApprovalRequired = siteDocs.filter(d =>
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
@@ -1257,7 +1255,7 @@ export class MemStorage implements IStorage {
           const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
           if (docOverdue) slotOverdue++;
           if (docApproval) slotReview++;
-          if (!docOverdue && !docApproval) slotCompliantDocs++;
+          if (!docOverdue && d.approvalStatus === "approved") slotCompliantDocs++;
         });
       }
     }
@@ -1269,8 +1267,7 @@ export class MemStorage implements IStorage {
     const manualCompliant = manualRequired.filter(d => {
       const ov = (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
                  (d.expiryDate && new Date(d.expiryDate) < _scNow);
-      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      return !ov && !ap;
+      return !ov && d.approvalStatus === "approved";
     }).length;
 
     const total = slotTotal + manualRequired.length;
@@ -1292,8 +1289,7 @@ export class MemStorage implements IStorage {
     const allCompliantDocuments = docs.filter(d => {
       const ov = (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
                  (d.expiryDate && new Date(d.expiryDate) < _scNow);
-      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      return !ov && !ap;
+      return !ov && d.approvalStatus === "approved";
     }).length;
     const allApprovalRequired = docs.filter(d =>
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
