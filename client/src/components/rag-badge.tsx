@@ -23,7 +23,7 @@ export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDat
 
   if (isRequired && status !== "compliant") {
     chips.push({ label: "Non Compliant", Icon: ShieldAlert, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", testId: "badge-non-compliant" });
-  } else if (!isRequired && status !== "approved") {
+  } else if (!isRequired && status !== "approved" && !hideApprovalChips) {
     chips.push({ label: "Not Approved", Icon: ShieldAlert, cls: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20", testId: "badge-not-approved" });
   }
 
