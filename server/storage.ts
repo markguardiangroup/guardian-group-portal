@@ -700,6 +700,7 @@ export class MemStorage implements IStorage {
     let slotReview = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
+    let slotRequiredUploaded = 0;
     const consumedTemplateIds = new Set<string>();
     const _ciNow = new Date();
 
@@ -710,6 +711,7 @@ export class MemStorage implements IStorage {
       slotTotal++;
       const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
       if (matchingDocs.length === 0) { missingRequired++; continue; }
+      slotRequiredUploaded += matchingDocs.length;
       for (const d of matchingDocs) {
         const docOverdue = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
                            (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
@@ -740,7 +742,9 @@ export class MemStorage implements IStorage {
       (d.expiryDate && new Date(d.expiryDate as string) < _ciNow)
     ).length;
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
+    // Score = Compliant / (RequiredUploaded + Missing)
+    const requiredUploadedCount_ci = slotRequiredUploaded + manualRequired.length;
+    const scoreDenominator = requiredUploadedCount_ci + missingRequired;
 
     // All-docs stats for metric tiles (Total, Overdue, Approval Required — derived from conditions)
     const allDocumentsCount = siteDocs.length;
@@ -1190,6 +1194,7 @@ export class MemStorage implements IStorage {
     let slotReview = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
+    let slotRequiredUploaded_sc = 0;
     const consumedTemplateIds = new Set<string>();
 
     if (site?.companyId) {
@@ -1225,6 +1230,7 @@ export class MemStorage implements IStorage {
         // Per-document display counts — derived from conditions (allows overlap)
         const _sn = new Date();
         matchingDocs.forEach(d => {
+          slotRequiredUploaded_sc++;
           const docOverdue = (d.renewalDate && new Date(d.renewalDate) < _sn) ||
                              (d.expiryDate && new Date(d.expiryDate) < _sn);
           const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
@@ -1256,9 +1262,9 @@ export class MemStorage implements IStorage {
       (d.expiryDate && new Date(d.expiryDate) < _scNow)
     ).length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    // Compliance score: compliant / (compliant + not compliant + missing)
-    // Ties the percentage directly to the four tiles shown on the dashboard card.
-    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
+    // Score = Compliant / (RequiredUploaded + Missing)
+    const requiredUploadedCount_sc = slotRequiredUploaded_sc + manualRequired.length;
+    const scoreDenominator = requiredUploadedCount_sc + missingRequired;
     
     // All-docs stats for metric tiles (Total, Overdue, Approval Required — derived from conditions)
     const allDocumentsCount = docs.length;
@@ -1957,8 +1963,8 @@ export class MemStorage implements IStorage {
     const requiredApprovalRequired = requiredDocs.filter(d => d.status === "approval_required").length;
     const requiredOverdue = requiredDocs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    // Score: required_compliant / (required_compliant + required_non_compliant + missing_slots)
-    const scoreDenominator = requiredCompliant + requiredApprovalRequired + requiredOverdue + missingRequired;
+    // Score = Compliant / (RequiredUploaded + Missing) — NonCompliant = RequiredUploaded - Compliant
+    const scoreDenominator = requiredDocs.length + missingRequired;
 
     return {
       totalDocuments: allDocuments,
@@ -2040,7 +2046,8 @@ export class MemStorage implements IStorage {
       const requiredCompliant = requiredDocs.filter(d => d.status === "compliant").length;
       const requiredApprovalRequired = requiredDocs.filter(d => d.status === "approval_required").length;
       const requiredOverdue = requiredDocs.filter(d => d.status === "overdue").length;
-      const scoreDenominator = requiredCompliant + requiredApprovalRequired + requiredOverdue;
+      // Score = Compliant / RequiredUploaded — NonCompliant = RequiredUploaded - Compliant
+      const scoreDenominator = requiredDocs.length;
       
       return {
         module,

@@ -250,6 +250,18 @@ export function DocumentBadges({
         <primary.Icon className="h-3 w-3" />
         {primary.label}
       </Badge>
+      {isRequired && status !== "compliant" && (
+        <Badge variant="outline" className="gap-1.5 font-medium bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" data-testid="badge-doc-non-compliant">
+          <XCircle className="h-3 w-3" />
+          Non Compliant
+        </Badge>
+      )}
+      {!isRequired && status !== "approved" && (
+        <Badge variant="outline" className="gap-1.5 font-medium bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" data-testid="badge-doc-not-approved">
+          <AlertTriangle className="h-3 w-3" />
+          Not Approved
+        </Badge>
+      )}
       {isRequired && (
         <Badge variant="outline" className="gap-1.5 font-medium bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20" data-testid="badge-doc-required">
           <ShieldAlert className="h-3 w-3" />

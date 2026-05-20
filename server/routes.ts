@@ -1666,6 +1666,7 @@ export async function registerRoutes(
     let slotCompliantDocs = 0;  // individual compliant docs in required slots (used for display)
     let slotApprovalRequired = 0;
     let slotOverdue = 0;
+    let slotRequiredUploaded = 0;  // total required docs uploaded (for score denominator)
     let missingRequired = 0;
     const consumedDocIds = new Set<string>();
     const filteredSiteIds = new Set<string>(accessibleSites.map(s => s.id));
@@ -1703,6 +1704,7 @@ export async function registerRoutes(
         // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
         const _now = new Date();
         matchingDocs.forEach(d => {
+          slotRequiredUploaded++;
           const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _now) ||
             (d.renewalDate && new Date(d.renewalDate) < _now);
           const pendingApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
@@ -1754,9 +1756,10 @@ export async function registerRoutes(
     const approvalRequired = slotApprovalRequired + manualRequired.filter(isManualApprovalRequired).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
-    // Compliance score: compliant / (compliant + not compliant + missing)
-    // This ties the percentage directly to the four tiles shown on the dashboard card.
-    const complianceScoreDenominator = compliantDocuments + approvalRequired + overdueDocuments + missingRequiredDocuments;
+    // Score = Compliant / (RequiredUploaded + Missing)
+    // NonCompliant_required = RequiredUploaded - Compliant (avoids double-counting overlap docs)
+    const requiredUploadedCount = slotRequiredUploaded + manualRequired.length;
+    const complianceScoreDenominator = requiredUploadedCount + missingRequiredDocuments;
     const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
     return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
