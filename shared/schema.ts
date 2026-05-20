@@ -993,7 +993,8 @@ export interface ComplianceSummary {
   missingRequiredDocuments: number;
   complianceScore: number;
   // All-document progress stats (includes non-required docs)
-  allDocuments: number;
+  totalAllDocuments: number; // canonical: all uploaded docs in H&S/HR/EL scope
+  allDocuments: number;      // alias for totalAllDocuments (backward compat)
   allCompliantDocuments: number;
   allApprovalRequired: number;
   allOverdueDocuments: number;

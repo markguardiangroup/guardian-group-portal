@@ -4675,6 +4675,13 @@
           "message": "Redesigned document status, badges & compliance metrics: Approval Required replaces Review Required, Total/Non Compliant/Overdue/Approval Required tiles, stackable badge chips per document, and corrected compliance score",
           "category": "feature",
           "createdAt": "2026-05-20T09:58:00.000Z"
+        },
+        {
+          "id": "b0c2e4f6-compliance-tile-missing-approval-req-labels-2026",
+          "patch": 7,
+          "message": "Site/company/group compliance tiles now show Missing as a 5th tile where applicable; 'Approval' tile labels renamed to 'Approval Req.'; Total tile counts all uploaded docs (not just required slots); group card uses derived compliance logic",
+          "category": "bug",
+          "createdAt": "2026-05-20T10:50:00.000Z"
         }
       ],
       "publishedPatch": 6,

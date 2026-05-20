@@ -587,13 +587,23 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               //     accounts for site-template overrides and shared/site-scope docs that
               //     fulfil the slot. Deduped by templateId so a template required across
               //     multiple sites only counts once.
+              const _groupNow = new Date();
+              const isGroupDocCompliant = (d: Document) =>
+                d.approvalStatus === "approved" &&
+                !(d.renewalDate && new Date(d.renewalDate) < _groupNow) &&
+                !(d.expiryDate && new Date(d.expiryDate) < _groupNow);
               let groupCompliant = 0;
-              let groupApprovalRequired = 0;
+              let groupRequiredUploaded = 0;
               let groupOverdue = 0;
               for (const d of groupDocs) {
-                if (d.status === "compliant") groupCompliant++;
-                else if (d.status === "approval_required") groupApprovalRequired++;
-                else if (d.status === "overdue") groupOverdue++;
+                if (d.isRequired) {
+                  groupRequiredUploaded++;
+                  if (isGroupDocCompliant(d)) groupCompliant++;
+                }
+                if ((d.renewalDate && new Date(d.renewalDate) < _groupNow) ||
+                    (d.expiryDate && new Date(d.expiryDate) < _groupNow)) {
+                  groupOverdue++;
+                }
               }
               const groupPending = groupDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
               const groupMissingTemplateIds = new Set<string>();
@@ -603,9 +613,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 }
               }
               const groupMissing = groupMissingTemplateIds.size;
-              const groupDenom = groupCompliant + groupApprovalRequired + groupOverdue + groupMissing;
+              const groupNonCompliant = groupRequiredUploaded - groupCompliant;
+              const groupDenom = groupRequiredUploaded + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
-              const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupApprovalRequired > 0;
+              const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupPending > 0;
 
               return (
                 <>
@@ -690,14 +701,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                      <div className={`grid gap-1.5 text-center ${groupMissing > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
                         <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                           {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{groupDocs.length}</p>}
                           <p className={`text-[10px] ${!isLoadingDocs && groupDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
                         </div>
-                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupApprovalRequired + groupOverdue + groupMissing}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupNonCompliant}</p>}
+                          <p className={`text-[10px] ${!isLoadingDocs && groupNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                         </div>
                         <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
                           {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupOverdue > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{groupOverdue}</p>}
@@ -705,8 +716,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                         <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                           {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupPending}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                          <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
                         </div>
+                        {groupMissing > 0 && (
+                          <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{groupMissing}</p>
+                            <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                     <div className="border-t flex">
@@ -868,7 +885,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           )}
 
-                          <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <div className={`grid gap-1.5 text-center ${cMissing > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
                             <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${companyDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{companyDocs.length}</p>}
                               <p className={`text-[10px] ${!isLoadingDocs && companyDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
@@ -883,8 +900,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                             <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                              <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
                             </div>
+                            {cMissing > 0 && (
+                              <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{cMissing}</p>
+                                <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                         <div className="border-t flex">
@@ -1031,7 +1054,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-4 gap-1.5 text-center">
+                    <div className={`grid gap-1.5 text-center ${allMissing > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allTotal > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{allTotal}</p>}
                         <p className={`text-[10px] ${!isLoadingDocs && allTotal > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
@@ -1046,8 +1069,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allPending}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && allPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                        <p className={`text-[10px] ${!isLoadingDocs && allPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
                       </div>
+                      {allMissing > 0 && (
+                        <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{allMissing}</p>
+                          <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
+                        </div>
+                      )}
                     </div>
 
                   </CardContent>
@@ -1265,7 +1294,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     )}
 
                     {/* Stats row */}
-                    <div className="grid grid-cols-4 gap-1.5 text-center">
+                    <div className={`grid gap-1.5 text-center ${missingCount > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && total > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${total > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{total}</p>}
                         <p className={`text-[10px] ${!isLoadingDocs && total > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
@@ -1280,8 +1309,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && pendingAll > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${pendingAll > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{pendingAll}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                        <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
                       </div>
+                      {missingCount > 0 && (
+                        <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{missingCount}</p>
+                          <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
+                        </div>
+                      )}
                     </div>
 
                   </CardContent>

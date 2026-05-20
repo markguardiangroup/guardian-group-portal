@@ -1763,7 +1763,15 @@ export async function registerRoutes(
     const complianceScoreDenominator = requiredUploadedCount + missingRequiredDocuments;
     const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
-    return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
+    // All uploaded docs in H&S/HR/EL scope (Total tile — includes required + non-required)
+    const _scopeMods = module ? [module] : (complianceModules as string[]);
+    const allDocumentsInScope = documents.filter(d =>
+      !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" &&
+      _scopeMods.includes(d.module as string) &&
+      filteredSiteIds.has(d.siteId)
+    ).length;
+
+    return { totalDocuments, allDocumentsInScope, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
 
   interface MissingRequiredTemplateDetail {
@@ -2286,7 +2294,7 @@ export async function registerRoutes(
       const complianceResult = await computeSlotBasedCompliance(
         user, documents, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
-      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, allDocumentsInScope, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
@@ -2304,7 +2312,7 @@ export async function registerRoutes(
       const isDocOverdue = (d: any) =>
         (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow);
-      const allDocumentsCount = docProgressSet.length;
+      const allDocumentsCount = allDocumentsInScope;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
       const allApprovalRequired = docProgressSet.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
@@ -2350,6 +2358,7 @@ export async function registerRoutes(
         overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
+        totalAllDocuments: allDocumentsCount,
         allDocuments: allDocumentsCount,
         allCompliantDocuments,
         allApprovalRequired,
@@ -2456,7 +2465,7 @@ export async function registerRoutes(
       
       // Slot-based compliance calculation: each required template contributes exactly one slot
       const complianceResult = await computeSlotBasedCompliance(user, documents, module);
-      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, allDocumentsInScope: allDocumentsInScope2, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
@@ -2474,7 +2483,7 @@ export async function registerRoutes(
       const isDocOverdue2 = (d: any) =>
         (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow2);
-      const allDocsProgress = allNonCaseDocs.length;
+      const allDocsProgress = allDocumentsInScope2;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
       const allApprovalRequiredProgress = allNonCaseDocs.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
@@ -2520,6 +2529,7 @@ export async function registerRoutes(
         overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
+        totalAllDocuments: allDocsProgress,
         allDocuments: allDocsProgress,
         allCompliantDocuments: allCompliantProgress,
         allApprovalRequired: allApprovalRequiredProgress,
