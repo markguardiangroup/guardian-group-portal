@@ -304,9 +304,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
         )
       );
       const total = siteDocs.length; // actual uploaded docs (not counting missing)
-      const compliant = siteDocs.filter((d) => d.status === "compliant").length;
-      const overdue = siteDocs.filter((d) => d.status === "overdue").length;
-      const approvalRequired = siteDocs.filter((d) => d.status === "approval_required").length;
+      const _smNow = new Date();
+      const isSmOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _smNow) || !!(d.renewalDate && new Date(d.renewalDate) < _smNow);
+      const isSmApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+      const compliant = siteDocs.filter((d) => d.status === "compliant" && !isSmOverdue(d) && !isSmApproval(d)).length;
+      const overdue = siteDocs.filter(isSmOverdue).length;
+      const approvalRequired = siteDocs.filter(isSmApproval).length;
       const missingCount = missingRequiredDetails.filter((m) => m.siteId === siteId).length;
       const denom = compliant + approvalRequired + overdue + missingCount;
       // Use denom (not total) so sites with only missing docs get pct=0 rather than null
@@ -575,15 +578,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               //     accounts for site-template overrides and shared/site-scope docs that
               //     fulfil the slot. Deduped by templateId so a template required across
               //     multiple sites only counts once.
+              const _gNow = new Date();
+              const isGOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _gNow) || !!(d.renewalDate && new Date(d.renewalDate) < _gNow);
+              const isGApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
               let groupCompliant = 0;
               let groupApprovalRequired = 0;
               let groupOverdue = 0;
               for (const d of groupDocs) {
-                if (d.status === "compliant") groupCompliant++;
-                else if (d.status === "approval_required") groupApprovalRequired++;
-                else if (d.status === "overdue") groupOverdue++;
+                if (isGOverdue(d)) groupOverdue++;
+                else if (isGApproval(d)) groupApprovalRequired++;
+                else if (d.status === "compliant") groupCompliant++;
               }
-              const groupPending = groupDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+              const groupPending = groupDocs.filter(isGApproval).length;
               const groupMissingTemplateIds = new Set<string>();
               for (const m of missingRequiredDetails) {
                 if (m.companyId === selectedGroup && m.module === module) {
@@ -740,19 +746,22 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     //     matches the company Documents page (uses the batch
                     //     /api/missing-required-templates/by-company endpoint).
                     // Required-only counts — used for Non Compliant tile and compliance score.
+                    const _cNow = new Date();
+                    const isCOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _cNow) || !!(d.renewalDate && new Date(d.renewalDate) < _cNow);
+                    const isCApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
                     let cCompliant = 0;
                     let cApprovalRequired = 0;
                     let cOverdue = 0;
                     // All-docs overdue — used for Overdue tile (spec: all docs, not just required).
                     let cOverdueAll = 0;
                     for (const d of companyDocs) {
-                      if (d.status === "overdue") cOverdueAll++;
+                      if (isCOverdue(d)) cOverdueAll++;
                       if (!d.isRequired) continue;
-                      if (d.status === "compliant") cCompliant++;
-                      else if (d.status === "approval_required") cApprovalRequired++;
-                      else if (d.status === "overdue") cOverdue++;
+                      if (isCOverdue(d)) cOverdue++;
+                      else if (isCApproval(d)) cApprovalRequired++;
+                      else if (d.status === "compliant") cCompliant++;
                     }
-                    const cPending = companyDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+                    const cPending = companyDocs.filter(isCApproval).length;
                     // Use company-level missing slots (no per-site exclusions) so the
                     // tile count matches the company Documents page.
                     const cMissingTemplateIds = new Set<string>();
@@ -909,6 +918,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
                   (d as any).entityId === s.companyId
                 ).length;
+              const _asNow = new Date();
+              const isAsOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _asNow) || !!(d.renewalDate && new Date(d.renewalDate) < _asNow);
+              const isAsApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
               let allTotal = 0;
               let allCompliant = 0;
               let allOverdue = 0;
@@ -919,12 +931,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 const n = coveredSites(d);
                 allTotal += n;
                 if (d.isRequired) {
-                  if (d.status === "compliant") allCompliant += n;
-                  else if (d.status === "overdue") allOverdue += n;
-                  else if (d.status === "approval_required") allApprovalRequired += n;
+                  if (isAsOverdue(d)) allOverdue += n;
+                  else if (isAsApproval(d)) allApprovalRequired += n;
+                  else if (d.status === "compliant") allCompliant += n;
                 }
-                if (d.status === "overdue") allOverdueAll += n;
-                if (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off") allPending += n;
+                if (isAsOverdue(d)) allOverdueAll += n;
+                if (isAsApproval(d)) allPending += n;
               }
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
@@ -1083,6 +1095,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               // This means both a compliant AND an approval_required copy of the
               // same template are each counted — so the card reflects every doc
               // that needs attention without hiding the compliant ones.
+              const _sNow = new Date();
+              const isSOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _sNow) || !!(d.renewalDate && new Date(d.renewalDate) < _sNow);
+              const isSApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
               let compliant = 0;
               let approvalRequiredRequired = 0;
               let overdueRequired = 0;
@@ -1091,9 +1106,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 if (!d.isRequired || !d.templateId) continue;
                 if (!siteEffectiveRequired.has(d.templateId)) continue;
                 countedDocIds.add(d.id);
-                if (d.status === "compliant") compliant++;
-                else if (d.status === "approval_required") approvalRequiredRequired++;
-                else if (d.status === "overdue") overdueRequired++;
+                if (isSOverdue(d)) overdueRequired++;
+                else if (isSApproval(d)) approvalRequiredRequired++;
+                else if (d.status === "compliant") compliant++;
               }
               // Pass 2: manually-required docs not covered above (no templateId,
               // or template excluded at site level but doc is still marked required).
@@ -1104,12 +1119,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
                 if (seenManualDocIds.has(d.id)) continue;
                 seenManualDocIds.add(d.id);
-                if (d.status === "compliant") compliant++;
-                else if (d.status === "approval_required") approvalRequiredRequired++;
-                else if (d.status === "overdue") overdueRequired++;
+                if (isSOverdue(d)) overdueRequired++;
+                else if (isSApproval(d)) approvalRequiredRequired++;
+                else if (d.status === "compliant") compliant++;
               }
-              const overdueAll = siteDocs.filter((d) => d.status === "overdue").length;
-              const pendingAll = siteDocs.filter((d) => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+              const overdueAll = siteDocs.filter(isSOverdue).length;
+              const pendingAll = siteDocs.filter(isSApproval).length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;

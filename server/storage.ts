@@ -1300,6 +1300,7 @@ export class MemStorage implements IStorage {
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      totalAllDocuments: allDocuments,
       allDocuments,
       allCompliantDocuments,
       allApprovalRequired,
