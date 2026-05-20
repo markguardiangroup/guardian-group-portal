@@ -2356,8 +2356,9 @@ export async function registerRoutes(
       const summary = {
         totalDocuments,
         compliantDocuments,
-        approvalRequired,
-        overdueDocuments,
+        // Tile values: Overdue + Approval Required count ALL docs per spec
+        approvalRequired: allApprovalRequired,
+        overdueDocuments: allOverdueDocuments,
         missingRequiredDocuments,
         complianceScore,
         totalAllDocuments: allDocumentsCount,
@@ -2527,8 +2528,9 @@ export async function registerRoutes(
       const summary = {
         totalDocuments,
         compliantDocuments,
-        approvalRequired,
-        overdueDocuments,
+        // Tile values: Overdue + Approval Required count ALL docs per spec
+        approvalRequired: allApprovalRequiredProgress,
+        overdueDocuments: allOverdueProgress,
         missingRequiredDocuments,
         complianceScore,
         totalAllDocuments: allDocsProgress,
@@ -2671,9 +2673,10 @@ export async function registerRoutes(
         d.siteId == null
       );
 
-      type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number };
+      type ScopedExpansion = { module: string; isCompliant: boolean; isOverdue: boolean; isApprovalRequired: boolean; siteCount: number };
       const scopedExpansions: ScopedExpansion[] = [];
       const accessibleScopedDocIds = new Set<string>();
+      const _seNow = new Date();
       for (const doc of rawScopedDocs) {
         const canAccess = await canUserAccessDocument(user, doc);
         if (!canAccess) continue;
@@ -2691,10 +2694,19 @@ export async function registerRoutes(
           return false;
         }).length;
 
+        // Derive booleans from conditions (not stored status) per spec
+        const seOverdue = !!(
+          (doc.renewalDate && new Date(doc.renewalDate) < _seNow) ||
+          (doc.expiryDate && new Date(doc.expiryDate) < _seNow)
+        );
+        const seApproval = doc.approvalStatus === "pending" || doc.approvalStatus === "client_signed_off";
+        const seCompliant = doc.approvalStatus === "approved" && !seOverdue && !seApproval;
+
         scopedExpansions.push({
           module: doc.module,
-          status: doc.status,
-          approvalStatus: doc.approvalStatus,
+          isCompliant: seCompliant,
+          isOverdue: seOverdue,
+          isApprovalRequired: seApproval,
           siteCount: Math.max(count, 1),
         });
       }
@@ -2714,20 +2726,29 @@ export async function registerRoutes(
       const summaries = await Promise.all(modules.map(async (mod) => {
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
-        const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const _msNow = new Date();
+        const siteCompliant = moduleDocs.filter(d => {
+          const ov = (d.renewalDate && new Date(d.renewalDate) < _msNow) ||
+                     (d.expiryDate && new Date(d.expiryDate) < _msNow);
+          const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+          return d.approvalStatus === "approved" && !ov && !ap;
+        }).length;
         const siteApprovalRequired = moduleDocs.filter(d =>
           d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
         ).length;
-        const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
+        const siteOverdue = moduleDocs.filter(d =>
+          (d.renewalDate && new Date(d.renewalDate) < _msNow) ||
+          (d.expiryDate && new Date(d.expiryDate) < _msNow)
+        ).length;
 
         // Add scoped doc expansion counts for this module
         const modScoped = scopedExpansions.filter(e => e.module === mod);
         let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0;
-        for (const { status, approvalStatus, siteCount: n } of modScoped) {
+        for (const { isCompliant, isOverdue, isApprovalRequired, siteCount: n } of modScoped) {
           scopedTotal += n;
-          if (status === "compliant") scopedCompliant += n;
-          else if (status === "overdue") scopedOverdue += n;
-          if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedApprovalRequired += n;
+          if (isCompliant) scopedCompliant += n;
+          if (isOverdue) scopedOverdue += n;
+          if (isApprovalRequired) scopedApprovalRequired += n;
         }
 
         const allDocsCount = siteCount + scopedTotal;
@@ -2748,6 +2769,10 @@ export async function registerRoutes(
             module: mod,
             moduleName: moduleNames[mod],
             ...compliance,
+            // Tile values override the required-only values from computeSlotBasedCompliance
+            approvalRequired: allApprovalRequired,
+            overdueDocuments: allOverdue,
+            totalAllDocuments: allDocsCount,
             allDocuments: allDocsCount,
             allCompliantDocuments: allCompliant,
             allApprovalRequired,
@@ -2766,6 +2791,7 @@ export async function registerRoutes(
           overdueDocuments: allOverdue,
           missingRequiredDocuments: 0,
           complianceScore: allDocsCount > 0 ? Math.round((allCompliant / allDocsCount) * 100) : 0,
+          totalAllDocuments: allDocsCount,
           allDocuments: allDocsCount,
           allCompliantDocuments: allCompliant,
           allApprovalRequired,

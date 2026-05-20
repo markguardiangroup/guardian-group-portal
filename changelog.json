@@ -4689,6 +4689,13 @@
           "message": "Fixed: Overdue and Approval Required tiles now correctly count all documents (required + non-required); shared company/group documents correctly included in Total count; compliance score uses derived conditions throughout",
           "category": "bug",
           "createdAt": "2026-05-20T11:00:00.000Z"
+        },
+        {
+          "id": "d2e4g6h8-compliance-engine-consistent-all-paths-2026",
+          "patch": 7,
+          "message": "Fixed: Overdue/Approval Required tile values now consistent across all compliance endpoints; group-scoped docs included in site compliance summaries; module summary overdue uses date conditions throughout",
+          "category": "bug",
+          "createdAt": "2026-05-20T11:10:00.000Z"
         }
       ],
       "publishedPatch": 6,

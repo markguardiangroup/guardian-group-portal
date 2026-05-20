@@ -851,10 +851,12 @@ export class MemStorage implements IStorage {
 
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
-      // Restrict to compliance modules only and exclude external-source documents
+      // Restrict to compliance modules only and exclude external-source documents.
+      // Include site docs, company-scoped docs, and group-owner-scoped docs (shared rules).
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...(docsByCompany.get(site.companyId) ?? []),
+        ...(company?.groupOwnerId ? (docsByCompany.get(company.groupOwnerId) ?? []) : []),
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
@@ -957,11 +959,23 @@ export class MemStorage implements IStorage {
 
     const COMPLIANCE_MODULES_COMPANY = new Set(["health_safety", "human_resources", "employment_law"]);
 
+    // Load group-owner scoped docs if this company belongs to a group
+    const groupOwnerDocs: typeof allDocs = [];
+    if (company?.groupOwnerId) {
+      for (const d of allDocs) {
+        if (!d.siteId && d.entityId === company.groupOwnerId) {
+          groupOwnerDocs.push(d);
+        }
+      }
+    }
+
     return companySites.map(site => {
-      // Restrict to compliance modules only and exclude external-source documents
+      // Restrict to compliance modules only and exclude external-source documents.
+      // Include site docs, company-scoped docs, and group-owner-scoped docs (shared rules).
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...companyDocs,
+        ...groupOwnerDocs,
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES_COMPANY.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
