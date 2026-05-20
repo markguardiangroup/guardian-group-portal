@@ -51,7 +51,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DocumentBadges } from "@/components/rag-badge";
+import { ComplianceBadge, DocumentStatusBadge } from "@/components/rag-badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -825,7 +825,8 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <DocumentBadges isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={doc.renewalDate} expiryDate={doc.expiryDate} />
+                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                  <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                   <span className="text-sm text-muted-foreground">
                                     {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                                   </span>
@@ -901,7 +902,8 @@ function DocumentsListView() {
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            <DocumentBadges isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={doc.renewalDate} expiryDate={doc.expiryDate} />
+                                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                           </div>
                                         </Link>
                                       ))}
@@ -960,7 +962,8 @@ function DocumentsListView() {
                         <span className="font-medium">{doc.title}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <DocumentBadges isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={doc.renewalDate} expiryDate={doc.expiryDate} />
+                        <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                        <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(doc.updatedAt), "MMM d, yyyy")}
                         </span>
@@ -1084,7 +1087,10 @@ function DocumentsListView() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <DocumentBadges isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={doc.renewalDate} expiryDate={doc.expiryDate} />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} />
+                    </TableCell>
+                    <TableCell>
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -1500,7 +1506,8 @@ function DocumentDetailView({ id }: { id: string }) {
             <h1 className="text-3xl font-semibold">{document.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
-              <DocumentBadges isRequired={document.isRequired} status={document.status} approvalStatus={document.approvalStatus} renewalDate={(document as any).renewalDate} expiryDate={(document as any).expiryDate} />
+              <ComplianceBadge isRequired={document.isRequired} status={document.status} approvalStatus={document.approvalStatus} />
+              <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} />
               <span className="text-sm text-muted-foreground">Version {document.version}</span>
             </div>
           </div>

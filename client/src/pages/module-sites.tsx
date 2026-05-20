@@ -56,8 +56,6 @@ interface Document {
   entityId?: string | null;
   isRequired?: boolean;
   templateId?: string | null;
-  renewalDate?: string | null;
-  expiryDate?: string | null;
   sharedWithCompanyIds?: string[];
   sharedWithSiteIds?: string[];
 }
@@ -305,25 +303,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           ))
         )
       );
-      const total = siteDocs.length;
-      const _sortNow = new Date();
-      const isDocCompliant_sort = (d: Document) =>
-        d.approvalStatus === "approved" &&
-        !(d.renewalDate && new Date(d.renewalDate) < _sortNow) &&
-        !(d.expiryDate && new Date(d.expiryDate) < _sortNow);
-      const requiredUploaded_sort = siteDocs.filter((d) => d.isRequired).length;
-      const compliantRequired_sort = siteDocs.filter((d) => d.isRequired && isDocCompliant_sort(d)).length;
+      const total = siteDocs.length; // actual uploaded docs (not counting missing)
+      const compliant = siteDocs.filter((d) => d.status === "compliant").length;
+      const overdue = siteDocs.filter((d) => d.status === "overdue").length;
+      const approvalRequired = siteDocs.filter((d) => d.status === "approval_required").length;
       const missingCount = missingRequiredDetails.filter((m) => m.siteId === siteId).length;
-      const denom = requiredUploaded_sort + missingCount;
-      const pct = denom > 0 ? Math.round((compliantRequired_sort / denom) * 100) : null;
-      const overdueAny = siteDocs.some((d) =>
-        (d.renewalDate && new Date(d.renewalDate) < _sortNow) ||
-        (d.expiryDate && new Date(d.expiryDate) < _sortNow)
-      );
-      const pendingAny = siteDocs.some((d) =>
-        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-      );
-      const hasIssues = missingCount > 0 || overdueAny || pendingAny;
+      const denom = compliant + approvalRequired + overdue + missingCount;
+      // Use denom (not total) so sites with only missing docs get pct=0 rather than null
+      const pct = denom > 0 ? Math.round((compliant / denom) * 100) : null;
+      const hasIssues = missingCount > 0 || overdue > 0 || approvalRequired > 0;
       return { pct, hasIssues, total };
     };
 
@@ -587,23 +575,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               //     accounts for site-template overrides and shared/site-scope docs that
               //     fulfil the slot. Deduped by templateId so a template required across
               //     multiple sites only counts once.
-              const _groupNow = new Date();
-              const isGroupDocCompliant = (d: Document) =>
-                d.approvalStatus === "approved" &&
-                !(d.renewalDate && new Date(d.renewalDate) < _groupNow) &&
-                !(d.expiryDate && new Date(d.expiryDate) < _groupNow);
               let groupCompliant = 0;
-              let groupRequiredUploaded = 0;
+              let groupApprovalRequired = 0;
               let groupOverdue = 0;
               for (const d of groupDocs) {
-                if (d.isRequired) {
-                  groupRequiredUploaded++;
-                  if (isGroupDocCompliant(d)) groupCompliant++;
-                }
-                if ((d.renewalDate && new Date(d.renewalDate) < _groupNow) ||
-                    (d.expiryDate && new Date(d.expiryDate) < _groupNow)) {
-                  groupOverdue++;
-                }
+                if (d.status === "compliant") groupCompliant++;
+                else if (d.status === "approval_required") groupApprovalRequired++;
+                else if (d.status === "overdue") groupOverdue++;
               }
               const groupPending = groupDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
               const groupMissingTemplateIds = new Set<string>();
@@ -613,10 +591,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 }
               }
               const groupMissing = groupMissingTemplateIds.size;
-              const groupNonCompliant = groupRequiredUploaded - groupCompliant;
-              const groupDenom = groupRequiredUploaded + groupMissing;
+              const groupDenom = groupCompliant + groupApprovalRequired + groupOverdue + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
-              const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupPending > 0;
+              const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupApprovalRequired > 0;
 
               return (
                 <>
@@ -701,14 +678,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       )}
 
-                      <div className={`grid gap-1.5 text-center ${groupMissing > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
                         <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                           {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{groupDocs.length}</p>}
                           <p className={`text-[10px] ${!isLoadingDocs && groupDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
                         </div>
-                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupNonCompliant}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && groupNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupApprovalRequired + groupOverdue + groupMissing}</p>}
+                          <p className={`text-[10px] ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                         </div>
                         <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
                           {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupOverdue > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{groupOverdue}</p>}
@@ -716,14 +693,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                         <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                           {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupPending}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
+                          <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                         </div>
-                        {groupMissing > 0 && (
-                          <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
-                            <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{groupMissing}</p>
-                            <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
-                          </div>
-                        )}
                       </div>
                     </CardContent>
                     <div className="border-t flex">
@@ -768,28 +739,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     //     document, computed WITHOUT per-site exclusions so the count
                     //     matches the company Documents page (uses the batch
                     //     /api/missing-required-templates/by-company endpoint).
-                    const _cNow = new Date();
-                    const isCDocCompliant = (d: Document) =>
-                      d.approvalStatus === "approved" &&
-                      !(d.renewalDate && new Date(d.renewalDate) < _cNow) &&
-                      !(d.expiryDate && new Date(d.expiryDate) < _cNow);
                     let cCompliant = 0;
-                    let cRequiredUploaded = 0;
+                    let cApprovalRequired = 0;
                     let cOverdue = 0;
                     for (const d of companyDocs) {
-                      if (d.isRequired) {
-                        cRequiredUploaded++;
-                        if (isCDocCompliant(d)) cCompliant++;
-                      }
-                      if ((d.renewalDate && new Date(d.renewalDate) < _cNow) ||
-                          (d.expiryDate && new Date(d.expiryDate) < _cNow)) {
-                        cOverdue++;
-                      }
+                      if (d.status === "compliant") cCompliant++;
+                      else if (d.status === "approval_required") cApprovalRequired++;
+                      else if (d.status === "overdue") cOverdue++;
                     }
-                    const cApprovalRequired = companyDocs.filter(d =>
-                      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-                    ).length;
-                    const cPending = cApprovalRequired;
+                    const cPending = companyDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
                     // Use company-level missing slots (no per-site exclusions) so the
                     // tile count matches the company Documents page.
                     const cMissingTemplateIds = new Set<string>();
@@ -799,8 +757,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       }
                     }
                     const cMissing = cMissingTemplateIds.size;
-                    const cNonCompliant = cRequiredUploaded - cCompliant;
-                    const cDenom = cRequiredUploaded + cMissing;
+                    const cDenom = cCompliant + cApprovalRequired + cOverdue + cMissing;
                     const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
                     const cHasIssues = cMissing > 0 || cOverdue > 0 || cApprovalRequired > 0;
 
@@ -885,14 +842,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           )}
 
-                          <div className={`grid gap-1.5 text-center ${cMissing > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
+                          <div className="grid grid-cols-4 gap-1.5 text-center">
                             <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${companyDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{companyDocs.length}</p>}
                               <p className={`text-[10px] ${!isLoadingDocs && companyDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
                             </div>
-                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cNonCompliant}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && cNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cApprovalRequired + cOverdue + cMissing}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                             </div>
                             <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cOverdue > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{cOverdue}</p>}
@@ -900,14 +857,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                             <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
+                              <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                             </div>
-                            {cMissing > 0 && (
-                              <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
-                                <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{cMissing}</p>
-                                <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
-                              </div>
-                            )}
                           </div>
                         </CardContent>
                         <div className="border-t flex">
@@ -954,34 +905,28 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (d as any).entityId === s.companyId
                 ).length;
               let allTotal = 0;
-              let allRequiredUploaded = 0;
               let allCompliant = 0;
+              let allOverdue = 0;
+              let allApprovalRequired = 0;
               let allOverdueAll = 0;
               let allPending = 0;
-              const _allNow = new Date();
-              const isAllDocCompliant = (d: Document) =>
-                d.approvalStatus === "approved" &&
-                !(d.renewalDate && new Date(d.renewalDate) < _allNow) &&
-                !(d.expiryDate && new Date(d.expiryDate) < _allNow);
               for (const d of allDocs) {
                 const n = coveredSites(d);
                 allTotal += n;
                 if (d.isRequired) {
-                  allRequiredUploaded += n;
-                  if (isAllDocCompliant(d)) allCompliant += n;
+                  if (d.status === "compliant") allCompliant += n;
+                  else if (d.status === "overdue") allOverdue += n;
+                  else if (d.status === "approval_required") allApprovalRequired += n;
                 }
-                const docOverdue = (d.renewalDate && new Date(d.renewalDate) < _allNow) ||
-                  (d.expiryDate && new Date(d.expiryDate) < _allNow);
-                if (docOverdue) allOverdueAll += n;
+                if (d.status === "overdue") allOverdueAll += n;
                 if (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off") allPending += n;
               }
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
               ).length;
-              const allNonCompliant = allRequiredUploaded - allCompliant;
-              const allDenom = allRequiredUploaded + allMissing;
+              const allDenom = allCompliant + allApprovalRequired + allOverdue + allMissing;
               const allPct = allDenom > 0 ? Math.round((allCompliant / allDenom) * 100) : null;
-              const allHasIssues = allMissing > 0 || allOverdueAll > 0 || allPending > 0;
+              const allHasIssues = allMissing > 0 || allOverdue > 0 || allApprovalRequired > 0;
               const allClear = allDenom > 0 && !allHasIssues && allPct === 100;
 
               return (
@@ -1006,7 +951,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                       {allHasIssues ? (
-                        allMissing > 0 || allOverdueAll > 0 ? (
+                        allMissing > 0 || allOverdue > 0 ? (
                           <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
                             <AlertTriangle className="h-3 w-3" />
                           </Badge>
@@ -1054,14 +999,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                     )}
 
-                    <div className={`grid gap-1.5 text-center ${allMissing > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
+                    <div className="grid grid-cols-4 gap-1.5 text-center">
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allTotal > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{allTotal}</p>}
                         <p className={`text-[10px] ${!isLoadingDocs && allTotal > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
                       </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allNonCompliant}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && allNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allApprovalRequired + allOverdue + allMissing}</p>}
+                        <p className={`text-[10px] ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                       </div>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allOverdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{allOverdueAll}</p>}
@@ -1069,14 +1014,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allPending}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && allPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
+                        <p className={`text-[10px] ${!isLoadingDocs && allPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                       </div>
-                      {allMissing > 0 && (
-                        <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{allMissing}</p>
-                          <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
-                        </div>
-                      )}
                     </div>
 
                   </CardContent>
@@ -1136,26 +1075,23 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const siteEffectiveRequired = new Set(effectiveRequiredBySite[site.id] ?? []);
               // Count each required doc individually (raw count, no slot-dedup).
               // Pass 1: docs whose template is in the effective required set.
-              // This means both a compliant AND an approval_required copy of the
+              // This means both a compliant AND a review_required copy of the
               // same template are each counted — so the card reflects every doc
               // that needs attention without hiding the compliant ones.
-              const _siteNow = new Date();
-              const isSiteDocCompliant = (d: Document) =>
-                d.approvalStatus === "approved" &&
-                !(d.renewalDate && new Date(d.renewalDate) < _siteNow) &&
-                !(d.expiryDate && new Date(d.expiryDate) < _siteNow);
               let compliant = 0;
-              let requiredUploaded = 0;
+              let approvalRequiredRequired = 0;
+              let overdueRequired = 0;
               const countedDocIds = new Set<string>();
-              // Pass 1: docs in effective required template slots
               for (const d of siteDocs) {
                 if (!d.isRequired || !d.templateId) continue;
                 if (!siteEffectiveRequired.has(d.templateId)) continue;
                 countedDocIds.add(d.id);
-                requiredUploaded++;
-                if (isSiteDocCompliant(d)) compliant++;
+                if (d.status === "compliant") compliant++;
+                else if (d.status === "approval_required") approvalRequiredRequired++;
+                else if (d.status === "overdue") overdueRequired++;
               }
-              // Pass 2: manually-required docs not covered by template slots
+              // Pass 2: manually-required docs not covered above (no templateId,
+              // or template excluded at site level but doc is still marked required).
               const seenManualDocIds = new Set<string>();
               for (const d of siteDocs) {
                 if (!d.isRequired) continue;
@@ -1163,35 +1099,31 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
                 if (seenManualDocIds.has(d.id)) continue;
                 seenManualDocIds.add(d.id);
-                requiredUploaded++;
-                if (isSiteDocCompliant(d)) compliant++;
+                if (d.status === "compliant") compliant++;
+                else if (d.status === "approval_required") approvalRequiredRequired++;
+                else if (d.status === "overdue") overdueRequired++;
               }
-              const overdueAll = siteDocs.filter((d) =>
-                (d.renewalDate && new Date(d.renewalDate) < _siteNow) ||
-                (d.expiryDate && new Date(d.expiryDate) < _siteNow)
-              ).length;
-              const pendingAll = siteDocs.filter((d) =>
-                d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-              ).length;
+              const overdueAll = siteDocs.filter((d) => d.status === "overdue").length;
+              const pendingAll = siteDocs.filter((d) => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;
-              const nonCompliant = requiredUploaded - compliant;
-              const scoreDenominator = requiredUploaded + missingCount;
+              const nonCompliant = approvalRequiredRequired + overdueRequired + missingCount;
+              const scoreDenominator = compliant + approvalRequiredRequired + overdueRequired + missingCount;
               const pct =
                 scoreDenominator > 0
                   ? Math.round((compliant / scoreDenominator) * 100)
                   : null;
-              const hasIssues = missingCount > 0 || overdueAll > 0 || pendingAll > 0;
+              const hasIssues = missingCount > 0 || overdueRequired > 0 || approvalRequiredRequired > 0;
               const allClear = scoreDenominator > 0 && !hasIssues && pct === 100;
 
               return (
                 <Card
                   key={site.id}
                   className={`overflow-hidden transition-all hover:shadow-md border ${
-                    missingCount > 0 || overdueAll > 0
+                    missingCount > 0 || overdueRequired > 0
                       ? "border-red-200 dark:border-red-900/50 hover:border-red-400"
-                      : pendingAll > 0
+                      : approvalRequiredRequired > 0
                       ? "border-amber-200 dark:border-amber-900/50 hover:border-amber-400"
                       : allClear
                       ? "border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-400"
@@ -1239,11 +1171,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           )}
                         </div>
                       </div>
-                      {missingCount > 0 || overdueAll > 0 ? (
+                      {missingCount > 0 || overdueRequired > 0 ? (
                         <Badge className="shrink-0 bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20 border text-xs px-1.5">
                           <AlertTriangle className="h-3 w-3" />
                         </Badge>
-                      ) : pendingAll > 0 ? (
+                      ) : approvalRequiredRequired > 0 ? (
                         <Badge className="shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20 border text-xs px-1.5">
                           <Clock className="h-3 w-3" />
                         </Badge>
@@ -1294,7 +1226,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     )}
 
                     {/* Stats row */}
-                    <div className={`grid gap-1.5 text-center ${missingCount > 0 ? "grid-cols-5" : "grid-cols-4"}`}>
+                    <div className="grid grid-cols-4 gap-1.5 text-center">
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && total > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${total > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{total}</p>}
                         <p className={`text-[10px] ${!isLoadingDocs && total > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
@@ -1309,14 +1241,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                       <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && pendingAll > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
                         {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${pendingAll > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{pendingAll}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval Req.</p>
+                        <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                       </div>
-                      {missingCount > 0 && (
-                        <div className="rounded-lg px-1.5 py-1.5 bg-slate-100 dark:bg-slate-900/30">
-                          <p className="text-sm font-bold text-slate-700 dark:text-slate-400">{missingCount}</p>
-                          <p className="text-[10px] text-slate-600/70 dark:text-slate-400/70">Missing</p>
-                        </div>
-                      )}
                     </div>
 
                   </CardContent>

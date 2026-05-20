@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert, RotateCcw, CalendarOff } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert } from "lucide-react";
 import type { DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -210,89 +210,6 @@ export function ApprovalBadge({ status, className }: ApprovalBadgeProps) {
       <Icon className="h-3 w-3" />
       {label}
     </Badge>
-  );
-}
-
-interface DocumentBadgesProps {
-  isRequired?: boolean | null;
-  status: DocumentStatus;
-  approvalStatus: ApprovalStatus;
-  renewalDate?: string | Date | null;
-  expiryDate?: string | Date | null;
-  className?: string;
-}
-
-export function DocumentBadges({
-  isRequired,
-  status,
-  approvalStatus,
-  renewalDate,
-  expiryDate,
-  className,
-}: DocumentBadgesProps) {
-  const now = new Date();
-  const isPastRenewal = renewalDate ? new Date(renewalDate) < now : false;
-  const isPastExpiry = expiryDate ? new Date(expiryDate) < now : false;
-  const needsClientSignOff = approvalStatus === "pending";
-  const needsConsultantApproval = approvalStatus === "client_signed_off";
-
-  const statusConfig: Partial<Record<string, { label: string; Icon: typeof CheckCircle; cls: string }>> = {
-    compliant: { label: "Compliant", Icon: CheckCircle, cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
-    approved: { label: "Approved", Icon: CheckCircle, cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20" },
-    approval_required: { label: "Approval Required", Icon: AlertTriangle, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" },
-    overdue: { label: "Overdue", Icon: XCircle, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" },
-  };
-  const primary = statusConfig[status] ?? statusConfig.approval_required!;
-
-  return (
-    <div className={cn("flex items-center gap-1 flex-wrap justify-end", className)}>
-      <Badge variant="outline" className={cn("gap-1.5 font-medium", primary.cls)} data-testid="badge-doc-status">
-        <primary.Icon className="h-3 w-3" />
-        {primary.label}
-      </Badge>
-      {isRequired && status !== "compliant" && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" data-testid="badge-doc-non-compliant">
-          <XCircle className="h-3 w-3" />
-          Non Compliant
-        </Badge>
-      )}
-      {!isRequired && status !== "approved" && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" data-testid="badge-doc-not-approved">
-          <AlertTriangle className="h-3 w-3" />
-          Not Approved
-        </Badge>
-      )}
-      {isRequired && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20" data-testid="badge-doc-required">
-          <ShieldAlert className="h-3 w-3" />
-          Required
-        </Badge>
-      )}
-      {isPastRenewal && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20" data-testid="badge-doc-past-renewal">
-          <RotateCcw className="h-3 w-3" />
-          Past Renewal Date
-        </Badge>
-      )}
-      {isPastExpiry && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/20" data-testid="badge-doc-past-expiry">
-          <CalendarOff className="h-3 w-3" />
-          Past Expiry Date
-        </Badge>
-      )}
-      {needsClientSignOff && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20" data-testid="badge-doc-client-signoff">
-          <UserCheck className="h-3 w-3" />
-          Client Sign Off Required
-        </Badge>
-      )}
-      {needsConsultantApproval && (
-        <Badge variant="outline" className="gap-1.5 font-medium bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/20" data-testid="badge-doc-consultant-approval">
-          <ShieldCheck className="h-3 w-3" />
-          Consultant Approval Required
-        </Badge>
-      )}
-    </div>
   );
 }
 

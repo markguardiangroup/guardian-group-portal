@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 7,
+      "patch": 6,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -4668,58 +4668,9 @@
           "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:10:00.000Z"
-        },
-        {
-          "id": "a9b1c3d5-doc-status-badge-compliance-redesign-2026",
-          "patch": 7,
-          "message": "Redesigned document status, badges & compliance metrics: Approval Required replaces Review Required, Total/Non Compliant/Overdue/Approval Required tiles, stackable badge chips per document, and corrected compliance score",
-          "category": "feature",
-          "createdAt": "2026-05-20T09:58:00.000Z"
-        },
-        {
-          "id": "b0c2e4f6-compliance-tile-missing-approval-req-labels-2026",
-          "patch": 7,
-          "message": "Site/company/group compliance tiles now show Missing as a 5th tile where applicable; 'Approval' tile labels renamed to 'Approval Req.'; Total tile counts all uploaded docs (not just required slots); group card uses derived compliance logic",
-          "category": "bug",
-          "createdAt": "2026-05-20T10:50:00.000Z"
-        },
-        {
-          "id": "c1d3f5g7-compliance-engine-all-docs-tile-fix-2026",
-          "patch": 7,
-          "message": "Fixed: Overdue and Approval Required tiles now correctly count all documents (required + non-required); shared company/group documents correctly included in Total count; compliance score uses derived conditions throughout",
-          "category": "bug",
-          "createdAt": "2026-05-20T11:00:00.000Z"
-        },
-        {
-          "id": "d2e4g6h8-compliance-engine-consistent-all-paths-2026",
-          "patch": 7,
-          "message": "Fixed: Overdue/Approval Required tile values now consistent across all compliance endpoints; group-scoped docs included in site compliance summaries; module summary overdue uses date conditions throughout",
-          "category": "bug",
-          "createdAt": "2026-05-20T11:10:00.000Z"
-        },
-        {
-          "id": "e3f5h7i9-login-attempts-table-missing-2026",
-          "patch": 7,
-          "message": "Fixed: login was broken on dev due to a missing database table — now created automatically on startup",
-          "category": "bug",
-          "createdAt": "2026-05-20T14:35:00.000Z"
-        },
-        {
-          "id": "f4g6i8j0-compliance-reports-shared-docs-missing-2026",
-          "patch": 7,
-          "message": "Fixed: reports compliance figures now include company/group-scoped shared docs and correctly compute missing required slots and score",
-          "category": "bug",
-          "createdAt": "2026-05-20T14:44:00.000Z"
-        },
-        {
-          "id": "a9b1c3d5-shared-doc-explicit-share-compliance-2026",
-          "patch": 7,
-          "message": "Fixed: documents explicitly shared from other entities (via share records) now count correctly in site compliance totals",
-          "category": "bug",
-          "createdAt": "2026-05-20T15:35:00.000Z"
         }
       ],
-      "publishedPatch": 6,
+      "publishedPatch": 5,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -4746,18 +4697,7 @@
         "x5z7b9d1-shared-origin-doc-dashed-border-group-level-2026",
         "y6a8c0e2-scope-colour-all-folder-levels-2026",
         "z7b9d1f3-shared-badge-label-group-purple-2026",
-        "26e82d5a-d4ae-4932-877d-71fad4fa39fd",
-        "f0d60ebb-f96f-4198-969b-03a725900088",
-        "d3166b4f-006f-494d-9b25-b5440858f5ac",
-        "96b23640-7356-4ed9-bef4-1310cdb440e9",
-        "4cc3a20c-0cad-48ec-95b4-cd4800c28494",
-        "b5731431-d932-482b-b5b4-e4ff9895b6f7",
-        "f681bb25-6bec-403d-a63c-a7db5f72fd8c",
-        "a1c3e5f7-vm-deployment-always-on-2026",
-        "c3e5g7i9-domain-check-no-website-note-2026",
-        "d4f6h8j0-key-contact-site-section-visible-2026",
-        "h8j0l2n4-create-client-user-shared-component-2026",
-        "a9b1c3d5-shared-doc-explicit-share-compliance-2026"
+        "26e82d5a-d4ae-4932-877d-71fad4fa39fd"
       ]
     }
   ]

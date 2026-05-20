@@ -3701,7 +3701,7 @@ export default function TemplateLibraryPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
-              Permanent Deletion - Confirmation Required
+              Permanent Deletion - Review Required
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4">

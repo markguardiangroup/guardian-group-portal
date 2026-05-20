@@ -319,15 +319,6 @@ async function addPageNumbers(inputPath: string, outputPath: string): Promise<vo
 
 const BCRYPT_SALT_ROUNDS = 12;
 
-// Password strength validation — applied to all password set/change flows
-function validatePasswordStrength(password: string): string | null {
-  if (password.length < 8) return "Password must be at least 8 characters";
-  if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
-  if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter";
-  if (!/[0-9]/.test(password)) return "Password must contain at least one number";
-  return null;
-}
-
 // Invitation token configuration
 const INVITE_TOKEN_EXPIRY_HOURS = 48; // 48 hours for new user invites
 const RESET_TOKEN_EXPIRY_HOURS = 1; // 1 hour for password resets
@@ -909,9 +900,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Token and password are required" });
       }
       
-      const passwordError = validatePasswordStrength(password);
-      if (passwordError) {
-        return res.status(400).json({ error: passwordError });
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
       
       const tokenHash = hashToken(token);
@@ -1124,9 +1114,8 @@ export async function registerRoutes(
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: "Current password and new password are required" });
       }
-      const passwordError = validatePasswordStrength(newPassword);
-      if (passwordError) {
-        return res.status(400).json({ error: passwordError });
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters" });
       }
 
       const user = await storage.getUser(userId);
@@ -1628,24 +1617,22 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          // Company-scoped docs are implicitly visible to all sites of that company.
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          if (shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          )) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          // Group-owner docs are auto-shared to all member companies — no explicit share record required.
-          const goCompany = companyMap.get(company.groupOwnerId);
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-        } else if (shares.some(s =>
-          (s.entityType === "site" && s.entityId === site.id) ||
-          (s.entityType === "company" && s.entityId === site.companyId)
-        )) {
-          // Explicitly shared from another entity via document_shares.
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: null });
+          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+            const goCompany = companyMap.get(company.groupOwnerId);
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+          }
         }
       }
       return results;
@@ -1668,7 +1655,6 @@ export async function registerRoutes(
     let slotCompliantDocs = 0;  // individual compliant docs in required slots (used for display)
     let slotApprovalRequired = 0;
     let slotOverdue = 0;
-    let slotRequiredUploaded = 0;  // total required docs uploaded (for score denominator)
     let missingRequired = 0;
     const consumedDocIds = new Set<string>();
     const filteredSiteIds = new Set<string>(accessibleSites.map(s => s.id));
@@ -1706,13 +1692,11 @@ export async function registerRoutes(
         // doc in an otherwise-fulfilled slot still surfaces in "Not Compliant".
         const _now = new Date();
         matchingDocs.forEach(d => {
-          slotRequiredUploaded++;
           const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _now) ||
             (d.renewalDate && new Date(d.renewalDate) < _now);
-          const pendingApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-          if (dateOverdue) slotOverdue++;
-          if (pendingApproval) slotApprovalRequired++;
-          if (!dateOverdue && d.approvalStatus === "approved") slotCompliantDocs++;
+          if (d.status === "overdue" || dateOverdue) slotOverdue++;
+          else if (d.status === "approval_required") slotApprovalRequired++;
+          else if (d.status === "compliant") slotCompliantDocs++;
         });
       }
 
@@ -1737,7 +1721,6 @@ export async function registerRoutes(
         if (!d.isRequired) return false;
         if (consumedDocIds.has(d.id)) return false;
         if (d.isArchived || d.caseId || d.incidentId) return false;
-        if (d.source === "external") return false;
         if (!filteredSiteIds.has(d.siteId)) return false;
         if (module && d.module !== module) return false;
         if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
@@ -1750,32 +1733,20 @@ export async function registerRoutes(
     // Per-document counts (match what the dialog list shows)
     const _manualNow = new Date();
     const isManualOverdue = (d: any) =>
+      d.status === "overdue" ||
       (d.expiryDate && new Date(d.expiryDate) < _manualNow) ||
       (d.renewalDate && new Date(d.renewalDate) < _manualNow);
-    const isManualApprovalRequired = (d: any) =>
-      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-    const manualCompliant = manualRequired.filter(d => !isManualOverdue(d) && d.approvalStatus === "approved").length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isManualOverdue(d)).length;
     const compliantDocuments = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotApprovalRequired + manualRequired.filter(isManualApprovalRequired).length;
+    const approvalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isManualOverdue(d)).length;
     const overdueDocuments = slotOverdue + manualRequired.filter(isManualOverdue).length;
     const missingRequiredDocuments = missingRequired;
-    // Score = Compliant / (RequiredUploaded + Missing)
-    // NonCompliant_required = RequiredUploaded - Compliant (avoids double-counting overlap docs)
-    const requiredUploadedCount = slotRequiredUploaded + manualRequired.length;
-    const complianceScoreDenominator = requiredUploadedCount + missingRequiredDocuments;
+    // Compliance score: compliant / (compliant + not compliant + missing)
+    // This ties the percentage directly to the four tiles shown on the dashboard card.
+    const complianceScoreDenominator = compliantDocuments + approvalRequired + overdueDocuments + missingRequiredDocuments;
     const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
-    // All uploaded docs in H&S/HR/EL scope (Total tile — includes required + non-required)
-    // NOTE: shared company/group docs have siteId = null; they are already included in
-    // `documents` via getDocsAccessibleByUser, so no siteId filter is needed here.
-    const _scopeMods = module ? [module] : (complianceModules as string[]);
-    const allDocumentsInScope = documents.filter(d =>
-      !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" &&
-      _scopeMods.includes(d.module as string) &&
-      (d.siteId === null || filteredSiteIds.has(d.siteId))
-    ).length;
-
-    return { totalDocuments, allDocumentsInScope, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
+    return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
 
   interface MissingRequiredTemplateDetail {
@@ -1914,24 +1885,22 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          // Company-scoped docs are implicitly visible to all sites of that company.
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          if (shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          )) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          // Group-owner docs are auto-shared to all member companies — no explicit share record required.
-          const goCompany = companyMap.get(company.groupOwnerId);
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-        } else if (shares.some(s =>
-          (s.entityType === "site" && s.entityId === site.id) ||
-          (s.entityType === "company" && s.entityId === site.companyId)
-        )) {
-          // Explicitly shared from another entity via document_shares.
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: null });
+          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+            const goCompany = companyMap.get(company.groupOwnerId);
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+          }
         }
       }
       return results;
@@ -1956,9 +1925,9 @@ export async function registerRoutes(
     for (const site of accessibleSites) {
       const requiredIds = companyReqsByCompanyId.get(site.companyId) ?? new Set<string>();
       const siteExcluded = excludedTemplatesBySiteId.get(site.id) ?? new Set<string>();
-      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external");
+      const siteDocs = docs.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId);
       const sharedDocs = computeSharedDocsForSiteMRTD(site);
-      const allSiteDocs = [...siteDocs, ...sharedDocs.filter((d: any) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external")];
+      const allSiteDocs = [...siteDocs, ...sharedDocs.filter((d: any) => !d.isArchived && !d.caseId)];
       const company = companyMap.get(site.companyId);
 
       for (const templateId of requiredIds) {
@@ -2300,29 +2269,26 @@ export async function registerRoutes(
       const complianceResult = await computeSlotBasedCompliance(
         user, documents, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
-      const { totalDocuments, allDocumentsInScope, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — H&S/HR/EL module folder documents only
-      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external"), other modules
-      const _complianceMods = ["health_safety", "human_resources", "employment_law"];
+      // Document Progress stats — regular module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const docProgressSet = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
-        d.source !== "external" &&
-        _complianceMods.includes(d.module as string)
+        d.source !== "external"
       );
       const _progNow = new Date();
       const isDocOverdue = (d: any) =>
+        d.status === "overdue" ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow);
-      const allDocumentsCount = allDocumentsInScope;
-      const allCompliantDocuments = docProgressSet.filter(d => !isDocOverdue(d) && d.approvalStatus === "approved").length;
-      const allApprovalRequired = docProgressSet.filter(d =>
-        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-      ).length;
+      const allDocumentsCount = docProgressSet.length;
+      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+      const allApprovalRequired = docProgressSet.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
       const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2360,12 +2326,10 @@ export async function registerRoutes(
       const summary = {
         totalDocuments,
         compliantDocuments,
-        // Tile values: Overdue + Approval Required count ALL docs per spec
-        approvalRequired: allApprovalRequired,
-        overdueDocuments: allOverdueDocuments,
+        approvalRequired,
+        overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
-        totalAllDocuments: allDocumentsCount,
         allDocuments: allDocumentsCount,
         allCompliantDocuments,
         allApprovalRequired,
@@ -2472,29 +2436,26 @@ export async function registerRoutes(
       
       // Slot-based compliance calculation: each required template contributes exactly one slot
       const complianceResult = await computeSlotBasedCompliance(user, documents, module);
-      const { totalDocuments, allDocumentsInScope: allDocumentsInScope2, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — H&S/HR/EL module folder documents only
-      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external"), other modules
-      const _complianceMods2 = ["health_safety", "human_resources", "employment_law"];
+      // Document Progress stats — regular module folder documents only
+      // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
       const allNonCaseDocs = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
-        d.source !== "external" &&
-        _complianceMods2.includes(d.module as string)
+        d.source !== "external"
       );
       const _progNow2 = new Date();
       const isDocOverdue2 = (d: any) =>
+        d.status === "overdue" ||
         (d.expiryDate && new Date(d.expiryDate) < _progNow2) ||
         (d.renewalDate && new Date(d.renewalDate) < _progNow2);
-      const allDocsProgress = allDocumentsInScope2;
-      const allCompliantProgress = allNonCaseDocs.filter(d => !isDocOverdue2(d) && d.approvalStatus === "approved").length;
-      const allApprovalRequiredProgress = allNonCaseDocs.filter(d =>
-        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-      ).length;
+      const allDocsProgress = allNonCaseDocs.length;
+      const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
+      const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.status === "approval_required" && !isDocOverdue2(d)).length;
       const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2532,12 +2493,10 @@ export async function registerRoutes(
       const summary = {
         totalDocuments,
         compliantDocuments,
-        // Tile values: Overdue + Approval Required count ALL docs per spec
-        approvalRequired: allApprovalRequiredProgress,
-        overdueDocuments: allOverdueProgress,
+        approvalRequired,
+        overdueDocuments,
         missingRequiredDocuments,
         complianceScore,
-        totalAllDocuments: allDocsProgress,
         allDocuments: allDocsProgress,
         allCompliantDocuments: allCompliantProgress,
         allApprovalRequired: allApprovalRequiredProgress,
@@ -2677,10 +2636,9 @@ export async function registerRoutes(
         d.siteId == null
       );
 
-      type ScopedExpansion = { module: string; isCompliant: boolean; isOverdue: boolean; isApprovalRequired: boolean; siteCount: number };
+      type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number };
       const scopedExpansions: ScopedExpansion[] = [];
       const accessibleScopedDocIds = new Set<string>();
-      const _seNow = new Date();
       for (const doc of rawScopedDocs) {
         const canAccess = await canUserAccessDocument(user, doc);
         if (!canAccess) continue;
@@ -2698,19 +2656,10 @@ export async function registerRoutes(
           return false;
         }).length;
 
-        // Derive booleans from conditions (not stored status) per spec
-        const seOverdue = !!(
-          (doc.renewalDate && new Date(doc.renewalDate) < _seNow) ||
-          (doc.expiryDate && new Date(doc.expiryDate) < _seNow)
-        );
-        const seApproval = doc.approvalStatus === "pending" || doc.approvalStatus === "client_signed_off";
-        const seCompliant = doc.approvalStatus === "approved" && !seOverdue && !seApproval;
-
         scopedExpansions.push({
           module: doc.module,
-          isCompliant: seCompliant,
-          isOverdue: seOverdue,
-          isApprovalRequired: seApproval,
+          status: doc.status,
+          approvalStatus: doc.approvalStatus,
           siteCount: Math.max(count, 1),
         });
       }
@@ -2730,36 +2679,27 @@ export async function registerRoutes(
       const summaries = await Promise.all(modules.map(async (mod) => {
         const moduleDocs = siteScopedDocs.filter(d => d.module === mod);
         const siteCount = moduleDocs.length;
-        const _msNow = new Date();
-        const siteCompliant = moduleDocs.filter(d => {
-          const ov = (d.renewalDate && new Date(d.renewalDate) < _msNow) ||
-                     (d.expiryDate && new Date(d.expiryDate) < _msNow);
-          const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-          return d.approvalStatus === "approved" && !ov && !ap;
-        }).length;
-        const siteApprovalRequired = moduleDocs.filter(d =>
-          d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-        ).length;
-        const siteOverdue = moduleDocs.filter(d =>
-          (d.renewalDate && new Date(d.renewalDate) < _msNow) ||
-          (d.expiryDate && new Date(d.expiryDate) < _msNow)
-        ).length;
+        const siteCompliant = moduleDocs.filter(d => d.status === "compliant").length;
+        const siteApprovalRequired = moduleDocs.filter(d => d.status === "approval_required").length;
+        const siteOverdue = moduleDocs.filter(d => d.status === "overdue").length;
+        const sitePending = moduleDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
         // Add scoped doc expansion counts for this module
         const modScoped = scopedExpansions.filter(e => e.module === mod);
-        let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0;
-        for (const { isCompliant, isOverdue, isApprovalRequired, siteCount: n } of modScoped) {
+        let scopedTotal = 0, scopedCompliant = 0, scopedApprovalRequired = 0, scopedOverdue = 0, scopedPending = 0;
+        for (const { status, approvalStatus, siteCount: n } of modScoped) {
           scopedTotal += n;
-          if (isCompliant) scopedCompliant += n;
-          if (isOverdue) scopedOverdue += n;
-          if (isApprovalRequired) scopedApprovalRequired += n;
+          if (status === "compliant") scopedCompliant += n;
+          else if (status === "approval_required") scopedApprovalRequired += n;
+          else if (status === "overdue") scopedOverdue += n;
+          if (approvalStatus === "pending" || approvalStatus === "client_signed_off") scopedPending += n;
         }
 
         const allDocsCount = siteCount + scopedTotal;
         const allCompliant = siteCompliant + scopedCompliant;
         const allApprovalRequired = siteApprovalRequired + scopedApprovalRequired;
         const allOverdue = siteOverdue + scopedOverdue;
-        const pending = allApprovalRequired;
+        const pending = sitePending + scopedPending;
 
         // Compliance calculation uses all docs (site-scoped + scoped) for the module
         const allModuleDocs = [
@@ -2773,10 +2713,6 @@ export async function registerRoutes(
             module: mod,
             moduleName: moduleNames[mod],
             ...compliance,
-            // Tile values override the required-only values from computeSlotBasedCompliance
-            approvalRequired: allApprovalRequired,
-            overdueDocuments: allOverdue,
-            totalAllDocuments: allDocsCount,
             allDocuments: allDocsCount,
             allCompliantDocuments: allCompliant,
             allApprovalRequired,
@@ -2795,7 +2731,6 @@ export async function registerRoutes(
           overdueDocuments: allOverdue,
           missingRequiredDocuments: 0,
           complianceScore: allDocsCount > 0 ? Math.round((allCompliant / allDocsCount) * 100) : 0,
-          totalAllDocuments: allDocsCount,
           allDocuments: allDocsCount,
           allCompliantDocuments: allCompliant,
           allApprovalRequired,
@@ -4291,7 +4226,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Document not found" });
       }
 
-      if (existingDoc.approvalStatus !== "pending") {
+      if (existingDoc.approvalStatus !== "pending" && existingDoc.approvalStatus !== "review_required") {
         return res.status(400).json({ error: "Document is not awaiting client approval" });
       }
 
@@ -8790,7 +8725,7 @@ export async function registerRoutes(
       const companyId = req.query.companyId as string | undefined;
       const siteId = req.query.siteId as string | undefined;
       const VALID_WINDOWS = ["30", "60", "90", "all"];
-      const VALID_MODULES = ["health_safety", "human_resources", "employment_law"];
+      const VALID_MODULES = ["health_safety", "human_resources", "employment_law", "training", "support"];
       const windowParam = VALID_WINDOWS.includes(req.query.window as string) ? (req.query.window as string) : "90";
       const rawModule = req.query.module as string | undefined;
       const moduleParam = rawModule && VALID_MODULES.includes(rawModule) ? rawModule : undefined;
@@ -8886,15 +8821,9 @@ export async function registerRoutes(
 
         for (const mod of complianceModules) {
           const modDocs = siteDocs.filter((d: any) => d.module === mod);
-          const _mNow = new Date();
           const total = modDocs.length;
-          const compliant = modDocs.filter((d: any) => {
-            const ov = (d.expiryDate && new Date(d.expiryDate) < _mNow) || (d.renewalDate && new Date(d.renewalDate) < _mNow);
-            return !ov && d.approvalStatus === "approved";
-          }).length;
-          const overdue = modDocs.filter((d: any) =>
-            (d.expiryDate && new Date(d.expiryDate) < _mNow) || (d.renewalDate && new Date(d.renewalDate) < _mNow)
-          ).length;
+          const compliant = modDocs.filter((d: any) => d.status === "compliant").length;
+          const overdue = modDocs.filter((d: any) => d.status === "overdue").length;
           scores[mod] = { score: total > 0 ? Math.round((compliant / total) * 100) : 0, total, compliant, overdue };
           allTotal += total;
           allCompliant += compliant;
@@ -11237,25 +11166,22 @@ export async function registerRoutes(
           if (module && doc.module !== module) continue;
           const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
           if (doc.scope === "company" && doc.entityId === companyId) {
-            // Company-scoped docs are visible to all sites of that company without
-            // requiring an explicit share record — consistent with storage summary helpers.
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+            if (shares.some((s: any) =>
+              (s.entityType === "site" && s.entityId === siteId) ||
+              (s.entityType === "company" && s.entityId === companyId)
+            )) {
+              seenIds.add(doc.id);
+              results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+            }
           } else if (doc.scope === "group" && doc.entityId === companyId) {
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && (company as any).groupOwnerId && doc.entityId === (company as any).groupOwnerId) {
-            // Group-owner docs are auto-shared to all member companies — no explicit share record required.
-            const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-          } else if (shares.some((s: any) =>
-            (s.entityType === "site" && s.entityId === siteId) ||
-            (s.entityType === "company" && s.entityId === companyId)
-          )) {
-            // Explicitly shared from another entity via document_shares.
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: null });
+            if (shares.some((s: any) => s.entityType === "company" && s.entityId === companyId)) {
+              const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
+              seenIds.add(doc.id);
+              results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
+            }
           }
         }
         return results;
@@ -11345,17 +11271,6 @@ export async function registerRoutes(
         return dt.isRequired || allCompanyRequiredTemplateIds.has(dt.id);
       };
 
-      // Derived compliance predicates — consistent with summary engine rules.
-      // A document can satisfy multiple conditions simultaneously (e.g. overdue AND approval_required).
-      const _hierNow = new Date();
-      const hierIsOverdue = (d: { renewalDate?: string | Date | null; expiryDate?: string | Date | null }) =>
-        (d.renewalDate != null && new Date(d.renewalDate) < _hierNow) ||
-        (d.expiryDate != null && new Date(d.expiryDate) < _hierNow);
-      const hierIsApprovalRequired = (d: { approvalStatus?: string | null }) =>
-        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      const hierIsCompliant = (d: { approvalStatus?: string | null; renewalDate?: string | Date | null; expiryDate?: string | Date | null }) =>
-        d.approvalStatus === "approved" && !hierIsOverdue(d);
-
       // Build the hierarchy: for each folder template, find matching site folders and their documents
       const hierarchy = folderTemplates
         .filter(ft => !ft.parentId) // Only top-level folders
@@ -11383,10 +11298,10 @@ export async function registerRoutes(
             return getEffectiveIsRequired(d, docTmpl);
           });
           const nonArchivedRequired = requiredFolderDocuments.filter(d => !d.isArchived);
-          const compliantCount = nonArchivedRequired.filter(d => hierIsCompliant(d)).length;
-          const approvalRequiredCount = nonArchivedRequired.filter(d => hierIsApprovalRequired(d)).length;
-          const overdueCount = nonArchivedRequired.filter(d => hierIsOverdue(d)).length;
-          const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && hierIsApprovalRequired(d)).length;
+          const compliantCount = nonArchivedRequired.filter(d => d.status === "compliant").length;
+          const reviewRequiredCount = nonArchivedRequired.filter(d => d.status === "approval_required").length;
+          const overdueCount = nonArchivedRequired.filter(d => d.status === "overdue").length;
+          const pendingApprovalCount = folderDocuments.filter(d => !d.isArchived && (d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off")).length;
           
           // Shared (company/group-scoped) docs that target this folder template
           const sharedForThisFolder = sharedDocsByFolderTemplateId.get(folderTemplate.id) ?? [];
@@ -11401,7 +11316,7 @@ export async function registerRoutes(
           let folderStatus: "compliant" | "incomplete" | "attention_needed" = "compliant";
           if (requiredTemplates.length > 0 && fulfilledRequiredCount < requiredTemplates.length) {
             folderStatus = "incomplete";
-          } else if (overdueCount > 0 || approvalRequiredCount > 0) {
+          } else if (overdueCount > 0 || reviewRequiredCount > 0) {
             folderStatus = "attention_needed";
           }
           
@@ -11455,9 +11370,9 @@ export async function registerRoutes(
               }),
               stats: {
                 totalDocuments: childFolderDocs.length + sharedForChildFolder.length,
-                compliant: childFolderDocs.filter(d => !d.isArchived && hierIsCompliant(d) && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
-                approvalRequired: childFolderDocs.filter(d => !d.isArchived && hierIsApprovalRequired(d) && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
-                overdue: childFolderDocs.filter(d => !d.isArchived && hierIsOverdue(d) && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                compliant: childFolderDocs.filter(d => !d.isArchived && d.status === "compliant" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                approvalRequired: childFolderDocs.filter(d => !d.isArchived && d.status === "approval_required" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
+                overdue: childFolderDocs.filter(d => !d.isArchived && d.status === "overdue" && getEffectiveIsRequired(d, moduleDocTemplates.find(dt => dt.id === d.templateId))).length,
                 requiredTemplates: childRequiredTemplates.length,
                 fulfilledRequired: childFulfilledCount,
               },
@@ -11533,9 +11448,9 @@ export async function registerRoutes(
                 }),
                 stats: {
                   totalDocuments: dynamicFolderDocs.length,
-                  compliant: dynamicFolderDocs.filter(d => !d.isArchived && hierIsCompliant(d)).length,
-                  approvalRequired: dynamicFolderDocs.filter(d => !d.isArchived && hierIsApprovalRequired(d)).length,
-                  overdue: dynamicFolderDocs.filter(d => !d.isArchived && hierIsOverdue(d)).length,
+                  compliant: dynamicFolderDocs.filter(d => d.status === "compliant").length,
+                  approvalRequired: dynamicFolderDocs.filter(d => d.status === "approval_required").length,
+                  overdue: dynamicFolderDocs.filter(d => d.status === "overdue").length,
                   requiredTemplates: 0,
                   fulfilledRequired: 0,
                 },
@@ -11547,7 +11462,7 @@ export async function registerRoutes(
           // Calculate aggregate stats including child folder documents
           const childDocsTotal = childFolders.reduce((sum, cf) => sum + (cf.stats?.totalDocuments || 0), 0);
           const childCompliant = childFolders.reduce((sum, cf) => sum + (cf.stats?.compliant || 0), 0);
-          const childApprovalRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.approvalRequired || 0), 0);
+          const childReviewRequired = childFolders.reduce((sum, cf) => sum + (cf.stats?.approvalRequired || 0), 0);
           const childOverdue = childFolders.reduce((sum, cf) => sum + (cf.stats?.overdue || 0), 0);
           
           return {
@@ -11584,7 +11499,7 @@ export async function registerRoutes(
             stats: {
               totalDocuments: folderDocuments.length + childDocsTotal + sharedForThisFolder.length,
               compliant: compliantCount + childCompliant,
-              approvalRequired: approvalRequiredCount + childApprovalRequired,
+              approvalRequired: reviewRequiredCount + childReviewRequired,
               overdue: overdueCount + childOverdue,
               pendingApproval: pendingApprovalCount,
               requiredTemplates: requiredTemplates.length,
@@ -11717,19 +11632,13 @@ export async function registerRoutes(
         }),
         sharedDocuments,
         summary: (() => {
-          const _sumNow = new Date();
-          const sumIsOverdue = (d: any) =>
-            (d.renewalDate && new Date(d.renewalDate) < _sumNow) ||
-            (d.expiryDate && new Date(d.expiryDate) < _sumNow);
-          const sumIsApprovalRequired = (d: any) =>
-            d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
           return {
             totalFolders: hierarchy.length,
             totalDocuments: allNonArchivedSiteDocs.length + allNonArchivedSharedDocs.length,
-            compliant: allNonArchivedDocs.filter((d: any) => !sumIsOverdue(d) && !sumIsApprovalRequired(d)).length,
-            approved: allNonArchivedDocs.filter((d: any) => d.approvalStatus === "approved").length,
-            approvalRequired: allNonArchivedDocs.filter((d: any) => sumIsApprovalRequired(d)).length,
-            overdue: allNonArchivedDocs.filter((d: any) => sumIsOverdue(d)).length,
+            compliant: allNonArchivedDocs.filter((d: any) => d.status === "compliant").length,
+            approved: allNonArchivedDocs.filter((d: any) => d.status === "approved").length,
+            approvalRequired: allNonArchivedDocs.filter((d: any) => d.status === "approval_required").length,
+            overdue: allNonArchivedDocs.filter((d: any) => d.status === "overdue").length,
           };
         })(),
       });

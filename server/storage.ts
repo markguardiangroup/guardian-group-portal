@@ -124,7 +124,7 @@ import {
   keyContacts as keyContactsTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db, pool } from "./db";
+import { db } from "./db";
 import { eq, and, or, asc, desc, isNull, isNotNull, gt, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
@@ -570,6 +570,8 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   // All data is now stored in the PostgreSQL database
+  // Only loginAttempts is kept in-memory for rate limiting (intentionally non-persistent)
+  private loginAttempts: Map<string, LoginAttempt> = new Map();
   
   // Reference number counter for users only (companies/sites use DB-based counters)
   private userCounter: number = 0;
@@ -677,7 +679,7 @@ export class MemStorage implements IStorage {
    * so that no per-site DB queries are needed.
    */
   private computeComplianceSummaryInMemory(
-    siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null; renewalDate?: string | Date | null; expiryDate?: string | Date | null }[],
+    siteDocs: { templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null }[],
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null }>,
@@ -700,9 +702,7 @@ export class MemStorage implements IStorage {
     let slotReview = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
-    let slotRequiredUploaded = 0;
     const consumedTemplateIds = new Set<string>();
-    const _ciNow = new Date();
 
     for (const templateId of effectiveTemplateIds) {
       const tmpl = templateMap.get(templateId);
@@ -711,71 +711,35 @@ export class MemStorage implements IStorage {
       slotTotal++;
       const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
       if (matchingDocs.length === 0) { missingRequired++; continue; }
-      slotRequiredUploaded += matchingDocs.length;
       for (const d of matchingDocs) {
-        const docOverdue = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
-                           (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
-        const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-        if (docOverdue) slotOverdue++;
-        if (docApproval) slotReview++;
-        if (!docOverdue && d.approvalStatus === "approved") slotCompliantDocs++;
+        if (d.status === "compliant") slotCompliantDocs++;
+        else if (d.status === "overdue") slotOverdue++;
+        else if (d.status === "approval_required") slotReview++;
       }
     }
 
     const manualRequired = siteDocs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => {
-      const ov = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
-                 (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
-      return !ov && d.approvalStatus === "approved";
-    }).length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d =>
-      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-    ).length;
-    const overdue = slotOverdue + manualRequired.filter(d =>
-      (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
-      (d.expiryDate && new Date(d.expiryDate as string) < _ciNow)
-    ).length;
+    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
+    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = siteDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    // Score = Compliant / (RequiredUploaded + Missing)
-    const requiredUploadedCount_ci = slotRequiredUploaded + manualRequired.length;
-    const scoreDenominator = requiredUploadedCount_ci + missingRequired;
-
-    // All-docs stats for metric tiles (Total, Overdue, Approval Required — derived from conditions)
-    const allDocumentsCount = siteDocs.length;
-    const allCompliantDocuments = siteDocs.filter(d => {
-      const ov = (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
-                 (d.expiryDate && new Date(d.expiryDate as string) < _ciNow);
-      return !ov && d.approvalStatus === "approved";
-    }).length;
-    const allApprovalRequired = siteDocs.filter(d =>
-      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-    ).length;
-    const allOverdueDocuments = siteDocs.filter(d =>
-      (d.renewalDate && new Date(d.renewalDate as string) < _ciNow) ||
-      (d.expiryDate && new Date(d.expiryDate as string) < _ciNow)
-    ).length;
+    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
 
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      // Tile values use ALL docs in scope (required + non-required) per spec
-      approvalRequired: allApprovalRequired,
-      overdueDocuments: allOverdueDocuments,
+      approvalRequired,
+      overdueDocuments: overdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
-      totalAllDocuments: allDocumentsCount,
-      allDocuments: allDocumentsCount,
-      allCompliantDocuments,
-      allApprovalRequired,
-      allOverdueDocuments,
     };
   }
 
@@ -854,12 +818,10 @@ export class MemStorage implements IStorage {
 
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
-      // Restrict to compliance modules only and exclude external-source documents.
-      // Include site docs, company-scoped docs, and group-owner-scoped docs (shared rules).
+      // Restrict to compliance modules only and exclude external-source documents
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...(docsByCompany.get(site.companyId) ?? []),
-        ...(company?.groupOwnerId ? (docsByCompany.get(company.groupOwnerId) ?? []) : []),
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
@@ -962,23 +924,11 @@ export class MemStorage implements IStorage {
 
     const COMPLIANCE_MODULES_COMPANY = new Set(["health_safety", "human_resources", "employment_law"]);
 
-    // Load group-owner scoped docs if this company belongs to a group
-    const groupOwnerDocs: typeof allDocs = [];
-    if (company?.groupOwnerId) {
-      for (const d of allDocs) {
-        if (!d.siteId && d.entityId === company.groupOwnerId) {
-          groupOwnerDocs.push(d);
-        }
-      }
-    }
-
     return companySites.map(site => {
-      // Restrict to compliance modules only and exclude external-source documents.
-      // Include site docs, company-scoped docs, and group-owner-scoped docs (shared rules).
+      // Restrict to compliance modules only and exclude external-source documents
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...companyDocs,
-        ...groupOwnerDocs,
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES_COMPANY.has(d.module ?? ""));
 
       const complianceSummary = this.computeComplianceSummaryInMemory(
@@ -1182,30 +1132,16 @@ export class MemStorage implements IStorage {
   }
 
   private async getSiteComplianceSummary(siteId: string): Promise<ComplianceSummary> {
-    const complianceMods: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
-    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
-
-    const siteScopedDocs = await db.select().from(documentsTable)
+    const allDocs = await db.select().from(documentsTable)
       .where(and(
-        eq(documentsTable.siteId, siteId),
+        eq(documentsTable.siteId, siteId), 
         eq(documentsTable.isArchived, false),
         isNull(documentsTable.caseId),
         isNull(documentsTable.incidentId)
       ));
-    let companySharedDocs: typeof siteScopedDocs = [];
-    if (site?.companyId) {
-      companySharedDocs = await db.select().from(documentsTable)
-        .where(and(
-          eq(documentsTable.entityId, site.companyId),
-          isNull(documentsTable.siteId),
-          eq(documentsTable.isArchived, false),
-          isNull(documentsTable.caseId),
-          isNull(documentsTable.incidentId)
-        ));
-    }
-    const docs = [...siteScopedDocs, ...companySharedDocs].filter(d =>
-      d.source !== "external" && complianceMods.includes(d.module as ModuleType)
-    );
+    const docs = allDocs;
+
+    const site = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)).then(r => r[0]);
 
     let slotTotal = 0;
     // per-document counts for display (matching computeSlotBasedCompliance in routes.ts)
@@ -1213,7 +1149,6 @@ export class MemStorage implements IStorage {
     let slotReview = 0;
     let slotOverdue = 0;
     let missingRequired = 0;
-    let slotRequiredUploaded_sc = 0;
     const consumedTemplateIds = new Set<string>();
 
     if (site?.companyId) {
@@ -1246,16 +1181,11 @@ export class MemStorage implements IStorage {
           missingRequired++;
           continue;
         }
-        // Per-document display counts — derived from conditions (allows overlap)
-        const _sn = new Date();
+        // Per-document display counts — so the dialog list matches the card numbers
         matchingDocs.forEach(d => {
-          slotRequiredUploaded_sc++;
-          const docOverdue = (d.renewalDate && new Date(d.renewalDate) < _sn) ||
-                             (d.expiryDate && new Date(d.expiryDate) < _sn);
-          const docApproval = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-          if (docOverdue) slotOverdue++;
-          if (docApproval) slotReview++;
-          if (!docOverdue && d.approvalStatus === "approved") slotCompliantDocs++;
+          if (d.status === "compliant") slotCompliantDocs++;
+          else if (d.status === "overdue") slotOverdue++;
+          else if (d.status === "approval_required") slotReview++;
         });
       }
     }
@@ -1263,58 +1193,27 @@ export class MemStorage implements IStorage {
     const manualRequired = docs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const _scNow = new Date();
-    const manualCompliant = manualRequired.filter(d => {
-      const ov = (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
-                 (d.expiryDate && new Date(d.expiryDate) < _scNow);
-      return !ov && d.approvalStatus === "approved";
-    }).length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d =>
-      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-    ).length;
-    const overdue = slotOverdue + manualRequired.filter(d =>
-      (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
-      (d.expiryDate && new Date(d.expiryDate) < _scNow)
-    ).length;
+    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
+    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    // Score = Compliant / (RequiredUploaded + Missing)
-    const requiredUploadedCount_sc = slotRequiredUploaded_sc + manualRequired.length;
-    const scoreDenominator = requiredUploadedCount_sc + missingRequired;
+    // Compliance score: compliant / (compliant + not compliant + missing)
+    // Ties the percentage directly to the four tiles shown on the dashboard card.
+    const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
     
-    // All-docs stats for metric tiles (Total, Overdue, Approval Required — derived from conditions)
-    const allDocumentsCount = docs.length;
-    const allCompliantDocuments = docs.filter(d => {
-      const ov = (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
-                 (d.expiryDate && new Date(d.expiryDate) < _scNow);
-      return !ov && d.approvalStatus === "approved";
-    }).length;
-    const allApprovalRequired = docs.filter(d =>
-      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-    ).length;
-    const allOverdueDocuments = docs.filter(d =>
-      (d.renewalDate && new Date(d.renewalDate) < _scNow) ||
-      (d.expiryDate && new Date(d.expiryDate) < _scNow)
-    ).length;
-
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      // Tile values use ALL docs in scope (required + non-required) per spec
-      approvalRequired: allApprovalRequired,
-      overdueDocuments: allOverdueDocuments,
+      approvalRequired,
+      overdueDocuments: overdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
-      totalAllDocuments: allDocumentsCount,
-      allDocuments: allDocumentsCount,
-      allCompliantDocuments,
-      allApprovalRequired,
-      allOverdueDocuments,
     };
   }
 
@@ -1899,51 +1798,25 @@ export class MemStorage implements IStorage {
 
   // Dashboard
   async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
-    const complianceModulesList: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     let allDocs = await db.select().from(documentsTable)
       .where(and(
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId),
-        isNull(documentsTable.incidentId),
+        isNull(documentsTable.caseId) // Exclude case documents from metrics
       ));
     let docs = allDocs;
     if (module) {
       docs = docs.filter(d => d.module === module);
     } else {
-      // Only count H&S, HR, EL — exclude training, toolkit, support
-      docs = docs.filter(d => complianceModulesList.includes(d.module as ModuleType));
+      // Exclude training documents from overall compliance metrics (training is tracked separately)
+      docs = docs.filter(d => d.module !== "training");
     }
-    // Exclude cloud-share / client-upload folder documents
-    docs = docs.filter(d => d.source !== "external");
-
     if (siteId) {
-      // Include site-scoped docs + company-scoped + group-scoped shared docs for this site
-      const siteRows = await db.select().from(sitesTable).where(eq(sitesTable.id, siteId));
-      const siteRecord = siteRows[0];
-      const siteCompanyId = siteRecord?.companyId ?? null;
-      let gcsSiteGroupOwnerId: string | null = null;
-      if (siteCompanyId) {
-        const companyRows = await db.select().from(companiesTable).where(eq(companiesTable.id, siteCompanyId));
-        gcsSiteGroupOwnerId = companyRows[0]?.groupOwnerId ?? null;
-      }
-      docs = docs.filter(d =>
-        d.siteId === siteId ||
-        (!d.siteId && siteCompanyId && d.entityId === siteCompanyId) ||
-        (!d.siteId && gcsSiteGroupOwnerId && d.entityId === gcsSiteGroupOwnerId)
-      );
+      docs = docs.filter(d => d.siteId === siteId);
     } else if (companyId) {
-      // Filter by company: include site-scoped docs + company-scoped + group-scoped shared docs
-      const [companySites, companyRows] = await Promise.all([
-        db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId)),
-        db.select().from(companiesTable).where(eq(companiesTable.id, companyId)),
-      ]);
+      // Filter by company: get all sites for this company from database
+      const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
       const companySiteIds = companySites.map(s => s.id);
-      const gcsCompanyGroupOwnerId = companyRows[0]?.groupOwnerId ?? null;
-      docs = docs.filter(d =>
-        (d.siteId && companySiteIds.includes(d.siteId)) ||
-        (!d.siteId && d.entityId === companyId) ||
-        (!d.siteId && gcsCompanyGroupOwnerId && d.entityId === gcsCompanyGroupOwnerId)
-      );
+      docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
     }
     // Calculate missing required templates
     let missingRequired = 0;
@@ -1958,13 +1831,7 @@ export class MemStorage implements IStorage {
     const companyReqCache = new Map<string, Awaited<ReturnType<typeof this.getCompanyRequiredTemplates>>>();
     const siteList = await db.select().from(sitesTable);
     const siteMap = new Map(siteList.map(s => [s.id, s]));
-    // Load company data to resolve groupOwnerId for slot fulfillment
-    const companyIdsForSlots = [...new Set(siteList.map(s => s.companyId).filter(Boolean))] as string[];
-    const companiesForSlots = companyIdsForSlots.length > 0
-      ? await db.select().from(companiesTable).where(inArray(companiesTable.id, companyIdsForSlots))
-      : [];
-    const companyGroupOwnerMap = new Map(companiesForSlots.map(c => [c.id, c.groupOwnerId ?? null]));
-
+    
     for (const sid of relevantSiteIds) {
       const site = siteMap.get(sid);
       if (!site?.companyId) continue;
@@ -1983,67 +1850,40 @@ export class MemStorage implements IStorage {
         ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
       ];
 
-      // Include site-scoped, company-scoped, AND group-owner-scoped docs for slot fulfillment
-      const groupOwnerId = companyGroupOwnerMap.get(site.companyId) ?? null;
-      const siteDocs = docs.filter(d =>
-        d.siteId === sid ||
-        (!d.siteId && d.entityId === site.companyId) ||
-        (!d.siteId && groupOwnerId && d.entityId === groupOwnerId)
-      );
+      const siteDocs = docs.filter(d => d.siteId === sid);
       for (const templateId of effectiveTemplateIds) {
         const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
         if (module && tmpl.module !== module) continue;
-        if (!module && !complianceModulesList.includes(tmpl.module as ModuleType)) continue;
-        const isFulfilled = siteDocs.some(d => d.templateId === templateId);
+        if (!module && tmpl.module === "training") continue;
+        const isFulfilled = siteDocs.some(d => {
+          if (d.templateId !== templateId) return false;
+          if (d.status !== "compliant") return false;
+          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
+          if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
+          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
+          return true;
+        });
         if (!isFulfilled) missingRequired++;
       }
     }
 
-    // All-docs stats (for metric tiles: Total, Overdue, Approval Required — derived from conditions)
-    const allDocuments = docs.length;
-    const _gcNow = new Date();
-    const allOverdueDocuments = docs.filter(d =>
-      (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
-      (d.expiryDate && new Date(d.expiryDate) < _gcNow)
-    ).length;
-    const allApprovalRequired = docs.filter(d =>
-      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-    ).length;
-    // Required-docs-only stats (for compliance score — derived conditions, not stored status)
-    const requiredDocs = docs.filter(d => d.isRequired);
-    const requiredCompliant = requiredDocs.filter(d => {
-      const ov = (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
-                 (d.expiryDate && new Date(d.expiryDate) < _gcNow);
-      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      return d.approvalStatus === "approved" && !ov && !ap;
-    }).length;
-    const allCompliantDocuments = docs.filter(d => {
-      const ov = (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
-                 (d.expiryDate && new Date(d.expiryDate) < _gcNow);
-      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      return d.approvalStatus === "approved" && !ov && !ap;
-    }).length;
+    const total = docs.length + missingRequired;
+    const compliant = docs.filter(d => d.status === "compliant").length;
+    const review = docs.filter(d => d.status === "approval_required").length;
+    const overdue = docs.filter(d => d.status === "overdue").length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    // Score = Compliant / (RequiredUploaded + Missing) — NonCompliant = RequiredUploaded - Compliant
-    const scoreDenominator = requiredDocs.length + missingRequired;
-
+    
     return {
-      totalDocuments: allDocuments,
-      compliantDocuments: requiredCompliant,
-      // Tile values use ALL docs in scope (required + non-required) per spec
-      approvalRequired: allApprovalRequired,
-      overdueDocuments: allOverdueDocuments,
+      totalDocuments: total,
+      compliantDocuments: compliant,
+      approvalRequired: review,
+      overdueDocuments: overdue,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: scoreDenominator > 0 ? Math.round((requiredCompliant / scoreDenominator) * 100) : 0,
-      totalAllDocuments: allDocuments,
-      allDocuments,
-      allCompliantDocuments,
-      allApprovalRequired,
-      allOverdueDocuments,
+      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
     };
   }
 
@@ -2068,8 +1908,6 @@ export class MemStorage implements IStorage {
   }
 
   async getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]> {
-    if (siteIds.length === 0) return [];
-
     const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
@@ -2078,141 +1916,38 @@ export class MemStorage implements IStorage {
       support: "Support",
       reports: "Reports",
     };
-
-    // ── Batch-load everything upfront — zero N+1 queries ──────────────────
-    const sitesData = await db.select().from(sitesTable).where(inArray(sitesTable.id, siteIds));
-    const siteMapMSF = new Map(sitesData.map(s => [s.id, s]));
-    const companyIdsMSF = [...new Set(sitesData.map(s => s.companyId).filter(Boolean))] as string[];
-    const companyIdsSetMSF = new Set(companyIdsMSF);
-
-    const [companiesData, allDocs, allTemplates, allCompanyRequired, allSiteOverridesMSF] = await Promise.all([
-      companyIdsMSF.length > 0
-        ? db.select().from(companiesTable).where(inArray(companiesTable.id, companyIdsMSF))
-        : Promise.resolve([]),
-      db.select().from(documentsTable).where(and(
+    
+    // Aggregate compliance summary across multiple sites
+    const allDocs = await db.select().from(documentsTable)
+      .where(and(
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId),
-        isNull(documentsTable.incidentId),
-      )),
-      db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
-      companyIdsMSF.length > 0
-        ? db.select().from(companyRequiredTemplatesTable).where(inArray(companyRequiredTemplatesTable.companyId, companyIdsMSF))
-        : Promise.resolve([]),
-      db.select().from(siteTemplateOverridesTable).where(inArray(siteTemplateOverridesTable.siteId, siteIds)),
-    ]);
-
-    const groupOwnerIdsMSF = new Set(companiesData.map(c => c.groupOwnerId).filter(Boolean) as string[]);
-    const templateMapMSF = new Map(allTemplates.map(t => [t.id, t]));
-
-    // Company required templates (excluding soft-removed inherited rows)
-    const companyReqMSF = new Map<string, Set<string>>();
-    for (const r of allCompanyRequired) {
-      if (r.removedAt) continue;
-      if (!companyReqMSF.has(r.companyId)) companyReqMSF.set(r.companyId, new Set());
-      companyReqMSF.get(r.companyId)!.add(r.templateId);
-    }
-
-    // Site override sets
-    const overridesBySiteMSF = new Map<string, { exc: Set<string>; inc: Set<string> }>();
-    for (const o of allSiteOverridesMSF) {
-      if (!overridesBySiteMSF.has(o.siteId)) overridesBySiteMSF.set(o.siteId, { exc: new Set(), inc: new Set() });
-      if (o.action === "exclude") overridesBySiteMSF.get(o.siteId)!.exc.add(o.templateId);
-      else if (o.action === "include") overridesBySiteMSF.get(o.siteId)!.inc.add(o.templateId);
-    }
-
-    const _msfNow = new Date();
-
-    return modules.map(module => {
-      // Site-scoped + company-scoped + group-scoped docs for this module (same rules as getComplianceSummary)
-      const docs = allDocs.filter(d =>
-        d.module === module &&
-        d.source !== "external" &&
-        (
-          (d.siteId != null && siteIds.includes(d.siteId)) ||
-          (d.siteId == null && d.entityId != null && (
-            companyIdsSetMSF.has(d.entityId) ||
-            groupOwnerIdsMSF.has(d.entityId)
-          ))
-        )
-      );
-
-      // All-docs tile stats (derived conditions, not stored status)
+        isNull(documentsTable.caseId) // Exclude case documents from metrics
+      ));
+    
+    return Promise.all(modules.map(async (module) => {
+      // Get documents from all specified sites
+      const docs = allDocs.filter(d => d.module === module && d.siteId && siteIds.includes(d.siteId));
+      
       const total = docs.length;
-      const allApprovalRequired = docs.filter(d =>
-        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
-      ).length;
-      const allOverdue = docs.filter(d =>
-        (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
-        (d.expiryDate && new Date(d.expiryDate) < _msfNow)
-      ).length;
-      const requiredDocs = docs.filter(d => d.isRequired);
-      const requiredCompliant = requiredDocs.filter(d => {
-        const ov = (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
-                   (d.expiryDate && new Date(d.expiryDate) < _msfNow);
-        const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-        return d.approvalStatus === "approved" && !ov && !ap;
-      }).length;
-      const allCompliant = docs.filter(d => {
-        const ov = (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
-                   (d.expiryDate && new Date(d.expiryDate) < _msfNow);
-        const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-        return d.approvalStatus === "approved" && !ov && !ap;
-      }).length;
-      const pending = allApprovalRequired;
-
-      // Missing required slots — same algorithm as getComplianceSummary
-      let missingRequired = 0;
-      for (const sid of siteIds) {
-        const site = siteMapMSF.get(sid);
-        if (!site?.companyId) continue;
-        const siteReqIds = companyReqMSF.get(site.companyId) ?? new Set<string>();
-        const { exc, inc } = overridesBySiteMSF.get(sid) ?? { exc: new Set<string>(), inc: new Set<string>() };
-        const effectiveIds = [
-          ...[...siteReqIds].filter(id => !exc.has(id)),
-          ...[...inc].filter(id => !siteReqIds.has(id)),
-        ];
-        // Fulfilled by site-scoped, company-scoped, OR group-owner-scoped docs
-        const siteGroupOwnerId = companiesData.find(c => c.id === site.companyId)?.groupOwnerId ?? null;
-        const fulfilledIds = new Set(
-          allDocs
-            .filter(d => !d.isArchived && d.module === module && (
-              d.siteId === sid ||
-              (!d.siteId && d.entityId === site.companyId) ||
-              (!d.siteId && siteGroupOwnerId && d.entityId === siteGroupOwnerId)
-            ))
-            .map(d => d.templateId)
-            .filter(Boolean)
-        );
-        for (const templateId of effectiveIds) {
-          const tmpl = templateMapMSF.get(templateId);
-          if (!tmpl || tmpl.visibility !== "private" || !tmpl.isActive) continue;
-          if (tmpl.module !== module) continue;
-          if (!fulfilledIds.has(templateId)) missingRequired++;
-        }
-      }
-
-      // Score = Compliant / (RequiredUploaded + Missing) per spec
-      const scoreDenominator = requiredDocs.length + missingRequired;
-
+      const compliant = docs.filter(d => d.status === "compliant").length;
+      const review = docs.filter(d => d.status === "approval_required").length;
+      const overdue = docs.filter(d => d.status === "overdue").length;
+      const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+      
       return {
         module,
         moduleName: moduleNames[module],
         totalDocuments: total,
-        compliantDocuments: requiredCompliant,
-        approvalRequired: allApprovalRequired,
-        overdueDocuments: allOverdue,
-        missingRequiredDocuments: missingRequired,
+        compliantDocuments: compliant,
+        approvalRequired: review,
+        overdueDocuments: overdue,
+        missingRequiredDocuments: 0,
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
-        complianceScore: scoreDenominator > 0 ? Math.round((requiredCompliant / scoreDenominator) * 100) : 0,
-        totalAllDocuments: total,
-        allDocuments: total,
-        allCompliantDocuments: allCompliant,
-        allApprovalRequired,
-        allOverdueDocuments: allOverdue,
+        complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
       };
-    });
+    }));
   }
 
   // Entity Document Type Access (Database-backed)
@@ -3866,45 +3601,42 @@ export class MemStorage implements IStorage {
   
   async recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt> {
     const id = randomUUID();
-    const result = await pool.query<LoginAttempt>(
-      `INSERT INTO login_attempts (id, username, ip_address, user_agent, success, failure_reason)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, username, ip_address AS "ipAddress", user_agent AS "userAgent",
-                 success, failure_reason AS "failureReason", attempted_at AS "attemptedAt"`,
-      [id, attempt.username, attempt.ipAddress ?? null, attempt.userAgent ?? null,
-       attempt.success ?? false, attempt.failureReason ?? null]
-    );
-    // Clean up records older than 24 hours to keep the table lean
-    pool.query(`DELETE FROM login_attempts WHERE attempted_at < NOW() - INTERVAL '24 hours'`).catch(() => {});
-    return result.rows[0];
+    const loginAttempt: LoginAttempt = {
+      id,
+      username: attempt.username,
+      ipAddress: attempt.ipAddress ?? null,
+      userAgent: attempt.userAgent ?? null,
+      success: attempt.success ?? false,
+      failureReason: attempt.failureReason ?? null,
+      attemptedAt: new Date(),
+    };
+    this.loginAttempts.set(id, loginAttempt);
+    return loginAttempt;
   }
-
+  
   async getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]> {
     const cutoffTime = new Date(Date.now() - minutes * 60 * 1000);
-    const result = await pool.query<LoginAttempt>(
-      `SELECT id, username, ip_address AS "ipAddress", user_agent AS "userAgent",
-              success, failure_reason AS "failureReason", attempted_at AS "attemptedAt"
-       FROM login_attempts
-       WHERE LOWER(username) = LOWER($1) AND attempted_at > $2
-       ORDER BY attempted_at DESC`,
-      [username, cutoffTime]
-    );
-    return result.rows;
+    return Array.from(this.loginAttempts.values())
+      .filter(attempt => 
+        attempt.username.toLowerCase() === username.toLowerCase() &&
+        attempt.attemptedAt >= cutoffTime
+      )
+      .sort((a, b) => b.attemptedAt.getTime() - a.attemptedAt.getTime());
   }
-
+  
   async isAccountLocked(username: string): Promise<boolean> {
     const recentAttempts = await this.getRecentLoginAttempts(
-      username,
+      username, 
       SECURITY_CONFIG.lockoutDurationMinutes
     );
-
-    // Count consecutive failures from newest — stop at first success
+    
+    // Count consecutive failures (until last success)
     let failedAttempts = 0;
     for (const attempt of recentAttempts) {
       if (attempt.success) break;
       failedAttempts++;
     }
-
+    
     return failedAttempts >= SECURITY_CONFIG.maxLoginAttempts;
   }
 
