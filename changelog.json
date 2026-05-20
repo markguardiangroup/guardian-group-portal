@@ -4677,13 +4677,6 @@
           "createdAt": "2026-05-20T16:25:00.000Z"
         },
         {
-          "id": "m3o5q7s9-table-view-date-chips-hidden-2026",
-          "patch": 6,
-          "message": "Table view Compliance column now shows only Required/Non Compliant — date chips hidden as dedicated date columns already show this",
-          "category": "enhancement",
-          "createdAt": "2026-05-20T21:20:00.000Z"
-        },
-        {
           "id": "l2n4p6r8-not-approved-chip-hidden-folder-view-2026",
           "patch": 6,
           "message": "Folder view document rows no longer show the 'Not Approved' chip (primary status badge already shows this)",

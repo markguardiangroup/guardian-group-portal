@@ -2485,7 +2485,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} hideApprovalChips hideDateChips />
+                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} hideApprovalChips />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
