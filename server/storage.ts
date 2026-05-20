@@ -1962,7 +1962,13 @@ export class MemStorage implements IStorage {
     const companyReqCache = new Map<string, Awaited<ReturnType<typeof this.getCompanyRequiredTemplates>>>();
     const siteList = await db.select().from(sitesTable);
     const siteMap = new Map(siteList.map(s => [s.id, s]));
-    
+    // Load company data to resolve groupOwnerId for slot fulfillment
+    const companyIdsForSlots = [...new Set(siteList.map(s => s.companyId).filter(Boolean))] as string[];
+    const companiesForSlots = companyIdsForSlots.length > 0
+      ? await db.select().from(companiesTable).where(inArray(companiesTable.id, companyIdsForSlots))
+      : [];
+    const companyGroupOwnerMap = new Map(companiesForSlots.map(c => [c.id, c.groupOwnerId ?? null]));
+
     for (const sid of relevantSiteIds) {
       const site = siteMap.get(sid);
       if (!site?.companyId) continue;
@@ -1981,9 +1987,12 @@ export class MemStorage implements IStorage {
         ...[...includedIds].filter(id => !companyRequired.some(r => r.templateId === id)),
       ];
 
-      // Include both site-scoped AND company-scoped docs when checking slot fulfillment
+      // Include site-scoped, company-scoped, AND group-owner-scoped docs for slot fulfillment
+      const groupOwnerId = companyGroupOwnerMap.get(site.companyId) ?? null;
       const siteDocs = docs.filter(d =>
-        d.siteId === sid || (!d.siteId && d.entityId === site?.companyId)
+        d.siteId === sid ||
+        (!d.siteId && d.entityId === site.companyId) ||
+        (!d.siteId && groupOwnerId && d.entityId === groupOwnerId)
       );
       for (const templateId of effectiveTemplateIds) {
         const tmpl = templateMap.get(templateId);
@@ -2166,12 +2175,14 @@ export class MemStorage implements IStorage {
           ...[...siteReqIds].filter(id => !exc.has(id)),
           ...[...inc].filter(id => !siteReqIds.has(id)),
         ];
-        // Fulfilled by site-scoped or company-scoped docs
+        // Fulfilled by site-scoped, company-scoped, OR group-owner-scoped docs
+        const siteGroupOwnerId = companiesData.find(c => c.id === site.companyId)?.groupOwnerId ?? null;
         const fulfilledIds = new Set(
           allDocs
             .filter(d => !d.isArchived && d.module === module && (
               d.siteId === sid ||
-              (!d.siteId && d.entityId === site.companyId)
+              (!d.siteId && d.entityId === site.companyId) ||
+              (!d.siteId && siteGroupOwnerId && d.entityId === siteGroupOwnerId)
             ))
             .map(d => d.templateId)
             .filter(Boolean)
