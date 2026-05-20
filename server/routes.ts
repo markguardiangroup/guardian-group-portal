@@ -1764,11 +1764,13 @@ export async function registerRoutes(
     const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
     // All uploaded docs in H&S/HR/EL scope (Total tile — includes required + non-required)
+    // NOTE: shared company/group docs have siteId = null; they are already included in
+    // `documents` via getDocsAccessibleByUser, so no siteId filter is needed here.
     const _scopeMods = module ? [module] : (complianceModules as string[]);
     const allDocumentsInScope = documents.filter(d =>
       !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" &&
       _scopeMods.includes(d.module as string) &&
-      filteredSiteIds.has(d.siteId)
+      (d.siteId === null || filteredSiteIds.has(d.siteId))
     ).length;
 
     return { totalDocuments, allDocumentsInScope, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };

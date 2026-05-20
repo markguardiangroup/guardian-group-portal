@@ -760,13 +760,15 @@ export class MemStorage implements IStorage {
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      approvalRequired,
-      overdueDocuments: overdue,
+      // Tile values use ALL docs in scope (required + non-required) per spec
+      approvalRequired: allApprovalRequired,
+      overdueDocuments: allOverdueDocuments,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      totalAllDocuments: allDocumentsCount,
       allDocuments: allDocumentsCount,
       allCompliantDocuments,
       allApprovalRequired,
@@ -1280,13 +1282,15 @@ export class MemStorage implements IStorage {
     return {
       totalDocuments: total,
       compliantDocuments: compliant,
-      approvalRequired,
-      overdueDocuments: overdue,
+      // Tile values use ALL docs in scope (required + non-required) per spec
+      approvalRequired: allApprovalRequired,
+      overdueDocuments: allOverdueDocuments,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      totalAllDocuments: allDocumentsCount,
       allDocuments: allDocumentsCount,
       allCompliantDocuments,
       allApprovalRequired,
@@ -1948,7 +1952,6 @@ export class MemStorage implements IStorage {
 
     // All-docs stats (for metric tiles: Total, Overdue, Approval Required — derived from conditions)
     const allDocuments = docs.length;
-    const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
     const _gcNow = new Date();
     const allOverdueDocuments = docs.filter(d =>
       (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
@@ -1957,11 +1960,20 @@ export class MemStorage implements IStorage {
     const allApprovalRequired = docs.filter(d =>
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
     ).length;
-    // Required-docs-only stats (for compliance score denominator)
+    // Required-docs-only stats (for compliance score — derived conditions, not stored status)
     const requiredDocs = docs.filter(d => d.isRequired);
-    const requiredCompliant = requiredDocs.filter(d => d.status === "compliant").length;
-    const requiredApprovalRequired = requiredDocs.filter(d => d.status === "approval_required").length;
-    const requiredOverdue = requiredDocs.filter(d => d.status === "overdue").length;
+    const requiredCompliant = requiredDocs.filter(d => {
+      const ov = (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
+                 (d.expiryDate && new Date(d.expiryDate) < _gcNow);
+      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+      return d.approvalStatus === "approved" && !ov && !ap;
+    }).length;
+    const allCompliantDocuments = docs.filter(d => {
+      const ov = (d.renewalDate && new Date(d.renewalDate) < _gcNow) ||
+                 (d.expiryDate && new Date(d.expiryDate) < _gcNow);
+      const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+      return d.approvalStatus === "approved" && !ov && !ap;
+    }).length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     // Score = Compliant / (RequiredUploaded + Missing) — NonCompliant = RequiredUploaded - Compliant
     const scoreDenominator = requiredDocs.length + missingRequired;
@@ -1969,13 +1981,15 @@ export class MemStorage implements IStorage {
     return {
       totalDocuments: allDocuments,
       compliantDocuments: requiredCompliant,
-      approvalRequired: requiredApprovalRequired,
-      overdueDocuments: requiredOverdue,
+      // Tile values use ALL docs in scope (required + non-required) per spec
+      approvalRequired: allApprovalRequired,
+      overdueDocuments: allOverdueDocuments,
       missingRequiredDocuments: missingRequired,
       pendingApprovals: pending,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
       complianceScore: scoreDenominator > 0 ? Math.round((requiredCompliant / scoreDenominator) * 100) : 0,
+      totalAllDocuments: allDocuments,
       allDocuments,
       allCompliantDocuments,
       allApprovalRequired,
@@ -2029,9 +2043,8 @@ export class MemStorage implements IStorage {
         d.source !== "external"
       );
 
-      // All-docs stats (for metric tiles)
+      // All-docs stats (for metric tiles: Total, Overdue, Approval Required — derived conditions)
       const total = docs.length;
-      const allCompliant = docs.filter(d => d.status === "compliant").length;
       const _msfNow = new Date();
       const allApprovalRequired = docs.filter(d =>
         d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off"
@@ -2041,11 +2054,20 @@ export class MemStorage implements IStorage {
         (d.expiryDate && new Date(d.expiryDate) < _msfNow)
       ).length;
       const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      // Required-docs stats (for compliance score)
+      // Required-docs stats (for compliance score — derived conditions, not stored status)
       const requiredDocs = docs.filter(d => d.isRequired);
-      const requiredCompliant = requiredDocs.filter(d => d.status === "compliant").length;
-      const requiredApprovalRequired = requiredDocs.filter(d => d.status === "approval_required").length;
-      const requiredOverdue = requiredDocs.filter(d => d.status === "overdue").length;
+      const requiredCompliant = requiredDocs.filter(d => {
+        const ov = (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
+                   (d.expiryDate && new Date(d.expiryDate) < _msfNow);
+        const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+        return d.approvalStatus === "approved" && !ov && !ap;
+      }).length;
+      const allCompliant = docs.filter(d => {
+        const ov = (d.renewalDate && new Date(d.renewalDate) < _msfNow) ||
+                   (d.expiryDate && new Date(d.expiryDate) < _msfNow);
+        const ap = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+        return d.approvalStatus === "approved" && !ov && !ap;
+      }).length;
       // Score = Compliant / RequiredUploaded — NonCompliant = RequiredUploaded - Compliant
       const scoreDenominator = requiredDocs.length;
       
@@ -2054,13 +2076,15 @@ export class MemStorage implements IStorage {
         moduleName: moduleNames[module],
         totalDocuments: total,
         compliantDocuments: requiredCompliant,
-        approvalRequired: requiredApprovalRequired,
-        overdueDocuments: requiredOverdue,
+        // Tile values use ALL docs in scope (required + non-required) per spec
+        approvalRequired: allApprovalRequired,
+        overdueDocuments: allOverdue,
         missingRequiredDocuments: 0,
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
         complianceScore: scoreDenominator > 0 ? Math.round((requiredCompliant / scoreDenominator) * 100) : 0,
+        totalAllDocuments: total,
         allDocuments: total,
         allCompliantDocuments: allCompliant,
         allApprovalRequired,

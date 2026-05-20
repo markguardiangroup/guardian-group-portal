@@ -4682,6 +4682,13 @@
           "message": "Site/company/group compliance tiles now show Missing as a 5th tile where applicable; 'Approval' tile labels renamed to 'Approval Req.'; Total tile counts all uploaded docs (not just required slots); group card uses derived compliance logic",
           "category": "bug",
           "createdAt": "2026-05-20T10:50:00.000Z"
+        },
+        {
+          "id": "c1d3f5g7-compliance-engine-all-docs-tile-fix-2026",
+          "patch": 7,
+          "message": "Fixed: Overdue and Approval Required tiles now correctly count all documents (required + non-required); shared company/group documents correctly included in Total count; compliance score uses derived conditions throughout",
+          "category": "bug",
+          "createdAt": "2026-05-20T11:00:00.000Z"
         }
       ],
       "publishedPatch": 6,
