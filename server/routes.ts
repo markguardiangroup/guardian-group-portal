@@ -2275,11 +2275,14 @@ export async function registerRoutes(
 
       // Document Progress stats — regular module folder documents only
       // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
+      // Restrict to H&S/HR/EL for compliance module dashboards; training keeps its own scope
+      const _modComplianceModules = new Set(["health_safety", "human_resources", "employment_law"]);
       const docProgressSet = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
-        d.source !== "external"
+        d.source !== "external" &&
+        (_modComplianceModules.has(module) ? d.module === module : true)
       );
       const _progNow = new Date();
       const isDocOverdue = (d: any) =>
@@ -2288,7 +2291,7 @@ export async function registerRoutes(
         (d.renewalDate && new Date(d.renewalDate) < _progNow);
       const allDocumentsCount = docProgressSet.length;
       const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
-      const allApprovalRequired = docProgressSet.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
+      const allApprovalRequired = docProgressSet.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -2442,11 +2445,14 @@ export async function registerRoutes(
 
       // Document Progress stats — regular module folder documents only
       // Exclude: archived, case docs (EL), incident docs (H&S), cloud share (source "external")
+      // When no specific module is requested, restrict to H&S/HR/EL (compliance modules only)
+      const _dashComplianceModules = new Set(["health_safety", "human_resources", "employment_law"]);
       const allNonCaseDocs = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
-        d.source !== "external"
+        d.source !== "external" &&
+        (module ? true : _dashComplianceModules.has(d.module))
       );
       const _progNow2 = new Date();
       const isDocOverdue2 = (d: any) =>
@@ -2455,7 +2461,7 @@ export async function registerRoutes(
         (d.renewalDate && new Date(d.renewalDate) < _progNow2);
       const allDocsProgress = allNonCaseDocs.length;
       const allCompliantProgress = allNonCaseDocs.filter(d => d.status === "compliant" && !isDocOverdue2(d)).length;
-      const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.status === "approval_required" && !isDocOverdue2(d)).length;
+      const allApprovalRequiredProgress = allNonCaseDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
       const allOverdueProgress = allNonCaseDocs.filter(isDocOverdue2).length;
       
       // Calculate split approval metrics based on user role (all docs)
@@ -8813,8 +8819,20 @@ export async function registerRoutes(
       const allDocs = await storage.getDocuments(undefined, false);
       const complianceModules = ["health_safety", "human_resources", "employment_law"] as const;
 
+      const _cmpNow = new Date();
+      const isCmpOverdue = (d: any) =>
+        d.status === "overdue" ||
+        (d.expiryDate && new Date(d.expiryDate) < _cmpNow) ||
+        (d.renewalDate && new Date(d.renewalDate) < _cmpNow);
+
       const result = sites.map((site: any) => {
-        const siteDocs = allDocs.filter((d: any) => d.siteId === site.id && !d.isArchived && !d.caseId);
+        const siteDocs = allDocs.filter((d: any) =>
+          d.siteId === site.id &&
+          !d.isArchived &&
+          !d.caseId &&
+          !d.incidentId &&
+          d.source !== "external"
+        );
         const scores: Record<string, { score: number; total: number; compliant: number; overdue: number }> = {};
         let allTotal = 0;
         let allCompliant = 0;
@@ -8822,8 +8840,8 @@ export async function registerRoutes(
         for (const mod of complianceModules) {
           const modDocs = siteDocs.filter((d: any) => d.module === mod);
           const total = modDocs.length;
-          const compliant = modDocs.filter((d: any) => d.status === "compliant").length;
-          const overdue = modDocs.filter((d: any) => d.status === "overdue").length;
+          const compliant = modDocs.filter((d: any) => d.status === "compliant" && !isCmpOverdue(d)).length;
+          const overdue = modDocs.filter(isCmpOverdue).length;
           scores[mod] = { score: total > 0 ? Math.round((compliant / total) * 100) : 0, total, compliant, overdue };
           allTotal += total;
           allCompliant += compliant;

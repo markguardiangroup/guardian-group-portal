@@ -1192,33 +1192,45 @@ export class MemStorage implements IStorage {
           continue;
         }
         // Per-document display counts — so the dialog list matches the card numbers
+        const _slotNow = new Date();
         matchingDocs.forEach(d => {
-          if (d.status === "compliant") slotCompliantDocs++;
-          else if (d.status === "overdue") slotOverdue++;
+          const dateOverdue = (d.expiryDate && new Date(d.expiryDate) < _slotNow) ||
+            (d.renewalDate && new Date(d.renewalDate) < _slotNow);
+          if (d.status === "overdue" || dateOverdue) slotOverdue++;
           else if (d.status === "approval_required") slotReview++;
+          else if (d.status === "compliant") slotCompliantDocs++;
         });
       }
     }
 
+    const _now = new Date();
+    const isDocOverdue = (d: any) =>
+      d.status === "overdue" ||
+      (d.expiryDate && new Date(d.expiryDate) < _now) ||
+      (d.renewalDate && new Date(d.renewalDate) < _now);
+
     const manualRequired = docs.filter(d =>
       d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
-    const manualCompliant = manualRequired.filter(d => d.status === "compliant").length;
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
 
     const total = slotTotal + manualRequired.length;
     const compliant = slotCompliantDocs + manualCompliant;
-    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required").length;
-    const overdue = slotOverdue + manualRequired.filter(d => d.status === "overdue").length;
+    const approvalRequired = slotReview + manualRequired.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
+    const overdue = slotOverdue + manualRequired.filter(isDocOverdue).length;
     const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
     // Compliance score: compliant / (compliant + not compliant + missing)
     // Ties the percentage directly to the four tiles shown on the dashboard card.
     const scoreDenominator = compliant + approvalRequired + overdue + missingRequired;
 
     // All-document stats (required + non-required) for Total/Overdue/Approval tiles.
-    const allDocuments = docs.filter(d => d.source !== "external").length;
-    const allCompliantDocuments = docs.filter(d => d.status === "compliant").length;
-    const allApprovalRequired = pending;
-    const allOverdueDocuments = docs.filter(d => d.status === "overdue").length;
+    // Scope: H&S/HR/EL only (match compliance modules), non-external.
+    const complianceModuleSet = new Set(["health_safety", "human_resources", "employment_law"]);
+    const scopedDocs = docs.filter(d => d.source !== "external" && complianceModuleSet.has(d.module));
+    const allDocuments = scopedDocs.length;
+    const allCompliantDocuments = scopedDocs.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+    const allApprovalRequired = scopedDocs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+    const allOverdueDocuments = scopedDocs.filter(isDocOverdue).length;
 
     return {
       totalDocuments: total,
@@ -1818,49 +1830,65 @@ export class MemStorage implements IStorage {
 
   // Dashboard
   async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
-    let allDocs = await db.select().from(documentsTable)
+    const complianceModules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
+
+    // Fetch all non-archived, non-case, non-incident docs
+    const allDocs = await db.select().from(documentsTable)
       .where(and(
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId) // Exclude case documents from metrics
+        isNull(documentsTable.caseId),
+        isNull(documentsTable.incidentId),
       ));
-    let docs = allDocs;
-    if (module) {
-      docs = docs.filter(d => d.module === module);
-    } else {
-      // Exclude training documents from overall compliance metrics (training is tracked separately)
-      docs = docs.filter(d => d.module !== "training");
-    }
+
+    // Apply module scope: H&S/HR/EL only; exclude external (cloud share) docs
+    let docs = allDocs.filter(d => {
+      if (d.source === "external") return false;
+      if (module) return d.module === module;
+      return complianceModules.includes(d.module as ModuleType);
+    });
+
+    // Apply site/company filter
+    let relevantSiteIds: string[];
     if (siteId) {
       docs = docs.filter(d => d.siteId === siteId);
+      relevantSiteIds = [siteId];
     } else if (companyId) {
-      // Filter by company: get all sites for this company from database
       const companySites = await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId));
       const companySiteIds = companySites.map(s => s.id);
       docs = docs.filter(d => d.siteId && companySiteIds.includes(d.siteId));
+      relevantSiteIds = companySiteIds;
+    } else {
+      relevantSiteIds = (await db.select().from(sitesTable)).map(s => s.id);
     }
-    // Calculate missing required templates
+
+    // Slot-based required-only counts (mirrors getSiteComplianceSummary / computeSlotBasedCompliance)
+    let slotCompliantDocs = 0;
+    let slotApprovalRequired = 0;
+    let slotOverdue = 0;
     let missingRequired = 0;
-    const relevantSiteIds = siteId 
-      ? [siteId]
-      : companyId 
-        ? (await db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId))).map(s => s.id)
-        : (await db.select().from(sitesTable)).map(s => s.id);
-    
-    const allTemplates = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true));
+    const consumedDocIds = new Set<string>();
+
+    const [allTemplates, siteList] = await Promise.all([
+      db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
+      db.select().from(sitesTable),
+    ]);
     const templateMap = new Map(allTemplates.map(t => [t.id, t]));
-    const companyReqCache = new Map<string, Awaited<ReturnType<typeof this.getCompanyRequiredTemplates>>>();
-    const siteList = await db.select().from(sitesTable);
     const siteMap = new Map(siteList.map(s => [s.id, s]));
-    
+    const companyReqCache = new Map<string, Awaited<ReturnType<typeof this.getCompanyRequiredTemplates>>>();
+
+    const _now = new Date();
+    const isDocOverdue = (d: any) =>
+      d.status === "overdue" ||
+      (d.expiryDate && new Date(d.expiryDate) < _now) ||
+      (d.renewalDate && new Date(d.renewalDate) < _now);
+
     for (const sid of relevantSiteIds) {
       const site = siteMap.get(sid);
       if (!site?.companyId) continue;
       if (!companyReqCache.has(site.companyId)) {
         companyReqCache.set(site.companyId, await this.getCompanyRequiredTemplates(site.companyId));
       }
-      // Filter out soft-removed inherited rows (parent group dropped them) —
-      // they remain visible in the Required Documents UI but must not count
-      // as required slots for compliance.
+      // Soft-removed inherited rows stay visible in UI but must not count as required slots.
       const companyRequired = companyReqCache.get(site.companyId)!.filter(r => !r.removedAt);
       const siteOverrides = await this.getSiteTemplateOverrides(sid);
       const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
@@ -1875,35 +1903,59 @@ export class MemStorage implements IStorage {
         const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
         if (module && tmpl.module !== module) continue;
-        if (!module && tmpl.module === "training") continue;
-        const isFulfilled = siteDocs.some(d => {
-          if (d.templateId !== templateId) return false;
-          if (d.status !== "compliant") return false;
-          if (d.expiryDate && new Date(d.expiryDate) < new Date()) return false;
-          if (d.renewalDate && new Date(d.renewalDate) < new Date()) return false;
-          if (tmpl.requiresApproval && d.approvalStatus !== "approved") return false;
-          return true;
+        if (!module && !complianceModules.includes(tmpl.module as ModuleType)) continue;
+
+        const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
+        matchingDocs.forEach(d => consumedDocIds.add(d.id));
+
+        if (matchingDocs.length === 0) {
+          missingRequired++;
+          continue;
+        }
+
+        matchingDocs.forEach(d => {
+          if (isDocOverdue(d)) slotOverdue++;
+          else if (d.status === "approval_required") slotApprovalRequired++;
+          else if (d.status === "compliant") slotCompliantDocs++;
         });
-        if (!isFulfilled) missingRequired++;
       }
     }
 
-    const total = docs.length + missingRequired;
-    const compliant = docs.filter(d => d.status === "compliant").length;
-    const review = docs.filter(d => d.status === "approval_required").length;
-    const overdue = docs.filter(d => d.status === "overdue").length;
-    const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-    
+    // Manual required docs: isRequired=true but not consumed by a template slot
+    const manualRequired = docs.filter(d =>
+      d.isRequired && !consumedDocIds.has(d.id) &&
+      d.siteId && relevantSiteIds.includes(d.siteId)
+    );
+    manualRequired.forEach(d => consumedDocIds.add(d.id));
+
+    const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+    const compliant = slotCompliantDocs + manualCompliant;
+    const requiredApprovalRequired = slotApprovalRequired + manualRequired.filter(d => d.status === "approval_required" && !isDocOverdue(d)).length;
+    const requiredOverdue = slotOverdue + manualRequired.filter(isDocOverdue).length;
+
+    // All-doc stats (required + non-required) for Total/Overdue/Approval tiles
+    const allDocuments = docs.length;
+    const allCompliantDocuments = docs.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+    const allApprovalRequired = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+    const allOverdueDocuments = docs.filter(isDocOverdue).length;
+
+    // Score: compliant ÷ (compliant + nonCompliant_required + missing)
+    const scoreDenominator = compliant + requiredApprovalRequired + requiredOverdue + missingRequired;
+
     return {
-      totalDocuments: total,
+      totalDocuments: allDocuments,
       compliantDocuments: compliant,
-      approvalRequired: review,
-      overdueDocuments: overdue,
+      approvalRequired: allApprovalRequired,
+      overdueDocuments: allOverdueDocuments,
       missingRequiredDocuments: missingRequired,
-      pendingApprovals: pending,
+      pendingApprovals: allApprovalRequired,
       awaitingYourApproval: 0,
       awaitingOthersApproval: 0,
-      complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
+      complianceScore: scoreDenominator > 0 ? Math.round((compliant / scoreDenominator) * 100) : 0,
+      allDocuments,
+      allCompliantDocuments,
+      allApprovalRequired,
+      allOverdueDocuments,
     };
   }
 
@@ -1936,36 +1988,54 @@ export class MemStorage implements IStorage {
       support: "Support",
       reports: "Reports",
     };
-    
-    // Aggregate compliance summary across multiple sites
+
+    // Fetch all in-scope docs: non-archived, non-case, non-incident, non-external
     const allDocs = await db.select().from(documentsTable)
       .where(and(
         eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId) // Exclude case documents from metrics
+        isNull(documentsTable.caseId),
+        isNull(documentsTable.incidentId),
       ));
-    
+
+    const _now = new Date();
+    const isDocOverdue = (d: any) =>
+      d.status === "overdue" ||
+      (d.expiryDate && new Date(d.expiryDate) < _now) ||
+      (d.renewalDate && new Date(d.renewalDate) < _now);
+
     return Promise.all(modules.map(async (module) => {
-      // Get documents from all specified sites
-      const docs = allDocs.filter(d => d.module === module && d.siteId && siteIds.includes(d.siteId));
-      
+      // Scope: specific module, specific sites, exclude external (cloud share)
+      const docs = allDocs.filter(d =>
+        d.module === module &&
+        d.source !== "external" &&
+        d.siteId &&
+        siteIds.includes(d.siteId)
+      );
+
       const total = docs.length;
-      const compliant = docs.filter(d => d.status === "compliant").length;
-      const review = docs.filter(d => d.status === "approval_required").length;
-      const overdue = docs.filter(d => d.status === "overdue").length;
-      const pending = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
-      
+      const compliant = docs.filter(d => d.status === "compliant" && !isDocOverdue(d)).length;
+      const overdue = docs.filter(isDocOverdue).length;
+      const approvalRequired = docs.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
+      const pending = approvalRequired;
+      // Score: compliant / (total) for module summaries (all-doc denominator, no slot logic here)
+      const scoreDenom = total;
+
       return {
         module,
         moduleName: moduleNames[module],
         totalDocuments: total,
         compliantDocuments: compliant,
-        approvalRequired: review,
+        approvalRequired,
         overdueDocuments: overdue,
         missingRequiredDocuments: 0,
         pendingApprovals: pending,
         awaitingYourApproval: 0,
         awaitingOthersApproval: 0,
-        complianceScore: total > 0 ? Math.round((compliant / total) * 100) : 0,
+        complianceScore: scoreDenom > 0 ? Math.round((compliant / scoreDenom) * 100) : 0,
+        allDocuments: total,
+        allCompliantDocuments: compliant,
+        allApprovalRequired: approvalRequired,
+        allOverdueDocuments: overdue,
       };
     }));
   }
