@@ -11227,13 +11227,10 @@ export async function registerRoutes(
           if (module && doc.module !== module) continue;
           const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
           if (doc.scope === "company" && doc.entityId === companyId) {
-            if (shares.some((s: any) =>
-              (s.entityType === "site" && s.entityId === siteId) ||
-              (s.entityType === "company" && s.entityId === companyId)
-            )) {
-              seenIds.add(doc.id);
-              results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
-            }
+            // Company-scoped docs are visible to all sites of that company without
+            // requiring an explicit share record — consistent with storage summary helpers.
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && doc.entityId === companyId) {
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
