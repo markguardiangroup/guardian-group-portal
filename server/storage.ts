@@ -869,10 +869,18 @@ export class MemStorage implements IStorage {
             return shares.some(s => s.entityType === "company" && s.entityId === site.companyId);
           })
         : [];
-      // Restrict to compliance modules only and exclude external-source documents
+      // Restrict to compliance modules only and exclude external-source documents.
+      // Group-scoped docs owned by this site's company only count if explicitly shared.
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
-        ...(docsByCompany.get(site.companyId) ?? []),
+        ...(docsByCompany.get(site.companyId) ?? []).filter(d => {
+          if (d.scope !== "group") return true;
+          const shares = sharesByDocId.get(d.id) ?? [];
+          return shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          );
+        }),
         ...groupOwnerDocs,
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
 
@@ -963,8 +971,16 @@ export class MemStorage implements IStorage {
         if (!docsBySite.has(d.siteId)) docsBySite.set(d.siteId, []);
         docsBySite.get(d.siteId)!.push(d);
       } else if (d.entityId === companyId) {
-        // Company-scoped documents count toward all sites of this company
-        companyDocs.push(d);
+        if (d.scope === "group") {
+          // Group-scoped docs only count at this company's sites if explicitly shared to the company
+          const shares = sharesByDocId.get(d.id) ?? [];
+          if (shares.some(s => s.entityType === "company" && s.entityId === companyId)) {
+            companyDocs.push(d);
+          }
+        } else {
+          // Company-scoped documents count toward all sites of this company
+          companyDocs.push(d);
+        }
       }
     }
     const overridesBySite = new Map<string, typeof allSiteOverrides>();
@@ -1474,26 +1490,30 @@ export class MemStorage implements IStorage {
       }
     }
 
-    // --- Group-scope docs ---
-    // Group-scope docs uploaded under this site's OWN company (no share record needed):
-    // when a company is itself a group, group-scoped docs uploaded against it should
-    // be visible at all of its own sites by default.
+    // --- Group-scope docs (own company) ---
+    // Group-scoped docs owned by this site's company must have an explicit share record
+    // (either to this specific site or to the company) before they appear at a site.
     const ownGroupDocs = await db
-      .select()
-      .from(documentsTable)
+      .select({ doc: documentsTable })
+      .from(documentSharesTable)
+      .innerJoin(documentsTable, eq(documentsTable.id, documentSharesTable.documentId))
       .where(
         and(
           eq(documentsTable.scope, "group"),
           eq(documentsTable.entityId, site.companyId),
           isNull(documentsTable.siteId),
+          or(
+            and(eq(documentSharesTable.entityType, "site"), eq(documentSharesTable.entityId, siteId)),
+            and(eq(documentSharesTable.entityType, "company"), eq(documentSharesTable.entityId, site.companyId)),
+          ),
           ...(module ? [eq(documentsTable.module, module as any)] : []),
           ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
         )
       );
-    for (const doc of ownGroupDocs) {
-      if (!seenIds.has(doc.id)) {
-        seenIds.add(doc.id);
-        results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+    for (const row of ownGroupDocs) {
+      if (!seenIds.has(row.doc.id)) {
+        seenIds.add(row.doc.id);
+        results.push({ ...row.doc, sharedScope: "group", sharedFromEntityName: company.name });
       }
     }
 
@@ -1906,13 +1926,21 @@ export class MemStorage implements IStorage {
   async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
     const complianceModules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
 
-    // Fetch all non-archived, non-case, non-incident docs
-    const allDocs = await db.select().from(documentsTable)
-      .where(and(
-        eq(documentsTable.isArchived, false),
-        isNull(documentsTable.caseId),
-        isNull(documentsTable.incidentId),
-      ));
+    // Fetch all non-archived, non-case, non-incident docs and share records in parallel
+    const [allDocs, allShareRecords] = await Promise.all([
+      db.select().from(documentsTable)
+        .where(and(
+          eq(documentsTable.isArchived, false),
+          isNull(documentsTable.caseId),
+          isNull(documentsTable.incidentId),
+        )),
+      db.select().from(documentSharesTable),
+    ]);
+    const sharesByDocIdCS = new Map<string, typeof allShareRecords>();
+    for (const s of allShareRecords) {
+      if (!sharesByDocIdCS.has(s.documentId)) sharesByDocIdCS.set(s.documentId, []);
+      sharesByDocIdCS.get(s.documentId)!.push(s);
+    }
 
     // Apply module scope: H&S/HR/EL only; exclude external (cloud share) docs
     let docs = allDocs.filter(d => {
@@ -1957,9 +1985,17 @@ export class MemStorage implements IStorage {
       relevantSiteIds = (await db.select().from(sitesTable)).map(s => s.id);
     }
 
-    // Build company-doc lookup for per-site inheritance (company-scoped docs count at each site)
+    // Build company-doc lookup for per-site inheritance.
+    // Group-scoped docs only inherit to sites if they have an explicit share record.
     for (const d of docs) {
       if (!d.siteId && d.entityId) {
+        if (d.scope === "group") {
+          const shares = sharesByDocIdCS.get(d.id) ?? [];
+          const isShared = shares.some(s =>
+            s.entityType === "company" && s.entityId === d.entityId
+          );
+          if (!isShared) continue;
+        }
         if (!companyDocsByCompanyId.has(d.entityId)) companyDocsByCompanyId.set(d.entityId, []);
         companyDocsByCompanyId.get(d.entityId)!.push(d);
       }

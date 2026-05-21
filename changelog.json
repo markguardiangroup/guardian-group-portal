@@ -4843,6 +4843,13 @@
           "message": "Fixed: shared company docs now counted once per site in aggregate totals",
           "category": "bug",
           "createdAt": "2026-05-20T22:25:30.000Z"
+        },
+        {
+          "id": "a1b2c3d4-group-docs-require-share-record-2026",
+          "patch": 6,
+          "message": "Fixed: group-level docs no longer auto-shared to sites unless explicitly shared",
+          "category": "bug",
+          "createdAt": "2026-05-21T09:00:00.000Z"
         }
       ],
       "publishedPatch": 5,
