@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "j0k1l2m3-all-companies-table-folder-count-match-2026",
+          "patch": 6,
+          "message": "Fixed: All Companies - All Sites table view now shows the same documents as the folder view",
+          "category": "bug",
+          "createdAt": "2026-05-21T16:05:00.000Z"
+        },
+        {
           "id": "i9j0k1l2-consultant-use-template-redirect-fix-2026",
           "patch": 6,
           "message": "Fixed: consultants can now use 'Create from Template' without being redirected to the home page",

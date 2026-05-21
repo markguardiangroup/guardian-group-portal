@@ -1018,6 +1018,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         if (!entityId || !groupCompanyIds.has(entityId)) return false;
       }
     }
+    // "All Companies - All Sites" view: gate scoped (siteId=null) docs via
+    // sharedDocIdSet so the table matches the folder view exactly. The hierarchy
+    // backend (computeSharedDocsForSiteH) requires an explicit share record before
+    // including a scoped doc; the flat API does not — so without this filter the
+    // table shows extra rows for docs that have no share records yet.
+    // Only activates once the hierarchy has loaded (sharedDocIdSet.size > 0).
+    if (
+      !urlScope &&
+      doc.siteId === null &&
+      !groupCompanyIds &&
+      (!selectedSiteId || selectedSiteId === "all") &&
+      (!selectedCompany || selectedCompany === "all") &&
+      sharedDocIdSet.size > 0
+    ) {
+      if (!sharedDocIdSet.has(doc.id)) return false;
+    }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
