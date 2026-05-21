@@ -1093,30 +1093,31 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     
     // Filter by renewal date
     let matchesRenewal = true;
-    if (renewalFilter !== "all" && doc.renewalDate) {
-      const now = new Date();
-      const renewalDate = new Date(doc.renewalDate);
-      const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
-      switch (renewalFilter) {
-        case "overdue":
-          matchesRenewal = daysUntilRenewal < 0;
-          break;
-        case "30days":
-          matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
-          break;
-        case "60days":
-          matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 60;
-          break;
-        case "90days":
-          matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 90;
-          break;
-        case "none":
-          matchesRenewal = false; // Will be handled below
-          break;
+    if (renewalFilter !== "all") {
+      if (renewalFilter === "none") {
+        matchesRenewal = !doc.renewalDate;
+      } else if (!doc.renewalDate) {
+        // Date-based filter active but doc has no renewal date — exclude it
+        matchesRenewal = false;
+      } else {
+        const now = new Date();
+        const renewalDate = new Date(doc.renewalDate);
+        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        switch (renewalFilter) {
+          case "overdue":
+            matchesRenewal = daysUntilRenewal < 0;
+            break;
+          case "30days":
+            matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
+            break;
+          case "60days":
+            matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 60;
+            break;
+          case "90days":
+            matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 90;
+            break;
+        }
       }
-    } else if (renewalFilter === "none") {
-      matchesRenewal = !doc.renewalDate;
     }
     
     return matchesSearch && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;

@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "m3n4o5p6-renewal-filter-excludes-no-date-2026",
+          "patch": 6,
+          "message": "Fixed: renewal date filters (Overdue, Next 30/60/90 Days) no longer show documents without a renewal date",
+          "category": "bug",
+          "createdAt": "2026-05-21T16:35:00.000Z"
+        },
+        {
           "id": "l2m3n4o5-table-sort-default-desc-2026",
           "patch": 6,
           "message": "Table view sort columns now default to descending order on first click",
