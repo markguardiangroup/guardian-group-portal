@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "k1l2m3n4-table-view-doc-count-label-fix-2026",
+          "patch": 6,
+          "message": "Fixed: table view document count now shows the correct number with 'Documents' label",
+          "category": "bug",
+          "createdAt": "2026-05-21T16:15:00.000Z"
+        },
+        {
           "id": "j0k1l2m3-all-companies-table-folder-count-match-2026",
           "patch": 6,
           "message": "Fixed: All Companies - All Sites table view now shows the same documents as the folder view",

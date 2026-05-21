@@ -2422,9 +2422,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                       <span className="ml-1 text-xs font-normal text-muted-foreground normal-case">
-                        {(searchQuery || statusFilter !== "all" || folderFilter !== "all" || renewalFilter !== "all")
-                          ? `${sortedDocuments.length} of ${documents?.length ?? 0}`
-                          : sortedDocuments.length}
+                        {expandedTableDocuments.length} Documents
                       </span>
                     </span>
                   </TableHead>
