@@ -605,6 +605,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 }
               }
               const groupMissing = groupMissingTemplateIds.size;
+              const groupExpired = groupDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupRenewalRequired = groupDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupClientApproval = groupDocs.filter((d: any) => d.approvalStatus === "pending").length;
+              const groupConsultantApproval = groupDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+              const groupCompliantAll = groupDocs.filter((d: any) => d.status === "compliant").length;
               const groupDenom = groupCompliant + groupApprovalRequired + groupOverdue + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
               const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupApprovalRequired > 0;
@@ -692,24 +697,63 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-4 gap-1.5 text-center">
-                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
-                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{groupDocs.length}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && groupDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                      <TooltipProvider delayDuration={300}>
+                        <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{groupDocs.length}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && groupDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                              <p className="font-semibold">Total Documents</p>
+                              <p className="text-muted-foreground">{groupDocs.length} document{groupDocs.length !== 1 ? "s" : ""} uploaded</p>
+                              <p className="text-muted-foreground">{groupCompliantAll} compliant</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupApprovalRequired + groupOverdue + groupMissing}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                              <p className="font-semibold">Required — not compliant</p>
+                              <p className="text-muted-foreground">{groupOverdue} overdue</p>
+                              <p className="text-muted-foreground">{groupApprovalRequired} awaiting approval</p>
+                              <p className="text-muted-foreground">{groupMissing} missing</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupOverdue > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{groupOverdue}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && groupOverdue > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                              <p className="font-semibold">Past expiry / renewal date</p>
+                              <p className="text-muted-foreground">{groupExpired} expired</p>
+                              <p className="text-muted-foreground">{groupRenewalRequired} renewal required</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupPending}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                              <p className="font-semibold">Awaiting approval / sign-off</p>
+                              <p className="text-muted-foreground">{groupClientApproval} client approval</p>
+                              <p className="text-muted-foreground">{groupConsultantApproval} consultant approval</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
-                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupApprovalRequired + groupOverdue + groupMissing}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
-                        </div>
-                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupOverdue > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{groupOverdue}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && groupOverdue > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
-                        </div>
-                        <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && groupPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                          {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupPending}</p>}
-                          <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
-                        </div>
-                      </div>
+                      </TooltipProvider>
                     </CardContent>
                     <div className="border-t flex">
                       <button
@@ -779,6 +823,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       }
                     }
                     const cMissing = cMissingTemplateIds.size;
+                    const cExpired = companyDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cRenewalRequired = companyDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cClientApproval = companyDocs.filter((d: any) => d.approvalStatus === "pending").length;
+                    const cConsultantApproval = companyDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+                    const cCompliantAll = companyDocs.filter((d: any) => d.status === "compliant").length;
                     const cDenom = cCompliant + cApprovalRequired + cOverdue + cMissing;
                     const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
                     const cHasIssues = cMissing > 0 || cOverdue > 0 || cApprovalRequired > 0;
@@ -864,24 +913,63 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           )}
 
-                          <div className="grid grid-cols-4 gap-1.5 text-center">
-                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${companyDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{companyDocs.length}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && companyDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                          <TooltipProvider delayDuration={300}>
+                            <div className="grid grid-cols-4 gap-1.5 text-center">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${companyDocs.length > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{companyDocs.length}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && companyDocs.length > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                                  <p className="font-semibold">Total Documents</p>
+                                  <p className="text-muted-foreground">{companyDocs.length} document{companyDocs.length !== 1 ? "s" : ""} uploaded</p>
+                                  <p className="text-muted-foreground">{cCompliantAll} compliant</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cApprovalRequired + cOverdue + cMissing}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                                  <p className="font-semibold">Required — not compliant</p>
+                                  <p className="text-muted-foreground">{cOverdue} overdue</p>
+                                  <p className="text-muted-foreground">{cApprovalRequired} awaiting approval</p>
+                                  <p className="text-muted-foreground">{cMissing} missing</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cOverdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{cOverdueAll}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && cOverdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                                  <p className="font-semibold">Past expiry / renewal date</p>
+                                  <p className="text-muted-foreground">{cExpired} expired</p>
+                                  <p className="text-muted-foreground">{cRenewalRequired} renewal required</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                                  <p className="font-semibold">Awaiting approval / sign-off</p>
+                                  <p className="text-muted-foreground">{cClientApproval} client approval</p>
+                                  <p className="text-muted-foreground">{cConsultantApproval} consultant approval</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
-                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cApprovalRequired + cOverdue + cMissing}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
-                            </div>
-                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cOverdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{cOverdueAll}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && cOverdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
-                            </div>
-                            <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && cPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
-                            </div>
-                          </div>
+                          </TooltipProvider>
                         </CardContent>
                         <div className="border-t flex">
                           <button
@@ -931,10 +1019,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const isAsApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
               let allTotal = 0;
               let allCompliant = 0;
+              let allCompliantAll = 0;
               let allOverdue = 0;
               let allApprovalRequired = 0;
               let allOverdueAll = 0;
               let allPending = 0;
+              let allExpired = 0;
+              let allRenewalRequired = 0;
+              let allClientApproval = 0;
+              let allConsultantApproval = 0;
               for (const d of allDocs) {
                 const n = coveredSites(d);
                 allTotal += n;
@@ -945,6 +1038,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 }
                 if (isAsOverdue(d)) allOverdueAll += n;
                 if (isAsApproval(d)) allPending += n;
+                if ((d as any).expiryDate && new Date((d as any).expiryDate) < _asNow) allExpired += n;
+                else if ((d as any).renewalDate && new Date((d as any).renewalDate) < _asNow) allRenewalRequired += n;
+                if ((d as any).approvalStatus === "pending") allClientApproval += n;
+                if ((d as any).approvalStatus === "client_signed_off") allConsultantApproval += n;
+                if ((d as any).status === "compliant") allCompliantAll += n;
               }
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
@@ -1024,24 +1122,63 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-4 gap-1.5 text-center">
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allTotal > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{allTotal}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && allTotal > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                    <TooltipProvider delayDuration={300}>
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allTotal > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{allTotal}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && allTotal > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Total Documents</p>
+                            <p className="text-muted-foreground">{allTotal} document{allTotal !== 1 ? "s" : ""} uploaded</p>
+                            <p className="text-muted-foreground">{allCompliantAll} compliant</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allApprovalRequired + allOverdue + allMissing}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Required — not compliant</p>
+                            <p className="text-muted-foreground">{allOverdue} overdue</p>
+                            <p className="text-muted-foreground">{allApprovalRequired} awaiting approval</p>
+                            <p className="text-muted-foreground">{allMissing} missing</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allOverdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{allOverdueAll}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && allOverdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Past expiry / renewal date</p>
+                            <p className="text-muted-foreground">{allExpired} expired</p>
+                            <p className="text-muted-foreground">{allRenewalRequired} renewal required</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allPending}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && allPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Awaiting approval / sign-off</p>
+                            <p className="text-muted-foreground">{allClientApproval} client approval</p>
+                            <p className="text-muted-foreground">{allConsultantApproval} consultant approval</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allApprovalRequired + allOverdue + allMissing}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
-                      </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allOverdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{allOverdueAll}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && allOverdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
-                      </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && allPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{allPending}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && allPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
-                      </div>
-                    </div>
+                    </TooltipProvider>
 
                   </CardContent>
                   {/* Split action bar */}
@@ -1134,6 +1271,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               }
               const overdueAll = siteDocs.filter(isSOverdue).length;
               const pendingAll = siteDocs.filter(isSApproval).length;
+              const sExpired = siteDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sRenewalRequired = siteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sClientApproval = siteDocs.filter((d: any) => d.approvalStatus === "pending").length;
+              const sConsultantApproval = siteDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+              const sCompliantAll = siteDocs.filter((d: any) => d.status === "compliant").length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;
@@ -1266,9 +1408,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
-                            <p className="font-semibold">Total Docs</p>
-                            <p className="text-muted-foreground">{total} doc{total !== 1 ? "s" : ""} uploaded</p>
-                            <p className="text-muted-foreground">{compliant} compliant</p>
+                            <p className="font-semibold">Total Documents</p>
+                            <p className="text-muted-foreground">{total} document{total !== 1 ? "s" : ""} uploaded</p>
+                            <p className="text-muted-foreground">{sCompliantAll} compliant</p>
                           </TooltipContent>
                         </Tooltip>
 
@@ -1298,10 +1440,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
                             <p className="font-semibold">Past expiry / renewal date</p>
-                            <p className="text-muted-foreground">{overdueRequired} required doc{overdueRequired !== 1 ? "s" : ""}</p>
-                            {(overdueAll - overdueRequired) > 0 && (
-                              <p className="text-muted-foreground">{overdueAll - overdueRequired} non-required</p>
-                            )}
+                            <p className="text-muted-foreground">{sExpired} expired</p>
+                            <p className="text-muted-foreground">{sRenewalRequired} renewal required</p>
                           </TooltipContent>
                         </Tooltip>
 
@@ -1315,10 +1455,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
                             <p className="font-semibold">Awaiting approval / sign-off</p>
-                            <p className="text-muted-foreground">{approvalRequiredRequired} required doc{approvalRequiredRequired !== 1 ? "s" : ""}</p>
-                            {(pendingAll - approvalRequiredRequired) > 0 && (
-                              <p className="text-muted-foreground">{pendingAll - approvalRequiredRequired} non-required</p>
-                            )}
+                            <p className="text-muted-foreground">{sClientApproval} client approval</p>
+                            <p className="text-muted-foreground">{sConsultantApproval} consultant approval</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>

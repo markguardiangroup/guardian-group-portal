@@ -4878,6 +4878,13 @@
           "message": "Site tiles: hover any stat badge to see a breakdown of what's in the count",
           "category": "enhancement",
           "createdAt": "2026-05-21T11:45:00.000Z"
+        },
+        {
+          "id": "f6g7h8i9-all-panel-stat-tooltips-2026",
+          "patch": 6,
+          "message": "Group, Company, and All Sites panels now have hover tooltips on stat badges too",
+          "category": "enhancement",
+          "createdAt": "2026-05-21T12:30:00.000Z"
         }
       ],
       "publishedPatch": 5,
