@@ -4885,6 +4885,13 @@
           "message": "Group, Company, and All Sites panels now have hover tooltips on stat badges too",
           "category": "enhancement",
           "createdAt": "2026-05-21T12:30:00.000Z"
+        },
+        {
+          "id": "g7h8i9j0-remove-expiry-approval-chips-2026",
+          "patch": 6,
+          "message": "Document rows: removed Past Expiry Date and sign-off required badges to reduce clutter",
+          "category": "enhancement",
+          "createdAt": "2026-05-21T13:00:00.000Z"
         }
       ],
       "publishedPatch": 5,

@@ -16,7 +16,6 @@ interface ComplianceBadgeProps {
 export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, className }: ComplianceBadgeProps) {
   const now = new Date();
   const isPastRenewal = !!renewalDate && new Date(renewalDate as string) < now;
-  const isPastExpiry = !!expiryDate && new Date(expiryDate as string) < now;
 
   interface ChipDef { label: string; Icon: typeof CheckCircle; cls: string; testId: string }
   const chips: ChipDef[] = [];
@@ -33,18 +32,6 @@ export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDat
 
   if (isPastRenewal) {
     chips.push({ label: "Past Renewal Date", Icon: CalendarX, cls: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20", testId: "badge-past-renewal" });
-  }
-
-  if (isPastExpiry) {
-    chips.push({ label: "Past Expiry Date", Icon: CalendarX, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", testId: "badge-past-expiry" });
-  }
-
-  if (!hideApprovalChips && approvalStatus === "pending") {
-    chips.push({ label: "Client Sign Off Required", Icon: UserCheck, cls: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20", testId: "badge-client-signoff" });
-  }
-
-  if (!hideApprovalChips && approvalStatus === "client_signed_off") {
-    chips.push({ label: "Consultant Approval Required", Icon: ShieldCheck, cls: "bg-violet-500/15 text-violet-700 dark:text-violet-400 border-violet-500/20", testId: "badge-consultant-approval" });
   }
 
   if (chips.length === 0) return null;
