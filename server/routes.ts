@@ -1621,8 +1621,14 @@ export async function registerRoutes(
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          // Group-scoped docs owned by this company require an explicit share record to appear at sites
+          if (shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          )) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
           if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             const goCompany = companyMap.get(company.groupOwnerId);
@@ -1885,8 +1891,14 @@ export async function registerRoutes(
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          // Group-scoped docs owned by this company require an explicit share record to appear at sites
+          if (shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          )) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
           if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             const goCompany = companyMap.get(company.groupOwnerId);

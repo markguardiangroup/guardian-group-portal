@@ -4850,6 +4850,13 @@
           "message": "Fixed: group-level docs no longer auto-shared to sites unless explicitly shared",
           "category": "bug",
           "createdAt": "2026-05-21T09:00:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-routes-group-share-check-2026",
+          "patch": 6,
+          "message": "Fixed: document list now also respects group sharing rule at site level",
+          "category": "bug",
+          "createdAt": "2026-05-21T09:25:00.000Z"
         }
       ],
       "publishedPatch": 5,
