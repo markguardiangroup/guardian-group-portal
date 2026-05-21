@@ -4850,6 +4850,13 @@
           "message": "Fixed: group-level docs no longer auto-shared to sites unless explicitly shared",
           "category": "bug",
           "createdAt": "2026-05-21T09:00:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-frontend-share-fallback-removed-2026",
+          "patch": 6,
+          "message": "Fixed: site doc totals no longer include unshared company-level documents",
+          "category": "bug",
+          "createdAt": "2026-05-21T09:30:00.000Z"
         }
       ],
       "publishedPatch": 5,

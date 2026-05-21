@@ -298,8 +298,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           d.siteId === siteId ||
           (d.siteId === null && site && (
             (d.sharedWithSiteIds?.includes(siteId) ?? false) ||
-            (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
-            (d as any).entityId === site.companyId
+            (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
           ))
         )
       );
@@ -1073,8 +1072,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     // shared explicitly, shared to company, or owned by this company
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
-                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
-                      (d as any).entityId === site.companyId
+                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
                     ))
                   )
               );
