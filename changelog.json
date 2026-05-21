@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "o5p6q7r8-loading-overlay-users-sites-companies-2026",
+          "patch": 6,
+          "message": "Users, Sites, and Companies lists now show the loading animation while data is fetching",
+          "category": "enhancement",
+          "createdAt": "2026-05-21T17:30:00.000Z"
+        },
+        {
           "id": "n4o5p6q7-renewal-filter-hides-missing-slots-2026",
           "patch": 6,
           "message": "Fixed: missing document rows are now hidden when a renewal date filter is active",

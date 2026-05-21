@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
@@ -945,7 +946,13 @@ export default function Companies() {
             </TableRow>
           </TableHeader>
           <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
-            {isLoading ? null : companies.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <FetchingOverlay />
+                </TableCell>
+              </TableRow>
+            ) : companies.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   {debouncedSearch || statusFilter !== "all"

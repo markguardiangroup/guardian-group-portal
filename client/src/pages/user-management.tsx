@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { CreateClientUserDialog } from "@/components/create-client-user-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -1586,7 +1587,13 @@ export default function UserManagement() {
             </TableRow>
           </TableHeader>
           <TableBody key={isLoadingUsers ? "loading" : "loaded"} className={!alreadyShown && !isLoadingUsers && paginatedUsers.length > 0 ? "table-rows-animate" : ""}>
-            {isLoadingUsers ? null : paginatedUsers.length === 0 ? (
+            {isLoadingUsers ? (
+              <TableRow>
+                <TableCell colSpan={userTypeTab === "staff" ? 8 : 7}>
+                  <FetchingOverlay />
+                </TableCell>
+              </TableRow>
+            ) : paginatedUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={userTypeTab === "staff" ? 8 : 7} className="h-24 text-center text-muted-foreground">
                   {search || roleFilter !== "all" || statusFilter !== "all" || companyFilter !== "all"

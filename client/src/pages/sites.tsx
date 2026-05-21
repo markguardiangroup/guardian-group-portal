@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -477,7 +478,13 @@ export default function Sites() {
             </TableRow>
           </TableHeader>
           <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && paginatedSites && paginatedSites.length > 0 ? "table-rows-animate" : ""}>
-            {isLoading ? null : !paginatedSites || paginatedSites.length === 0 ? (
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6}>
+                  <FetchingOverlay />
+                </TableCell>
+              </TableRow>
+            ) : !paginatedSites || paginatedSites.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   {searchQuery || companyFilter !== "all" || complianceFilter !== "all"
