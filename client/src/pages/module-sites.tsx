@@ -298,7 +298,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           d.siteId === siteId ||
           (d.siteId === null && site && (
             (d.sharedWithSiteIds?.includes(siteId) ?? false) ||
-            (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
+            (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
+            // Own group-scoped doc that has been explicitly shared to at least one destination
+            (d.scope === "group" && d.entityId === site.companyId &&
+              ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)
           ))
         )
       );
@@ -899,22 +902,24 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {/* All Sites aggregate tile — only shown when there are 2+ sites */}
             {(() => {
               if (filteredSites.length <= 1) return null;
+              // Helper: does a scoped doc apply to a given filtered site?
+              const docAppliesToSite = (d: typeof documents extends undefined ? never : NonNullable<typeof documents>[0], s: typeof filteredSites[0]) =>
+                (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
+                (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
+                // Own group-scoped doc shared to at least one destination
+                (d.scope === "group" && d.entityId === s.companyId &&
+                  ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0);
+
               const allDocs = (documents ?? []).filter(
                 (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" && (
                   filteredSites.some((s) => s.id === d.siteId) ||
-                  (d.siteId === null && filteredSites.some((s) =>
-                    (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
-                    (d.sharedWithCompanyIds?.includes(s.companyId) ?? false)
-                  ))
+                  (d.siteId === null && filteredSites.some((s) => docAppliesToSite(d, s)))
                 )
               );
               // All counts expand shared docs once per covered site so that a shared
               // document registers as a separate entry for each site it applies to.
               const coveredSites = (d: typeof allDocs[0]) =>
-                d.siteId !== null ? 1 : filteredSites.filter((s) =>
-                  (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
-                  (d.sharedWithCompanyIds?.includes(s.companyId) ?? false)
-                ).length;
+                d.siteId !== null ? 1 : filteredSites.filter((s) => docAppliesToSite(d, s)).length;
               const _asNow = new Date();
               const isAsOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _asNow) || !!(d.renewalDate && new Date(d.renewalDate) < _asNow);
               const isAsApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
@@ -1066,11 +1071,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (
                     // Native site doc
                     d.siteId === site.id ||
-                    // Scoped (group/company) doc visible to this site:
-                    // shared explicitly, shared to company, or owned by this company
+                    // Scoped (group/company) doc visible to this site
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
-                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
+                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
+                      // Own group-scoped doc that has been explicitly shared to at least one destination
+                      (d.scope === "group" && d.entityId === site.companyId &&
+                        ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)
                     ))
                   )
               );

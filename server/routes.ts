@@ -1621,8 +1621,12 @@ export async function registerRoutes(
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          // Own group doc: appears at own sites only if at least one share record exists
+          // (i.e. the user chose "share this" when uploading — 0 shares = not shared)
+          if (shares.length > 0) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
           if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             const goCompany = companyMap.get(company.groupOwnerId);
@@ -1885,8 +1889,11 @@ export async function registerRoutes(
           seenIds.add(doc.id);
           results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          // Own group doc: appears at own sites only if at least one share record exists
+          if (shares.length > 0) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
           if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             const goCompany = companyMap.get(company.groupOwnerId);
@@ -11190,8 +11197,11 @@ export async function registerRoutes(
               results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
             }
           } else if (doc.scope === "group" && doc.entityId === companyId) {
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+            // Own group doc: appears at own sites only if at least one share record exists
+            if (shares.length > 0) {
+              seenIds.add(doc.id);
+              results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
+            }
           } else if (doc.scope === "group" && (company as any).groupOwnerId && doc.entityId === (company as any).groupOwnerId) {
             if (shares.some((s: any) => s.entityType === "company" && s.entityId === companyId)) {
               const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);

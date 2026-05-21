@@ -4864,6 +4864,13 @@
           "message": "Fixed: All Sites tile totals also now exclude unshared company-level docs",
           "category": "bug",
           "createdAt": "2026-05-21T09:45:00.000Z"
+        },
+        {
+          "id": "d4e5f6g7-own-group-doc-tile-count-matches-list-2026",
+          "patch": 6,
+          "message": "Fixed: site tile doc counts now match the document list for shared group-level docs",
+          "category": "bug",
+          "createdAt": "2026-05-21T10:55:00.000Z"
         }
       ],
       "publishedPatch": 5,

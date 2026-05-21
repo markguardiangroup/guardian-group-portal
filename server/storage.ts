@@ -870,16 +870,14 @@ export class MemStorage implements IStorage {
           })
         : [];
       // Restrict to compliance modules only and exclude external-source documents.
-      // Group-scoped docs owned by this site's company only count if explicitly shared.
+      // Group-scoped docs owned by this site's company appear at own sites only if
+      // they have at least one share record (user chose "share this" on upload).
       const siteDocs = [
         ...(docsBySite.get(site.id) ?? []),
         ...(docsByCompany.get(site.companyId) ?? []).filter(d => {
           if (d.scope !== "group") return true;
           const shares = sharesByDocId.get(d.id) ?? [];
-          return shares.some(s =>
-            (s.entityType === "site" && s.entityId === site.id) ||
-            (s.entityType === "company" && s.entityId === site.companyId)
-          );
+          return shares.length > 0;
         }),
         ...groupOwnerDocs,
       ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
@@ -972,9 +970,10 @@ export class MemStorage implements IStorage {
         docsBySite.get(d.siteId)!.push(d);
       } else if (d.entityId === companyId) {
         if (d.scope === "group") {
-          // Group-scoped docs only count at this company's sites if explicitly shared to the company
+          // Own group-scoped docs appear at own sites only if at least one share record exists
+          // (confirming the user chose "share this" — 0 shares = not shared = stays at group level)
           const shares = sharesByDocId.get(d.id) ?? [];
-          if (shares.some(s => s.entityType === "company" && s.entityId === companyId)) {
+          if (shares.length > 0) {
             companyDocs.push(d);
           }
         } else {
@@ -1491,29 +1490,26 @@ export class MemStorage implements IStorage {
     }
 
     // --- Group-scope docs (own company) ---
-    // Group-scoped docs owned by this site's company must have an explicit share record
-    // (either to this specific site or to the company) before they appear at a site.
+    // Own group-scoped docs appear at the company's own sites if and only if the doc has
+    // at least one share record (confirming the user chose "share this" on upload).
+    // Docs with zero share records = user said "not shared" = stays at group level only.
     const ownGroupDocs = await db
-      .select({ doc: documentsTable })
-      .from(documentSharesTable)
-      .innerJoin(documentsTable, eq(documentsTable.id, documentSharesTable.documentId))
+      .select()
+      .from(documentsTable)
       .where(
         and(
           eq(documentsTable.scope, "group"),
           eq(documentsTable.entityId, site.companyId),
           isNull(documentsTable.siteId),
-          or(
-            and(eq(documentSharesTable.entityType, "site"), eq(documentSharesTable.entityId, siteId)),
-            and(eq(documentSharesTable.entityType, "company"), eq(documentSharesTable.entityId, site.companyId)),
-          ),
+          sql`EXISTS (SELECT 1 FROM document_shares WHERE document_id = ${documentsTable.id})`,
           ...(module ? [eq(documentsTable.module, module as any)] : []),
           ...(includeArchived ? [] : [eq(documentsTable.isArchived, false)]),
         )
       );
-    for (const row of ownGroupDocs) {
-      if (!seenIds.has(row.doc.id)) {
-        seenIds.add(row.doc.id);
-        results.push({ ...row.doc, sharedScope: "group", sharedFromEntityName: company.name });
+    for (const doc of ownGroupDocs) {
+      if (!seenIds.has(doc.id)) {
+        seenIds.add(doc.id);
+        results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
       }
     }
 
@@ -1990,11 +1986,9 @@ export class MemStorage implements IStorage {
     for (const d of docs) {
       if (!d.siteId && d.entityId) {
         if (d.scope === "group") {
+          // Own group-scoped docs appear at own sites only if at least one share record exists
           const shares = sharesByDocIdCS.get(d.id) ?? [];
-          const isShared = shares.some(s =>
-            s.entityType === "company" && s.entityId === d.entityId
-          );
-          if (!isShared) continue;
+          if (shares.length === 0) continue;
         }
         if (!companyDocsByCompanyId.has(d.entityId)) companyDocsByCompanyId.set(d.entityId, []);
         companyDocsByCompanyId.get(d.entityId)!.push(d);
