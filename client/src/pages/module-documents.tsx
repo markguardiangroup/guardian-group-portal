@@ -1172,7 +1172,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const docEntityId = (full as any).entityId as string | undefined;
       const coveredSites = filteredSites.filter(s =>
         sharedWithSiteIds?.includes(s.id) ||
-        sharedWithCompanyIds?.includes(s.companyId)
+        sharedWithCompanyIds?.includes(s.companyId) ||
+        (docEntityId !== undefined && docEntityId === s.companyId)
       );
       if (coveredSites.length === 0) {
         result.push(doc);
@@ -1204,7 +1205,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         const docEntityId = (full as any).entityId as string | undefined;
         const coveredSites = filteredSites.filter(s =>
           sharedWithSiteIds?.includes(s.id) ||
-          sharedWithCompanyIds?.includes(s.companyId)
+          sharedWithCompanyIds?.includes(s.companyId) ||
+          (docEntityId !== undefined && docEntityId === s.companyId)
         );
         if (coveredSites.length === 0) {
           expandedDocs.push(doc);
