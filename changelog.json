@@ -4864,6 +4864,13 @@
           "message": "Fixed: folder/hierarchy view now also enforces group sharing rule at site level",
           "category": "bug",
           "createdAt": "2026-05-21T09:32:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-frontend-group-share-expansion-2026",
+          "patch": 6,
+          "message": "Fixed: All Sites view no longer expands unshared group docs across every site",
+          "category": "bug",
+          "createdAt": "2026-05-21T09:45:00.000Z"
         }
       ],
       "publishedPatch": 5,
