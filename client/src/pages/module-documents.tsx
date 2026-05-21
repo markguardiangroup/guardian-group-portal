@@ -2604,8 +2604,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   </TableRow>
                   );
                 })}
-                {/* Missing required document slots — shown only when no active search/status/folder filters */}
-                {!searchQuery && statusFilter === "all" && folderFilter === "all" && tableMissingSlots.map((slot) => (
+                {/* Missing required document slots — shown only when no active search/status/folder/renewal filters */}
+                {!searchQuery && statusFilter === "all" && folderFilter === "all" && renewalFilter === "all" && tableMissingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10 border-dashed" data-testid={`row-missing-${slot.templateId}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -2631,7 +2631,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </TableBody>
             </Table>
-          ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && folderFilter === "all" ? (
+          ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && folderFilter === "all" && renewalFilter === "all" ? (
             <Table>
               <TableHeader>
                 <TableRow>

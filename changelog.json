@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "n4o5p6q7-renewal-filter-hides-missing-slots-2026",
+          "patch": 6,
+          "message": "Fixed: missing document rows are now hidden when a renewal date filter is active",
+          "category": "bug",
+          "createdAt": "2026-05-21T16:45:00.000Z"
+        },
+        {
           "id": "m3n4o5p6-renewal-filter-excludes-no-date-2026",
           "patch": 6,
           "message": "Fixed: renewal date filters (Overdue, Next 30/60/90 Days) no longer show documents without a renewal date",
