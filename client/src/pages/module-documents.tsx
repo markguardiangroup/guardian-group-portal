@@ -1007,6 +1007,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!urlScope && doc.siteId !== null && groupCompanyIds) {
       if (!filteredSites.some(s => s.id === doc.siteId)) return false;
     }
+    // When a group is selected, also filter scoped (siteId=null) docs so the table
+    // view matches the folder view:
+    // - Group-scoped docs belong to the group tier, not individual sites — exclude them.
+    // - Company-scoped docs from companies outside the group are irrelevant — exclude them.
+    if (!urlScope && doc.siteId === null && groupCompanyIds) {
+      if ((doc as any).scope === "group") return false;
+      if ((doc as any).scope === "company") {
+        const entityId = (doc as any).entityId as string | null | undefined;
+        if (!entityId || !groupCompanyIds.has(entityId)) return false;
+      }
+    }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
@@ -1142,12 +1153,43 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     });
   }, [filteredDocuments, sortBy, sortDir]);
 
-  // Each document appears exactly once in the table view regardless of how many
-  // sites a shared/group doc covers. Compliance counts are handled server-side;
-  // the "Shared from Group/Company" badge already conveys the scope to users.
+  // In "All Sites" view, expand company-scoped docs (siteId=null) per covered site,
+  // mirroring the folder view expansion so both views show the same document count.
+  // Each virtual row gets siteId set to the target site (so docMetaLine shows the
+  // correct site name) and _originalSiteIdWasNull=true so the "Shared from Company"
+  // badge continues to render correctly via the existing row renderer logic.
   const expandedTableDocuments = useMemo(() => {
-    return sortedDocuments.map(doc => ({ doc, rowKey: doc.id }));
-  }, [sortedDocuments]);
+    const isAllSites = (!selectedSiteId || selectedSiteId === "all") && (!urlScope || !urlEntityId);
+    if (!isAllSites || filteredSites.length <= 1) {
+      return sortedDocuments.map(doc => ({ doc, rowKey: doc.id }));
+    }
+    const result: { doc: any; rowKey: string }[] = [];
+    for (const doc of sortedDocuments) {
+      if (doc.siteId !== null) {
+        result.push({ doc, rowKey: doc.id });
+        continue;
+      }
+      const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+      const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+      const docEntityId = (doc as any).entityId as string | undefined;
+      const coveredSites = filteredSites.filter(s =>
+        sharedWithSiteIds?.includes(s.id) ||
+        sharedWithCompanyIds?.includes(s.companyId) ||
+        (docEntityId !== undefined && docEntityId === s.companyId)
+      );
+      if (coveredSites.length === 0) {
+        result.push({ doc, rowKey: doc.id });
+      } else {
+        for (const site of coveredSites) {
+          result.push({
+            doc: { ...doc, siteId: site.id, _originalSiteIdWasNull: true },
+            rowKey: `${doc.id}-${site.id}`,
+          });
+        }
+      }
+    }
+    return result;
+  }, [sortedDocuments, selectedSiteId, urlScope, urlEntityId, filteredSites]);
 
   // In "All Sites" folder view the hierarchy deduplicates shared docs to one entry.
   // Expand them here (per covered site) so the unfiled section shows one row per site,

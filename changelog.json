@@ -4892,6 +4892,13 @@
           "message": "Document rows: removed Past Expiry Date and sign-off required badges to reduce clutter",
           "category": "enhancement",
           "createdAt": "2026-05-21T13:00:00.000Z"
+        },
+        {
+          "id": "h8i9j0k1-table-view-matches-folder-view-count-2026",
+          "patch": 6,
+          "message": "Fixed: table view document count now matches folder view (group-level and unrelated docs removed; company-shared docs expanded per site)",
+          "category": "bug",
+          "createdAt": "2026-05-21T15:35:00.000Z"
         }
       ],
       "publishedPatch": 5,
