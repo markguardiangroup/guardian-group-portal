@@ -226,7 +226,7 @@ function Router() {
       <Route path="/training/certificates">{() => <AccessGuard component={TrainingCertificates} allow={NOT_CLIENT} />}</Route>
       <Route path="/training/certificates/upload">{() => <AccessGuard component={TrainingCertificateUpload} allow={NOT_CLIENT} />}</Route>
       <Route path="/training/certificates/:id">{() => <AccessGuard component={TrainingCertificates} allow={NOT_CLIENT} />}</Route>
-      <Route path="/create-from-template">{() => <AccessGuard component={CreateFromTemplate} allow={TEMPLATE_LIB} />}</Route>
+      <Route path="/create-from-template">{() => <AccessGuard component={CreateFromTemplate} allow={NOT_CLIENT} />}</Route>
       <Route path="/roadmap">{() => <AccessGuard component={DevelopmentRoadmap} allow={NOT_CLIENT} />}</Route>
       <Route path="/feedback">{() => <AccessGuard component={AdminFeedback} allow={NOT_CLIENT} />}</Route>
       <Route path="/help" component={HelpGuide} />

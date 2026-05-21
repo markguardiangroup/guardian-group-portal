@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "i9j0k1l2-consultant-use-template-redirect-fix-2026",
+          "patch": 6,
+          "message": "Fixed: consultants can now use 'Create from Template' without being redirected to the home page",
+          "category": "bug",
+          "createdAt": "2026-05-21T15:50:00.000Z"
+        },
+        {
           "id": "h8i9j0k1-table-view-matches-folder-view-count-2026",
           "patch": 6,
           "message": "Fixed: table view document count now matches folder view (group-level and unrelated docs removed; company-shared docs expanded per site)",
