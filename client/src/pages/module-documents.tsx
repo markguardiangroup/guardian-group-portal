@@ -1124,10 +1124,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
-      setSortDir(d => d === "asc" ? "desc" : "asc");
+      setSortDir(d => d === "desc" ? "asc" : "desc");
     } else {
       setSortBy(field);
-      setSortDir("asc");
+      setSortDir("desc");
     }
   };
 

@@ -4894,6 +4894,13 @@
           "createdAt": "2026-05-21T13:00:00.000Z"
         },
         {
+          "id": "l2m3n4o5-table-sort-default-desc-2026",
+          "patch": 6,
+          "message": "Table view sort columns now default to descending order on first click",
+          "category": "enhancement",
+          "createdAt": "2026-05-21T16:25:00.000Z"
+        },
+        {
           "id": "k1l2m3n4-table-view-doc-count-label-fix-2026",
           "patch": 6,
           "message": "Fixed: table view document count now shows the correct number with 'Documents' label",
