@@ -3,6 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Button } from "@/components/ui/button";
 import { CompanyCombobox } from "@/components/company-combobox";
@@ -1249,24 +1255,74 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     )}
 
                     {/* Stats row */}
-                    <div className="grid grid-cols-4 gap-1.5 text-center">
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && total > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${total > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{total}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && total > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                    <TooltipProvider delayDuration={300}>
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                        {/* Total */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && total > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${total > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>{total}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && total > 0 ? "text-emerald-600/70 dark:text-emerald-400/70" : "text-muted-foreground/70"}`}>Total</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Total Docs</p>
+                            <p className="text-muted-foreground">{total} doc{total !== 1 ? "s" : ""} uploaded</p>
+                            <p className="text-muted-foreground">{compliant} compliant</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        {/* Non Comp. */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && nonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${nonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{nonCompliant}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && nonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Required — not compliant</p>
+                            <p className="text-muted-foreground">{overdueRequired} overdue</p>
+                            <p className="text-muted-foreground">{approvalRequiredRequired} awaiting approval</p>
+                            <p className="text-muted-foreground">{missingCount} missing</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        {/* Overdue */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && overdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${overdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{overdueAll}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && overdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Past expiry / renewal date</p>
+                            <p className="text-muted-foreground">{overdueRequired} required doc{overdueRequired !== 1 ? "s" : ""}</p>
+                            {(overdueAll - overdueRequired) > 0 && (
+                              <p className="text-muted-foreground">{overdueAll - overdueRequired} non-required</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+
+                        {/* Approval */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && pendingAll > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${pendingAll > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{pendingAll}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Awaiting approval / sign-off</p>
+                            <p className="text-muted-foreground">{approvalRequiredRequired} required doc{approvalRequiredRequired !== 1 ? "s" : ""}</p>
+                            {(pendingAll - approvalRequiredRequired) > 0 && (
+                              <p className="text-muted-foreground">{pendingAll - approvalRequiredRequired} non-required</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && nonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${nonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{nonCompliant}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && nonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
-                      </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && overdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${overdueAll > 0 ? "text-orange-700 dark:text-orange-400" : "text-muted-foreground"}`}>{overdueAll}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && overdueAll > 0 ? "text-orange-600/70 dark:text-orange-400/70" : "text-muted-foreground/70"}`}>Overdue</p>
-                      </div>
-                      <div className={`rounded-lg px-1.5 py-1.5 ${!isLoadingDocs && pendingAll > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                        {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${pendingAll > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{pendingAll}</p>}
-                        <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
-                      </div>
-                    </div>
+                    </TooltipProvider>
 
                   </CardContent>
                   {/* Split action bar */}

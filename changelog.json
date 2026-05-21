@@ -4871,6 +4871,13 @@
           "message": "Fixed: site tile doc counts now match the document list for shared group-level docs",
           "category": "bug",
           "createdAt": "2026-05-21T10:55:00.000Z"
+        },
+        {
+          "id": "e5f6g7h8-site-tile-stat-tooltips-2026",
+          "patch": 6,
+          "message": "Site tiles: hover any stat badge to see a breakdown of what's in the count",
+          "category": "enhancement",
+          "createdAt": "2026-05-21T11:45:00.000Z"
         }
       ],
       "publishedPatch": 5,
