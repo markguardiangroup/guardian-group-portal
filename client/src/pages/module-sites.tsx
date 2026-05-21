@@ -904,8 +904,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   filteredSites.some((s) => s.id === d.siteId) ||
                   (d.siteId === null && filteredSites.some((s) =>
                     (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
-                    (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-                    (d as any).entityId === s.companyId
+                    (d.sharedWithCompanyIds?.includes(s.companyId) ?? false)
                   ))
                 )
               );
@@ -914,8 +913,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const coveredSites = (d: typeof allDocs[0]) =>
                 d.siteId !== null ? 1 : filteredSites.filter((s) =>
                   (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
-                  (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-                  (d as any).entityId === s.companyId
+                  (d.sharedWithCompanyIds?.includes(s.companyId) ?? false)
                 ).length;
               const _asNow = new Date();
               const isAsOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _asNow) || !!(d.renewalDate && new Date(d.renewalDate) < _asNow);
