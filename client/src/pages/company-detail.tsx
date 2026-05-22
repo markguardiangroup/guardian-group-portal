@@ -1315,7 +1315,7 @@ export default function CompanyDetail() {
       if (!res.ok) throw new Error("Failed to fetch companies");
       return res.json();
     },
-    enabled: isAdmin,
+    enabled: isAdmin || isProConsultant,
   });
   const allCompanies: CompanyWithSites[] = allCompaniesData?.companies ?? [];
 
