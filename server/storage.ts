@@ -3430,6 +3430,7 @@ export class MemStorage implements IStorage {
     let maxNum = 0;
     
     for (const folder of allFolders) {
+      if (!folder.code) continue;
       const match = folder.code.match(fldPattern);
       if (match) {
         const num = parseInt(match[1], 10);
