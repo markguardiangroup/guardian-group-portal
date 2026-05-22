@@ -2372,7 +2372,7 @@ export default function CompanyDetail() {
                         )}
                       </CardTitle>
                       {/* Add Members button — only when this company is the GO */}
-                      {isAdmin && isGroupOwnerCompany && eligibleToAdd.length > 0 && (
+                      {(isAdmin || isProConsultant) && isGroupOwnerCompany && eligibleToAdd.length > 0 && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -2395,7 +2395,7 @@ export default function CompanyDetail() {
                     {hasGroupOwner ? (
                       <div className="space-y-3">
                         <p className="text-xs text-muted-foreground">This company is a member of a group.</p>
-                        {isAdmin ? (
+                        {(isAdmin || isProConsultant) ? (
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium">Group Owner</label>
                             <Select
@@ -2508,7 +2508,7 @@ export default function CompanyDetail() {
                       </>
                     ) : (
                       /* State 3: Standalone company */
-                      isAdmin ? (
+                      (isAdmin || isProConsultant) ? (
                         <div className="space-y-4">
                           {/* Option A: Join an existing group */}
                           <div className="rounded-lg border p-4 space-y-2.5">
