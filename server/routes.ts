@@ -17575,6 +17575,18 @@ export async function registerRoutes(
         }
       }
 
+      // TEST MODE — echo the incoming request, no DB writes
+      console.log("[Accelo push TEST] headers:", JSON.stringify(req.headers, null, 2));
+      console.log("[Accelo push TEST] body:", JSON.stringify(req.body, null, 2));
+      console.log("[Accelo push TEST] query:", JSON.stringify(req.query, null, 2));
+      return res.json({
+        testMode: true,
+        receivedHeaders: req.headers,
+        receivedBody: req.body,
+        receivedQuery: req.query,
+      });
+
+      if (false) { // unreachable — keeps TS happy during test mode
       const schema = z.object({
         acceloCompanyId: z.string().min(1),
       });
