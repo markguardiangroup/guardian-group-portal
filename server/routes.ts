@@ -17563,6 +17563,12 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/integrations/accelo/push — verification endpoint for Accelo webhook registration
+  app.get("/api/integrations/accelo/push", (_req, res) => {
+    console.log("[Accelo push] GET verification hit");
+    res.json({ ok: true, endpoint: "accelo-push" });
+  });
+
   // POST /api/integrations/accelo/push — Accelo pushes a company (and optionally contacts)
   // Expects body: { id: string } and ?secret=WEBHOOK_SECRET in the URL
   app.post("/api/integrations/accelo/push", async (req, res) => {
