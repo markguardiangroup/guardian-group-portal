@@ -62,14 +62,16 @@ export async function clearTokens(): Promise<void> {
 }
 
 export function buildAuthUrl(state: string): string {
-  const params = new URLSearchParams({
-    response_type: "code",
-    client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    scope: "read(all) write(all)",
-    state,
-  });
-  return `${AUTH_URL}?${params.toString()}`;
+  // URLSearchParams encodes parentheses (%28/%29) which Accelo rejects.
+  // Build the query string manually so scope value is passed literally.
+  const base = [
+    `response_type=code`,
+    `client_id=${encodeURIComponent(CLIENT_ID)}`,
+    `redirect_uri=${encodeURIComponent(REDIRECT_URI)}`,
+    `scope=read(all)`,
+    `state=${encodeURIComponent(state)}`,
+  ].join("&");
+  return `${AUTH_URL}?${base}`;
 }
 
 export async function exchangeCode(code: string): Promise<AcceloTokens> {
