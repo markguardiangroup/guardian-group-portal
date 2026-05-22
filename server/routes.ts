@@ -7145,15 +7145,24 @@ export async function registerRoutes(
     }
   });
 
-  // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin only)
+  // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin + pro consultant)
   app.patch("/api/companies/:companyId/group-owner", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "admin") return res.status(403).json({ error: "Admins only" });
+      if (user.role !== "admin" && !isProConsultant(user)) return res.status(403).json({ error: "Admins and Pro consultants only" });
 
       const company = await storage.getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
+
+      // Pro consultants may only manage companies within their own source access
+      if (isProConsultant(user)) {
+        const mySources = Array.isArray(user.sources) ? user.sources : [];
+        const companySources = Array.isArray(company.sources) ? company.sources : [];
+        if (!sourcesOverlap(mySources, companySources)) {
+          return res.status(403).json({ error: "You do not have source access to this company" });
+        }
+      }
 
       const { groupOwnerId } = req.body as { groupOwnerId: string | null };
 
