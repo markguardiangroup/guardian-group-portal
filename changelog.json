@@ -4943,13 +4943,6 @@
           "createdAt": "2026-05-21T15:50:00.000Z"
         },
         {
-          "id": "g7h8i9j1-toolkit-folders-hs-el-seed-2026",
-          "patch": 7,
-          "message": "Fixed: Toolkit folder picker now shows folders for H&S and Employment Law templates",
-          "category": "bug",
-          "createdAt": "2026-05-22T15:00:00.000Z"
-        },
-        {
           "id": "h8i9j0k1-table-view-matches-folder-view-count-2026",
           "patch": 6,
           "message": "Fixed: table view document count now matches folder view (group-level and unrelated docs removed; company-shared docs expanded per site)",
@@ -5034,8 +5027,7 @@
         "k1l2m3n4-table-view-doc-count-label-fix-2026",
         "j0k1l2m3-all-companies-table-folder-count-match-2026",
         "i9j0k1l2-consultant-use-template-redirect-fix-2026",
-        "h8i9j0k1-table-view-matches-folder-view-count-2026",
-        "g7h8i9j1-toolkit-folders-hs-el-seed-2026"
+        "h8i9j0k1-table-view-matches-folder-view-count-2026"
       ]
     }
   ]

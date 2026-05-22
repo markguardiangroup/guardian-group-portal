@@ -368,7 +368,6 @@ export interface IStorage {
   getFolderTemplateByToolkitFolderId(toolkitFolderId: string): Promise<FolderTemplate | undefined>;
   getModuleToolkitRootFolder(module: ModuleType): Promise<FolderTemplate | undefined>;
   seedToolkitRootFolders(): Promise<void>;
-  seedDefaultToolkitFolders(): Promise<void>;
   createFolderTemplate(template: InsertFolderTemplate): Promise<FolderTemplate>;
   updateFolderTemplate(id: string, updates: Partial<FolderTemplate>): Promise<FolderTemplate | undefined>;
   deleteFolderTemplate(id: string): Promise<boolean>;
@@ -3422,63 +3421,6 @@ export class MemStorage implements IStorage {
       }
     }
     console.log("[seed] Toolkit root folder templates verified for all modules (health_safety, human_resources, employment_law)");
-  }
-
-  async seedDefaultToolkitFolders(): Promise<void> {
-    const defaults: Record<string, string[]> = {
-      health_safety: [
-        "Policies",
-        "Risk Assessments",
-        "Permits & Safe Systems of Work",
-        "Audits & Inspections",
-        "Equipment & Vehicle Checks",
-        "COSHH",
-      ],
-      employment_law: [
-        "Contracts & Employment",
-        "Disciplinary & Grievance",
-        "Absence & Leave",
-        "Redundancy & TUPE",
-        "Tribunal & Settlement",
-      ],
-    };
-
-    for (const [module, folderNames] of Object.entries(defaults)) {
-      const existing = await this.getToolkitFolders(module as ModuleType);
-      if (existing.length > 0) {
-        console.log(`[seed] Toolkit folders already exist for ${module} — skipping`);
-        continue;
-      }
-
-      const rootLibraryFolder = await this.getModuleToolkitRootFolder(module as ModuleType);
-
-      for (let i = 0; i < folderNames.length; i++) {
-        const name = folderNames[i];
-        const folder = await this.createToolkitFolder({
-          name,
-          module: module as ModuleType,
-          sortOrder: i,
-          createdBy: "system",
-        });
-
-        if (rootLibraryFolder) {
-          const mirrorData: any = {
-            name,
-            module: module as ModuleType,
-            parentId: rootLibraryFolder.id,
-            toolkitFolderId: folder.id,
-            isRequired: false,
-            sortOrder: i,
-            isActive: true,
-            createdBy: "system",
-          };
-          await this.createFolderTemplate(mirrorData);
-        }
-
-        console.log(`[seed] Created default toolkit folder "${name}" for ${module}`);
-      }
-    }
-    console.log("[seed] Default toolkit folders seeded for health_safety and employment_law");
   }
 
   private async generateNextFolderCode(): Promise<string> {

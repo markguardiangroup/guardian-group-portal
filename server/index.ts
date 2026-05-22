@@ -229,14 +229,6 @@ process.on("uncaughtException", (err) => {
     process.exit(1);
   }
 
-  // Seed default Toolkit folders for Health & Safety and Employment Law if none exist.
-  // Idempotent: skips any module that already has folders. Non-fatal.
-  try {
-    await storage.seedDefaultToolkitFolders();
-  } catch (err) {
-    console.error("Startup default toolkit folder seed warning (non-fatal):", err);
-  }
-
   // Repair any historical group→member required-template cascade gaps.
   // Idempotent: only inserts missing rows. Non-fatal — if it fails we still
   // serve, but the gap will persist until the next successful run.
