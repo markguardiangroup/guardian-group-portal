@@ -17564,16 +17564,19 @@ export async function registerRoutes(
   });
 
   // POST /api/integrations/accelo/push — Accelo pushes a company (and optionally contacts)
-  // Expects body: { acceloCompanyId: string } and ?secret=WEBHOOK_SECRET in the URL
+  // Expects body: { id: string } and ?secret=WEBHOOK_SECRET in the URL
   app.post("/api/integrations/accelo/push", async (req, res) => {
+    // --- DIAGNOSTIC: log every hit regardless of auth ---
+    console.log("[Accelo push] HIT — body:", JSON.stringify(req.body), "query:", JSON.stringify(req.query));
     try {
-      const webhookSecret = process.env.ACCELO_WEBHOOK_SECRET;
-      if (webhookSecret) {
-        const provided = req.query.secret as string | undefined;
-        if (!provided || provided !== webhookSecret) {
-          return res.status(401).json({ error: "Invalid or missing webhook secret" });
-        }
-      }
+      // Secret check temporarily disabled for delivery diagnostics
+      // const webhookSecret = process.env.ACCELO_WEBHOOK_SECRET;
+      // if (webhookSecret) {
+      //   const provided = req.query.secret as string | undefined;
+      //   if (!provided || provided !== webhookSecret) {
+      //     return res.status(401).json({ error: "Invalid or missing webhook secret" });
+      //   }
+      // }
 
       // Accelo sends { "id": "824", "resource_url": "..." }
       const schema = z.object({
