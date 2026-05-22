@@ -17538,6 +17538,18 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/integrations/accelo/webhook-secret — return webhook secret for display (admin only)
+  app.get("/api/integrations/accelo/webhook-secret", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const secret = process.env.ACCELO_WEBHOOK_SECRET ?? null;
+      res.json({ secret });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to retrieve webhook secret" });
+    }
+  });
+
   // DELETE /api/integrations/accelo/disconnect — remove stored tokens (admin only)
   app.delete("/api/integrations/accelo/disconnect", requireAuth, async (req, res) => {
     try {
@@ -17552,9 +17564,17 @@ export async function registerRoutes(
   });
 
   // POST /api/integrations/accelo/push — Accelo pushes a company (and optionally contacts)
-  // Expects body: { acceloCompanyId: string } — we look up the company from Accelo's API
+  // Expects body: { acceloCompanyId: string } and ?secret=WEBHOOK_SECRET in the URL
   app.post("/api/integrations/accelo/push", async (req, res) => {
     try {
+      const webhookSecret = process.env.ACCELO_WEBHOOK_SECRET;
+      if (webhookSecret) {
+        const provided = req.query.secret as string | undefined;
+        if (!provided || provided !== webhookSecret) {
+          return res.status(401).json({ error: "Invalid or missing webhook secret" });
+        }
+      }
+
       const schema = z.object({
         acceloCompanyId: z.string().min(1),
       });

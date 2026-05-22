@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, ExternalLink, Info } from "lucide-react";
+import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Info, Copy, Check, Eye, EyeOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface AcceloStatus {
@@ -15,13 +15,32 @@ interface AcceloStatus {
   expiresAt?: string;
 }
 
+interface WebhookSecretResponse {
+  secret: string | null;
+}
+
 export default function AdminAcceloPage() {
   const { toast } = useToast();
   const [location] = useLocation();
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [secretVisible, setSecretVisible] = useState(false);
 
   const { data: status, isLoading, refetch } = useQuery<AcceloStatus>({
     queryKey: ["/api/integrations/accelo/status"],
   });
+
+  const { data: secretData } = useQuery<WebhookSecretResponse>({
+    queryKey: ["/api/integrations/accelo/webhook-secret"],
+  });
+
+  const webhookSecret = secretData?.secret ?? null;
+  const webhookUrl = webhookSecret
+    ? `https://guardiangroup.ai/api/integrations/accelo/push?secret=${webhookSecret}`
+    : "https://guardiangroup.ai/api/integrations/accelo/push";
+
+  const maskedUrl = webhookSecret
+    ? `https://guardiangroup.ai/api/integrations/accelo/push?secret=${"•".repeat(16)}`
+    : webhookUrl;
 
   const connectMutation = useMutation({
     mutationFn: async () => {
@@ -67,6 +86,12 @@ export default function AdminAcceloPage() {
 
   const expiresAt = status?.expiresAt ? new Date(status.expiresAt) : null;
   const isExpired = expiresAt ? expiresAt < new Date() : false;
+
+  function copyUrl() {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  }
 
   return (
     <div className="space-y-6 p-6 max-w-2xl">
@@ -147,12 +172,39 @@ export default function AdminAcceloPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Push Endpoint</CardTitle>
           <CardDescription>
-            Configure this URL as the action endpoint in your Accelo manual trigger button.
+            Paste this URL into the <strong>Payload URL</strong> field in Accelo. Leave the Secret field blank — the secret is already embedded in the URL.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-md bg-muted px-4 py-3 font-mono text-sm break-all select-all" data-testid="text-push-endpoint">
-            POST https://guardiangroup.ai/api/integrations/accelo/push
+          <div className="flex items-stretch gap-2">
+            <div
+              className="flex-1 rounded-md bg-muted px-4 py-3 font-mono text-sm break-all select-all"
+              data-testid="text-push-endpoint"
+            >
+              {secretVisible ? webhookUrl : maskedUrl}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => setSecretVisible((v) => !v)}
+                title={secretVisible ? "Hide secret" : "Reveal secret"}
+                data-testid="button-toggle-secret-visibility"
+              >
+                {secretVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={copyUrl}
+                title="Copy URL"
+                data-testid="button-copy-push-endpoint"
+              >
+                {copiedUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
           <div className="rounded-md border bg-background p-4 space-y-2 text-sm">
             <div className="flex items-start gap-2">
@@ -178,8 +230,8 @@ export default function AdminAcceloPage() {
         <CardContent>
           <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
             <li>Connect your Accelo account above using OAuth.</li>
-            <li>In Accelo, configure a manual action button on the Company record pointing to the push endpoint.</li>
-            <li>When clicked, Accelo sends the company ID to the portal.</li>
+            <li>In Accelo, configure a webhook pointing to the push endpoint URL above (Secret field can be left blank).</li>
+            <li>When triggered, Accelo sends the company ID to the portal.</li>
             <li>The portal looks up the company in Accelo and creates it (or updates it if it already exists).</li>
             <li>New companies are created with <strong className="text-foreground">pending</strong> status — assign module access and activate from the Companies page.</li>
           </ol>
