@@ -78,6 +78,7 @@ const AdminSources = lazyPage(() => import("@/pages/admin-sources"));
 const AdminServices = lazyPage(() => import("@/pages/admin-services"));
 const Dashboard2 = lazyPage(() => import("@/pages/dashboard2"));
 const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
+const AdminAccelo = lazyPage(() => import("@/pages/admin-accelo"));
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -237,6 +238,7 @@ function Router() {
       <Route path="/admin/sources">{() => <AccessGuard component={AdminSources} allow={ADMIN_ONLY} />}</Route>
       <Route path="/admin/services">{() => <AccessGuard component={AdminServices} allow={NOT_CLIENT} />}</Route>
       <Route path="/admin/portal-messages">{() => <AccessGuard component={AdminPortalMessages} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin/integrations/accelo">{() => <AccessGuard component={AdminAccelo} allow={ADMIN_ONLY} />}</Route>
       <Route component={NotFound} />
     </Switch>
     </Suspense>

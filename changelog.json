@@ -4943,6 +4943,13 @@
           "createdAt": "2026-05-21T15:50:00.000Z"
         },
         {
+          "id": "f6g7h8i9-accelo-integration-2026",
+          "patch": 7,
+          "message": "Accelo CRM integration — connect Accelo and push clients directly into the portal",
+          "category": "feature",
+          "createdAt": "2026-05-22T16:00:00.000Z"
+        },
+        {
           "id": "g7h8i9j1-toolkit-folder-create-null-code-crash-2026",
           "patch": 7,
           "message": "Fixed: creating a Toolkit folder for H&S or Employment Law no longer fails",
@@ -5034,6 +5041,7 @@
         "k1l2m3n4-table-view-doc-count-label-fix-2026",
         "j0k1l2m3-all-companies-table-folder-count-match-2026",
         "i9j0k1l2-consultant-use-template-redirect-fix-2026",
+        "f6g7h8i9-accelo-integration-2026",
         "g7h8i9j1-toolkit-folder-create-null-code-crash-2026",
         "h8i9j0k1-table-view-matches-folder-view-count-2026"
       ]

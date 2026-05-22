@@ -4,6 +4,14 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import {
+  buildAuthUrl,
+  exchangeCode,
+  saveTokens,
+  clearTokens,
+  getConnectionStatus,
+  acceloGet,
+} from "./accelo";
 import fs from "fs/promises";
 import { createWriteStream, existsSync } from "fs";
 import path from "path";
@@ -17467,6 +17475,189 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Delete portal message error:", err);
       res.status(500).json({ error: "Failed to delete portal message" });
+    }
+  });
+
+  // ── Accelo Integration ────────────────────────────────────────────────────────
+
+  // GET /api/integrations/accelo/status — connection status (admin only)
+  app.get("/api/integrations/accelo/status", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const status = await getConnectionStatus();
+      res.json(status);
+    } catch (err) {
+      console.error("Accelo status error:", err);
+      res.status(500).json({ error: "Failed to get Accelo status" });
+    }
+  });
+
+  // GET /api/integrations/accelo/connect — start OAuth flow (admin only)
+  app.get("/api/integrations/accelo/connect", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const state = crypto.randomBytes(16).toString("hex");
+      (req.session as any).acceloOAuthState = state;
+      const url = buildAuthUrl(state);
+      res.json({ url });
+    } catch (err) {
+      console.error("Accelo connect error:", err);
+      res.status(500).json({ error: "Failed to start Accelo OAuth" });
+    }
+  });
+
+  // GET /auth/accelo/callback — OAuth callback (public, browser redirect)
+  app.get("/auth/accelo/callback", async (req, res) => {
+    try {
+      const { code, state, error } = req.query as Record<string, string>;
+      if (error) {
+        return res.redirect(`/admin/integrations/accelo?error=${encodeURIComponent(error)}`);
+      }
+      const expectedState = (req.session as any).acceloOAuthState;
+      if (!state || state !== expectedState) {
+        return res.redirect("/admin/integrations/accelo?error=invalid_state");
+      }
+      delete (req.session as any).acceloOAuthState;
+      const tokens = await exchangeCode(code);
+      await saveTokens(tokens);
+      res.redirect("/admin/integrations/accelo?connected=1");
+    } catch (err) {
+      console.error("Accelo OAuth callback error:", err);
+      res.redirect("/admin/integrations/accelo?error=token_exchange_failed");
+    }
+  });
+
+  // DELETE /api/integrations/accelo/disconnect — remove stored tokens (admin only)
+  app.delete("/api/integrations/accelo/disconnect", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      await clearTokens();
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Accelo disconnect error:", err);
+      res.status(500).json({ error: "Failed to disconnect Accelo" });
+    }
+  });
+
+  // POST /api/integrations/accelo/push — Accelo pushes a company (and optionally contacts)
+  // Expects body: { acceloCompanyId: string } — we look up the company from Accelo's API
+  app.post("/api/integrations/accelo/push", async (req, res) => {
+    try {
+      const schema = z.object({
+        acceloCompanyId: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "acceloCompanyId is required", details: parsed.error.issues });
+      }
+
+      const { acceloCompanyId } = parsed.data;
+
+      // Fetch company from Accelo
+      let acceloCompany: any;
+      try {
+        const data = await acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,postal_address,status`);
+        acceloCompany = data?.response;
+      } catch (err: any) {
+        return res.status(502).json({ error: "Failed to fetch company from Accelo", detail: err.message });
+      }
+
+      if (!acceloCompany || !acceloCompany.name) {
+        return res.status(404).json({ error: "Company not found in Accelo" });
+      }
+
+      const companyName = acceloCompany.name.trim();
+
+      // Check if already exists
+      const existingCompanies = await storage.getCompanies();
+      const existing = existingCompanies.find(
+        (c) => c.name.trim().toLowerCase() === companyName.toLowerCase()
+      );
+
+      let company;
+      let action: "created" | "updated";
+
+      if (existing) {
+        // Update
+        company = await storage.updateCompany(existing.id, {
+          website: acceloCompany.website || existing.website,
+          contactPhone: acceloCompany.phone || existing.contactPhone,
+          city: acceloCompany.postal_address?.city || existing.city,
+          postalCode: acceloCompany.postal_address?.postcode || existing.postalCode,
+          country: acceloCompany.postal_address?.country || existing.country,
+        });
+        action = "updated";
+      } else {
+        // Create with defaults — admin will configure module access after
+        company = await storage.createCompany({
+          name: companyName,
+          website: acceloCompany.website || null,
+          contactPhone: acceloCompany.phone || null,
+          city: acceloCompany.postal_address?.city || null,
+          postalCode: acceloCompany.postal_address?.postcode || null,
+          country: acceloCompany.postal_address?.country || null,
+          industry: "General",
+          status: "pending",
+          sources: ["Accelo"],
+          companyNumber: null,
+          internalCompanyNumber: null,
+          addressLine1: null,
+          addressLine2: null,
+          county: null,
+          contactEmail: null,
+          contactName: null,
+          contactPosition: null,
+          contactUserId: null,
+          searchTag: null,
+          employeeRange: null,
+          groupOwnerId: null,
+          healthSafetyAccess: false,
+          humanResourcesAccess: false,
+          employmentLawAccess: false,
+          trainingAccess: false,
+          toolkitAccess: false,
+          supportAccess: false,
+          reportsAccess: false,
+        });
+
+        // Create a default primary site
+        await storage.createSite({
+          name: "Head Office",
+          companyId: company!.id,
+          addressLine1: null,
+          addressLine2: null,
+          city: acceloCompany.postal_address?.city || null,
+          county: null,
+          postalCode: acceloCompany.postal_address?.postcode || null,
+          country: acceloCompany.postal_address?.country || null,
+          contactName: null,
+          contactPosition: null,
+          contactPhone: acceloCompany.phone || null,
+          contactEmail: null,
+        });
+
+        action = "created";
+      }
+
+      await storage.createAuditLog({
+        action: `accelo_company_${action}`,
+        userId: "system",
+        userName: "Accelo Integration",
+        details: `Company "${companyName}" ${action} via Accelo push (Accelo ID: ${acceloCompanyId})`,
+        metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id }),
+      });
+
+      res.status(action === "created" ? 201 : 200).json({
+        ok: true,
+        action,
+        company,
+      });
+    } catch (err) {
+      console.error("Accelo push error:", err);
+      res.status(500).json({ error: "Failed to process Accelo push" });
     }
   });
 

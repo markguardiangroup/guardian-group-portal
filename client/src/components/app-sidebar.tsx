@@ -28,6 +28,7 @@ import {
   Tag,
   Home,
   Megaphone,
+  Plug,
   PackageOpen,
   type LucideIcon,
 } from "lucide-react";
@@ -197,6 +198,11 @@ const adminNavItems = [
     title: "Portal Messages",
     url: "/admin/portal-messages",
     icon: Megaphone,
+  },
+  {
+    title: "Accelo Integration",
+    url: "/admin/integrations/accelo",
+    icon: Plug,
   },
   {
     title: "Admin Reports",
