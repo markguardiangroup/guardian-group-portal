@@ -17575,16 +17575,111 @@ export async function registerRoutes(
         }
       }
 
-      // TEST MODE — echo the incoming request, no DB writes
-      console.log("[Accelo push TEST] headers:", JSON.stringify(req.headers, null, 2));
-      console.log("[Accelo push TEST] body:", JSON.stringify(req.body, null, 2));
-      console.log("[Accelo push TEST] query:", JSON.stringify(req.query, null, 2));
-      return res.json({
-        testMode: true,
-        receivedHeaders: req.headers,
-        receivedBody: req.body,
-        receivedQuery: req.query,
+      // Accelo sends { "id": "824", "resource_url": "..." }
+      const schema = z.object({
+        id: z.string().min(1),
       });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "id is required", details: parsed.error.issues });
+      }
+
+      const acceloCompanyId = parsed.data.id;
+
+      // Fetch company from Accelo
+      let acceloCompany: any;
+      try {
+        const data = await acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,postal_address,status`);
+        acceloCompany = data?.response;
+      } catch (err: any) {
+        return res.status(502).json({ error: "Failed to fetch company from Accelo", detail: err.message });
+      }
+
+      if (!acceloCompany || !acceloCompany.name) {
+        return res.status(404).json({ error: "Company not found in Accelo" });
+      }
+
+      const companyName = acceloCompany.name.trim();
+
+      // Check if already exists
+      const existingCompanies = await storage.getCompanies();
+      const existing = existingCompanies.find(
+        (c) => c.name.trim().toLowerCase() === companyName.toLowerCase()
+      );
+
+      let company;
+      let action: "created" | "updated";
+
+      if (existing) {
+        company = await storage.updateCompany(existing.id, {
+          website: acceloCompany.website || existing.website,
+          contactPhone: acceloCompany.phone || existing.contactPhone,
+          city: acceloCompany.postal_address?.city || existing.city,
+          postalCode: acceloCompany.postal_address?.postcode || existing.postalCode,
+          country: acceloCompany.postal_address?.country || existing.country,
+        });
+        action = "updated";
+      } else {
+        company = await storage.createCompany({
+          name: companyName,
+          website: acceloCompany.website || null,
+          contactPhone: acceloCompany.phone || null,
+          city: acceloCompany.postal_address?.city || null,
+          postalCode: acceloCompany.postal_address?.postcode || null,
+          country: acceloCompany.postal_address?.country || null,
+          industry: "General",
+          status: "pending",
+          sources: [],
+          companyNumber: null,
+          internalCompanyNumber: null,
+          addressLine1: acceloCompany.postal_address?.street || null,
+          addressLine2: null,
+          county: acceloCompany.postal_address?.state || null,
+          contactEmail: null,
+          contactName: null,
+          contactPosition: null,
+          contactUserId: null,
+          searchTag: null,
+          employeeRange: null,
+          groupOwnerId: null,
+          healthSafetyAccess: false,
+          humanResourcesAccess: false,
+          employmentLawAccess: false,
+          trainingAccess: false,
+          toolkitAccess: false,
+          supportAccess: false,
+          reportsAccess: false,
+        });
+
+        // Create a default primary site
+        await storage.createSite({
+          name: "Head Office",
+          companyId: company!.id,
+          addressLine1: acceloCompany.postal_address?.street || null,
+          addressLine2: null,
+          city: acceloCompany.postal_address?.city || null,
+          county: acceloCompany.postal_address?.state || null,
+          postalCode: acceloCompany.postal_address?.postcode || null,
+          country: acceloCompany.postal_address?.country || null,
+          contactName: null,
+          contactPosition: null,
+          contactPhone: acceloCompany.phone || null,
+          contactEmail: null,
+        });
+
+        action = "created";
+      }
+
+      await storage.createAuditLog({
+        action: `accelo_company_${action}`,
+        userId: "system",
+        userName: "Accelo Integration",
+        details: `Company "${companyName}" ${action} via Accelo push (Accelo ID: ${acceloCompanyId})`,
+        metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id }),
+      });
+
+      console.log(`[Accelo push] Company "${companyName}" ${action} (Accelo ID: ${acceloCompanyId})`);
+      res.status(action === "created" ? 201 : 200).json({ ok: true, action, companyId: company?.id });
     } catch (err) {
       console.error("Accelo push error:", err);
       res.status(500).json({ error: "Failed to process Accelo push" });
