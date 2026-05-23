@@ -5067,6 +5067,13 @@
           "message": "Fixed: Accelo address fields now correctly pre-fill when selecting a search result",
           "category": "bug",
           "createdAt": "2026-05-23T18:45:00.000Z"
+        },
+        {
+          "id": "d2e3f4a5-accelo-contacts-filter-fix-2026",
+          "patch": 7,
+          "message": "Fixed: Import contacts dialog now shows only contacts from the imported company",
+          "category": "bug",
+          "createdAt": "2026-05-23T19:05:00.000Z"
         }
       ],
       "publishedPatch": 6,

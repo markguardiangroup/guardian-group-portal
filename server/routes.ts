@@ -17651,7 +17651,7 @@ export async function registerRoutes(
       try {
         const [companyData, contactsData] = await Promise.all([
           acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
-          acceloGet(`/contacts?_filters=company_id+eq+${acceloCompanyId}&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
+          acceloGet(`/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
         ]);
         acceloCompany = companyData?.response;
         primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
@@ -17803,8 +17803,10 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const { acceloId } = req.params;
-      const data = await acceloGet(`/contacts?_filters=company_id+eq+${encodeURIComponent(acceloId)}&_fields=id,firstname,lastname,email,phone,mobile&_limit=50`);
-      res.json(Array.isArray(data?.response) ? data.response : []);
+      const data = await acceloGet(`/contacts?_filters=company_id(${encodeURIComponent(acceloId)})&_fields=id,firstname,surname,email,phone,mobile&_limit=50`);
+      const contacts = Array.isArray(data?.response) ? data.response : [];
+      // Normalise Accelo's "surname" field to "lastname" so the frontend stays consistent
+      res.json(contacts.map((c: any) => ({ ...c, lastname: c.surname ?? c.lastname ?? "" })));
     } catch (err: any) {
       if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo contacts error:", err);
