@@ -17595,11 +17595,28 @@ export async function registerRoutes(
 
       const acceloCompanyId = parsed.data.id;
 
-      // Fetch company from Accelo
+      // Helper: extract street + UK postcode from Accelo's postal_address.full string
+      // e.g. " The Hyde, London, NW9 6LL, United Kingdom"
+      function parseAcceloAddressFull(full: string | null | undefined): { street: string | null; postcode: string | null } {
+        if (!full) return { street: null, postcode: null };
+        const postcodeMatch = full.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i);
+        const postcode = postcodeMatch ? postcodeMatch[1].replace(/\s+/, " ").toUpperCase() : null;
+        const parts = full.split(",").map((p) => p.trim()).filter(Boolean);
+        // First segment is the street; skip if it looks like only a postcode or city
+        const street = parts[0] && parts[0].toUpperCase() !== postcode ? parts[0] : null;
+        return { street, postcode };
+      }
+
+      // Fetch company + primary contact from Accelo in parallel
       let acceloCompany: any;
+      let primaryContact: any = null;
       try {
-        const data = await acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,postal_address,status`);
-        acceloCompany = data?.response;
+        const [companyData, contactsData] = await Promise.all([
+          acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,standing,postal_address(city,state,full)`),
+          acceloGet(`/contacts?_filters=company_id+eq+${acceloCompanyId}&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
+        ]);
+        acceloCompany = companyData?.response;
+        primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
       } catch (err: any) {
         return res.status(502).json({ error: "Failed to fetch company from Accelo", detail: err.message });
       }
@@ -17609,6 +17626,15 @@ export async function registerRoutes(
       }
 
       const companyName = acceloCompany.name.trim();
+      const { street: parsedStreet, postcode: parsedPostcode } = parseAcceloAddressFull(acceloCompany.postal_address?.full);
+      const companyStatus: "active" | "pending" = acceloCompany.standing === "active" ? "active" : "pending";
+
+      // Primary contact details
+      const contactFullName = primaryContact
+        ? [primaryContact.firstname, primaryContact.surname].filter(Boolean).join(" ") || null
+        : null;
+      const contactEmail = primaryContact?.email || null;
+      const contactPhone = acceloCompany.phone || primaryContact?.phone || primaryContact?.mobile || null;
 
       // Check if already exists
       const existingCompanies = await storage.getCompanies();
@@ -17622,34 +17648,37 @@ export async function registerRoutes(
       if (existing) {
         company = await storage.updateCompany(existing.id, {
           website: acceloCompany.website || existing.website,
-          contactPhone: acceloCompany.phone || existing.contactPhone,
+          contactPhone: contactPhone || existing.contactPhone,
+          contactEmail: contactEmail || existing.contactEmail,
+          contactName: contactFullName || existing.contactName,
           city: acceloCompany.postal_address?.city || existing.city,
-          postalCode: acceloCompany.postal_address?.postcode || existing.postalCode,
-          country: acceloCompany.postal_address?.country || existing.country,
+          county: acceloCompany.postal_address?.state || existing.county,
+          postalCode: parsedPostcode || existing.postalCode,
+          addressLine1: parsedStreet || existing.addressLine1,
         });
         action = "updated";
       } else {
         company = await storage.createCompany({
           name: companyName,
           website: acceloCompany.website || null,
-          contactPhone: acceloCompany.phone || null,
+          contactPhone,
+          contactEmail,
+          contactName: contactFullName,
           city: acceloCompany.postal_address?.city || null,
-          postalCode: acceloCompany.postal_address?.postcode || null,
-          country: acceloCompany.postal_address?.country || null,
+          county: acceloCompany.postal_address?.state || null,
+          postalCode: parsedPostcode,
+          addressLine1: parsedStreet,
           industry: "General",
-          status: "pending",
+          status: companyStatus,
           sources: [],
           companyNumber: null,
           internalCompanyNumber: null,
-          addressLine1: acceloCompany.postal_address?.street || null,
           addressLine2: null,
-          county: acceloCompany.postal_address?.state || null,
-          contactEmail: null,
-          contactName: null,
           contactPosition: null,
           contactUserId: null,
           searchTag: null,
           employeeRange: null,
+          country: null,
           groupOwnerId: null,
           healthSafetyAccess: false,
           humanResourcesAccess: false,
@@ -17664,16 +17693,16 @@ export async function registerRoutes(
         await storage.createSite({
           name: "Head Office",
           companyId: company!.id,
-          addressLine1: acceloCompany.postal_address?.street || null,
+          addressLine1: parsedStreet,
           addressLine2: null,
           city: acceloCompany.postal_address?.city || null,
           county: acceloCompany.postal_address?.state || null,
-          postalCode: acceloCompany.postal_address?.postcode || null,
-          country: acceloCompany.postal_address?.country || null,
-          contactName: null,
+          postalCode: parsedPostcode,
+          country: null,
+          contactName: contactFullName,
           contactPosition: null,
-          contactPhone: acceloCompany.phone || null,
-          contactEmail: null,
+          contactPhone,
+          contactEmail,
         });
 
         action = "created";
