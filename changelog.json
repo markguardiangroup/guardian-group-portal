@@ -5036,9 +5036,16 @@
         {
           "id": "e7f8a9b0-accelo-custom-id-mapping-2026",
           "patch": 7,
-          "message": "Accelo import maps client number to Internal Company Number; search by number now works",
+          "message": "Accelo import maps client number to Internal Company Number",
           "category": "enhancement",
           "createdAt": "2026-05-23T17:10:00.000Z"
+        },
+        {
+          "id": "f8a9b0c1-accelo-search-numeric-removed-2026",
+          "patch": 7,
+          "message": "Fixed: Accelo search no longer returns all companies when a number is typed",
+          "category": "bug",
+          "createdAt": "2026-05-23T17:20:00.000Z"
         }
       ],
       "publishedPatch": 6,

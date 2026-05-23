@@ -17732,18 +17732,8 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
-      let results: any[] = [];
-      const isNumeric = /^\d+$/.test(q);
-      if (isNumeric) {
-        try {
-          const data = await acceloGet(`/companies?_filters=custom_id+eq+${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,custom_id&_limit=20`);
-          results = Array.isArray(data?.response) ? data.response : [];
-        } catch {}
-      }
-      if (results.length === 0) {
-        const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,custom_id&_limit=20`);
-        results = Array.isArray(data?.response) ? data.response : [];
-      }
+      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,custom_id&_limit=20`);
+      const results = Array.isArray(data?.response) ? data.response : [];
       res.json(results);
     } catch (err: any) {
       if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
