@@ -469,7 +469,7 @@ export default function Companies() {
             setAcceloContacts(loaded);
             const initialRows: Record<string, ContactRowState> = {};
             loaded.forEach((c: any) => {
-              initialRows[String(c.id)] = { selected: false, primary: false, keyContact: false, addToSite: true };
+              initialRows[String(c.id)] = { selected: false, primary: false, keyContact: false, addToSite: false };
             });
             setContactRows(initialRows);
             setAcceloImportResults(null);
@@ -2250,37 +2250,61 @@ export default function Companies() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm text-muted-foreground">{acceloContacts.length} contact{acceloContacts.length !== 1 ? "s" : ""} found</p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs px-2 gap-1"
-                    onClick={() => {
-                      const selectable = acceloContacts.filter(c => c.email).map(c => String(c.id));
-                      const allSelected = selectable.length > 0 && selectable.every(id => contactRows[id]?.selected);
-                      setContactRows(prev => {
-                        const next = { ...prev };
-                        selectable.forEach(id => {
-                          const cur = next[id] || { selected: false, primary: false, keyContact: false, addToSite: true };
-                          next[id] = allSelected
-                            ? { ...cur, selected: false, primary: false, keyContact: false }
-                            : { ...cur, selected: true };
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const selectedIds = Object.entries(contactRows).filter(([, r]) => r.selected).map(([id]) => id);
+                      return selectedIds.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs px-2 gap-1"
+                          onClick={() => {
+                            setContactRows(prev => {
+                              const next = { ...prev };
+                              selectedIds.forEach(id => { if (next[id]) next[id] = { ...next[id], addToSite: true }; });
+                              return next;
+                            });
+                          }}
+                          data-testid="button-add-all-to-site"
+                        >
+                          <Building2 className="h-3.5 w-3.5" />
+                          Add all to site
+                        </Button>
+                      );
+                    })()}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-2 gap-1"
+                      onClick={() => {
+                        const selectable = acceloContacts.filter(c => c.email).map(c => String(c.id));
+                        const allSelected = selectable.length > 0 && selectable.every(id => contactRows[id]?.selected);
+                        setContactRows(prev => {
+                          const next = { ...prev };
+                          selectable.forEach(id => {
+                            const cur = next[id] || { selected: false, primary: false, keyContact: false, addToSite: false };
+                            next[id] = allSelected
+                              ? { ...cur, selected: false, primary: false, keyContact: false }
+                              : { ...cur, selected: true };
+                          });
+                          return next;
                         });
-                        return next;
-                      });
-                    }}
-                    data-testid="button-toggle-all-contacts"
-                  >
-                    <CheckSquare className="h-3.5 w-3.5" />
-                    {acceloContacts.filter(c => c.email).length > 0 &&
-                     acceloContacts.filter(c => c.email).every(c => contactRows[String(c.id)]?.selected)
-                      ? "Deselect All" : "Select All"}
-                  </Button>
+                      }}
+                      data-testid="button-toggle-all-contacts"
+                    >
+                      <CheckSquare className="h-3.5 w-3.5" />
+                      {acceloContacts.filter(c => c.email).length > 0 &&
+                       acceloContacts.filter(c => c.email).every(c => contactRows[String(c.id)]?.selected)
+                        ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
                 </div>
                 {acceloContacts.map((contact: any) => {
                   const hasEmail = !!contact.email;
                   const contactId = String(contact.id);
-                  const row = contactRows[contactId] || { selected: false, primary: false, keyContact: false, addToSite: true };
+                  const row = contactRows[contactId] || { selected: false, primary: false, keyContact: false, addToSite: false };
                   const fullName = [contact.firstname, contact.lastname].filter(Boolean).join(" ") || "Unknown";
                   return (
                     <div key={contactId} data-testid={`item-accelo-contact-${contactId}`}>
@@ -2290,7 +2314,7 @@ export default function Companies() {
                         onClick={() => {
                           if (!hasEmail) return;
                           setContactRows(prev => {
-                            const cur = prev[contactId] || { selected: false, primary: false, keyContact: false, addToSite: true };
+                            const cur = prev[contactId] || { selected: false, primary: false, keyContact: false, addToSite: false };
                             const nowSelected = !cur.selected;
                             return {
                               ...prev,
@@ -2310,7 +2334,7 @@ export default function Companies() {
                           onCheckedChange={(checked) => {
                             if (!hasEmail) return;
                             setContactRows(prev => {
-                              const cur = prev[contactId] || { selected: false, primary: false, keyContact: false, addToSite: true };
+                              const cur = prev[contactId] || { selected: false, primary: false, keyContact: false, addToSite: false };
                               const nowSelected = !!checked;
                               return {
                                 ...prev,

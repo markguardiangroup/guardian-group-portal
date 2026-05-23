@@ -5081,6 +5081,13 @@
           "message": "Accelo import: company name preserves Accelo casing and is locked; client number locked when set",
           "category": "enhancement",
           "createdAt": "2026-05-23T19:12:00.000Z"
+        },
+        {
+          "id": "f4a5b6c7-accelo-contacts-add-to-site-default-2026",
+          "patch": 7,
+          "message": "Accelo import: 'Add to site' is now off by default; 'Add all to site' button appears when 2+ contacts selected",
+          "category": "enhancement",
+          "createdAt": "2026-05-23T20:05:00.000Z"
         }
       ],
       "publishedPatch": 6,
