@@ -17612,7 +17612,7 @@ export async function registerRoutes(
       let primaryContact: any = null;
       try {
         const [companyData, contactsData] = await Promise.all([
-          acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,standing,postal_address(city,state,full)`),
+          acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,postal_address(city,state,full)`),
           acceloGet(`/contacts?_filters=company_id+eq+${acceloCompanyId}&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
         ]);
         acceloCompany = companyData?.response;
@@ -17627,7 +17627,7 @@ export async function registerRoutes(
 
       const companyName = acceloCompany.name.trim();
       const { street: parsedStreet, postcode: parsedPostcode } = parseAcceloAddressFull(acceloCompany.postal_address?.full);
-      const companyStatus: "active" | "pending" = acceloCompany.standing === "active" ? "active" : "pending";
+      const companyStatus = "pending" as const;
 
       // Primary contact details
       const contactFullName = primaryContact

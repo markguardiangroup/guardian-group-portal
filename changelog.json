@@ -5025,6 +5025,13 @@
           "message": "Accelo import now pulls street address, postcode, contact name, email, and phone",
           "category": "enhancement",
           "createdAt": "2026-05-23T16:55:00.000Z"
+        },
+        {
+          "id": "d6e7f8a9-accelo-status-always-pending-2026",
+          "patch": 7,
+          "message": "Accelo import: company status always stays as pending on import",
+          "category": "bug",
+          "createdAt": "2026-05-23T17:00:00.000Z"
         }
       ],
       "publishedPatch": 6,
