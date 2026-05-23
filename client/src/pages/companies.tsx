@@ -624,6 +624,53 @@ export default function Companies() {
     return "";
   };
 
+  const ACCELO_COUNTY_LOOKUP: Record<string, { county: string; country: string }> = {
+    "BKM": { county: "Buckinghamshire", country: "England" },
+    "CRF": { county: "Cardiff", country: "Wales" },
+    "DEV": { county: "Devon", country: "England" },
+    "ESX": { county: "Essex", country: "England" },
+    "GLS": { county: "Gloucestershire", country: "England" },
+    "HAM": { county: "Hampshire", country: "England" },
+    "KEN": { county: "Kent", country: "England" },
+    "LAN": { county: "Lancashire", country: "England" },
+    "LEC": { county: "Leicestershire", country: "England" },
+    "LIN": { county: "Lincolnshire", country: "England" },
+    "LND": { county: "Greater London", country: "England" },
+    "MAN": { county: "Greater Manchester", country: "England" },
+    "NTT": { county: "Nottinghamshire", country: "England" },
+    "RFW": { county: "Renfrewshire", country: "Scotland" },
+    "SHR": { county: "Shropshire", country: "England" },
+    "SOM": { county: "Somerset", country: "England" },
+    "SRY": { county: "Surrey", country: "England" },
+    "STS": { county: "Staffordshire", country: "England" },
+    "WAR": { county: "Warwickshire", country: "England" },
+    "WOR": { county: "Worcestershire", country: "England" },
+    "WSX": { county: "West Sussex", country: "England" },
+  };
+
+  const parseAcceloAddress = (full: string | null | undefined, city: string | null | undefined) => {
+    const empty = { addressLine1: "", addressLine2: "", postcode: "", county: "", country: "" };
+    if (!full) return empty;
+    const cityStr = (city || "").trim();
+    const cityIdx = cityStr ? full.indexOf(cityStr) : -1;
+    const beforeCity = cityIdx > 0 ? full.substring(0, cityIdx) : full;
+    const afterCity  = cityIdx > 0 ? full.substring(cityIdx + cityStr.length) : "";
+    const addrParts = beforeCity.split(",").map(p => p.trim()).filter(Boolean);
+    const addressLine1 = addrParts[0] || "";
+    const addressLine2 = addrParts.slice(1).join(", ");
+    const afterParts = afterCity.split(",").map(p => p.trim()).filter(Boolean);
+    const postcode    = afterParts[0] || "";
+    const countyCode  = (afterParts[1] || "").toUpperCase();
+    const lookup      = ACCELO_COUNTY_LOOKUP[countyCode];
+    return {
+      addressLine1,
+      addressLine2,
+      postcode,
+      county:  lookup?.county  || "",
+      country: lookup?.country || "",
+    };
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -2062,21 +2109,21 @@ export default function Companies() {
                     type="button"
                     className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
                     onClick={() => {
-                      const mappedCountry = mapAcceloCountry(result.postal_address?.country || "");
+                      const addr = parseAcceloAddress(result.postal_address?.full, result.postal_address?.city);
                       setFormData({
                         name: result.name || "",
-                        companyNumber: result.company_number || "",
+                        companyNumber: "",
                         internalCompanyNumber: result.custom_id || "",
                         website: result.website || "",
                         contactPhone: result.phone || "",
                         industry: "",
                         employeeRange: "",
-                        addressLine1: result.postal_address?.street || "",
-                        addressLine2: "",
+                        addressLine1: addr.addressLine1,
+                        addressLine2: addr.addressLine2,
                         city: result.postal_address?.city || "",
-                        county: "",
-                        postalCode: result.postal_address?.postcode || "",
-                        country: mappedCountry,
+                        county: addr.county,
+                        postalCode: addr.postcode,
+                        country: addr.country,
                         sources: [],
                       });
                       setAcceloImportContext({ acceloCompanyId: String(result.id) });

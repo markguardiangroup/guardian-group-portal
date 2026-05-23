@@ -17595,16 +17595,54 @@ export async function registerRoutes(
 
       const acceloCompanyId = parsed.data.id;
 
-      // Helper: extract street + UK postcode from Accelo's postal_address.full string
-      // e.g. " The Hyde, London, NW9 6LL, United Kingdom"
-      function parseAcceloAddressFull(full: string | null | undefined): { street: string | null; postcode: string | null } {
-        if (!full) return { street: null, postcode: null };
-        const postcodeMatch = full.match(/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/i);
-        const postcode = postcodeMatch ? postcodeMatch[1].replace(/\s+/, " ").toUpperCase() : null;
-        const parts = full.split(",").map((p) => p.trim()).filter(Boolean);
-        // First segment is the street; skip if it looks like only a postcode or city
-        const street = parts[0] && parts[0].toUpperCase() !== postcode ? parts[0] : null;
-        return { street, postcode };
+      // County code → { county, country } lookup (Chapman codes used by Accelo)
+      const ACCELO_COUNTY_LOOKUP: Record<string, { county: string; country: string }> = {
+        BKM: { county: "Buckinghamshire", country: "England" },
+        CRF: { county: "Cardiff",         country: "Wales"   },
+        DEV: { county: "Devon",           country: "England" },
+        ESX: { county: "Essex",           country: "England" },
+        GLS: { county: "Gloucestershire", country: "England" },
+        HAM: { county: "Hampshire",       country: "England" },
+        KEN: { county: "Kent",            country: "England" },
+        LAN: { county: "Lancashire",      country: "England" },
+        LEC: { county: "Leicestershire",  country: "England" },
+        LIN: { county: "Lincolnshire",    country: "England" },
+        LND: { county: "Greater London",  country: "England" },
+        MAN: { county: "Greater Manchester", country: "England" },
+        NTT: { county: "Nottinghamshire", country: "England" },
+        RFW: { county: "Renfrewshire",    country: "Scotland" },
+        SHR: { county: "Shropshire",      country: "England" },
+        SOM: { county: "Somerset",        country: "England" },
+        SRY: { county: "Surrey",          country: "England" },
+        STS: { county: "Staffordshire",   country: "England" },
+        WAR: { county: "Warwickshire",    country: "England" },
+        WOR: { county: "Worcestershire",  country: "England" },
+        WSX: { county: "West Sussex",     country: "England" },
+      };
+
+      // Parse address lines, postcode, county, and country from postal_address.full
+      // e.g. "Office Park, Hatherley Lane, Cheltenham, GL51 6SH, GLS, United Kingdom"
+      function parseAcceloAddressFull(full: string | null | undefined, city: string | null | undefined) {
+        const empty = { addressLine1: null as string | null, addressLine2: null as string | null, postcode: null as string | null, county: null as string | null, country: null as string | null };
+        if (!full) return empty;
+        const cityStr = (city || "").trim();
+        const cityIdx = cityStr ? full.indexOf(cityStr) : -1;
+        const beforeCity = cityIdx > 0 ? full.substring(0, cityIdx) : full;
+        const afterCity  = cityIdx > 0 ? full.substring(cityIdx + cityStr.length) : "";
+        const addrParts  = beforeCity.split(",").map((p) => p.trim()).filter(Boolean);
+        const addressLine1 = addrParts[0] || null;
+        const addressLine2 = addrParts.slice(1).join(", ") || null;
+        const afterParts   = afterCity.split(",").map((p) => p.trim()).filter(Boolean);
+        const postcode     = afterParts[0] || null;
+        const countyCode   = (afterParts[1] || "").toUpperCase();
+        const lookup       = ACCELO_COUNTY_LOOKUP[countyCode];
+        return {
+          addressLine1,
+          addressLine2,
+          postcode,
+          county:  lookup?.county  ?? null,
+          country: lookup?.country ?? null,
+        };
       }
 
       // Fetch company + primary contact from Accelo in parallel
@@ -17626,7 +17664,7 @@ export async function registerRoutes(
       }
 
       const companyName = acceloCompany.name.trim();
-      const { street: parsedStreet, postcode: parsedPostcode } = parseAcceloAddressFull(acceloCompany.postal_address?.full);
+      const parsed = parseAcceloAddressFull(acceloCompany.postal_address?.full, acceloCompany.postal_address?.city);
       const companyStatus = "pending" as const;
 
       // Primary contact details
@@ -17652,9 +17690,11 @@ export async function registerRoutes(
           contactEmail: contactEmail || existing.contactEmail,
           contactName: contactFullName || existing.contactName,
           city: acceloCompany.postal_address?.city || existing.city,
-          county: acceloCompany.postal_address?.state || existing.county,
-          postalCode: parsedPostcode || existing.postalCode,
-          addressLine1: parsedStreet || existing.addressLine1,
+          county: parsed.county || existing.county,
+          country: parsed.country || existing.country,
+          postalCode: parsed.postcode || existing.postalCode,
+          addressLine1: parsed.addressLine1 || existing.addressLine1,
+          addressLine2: parsed.addressLine2 || existing.addressLine2,
           internalCompanyNumber: acceloCompany.custom_id || existing.internalCompanyNumber,
         });
         action = "updated";
@@ -17666,20 +17706,20 @@ export async function registerRoutes(
           contactEmail,
           contactName: contactFullName,
           city: acceloCompany.postal_address?.city || null,
-          county: acceloCompany.postal_address?.state || null,
-          postalCode: parsedPostcode,
-          addressLine1: parsedStreet,
+          county: parsed.county,
+          country: parsed.country,
+          postalCode: parsed.postcode,
+          addressLine1: parsed.addressLine1,
           industry: "General",
           status: companyStatus,
           sources: [],
           companyNumber: null,
           internalCompanyNumber: acceloCompany.custom_id || null,
-          addressLine2: null,
+          addressLine2: parsed.addressLine2,
           contactPosition: null,
           contactUserId: null,
           searchTag: null,
           employeeRange: null,
-          country: null,
           groupOwnerId: null,
           healthSafetyAccess: false,
           humanResourcesAccess: false,
@@ -17694,12 +17734,12 @@ export async function registerRoutes(
         await storage.createSite({
           name: "Head Office",
           companyId: company!.id,
-          addressLine1: parsedStreet,
-          addressLine2: null,
+          addressLine1: parsed.addressLine1,
+          addressLine2: parsed.addressLine2,
           city: acceloCompany.postal_address?.city || null,
-          county: acceloCompany.postal_address?.state || null,
-          postalCode: parsedPostcode,
-          country: null,
+          county: parsed.county,
+          postalCode: parsed.postcode,
+          country: parsed.country,
           contactName: contactFullName,
           contactPosition: null,
           contactPhone,
@@ -17732,7 +17772,7 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
-      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
+      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id,postal_address(city,full)&_limit=20`);
       const results = Array.isArray(data?.response) ? data.response : [];
       console.log("[Accelo search] q:", q, "results sample:", JSON.stringify(results.slice(0, 3)));
       res.json(results);

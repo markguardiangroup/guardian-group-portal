@@ -5053,6 +5053,13 @@
           "message": "Accelo search updated to name-only; client number shown in results when available",
           "category": "enhancement",
           "createdAt": "2026-05-23T17:30:00.000Z"
+        },
+        {
+          "id": "b0c1d2e3-accelo-full-address-mapping-2026",
+          "patch": 7,
+          "message": "Accelo import now pre-fills address lines 1 & 2, postcode, county, and country from Accelo data",
+          "category": "enhancement",
+          "createdAt": "2026-05-23T18:30:00.000Z"
         }
       ],
       "publishedPatch": 6,
