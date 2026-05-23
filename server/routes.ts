@@ -17773,6 +17773,11 @@ export async function registerRoutes(
           const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
             .replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || contact.email.split("@")[0];
 
+          // Defense-in-depth: primary and key contact are mutually exclusive; primary wins
+          if (contact.setAsPrimary && contact.setAsKeyContact) {
+            contact.setAsKeyContact = false;
+          }
+
           const existingByEmail = await storage.getUserByEmail(contact.email.trim());
           if (existingByEmail) {
             results.push({ acceloId: contact.acceloId, success: false, error: "Email already registered" });
@@ -17812,8 +17817,9 @@ export async function registerRoutes(
 
           if (contact.addToSite && siteId) {
             await storage.assignClientToSite({ clientId: newUser.id, siteId });
-            await storage.updateUser(newUser.id, { status: "invite_required" });
           }
+          // Accelo-imported contacts are explicitly known; always move to invite_required
+          await storage.updateUser(newUser.id, { status: "invite_required" });
 
           if (contact.setAsPrimary) {
             await storage.updateCompany(companyId, { contactUserId: newUser.id });

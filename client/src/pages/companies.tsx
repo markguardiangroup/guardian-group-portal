@@ -2254,7 +2254,7 @@ export default function Companies() {
                       {/* Per-contact options strip (visible when selected) */}
                       {row.selected && hasEmail && (
                         <div className="flex items-center gap-2 flex-wrap border border-primary/40 border-t-0 rounded-b-md bg-primary/5 px-3 py-1.5">
-                          {/* Primary contact toggle — single-select across all contacts */}
+                          {/* Primary contact toggle — single-select; mutually exclusive with Key Contact */}
                           <button
                             type="button"
                             onClick={() => {
@@ -2264,7 +2264,9 @@ export default function Companies() {
                                 Object.keys(prev).forEach(id => {
                                   next[id] = { ...prev[id], primary: false };
                                 });
-                                if (makePrimary) next[contactId] = { ...next[contactId], primary: true };
+                                if (makePrimary) {
+                                  next[contactId] = { ...next[contactId], primary: true, keyContact: false };
+                                }
                                 return next;
                               });
                             }}
@@ -2275,13 +2277,18 @@ export default function Companies() {
                             <Star className={`h-3 w-3 ${row.primary ? "fill-amber-500 text-amber-500" : ""}`} />
                             Primary
                           </button>
-                          {/* Key contact toggle — multi-select */}
+                          {/* Key contact toggle — mutually exclusive with Primary */}
                           <button
                             type="button"
                             onClick={() => {
+                              const makeKey = !row.keyContact;
                               setContactRows(prev => ({
                                 ...prev,
-                                [contactId]: { ...prev[contactId], keyContact: !row.keyContact },
+                                [contactId]: {
+                                  ...prev[contactId],
+                                  keyContact: makeKey,
+                                  primary: makeKey ? false : prev[contactId].primary,
+                                },
                               }));
                             }}
                             className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors ${row.keyContact ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400" : "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground"}`}
