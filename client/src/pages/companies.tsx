@@ -315,6 +315,7 @@ export default function Companies() {
   const [acceloSearching, setAcceloSearching] = useState(false);
   const [acceloSearchError, setAcceloSearchError] = useState<string | null>(null);
   const [acceloSearched, setAcceloSearched] = useState(false);
+  const [acceloSelectingId, setAcceloSelectingId] = useState<string | null>(null);
   const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string } | null>(null);
   const acceloImportContextRef = useRef<{ acceloCompanyId: string } | null>(null);
   useEffect(() => { acceloImportContextRef.current = acceloImportContext; }, [acceloImportContext]);
@@ -2108,25 +2109,36 @@ export default function Companies() {
                     key={result.id}
                     type="button"
                     className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                    onClick={() => {
-                      const addr = parseAcceloAddress(result.postal_address?.full, result.postal_address?.city);
-                      setFormData({
-                        name: result.name || "",
-                        companyNumber: "",
-                        internalCompanyNumber: result.custom_id || "",
-                        website: result.website || "",
-                        contactPhone: result.phone || "",
-                        industry: "",
-                        employeeRange: "",
-                        addressLine1: addr.addressLine1,
-                        addressLine2: addr.addressLine2,
-                        city: result.postal_address?.city || "",
-                        county: addr.county,
-                        postalCode: addr.postcode,
-                        country: addr.country,
-                        sources: [],
-                      });
-                      setAcceloImportContext({ acceloCompanyId: String(result.id) });
+                    disabled={acceloSelectingId !== null}
+                    onClick={async () => {
+                      const rid = String(result.id);
+                      setAcceloSelectingId(rid);
+                      try {
+                        const res = await fetch(`/api/integrations/accelo/companies/${rid}`, { credentials: "include" });
+                        const detail = res.ok ? await res.json() : null;
+                        const full = detail?.postal_address?.full ?? result.postal_address?.full;
+                        const city = detail?.postal_address?.city ?? result.postal_address?.city;
+                        const addr = parseAcceloAddress(full, city);
+                        setFormData({
+                          name: result.name || "",
+                          companyNumber: "",
+                          internalCompanyNumber: result.custom_id || "",
+                          website: result.website || "",
+                          contactPhone: result.phone || "",
+                          industry: "",
+                          employeeRange: "",
+                          addressLine1: addr.addressLine1,
+                          addressLine2: addr.addressLine2,
+                          city: city || "",
+                          county: addr.county,
+                          postalCode: addr.postcode,
+                          country: addr.country,
+                          sources: [],
+                        });
+                      } finally {
+                        setAcceloSelectingId(null);
+                      }
+                      setAcceloImportContext({ acceloCompanyId: rid });
                       setIsAcceloSearchOpen(false);
                       setIsAddOpen(true);
                     }}
@@ -2134,7 +2146,9 @@ export default function Companies() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                        <Building2 className="h-4 w-4 text-primary" />
+                        {acceloSelectingId === String(result.id)
+                          ? <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                          : <Building2 className="h-4 w-4 text-primary" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{result.name}</p>

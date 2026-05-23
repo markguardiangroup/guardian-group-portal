@@ -17664,7 +17664,7 @@ export async function registerRoutes(
       }
 
       const companyName = acceloCompany.name.trim();
-      const parsed = parseAcceloAddressFull(acceloCompany.postal_address?.full, acceloCompany.postal_address?.city);
+      const addrParsed = parseAcceloAddressFull(acceloCompany.postal_address?.full, acceloCompany.postal_address?.city);
       const companyStatus = "pending" as const;
 
       // Primary contact details
@@ -17690,11 +17690,11 @@ export async function registerRoutes(
           contactEmail: contactEmail || existing.contactEmail,
           contactName: contactFullName || existing.contactName,
           city: acceloCompany.postal_address?.city || existing.city,
-          county: parsed.county || existing.county,
-          country: parsed.country || existing.country,
-          postalCode: parsed.postcode || existing.postalCode,
-          addressLine1: parsed.addressLine1 || existing.addressLine1,
-          addressLine2: parsed.addressLine2 || existing.addressLine2,
+          county: addrParsed.county || existing.county,
+          country: addrParsed.country || existing.country,
+          postalCode: addrParsed.postcode || existing.postalCode,
+          addressLine1: addrParsed.addressLine1 || existing.addressLine1,
+          addressLine2: addrParsed.addressLine2 || existing.addressLine2,
           internalCompanyNumber: acceloCompany.custom_id || existing.internalCompanyNumber,
         });
         action = "updated";
@@ -17706,16 +17706,16 @@ export async function registerRoutes(
           contactEmail,
           contactName: contactFullName,
           city: acceloCompany.postal_address?.city || null,
-          county: parsed.county,
-          country: parsed.country,
-          postalCode: parsed.postcode,
-          addressLine1: parsed.addressLine1,
+          county: addrParsed.county,
+          country: addrParsed.country,
+          postalCode: addrParsed.postcode,
+          addressLine1: addrParsed.addressLine1,
           industry: "General",
           status: companyStatus,
           sources: [],
           companyNumber: null,
           internalCompanyNumber: acceloCompany.custom_id || null,
-          addressLine2: parsed.addressLine2,
+          addressLine2: addrParsed.addressLine2,
           contactPosition: null,
           contactUserId: null,
           searchTag: null,
@@ -17734,12 +17734,12 @@ export async function registerRoutes(
         await storage.createSite({
           name: "Head Office",
           companyId: company!.id,
-          addressLine1: parsed.addressLine1,
-          addressLine2: parsed.addressLine2,
+          addressLine1: addrParsed.addressLine1,
+          addressLine2: addrParsed.addressLine2,
           city: acceloCompany.postal_address?.city || null,
-          county: parsed.county,
-          postalCode: parsed.postcode,
-          country: parsed.country,
+          county: addrParsed.county,
+          postalCode: addrParsed.postcode,
+          country: addrParsed.country,
           contactName: contactFullName,
           contactPosition: null,
           contactPhone,
@@ -17772,14 +17772,28 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
-      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id,postal_address(city,full)&_limit=20`);
+      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
       const results = Array.isArray(data?.response) ? data.response : [];
-      console.log("[Accelo search] q:", q, "results sample:", JSON.stringify(results.slice(0, 3)));
       res.json(results);
     } catch (err: any) {
       if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo search error:", err);
       res.status(500).json({ error: "Failed to search Accelo" });
+    }
+  });
+
+  // GET /api/integrations/accelo/companies/:acceloId — fetch a single Accelo company with full address (admin only)
+  app.get("/api/integrations/accelo/companies/:acceloId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { acceloId } = req.params;
+      const data = await acceloGet(`/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full)`);
+      res.json(data?.response ?? null);
+    } catch (err: any) {
+      if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
+      console.error("Accelo company fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch Accelo company" });
     }
   });
 

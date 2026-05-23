@@ -5060,6 +5060,13 @@
           "message": "Accelo import now pre-fills address lines 1 & 2, postcode, county, and country from Accelo data",
           "category": "enhancement",
           "createdAt": "2026-05-23T18:30:00.000Z"
+        },
+        {
+          "id": "c1d2e3f4-accelo-address-detail-fetch-2026",
+          "patch": 7,
+          "message": "Fixed: Accelo address fields now correctly pre-fill when selecting a search result",
+          "category": "bug",
+          "createdAt": "2026-05-23T18:45:00.000Z"
         }
       ],
       "publishedPatch": 6,
