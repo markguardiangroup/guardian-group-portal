@@ -268,6 +268,7 @@ export default function Companies() {
     companyNumber: "",
     internalCompanyNumber: "",
     website: "",
+    contactPhone: "",
     industry: "",
     employeeRange: "",
     addressLine1: "",
@@ -628,6 +629,7 @@ export default function Companies() {
       companyNumber: "",
       internalCompanyNumber: "",
       website: "",
+      contactPhone: "",
       industry: "",
       employeeRange: "",
       addressLine1: "",
@@ -735,6 +737,7 @@ export default function Companies() {
       companyNumber: company.companyNumber || "",
       internalCompanyNumber: (company as any).internalCompanyNumber || "",
       website: company.website || "",
+      contactPhone: (company as any).contactPhone || "",
       industry: (company as any).industry || "",
       employeeRange: company.employeeRange || "",
       addressLine1: company.addressLine1 || "",
@@ -1388,6 +1391,16 @@ export default function Companies() {
               {websiteError && (
                 <p className="text-sm text-destructive">{websiteError}</p>
               )}
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="company-contact-phone">Main Phone Number</Label>
+              <Input
+                id="company-contact-phone"
+                placeholder="e.g., 028 9012 3456"
+                value={formData.contactPhone}
+                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                data-testid="input-company-contact-phone"
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-industry">Industry <span className="text-destructive">*</span></Label>
@@ -2054,6 +2067,7 @@ export default function Companies() {
                         companyNumber: result.company_number || "",
                         internalCompanyNumber: "",
                         website: result.website || "",
+                        contactPhone: result.phone || "",
                         industry: "",
                         employeeRange: "",
                         addressLine1: result.postal_address?.street || "",
