@@ -314,6 +314,7 @@ export default function Companies() {
   const [acceloSearchResults, setAcceloSearchResults] = useState<any[]>([]);
   const [acceloSearching, setAcceloSearching] = useState(false);
   const [acceloSearchError, setAcceloSearchError] = useState<string | null>(null);
+  const [acceloSearched, setAcceloSearched] = useState(false);
   const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string } | null>(null);
   const acceloImportContextRef = useRef<{ acceloCompanyId: string } | null>(null);
   useEffect(() => { acceloImportContextRef.current = acceloImportContext; }, [acceloImportContext]);
@@ -1979,7 +1980,7 @@ export default function Companies() {
       {AddressSyncDialog}
 
       {/* ── Accelo Search Dialog ──────────────────────────────────────────── */}
-      <Dialog open={isAcceloSearchOpen} onOpenChange={(open) => { if (!open) setIsAcceloSearchOpen(false); }}>
+      <Dialog open={isAcceloSearchOpen} onOpenChange={(open) => { if (!open) { setIsAcceloSearchOpen(false); setAcceloSearched(false); setAcceloSearchResults([]); setAcceloSearchQuery(""); setAcceloSearchError(null); } }}>
         <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
           <div className="px-6 pt-6 pb-4 shrink-0 border-b">
             <DialogHeader>
@@ -2000,7 +2001,7 @@ export default function Companies() {
                   className="pl-9"
                   placeholder="Company name or client number…"
                   value={acceloSearchQuery}
-                  onChange={(e) => setAcceloSearchQuery(e.target.value)}
+                  onChange={(e) => { setAcceloSearchQuery(e.target.value); setAcceloSearched(false); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && acceloSearchQuery.trim()) {
                       setAcceloSearchError(null);
@@ -2013,7 +2014,7 @@ export default function Companies() {
                           else setAcceloSearchError(d?.error || "Search failed");
                         })
                         .catch(() => setAcceloSearchError("Search failed"))
-                        .finally(() => setAcceloSearching(false));
+                        .finally(() => { setAcceloSearching(false); setAcceloSearched(true); });
                     }
                   }}
                   data-testid="input-accelo-search"
@@ -2032,7 +2033,7 @@ export default function Companies() {
                       else setAcceloSearchError(d?.error || "Search failed");
                     })
                     .catch(() => setAcceloSearchError("Search failed"))
-                    .finally(() => setAcceloSearching(false));
+                    .finally(() => { setAcceloSearching(false); setAcceloSearched(true); });
                 }}
                 disabled={!acceloSearchQuery.trim() || acceloSearching}
                 data-testid="button-accelo-search"
@@ -2047,7 +2048,7 @@ export default function Companies() {
               </div>
             )}
 
-            {!acceloSearching && acceloSearchResults.length === 0 && !acceloSearchError && acceloSearchQuery && (
+            {!acceloSearching && acceloSearched && acceloSearchResults.length === 0 && !acceloSearchError && (
               <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-accelo-no-results">
                 No companies found. Try a different name or client number.
               </p>

@@ -5011,6 +5011,13 @@
           "message": "Admins can import companies from Accelo with pre-filled details and bring in contacts as portal users",
           "category": "feature",
           "createdAt": "2026-05-23T09:45:00.000Z"
+        },
+        {
+          "id": "b4c5d6e7-accelo-search-empty-state-fix-2026",
+          "patch": 7,
+          "message": "Fixed: Accelo search no-results message no longer shows before a search is run",
+          "category": "bug",
+          "createdAt": "2026-05-23T16:45:00.000Z"
         }
       ],
       "publishedPatch": 6,
