@@ -17809,6 +17809,7 @@ export async function registerRoutes(
         `?_fields=id,firstname,surname,email,phone,mobile&_limit=100`
       );
       const contacts = Array.isArray(data?.response) ? data.response : [];
+      console.log(`[Accelo contacts] acceloId=${acceloId} count=${contacts.length} sample=${JSON.stringify(contacts.slice(0,2))}`);
       const normalised = contacts.map((c: any) => ({
         ...c,
         lastname: c.surname ?? c.lastname ?? c.last_name ?? "",

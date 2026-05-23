@@ -457,6 +457,9 @@ export default function Companies() {
         if (ctx) {
           // Accelo import flow: show contacts dialog before required docs
           setPendingCreatedCompanyId(data.id);
+          setAcceloContacts([]);
+          setContactRows({});
+          setAcceloImportResults(null);
           setAcceloContactsLoading(true);
           setIsAcceloContactsOpen(true);
           try {
