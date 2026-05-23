@@ -17804,13 +17804,16 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const { acceloId } = req.params;
       // In Accelo v0, contacts are linked to companies through affiliations.
-      // Step 1: get affiliations for this company to find which contacts are linked.
+      // Fetch all affiliations for this company — Accelo v0 uses singular type "company".
+      // We also do client-side filtering on against_id as an extra safety net.
       const affData = await acceloGet(
-        `/affiliations?_filters=against_type(companies),against_id(${encodeURIComponent(acceloId)})` +
-        `&_fields=id,contact_id,contact(id,firstname,surname,email,phone,mobile)&_limit=50`
+        `/affiliations?_filters=against_type(company),against_id(${encodeURIComponent(acceloId)})` +
+        `&_fields=id,contact_id,against_id,against_type,contact(id,firstname,surname,email,phone,mobile)&_limit=100`
       );
-      console.log("[Accelo contacts] acceloId:", acceloId, "affiliation sample:", JSON.stringify((Array.isArray(affData?.response) ? affData.response : []).slice(0, 2)));
-      const affiliations = Array.isArray(affData?.response) ? affData.response : [];
+      console.log("[Accelo contacts] acceloId:", acceloId, "aff sample:", JSON.stringify((Array.isArray(affData?.response) ? affData.response : []).slice(0, 3)));
+      const allAff = Array.isArray(affData?.response) ? affData.response : [];
+      // Client-side filter: keep only affiliations actually belonging to this company
+      const affiliations = allAff.filter((a: any) => String(a.against_id) === String(acceloId));
 
       // If the contact field is already expanded (object), use it directly.
       // Otherwise, collect the contact IDs and do a second fetch.
@@ -17820,20 +17823,23 @@ export async function registerRoutes(
         if (aff.contact && typeof aff.contact === "object" && aff.contact.id) {
           expandedContacts.push(aff.contact);
         } else {
-          const cid = aff.contact_id ?? aff.contact;
-          if (cid) missingIds.push(String(cid));
+          const cid = String(aff.contact_id ?? aff.contact ?? "").trim();
+          if (cid && cid !== "0") missingIds.push(cid);
         }
       }
 
-      // Step 2 (if needed): fetch contacts by ID
+      // Step 2 (if needed): fetch contacts individually by their IDs
       let fetchedContacts: any[] = [];
       if (missingIds.length > 0) {
-        const idFilter = missingIds.map(id => `id(${id})`).join(",");
-        const cData = await acceloGet(
-          `/contacts?_filters=${encodeURIComponent(idFilter)}&_fields=id,firstname,surname,email,phone,mobile&_limit=50`
+        const results = await Promise.all(
+          missingIds.map(cid =>
+            acceloGet(`/contacts/${cid}?_fields=id,firstname,surname,email,phone,mobile`)
+              .then((d: any) => d?.response ?? null)
+              .catch(() => null)
+          )
         );
-        fetchedContacts = Array.isArray(cData?.response) ? cData.response : [];
-        console.log("[Accelo contacts] fetched by IDs:", JSON.stringify(fetchedContacts.slice(0, 2)));
+        fetchedContacts = results.filter(Boolean);
+        console.log("[Accelo contacts] fetched by IDs:", missingIds, "got:", fetchedContacts.length);
       }
 
       const allContacts = [...expandedContacts, ...fetchedContacts];
