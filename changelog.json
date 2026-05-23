@@ -5032,6 +5032,13 @@
           "message": "Accelo import: company status always stays as pending on import",
           "category": "bug",
           "createdAt": "2026-05-23T17:00:00.000Z"
+        },
+        {
+          "id": "e7f8a9b0-accelo-custom-id-mapping-2026",
+          "patch": 7,
+          "message": "Accelo import maps client number to Internal Company Number; search by number now works",
+          "category": "enhancement",
+          "createdAt": "2026-05-23T17:10:00.000Z"
         }
       ],
       "publishedPatch": 6,

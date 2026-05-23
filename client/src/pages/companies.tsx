@@ -2066,7 +2066,7 @@ export default function Companies() {
                       setFormData({
                         name: result.name || "",
                         companyNumber: result.company_number || "",
-                        internalCompanyNumber: "",
+                        internalCompanyNumber: result.custom_id || "",
                         website: result.website || "",
                         contactPhone: result.phone || "",
                         industry: "",
@@ -2093,9 +2093,8 @@ export default function Companies() {
                         <p className="font-medium truncate">{result.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {[
-                            result.company_number && `#${result.company_number}`,
+                            result.custom_id && `#${result.custom_id}`,
                             result.postal_address?.city,
-                            result.postal_address?.country,
                           ].filter(Boolean).join(" · ")}
                         </p>
                       </div>

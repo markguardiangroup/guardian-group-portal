@@ -17612,7 +17612,7 @@ export async function registerRoutes(
       let primaryContact: any = null;
       try {
         const [companyData, contactsData] = await Promise.all([
-          acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,postal_address(city,state,full)`),
+          acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
           acceloGet(`/contacts?_filters=company_id+eq+${acceloCompanyId}&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
         ]);
         acceloCompany = companyData?.response;
@@ -17655,6 +17655,7 @@ export async function registerRoutes(
           county: acceloCompany.postal_address?.state || existing.county,
           postalCode: parsedPostcode || existing.postalCode,
           addressLine1: parsedStreet || existing.addressLine1,
+          internalCompanyNumber: acceloCompany.custom_id || existing.internalCompanyNumber,
         });
         action = "updated";
       } else {
@@ -17672,7 +17673,7 @@ export async function registerRoutes(
           status: companyStatus,
           sources: [],
           companyNumber: null,
-          internalCompanyNumber: null,
+          internalCompanyNumber: acceloCompany.custom_id || null,
           addressLine2: null,
           contactPosition: null,
           contactUserId: null,
@@ -17735,12 +17736,12 @@ export async function registerRoutes(
       const isNumeric = /^\d+$/.test(q);
       if (isNumeric) {
         try {
-          const data = await acceloGet(`/companies?_filters=company_number+eq+${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,company_number&_limit=20`);
+          const data = await acceloGet(`/companies?_filters=custom_id+eq+${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,custom_id&_limit=20`);
           results = Array.isArray(data?.response) ? data.response : [];
         } catch {}
       }
       if (results.length === 0) {
-        const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,company_number&_limit=20`);
+        const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,custom_id&_limit=20`);
         results = Array.isArray(data?.response) ? data.response : [];
       }
       res.json(results);
