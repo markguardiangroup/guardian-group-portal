@@ -5050,8 +5050,8 @@
         {
           "id": "a9b0c1d2-accelo-search-results-client-number-2026",
           "patch": 7,
-          "message": "Fixed: Accelo search results now show client number beneath company name",
-          "category": "bug",
+          "message": "Accelo search updated to name-only; client number shown in results when available",
+          "category": "enhancement",
           "createdAt": "2026-05-23T17:30:00.000Z"
         }
       ],

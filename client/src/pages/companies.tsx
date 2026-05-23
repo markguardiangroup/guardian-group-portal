@@ -1989,7 +1989,7 @@ export default function Companies() {
                 Import from Accelo
               </DialogTitle>
               <DialogDescription>
-                Search for a company in Accelo by name or client number. Selecting a match will open the company wizard pre-filled with their details.
+                Search for a company in Accelo by name. Selecting a match will open the company wizard pre-filled with their details.
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -1999,7 +1999,7 @@ export default function Companies() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Company name or client number…"
+                  placeholder="Company name…"
                   value={acceloSearchQuery}
                   onChange={(e) => { setAcceloSearchQuery(e.target.value); setAcceloSearched(false); }}
                   onKeyDown={(e) => {

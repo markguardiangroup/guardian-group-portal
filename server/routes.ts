@@ -17734,6 +17734,7 @@ export async function registerRoutes(
       if (!q) return res.json([]);
       const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
       const results = Array.isArray(data?.response) ? data.response : [];
+      console.log("[Accelo search] q:", q, "results sample:", JSON.stringify(results.slice(0, 3)));
       res.json(results);
     } catch (err: any) {
       if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
