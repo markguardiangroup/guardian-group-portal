@@ -5071,9 +5071,9 @@
         {
           "id": "d2e3f4a5-accelo-contacts-filter-fix-2026",
           "patch": 7,
-          "message": "Fixed: Import contacts dialog now shows only contacts from the imported company",
+          "message": "Fixed: Import contacts dialog now shows only contacts from the selected Accelo company",
           "category": "bug",
-          "createdAt": "2026-05-23T19:25:00.000Z"
+          "createdAt": "2026-05-23T19:40:00.000Z"
         },
         {
           "id": "e3f4a5b6-accelo-name-lock-2026",
