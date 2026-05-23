@@ -5004,6 +5004,13 @@
           "message": "Fixed: table view document count now matches folder view (group-level and unrelated docs removed; company-shared docs expanded per site)",
           "category": "bug",
           "createdAt": "2026-05-21T15:35:00.000Z"
+        },
+        {
+          "id": "a3b4c5d6-accelo-import-pull-flow-2026",
+          "patch": 7,
+          "message": "Admins can import companies from Accelo with pre-filled details and bring in contacts as portal users",
+          "category": "feature",
+          "createdAt": "2026-05-23T09:45:00.000Z"
         }
       ],
       "publishedPatch": 6,

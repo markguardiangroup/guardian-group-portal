@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -50,6 +50,11 @@ import {
   BarChart2,
   RefreshCw,
   MoreHorizontal,
+  Download,
+  Loader2,
+  UserPlus,
+  UserX,
+  CheckSquare,
 } from "lucide-react";
 import {
   Table,
@@ -296,6 +301,22 @@ export default function Companies() {
   const [isRequiredDocsOpen, setIsRequiredDocsOpen] = useState(false);
   const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
   const [selectedRequiredIds, setSelectedRequiredIds] = useState<Set<string>>(new Set());
+
+  // Accelo import state
+  const [isAcceloSearchOpen, setIsAcceloSearchOpen] = useState(false);
+  const [acceloSearchQuery, setAcceloSearchQuery] = useState("");
+  const [acceloSearchResults, setAcceloSearchResults] = useState<any[]>([]);
+  const [acceloSearching, setAcceloSearching] = useState(false);
+  const [acceloSearchError, setAcceloSearchError] = useState<string | null>(null);
+  const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string } | null>(null);
+  const acceloImportContextRef = useRef<{ acceloCompanyId: string } | null>(null);
+  useEffect(() => { acceloImportContextRef.current = acceloImportContext; }, [acceloImportContext]);
+  const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
+  const [acceloContacts, setAcceloContacts] = useState<any[]>([]);
+  const [acceloContactsLoading, setAcceloContactsLoading] = useState(false);
+  const [selectedAcceloContacts, setSelectedAcceloContacts] = useState<Set<string>>(new Set());
+  const [acceloImportingContacts, setAcceloImportingContacts] = useState(false);
+  const [pendingCreatedCompanyId, setPendingCreatedCompanyId] = useState<string | null>(null);
   const [staffFilter, setStaffFilter] = useState<string>("my");
   const [sortBy, setSortBy] = useState<"name" | "city" | "industry" | "siteCount" | "status">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -409,6 +430,7 @@ export default function Companies() {
       setIsSiteModalOpen(false);
       setPendingCompanyData(null);
       setPendingModuleAccess(null);
+      const ctx = acceloImportContextRef.current;
       resetForm();
       setSiteData({
         name: "",
@@ -420,9 +442,25 @@ export default function Companies() {
         country: "",
       });
       if (data?.id) {
-        setCreatedCompanyId(data.id);
-        setSelectedRequiredIds(new Set());
-        setIsRequiredDocsOpen(true);
+        if (ctx) {
+          // Accelo import flow: show contacts dialog before required docs
+          setPendingCreatedCompanyId(data.id);
+          setAcceloContactsLoading(true);
+          setIsAcceloContactsOpen(true);
+          try {
+            const res = await fetch(`/api/integrations/accelo/companies/${ctx.acceloCompanyId}/contacts`, { credentials: "include" });
+            const contacts = await res.json();
+            setAcceloContacts(Array.isArray(contacts) ? contacts : []);
+          } catch {
+            setAcceloContacts([]);
+          } finally {
+            setAcceloContactsLoading(false);
+          }
+        } else {
+          setCreatedCompanyId(data.id);
+          setSelectedRequiredIds(new Set());
+          setIsRequiredDocsOpen(true);
+        }
       }
     },
     onError: (error: Error) => {
@@ -489,6 +527,17 @@ export default function Companies() {
     enabled: !!createdCompanyId,
   });
 
+  const { data: acceloStatus } = useQuery<{ connected: boolean }>({
+    queryKey: ["/api/integrations/accelo/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/integrations/accelo/status", { credentials: "include" });
+      if (!res.ok) return { connected: false };
+      return res.json();
+    },
+    enabled: user?.role === "admin",
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: newCompanyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
     queryKey: ["/api/companies", createdCompanyId, "module-access"],
     queryFn: async () => {
@@ -546,6 +595,17 @@ export default function Companies() {
     employment_law: { key: "employmentLaw", label: "Employment Law" },
   };
 
+  const mapAcceloCountry = (country: string): string => {
+    if (!country) return "";
+    const c = country.trim().toLowerCase();
+    if (c.includes("northern ireland")) return "Northern Ireland";
+    if (c.includes("ireland")) return "Ireland";
+    if (c.includes("scotland")) return "Scotland";
+    if (c.includes("wales")) return "Wales";
+    if (c.includes("england") || c.includes("united kingdom") || c === "uk" || c === "gb") return "England";
+    return "";
+  };
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -574,6 +634,71 @@ export default function Companies() {
     setPendingModuleAccess(null);
     setWebsiteError(null);
     setCompanyNameError(null);
+    setAcceloImportContext(null);
+  };
+
+  const proceedToRequiredDocs = (companyId: string) => {
+    setIsAcceloContactsOpen(false);
+    setAcceloContacts([]);
+    setSelectedAcceloContacts(new Set());
+    setAcceloImportContext(null);
+    setPendingCreatedCompanyId(null);
+    setCreatedCompanyId(companyId);
+    setSelectedRequiredIds(new Set());
+    setIsRequiredDocsOpen(true);
+  };
+
+  const handleImportAcceloContacts = async () => {
+    if (!pendingCreatedCompanyId) return;
+    setAcceloImportingContacts(true);
+    const toImport = acceloContacts.filter(c => selectedAcceloContacts.has(String(c.id)));
+    let created = 0;
+    let skipped = 0;
+    let firstSiteId: string | null = null;
+    try {
+      const sitesRes = await fetch(`/api/sites?companyId=${pendingCreatedCompanyId}`, { credentials: "include" });
+      const sitesData = await sitesRes.json();
+      const sites = Array.isArray(sitesData) ? sitesData : (sitesData?.sites || []);
+      firstSiteId = sites[0]?.id || null;
+    } catch {}
+    for (const contact of toImport) {
+      if (!contact.email) { skipped++; continue; }
+      const firstName = (contact.firstname || "").trim();
+      const lastName = (contact.lastname || "").trim();
+      const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || contact.email.split("@")[0];
+      try {
+        const res = await apiRequest("POST", "/api/users", {
+          username: baseUsername,
+          email: contact.email.trim(),
+          fullName: `${firstName} ${lastName}`.trim() || contact.email.split("@")[0],
+          firstName,
+          lastName,
+          phone: contact.phone || "",
+          mobile: contact.mobile || "",
+          role: "client",
+          companyId: pendingCreatedCompanyId,
+          sources: [],
+        });
+        if (res.ok) {
+          const newUser = await res.json();
+          if (firstSiteId && newUser?.id) {
+            try { await apiRequest("POST", `/api/users/${newUser.id}/site-assignments/${firstSiteId}`, {}); } catch {}
+          }
+          created++;
+        } else {
+          skipped++;
+        }
+      } catch {
+        skipped++;
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    const parts: string[] = [];
+    if (created > 0) parts.push(`${created} contact${created !== 1 ? "s" : ""} imported`);
+    if (skipped > 0) parts.push(`${skipped} skipped`);
+    toast({ title: "Contacts imported", description: parts.length > 0 ? parts.join(", ") + "." : "No contacts were imported." });
+    setAcceloImportingContacts(false);
+    proceedToRequiredDocs(pendingCreatedCompanyId);
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
@@ -847,6 +972,22 @@ export default function Companies() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && acceloStatus?.connected && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setAcceloSearchQuery("");
+                setAcceloSearchResults([]);
+                setAcceloSearchError(null);
+                setIsAcceloSearchOpen(true);
+              }}
+              data-testid="button-import-from-accelo"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Import from Accelo
+            </Button>
+          )}
           {canCreateCompany && (
             <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
@@ -1794,6 +1935,266 @@ export default function Companies() {
       </Dialog>
 
       {AddressSyncDialog}
+
+      {/* ── Accelo Search Dialog ──────────────────────────────────────────── */}
+      <Dialog open={isAcceloSearchOpen} onOpenChange={(open) => { if (!open) setIsAcceloSearchOpen(false); }}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-primary" />
+                Import from Accelo
+              </DialogTitle>
+              <DialogDescription>
+                Search for a company in Accelo by name or client number. Selecting a match will open the company wizard pre-filled with their details.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Company name or client number…"
+                  value={acceloSearchQuery}
+                  onChange={(e) => setAcceloSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && acceloSearchQuery.trim()) {
+                      setAcceloSearchError(null);
+                      setAcceloSearching(true);
+                      setAcceloSearchResults([]);
+                      fetch(`/api/integrations/accelo/search?q=${encodeURIComponent(acceloSearchQuery.trim())}`, { credentials: "include" })
+                        .then(r => r.json())
+                        .then(d => {
+                          if (Array.isArray(d)) setAcceloSearchResults(d);
+                          else setAcceloSearchError(d?.error || "Search failed");
+                        })
+                        .catch(() => setAcceloSearchError("Search failed"))
+                        .finally(() => setAcceloSearching(false));
+                    }
+                  }}
+                  data-testid="input-accelo-search"
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  if (!acceloSearchQuery.trim()) return;
+                  setAcceloSearchError(null);
+                  setAcceloSearching(true);
+                  setAcceloSearchResults([]);
+                  fetch(`/api/integrations/accelo/search?q=${encodeURIComponent(acceloSearchQuery.trim())}`, { credentials: "include" })
+                    .then(r => r.json())
+                    .then(d => {
+                      if (Array.isArray(d)) setAcceloSearchResults(d);
+                      else setAcceloSearchError(d?.error || "Search failed");
+                    })
+                    .catch(() => setAcceloSearchError("Search failed"))
+                    .finally(() => setAcceloSearching(false));
+                }}
+                disabled={!acceloSearchQuery.trim() || acceloSearching}
+                data-testid="button-accelo-search"
+              >
+                {acceloSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+              </Button>
+            </div>
+
+            {acceloSearchError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" data-testid="error-accelo-search">
+                {acceloSearchError}
+              </div>
+            )}
+
+            {!acceloSearching && acceloSearchResults.length === 0 && !acceloSearchError && acceloSearchQuery && (
+              <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-accelo-no-results">
+                No companies found. Try a different name or client number.
+              </p>
+            )}
+
+            {acceloSearchResults.length > 0 && (
+              <div className="space-y-2" data-testid="list-accelo-results">
+                {acceloSearchResults.map((result: any) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                    onClick={() => {
+                      const mappedCountry = mapAcceloCountry(result.postal_address?.country || "");
+                      setFormData({
+                        name: result.name || "",
+                        companyNumber: result.company_number || "",
+                        internalCompanyNumber: "",
+                        website: result.website || "",
+                        industry: "",
+                        employeeRange: "",
+                        addressLine1: result.postal_address?.street || "",
+                        addressLine2: "",
+                        city: result.postal_address?.city || "",
+                        county: "",
+                        postalCode: result.postal_address?.postcode || "",
+                        country: mappedCountry,
+                        sources: [],
+                      });
+                      setAcceloImportContext({ acceloCompanyId: String(result.id) });
+                      setIsAcceloSearchOpen(false);
+                      setIsAddOpen(true);
+                    }}
+                    data-testid={`button-accelo-result-${result.id}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                        <Building2 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{result.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {[
+                            result.company_number && `#${result.company_number}`,
+                            result.postal_address?.city,
+                            result.postal_address?.country,
+                          ].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="px-6 py-4 shrink-0 border-t">
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAcceloSearchOpen(false)} data-testid="button-accelo-search-cancel">
+                Cancel
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Import Contacts Dialog (step between site creation and required docs) ── */}
+      <Dialog open={isAcceloContactsOpen} onOpenChange={(open) => {
+        if (!open && pendingCreatedCompanyId) proceedToRequiredDocs(pendingCreatedCompanyId);
+      }}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+          <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5 text-primary" />
+                Import Contacts
+              </DialogTitle>
+              <DialogDescription>
+                Select Accelo contacts to add as portal users for this company. Contacts without an email address cannot be imported.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            {acceloContactsLoading ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="loading-accelo-contacts">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">Loading contacts…</span>
+              </div>
+            ) : acceloContacts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="empty-accelo-contacts">
+                <UserX className="h-8 w-8 opacity-40" />
+                <p className="text-sm">No contacts found in Accelo for this company.</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-muted-foreground">{acceloContacts.length} contact{acceloContacts.length !== 1 ? "s" : ""} found</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs px-2 gap-1"
+                    onClick={() => {
+                      const withEmail = acceloContacts.filter(c => c.email).map(c => String(c.id));
+                      if (selectedAcceloContacts.size === withEmail.length) {
+                        setSelectedAcceloContacts(new Set());
+                      } else {
+                        setSelectedAcceloContacts(new Set(withEmail));
+                      }
+                    }}
+                    data-testid="button-toggle-all-contacts"
+                  >
+                    <CheckSquare className="h-3.5 w-3.5" />
+                    {selectedAcceloContacts.size === acceloContacts.filter(c => c.email).length ? "Deselect All" : "Select All"}
+                  </Button>
+                </div>
+                {acceloContacts.map((contact: any) => {
+                  const hasEmail = !!contact.email;
+                  const contactId = String(contact.id);
+                  const isSelected = selectedAcceloContacts.has(contactId);
+                  const fullName = [contact.firstname, contact.lastname].filter(Boolean).join(" ") || "Unknown";
+                  return (
+                    <div
+                      key={contactId}
+                      className={`flex items-start gap-3 rounded-md border px-3 py-2.5 transition-colors ${!hasEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted"} ${isSelected ? "border-primary/50 bg-primary/5" : ""}`}
+                      onClick={() => {
+                        if (!hasEmail) return;
+                        const next = new Set(selectedAcceloContacts);
+                        if (isSelected) next.delete(contactId); else next.add(contactId);
+                        setSelectedAcceloContacts(next);
+                      }}
+                      data-testid={`item-accelo-contact-${contactId}`}
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        disabled={!hasEmail}
+                        onCheckedChange={(checked) => {
+                          if (!hasEmail) return;
+                          const next = new Set(selectedAcceloContacts);
+                          if (checked) next.add(contactId); else next.delete(contactId);
+                          setSelectedAcceloContacts(next);
+                        }}
+                        className="mt-0.5"
+                        data-testid={`checkbox-accelo-contact-${contactId}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">{fullName}</p>
+                        {contact.email ? (
+                          <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
+                        ) : (
+                          <p className="text-xs text-destructive">No email — cannot import</p>
+                        )}
+                        {(contact.phone || contact.mobile) && (
+                          <p className="text-xs text-muted-foreground">
+                            {[contact.phone, contact.mobile].filter(Boolean).join(" / ")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="px-6 py-4 shrink-0 border-t">
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => pendingCreatedCompanyId && proceedToRequiredDocs(pendingCreatedCompanyId)}
+                disabled={acceloImportingContacts}
+                data-testid="button-skip-contacts"
+              >
+                Skip
+              </Button>
+              <Button
+                onClick={handleImportAcceloContacts}
+                disabled={selectedAcceloContacts.size === 0 || acceloImportingContacts || acceloContactsLoading}
+                data-testid="button-import-contacts"
+              >
+                {acceloImportingContacts ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</>
+                ) : (
+                  <>Import {selectedAcceloContacts.size > 0 ? `${selectedAcceloContacts.size} ` : ""}Contact{selectedAcceloContacts.size !== 1 ? "s" : ""}</>
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </div>
   );

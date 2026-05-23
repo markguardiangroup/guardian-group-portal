@@ -17695,5 +17695,47 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/integrations/accelo/search?q= — search Accelo companies by name or client number (admin only)
+  app.get("/api/integrations/accelo/search", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const q = ((req.query.q as string) ?? "").trim();
+      if (!q) return res.json([]);
+      let results: any[] = [];
+      const isNumeric = /^\d+$/.test(q);
+      if (isNumeric) {
+        try {
+          const data = await acceloGet(`/companies?_filters=company_number+eq+${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,company_number&_limit=20`);
+          results = Array.isArray(data?.response) ? data.response : [];
+        } catch {}
+      }
+      if (results.length === 0) {
+        const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,company_number&_limit=20`);
+        results = Array.isArray(data?.response) ? data.response : [];
+      }
+      res.json(results);
+    } catch (err: any) {
+      if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
+      console.error("Accelo search error:", err);
+      res.status(500).json({ error: "Failed to search Accelo" });
+    }
+  });
+
+  // GET /api/integrations/accelo/companies/:acceloId/contacts — contacts for an Accelo company (admin only)
+  app.get("/api/integrations/accelo/companies/:acceloId/contacts", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { acceloId } = req.params;
+      const data = await acceloGet(`/contacts?_filters=company_id+eq+${encodeURIComponent(acceloId)}&_fields=id,firstname,lastname,email,phone,mobile&_limit=50`);
+      res.json(Array.isArray(data?.response) ? data.response : []);
+    } catch (err: any) {
+      if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
+      console.error("Accelo contacts error:", err);
+      res.status(500).json({ error: "Failed to fetch Accelo contacts" });
+    }
+  });
+
   return httpServer;
 }
