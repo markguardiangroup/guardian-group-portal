@@ -5073,7 +5073,7 @@
           "patch": 7,
           "message": "Fixed: Import contacts dialog now shows only contacts from the imported company",
           "category": "bug",
-          "createdAt": "2026-05-23T19:05:00.000Z"
+          "createdAt": "2026-05-23T19:25:00.000Z"
         },
         {
           "id": "e3f4a5b6-accelo-name-lock-2026",

@@ -17803,10 +17803,54 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const { acceloId } = req.params;
-      const data = await acceloGet(`/contacts?_filters=company_id(${encodeURIComponent(acceloId)})&_fields=id,firstname,surname,email,phone,mobile&_limit=50`);
-      const contacts = Array.isArray(data?.response) ? data.response : [];
-      // Normalise Accelo's "surname" field to "lastname" so the frontend stays consistent
-      res.json(contacts.map((c: any) => ({ ...c, lastname: c.surname ?? c.lastname ?? "" })));
+      // In Accelo v0, contacts are linked to companies through affiliations.
+      // Step 1: get affiliations for this company to find which contacts are linked.
+      const affData = await acceloGet(
+        `/affiliations?_filters=against_type(companies),against_id(${encodeURIComponent(acceloId)})` +
+        `&_fields=id,contact_id,contact(id,firstname,surname,email,phone,mobile)&_limit=50`
+      );
+      console.log("[Accelo contacts] acceloId:", acceloId, "affiliation sample:", JSON.stringify((Array.isArray(affData?.response) ? affData.response : []).slice(0, 2)));
+      const affiliations = Array.isArray(affData?.response) ? affData.response : [];
+
+      // If the contact field is already expanded (object), use it directly.
+      // Otherwise, collect the contact IDs and do a second fetch.
+      const expandedContacts: any[] = [];
+      const missingIds: string[] = [];
+      for (const aff of affiliations) {
+        if (aff.contact && typeof aff.contact === "object" && aff.contact.id) {
+          expandedContacts.push(aff.contact);
+        } else {
+          const cid = aff.contact_id ?? aff.contact;
+          if (cid) missingIds.push(String(cid));
+        }
+      }
+
+      // Step 2 (if needed): fetch contacts by ID
+      let fetchedContacts: any[] = [];
+      if (missingIds.length > 0) {
+        const idFilter = missingIds.map(id => `id(${id})`).join(",");
+        const cData = await acceloGet(
+          `/contacts?_filters=${encodeURIComponent(idFilter)}&_fields=id,firstname,surname,email,phone,mobile&_limit=50`
+        );
+        fetchedContacts = Array.isArray(cData?.response) ? cData.response : [];
+        console.log("[Accelo contacts] fetched by IDs:", JSON.stringify(fetchedContacts.slice(0, 2)));
+      }
+
+      const allContacts = [...expandedContacts, ...fetchedContacts];
+      // Normalise surname → lastname and deduplicate
+      const seen = new Set<string>();
+      const unique = allContacts
+        .filter((c: any) => {
+          const key = String(c.id);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map((c: any) => ({
+          ...c,
+          lastname: c.surname ?? c.lastname ?? c.last_name ?? "",
+        }));
+      res.json(unique);
     } catch (err: any) {
       if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo contacts error:", err);
