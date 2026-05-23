@@ -2092,10 +2092,7 @@ export default function Companies() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{result.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {[
-                            result.custom_id && `#${result.custom_id}`,
-                            result.postal_address?.city,
-                          ].filter(Boolean).join(" · ")}
+                          {result.custom_id ? `#${result.custom_id}` : ""}
                         </p>
                       </div>
                     </div>
