@@ -60,6 +60,7 @@ import {
   CheckCircle2,
   XCircle,
   ExternalLink,
+  Lock,
 } from "lucide-react";
 import {
   Table,
@@ -1344,11 +1345,13 @@ export default function Companies() {
                   id="company-name"
                   placeholder="e.g., Acme Manufacturing Ltd"
                   value={formData.name}
+                  readOnly={!!(acceloImportContext && !editingCompany)}
                   onChange={(e) => {
                     setFormData({ ...formData, name: e.target.value });
                     if (companyNameError) setCompanyNameError(null);
                   }}
                   onBlur={(e) => {
+                    if (acceloImportContext && !editingCompany) return;
                     const value = e.target.value.trim();
                     if (value && value !== originalCompanyName) {
                       setOriginalCompanyName(value);
@@ -1365,23 +1368,27 @@ export default function Companies() {
                     }
                   }}
                   data-testid="input-company-name"
-                  className={`flex-1 ${companyNameError ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  className={`flex-1 ${companyNameError ? "border-destructive focus-visible:ring-destructive" : ""} ${acceloImportContext && !editingCompany ? "bg-muted cursor-default" : ""}`}
                 />
-                {formData.name && originalCompanyName && toTitleCase(originalCompanyName) !== originalCompanyName && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setFormData({ ...formData, name: originalCompanyName });
-                      setOriginalCompanyName("");
-                    }}
-                    className="h-9 w-9 p-0"
-                    title="Undo capitalization"
-                    data-testid="button-undo-company-name"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
+                {acceloImportContext && !editingCompany ? (
+                  <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                ) : (
+                  formData.name && originalCompanyName && toTitleCase(originalCompanyName) !== originalCompanyName && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFormData({ ...formData, name: originalCompanyName });
+                        setOriginalCompanyName("");
+                      }}
+                      className="h-9 w-9 p-0"
+                      title="Undo capitalization"
+                      data-testid="button-undo-company-name"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  )
                 )}
               </div>
               {companyNameError && (
@@ -1400,13 +1407,20 @@ export default function Companies() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="internal-company-number">Internal Company Number</Label>
-              <Input
-                id="internal-company-number"
-                placeholder="e.g., INT-001"
-                value={formData.internalCompanyNumber}
-                onChange={(e) => setFormData({ ...formData, internalCompanyNumber: e.target.value })}
-                data-testid="input-internal-company-number"
-              />
+              <div className="flex gap-2 items-center">
+                <Input
+                  id="internal-company-number"
+                  placeholder="e.g., INT-001"
+                  value={formData.internalCompanyNumber}
+                  readOnly={!!(acceloImportContext && !editingCompany && formData.internalCompanyNumber)}
+                  onChange={(e) => setFormData({ ...formData, internalCompanyNumber: e.target.value })}
+                  data-testid="input-internal-company-number"
+                  className={`flex-1 ${acceloImportContext && !editingCompany && formData.internalCompanyNumber ? "bg-muted cursor-default" : ""}`}
+                />
+                {acceloImportContext && !editingCompany && formData.internalCompanyNumber && (
+                  <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                )}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-website">Website</Label>

@@ -5074,6 +5074,13 @@
           "message": "Fixed: Import contacts dialog now shows only contacts from the imported company",
           "category": "bug",
           "createdAt": "2026-05-23T19:05:00.000Z"
+        },
+        {
+          "id": "e3f4a5b6-accelo-name-lock-2026",
+          "patch": 7,
+          "message": "Accelo import: company name preserves Accelo casing and is locked; client number locked when set",
+          "category": "enhancement",
+          "createdAt": "2026-05-23T19:12:00.000Z"
         }
       ],
       "publishedPatch": 6,
