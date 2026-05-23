@@ -55,6 +55,11 @@ import {
   UserPlus,
   UserX,
   CheckSquare,
+  Star,
+  Key,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
 } from "lucide-react";
 import {
   Table,
@@ -314,8 +319,11 @@ export default function Companies() {
   const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
   const [acceloContacts, setAcceloContacts] = useState<any[]>([]);
   const [acceloContactsLoading, setAcceloContactsLoading] = useState(false);
-  const [selectedAcceloContacts, setSelectedAcceloContacts] = useState<Set<string>>(new Set());
+  interface ContactRowState { selected: boolean; primary: boolean; keyContact: boolean; addToSite: boolean; }
+  interface AcceloImportResult { acceloId: string; name: string; success: boolean; error?: string; }
+  const [contactRows, setContactRows] = useState<Record<string, ContactRowState>>({});
   const [acceloImportingContacts, setAcceloImportingContacts] = useState(false);
+  const [acceloImportResults, setAcceloImportResults] = useState<AcceloImportResult[] | null>(null);
   const [pendingCreatedCompanyId, setPendingCreatedCompanyId] = useState<string | null>(null);
   const [staffFilter, setStaffFilter] = useState<string>("my");
   const [sortBy, setSortBy] = useState<"name" | "city" | "industry" | "siteCount" | "status">("name");
@@ -450,9 +458,17 @@ export default function Companies() {
           try {
             const res = await fetch(`/api/integrations/accelo/companies/${ctx.acceloCompanyId}/contacts`, { credentials: "include" });
             const contacts = await res.json();
-            setAcceloContacts(Array.isArray(contacts) ? contacts : []);
+            const loaded = Array.isArray(contacts) ? contacts : [];
+            setAcceloContacts(loaded);
+            const initialRows: Record<string, ContactRowState> = {};
+            loaded.forEach((c: any) => {
+              initialRows[String(c.id)] = { selected: false, primary: false, keyContact: false, addToSite: true };
+            });
+            setContactRows(initialRows);
+            setAcceloImportResults(null);
           } catch {
             setAcceloContacts([]);
+            setContactRows({});
           } finally {
             setAcceloContactsLoading(false);
           }
@@ -640,7 +656,8 @@ export default function Companies() {
   const proceedToRequiredDocs = (companyId: string) => {
     setIsAcceloContactsOpen(false);
     setAcceloContacts([]);
-    setSelectedAcceloContacts(new Set());
+    setContactRows({});
+    setAcceloImportResults(null);
     setAcceloImportContext(null);
     setPendingCreatedCompanyId(null);
     setCreatedCompanyId(companyId);
@@ -651,9 +668,7 @@ export default function Companies() {
   const handleImportAcceloContacts = async () => {
     if (!pendingCreatedCompanyId) return;
     setAcceloImportingContacts(true);
-    const toImport = acceloContacts.filter(c => selectedAcceloContacts.has(String(c.id)));
-    let created = 0;
-    let skipped = 0;
+
     let firstSiteId: string | null = null;
     try {
       const sitesRes = await fetch(`/api/sites?companyId=${pendingCreatedCompanyId}`, { credentials: "include" });
@@ -661,44 +676,50 @@ export default function Companies() {
       const sites = Array.isArray(sitesData) ? sitesData : (sitesData?.sites || []);
       firstSiteId = sites[0]?.id || null;
     } catch {}
-    for (const contact of toImport) {
-      if (!contact.email) { skipped++; continue; }
-      const firstName = (contact.firstname || "").trim();
-      const lastName = (contact.lastname || "").trim();
-      const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`.replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || contact.email.split("@")[0];
-      try {
-        const res = await apiRequest("POST", "/api/users", {
-          username: baseUsername,
-          email: contact.email.trim(),
-          fullName: `${firstName} ${lastName}`.trim() || contact.email.split("@")[0],
-          firstName,
-          lastName,
-          phone: contact.phone || "",
-          mobile: contact.mobile || "",
-          role: "client",
-          companyId: pendingCreatedCompanyId,
-          sources: [],
-        });
-        if (res.ok) {
-          const newUser = await res.json();
-          if (firstSiteId && newUser?.id) {
-            try { await apiRequest("POST", `/api/users/${newUser.id}/site-assignments/${firstSiteId}`, {}); } catch {}
-          }
-          created++;
-        } else {
-          skipped++;
-        }
-      } catch {
-        skipped++;
-      }
+
+    const toImport = acceloContacts
+      .filter(c => contactRows[String(c.id)]?.selected && c.email)
+      .map(c => {
+        const row = contactRows[String(c.id)];
+        return {
+          acceloId: String(c.id),
+          firstname: c.firstname || "",
+          lastname: c.lastname || "",
+          email: c.email,
+          phone: c.phone || "",
+          mobile: c.mobile || "",
+          setAsPrimary: row.primary,
+          setAsKeyContact: row.keyContact,
+          addToSite: row.addToSite,
+        };
+      });
+
+    try {
+      const res = await apiRequest("POST", "/api/integrations/accelo/import-contacts", {
+        companyId: pendingCreatedCompanyId,
+        siteId: firstSiteId,
+        contacts: toImport,
+      });
+      const data = await res.json();
+      const results: AcceloImportResult[] = (data.results || []).map((r: any) => {
+        const contact = acceloContacts.find(c => String(c.id) === r.acceloId);
+        const name = contact
+          ? [contact.firstname, contact.lastname].filter(Boolean).join(" ") || contact.email
+          : r.acceloId;
+        return { acceloId: r.acceloId, name, success: r.success, error: r.error };
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setAcceloImportResults(results);
+      const succeeded = results.filter(r => r.success).length;
+      toast({
+        title: succeeded > 0 ? "Contacts imported" : "No contacts imported",
+        description: `${succeeded} of ${results.length} contact(s) imported successfully.`,
+        variant: succeeded === 0 ? "destructive" : "default",
+      });
+    } catch {
+      toast({ title: "Import failed", description: "Could not import contacts. Please try again.", variant: "destructive" });
     }
-    queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-    const parts: string[] = [];
-    if (created > 0) parts.push(`${created} contact${created !== 1 ? "s" : ""} imported`);
-    if (skipped > 0) parts.push(`${skipped} skipped`);
-    toast({ title: "Contacts imported", description: parts.length > 0 ? parts.join(", ") + "." : "No contacts were imported." });
     setAcceloImportingContacts(false);
-    proceedToRequiredDocs(pendingCreatedCompanyId);
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
@@ -1254,6 +1275,14 @@ export default function Companies() {
             <DialogDescription>
               {editingCompany ? "Update company details" : "Create a new client company"}
             </DialogDescription>
+            {!editingCompany && acceloImportContext && (
+              <div className="mt-1 flex items-center gap-1.5">
+                <Badge variant="outline" className="text-xs gap-1 border-primary/40 text-primary bg-primary/5 py-0.5">
+                  <ExternalLink className="h-3 w-3" />
+                  Pre-filled from Accelo
+                </Badge>
+              </div>
+            )}
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
@@ -2075,31 +2104,61 @@ export default function Companies() {
       <Dialog open={isAcceloContactsOpen} onOpenChange={(open) => {
         if (!open && pendingCreatedCompanyId) proceedToRequiredDocs(pendingCreatedCompanyId);
       }}>
-        <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
           <div className="px-6 pt-6 pb-4 shrink-0 border-b">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <UserPlus className="h-5 w-5 text-primary" />
-                Import Contacts
+                {acceloImportResults ? "Import Complete" : "Import Contacts"}
               </DialogTitle>
               <DialogDescription>
-                Select Accelo contacts to add as portal users for this company. Contacts without an email address cannot be imported.
+                {acceloImportResults
+                  ? `${acceloImportResults.filter(r => r.success).length} of ${acceloImportResults.length} contact(s) imported successfully.`
+                  : "Select contacts to import. For each contact, choose whether to set them as primary, a key contact, or assign them to the site."}
               </DialogDescription>
             </DialogHeader>
           </div>
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            {acceloContactsLoading ? (
+            {/* Loading */}
+            {acceloContactsLoading && (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="loading-accelo-contacts">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm">Loading contacts…</span>
               </div>
-            ) : acceloContacts.length === 0 ? (
+            )}
+            {/* Results phase */}
+            {!acceloContactsLoading && acceloImportResults && (
+              <div className="space-y-2" data-testid="list-import-results">
+                {acceloImportResults.map((result) => (
+                  <div
+                    key={result.acceloId}
+                    className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${result.success ? "border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-900" : "border-destructive/30 bg-destructive/5"}`}
+                    data-testid={`result-contact-${result.acceloId}`}
+                  >
+                    {result.success
+                      ? <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                      : <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                    }
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{result.name}</p>
+                      {!result.success && result.error && (
+                        <p className="text-xs text-destructive">{result.error}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Empty state */}
+            {!acceloContactsLoading && !acceloImportResults && acceloContacts.length === 0 && (
               <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="empty-accelo-contacts">
                 <UserX className="h-8 w-8 opacity-40" />
                 <p className="text-sm">No contacts found in Accelo for this company.</p>
               </div>
-            ) : (
-              <div className="space-y-1">
+            )}
+            {/* Selection phase */}
+            {!acceloContactsLoading && !acceloImportResults && acceloContacts.length > 0 && (
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm text-muted-foreground">{acceloContacts.length} contact{acceloContacts.length !== 1 ? "s" : ""} found</p>
                   <Button
@@ -2108,61 +2167,148 @@ export default function Companies() {
                     size="sm"
                     className="h-7 text-xs px-2 gap-1"
                     onClick={() => {
-                      const withEmail = acceloContacts.filter(c => c.email).map(c => String(c.id));
-                      if (selectedAcceloContacts.size === withEmail.length) {
-                        setSelectedAcceloContacts(new Set());
-                      } else {
-                        setSelectedAcceloContacts(new Set(withEmail));
-                      }
+                      const selectable = acceloContacts.filter(c => c.email).map(c => String(c.id));
+                      const allSelected = selectable.length > 0 && selectable.every(id => contactRows[id]?.selected);
+                      setContactRows(prev => {
+                        const next = { ...prev };
+                        selectable.forEach(id => {
+                          const cur = next[id] || { selected: false, primary: false, keyContact: false, addToSite: true };
+                          next[id] = allSelected
+                            ? { ...cur, selected: false, primary: false, keyContact: false }
+                            : { ...cur, selected: true };
+                        });
+                        return next;
+                      });
                     }}
                     data-testid="button-toggle-all-contacts"
                   >
                     <CheckSquare className="h-3.5 w-3.5" />
-                    {selectedAcceloContacts.size === acceloContacts.filter(c => c.email).length ? "Deselect All" : "Select All"}
+                    {acceloContacts.filter(c => c.email).length > 0 &&
+                     acceloContacts.filter(c => c.email).every(c => contactRows[String(c.id)]?.selected)
+                      ? "Deselect All" : "Select All"}
                   </Button>
                 </div>
                 {acceloContacts.map((contact: any) => {
                   const hasEmail = !!contact.email;
                   const contactId = String(contact.id);
-                  const isSelected = selectedAcceloContacts.has(contactId);
+                  const row = contactRows[contactId] || { selected: false, primary: false, keyContact: false, addToSite: true };
                   const fullName = [contact.firstname, contact.lastname].filter(Boolean).join(" ") || "Unknown";
                   return (
-                    <div
-                      key={contactId}
-                      className={`flex items-start gap-3 rounded-md border px-3 py-2.5 transition-colors ${!hasEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted"} ${isSelected ? "border-primary/50 bg-primary/5" : ""}`}
-                      onClick={() => {
-                        if (!hasEmail) return;
-                        const next = new Set(selectedAcceloContacts);
-                        if (isSelected) next.delete(contactId); else next.add(contactId);
-                        setSelectedAcceloContacts(next);
-                      }}
-                      data-testid={`item-accelo-contact-${contactId}`}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        disabled={!hasEmail}
-                        onCheckedChange={(checked) => {
+                    <div key={contactId} data-testid={`item-accelo-contact-${contactId}`}>
+                      {/* Main row */}
+                      <div
+                        className={`flex items-start gap-3 px-3 py-2.5 transition-colors border ${row.selected ? "border-b-0 rounded-t-md border-primary/40 bg-primary/5" : "rounded-md"} ${!hasEmail ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-muted"}`}
+                        onClick={() => {
                           if (!hasEmail) return;
-                          const next = new Set(selectedAcceloContacts);
-                          if (checked) next.add(contactId); else next.delete(contactId);
-                          setSelectedAcceloContacts(next);
+                          setContactRows(prev => {
+                            const cur = prev[contactId] || { selected: false, primary: false, keyContact: false, addToSite: true };
+                            const nowSelected = !cur.selected;
+                            return {
+                              ...prev,
+                              [contactId]: {
+                                ...cur,
+                                selected: nowSelected,
+                                primary: nowSelected ? cur.primary : false,
+                                keyContact: nowSelected ? cur.keyContact : false,
+                              },
+                            };
+                          });
                         }}
-                        className="mt-0.5"
-                        data-testid={`checkbox-accelo-contact-${contactId}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{fullName}</p>
-                        {contact.email ? (
-                          <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
-                        ) : (
-                          <p className="text-xs text-destructive">No email — cannot import</p>
-                        )}
-                        {(contact.phone || contact.mobile) && (
-                          <p className="text-xs text-muted-foreground">
-                            {[contact.phone, contact.mobile].filter(Boolean).join(" / ")}
-                          </p>
-                        )}
+                      >
+                        <Checkbox
+                          checked={row.selected}
+                          disabled={!hasEmail}
+                          onCheckedChange={(checked) => {
+                            if (!hasEmail) return;
+                            setContactRows(prev => {
+                              const cur = prev[contactId] || { selected: false, primary: false, keyContact: false, addToSite: true };
+                              const nowSelected = !!checked;
+                              return {
+                                ...prev,
+                                [contactId]: {
+                                  ...cur,
+                                  selected: nowSelected,
+                                  primary: nowSelected ? cur.primary : false,
+                                  keyContact: nowSelected ? cur.keyContact : false,
+                                },
+                              };
+                            });
+                          }}
+                          className="mt-0.5"
+                          data-testid={`checkbox-accelo-contact-${contactId}`}
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{fullName}</p>
+                          {contact.email
+                            ? <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
+                            : <p className="text-xs text-destructive">No email — cannot import</p>
+                          }
+                          {(contact.phone || contact.mobile) && (
+                            <p className="text-xs text-muted-foreground">
+                              {[contact.phone, contact.mobile].filter(Boolean).join(" / ")}
+                            </p>
+                          )}
+                        </div>
                       </div>
+                      {/* Per-contact options strip (visible when selected) */}
+                      {row.selected && hasEmail && (
+                        <div className="flex items-center gap-2 flex-wrap border border-primary/40 border-t-0 rounded-b-md bg-primary/5 px-3 py-1.5">
+                          {/* Primary contact toggle — single-select across all contacts */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const makePrimary = !row.primary;
+                              setContactRows(prev => {
+                                const next: Record<string, ContactRowState> = {};
+                                Object.keys(prev).forEach(id => {
+                                  next[id] = { ...prev[id], primary: false };
+                                });
+                                if (makePrimary) next[contactId] = { ...next[contactId], primary: true };
+                                return next;
+                              });
+                            }}
+                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors ${row.primary ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" : "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground"}`}
+                            data-testid={`button-primary-${contactId}`}
+                            title="Set as primary contact (only one allowed)"
+                          >
+                            <Star className={`h-3 w-3 ${row.primary ? "fill-amber-500 text-amber-500" : ""}`} />
+                            Primary
+                          </button>
+                          {/* Key contact toggle — multi-select */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setContactRows(prev => ({
+                                ...prev,
+                                [contactId]: { ...prev[contactId], keyContact: !row.keyContact },
+                              }));
+                            }}
+                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors ${row.keyContact ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400" : "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground"}`}
+                            data-testid={`button-key-contact-${contactId}`}
+                            title="Mark as key contact"
+                          >
+                            <Key className={`h-3 w-3 ${row.keyContact ? "text-violet-500" : ""}`} />
+                            Key Contact
+                          </button>
+                          {/* Add to site toggle */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setContactRows(prev => ({
+                                ...prev,
+                                [contactId]: { ...prev[contactId], addToSite: !row.addToSite },
+                              }));
+                            }}
+                            className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors ${row.addToSite ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400" : "border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground"}`}
+                            data-testid={`button-add-to-site-${contactId}`}
+                            title="Assign to the company's first site"
+                          >
+                            <Building2 className="h-3 w-3" />
+                            Add to site
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -2171,25 +2317,37 @@ export default function Companies() {
           </div>
           <div className="px-6 py-4 shrink-0 border-t">
             <DialogFooter className="gap-2">
-              <Button
-                variant="outline"
-                onClick={() => pendingCreatedCompanyId && proceedToRequiredDocs(pendingCreatedCompanyId)}
-                disabled={acceloImportingContacts}
-                data-testid="button-skip-contacts"
-              >
-                Skip
-              </Button>
-              <Button
-                onClick={handleImportAcceloContacts}
-                disabled={selectedAcceloContacts.size === 0 || acceloImportingContacts || acceloContactsLoading}
-                data-testid="button-import-contacts"
-              >
-                {acceloImportingContacts ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</>
-                ) : (
-                  <>Import {selectedAcceloContacts.size > 0 ? `${selectedAcceloContacts.size} ` : ""}Contact{selectedAcceloContacts.size !== 1 ? "s" : ""}</>
-                )}
-              </Button>
+              {acceloImportResults ? (
+                <Button
+                  onClick={() => pendingCreatedCompanyId && proceedToRequiredDocs(pendingCreatedCompanyId)}
+                  data-testid="button-import-done"
+                >
+                  Done
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => pendingCreatedCompanyId && proceedToRequiredDocs(pendingCreatedCompanyId)}
+                    disabled={acceloImportingContacts}
+                    data-testid="button-skip-contacts"
+                  >
+                    Skip
+                  </Button>
+                  <Button
+                    onClick={handleImportAcceloContacts}
+                    disabled={!Object.values(contactRows).some(r => r.selected) || acceloImportingContacts || acceloContactsLoading}
+                    data-testid="button-import-contacts"
+                  >
+                    {acceloImportingContacts ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</>
+                    ) : (() => {
+                      const n = Object.values(contactRows).filter(r => r.selected).length;
+                      return <>Import {n > 0 ? `${n} ` : ""}Contact{n !== 1 ? "s" : ""}</>;
+                    })()}
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </div>
         </DialogContent>

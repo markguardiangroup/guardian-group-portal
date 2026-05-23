@@ -17737,5 +17737,125 @@ export async function registerRoutes(
     }
   });
 
+  // POST /api/integrations/accelo/import-contacts — batch import Accelo contacts as portal users (admin only)
+  app.post("/api/integrations/accelo/import-contacts", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || currentUser.role !== "admin") return res.status(403).json({ error: "Admin only" });
+
+      const schema = z.object({
+        companyId: z.string().min(1),
+        siteId: z.string().nullable().optional(),
+        contacts: z.array(z.object({
+          acceloId: z.string(),
+          firstname: z.string().default(""),
+          lastname: z.string().default(""),
+          email: z.string().email(),
+          phone: z.string().optional().default(""),
+          mobile: z.string().optional().default(""),
+          setAsPrimary: z.boolean().default(false),
+          setAsKeyContact: z.boolean().default(false),
+          addToSite: z.boolean().default(true),
+        })),
+      });
+
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request body" });
+
+      const { companyId, siteId, contacts } = parsed.data;
+      const results: Array<{ acceloId: string; userId?: string; success: boolean; error?: string }> = [];
+
+      for (const contact of contacts) {
+        try {
+          const firstName = contact.firstname.trim();
+          const lastName = contact.lastname.trim();
+          const fullName = [firstName, lastName].filter(Boolean).join(" ") || contact.email.split("@")[0];
+          const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
+            .replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || contact.email.split("@")[0];
+
+          const existingByEmail = await storage.getUserByEmail(contact.email.trim());
+          if (existingByEmail) {
+            results.push({ acceloId: contact.acceloId, success: false, error: "Email already registered" });
+            continue;
+          }
+
+          let username = baseUsername || "user";
+          let suffix = 1;
+          while (await storage.getUserByUsername(username)) {
+            username = `${baseUsername || "user"}${suffix++}`;
+          }
+
+          const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), BCRYPT_SALT_ROUNDS);
+
+          const newUser = await storage.createUser({
+            username,
+            email: contact.email.trim(),
+            fullName,
+            password: placeholderPassword,
+            role: "client",
+            companyId,
+            status: "site_required",
+            consultantTier: null,
+            consultantPermissions: null,
+            clientPermissionRole: "full",
+            title: null,
+            firstName: firstName || null,
+            lastName: lastName || null,
+            jobTitle: null,
+            department: null,
+            phone: contact.phone || null,
+            mobile: contact.mobile || null,
+            preferredContactMethod: "email",
+            notes: null,
+            sources: null,
+          });
+
+          if (contact.addToSite && siteId) {
+            await storage.assignClientToSite({ clientId: newUser.id, siteId });
+            await storage.updateUser(newUser.id, { status: "invite_required" });
+          }
+
+          if (contact.setAsPrimary) {
+            await storage.updateCompany(companyId, { contactUserId: newUser.id });
+          }
+
+          if (contact.setAsKeyContact) {
+            try {
+              await storage.addKeyContact(newUser.id, "company", companyId);
+            } catch {
+              // non-fatal: key contact may already exist or conflict
+            }
+          }
+
+          await storage.createAuditLog({
+            action: "accelo_contact_imported",
+            entityType: "user",
+            entityId: newUser.id,
+            userId: currentUser.id,
+            userName: currentUser.fullName || currentUser.username,
+            details: `Contact "${fullName}" imported from Accelo as portal user (Accelo ID: ${contact.acceloId})`,
+            metadata: {
+              acceloContactId: contact.acceloId,
+              portalUserId: newUser.id,
+              companyId,
+              siteId: siteId || null,
+              setAsPrimary: contact.setAsPrimary,
+              setAsKeyContact: contact.setAsKeyContact,
+            },
+          });
+
+          results.push({ acceloId: contact.acceloId, userId: newUser.id, success: true });
+        } catch (err: any) {
+          results.push({ acceloId: contact.acceloId, success: false, error: err.message || "Unexpected error" });
+        }
+      }
+
+      res.json({ results });
+    } catch (err) {
+      console.error("Accelo import contacts error:", err);
+      res.status(500).json({ error: "Failed to import contacts" });
+    }
+  });
+
   return httpServer;
 }
