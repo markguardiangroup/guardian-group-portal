@@ -17732,7 +17732,7 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
-      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address,custom_id&_limit=20`);
+      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,postal_address(city),custom_id&_limit=20`);
       const results = Array.isArray(data?.response) ? data.response : [];
       res.json(results);
     } catch (err: any) {

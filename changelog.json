@@ -5046,6 +5046,13 @@
           "message": "Fixed: Accelo search no longer returns all companies when a number is typed",
           "category": "bug",
           "createdAt": "2026-05-23T17:20:00.000Z"
+        },
+        {
+          "id": "a9b0c1d2-accelo-search-city-custom-id-2026",
+          "patch": 7,
+          "message": "Fixed: Accelo search results now show city and client number beneath company name",
+          "category": "bug",
+          "createdAt": "2026-05-23T17:30:00.000Z"
         }
       ],
       "publishedPatch": 6,
