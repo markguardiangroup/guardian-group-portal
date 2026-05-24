@@ -331,6 +331,7 @@ export default function Companies() {
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isRequiredDocsOpen, setIsRequiredDocsOpen] = useState(false);
+  const [reqDocsActiveModule, setReqDocsActiveModule] = useState<string>("");
   const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
   const [selectedRequiredIds, setSelectedRequiredIds] = useState<Set<string>>(new Set());
 
@@ -516,6 +517,7 @@ export default function Companies() {
         } else {
           setCreatedCompanyId(data.id);
           setSelectedRequiredIds(new Set());
+          setReqDocsActiveModule("");
           setIsRequiredDocsOpen(true);
         }
       }
@@ -760,6 +762,7 @@ export default function Companies() {
     setPendingCreatedCompanyId(null);
     setCreatedCompanyId(companyId);
     setSelectedRequiredIds(new Set());
+    setReqDocsActiveModule("");
     setIsRequiredDocsOpen(true);
   };
 
@@ -1990,14 +1993,22 @@ export default function Companies() {
                   <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>
                 );
               }
-              const defaultTab = enabledModules[0]?.[0] ?? "health_safety";
+              const isSingleModule = enabledModules.length === 1;
+              const activeModule = isSingleModule
+                ? enabledModules[0][0]
+                : reqDocsActiveModule;
               return (
-                <Tabs defaultValue={defaultTab}>
+                <Tabs value={activeModule} onValueChange={setReqDocsActiveModule}>
                   <TabsList className="mb-4">
                     {enabledModules.map(([mod, { label }]) => (
                       <TabsTrigger key={mod} value={mod} data-testid={`tab-wizard-required-${mod}`}>{label}</TabsTrigger>
                     ))}
                   </TabsList>
+                  {!isSingleModule && !activeModule && (
+                    <p className="text-sm text-muted-foreground py-4 text-center" data-testid="text-req-docs-select-module">
+                      Please select a module above to view its templates.
+                    </p>
+                  )}
                   {enabledModules.map(([mod, { label }]) => {
                     const moduleTemplates = privateTemplates.filter(t => t.module === mod);
                     return (

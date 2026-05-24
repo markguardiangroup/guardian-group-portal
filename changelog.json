@@ -5144,6 +5144,13 @@
           "message": "Fixed: selecting an Accelo company to import no longer crashes with 'detail is not defined'",
           "category": "bug",
           "createdAt": "2026-05-24T19:45:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-req-docs-module-auto-select-2026",
+          "patch": 8,
+          "message": "Set Required Documents: single module auto-selects; multiple modules prompt 'Please select a module' until one is chosen",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T20:05:00.000Z"
         }
       ],
       "publishedPatch": 7,
