@@ -18108,6 +18108,7 @@ export async function registerRoutes(
       const { acceloId } = req.params;
       const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type`);
       const company = data?.response ?? null;
+      console.log(`[Accelo company detail] id=${acceloId} postal_address=${JSON.stringify(company?.postal_address)}`);
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
         try {
           const stateData = await acceloGet(sourceCode, `/states/${company.postal_address.state}`);
