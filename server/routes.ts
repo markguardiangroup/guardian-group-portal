@@ -17620,8 +17620,11 @@ export async function registerRoutes(
         WSX: { county: "West Sussex",     country: "England" },
       };
 
-      // Parse address lines, postcode, county, and country from postal_address.full
-      // e.g. "Office Park, Hatherley Lane, Cheltenham, GL51 6SH, GLS, United Kingdom"
+      // Parse address lines, postcode, county, and country from postal_address.full.
+      // Accelo addresses come in two formats:
+      //   WITH county code:    "Street, City, postcode, GLS, United Kingdom"
+      //   WITHOUT county code: "Street, City, postcode, United Kingdom"
+      // A Chapman code is 2-4 uppercase letters only; anything else is treated as a country name.
       function parseAcceloAddressFull(full: string | null | undefined, city: string | null | undefined) {
         const empty = { addressLine1: null as string | null, addressLine2: null as string | null, postcode: null as string | null, county: null as string | null, country: null as string | null };
         if (!full) return empty;
@@ -17634,14 +17637,19 @@ export async function registerRoutes(
         const addressLine2 = addrParts.slice(1).join(", ") || null;
         const afterParts   = afterCity.split(",").map((p) => p.trim()).filter(Boolean);
         const postcode     = afterParts[0] || null;
-        const countyCode   = (afterParts[1] || "").toUpperCase();
-        const lookup       = ACCELO_COUNTY_LOOKUP[countyCode];
+        // Determine whether afterParts[1] is a Chapman code (2–4 uppercase alpha chars)
+        // or a country name (e.g. "United Kingdom").
+        const secondPart   = afterParts[1] || "";
+        const isChapman    = /^[A-Z]{2,4}$/.test(secondPart.toUpperCase()) && secondPart === secondPart.toUpperCase();
+        const lookup       = isChapman ? ACCELO_COUNTY_LOOKUP[secondPart.toUpperCase()] : undefined;
+        // Country: prefer lookup result, then last part of afterParts, then null
+        const rawCountry   = afterParts[afterParts.length - 1] || null;
         return {
           addressLine1,
           addressLine2,
           postcode,
           county:  lookup?.county  ?? null,
-          country: lookup?.country ?? null,
+          country: lookup?.country ?? rawCountry,
         };
       }
 
