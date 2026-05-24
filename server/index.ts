@@ -450,7 +450,7 @@ process.on("uncaughtException", (err) => {
               const results = Array.isArray(data?.response) ? data.response : [];
               for (const r of results) {
                 const link = batch.find(l => String(l.acceloId) === String(r.id));
-                const acceloType = r.type ? (typeof r.type === "string" ? r.type : r.type?.title ?? null) : null;
+                const acceloType = r.type ? (typeof r.type === "string" ? r.type : r.type?.title ?? null) : (r.standing ?? null);
                 if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null, acceloType });
               }
             } catch (batchErr: any) {

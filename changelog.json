@@ -5186,6 +5186,13 @@
           "message": "Fixed: Accelo type badge no longer shows 'Unknown' when no type is set in Accelo",
           "category": "bug",
           "createdAt": "2026-05-24T21:38:00.000Z"
+        },
+        {
+          "id": "d2e3f4a5-accelo-type-standing-fallback-2026",
+          "patch": 8,
+          "message": "Accelo badge now falls back to standing (e.g. Active) when no company type is set in Accelo",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T21:52:00.000Z"
         }
       ],
       "publishedPatch": 7,

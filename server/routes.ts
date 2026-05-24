@@ -7227,13 +7227,12 @@ export async function registerRoutes(
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type(id,title)`);
           const r = data?.response;
-          console.log(`[accelo-sync] ALL FIELDS for ${link.acceloId}:`, JSON.stringify(r));
           debugSnapshots.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, raw: r });
           const acceloType = r?.type
             ? (typeof r.type === "string" ? r.type : r.type?.title ?? null)
-            : null;
+            : (r?.standing ?? null);
           if (r) {
             await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType);
             updated++;
@@ -7245,7 +7244,7 @@ export async function registerRoutes(
           console.warn(`[accelo-sync] Failed for source=${link.sourceCode} id=${link.acceloId}:`, linkErr.message);
         }
       }
-      res.json({ updated, debug: debugSnapshots });
+      res.json({ updated });
     } catch (err: any) {
       if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) {
         return res.status(503).json({ error: "Accelo not connected for this source" });
@@ -17975,7 +17974,7 @@ export async function registerRoutes(
       try {
         const acceloTypeVal = acceloCompany.type
           ? (typeof acceloCompany.type === "string" ? acceloCompany.type : acceloCompany.type?.title ?? null)
-          : null;
+          : (acceloCompany.standing ?? null);
         await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloTypeVal);
       } catch (linkErr: any) {
         console.warn(`[Accelo push] Failed to upsert accelo link for company ${company.id}:`, linkErr.message);
