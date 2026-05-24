@@ -570,10 +570,10 @@ export interface IStorage {
   removeKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<boolean>;
 
   // Accelo Links
-  upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null): Promise<void>;
+  upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null): Promise<void>;
   getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]>;
   getAcceloLinksForSync(): Promise<CompanyAcceloLink[]>;
-  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null }>): Promise<void>;
+  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null }>): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -5994,15 +5994,16 @@ export class MemStorage implements IStorage {
   }
 
   // Accelo Links
-  async upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null): Promise<void> {
+  async upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null): Promise<void> {
     await pool.query(
-      `INSERT INTO company_accelo_links (company_id, source_code, accelo_id, accelo_standing, last_checked_at)
-       VALUES ($1, $2, $3, $4, now())
+      `INSERT INTO company_accelo_links (company_id, source_code, accelo_id, accelo_standing, accelo_type, last_checked_at)
+       VALUES ($1, $2, $3, $4, $5, now())
        ON CONFLICT (company_id, source_code) DO UPDATE SET
          accelo_id = EXCLUDED.accelo_id,
          accelo_standing = EXCLUDED.accelo_standing,
+         accelo_type = EXCLUDED.accelo_type,
          last_checked_at = now()`,
-      [companyId, sourceCode, acceloId, acceloStanding ?? null]
+      [companyId, sourceCode, acceloId, acceloStanding ?? null, acceloType ?? null]
     );
   }
 
@@ -6014,12 +6015,12 @@ export class MemStorage implements IStorage {
     return db.select().from(companyAcceloLinksTable);
   }
 
-  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null }>): Promise<void> {
+  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null }>): Promise<void> {
     if (updates.length === 0) return;
     for (const u of updates) {
       await pool.query(
-        `UPDATE company_accelo_links SET accelo_standing = $1, last_checked_at = now() WHERE company_id = $2 AND source_code = $3`,
-        [u.acceloStanding, u.companyId, u.sourceCode]
+        `UPDATE company_accelo_links SET accelo_standing = $1, accelo_type = $2, last_checked_at = now() WHERE company_id = $3 AND source_code = $4`,
+        [u.acceloStanding, u.acceloType ?? null, u.companyId, u.sourceCode]
       );
     }
   }

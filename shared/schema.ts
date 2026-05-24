@@ -1858,6 +1858,7 @@ export const companyAcceloLinks = pgTable("company_accelo_links", {
   sourceCode: text("source_code").notNull(),
   acceloId: text("accelo_id").notNull(),
   acceloStanding: text("accelo_standing"),
+  acceloType: text("accelo_type"),
   lastCheckedAt: timestamp("last_checked_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({

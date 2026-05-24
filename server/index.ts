@@ -166,11 +166,13 @@ process.on("uncaughtException", (err) => {
         source_code text NOT NULL,
         accelo_id text NOT NULL,
         accelo_standing text,
+        accelo_type text,
         last_checked_at timestamptz,
         created_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE (company_id, source_code)
       )
     `);
+    await pool.query(`ALTER TABLE company_accelo_links ADD COLUMN IF NOT EXISTS accelo_type text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_notes text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_reference text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS inv_amendments text`);
@@ -444,11 +446,11 @@ process.on("uncaughtException", (err) => {
             const batch = sourceLinks.slice(i, i + BATCH_SIZE);
             const ids = batch.map(l => l.acceloId).join("|");
             try {
-              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing&_limit=${BATCH_SIZE}`);
+              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing,type&_limit=${BATCH_SIZE}`);
               const results = Array.isArray(data?.response) ? data.response : [];
               for (const r of results) {
                 const link = batch.find(l => String(l.acceloId) === String(r.id));
-                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null });
+                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null, acceloType: r.type ?? null });
               }
             } catch (batchErr: any) {
               console.error(`[scheduler] Accelo sync batch error (source=${sourceCode}):`, batchErr.message);

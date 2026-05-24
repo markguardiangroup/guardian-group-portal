@@ -17837,7 +17837,7 @@ export async function registerRoutes(
     let acceloCompany: any;
     let primaryContact: any = null;
     const [companyData, contactsData] = await Promise.all([
-      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing`),
+      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,type`),
       acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
     ]);
     acceloCompany  = companyData?.response;
@@ -17932,7 +17932,7 @@ export async function registerRoutes(
     // Persist / update the Accelo link with standing
     if (company?.id) {
       try {
-        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null);
+        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloCompany.type ?? null);
       } catch (linkErr: any) {
         console.warn(`[Accelo push] Failed to upsert accelo link for company ${company.id}:`, linkErr.message);
       }
@@ -18019,7 +18019,7 @@ export async function registerRoutes(
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
-      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing`);
+      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type`);
       const company = data?.response ?? null;
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
         try {

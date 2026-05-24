@@ -1250,7 +1250,7 @@ export default function CompanyDetail() {
   });
 
   // Fetch Accelo links for this company (admin + consultant only)
-  const { data: acceloLinks = [] } = useQuery<{ id: string; sourceCode: string; acceloId: string; acceloStanding: string | null; lastCheckedAt: string | null }[]>({
+  const { data: acceloLinks = [] } = useQuery<{ id: string; sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; lastCheckedAt: string | null }[]>({
     queryKey: ["/api/companies", companyId, "accelo-links"],
     queryFn: async () => {
       const res = await fetch(`/api/companies/${companyId}/accelo-links`, { credentials: "include" });
@@ -2119,10 +2119,18 @@ export default function CompanyDetail() {
                         const s = (link.acceloStanding ?? "").toLowerCase();
                         const isActive = s === "active";
                         const isInactive = s === "inactive" || s === "prospect" || s === "churned" || s === "lost";
+                        const typeLabel = link.acceloType
+                          ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
+                          : null;
                         return (
                           <div key={link.sourceCode} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`accelo-link-${link.sourceCode}`}>
                             <span className="text-muted-foreground font-mono text-xs">{link.sourceCode}</span>
                             <span className="text-xs text-muted-foreground">#{link.acceloId}</span>
+                            {typeLabel && (
+                              <Badge variant="outline" className="text-xs py-0 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600">
+                                {typeLabel}
+                              </Badge>
+                            )}
                             <Badge
                               variant="outline"
                               className={
