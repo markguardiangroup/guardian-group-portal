@@ -5085,9 +5085,9 @@
         {
           "id": "a1b2c3d4-accelo-address-country-fallback-2026",
           "patch": 7,
-          "message": "Fixed: Accelo import now fills Country when address has no county code",
+          "message": "Fixed: Accelo import now pre-fills Country when address has no county code",
           "category": "bug",
-          "createdAt": "2026-05-23T20:20:00.000Z"
+          "createdAt": "2026-05-24T15:10:00.000Z"
         },
         {
           "id": "f4a5b6c7-accelo-contacts-add-to-site-default-2026",

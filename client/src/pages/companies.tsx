@@ -665,14 +665,19 @@ export default function Companies() {
     const addressLine2 = addrParts.slice(1).join(", ");
     const afterParts = afterCity.split(",").map(p => p.trim()).filter(Boolean);
     const postcode    = afterParts[0] || "";
-    const countyCode  = (afterParts[1] || "").toUpperCase();
-    const lookup      = ACCELO_COUNTY_LOOKUP[countyCode];
+    // afterParts[1] is a Chapman code only if it's 2–4 uppercase letters (e.g. "GLS").
+    // If it's a country name (e.g. "United Kingdom") the lookup returns nothing and
+    // we fall back to reading the last segment as the country directly.
+    const secondPart  = afterParts[1] || "";
+    const isChapman   = /^[A-Z]{2,4}$/.test(secondPart) && secondPart === secondPart.toUpperCase();
+    const lookup      = isChapman ? ACCELO_COUNTY_LOOKUP[secondPart] : undefined;
+    const rawCountry  = afterParts[afterParts.length - 1] || "";
     return {
       addressLine1,
       addressLine2,
       postcode,
       county:  lookup?.county  || "",
-      country: lookup?.country || "",
+      country: lookup?.country || rawCountry,
     };
   };
 
