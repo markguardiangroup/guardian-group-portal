@@ -141,7 +141,8 @@ function CompanyCard({
                       const typeLabel = link.acceloType
                         ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
                         : null;
-                      const badgeStyle = acceloBadgeStyle((link as any).acceloColor);
+                      const acceloColor = (link as any).acceloColor;
+                      const badgeStyle = acceloBadgeStyle(acceloColor);
                       return (
                         <Badge
                           key={link.sourceCode}
@@ -425,7 +426,7 @@ export default function Companies() {
 
   const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
     queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, staffFilter: isProConsultant ? staffFilter : undefined, groupFilter }],
-    staleTime: 60 * 1000,
+    staleTime: 0,
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -1285,7 +1286,8 @@ export default function Companies() {
                               const typeLabel = link.acceloType
                                 ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
                                 : null;
-                              const badgeStyle = acceloBadgeStyle((link as any).acceloColor);
+                              const acceloColorTable = (link as any).acceloColor;
+                              const badgeStyle = acceloBadgeStyle(acceloColorTable);
                               return (
                                 <Badge
                                   key={link.sourceCode}

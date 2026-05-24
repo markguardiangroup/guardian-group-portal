@@ -1118,11 +1118,15 @@ export class MemStorage implements IStorage {
   }
 
   async getCompaniesWithSiteCount(): Promise<CompanyWithSiteCount[]> {
-    const [companies, sites, acceloLinksRaw] = await Promise.all([
+    const [companies, sites, acceloLinksResult] = await Promise.all([
       db.select().from(companiesTable),
       db.select().from(sitesTable),
-      db.select().from(companyAcceloLinksTable),
+      pool.query(`SELECT company_id AS "companyId", source_code AS "sourceCode", accelo_id AS "acceloId",
+                         accelo_type AS "acceloType", accelo_color AS "acceloColor",
+                         last_checked_at AS "lastCheckedAt"
+                  FROM company_accelo_links`),
     ]);
+    const acceloLinksRaw = acceloLinksResult.rows;
     
     // Single pass to count sites per company - O(sites) instead of O(companies * sites)
     const siteCountByCompany = new Map<string, number>();
@@ -6009,11 +6013,26 @@ export class MemStorage implements IStorage {
   }
 
   async getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]> {
-    return db.select().from(companyAcceloLinksTable).where(eq(companyAcceloLinksTable.companyId, companyId));
+    const r = await pool.query(
+      `SELECT id, company_id AS "companyId", source_code AS "sourceCode", accelo_id AS "acceloId",
+              accelo_standing AS "acceloStanding", accelo_type AS "acceloType",
+              accelo_color AS "acceloColor", last_checked_at AS "lastCheckedAt",
+              created_at AS "createdAt"
+       FROM company_accelo_links WHERE company_id = $1`,
+      [companyId]
+    );
+    return r.rows;
   }
 
   async getAcceloLinksForSync(): Promise<CompanyAcceloLink[]> {
-    return db.select().from(companyAcceloLinksTable);
+    const r = await pool.query(
+      `SELECT id, company_id AS "companyId", source_code AS "sourceCode", accelo_id AS "acceloId",
+              accelo_standing AS "acceloStanding", accelo_type AS "acceloType",
+              accelo_color AS "acceloColor", last_checked_at AS "lastCheckedAt",
+              created_at AS "createdAt"
+       FROM company_accelo_links`
+    );
+    return r.rows;
   }
 
   async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void> {

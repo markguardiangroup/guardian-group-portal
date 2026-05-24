@@ -5200,6 +5200,13 @@
           "message": "Accelo status badges now use Accelo's own color scheme (green, blue, red, teal, etc.)",
           "category": "enhancement",
           "createdAt": "2026-05-24T22:00:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-accelo-badge-color-pipeline-fix-2026",
+          "patch": 8,
+          "message": "Fixed: Accelo badge color now reliably reads from the database on every page load",
+          "category": "bug",
+          "createdAt": "2026-05-24T21:59:00.000Z"
         }
       ],
       "publishedPatch": 7,

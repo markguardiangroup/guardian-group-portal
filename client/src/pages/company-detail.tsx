@@ -1275,6 +1275,7 @@ export default function CompanyDetail() {
       return res.json();
     },
     enabled: !!(companyId && (isAdmin || user?.role === "consultant")),
+    staleTime: 0,
   });
 
   // Fetch key contacts for this company (all admins and consultants can view badges; only admin/pro can toggle)
