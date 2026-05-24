@@ -2152,9 +2152,11 @@ export default function CompanyDetail() {
                           <div key={link.sourceCode} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`accelo-link-${link.sourceCode}`}>
                             <span className="text-muted-foreground font-mono text-xs">{link.sourceCode}</span>
                             <span className="text-xs text-muted-foreground">#{link.acceloId}</span>
-                            <Badge variant="outline" className="text-xs py-0 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600">
-                              {typeLabel ?? "Unknown"}
-                            </Badge>
+                            {typeLabel && (
+                              <Badge variant="outline" className="text-xs py-0 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600">
+                                {typeLabel}
+                              </Badge>
+                            )}
                             {link.lastCheckedAt && (
                               <span className="text-xs text-muted-foreground">
                                 checked {new Date(link.lastCheckedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}

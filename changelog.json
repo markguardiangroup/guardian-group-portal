@@ -5179,6 +5179,13 @@
           "message": "Fixed: Accelo sync button now shows a clear error if the source is not connected",
           "category": "bug",
           "createdAt": "2026-05-24T21:10:00.000Z"
+        },
+        {
+          "id": "c1d2e3f4-accelo-type-unknown-badge-hidden-2026",
+          "patch": 8,
+          "message": "Fixed: Accelo type badge no longer shows 'Unknown' when no type is set in Accelo",
+          "category": "bug",
+          "createdAt": "2026-05-24T21:38:00.000Z"
         }
       ],
       "publishedPatch": 7,
@@ -5285,7 +5292,8 @@
         "e1f2a3b4-key-contact-all-levels-2026",
         "f3a4b5c6-key-contact-backfill-site-2026",
         "a9b8c7d6-multi-source-accelo-integrations-2026",
-        "b0c1d2e3-accelo-company-link-daily-sync-2026"
+        "b0c1d2e3-accelo-company-link-daily-sync-2026",
+        "c1d2e3f4-accelo-type-unknown-badge-hidden-2026"
       ]
     }
   ]

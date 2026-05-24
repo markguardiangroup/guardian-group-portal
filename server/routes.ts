@@ -7228,7 +7228,7 @@ export async function registerRoutes(
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
           const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type(id,title)`);
           const r = data?.response;
-          console.log(`[accelo-sync] raw response for ${link.acceloId}:`, JSON.stringify(r));
+          console.log(`[accelo-sync] raw response for ${link.acceloId}: keys=${Object.keys(r||{}).join(",")} data=`, JSON.stringify(r));
           const acceloType = r?.type
             ? (typeof r.type === "string" ? r.type : r.type?.title ?? null)
             : null;
