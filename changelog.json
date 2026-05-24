@@ -5172,6 +5172,13 @@
           "message": "Sync button on company detail page pulls latest Accelo type on demand",
           "category": "enhancement",
           "createdAt": "2026-05-24T20:55:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-accelo-sync-error-message-2026",
+          "patch": 8,
+          "message": "Fixed: Accelo sync button now shows a clear error if the source is not connected",
+          "category": "bug",
+          "createdAt": "2026-05-24T21:10:00.000Z"
         }
       ],
       "publishedPatch": 7,

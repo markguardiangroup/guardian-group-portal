@@ -7233,11 +7233,17 @@ export async function registerRoutes(
             updated++;
           }
         } catch (linkErr: any) {
+          if (linkErr.message?.includes("no tokens stored") || linkErr.message?.includes("not connected")) {
+            throw linkErr;
+          }
           console.warn(`[accelo-sync] Failed for source=${link.sourceCode} id=${link.acceloId}:`, linkErr.message);
         }
       }
       res.json({ updated });
-    } catch (err) {
+    } catch (err: any) {
+      if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) {
+        return res.status(503).json({ error: "Accelo not connected for this source" });
+      }
       console.error("Accelo sync error:", err);
       res.status(500).json({ error: "Failed to sync Accelo data" });
     }

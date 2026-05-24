@@ -1407,15 +1407,18 @@ export default function CompanyDetail() {
   const acceloSyncMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch(`/api/companies/${companyId}/accelo-sync`, { method: "POST", credentials: "include" });
-      if (!res.ok) throw new Error("Sync failed");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error ?? "Sync failed");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "accelo-links"] });
       toast({ title: "Accelo data refreshed" });
     },
-    onError: () => {
-      toast({ title: "Failed to sync Accelo data", variant: "destructive" });
+    onError: (err: Error) => {
+      toast({ title: "Failed to sync Accelo data", description: err.message, variant: "destructive" });
     },
   });
 
