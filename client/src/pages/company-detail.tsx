@@ -2148,7 +2148,7 @@ export default function CompanyDetail() {
                 {(isAdmin || user?.role === "consultant") && acceloLinks.length > 0 && (
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <p className="text-xs text-muted-foreground">Accelo</p>
+                      <p className="text-xs text-muted-foreground">Accelo Status</p>
                       <Button
                         variant="outline"
                         size="sm"
@@ -2178,7 +2178,7 @@ export default function CompanyDetail() {
                             )}
                             {link.lastCheckedAt && (
                               <span className="text-xs text-muted-foreground">
-                                checked {new Date(link.lastCheckedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                                checked {new Date(link.lastCheckedAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </span>
                             )}
                           </div>

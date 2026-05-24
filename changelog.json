@@ -5228,6 +5228,13 @@
           "message": "Sync and Set/Change buttons made smaller to better match the field label size",
           "category": "enhancement",
           "createdAt": "2026-05-24T22:15:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-accelo-status-label-timestamp-2026",
+          "patch": 8,
+          "message": "Accelo section renamed to 'Accelo Status'; last sync now shows date and time",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:20:00.000Z"
         }
       ],
       "publishedPatch": 7,
