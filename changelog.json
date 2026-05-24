@@ -5305,6 +5305,13 @@
           "message": "Pro Consultants can no longer change their own Managed By setting",
           "category": "enhancement",
           "createdAt": "2026-05-24T23:50:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-missing-doc-banners-clickable-2026",
+          "patch": 8,
+          "message": "Missing required document banners are now clickable — opens the upload wizard with the template pre-selected",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T23:55:00.000Z"
         }
       ],
       "publishedPatch": 7,

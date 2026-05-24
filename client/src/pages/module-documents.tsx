@@ -549,6 +549,25 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return siteInCompany?.companyId || null;
   }, [selectedCompany, sites]);
 
+  const getMissingSlotUrl = useCallback((slot: { templateId: string; siteId?: string | null; siteName?: string | null }) => {
+    const params = new URLSearchParams();
+    params.set("templateId", slot.templateId);
+    params.set("module", module);
+    const effectiveSiteId = slot.siteId || (selectedSiteId && selectedSiteId !== "all" ? selectedSiteId : "");
+    if (effectiveSiteId) {
+      params.set("scope", "site");
+      params.set("entityId", effectiveSiteId);
+      params.set("siteId", effectiveSiteId);
+      if (slot.siteName) params.set("entityName", slot.siteName);
+    } else if (urlScope && urlEntityId) {
+      params.set("scope", urlScope);
+      params.set("entityId", urlEntityId);
+      if (urlEntityName) params.set("entityName", urlEntityName);
+    }
+    params.set("returnTo", window.location.pathname + window.location.search);
+    return `/create-from-template?${params.toString()}`;
+  }, [module, selectedSiteId, urlScope, urlEntityId, urlEntityName]);
+
   const getUploadUrl = useCallback((folderId?: string) => {
     const params = new URLSearchParams();
     if (urlScope && urlEntityId) {
@@ -1652,17 +1671,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     const subtitle = urlScope === "group" && affectedSites > 1
                       ? `Required — missing across ${affectedSites} site${affectedSites !== 1 ? "s" : ""}`
                       : "Required — not yet uploaded";
+                    const canUpload = isPrivilegedUser && urlScope !== "group";
                     return (
                       <div
                         key={`missing-${slot.templateId}`}
-                        className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20"
+                        className={`flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 ${canUpload ? "cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors" : ""}`}
                         data-testid={`row-missing-scope-${slot.templateId}`}
+                        onClick={canUpload ? () => navigate(getMissingSlotUrl(slot)) : undefined}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                           <div className="min-w-0">
                             <p className="font-medium text-sm text-amber-800 dark:text-amber-200 truncate">{slot.templateName}</p>
-                            <p className="text-xs text-amber-600 dark:text-amber-400">{subtitle}</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400">{subtitle}{canUpload ? " — click to upload" : ""}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -2066,12 +2087,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                           })}
                                           {/* Missing required slots for child folder — sourced from missingSlots for accuracy */}
                                           {(missingByFolderTemplateId.get(childFolder.id) ?? []).map((slot: any) => (
-                                            <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
+                                            <div key={`${slot.templateId}-${slot.siteId}`} className={`flex items-center justify-between p-2 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors" : ""}`} data-testid={`row-missing-${slot.templateId}-${slot.siteId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                                               <div className="flex items-center gap-3">
                                                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                                                 <div>
                                                   <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                                                 </div>
                                               </div>
                                               <div className="flex items-center gap-2">
@@ -2190,12 +2211,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
                             {/* Missing required document slots — sourced from missingSlots for accuracy */}
                             {(missingByFolderTemplateId.get((folder as any).id) ?? []).map((slot: any) => (
-                              <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
+                              <div key={`${slot.templateId}-${slot.siteId}`} className={`flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors" : ""}`} data-testid={`row-missing-${slot.templateId}-${slot.siteId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                                 <div className="flex items-center gap-3">
                                   <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                                   <div>
                                     <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -2322,12 +2343,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   );
                 })}
                 {(missingByFolderTemplateId.get("__unfiled__") ?? []).map((slot: any) => (
-                  <div key={`${slot.templateId}-${slot.siteId}`} className="flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20" data-testid={`row-missing-${slot.templateId}-${slot.siteId}`}>
+                  <div key={`${slot.templateId}-${slot.siteId}`} className={`flex items-center justify-between p-3 rounded-md border-2 border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors" : ""}`} data-testid={`row-missing-${slot.templateId}-${slot.siteId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <div className="flex items-center gap-3">
                       <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                       <div>
                         <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                        <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -2606,7 +2627,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 })}
                 {/* Missing required document slots — shown only when no active search/status/folder/renewal filters */}
                 {!searchQuery && statusFilter === "all" && folderFilter === "all" && renewalFilter === "all" && tableMissingSlots.map((slot) => (
-                  <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10 border-dashed" data-testid={`row-missing-${slot.templateId}`}>
+                  <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 border-dashed ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30 border-2 border-dashed border-amber-300 dark:border-amber-700">
@@ -2614,7 +2635,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div>
                           <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -2647,7 +2668,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </TableHeader>
               <TableBody>
                 {tableMissingSlots.map((slot) => (
-                  <TableRow key={slot.templateId} className="bg-amber-50/50 dark:bg-amber-950/10" data-testid={`row-missing-${slot.templateId}`}>
+                  <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30 border-2 border-dashed border-amber-300 dark:border-amber-700">
@@ -2655,7 +2676,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div>
                           <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
                       </div>
                     </TableCell>
