@@ -2147,7 +2147,7 @@ export default function CompanyDetail() {
 
                 {(isAdmin || user?.role === "consultant") && acceloLinks.length > 0 && (
                   <div>
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 mb-1">
                       <p className="text-xs text-muted-foreground">Accelo</p>
                       <Button
                         variant="ghost"
@@ -2189,7 +2189,7 @@ export default function CompanyDetail() {
                 )}
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2 mb-1">
                     <p className="text-xs text-muted-foreground">Primary Contact</p>
                     {isAdmin && companyUsers.length > 0 && (
                       <Button

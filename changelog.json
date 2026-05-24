@@ -5207,6 +5207,13 @@
           "message": "Fixed: Accelo badge color now reliably reads from the database on every page load",
           "category": "bug",
           "createdAt": "2026-05-24T21:59:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-accelo-sync-set-buttons-closer-2026",
+          "patch": 8,
+          "message": "Sync and Set buttons on company detail now sit next to their field labels",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:05:00.000Z"
         }
       ],
       "publishedPatch": 7,
