@@ -18106,7 +18106,7 @@ export async function registerRoutes(
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
-      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type`);
+      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type,company_status(id,title,color)`);
       const company = data?.response ?? null;
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
         try {

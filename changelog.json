@@ -5281,7 +5281,7 @@
         {
           "id": "f6a7b8c9-accelo-import-badge-type-color-2026",
           "patch": 8,
-          "message": "Fixed: Accelo status badge now shows correct colour after importing a company",
+          "message": "Fixed: Accelo status badge now shows type and colour immediately after importing a company",
           "category": "bug",
           "createdAt": "2026-05-24T23:25:00.000Z"
         }
