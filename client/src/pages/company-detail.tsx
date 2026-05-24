@@ -1107,6 +1107,23 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
   );
 }
 
+function acceloBadgeColorClass(color: string | null | undefined): string {
+  switch (color?.toLowerCase()) {
+    case "green":    return "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700";
+    case "yellow":   return "bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700";
+    case "pink":     return "bg-pink-100 text-pink-700 border-pink-300 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-700";
+    case "orange":   return "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700";
+    case "teal":     return "bg-teal-100 text-teal-700 border-teal-300 dark:bg-teal-900/30 dark:text-teal-400 dark:border-teal-700";
+    case "purple":   return "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-700";
+    case "red":      return "bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700";
+    case "grey":
+    case "gray":     return "bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-800/30 dark:text-gray-400 dark:border-gray-600";
+    case "blue":     return "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700";
+    case "darkblue": return "bg-indigo-100 text-indigo-700 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-700";
+    default:         return "text-slate-600 border-slate-300 dark:text-slate-300 dark:border-slate-600";
+  }
+}
+
 export default function CompanyDetail() {
   const { companyId } = useParams<{ companyId: string }>();
   const [, navigate] = useLocation();
@@ -1250,7 +1267,7 @@ export default function CompanyDetail() {
   });
 
   // Fetch Accelo links for this company (admin + consultant only)
-  const { data: acceloLinks = [] } = useQuery<{ id: string; sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; lastCheckedAt: string | null }[]>({
+  const { data: acceloLinks = [] } = useQuery<{ id: string; sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; acceloColor: string | null; lastCheckedAt: string | null }[]>({
     queryKey: ["/api/companies", companyId, "accelo-links"],
     queryFn: async () => {
       const res = await fetch(`/api/companies/${companyId}/accelo-links`, { credentials: "include" });
@@ -2148,12 +2165,13 @@ export default function CompanyDetail() {
                         const typeLabel = link.acceloType
                           ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
                           : null;
+                        const colorCls = acceloBadgeColorClass(link.acceloColor);
                         return (
                           <div key={link.sourceCode} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`accelo-link-${link.sourceCode}`}>
                             <span className="text-muted-foreground font-mono text-xs">{link.sourceCode}</span>
                             <span className="text-xs text-muted-foreground">#{link.acceloId}</span>
                             {typeLabel && (
-                              <Badge variant="outline" className="text-xs py-0 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600">
+                              <Badge variant="outline" className={`text-xs py-0 ${colorCls}`}>
                                 {typeLabel}
                               </Badge>
                             )}

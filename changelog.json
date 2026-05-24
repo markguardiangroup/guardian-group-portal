@@ -5193,6 +5193,13 @@
           "message": "Accelo badge now falls back to standing (e.g. Active) when no company type is set in Accelo",
           "category": "enhancement",
           "createdAt": "2026-05-24T21:52:00.000Z"
+        },
+        {
+          "id": "f4a5b6c7-accelo-status-badge-colors-2026",
+          "patch": 8,
+          "message": "Accelo status badges now use Accelo's own color scheme (green, blue, red, teal, etc.)",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:00:00.000Z"
         }
       ],
       "publishedPatch": 7,

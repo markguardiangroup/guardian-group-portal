@@ -570,10 +570,10 @@ export interface IStorage {
   removeKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<boolean>;
 
   // Accelo Links
-  upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null): Promise<void>;
+  upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null, acceloColor?: string | null): Promise<void>;
   getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]>;
   getAcceloLinksForSync(): Promise<CompanyAcceloLink[]>;
-  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null }>): Promise<void>;
+  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -1141,10 +1141,10 @@ export class MemStorage implements IStorage {
     }
 
     // Build accelo links map (one row per company-source)
-    const acceloLinksByCompany = new Map<string, { sourceCode: string; acceloId: string; acceloType: string | null; lastCheckedAt: Date | null }[]>();
+    const acceloLinksByCompany = new Map<string, { sourceCode: string; acceloId: string; acceloType: string | null; acceloColor: string | null; lastCheckedAt: Date | null }[]>();
     for (const link of acceloLinksRaw) {
       const arr = acceloLinksByCompany.get(link.companyId) ?? [];
-      arr.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, acceloType: link.acceloType ?? null, lastCheckedAt: link.lastCheckedAt ?? null });
+      arr.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, acceloType: link.acceloType ?? null, acceloColor: link.acceloColor ?? null, lastCheckedAt: link.lastCheckedAt ?? null });
       acceloLinksByCompany.set(link.companyId, arr);
     }
     
@@ -5994,16 +5994,17 @@ export class MemStorage implements IStorage {
   }
 
   // Accelo Links
-  async upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null): Promise<void> {
+  async upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null, acceloColor?: string | null): Promise<void> {
     await pool.query(
-      `INSERT INTO company_accelo_links (company_id, source_code, accelo_id, accelo_standing, accelo_type, last_checked_at)
-       VALUES ($1, $2, $3, $4, $5, now())
+      `INSERT INTO company_accelo_links (company_id, source_code, accelo_id, accelo_standing, accelo_type, accelo_color, last_checked_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
        ON CONFLICT (company_id, source_code) DO UPDATE SET
          accelo_id = EXCLUDED.accelo_id,
          accelo_standing = EXCLUDED.accelo_standing,
          accelo_type = EXCLUDED.accelo_type,
+         accelo_color = EXCLUDED.accelo_color,
          last_checked_at = now()`,
-      [companyId, sourceCode, acceloId, acceloStanding ?? null, acceloType ?? null]
+      [companyId, sourceCode, acceloId, acceloStanding ?? null, acceloType ?? null, acceloColor ?? null]
     );
   }
 
@@ -6015,12 +6016,12 @@ export class MemStorage implements IStorage {
     return db.select().from(companyAcceloLinksTable);
   }
 
-  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null }>): Promise<void> {
+  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void> {
     if (updates.length === 0) return;
     for (const u of updates) {
       await pool.query(
-        `UPDATE company_accelo_links SET accelo_standing = $1, accelo_type = $2, last_checked_at = now() WHERE company_id = $3 AND source_code = $4`,
-        [u.acceloStanding, u.acceloType ?? null, u.companyId, u.sourceCode]
+        `UPDATE company_accelo_links SET accelo_standing = $1, accelo_type = $2, accelo_color = $3, last_checked_at = now() WHERE company_id = $4 AND source_code = $5`,
+        [u.acceloStanding, u.acceloType ?? null, u.acceloColor ?? null, u.companyId, u.sourceCode]
       );
     }
   }

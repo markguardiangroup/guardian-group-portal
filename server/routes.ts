@@ -7226,14 +7226,15 @@ export async function registerRoutes(
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,company_status(id,title)`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,company_status(id,title,color)`);
           const r = data?.response;
           const rawStatus = r?.company_status;
           const acceloType = rawStatus
             ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
             : null;
+          const acceloColor = rawStatus && typeof rawStatus === "object" ? (rawStatus?.color ?? null) : null;
           if (r) {
-            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType || null);
+            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType || null, acceloColor);
             updated++;
           }
         } catch (linkErr: any) {
@@ -17876,7 +17877,7 @@ export async function registerRoutes(
     let acceloCompany: any;
     let primaryContact: any = null;
     const [companyData, contactsData] = await Promise.all([
-      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,company_status(id,title)`),
+      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,company_status(id,title,color)`),
       acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
     ]);
     acceloCompany  = companyData?.response;
@@ -17975,7 +17976,8 @@ export async function registerRoutes(
         const acceloTypeVal = rawStatus
           ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
           : null;
-        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloTypeVal);
+        const acceloColorVal = rawStatus && typeof rawStatus === "object" ? (rawStatus?.color ?? null) : null;
+        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloTypeVal, acceloColorVal);
       } catch (linkErr: any) {
         console.warn(`[Accelo push] Failed to upsert accelo link for company ${company.id}:`, linkErr.message);
       }

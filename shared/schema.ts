@@ -88,7 +88,7 @@ export type CompanyWithSiteCount = Company & {
   siteCount: number;
   isGroupOwner?: boolean;      // true when other companies reference this as their GO
   groupOwnerName?: string | null; // name of the GO this company belongs to (if any)
-  acceloLinks?: { sourceCode: string; acceloId: string; acceloStanding: string | null; lastCheckedAt: Date | null }[];
+  acceloLinks?: { sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; acceloColor: string | null; lastCheckedAt: Date | null }[];
 };
 
 // Paginated response for companies
@@ -1859,6 +1859,7 @@ export const companyAcceloLinks = pgTable("company_accelo_links", {
   acceloId: text("accelo_id").notNull(),
   acceloStanding: text("accelo_standing"),
   acceloType: text("accelo_type"),
+  acceloColor: text("accelo_color"),
   lastCheckedAt: timestamp("last_checked_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
