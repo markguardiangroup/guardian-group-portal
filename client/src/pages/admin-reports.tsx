@@ -868,7 +868,7 @@ export default function AdminReports() {
                   </div>
                   <div>
                     <p className="font-medium">Accelo Sync Log</p>
-                    <p className="text-sm text-muted-foreground">History of scheduled and manual Accelo syncs</p>
+                    <p className="text-sm text-muted-foreground">History of imports, manual syncs, and scheduled Accelo syncs</p>
                   </div>
                 </div>
                 <Badge variant="secondary">View</Badge>
@@ -1254,7 +1254,7 @@ export default function AdminReports() {
               Accelo Sync Log
             </DialogTitle>
             <DialogDescription>
-              Last 200 scheduled and manual Accelo sync events, most recent first.
+              Last 200 import, manual sync, and scheduled Accelo sync events, most recent first.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end mb-2">
@@ -1301,10 +1301,12 @@ export default function AdminReports() {
                         variant="outline"
                         className={entry.syncType === "scheduled"
                           ? "border-sky-300 text-sky-700 dark:text-sky-400"
+                          : entry.syncType === "import"
+                          ? "border-emerald-300 text-emerald-700 dark:text-emerald-400"
                           : "border-violet-300 text-violet-700 dark:text-violet-400"}
                         data-testid={`badge-sync-type-${entry.id}`}
                       >
-                        {entry.syncType === "scheduled" ? "Scheduled" : "Manual"}
+                        {entry.syncType === "scheduled" ? "Scheduled" : entry.syncType === "import" ? "Import" : "Manual"}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{entry.sourceCode}</TableCell>

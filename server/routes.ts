@@ -7207,6 +7207,18 @@ export async function registerRoutes(
       const { sourceCode, acceloId, acceloStanding, acceloType, acceloColor } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null };
       if (!sourceCode || !acceloId) return res.status(400).json({ error: "Missing sourceCode or acceloId" });
       await storage.upsertAcceloLink(req.params.companyId, String(sourceCode).toUpperCase(), String(acceloId), acceloStanding ?? null, acceloType ?? null, acceloColor ?? null);
+      const importedCompany = await storage.getCompany(req.params.companyId).catch(() => null);
+      await storage.createAcceloSyncLog({
+        syncType: "import",
+        sourceCode: String(sourceCode).toUpperCase(),
+        triggeredBy: user.id,
+        triggeredByName: user.fullName || user.email,
+        companyId: req.params.companyId,
+        companyName: importedCompany?.name ?? null,
+        companiesTotal: 1,
+        companiesUpdated: 1,
+        success: true,
+      }).catch(() => {});
       res.json({ ok: true });
     } catch (err) {
       console.error("Accelo link upsert error:", err);

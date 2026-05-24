@@ -5284,6 +5284,13 @@
           "message": "Fixed: Accelo status badge now shows type and colour immediately after importing a company",
           "category": "bug",
           "createdAt": "2026-05-24T23:25:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-accelo-import-sync-log-entry-2026",
+          "patch": 8,
+          "message": "Accelo Sync Log now records company imports as a separate 'Import' entry",
+          "category": "feature",
+          "createdAt": "2026-05-24T23:35:00.000Z"
         }
       ],
       "publishedPatch": 7,
