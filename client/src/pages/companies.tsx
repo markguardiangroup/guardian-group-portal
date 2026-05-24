@@ -342,8 +342,8 @@ export default function Companies() {
   const [acceloSearchError, setAcceloSearchError] = useState<string | null>(null);
   const [acceloSearched, setAcceloSearched] = useState(false);
   const [acceloSelectingId, setAcceloSelectingId] = useState<string | null>(null);
-  const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string } | null>(null);
-  const acceloImportContextRef = useRef<{ acceloCompanyId: string } | null>(null);
+  const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string; acceloStanding?: string | null } | null>(null);
+  const acceloImportContextRef = useRef<{ acceloCompanyId: string; acceloStanding?: string | null } | null>(null);
   useEffect(() => { acceloImportContextRef.current = acceloImportContext; }, [acceloImportContext]);
   const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
   const [acceloContacts, setAcceloContacts] = useState<any[]>([]);
@@ -480,6 +480,15 @@ export default function Companies() {
       });
       if (data?.id) {
         if (ctx) {
+          // Persist the Accelo link (non-fatal if it fails)
+          try {
+            await fetch(`/api/companies/${data.id}/accelo-link`, {
+              method: "POST",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sourceCode: acceloActiveSource, acceloId: ctx.acceloCompanyId, acceloStanding: ctx.acceloStanding ?? null }),
+            });
+          } catch { /* non-fatal */ }
           // Accelo import flow: show contacts dialog before required docs
           setPendingCreatedCompanyId(data.id);
           setAcceloContacts([]);
@@ -2225,7 +2234,7 @@ export default function Companies() {
                       } finally {
                         setAcceloSelectingId(null);
                       }
-                      setAcceloImportContext({ acceloCompanyId: rid });
+                      setAcceloImportContext({ acceloCompanyId: rid, acceloStanding: detail?.standing ?? null });
                       setIsAcceloSearchOpen(false);
                       setIsAddOpen(true);
                     }}

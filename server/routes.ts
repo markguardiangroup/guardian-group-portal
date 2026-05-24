@@ -7152,17 +7152,65 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/companies/:companyId/accelo-links — admin + consultant only
+  // GET /api/companies/:companyId/accelo-links — admin (unrestricted) + consultant (company-scoped)
   app.get("/api/companies/:companyId/accelo-links", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "admin" && user.role !== "consultant") return res.status(403).json({ error: "Forbidden" });
+
+      if (user.role === "consultant") {
+        const company = await storage.getCompany(req.params.companyId);
+        if (!company) return res.status(404).json({ error: "Company not found" });
+        const mySources = user.sources ?? [];
+        if (isProConsultant(user)) {
+          const directAccess = sourcesOverlap(mySources, company.sources ?? []);
+          if (!directAccess) {
+            if (company.groupOwnerId) {
+              const goEffective = await getEffectiveGoSources(company.groupOwnerId);
+              if (!sourcesOverlap(mySources, goEffective)) return res.status(403).json({ error: "Access denied" });
+            } else {
+              return res.status(403).json({ error: "Access denied" });
+            }
+          }
+        } else {
+          const assignments = await storage.getConsultantSites(user.id);
+          const siteCompanyIds = new Set<string>();
+          for (const a of assignments) {
+            const site = await storage.getSite(a.siteId);
+            if (site) siteCompanyIds.add(site.companyId);
+          }
+          const isDirectlyAssigned = siteCompanyIds.has(company.id) && sourcesOverlap(mySources, company.sources ?? []);
+          let isGoMemberOfAssigned = false;
+          if (company.groupOwnerId) {
+            const goEffective = await getEffectiveGoSources(company.groupOwnerId);
+            isGoMemberOfAssigned = siteCompanyIds.has(company.groupOwnerId) && sourcesOverlap(mySources, goEffective);
+          }
+          if (!isDirectlyAssigned && !isGoMemberOfAssigned) return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
       res.json(links);
     } catch (err) {
       console.error("Accelo links fetch error:", err);
       res.status(500).json({ error: "Failed to fetch Accelo links" });
+    }
+  });
+
+  // POST /api/companies/:companyId/accelo-link — upsert an Accelo link (admin + pro consultant)
+  app.post("/api/companies/:companyId/accelo-link", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role !== "admin" && !isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
+      const { sourceCode, acceloId, acceloStanding } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null };
+      if (!sourceCode || !acceloId) return res.status(400).json({ error: "Missing sourceCode or acceloId" });
+      await storage.upsertAcceloLink(req.params.companyId, String(sourceCode).toUpperCase(), String(acceloId), acceloStanding ?? null);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Accelo link upsert error:", err);
+      res.status(500).json({ error: "Failed to upsert Accelo link" });
     }
   });
 
@@ -17971,7 +18019,7 @@ export async function registerRoutes(
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
-      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state)`);
+      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing`);
       const company = data?.response ?? null;
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
         try {
