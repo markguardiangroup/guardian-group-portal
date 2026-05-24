@@ -5242,6 +5242,13 @@
           "message": "Sync and Set/Change buttons moved to sit inline with their field content",
           "category": "enhancement",
           "createdAt": "2026-05-24T22:25:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-accelo-sync-log-report-2026",
+          "patch": 8,
+          "message": "New Accelo Sync Log report: shows every scheduled and manual sync with result, source, and who triggered it",
+          "category": "feature",
+          "createdAt": "2026-05-24T22:18:00.000Z"
         }
       ],
       "publishedPatch": 7,

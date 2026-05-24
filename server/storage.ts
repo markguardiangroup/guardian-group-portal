@@ -124,6 +124,7 @@ import {
   keyContacts as keyContactsTable,
   type CompanyAcceloLink,
   companyAcceloLinks as companyAcceloLinksTable,
+  type AcceloSyncLog,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db, pool } from "./db";
@@ -574,6 +575,10 @@ export interface IStorage {
   getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]>;
   getAcceloLinksForSync(): Promise<CompanyAcceloLink[]>;
   bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void>;
+
+  // Accelo Sync Logs
+  createAcceloSyncLog(log: { syncType: string; sourceCode: string; triggeredBy: string; triggeredByName: string; companyId?: string | null; companyName?: string | null; companiesTotal: number; companiesUpdated: number; success: boolean; errorMessage?: string | null }): Promise<void>;
+  getAcceloSyncLogs(limit?: number): Promise<AcceloSyncLog[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -6043,6 +6048,27 @@ export class MemStorage implements IStorage {
         [u.acceloStanding, u.acceloType ?? null, u.acceloColor ?? null, u.companyId, u.sourceCode]
       );
     }
+  }
+
+  async createAcceloSyncLog(log: { syncType: string; sourceCode: string; triggeredBy: string; triggeredByName: string; companyId?: string | null; companyName?: string | null; companiesTotal: number; companiesUpdated: number; success: boolean; errorMessage?: string | null }): Promise<void> {
+    await pool.query(
+      `INSERT INTO accelo_sync_logs (sync_type, source_code, triggered_by, triggered_by_name, company_id, company_name, companies_total, companies_updated, success, error_message)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [log.syncType, log.sourceCode, log.triggeredBy, log.triggeredByName, log.companyId ?? null, log.companyName ?? null, log.companiesTotal, log.companiesUpdated, log.success, log.errorMessage ?? null]
+    );
+  }
+
+  async getAcceloSyncLogs(limit = 200): Promise<AcceloSyncLog[]> {
+    const r = await pool.query(
+      `SELECT id, sync_type AS "syncType", source_code AS "sourceCode",
+              triggered_by AS "triggeredBy", triggered_by_name AS "triggeredByName",
+              company_id AS "companyId", company_name AS "companyName",
+              companies_total AS "companiesTotal", companies_updated AS "companiesUpdated",
+              success, error_message AS "errorMessage", synced_at AS "syncedAt"
+       FROM accelo_sync_logs ORDER BY synced_at DESC LIMIT $1`,
+      [limit]
+    );
+    return r.rows;
   }
 
 }

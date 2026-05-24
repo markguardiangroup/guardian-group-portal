@@ -230,6 +230,22 @@ process.on("uncaughtException", (err) => {
       CREATE UNIQUE INDEX IF NOT EXISTS "service_components_parent_component_unique"
         ON "service_components" ("parent_service_id", "component_service_id");
     `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS accelo_sync_logs (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        sync_type text NOT NULL,
+        source_code text NOT NULL,
+        triggered_by text NOT NULL,
+        triggered_by_name text NOT NULL,
+        company_id varchar,
+        company_name text,
+        companies_total integer NOT NULL DEFAULT 0,
+        companies_updated integer NOT NULL DEFAULT 0,
+        success boolean NOT NULL,
+        error_message text,
+        synced_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
   } catch (err) {
     console.error("Startup migration warning (non-fatal):", err);
   }
@@ -462,16 +478,28 @@ process.on("uncaughtException", (err) => {
             }
           }
           if (updates.length > 0) await storage.bulkUpdateAcceloStandings(updates);
-          await storage.createAuditLog({
-            action: "accelo_status_sync",
-            userId: "system",
-            userName: "Scheduled Sync",
-            details: `Accelo standing sync for source ${sourceCode}: ${updates.length}/${sourceLinks.length} companies updated`,
-            metadata: JSON.stringify({ sourceCode, updated: updates.length, total: sourceLinks.length }),
+          await storage.createAcceloSyncLog({
+            syncType: "scheduled",
+            sourceCode,
+            triggeredBy: "system",
+            triggeredByName: "Scheduled Sync",
+            companiesTotal: sourceLinks.length,
+            companiesUpdated: updates.length,
+            success: true,
           });
           console.log(`[scheduler] Accelo sync (source=${sourceCode}): ${updates.length}/${sourceLinks.length} standing(s) updated.`);
         } catch (sourceErr: any) {
           console.error(`[scheduler] Accelo sync source ${sourceCode} error:`, sourceErr.message);
+          await storage.createAcceloSyncLog({
+            syncType: "scheduled",
+            sourceCode,
+            triggeredBy: "system",
+            triggeredByName: "Scheduled Sync",
+            companiesTotal: sourceLinks.length,
+            companiesUpdated: 0,
+            success: false,
+            errorMessage: sourceErr.message,
+          }).catch(() => {});
         }
       }
     } catch (err) {

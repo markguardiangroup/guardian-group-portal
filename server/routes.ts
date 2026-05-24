@@ -7222,7 +7222,9 @@ export async function registerRoutes(
       if (user.role !== "admin" && !isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
       if (links.length === 0) return res.json({ updated: 0 });
+      const company = await storage.getCompany(req.params.companyId);
       let updated = 0;
+      const sourcesSynced = new Set<string>();
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
@@ -7236,13 +7238,39 @@ export async function registerRoutes(
           if (r) {
             await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType || null, acceloColor);
             updated++;
+            sourcesSynced.add(link.sourceCode);
           }
         } catch (linkErr: any) {
           if (linkErr.message?.includes("no tokens stored") || linkErr.message?.includes("not connected")) {
             throw linkErr;
           }
           console.warn(`[accelo-sync] Failed for source=${link.sourceCode} id=${link.acceloId}:`, linkErr.message);
+          await storage.createAcceloSyncLog({
+            syncType: "manual",
+            sourceCode: link.sourceCode,
+            triggeredBy: user.id,
+            triggeredByName: user.fullName || user.email,
+            companyId: req.params.companyId,
+            companyName: company?.name ?? null,
+            companiesTotal: 1,
+            companiesUpdated: 0,
+            success: false,
+            errorMessage: linkErr.message,
+          }).catch(() => {});
         }
+      }
+      for (const sourceCode of sourcesSynced) {
+        await storage.createAcceloSyncLog({
+          syncType: "manual",
+          sourceCode,
+          triggeredBy: user.id,
+          triggeredByName: user.fullName || user.email,
+          companyId: req.params.companyId,
+          companyName: company?.name ?? null,
+          companiesTotal: 1,
+          companiesUpdated: 1,
+          success: true,
+        }).catch(() => {});
       }
       res.json({ updated });
     } catch (err: any) {
@@ -7251,6 +7279,20 @@ export async function registerRoutes(
       }
       console.error("Accelo sync error:", err);
       res.status(500).json({ error: "Failed to sync Accelo data" });
+    }
+  });
+
+  // GET /api/admin/accelo-sync-logs — admin only
+  app.get("/api/admin/accelo-sync-logs", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const limit = Math.min(parseInt(req.query.limit as string || "200", 10), 500);
+      const logs = await storage.getAcceloSyncLogs(limit);
+      res.json(logs);
+    } catch (err) {
+      console.error("Accelo sync logs error:", err);
+      res.status(500).json({ error: "Failed to fetch sync logs" });
     }
   });
 

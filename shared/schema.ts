@@ -1867,3 +1867,20 @@ export const companyAcceloLinks = pgTable("company_accelo_links", {
 }));
 
 export type CompanyAcceloLink = typeof companyAcceloLinks.$inferSelect;
+
+export const acceloSyncLogs = pgTable("accelo_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  syncType: text("sync_type").notNull(),
+  sourceCode: text("source_code").notNull(),
+  triggeredBy: text("triggered_by").notNull(),
+  triggeredByName: text("triggered_by_name").notNull(),
+  companyId: varchar("company_id"),
+  companyName: text("company_name"),
+  companiesTotal: integer("companies_total").notNull().default(0),
+  companiesUpdated: integer("companies_updated").notNull().default(0),
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+  syncedAt: timestamp("synced_at").notNull().defaultNow(),
+});
+
+export type AcceloSyncLog = typeof acceloSyncLogs.$inferSelect;

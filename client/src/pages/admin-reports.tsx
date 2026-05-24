@@ -57,7 +57,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import type { UserRole, Company } from "@shared/schema";
+import type { UserRole, Company, AcceloSyncLog } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -582,6 +582,13 @@ export default function AdminReports() {
     refetchIntervalInBackground: false,
   });
 
+  const [showAcceloSyncLog, setShowAcceloSyncLog] = useState(false);
+  const { data: acceloSyncLogs = [], isLoading: acceloSyncLogsLoading, refetch: refetchAcceloSyncLogs } = useQuery<AcceloSyncLog[]>({
+    queryKey: ["/api/admin/accelo-sync-logs"],
+    enabled: showAcceloSyncLog,
+    staleTime: 0,
+  });
+
   const [showLoginReport, setShowLoginReport] = useState(false);
   type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
   const [loginReportRange, setLoginReportRange] = useState<LoginRangePreset>("today");
@@ -842,6 +849,26 @@ export default function AdminReports() {
                   <div>
                     <p className="font-medium">Email Delivery Log</p>
                     <p className="text-sm text-muted-foreground">Live delivery status from Resend</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">View</Badge>
+              </div>
+            )}
+
+            {/* Accelo Sync Log — admin only */}
+            {isAdmin && (
+              <div
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+                onClick={() => setShowAcceloSyncLog(true)}
+                data-testid="report-accelo-sync-log"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-indigo-500/10">
+                    <RefreshCw className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Accelo Sync Log</p>
+                    <p className="text-sm text-muted-foreground">History of scheduled and manual Accelo syncs</p>
                   </div>
                 </div>
                 <Badge variant="secondary">View</Badge>
@@ -1209,6 +1236,100 @@ export default function AdminReports() {
                     <TableCell className="font-medium">{entry.userName}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {entry.ipAddress || entry.details || "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Accelo Sync Log Dialog */}
+      <Dialog open={showAcceloSyncLog} onOpenChange={setShowAcceloSyncLog}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-indigo-600" />
+              Accelo Sync Log
+            </DialogTitle>
+            <DialogDescription>
+              Last 200 scheduled and manual Accelo sync events, most recent first.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end mb-2">
+            <Button variant="outline" size="sm" onClick={() => refetchAcceloSyncLogs()} data-testid="button-refresh-accelo-sync-log">
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              Refresh
+            </Button>
+          </div>
+          <div className="rounded-md border overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Time</TableHead>
+                  <TableHead className="whitespace-nowrap">Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Source</TableHead>
+                  <TableHead className="whitespace-nowrap">Triggered By</TableHead>
+                  <TableHead className="whitespace-nowrap">Company</TableHead>
+                  <TableHead className="whitespace-nowrap text-center">Updated / Total</TableHead>
+                  <TableHead className="whitespace-nowrap text-center">Result</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {acceloSyncLogsLoading && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground" data-testid="text-accelo-sync-loading">
+                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!acceloSyncLogsLoading && acceloSyncLogs.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground" data-testid="text-no-accelo-sync-logs">
+                      No sync events recorded yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {acceloSyncLogs.map((entry) => (
+                  <TableRow key={entry.id} data-testid={`row-accelo-sync-${entry.id}`}>
+                    <TableCell className="font-mono text-xs whitespace-nowrap">
+                      {entry.syncedAt ? new Date(entry.syncedAt).toLocaleString() : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={entry.syncType === "scheduled"
+                          ? "border-sky-300 text-sky-700 dark:text-sky-400"
+                          : "border-violet-300 text-violet-700 dark:text-violet-400"}
+                        data-testid={`badge-sync-type-${entry.id}`}
+                      >
+                        {entry.syncType === "scheduled" ? "Scheduled" : "Manual"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">{entry.sourceCode}</TableCell>
+                    <TableCell className="text-sm">{entry.triggeredByName}</TableCell>
+                    <TableCell className="text-sm">{entry.companyName || <span className="text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="text-center text-sm tabular-nums">
+                      {entry.companiesUpdated} / {entry.companiesTotal}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {entry.success ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" variant="outline" data-testid={`badge-sync-result-${entry.id}`}>
+                          OK
+                        </Badge>
+                      ) : (
+                        <span className="inline-flex flex-col items-start gap-0.5">
+                          <Badge className="bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800" variant="outline" data-testid={`badge-sync-result-${entry.id}`}>
+                            Error
+                          </Badge>
+                          {entry.errorMessage && (
+                            <span className="text-xs text-muted-foreground max-w-[200px] truncate" title={entry.errorMessage}>
+                              {entry.errorMessage}
+                            </span>
+                          )}
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
