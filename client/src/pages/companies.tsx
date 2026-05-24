@@ -2141,6 +2141,8 @@ export default function Companies() {
                         const full = detail?.postal_address?.full ?? result.postal_address?.full;
                         const city = detail?.postal_address?.city ?? result.postal_address?.city;
                         const addr = parseAcceloAddress(full, city);
+                        // Backend resolves the numeric state ID → county name and returns it as postal_address.county
+                        const resolvedCounty = detail?.postal_address?.county ?? null;
                         setFormData({
                           name: result.name || "",
                           companyNumber: "",
@@ -2152,7 +2154,7 @@ export default function Companies() {
                           addressLine1: addr.addressLine1,
                           addressLine2: addr.addressLine2,
                           city: city || "",
-                          county: addr.county,
+                          county: resolvedCounty || addr.county,
                           postalCode: addr.postcode,
                           country: addr.country,
                           sources: [],

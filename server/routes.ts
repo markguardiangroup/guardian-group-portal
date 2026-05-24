@@ -17796,8 +17796,16 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
       const { acceloId } = req.params;
-      const data = await acceloGet(`/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full)`);
-      res.json(data?.response ?? null);
+      const data = await acceloGet(`/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state)`);
+      const company = data?.response ?? null;
+      // Resolve numeric state ID → county name via Accelo /states endpoint
+      if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
+        try {
+          const stateData = await acceloGet(`/states/${company.postal_address.state}`);
+          company.postal_address.county = stateData?.response?.title ?? null;
+        } catch { /* non-fatal */ }
+      }
+      res.json(company);
     } catch (err: any) {
       if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo company fetch error:", err);
