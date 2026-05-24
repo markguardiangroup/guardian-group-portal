@@ -5221,6 +5221,13 @@
           "message": "Sync and Set/Change buttons now have a visible outline so they look like buttons",
           "category": "enhancement",
           "createdAt": "2026-05-24T22:10:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-accelo-sync-set-buttons-smaller-2026",
+          "patch": 8,
+          "message": "Sync and Set/Change buttons made smaller to better match the field label size",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:15:00.000Z"
         }
       ],
       "publishedPatch": 7,

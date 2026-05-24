@@ -2152,7 +2152,7 @@ export default function CompanyDetail() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 px-2 text-xs"
+                        className="h-5 px-1.5 text-xs"
                         disabled={acceloSyncMutation.isPending}
                         onClick={() => acceloSyncMutation.mutate()}
                         data-testid="button-accelo-sync"
@@ -2195,7 +2195,7 @@ export default function CompanyDetail() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-6 px-2 text-xs"
+                        className="h-5 px-1.5 text-xs"
                         onClick={() => {
                           setSelectedNewContactId(company.contactUserId || "");
                           setChangePrimaryContactOpen(true);
