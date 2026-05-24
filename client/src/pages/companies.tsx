@@ -2236,8 +2236,13 @@ export default function Companies() {
                         const full = detail?.postal_address?.full ?? result.postal_address?.full;
                         const city = detail?.postal_address?.city ?? result.postal_address?.city;
                         const addr = parseAcceloAddress(full, city);
-                        // Backend resolves the numeric state ID → county name and returns it as postal_address.county
-                        const resolvedCounty = detail?.postal_address?.county ?? null;
+                        // Backend resolves numeric state IDs → county name in postal_address.county.
+                        // For text state values (Chapman code or written name) fall back to
+                        // postal_address.state and run it through the Chapman lookup first.
+                        const rawCounty = detail?.postal_address?.county ?? detail?.postal_address?.state ?? null;
+                        const resolvedCounty = rawCounty
+                          ? (ACCELO_COUNTY_LOOKUP[String(rawCounty).toUpperCase().trim()]?.county ?? String(rawCounty).trim())
+                          : null;
                         setFormData({
                           name: result.name || "",
                           companyNumber: "",
