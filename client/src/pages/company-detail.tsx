@@ -2145,9 +2145,8 @@ export default function CompanyDetail() {
                     </div>
                     <div className="space-y-1.5">
                       {acceloLinks.map((link) => {
-                        const rawLabel = link.acceloType || link.acceloStanding;
-                        const typeLabel = rawLabel
-                          ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase()
+                        const typeLabel = link.acceloType
+                          ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
                           : null;
                         return (
                           <div key={link.sourceCode} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`accelo-link-${link.sourceCode}`}>

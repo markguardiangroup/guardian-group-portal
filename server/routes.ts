@@ -7226,14 +7226,15 @@ export async function registerRoutes(
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type(id,title,name)`);
           const r = data?.response;
-          console.log(`[accelo-sync] id=${link.acceloId} standing=${r?.standing} type=${JSON.stringify(r?.type)}`);
-          const acceloType = r?.type
-            ? (typeof r.type === "string" ? r.type : r.type?.title ?? null)
-            : (r?.standing ?? null);
+          require("fs").writeFileSync("/tmp/accelo_sync_debug.json", JSON.stringify({ r, raw: data, ts: new Date().toISOString() }));
+          const rawType = r?.type;
+          const acceloType = rawType
+            ? (typeof rawType === "string" ? rawType : (rawType?.title ?? rawType?.name ?? String(rawType?.id ?? "")))
+            : null;
           if (r) {
-            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType);
+            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType || null);
             updated++;
           }
         } catch (linkErr: any) {
