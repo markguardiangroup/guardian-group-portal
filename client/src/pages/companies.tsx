@@ -357,8 +357,8 @@ export default function Companies() {
   const [acceloSearchError, setAcceloSearchError] = useState<string | null>(null);
   const [acceloSearched, setAcceloSearched] = useState(false);
   const [acceloSelectingId, setAcceloSelectingId] = useState<string | null>(null);
-  const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string; acceloStanding?: string | null } | null>(null);
-  const acceloImportContextRef = useRef<{ acceloCompanyId: string; acceloStanding?: string | null } | null>(null);
+  const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null } | null>(null);
+  const acceloImportContextRef = useRef<{ acceloCompanyId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null } | null>(null);
   useEffect(() => { acceloImportContextRef.current = acceloImportContext; }, [acceloImportContext]);
   const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
   const [acceloContacts, setAcceloContacts] = useState<any[]>([]);
@@ -476,7 +476,6 @@ export default function Companies() {
           }
         }
       }
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       toast({ title: "Company and site created successfully" });
       setIsSiteModalOpen(false);
@@ -495,15 +494,16 @@ export default function Companies() {
       });
       if (data?.id) {
         if (ctx) {
-          // Persist the Accelo link (non-fatal if it fails)
+          // Persist the Accelo link first, then invalidate so the badge appears immediately
           try {
             await fetch(`/api/companies/${data.id}/accelo-link`, {
               method: "POST",
               credentials: "include",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sourceCode: acceloActiveSource, acceloId: ctx.acceloCompanyId, acceloStanding: ctx.acceloStanding ?? null }),
+              body: JSON.stringify({ sourceCode: acceloActiveSource, acceloId: ctx.acceloCompanyId, acceloStanding: ctx.acceloStanding ?? null, acceloType: ctx.acceloType ?? null, acceloColor: ctx.acceloColor ?? null }),
             });
           } catch { /* non-fatal */ }
+          queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
           // Accelo import flow: show contacts dialog before required docs
           setPendingCreatedCompanyId(data.id);
           setAcceloContacts([]);
@@ -529,6 +529,7 @@ export default function Companies() {
             setAcceloContactsLoading(false);
           }
         } else {
+          queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
           setCreatedCompanyId(data.id);
           setSelectedRequiredIds(new Set());
           setReqDocsActiveModule("");
@@ -2255,7 +2256,12 @@ export default function Companies() {
                             ? [acceloActiveSource]
                             : [],
                         });
-                        setAcceloImportContext({ acceloCompanyId: rid, acceloStanding: detail?.standing ?? null });
+                        const rawStatus = detail?.company_status;
+                        const acceloType = rawStatus
+                          ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
+                          : null;
+                        const acceloColor = rawStatus && typeof rawStatus === "object" ? (rawStatus?.color ?? null) : null;
+                        setAcceloImportContext({ acceloCompanyId: rid, acceloStanding: detail?.standing ?? null, acceloType, acceloColor });
                         setIsAcceloSearchOpen(false);
                         setIsAddOpen(true);
                       } finally {
