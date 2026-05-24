@@ -5291,6 +5291,13 @@
           "message": "Accelo Sync Log now records company imports as a separate 'Import' entry",
           "category": "feature",
           "createdAt": "2026-05-24T23:35:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-managed-by-source-filter-2026",
+          "patch": 8,
+          "message": "Managed By list now only shows Pro Consultants from the same source as the consultant being edited",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T23:45:00.000Z"
         }
       ],
       "publishedPatch": 7,

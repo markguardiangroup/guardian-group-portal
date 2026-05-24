@@ -2204,7 +2204,13 @@ export default function UserManagement() {
                           <SelectContent>
                             <SelectItem value="none">Not managed</SelectItem>
                             {usersWithSiteInfo
-                              .filter(u => u.role === "consultant" && u.consultantTier === "pro" && u.id !== editingUser.id)
+                              .filter(u => {
+                                if (u.role !== "consultant" || u.consultantTier !== "pro" || u.id === editingUser.id) return false;
+                                const editingSources: string[] = editFormData.sources || [];
+                                if (editingSources.length === 0) return true;
+                                const managerSources: string[] = u.sources || [];
+                                return editingSources.some(src => managerSources.includes(src));
+                              })
                               .map(u => (
                                 <SelectItem key={u.id} value={u.id} data-testid={`manager-option-${u.id}`}>{u.fullName}</SelectItem>
                               ))
