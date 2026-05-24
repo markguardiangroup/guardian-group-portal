@@ -17256,6 +17256,36 @@ export async function registerRoutes(
       }
 
       const contact = await storage.addKeyContact(userId, entityType, entityId);
+
+      // Propagate: key contact at any level = key contact at all levels.
+      // Resolve the company and all assigned sites for this user, then silently
+      // add key contact entries for every related entity (ignore duplicates / primary-contact conflicts).
+      const tryAdd = async (type: "company" | "site", id: string) => {
+        try { await storage.addKeyContact(userId, type, id); } catch { /* already exists or not applicable */ }
+      };
+
+      const allSiteAssignments = await storage.getClientSites(userId);
+
+      if (entityType === "site") {
+        const site = await storage.getSite(entityId);
+        if (site?.companyId) {
+          await tryAdd("company", site.companyId);
+          // Also propagate to every other site the user is assigned to for this company
+          for (const sa of allSiteAssignments) {
+            if (sa.siteId !== entityId) {
+              const s = await storage.getSite(sa.siteId);
+              if (s?.companyId === site.companyId) await tryAdd("site", sa.siteId);
+            }
+          }
+        }
+      } else {
+        // entityType === "company": propagate to all assigned sites for this company
+        for (const sa of allSiteAssignments) {
+          const s = await storage.getSite(sa.siteId);
+          if (s?.companyId === entityId) await tryAdd("site", sa.siteId);
+        }
+      }
+
       return res.status(201).json(contact);
     } catch (err: any) {
       if (err?.code === "PRIMARY_CONTACT") {
@@ -17287,6 +17317,33 @@ export async function registerRoutes(
 
       const ok = await storage.removeKeyContact(userId, entityType as "company" | "site", entityId);
       if (!ok) return res.status(404).json({ error: "Key contact not found" });
+
+      // Cascade remove: removing at any level removes at all levels.
+      const tryRemove = async (type: "company" | "site", id: string) => {
+        try { await storage.removeKeyContact(userId, type, id); } catch { /* non-fatal */ }
+      };
+
+      const allSiteAssignments = await storage.getClientSites(userId);
+
+      if (entityType === "site") {
+        const site = await storage.getSite(entityId);
+        if (site?.companyId) {
+          await tryRemove("company", site.companyId);
+          for (const sa of allSiteAssignments) {
+            if (sa.siteId !== entityId) {
+              const s = await storage.getSite(sa.siteId);
+              if (s?.companyId === site.companyId) await tryRemove("site", sa.siteId);
+            }
+          }
+        }
+      } else {
+        // entityType === "company": remove from all assigned sites for this company
+        for (const sa of allSiteAssignments) {
+          const s = await storage.getSite(sa.siteId);
+          if (s?.companyId === entityId) await tryRemove("site", sa.siteId);
+        }
+      }
+
       return res.json({ ok: true });
     } catch (err) {
       console.error("Remove key contact error:", err);

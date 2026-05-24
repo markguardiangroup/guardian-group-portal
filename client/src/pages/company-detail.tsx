@@ -1282,8 +1282,7 @@ export default function CompanyDetail() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts"] });
       toast({ title: "Key contact added" });
     },
     onError: async (err: any) => {
@@ -1298,8 +1297,7 @@ export default function CompanyDetail() {
       await apiRequest("DELETE", `/api/key-contacts/${userId}/${entityType}/${entityId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts", "company", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts/user-ids"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/key-contacts"] });
       toast({ title: "Key contact removed" });
     },
     onError: () => {

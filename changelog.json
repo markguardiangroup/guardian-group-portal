@@ -5109,6 +5109,13 @@
           "message": "Fixed: key contacts imported via Accelo now get the Key Contact badge on their site",
           "category": "bug",
           "createdAt": "2026-05-24T15:45:00.000Z"
+        },
+        {
+          "id": "e1f2a3b4-key-contact-all-levels-2026",
+          "patch": 7,
+          "message": "Key contact status now applies at all levels — setting at site updates company and vice versa",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T16:00:00.000Z"
         }
       ],
       "publishedPatch": 6,
