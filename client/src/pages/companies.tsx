@@ -677,7 +677,7 @@ export default function Companies() {
       addressLine2,
       postcode,
       county:  lookup?.county  || "",
-      country: lookup?.country || rawCountry,
+      country: lookup?.country || mapAcceloCountry(rawCountry),
     };
   };
 
