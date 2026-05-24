@@ -2251,7 +2251,9 @@ export default function Companies() {
                           county: resolvedCounty || addr.county,
                           postalCode: addr.postcode,
                           country: addr.country,
-                          sources: [],
+                          sources: availableSources.find(s => s.isActive && s.code === acceloActiveSource)
+                            ? [acceloActiveSource]
+                            : [],
                         });
                         setAcceloImportContext({ acceloCompanyId: rid, acceloStanding: detail?.standing ?? null });
                         setIsAcceloSearchOpen(false);

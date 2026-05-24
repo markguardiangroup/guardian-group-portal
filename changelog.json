@@ -5249,6 +5249,13 @@
           "message": "New Accelo Sync Log report: shows every scheduled and manual sync with result, source, and who triggered it",
           "category": "feature",
           "createdAt": "2026-05-24T22:18:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-accelo-import-auto-source-2026",
+          "patch": 8,
+          "message": "Importing a company from Accelo now auto-selects that Accelo source in the new company form",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:45:00.000Z"
         }
       ],
       "publishedPatch": 7,
