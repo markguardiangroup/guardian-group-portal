@@ -2150,7 +2150,7 @@ export default function CompanyDetail() {
                     <div className="flex items-center gap-2 mb-1">
                       <p className="text-xs text-muted-foreground">Accelo</p>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         className="h-6 px-2 text-xs"
                         disabled={acceloSyncMutation.isPending}
@@ -2193,7 +2193,7 @@ export default function CompanyDetail() {
                     <p className="text-xs text-muted-foreground">Primary Contact</p>
                     {isAdmin && companyUsers.length > 0 && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         className="h-6 px-2 text-xs"
                         onClick={() => {

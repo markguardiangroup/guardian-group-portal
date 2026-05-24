@@ -5214,6 +5214,13 @@
           "message": "Sync and Set buttons on company detail now sit next to their field labels",
           "category": "enhancement",
           "createdAt": "2026-05-24T22:05:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-accelo-sync-set-buttons-outline-2026",
+          "patch": 8,
+          "message": "Sync and Set/Change buttons now have a visible outline so they look like buttons",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:10:00.000Z"
         }
       ],
       "publishedPatch": 7,
