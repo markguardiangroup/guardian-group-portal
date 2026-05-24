@@ -7223,12 +7223,14 @@ export async function registerRoutes(
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
       if (links.length === 0) return res.json({ updated: 0 });
       let updated = 0;
+      const debugSnapshots: any[] = [];
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type(id,title)`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}`);
           const r = data?.response;
-          console.log(`[accelo-sync] raw response for ${link.acceloId}: keys=${Object.keys(r||{}).join(",")} data=`, JSON.stringify(r));
+          console.log(`[accelo-sync] ALL FIELDS for ${link.acceloId}:`, JSON.stringify(r));
+          debugSnapshots.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, raw: r });
           const acceloType = r?.type
             ? (typeof r.type === "string" ? r.type : r.type?.title ?? null)
             : null;
@@ -7243,7 +7245,7 @@ export async function registerRoutes(
           console.warn(`[accelo-sync] Failed for source=${link.sourceCode} id=${link.acceloId}:`, linkErr.message);
         }
       }
-      res.json({ updated });
+      res.json({ updated, debug: debugSnapshots });
     } catch (err: any) {
       if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) {
         return res.status(503).json({ error: "Accelo not connected for this source" });
