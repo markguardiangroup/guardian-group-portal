@@ -1141,10 +1141,10 @@ export class MemStorage implements IStorage {
     }
 
     // Build accelo links map (one row per company-source)
-    const acceloLinksByCompany = new Map<string, { sourceCode: string; acceloId: string; acceloStanding: string | null; lastCheckedAt: Date | null }[]>();
+    const acceloLinksByCompany = new Map<string, { sourceCode: string; acceloId: string; acceloType: string | null; lastCheckedAt: Date | null }[]>();
     for (const link of acceloLinksRaw) {
       const arr = acceloLinksByCompany.get(link.companyId) ?? [];
-      arr.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, acceloStanding: link.acceloStanding ?? null, lastCheckedAt: link.lastCheckedAt ?? null });
+      arr.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, acceloType: link.acceloType ?? null, lastCheckedAt: link.lastCheckedAt ?? null });
       acceloLinksByCompany.set(link.companyId, arr);
     }
     

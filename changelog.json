@@ -5158,6 +5158,13 @@
           "message": "Accelo company type (e.g. Internal, Prospect) now stored and shown alongside standing on the company detail page",
           "category": "enhancement",
           "createdAt": "2026-05-24T20:25:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-accelo-type-only-badge-2026",
+          "patch": 8,
+          "message": "Accelo badges now show type only (e.g. 'Accelo: Internal') — standing removed from all views",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T20:40:00.000Z"
         }
       ],
       "publishedPatch": 7,

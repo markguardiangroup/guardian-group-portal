@@ -2116,9 +2116,6 @@ export default function CompanyDetail() {
                     <p className="text-xs text-muted-foreground mb-1">Accelo</p>
                     <div className="space-y-1.5">
                       {acceloLinks.map((link) => {
-                        const s = (link.acceloStanding ?? "").toLowerCase();
-                        const isActive = s === "active";
-                        const isInactive = s === "inactive" || s === "prospect" || s === "churned" || s === "lost";
                         const typeLabel = link.acceloType
                           ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
                           : null;
@@ -2126,22 +2123,8 @@ export default function CompanyDetail() {
                           <div key={link.sourceCode} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`accelo-link-${link.sourceCode}`}>
                             <span className="text-muted-foreground font-mono text-xs">{link.sourceCode}</span>
                             <span className="text-xs text-muted-foreground">#{link.acceloId}</span>
-                            {typeLabel && (
-                              <Badge variant="outline" className="text-xs py-0 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600">
-                                {typeLabel}
-                              </Badge>
-                            )}
-                            <Badge
-                              variant="outline"
-                              className={
-                                isActive
-                                  ? "text-xs py-0 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
-                                  : isInactive
-                                  ? "text-xs py-0 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
-                                  : "text-xs py-0 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
-                              }
-                            >
-                              {link.acceloStanding ?? "Unknown"}
+                            <Badge variant="outline" className="text-xs py-0 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600">
+                              {typeLabel ?? "Unknown"}
                             </Badge>
                             {link.lastCheckedAt && (
                               <span className="text-xs text-muted-foreground">

@@ -138,23 +138,17 @@ function CompanyCard({
                 {company.acceloLinks && company.acceloLinks.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                     {company.acceloLinks.map((link) => {
-                      const s = (link.acceloStanding ?? "").toLowerCase();
-                      const isActive = s === "active";
-                      const isInactive = s === "inactive" || s === "prospect" || s === "churned" || s === "lost";
+                      const typeLabel = link.acceloType
+                        ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
+                        : null;
                       return (
                         <Badge
                           key={link.sourceCode}
                           variant="outline"
-                          className={
-                            isActive
-                              ? "text-xs py-0 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
-                              : isInactive
-                              ? "text-xs py-0 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
-                              : "text-xs py-0 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
-                          }
+                          className="text-xs py-0 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
                           data-testid={`badge-accelo-${company.id}-${link.sourceCode}`}
                         >
-                          Accelo{link.acceloStanding ? `: ${link.acceloStanding}` : ""}
+                          Accelo{typeLabel ? `: ${typeLabel}` : ""}
                         </Badge>
                       );
                     })}
@@ -1269,23 +1263,17 @@ export default function Companies() {
                         {company.acceloLinks && company.acceloLinks.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                             {company.acceloLinks.map((link) => {
-                              const s = (link.acceloStanding ?? "").toLowerCase();
-                              const isActive = s === "active";
-                              const isInactive = s === "inactive" || s === "prospect" || s === "churned" || s === "lost";
+                              const typeLabel = link.acceloType
+                                ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
+                                : null;
                               return (
                                 <Badge
                                   key={link.sourceCode}
                                   variant="outline"
-                                  className={
-                                    isActive
-                                      ? "text-xs py-0 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
-                                      : isInactive
-                                      ? "text-xs py-0 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
-                                      : "text-xs py-0 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
-                                  }
+                                  className="text-xs py-0 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
                                   data-testid={`badge-accelo-table-${company.id}-${link.sourceCode}`}
                                 >
-                                  Accelo{link.acceloStanding ? `: ${link.acceloStanding}` : ""}
+                                  Accelo{typeLabel ? `: ${typeLabel}` : ""}
                                 </Badge>
                               );
                             })}
