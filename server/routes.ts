@@ -5,12 +5,18 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import {
-  buildAuthUrl,
+  buildAuthUrlFromIntegration,
   exchangeCode,
   saveTokens,
   clearTokens,
   getConnectionStatus,
   acceloGet,
+  getIntegration,
+  listIntegrations,
+  createIntegration,
+  updateIntegration,
+  deleteIntegration,
+  decodeOAuthState,
 } from "./accelo";
 import fs from "fs/promises";
 import { createWriteStream, existsSync } from "fs";
@@ -17546,27 +17552,65 @@ export async function registerRoutes(
 
   // ── Accelo Integration ────────────────────────────────────────────────────────
 
-  // GET /api/integrations/accelo/status — connection status (admin only)
+  // Helper: check if a user can access a given Accelo source
+  function canAccessAcceloSource(user: any, sourceCode: string): boolean {
+    if (user.role === "admin") return true;
+    if (user.role === "consultant" && user.consultantTier === "pro") {
+      const userSources: string[] = Array.isArray(user.sources) ? user.sources : [];
+      return userSources.includes(sourceCode);
+    }
+    return false;
+  }
+
+  // Helper: get the Accelo source codes this user may access (empty array = none)
+  function allowedAcceloSources(user: any): string[] | "all" {
+    if (user.role === "admin") return "all";
+    if (user.role === "consultant" && user.consultantTier === "pro") {
+      return Array.isArray(user.sources) ? user.sources : [];
+    }
+    return [];
+  }
+
+  // GET /api/integrations/accelo/status — per-source connection status
+  // Accessible to: admin (all sources), pro consultant (their sources only)
   app.get("/api/integrations/accelo/status", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const status = await getConnectionStatus();
-      res.json(status);
+      if (!user) return res.status(403).json({ error: "Forbidden" });
+      const allowed = allowedAcceloSources(user);
+      if (allowed !== "all" && allowed.length === 0) return res.status(403).json({ error: "Forbidden" });
+
+      const integrations = await listIntegrations();
+      const filtered = allowed === "all"
+        ? integrations
+        : integrations.filter(i => allowed.includes(i.sourceCode));
+
+      const result = filtered.map(i => ({
+        sourceCode: i.sourceCode,
+        deployment: i.deployment,
+        connected: !!i.accessToken,
+        expiresAt: i.expiresAt ?? null,
+        isActive: i.isActive,
+      }));
+      res.json(result);
     } catch (err) {
       console.error("Accelo status error:", err);
       res.status(500).json({ error: "Failed to get Accelo status" });
     }
   });
 
-  // GET /api/integrations/accelo/connect — start OAuth flow (admin only)
+  // GET /api/integrations/accelo/connect?source=GS — start OAuth flow (admin only)
   app.get("/api/integrations/accelo/connect", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const state = crypto.randomBytes(16).toString("hex");
-      (req.session as any).acceloOAuthState = state;
-      const url = buildAuthUrl(state);
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      const integration = await getIntegration(sourceCode);
+      if (!integration) return res.status(404).json({ error: `No Accelo integration configured for source: ${sourceCode}` });
+      const nonce = crypto.randomBytes(16).toString("hex");
+      const statePayload = Buffer.from(JSON.stringify({ nonce, sourceCode })).toString("base64url");
+      (req.session as any)[`acceloOAuthState_${sourceCode}`] = nonce;
+      const url = buildAuthUrlFromIntegration(integration, statePayload);
       res.json({ url });
     } catch (err) {
       console.error("Accelo connect error:", err);
@@ -17581,38 +17625,46 @@ export async function registerRoutes(
       if (error) {
         return res.redirect(`/admin/integrations/accelo?error=${encodeURIComponent(error)}`);
       }
-      const expectedState = (req.session as any).acceloOAuthState;
-      if (!state || state !== expectedState) {
+      const decoded = decodeOAuthState(state ?? "");
+      if (!decoded) return res.redirect("/admin/integrations/accelo?error=invalid_state");
+      const { nonce, sourceCode } = decoded;
+      const expectedNonce = (req.session as any)[`acceloOAuthState_${sourceCode}`];
+      if (!nonce || nonce !== expectedNonce) {
         return res.redirect("/admin/integrations/accelo?error=invalid_state");
       }
-      delete (req.session as any).acceloOAuthState;
-      const tokens = await exchangeCode(code);
-      await saveTokens(tokens);
-      res.redirect("/admin/integrations/accelo?connected=1");
+      delete (req.session as any)[`acceloOAuthState_${sourceCode}`];
+      const tokens = await exchangeCode(sourceCode, code);
+      await saveTokens(sourceCode, tokens);
+      res.redirect(`/admin/integrations/accelo?connected=1&source=${encodeURIComponent(sourceCode)}`);
     } catch (err) {
       console.error("Accelo OAuth callback error:", err);
       res.redirect("/admin/integrations/accelo?error=token_exchange_failed");
     }
   });
 
-  // GET /api/integrations/accelo/webhook-secret — return webhook secret for display (admin only)
+  // GET /api/integrations/accelo/webhook-secret?source=GS — webhook secret for display (admin only)
   app.get("/api/integrations/accelo/webhook-secret", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const secret = process.env.ACCELO_WEBHOOK_SECRET ?? null;
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      // Per-source secret env var (ACCELO_WEBHOOK_SECRET_GS) or fallback to generic
+      const secret = process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode}`]
+        ?? process.env.ACCELO_WEBHOOK_SECRET
+        ?? null;
       res.json({ secret });
     } catch (err) {
       res.status(500).json({ error: "Failed to retrieve webhook secret" });
     }
   });
 
-  // DELETE /api/integrations/accelo/disconnect — remove stored tokens (admin only)
+  // DELETE /api/integrations/accelo/disconnect?source=GS — remove stored tokens (admin only)
   app.delete("/api/integrations/accelo/disconnect", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      await clearTokens();
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      await clearTokens(sourceCode);
       res.json({ ok: true });
     } catch (err) {
       console.error("Accelo disconnect error:", err);
@@ -17620,10 +17672,16 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/integrations/accelo/push — verification endpoint for Accelo webhook registration
+  // GET /api/integrations/accelo/push — verification (backward-compat, defaults to GS)
   app.get("/api/integrations/accelo/push", (_req, res) => {
-    console.log("[Accelo push] GET verification hit");
+    console.log("[Accelo push] GET verification hit (legacy)");
     res.json({ ok: true, endpoint: "accelo-push" });
+  });
+
+  // GET /api/integrations/accelo/push/:sourceCode — source-scoped verification
+  app.get("/api/integrations/accelo/push/:sourceCode", (req, res) => {
+    console.log(`[Accelo push] GET verification hit (source: ${req.params.sourceCode})`);
+    res.json({ ok: true, endpoint: "accelo-push", sourceCode: req.params.sourceCode });
   });
 
   // POST /api/integrations/accelo/push — Accelo pushes a company (and optionally contacts)
@@ -17710,13 +17768,16 @@ export async function registerRoutes(
         };
       }
 
+      // Source code defaults to 'GS' for the legacy /push endpoint
+      const pushSourceCode = (req as any)._acceloSourceCode ?? "GS";
+
       // Fetch company + primary contact from Accelo in parallel
       let acceloCompany: any;
       let primaryContact: any = null;
       try {
         const [companyData, contactsData] = await Promise.all([
-          acceloGet(`/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
-          acceloGet(`/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
+          acceloGet(pushSourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
+          acceloGet(pushSourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
         ]);
         acceloCompany = companyData?.response;
         primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
@@ -17818,11 +17879,11 @@ export async function registerRoutes(
         action: `accelo_company_${action}`,
         userId: "system",
         userName: "Accelo Integration",
-        details: `Company "${companyName}" ${action} via Accelo push (Accelo ID: ${acceloCompanyId})`,
-        metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id }),
+        details: `Company "${companyName}" ${action} via Accelo push (source: ${pushSourceCode}, Accelo ID: ${acceloCompanyId})`,
+        metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id, sourceCode: pushSourceCode }),
       });
 
-      console.log(`[Accelo push] Company "${companyName}" ${action} (Accelo ID: ${acceloCompanyId})`);
+      console.log(`[Accelo push] Company "${companyName}" ${action} (source: ${pushSourceCode}, Accelo ID: ${acceloCompanyId})`);
       res.status(action === "created" ? 201 : 200).json({ ok: true, action, companyId: company?.id });
     } catch (err) {
       console.error("Accelo push error:", err);
@@ -17830,78 +17891,132 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/integrations/accelo/search?q= — search Accelo companies by name or client number (admin only)
+  // POST /api/integrations/accelo/push/:sourceCode — source-scoped webhook (same logic, different source)
+  app.post("/api/integrations/accelo/push/:sourceCode", async (req, res) => {
+    (req as any)._acceloSourceCode = req.params.sourceCode.toUpperCase();
+    // Delegate to the legacy push handler by re-routing through same logic
+    // We inline a thin wrapper that calls the shared push logic below
+    const sourceCode = (req as any)._acceloSourceCode;
+    console.log(`[Accelo push/:sourceCode] HIT — source=${sourceCode} body:`, JSON.stringify(req.body));
+    try {
+      const schema = z.object({ id: z.string().min(1) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "id is required" });
+      const acceloCompanyId = parsed.data.id;
+      let acceloCompany: any;
+      let primaryContact: any = null;
+      try {
+        const [companyData, contactsData] = await Promise.all([
+          acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
+          acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
+        ]);
+        acceloCompany = companyData?.response;
+        primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
+      } catch (err: any) {
+        return res.status(502).json({ error: "Failed to fetch company from Accelo", detail: err.message });
+      }
+      if (!acceloCompany?.name) return res.status(404).json({ error: "Company not found in Accelo" });
+      const companyName = acceloCompany.name.trim();
+      const contactFullName = primaryContact ? [primaryContact.firstname, primaryContact.surname].filter(Boolean).join(" ") || null : null;
+      const contactEmail = primaryContact?.email || null;
+      const contactPhone = acceloCompany.phone || primaryContact?.phone || primaryContact?.mobile || null;
+      const existingCompanies = await storage.getCompanies();
+      const existing = existingCompanies.find(c => c.name.trim().toLowerCase() === companyName.toLowerCase());
+      let company; let action: "created" | "updated";
+      if (existing) {
+        company = await storage.updateCompany(existing.id, { website: acceloCompany.website || existing.website, contactPhone: contactPhone || existing.contactPhone, contactEmail: contactEmail || existing.contactEmail, contactName: contactFullName || existing.contactName, city: acceloCompany.postal_address?.city || existing.city, internalCompanyNumber: acceloCompany.custom_id || existing.internalCompanyNumber });
+        action = "updated";
+      } else {
+        company = await storage.createCompany({ name: companyName, website: acceloCompany.website || null, contactPhone, contactEmail, contactName: contactFullName, city: acceloCompany.postal_address?.city || null, county: null, country: null, postalCode: null, addressLine1: null, industry: "General", status: "pending" as const, sources: [], companyNumber: null, internalCompanyNumber: acceloCompany.custom_id || null, addressLine2: null, contactPosition: null, contactUserId: null, searchTag: null, employeeRange: null, groupOwnerId: null, healthSafetyAccess: false, humanResourcesAccess: false, employmentLawAccess: false, trainingAccess: false, toolkitAccess: false, supportAccess: false, reportsAccess: false });
+        action = "created";
+      }
+      await storage.createAuditLog({ action: `accelo_company_${action}`, userId: "system", userName: "Accelo Integration", details: `Company "${companyName}" ${action} via Accelo push (source: ${sourceCode}, Accelo ID: ${acceloCompanyId})`, metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id, sourceCode }) });
+      res.status(action === "created" ? 201 : 200).json({ ok: true, action, companyId: company?.id });
+    } catch (err) {
+      console.error(`Accelo push/:sourceCode error:`, err);
+      res.status(500).json({ error: "Failed to process Accelo push" });
+    }
+  });
+
+  // GET /api/integrations/accelo/search?q=&source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/search", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      if (!user) return res.status(403).json({ error: "Forbidden" });
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
-      const data = await acceloGet(`/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
+      const data = await acceloGet(sourceCode, `/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
       const results = Array.isArray(data?.response) ? data.response : [];
       res.json(results);
     } catch (err: any) {
-      if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
+      if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo search error:", err);
       res.status(500).json({ error: "Failed to search Accelo" });
     }
   });
 
-  // GET /api/integrations/accelo/companies/:acceloId — fetch a single Accelo company with full address (admin only)
+  // GET /api/integrations/accelo/companies/:acceloId?source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/companies/:acceloId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      if (!user) return res.status(403).json({ error: "Forbidden" });
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
-      const data = await acceloGet(`/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state)`);
+      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state)`);
       const company = data?.response ?? null;
-      // Resolve numeric state ID → county name via Accelo /states endpoint
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
         try {
-          const stateData = await acceloGet(`/states/${company.postal_address.state}`);
+          const stateData = await acceloGet(sourceCode, `/states/${company.postal_address.state}`);
           company.postal_address.county = stateData?.response?.title ?? null;
         } catch { /* non-fatal */ }
       }
       res.json(company);
     } catch (err: any) {
-      if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
+      if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo company fetch error:", err);
       res.status(500).json({ error: "Failed to fetch Accelo company" });
     }
   });
 
-  // GET /api/integrations/accelo/companies/:acceloId/contacts — contacts for an Accelo company (admin only)
+  // GET /api/integrations/accelo/companies/:acceloId/contacts?source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/companies/:acceloId/contacts", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      if (!user) return res.status(403).json({ error: "Forbidden" });
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
-      // Accelo v0: /companies/:id/contacts returns only the contacts for that company.
       const data = await acceloGet(
-        `/companies/${encodeURIComponent(acceloId)}/contacts` +
-        `?_fields=id,firstname,surname,email,phone,mobile&_limit=100`
+        sourceCode,
+        `/companies/${encodeURIComponent(acceloId)}/contacts?_fields=id,firstname,surname,email,phone,mobile&_limit=100`
       );
       const contacts = Array.isArray(data?.response) ? data.response : [];
-      console.log(`[Accelo contacts] acceloId=${acceloId} count=${contacts.length} sample=${JSON.stringify(contacts.slice(0,2))}`);
+      console.log(`[Accelo contacts] source=${sourceCode} acceloId=${acceloId} count=${contacts.length}`);
       const normalised = contacts.map((c: any) => ({
         ...c,
         lastname: c.surname ?? c.lastname ?? c.last_name ?? "",
       }));
       res.json(normalised);
     } catch (err: any) {
-      if (err.message?.includes("no tokens stored")) return res.status(503).json({ error: "Accelo not connected" });
+      if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) return res.status(503).json({ error: "Accelo not connected" });
       console.error("Accelo contacts error:", err);
       res.status(500).json({ error: "Failed to fetch Accelo contacts" });
     }
   });
 
-  // POST /api/integrations/accelo/import-contacts — batch import Accelo contacts as portal users (admin only)
+  // POST /api/integrations/accelo/import-contacts — admin or pro consultant (source in body)
   app.post("/api/integrations/accelo/import-contacts", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || currentUser.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      if (!currentUser) return res.status(403).json({ error: "Forbidden" });
+      const sourceCode = ((req.body.source as string) ?? "GS").toUpperCase();
+      if (!canAccessAcceloSource(currentUser, sourceCode)) return res.status(403).json({ error: "Forbidden" });
 
       const schema = z.object({
+        source: z.string().optional(),
         companyId: z.string().min(1),
         siteId: z.string().nullable().optional(),
         contacts: z.array(z.object({
@@ -18025,6 +18140,92 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Accelo import contacts error:", err);
       res.status(500).json({ error: "Failed to import contacts" });
+    }
+  });
+
+  // ── Accelo Integrations CRUD (admin only) ─────────────────────────────────────
+
+  // GET /api/admin/accelo-integrations — list all integrations
+  app.get("/api/admin/accelo-integrations", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const integrations = await listIntegrations();
+      res.json(integrations.map(i => ({
+        id: i.id,
+        sourceCode: i.sourceCode,
+        deployment: i.deployment,
+        clientId: i.clientId,
+        connected: !!i.accessToken,
+        expiresAt: i.expiresAt ?? null,
+        isActive: i.isActive,
+        createdAt: i.createdAt,
+      })));
+    } catch (err) {
+      console.error("Accelo integrations list error:", err);
+      res.status(500).json({ error: "Failed to list Accelo integrations" });
+    }
+  });
+
+  // POST /api/admin/accelo-integrations — create a new integration
+  app.post("/api/admin/accelo-integrations", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const schema = z.object({
+        sourceCode: z.string().min(1).max(8).toUpperCase(),
+        deployment: z.string().min(1),
+        clientId: z.string().min(1),
+        clientSecret: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      const integration = await createIntegration(parsed.data);
+      res.status(201).json({ id: integration.id, sourceCode: integration.sourceCode, deployment: integration.deployment, isActive: integration.isActive });
+    } catch (err: any) {
+      if (err.message?.includes("unique") || err.code === "23505") {
+        return res.status(409).json({ error: "An integration for this source already exists" });
+      }
+      console.error("Accelo integration create error:", err);
+      res.status(500).json({ error: "Failed to create Accelo integration" });
+    }
+  });
+
+  // PATCH /api/admin/accelo-integrations/:sourceCode — update an integration
+  app.patch("/api/admin/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { sourceCode } = req.params;
+      const schema = z.object({
+        deployment: z.string().min(1).optional(),
+        clientId: z.string().min(1).optional(),
+        clientSecret: z.string().min(1).optional(),
+        isActive: z.boolean().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      const ok = await updateIntegration(sourceCode.toUpperCase(), parsed.data);
+      if (!ok) return res.status(404).json({ error: "Integration not found" });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Accelo integration update error:", err);
+      res.status(500).json({ error: "Failed to update Accelo integration" });
+    }
+  });
+
+  // DELETE /api/admin/accelo-integrations/:sourceCode — delete an integration
+  app.delete("/api/admin/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const { sourceCode } = req.params;
+      const ok = await deleteIntegration(sourceCode.toUpperCase());
+      if (!ok) return res.status(404).json({ error: "Integration not found" });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Accelo integration delete error:", err);
+      res.status(500).json({ error: "Failed to delete Accelo integration" });
     }
   });
 

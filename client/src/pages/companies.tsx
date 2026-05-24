@@ -463,7 +463,7 @@ export default function Companies() {
           setAcceloContactsLoading(true);
           setIsAcceloContactsOpen(true);
           try {
-            const res = await fetch(`/api/integrations/accelo/companies/${ctx.acceloCompanyId}/contacts`, { credentials: "include" });
+            const res = await fetch(`/api/integrations/accelo/companies/${ctx.acceloCompanyId}/contacts?source=${encodeURIComponent(acceloActiveSource)}`, { credentials: "include" });
             const contacts = await res.json();
             const loaded = Array.isArray(contacts) ? contacts : [];
             setAcceloContacts(loaded);
@@ -550,16 +550,20 @@ export default function Companies() {
     enabled: !!createdCompanyId,
   });
 
-  const { data: acceloStatus } = useQuery<{ connected: boolean }>({
+  interface AcceloIntegrationStatus { sourceCode: string; deployment: string; connected: boolean; expiresAt?: string | null; isActive: boolean; }
+  const { data: acceloIntegrations } = useQuery<AcceloIntegrationStatus[]>({
     queryKey: ["/api/integrations/accelo/status"],
     queryFn: async () => {
       const res = await fetch("/api/integrations/accelo/status", { credentials: "include" });
-      if (!res.ok) return { connected: false };
+      if (!res.ok) return [];
       return res.json();
     },
-    enabled: user?.role === "admin",
+    enabled: user?.role === "admin" || isProConsultant,
     staleTime: 5 * 60 * 1000,
   });
+  const connectedAcceloIntegrations = (acceloIntegrations ?? []).filter(i => i.connected && i.isActive);
+  // Active source for the current search session
+  const [acceloActiveSource, setAcceloActiveSource] = useState<string>("GS");
 
   const { data: newCompanyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
     queryKey: ["/api/companies", createdCompanyId, "module-access"],
@@ -756,6 +760,7 @@ export default function Companies() {
 
     try {
       const res = await apiRequest("POST", "/api/integrations/accelo/import-contacts", {
+        source: acceloActiveSource,
         companyId: pendingCreatedCompanyId,
         siteId: firstSiteId,
         contacts: toImport,
@@ -1054,22 +1059,25 @@ export default function Companies() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && acceloStatus?.connected && (
+          {(isAdmin || isProConsultant) && connectedAcceloIntegrations.map(integration => (
             <Button
+              key={integration.sourceCode}
               size="sm"
               variant="outline"
               onClick={() => {
+                setAcceloActiveSource(integration.sourceCode);
                 setAcceloSearchQuery("");
                 setAcceloSearchResults([]);
                 setAcceloSearchError(null);
                 setIsAcceloSearchOpen(true);
               }}
-              data-testid="button-import-from-accelo"
+              data-testid={`button-import-from-accelo-${integration.sourceCode}`}
             >
               <Download className="mr-2 h-4 w-4" />
               Import from Accelo
+              <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0 h-4">{integration.sourceCode}</Badge>
             </Button>
-          )}
+          ))}
           {canCreateCompany && (
             <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
@@ -2057,6 +2065,7 @@ export default function Companies() {
               <DialogTitle className="flex items-center gap-2">
                 <Download className="h-5 w-5 text-primary" />
                 Import from Accelo
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{acceloActiveSource}</Badge>
               </DialogTitle>
               <DialogDescription>
                 Search for a company in Accelo by name. Selecting a match will open the company wizard pre-filled with their details.
@@ -2077,7 +2086,7 @@ export default function Companies() {
                       setAcceloSearchError(null);
                       setAcceloSearching(true);
                       setAcceloSearchResults([]);
-                      fetch(`/api/integrations/accelo/search?q=${encodeURIComponent(acceloSearchQuery.trim())}`, { credentials: "include" })
+                      fetch(`/api/integrations/accelo/search?source=${encodeURIComponent(acceloActiveSource)}&q=${encodeURIComponent(acceloSearchQuery.trim())}`, { credentials: "include" })
                         .then(r => r.json())
                         .then(d => {
                           if (Array.isArray(d)) setAcceloSearchResults(d);
@@ -2096,7 +2105,7 @@ export default function Companies() {
                   setAcceloSearchError(null);
                   setAcceloSearching(true);
                   setAcceloSearchResults([]);
-                  fetch(`/api/integrations/accelo/search?q=${encodeURIComponent(acceloSearchQuery.trim())}`, { credentials: "include" })
+                  fetch(`/api/integrations/accelo/search?source=${encodeURIComponent(acceloActiveSource)}&q=${encodeURIComponent(acceloSearchQuery.trim())}`, { credentials: "include" })
                     .then(r => r.json())
                     .then(d => {
                       if (Array.isArray(d)) setAcceloSearchResults(d);
@@ -2136,7 +2145,7 @@ export default function Companies() {
                       const rid = String(result.id);
                       setAcceloSelectingId(rid);
                       try {
-                        const res = await fetch(`/api/integrations/accelo/companies/${rid}`, { credentials: "include" });
+                        const res = await fetch(`/api/integrations/accelo/companies/${rid}?source=${encodeURIComponent(acceloActiveSource)}`, { credentials: "include" });
                         const detail = res.ok ? await res.json() : null;
                         const full = detail?.postal_address?.full ?? result.postal_address?.full;
                         const city = detail?.postal_address?.city ?? result.postal_address?.city;

@@ -7,70 +7,312 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Info, Copy, Check, Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Info, Copy, Check, Eye, EyeOff, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
-interface AcceloStatus {
+interface AcceloIntegrationRow {
+  id: string;
+  sourceCode: string;
+  deployment: string;
+  clientId: string;
   connected: boolean;
-  expiresAt?: string;
+  expiresAt?: string | null;
+  isActive: boolean;
+  createdAt: string;
 }
 
 interface WebhookSecretResponse {
   secret: string | null;
 }
 
-export default function AdminAcceloPage() {
-  const { toast } = useToast();
-  const [location] = useLocation();
-  const [copiedUrl, setCopiedUrl] = useState(false);
-  const [secretVisible, setSecretVisible] = useState(false);
+const HOST = "https://guardiangroup.ai";
 
-  const { data: status, isLoading, refetch } = useQuery<AcceloStatus>({
-    queryKey: ["/api/integrations/accelo/status"],
-  });
+function IntegrationCard({
+  integration,
+  onConnect,
+  onDisconnect,
+  onEdit,
+  onDelete,
+  connectPending,
+  disconnectPending,
+}: {
+  integration: AcceloIntegrationRow;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  connectPending: boolean;
+  disconnectPending: boolean;
+}) {
+  const { toast } = useToast();
+  const [secretVisible, setSecretVisible] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
 
   const { data: secretData } = useQuery<WebhookSecretResponse>({
-    queryKey: ["/api/integrations/accelo/webhook-secret"],
+    queryKey: ["/api/integrations/accelo/webhook-secret", integration.sourceCode],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/integrations/accelo/webhook-secret?source=${encodeURIComponent(integration.sourceCode)}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) return { secret: null };
+      return res.json();
+    },
   });
 
   const webhookSecret = secretData?.secret ?? null;
-  const webhookUrl = webhookSecret
-    ? `https://guardiangroup.ai/api/integrations/accelo/push?secret=${webhookSecret}`
-    : "https://guardiangroup.ai/api/integrations/accelo/push";
+  const pushPath = `/api/integrations/accelo/push/${integration.sourceCode.toLowerCase()}`;
+  const webhookUrl = webhookSecret ? `${HOST}${pushPath}?secret=${webhookSecret}` : `${HOST}${pushPath}`;
+  const maskedUrl = webhookSecret ? `${HOST}${pushPath}?secret=${"•".repeat(16)}` : webhookUrl;
 
-  const maskedUrl = webhookSecret
-    ? `https://guardiangroup.ai/api/integrations/accelo/push?secret=${"•".repeat(16)}`
-    : webhookUrl;
+  function copyUrl() {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  }
 
-  const connectMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("GET", "/api/integrations/accelo/connect");
-      return res.json() as Promise<{ url: string }>;
-    },
-    onSuccess: ({ url }) => {
-      window.location.href = url;
-    },
-    onError: () => {
-      toast({ title: "Failed to start connection", variant: "destructive" });
-    },
-  });
+  const expiresAt = integration.expiresAt ? new Date(integration.expiresAt) : null;
+  const isExpired = expiresAt ? expiresAt < new Date() : false;
+  const isLive = integration.connected && !isExpired;
 
-  const disconnectMutation = useMutation({
-    mutationFn: () => apiRequest("DELETE", "/api/integrations/accelo/disconnect"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
-      toast({ title: "Accelo disconnected" });
-    },
-    onError: () => {
-      toast({ title: "Failed to disconnect", variant: "destructive" });
-    },
-  });
+  return (
+    <Card className={!integration.isActive ? "opacity-60" : ""}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">{integration.sourceCode}</CardTitle>
+            <Badge variant="outline" className="text-xs font-mono">{integration.deployment}</Badge>
+            {!integration.isActive && (
+              <Badge variant="secondary" className="text-xs">Inactive</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-integration-${integration.sourceCode}`}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete} data-testid={`button-delete-integration-${integration.sourceCode}`}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Connection status */}
+        <div className="space-y-3">
+          {isLive ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="text-sm font-medium text-green-700 dark:text-green-400">Connected</span>
+                {expiresAt && <span className="text-xs text-muted-foreground">· expires {format(expiresAt, "d MMM yyyy HH:mm")}</span>}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDisconnect}
+                disabled={disconnectPending}
+                data-testid={`button-disconnect-${integration.sourceCode}`}
+              >
+                <Link2Off className="h-3.5 w-3.5 mr-1.5" />
+                {disconnectPending ? "Disconnecting…" : "Disconnect"}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {isExpired ? "Token expired" : "Not connected"}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={onConnect}
+                disabled={connectPending || !integration.isActive}
+                data-testid={`button-connect-${integration.sourceCode}`}
+              >
+                <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                {connectPending ? "Redirecting…" : "Connect"}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Push endpoint */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Push Endpoint</p>
+          <div className="flex items-stretch gap-1.5">
+            <div
+              className="flex-1 rounded-md bg-muted px-3 py-2 font-mono text-xs break-all select-all"
+              data-testid={`text-push-endpoint-${integration.sourceCode}`}
+            >
+              {secretVisible ? webhookUrl : maskedUrl}
+            </div>
+            <div className="flex flex-col gap-1">
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => setSecretVisible(v => !v)} title={secretVisible ? "Hide" : "Reveal"} data-testid={`button-toggle-secret-${integration.sourceCode}`}>
+                {secretVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </Button>
+              <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={copyUrl} title="Copy" data-testid={`button-copy-endpoint-${integration.sourceCode}`}>
+                {copiedUrl ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface IntegrationFormData {
+  sourceCode: string;
+  deployment: string;
+  clientId: string;
+  clientSecret: string;
+}
+
+function IntegrationFormDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  defaultValues,
+  onSubmit,
+  isPending,
+  isEdit,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  title: string;
+  description: string;
+  defaultValues: IntegrationFormData;
+  onSubmit: (data: IntegrationFormData) => void;
+  isPending: boolean;
+  isEdit: boolean;
+}) {
+  const [form, setForm] = useState<IntegrationFormData>(defaultValues);
 
   useEffect(() => {
+    if (open) setForm(defaultValues);
+  }, [open, defaultValues.sourceCode]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSubmit(form);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="sourceCode">Source Code</Label>
+            <Input
+              id="sourceCode"
+              value={form.sourceCode}
+              onChange={e => setForm(f => ({ ...f, sourceCode: e.target.value.toUpperCase() }))}
+              placeholder="GS"
+              maxLength={8}
+              disabled={isEdit}
+              required
+              data-testid="input-accelo-source-code"
+            />
+            <p className="text-xs text-muted-foreground">Short code like GS, ELIA, CQMS — must match the source record.</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="deployment">Deployment</Label>
+            <Input
+              id="deployment"
+              value={form.deployment}
+              onChange={e => setForm(f => ({ ...f, deployment: e.target.value }))}
+              placeholder="guardiansupport"
+              required
+              data-testid="input-accelo-deployment"
+            />
+            <p className="text-xs text-muted-foreground">The subdomain part of your Accelo URL (e.g. <span className="font-mono">guardiansupport</span>.api.accelo.com).</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="clientId">Client ID</Label>
+            <Input
+              id="clientId"
+              value={form.clientId}
+              onChange={e => setForm(f => ({ ...f, clientId: e.target.value }))}
+              required
+              data-testid="input-accelo-client-id"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="clientSecret">Client Secret</Label>
+            <Input
+              id="clientSecret"
+              type="password"
+              value={form.clientSecret}
+              onChange={e => setForm(f => ({ ...f, clientSecret: e.target.value }))}
+              placeholder={isEdit ? "Leave blank to keep existing" : ""}
+              required={!isEdit}
+              data-testid="input-accelo-client-secret"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="submit" disabled={isPending} data-testid="button-save-integration">
+              {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {isEdit ? "Save Changes" : "Add Integration"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function AdminAcceloPage() {
+  const { toast } = useToast();
+  const [location] = useLocation();
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<AcceloIntegrationRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AcceloIntegrationRow | null>(null);
+  const [connectingSource, setConnectingSource] = useState<string | null>(null);
+  const [disconnectingSource, setDisconnectingSource] = useState<string | null>(null);
+
+  const { data: integrations = [], isLoading, refetch } = useQuery<AcceloIntegrationRow[]>({
+    queryKey: ["/api/admin/accelo-integrations"],
+  });
+
+  // Handle OAuth callback redirect params
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const connectedSource = params.get("source");
     if (params.get("connected") === "1") {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
-      toast({ title: "Accelo connected successfully" });
+      toast({ title: `Accelo connected${connectedSource ? ` (${connectedSource})` : ""}` });
       window.history.replaceState({}, "", "/admin/integrations/accelo");
     } else if (params.get("error")) {
       const errMap: Record<string, string> = {
@@ -84,159 +326,208 @@ export default function AdminAcceloPage() {
     }
   }, []);
 
-  const expiresAt = status?.expiresAt ? new Date(status.expiresAt) : null;
-  const isExpired = expiresAt ? expiresAt < new Date() : false;
+  const createMutation = useMutation({
+    mutationFn: (data: IntegrationFormData) => apiRequest("POST", "/api/admin/accelo-integrations", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
+      setAddOpen(false);
+      toast({ title: "Integration added" });
+    },
+    onError: (err: any) => {
+      const msg = err?.message?.includes("409") ? "A source with that code already exists." : "Failed to add integration.";
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
 
-  function copyUrl() {
-    navigator.clipboard.writeText(webhookUrl);
-    setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2000);
+  const updateMutation = useMutation({
+    mutationFn: ({ sourceCode, data }: { sourceCode: string; data: Partial<IntegrationFormData & { isActive: boolean }> }) =>
+      apiRequest("PATCH", `/api/admin/accelo-integrations/${sourceCode}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
+      setEditTarget(null);
+      toast({ title: "Integration updated" });
+    },
+    onError: () => toast({ title: "Failed to update integration", variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (sourceCode: string) => apiRequest("DELETE", `/api/admin/accelo-integrations/${sourceCode}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
+      setDeleteTarget(null);
+      toast({ title: "Integration deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete integration", variant: "destructive" }),
+  });
+
+  async function handleConnect(sourceCode: string) {
+    setConnectingSource(sourceCode);
+    try {
+      const res = await apiRequest("GET", `/api/integrations/accelo/connect?source=${encodeURIComponent(sourceCode)}`);
+      const { url } = await res.json();
+      window.location.href = url;
+    } catch {
+      toast({ title: "Failed to start OAuth flow", variant: "destructive" });
+      setConnectingSource(null);
+    }
   }
 
+  async function handleDisconnect(sourceCode: string) {
+    setDisconnectingSource(sourceCode);
+    try {
+      await apiRequest("DELETE", `/api/integrations/accelo/disconnect?source=${encodeURIComponent(sourceCode)}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
+      toast({ title: `${sourceCode} disconnected` });
+    } catch {
+      toast({ title: "Failed to disconnect", variant: "destructive" });
+    } finally {
+      setDisconnectingSource(null);
+    }
+  }
+
+  function handleToggleActive(integration: AcceloIntegrationRow) {
+    updateMutation.mutate({ sourceCode: integration.sourceCode, data: { isActive: !integration.isActive } });
+  }
+
+  const emptyForm: IntegrationFormData = { sourceCode: "", deployment: "", clientId: "", clientSecret: "" };
+
   return (
-    <div className="space-y-6 p-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Accelo Integration</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Connect your Accelo CRM to push clients directly into the portal.
-        </p>
+    <div className="space-y-6 p-6 max-w-3xl">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Accelo Integrations</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage Accelo CRM integrations. Each source has its own OAuth credentials and push endpoint.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isLoading} data-testid="button-refresh-integrations">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)} data-testid="button-add-integration">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Integration
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Connection Status</CardTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => refetch()}
-              disabled={isLoading}
-              data-testid="button-refresh-accelo-status"
-            >
-              <RefreshCw className="h-4 w-4" />
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-muted-foreground text-sm py-8 justify-center">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Loading integrations…
+        </div>
+      ) : integrations.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <p className="text-sm">No Accelo integrations configured yet.</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => setAddOpen(true)} data-testid="button-add-first-integration">
+              <Plus className="h-4 w-4 mr-2" />
+              Add your first integration
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isLoading ? (
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Checking connection…
-            </div>
-          ) : status?.connected && !isExpired ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="font-medium text-green-700 dark:text-green-400">Connected to Accelo</span>
-                <Badge variant="outline" className="text-green-600 border-green-300">Active</Badge>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {integrations.map(integration => (
+            <div key={integration.sourceCode} className="relative">
+              <div className="absolute top-3 right-16 z-10 flex items-center gap-1.5">
+                <span className="text-xs text-muted-foreground">{integration.isActive ? "Active" : "Disabled"}</span>
+                <Switch
+                  checked={integration.isActive}
+                  onCheckedChange={() => handleToggleActive(integration)}
+                  data-testid={`switch-active-${integration.sourceCode}`}
+                />
               </div>
-              {expiresAt && (
-                <p className="text-sm text-muted-foreground">
-                  Access token expires {format(expiresAt, "d MMM yyyy 'at' HH:mm")}
-                </p>
-              )}
-              <Separator />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => disconnectMutation.mutate()}
-                disabled={disconnectMutation.isPending}
-                data-testid="button-disconnect-accelo"
-              >
-                <Link2Off className="h-4 w-4 mr-2" />
-                {disconnectMutation.isPending ? "Disconnecting…" : "Disconnect"}
-              </Button>
+              <IntegrationCard
+                integration={integration}
+                onConnect={() => handleConnect(integration.sourceCode)}
+                onDisconnect={() => handleDisconnect(integration.sourceCode)}
+                onEdit={() => setEditTarget(integration)}
+                onDelete={() => setDeleteTarget(integration)}
+                connectPending={connectingSource === integration.sourceCode}
+                disconnectPending={disconnectingSource === integration.sourceCode}
+              />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {isExpired ? "Token expired — reconnect to continue" : "Not connected"}
-                </span>
-              </div>
-              <Button
-                onClick={() => connectMutation.mutate()}
-                disabled={connectMutation.isPending}
-                data-testid="button-connect-accelo"
-              >
-                <Link2 className="h-4 w-4 mr-2" />
-                {connectMutation.isPending ? "Redirecting to Accelo…" : "Connect Accelo"}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      )}
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Push Endpoint</CardTitle>
-          <CardDescription>
-            Paste this URL into the <strong>Payload URL</strong> field in Accelo. Leave the Secret field blank — the secret is already embedded in the URL.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-stretch gap-2">
-            <div
-              className="flex-1 rounded-md bg-muted px-4 py-3 font-mono text-sm break-all select-all"
-              data-testid="text-push-endpoint"
-            >
-              {secretVisible ? webhookUrl : maskedUrl}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                onClick={() => setSecretVisible((v) => !v)}
-                title={secretVisible ? "Hide secret" : "Reveal secret"}
-                data-testid="button-toggle-secret-visibility"
-              >
-                {secretVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                onClick={copyUrl}
-                title="Copy URL"
-                data-testid="button-copy-push-endpoint"
-              >
-                {copiedUrl ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-          <div className="rounded-md border bg-background p-4 space-y-2 text-sm">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-              <div className="space-y-1 text-muted-foreground">
-                <p>The request body must include:</p>
-                <pre className="rounded bg-muted px-3 py-2 text-xs mt-1">{`{ "acceloCompanyId": "12345" }`}</pre>
-                <p className="mt-1">
-                  The portal will look up the company in Accelo, then create or update it here.
-                  New companies are created with <strong>pending</strong> status — an admin must
-                  activate them and configure module access.
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* How it works */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">How it works</CardTitle>
         </CardHeader>
         <CardContent>
           <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-            <li>Connect your Accelo account above using OAuth.</li>
-            <li>In Accelo, configure a webhook pointing to the push endpoint URL above (Secret field can be left blank).</li>
-            <li>When triggered, Accelo sends the company ID to the portal.</li>
-            <li>The portal looks up the company in Accelo and creates it (or updates it if it already exists).</li>
-            <li>New companies are created with <strong className="text-foreground">pending</strong> status — assign module access and activate from the Companies page.</li>
+            <li>Add an integration above with the source code, Accelo deployment, client ID, and client secret.</li>
+            <li>Connect each integration via OAuth — this authorises the portal to query that Accelo account.</li>
+            <li>In Accelo, paste the push endpoint URL into a webhook pointing at the portal.</li>
+            <li>When triggered, Accelo sends a company ID — the portal looks it up and creates or updates the company.</li>
+            <li>New companies arrive with <strong className="text-foreground">pending</strong> status and need module access assigned.</li>
           </ol>
         </CardContent>
       </Card>
+
+      {/* Add dialog */}
+      <IntegrationFormDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        title="Add Accelo Integration"
+        description="Configure a new Accelo source with its OAuth credentials."
+        defaultValues={emptyForm}
+        onSubmit={data => createMutation.mutate(data)}
+        isPending={createMutation.isPending}
+        isEdit={false}
+      />
+
+      {/* Edit dialog */}
+      {editTarget && (
+        <IntegrationFormDialog
+          open={!!editTarget}
+          onOpenChange={v => { if (!v) setEditTarget(null); }}
+          title={`Edit ${editTarget.sourceCode}`}
+          description="Update the credentials for this Accelo integration."
+          defaultValues={{
+            sourceCode: editTarget.sourceCode,
+            deployment: editTarget.deployment,
+            clientId: editTarget.clientId,
+            clientSecret: "",
+          }}
+          onSubmit={data => {
+            const payload: any = { deployment: data.deployment, clientId: data.clientId };
+            if (data.clientSecret) payload.clientSecret = data.clientSecret;
+            updateMutation.mutate({ sourceCode: editTarget.sourceCode, data: payload });
+          }}
+          isPending={updateMutation.isPending}
+          isEdit={true}
+        />
+      )}
+
+      {/* Delete confirm */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {deleteTarget?.sourceCode}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the integration and its stored tokens. Any existing Accelo webhooks pointing at this source will stop working.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.sourceCode)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-integration"
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
