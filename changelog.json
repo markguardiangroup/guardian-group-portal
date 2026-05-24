@@ -5116,6 +5116,13 @@
           "message": "Key contact status now applies at all levels — setting at site updates company and vice versa",
           "category": "enhancement",
           "createdAt": "2026-05-24T16:00:00.000Z"
+        },
+        {
+          "id": "f3a4b5c6-key-contact-backfill-site-2026",
+          "patch": 7,
+          "message": "Fixed: existing key contacts now show the badge on their assigned sites",
+          "category": "bug",
+          "createdAt": "2026-05-24T16:10:00.000Z"
         }
       ],
       "publishedPatch": 6,
