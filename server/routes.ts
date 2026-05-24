@@ -7204,9 +7204,9 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "admin" && !isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
-      const { sourceCode, acceloId, acceloStanding } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null };
+      const { sourceCode, acceloId, acceloStanding, acceloType, acceloColor } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null };
       if (!sourceCode || !acceloId) return res.status(400).json({ error: "Missing sourceCode or acceloId" });
-      await storage.upsertAcceloLink(req.params.companyId, String(sourceCode).toUpperCase(), String(acceloId), acceloStanding ?? null);
+      await storage.upsertAcceloLink(req.params.companyId, String(sourceCode).toUpperCase(), String(acceloId), acceloStanding ?? null, acceloType ?? null, acceloColor ?? null);
       res.json({ ok: true });
     } catch (err) {
       console.error("Accelo link upsert error:", err);

@@ -5277,6 +5277,13 @@
           "message": "Fixed: 'City of London' now populates correctly when importing from Accelo",
           "category": "bug",
           "createdAt": "2026-05-24T23:15:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-accelo-import-badge-type-color-2026",
+          "patch": 8,
+          "message": "Fixed: Accelo status badge now shows correct colour after importing a company",
+          "category": "bug",
+          "createdAt": "2026-05-24T23:25:00.000Z"
         }
       ],
       "publishedPatch": 7,
