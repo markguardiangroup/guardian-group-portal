@@ -326,3 +326,15 @@ export function decodeOAuthState(statePayload: string): { nonce: string; sourceC
     return null;
   }
 }
+
+// Return a code→label map from the sources table (empty string if source not found)
+export async function getSourceLabels(): Promise<Record<string, string>> {
+  try {
+    const result = await pool.query(`SELECT code, label FROM sources`);
+    const map: Record<string, string> = {};
+    result.rows.forEach((r: any) => { map[r.code] = r.label; });
+    return map;
+  } catch {
+    return {};
+  }
+}

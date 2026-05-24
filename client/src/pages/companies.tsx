@@ -550,7 +550,7 @@ export default function Companies() {
     enabled: !!createdCompanyId,
   });
 
-  interface AcceloIntegrationStatus { sourceCode: string; deployment: string; connected: boolean; expiresAt?: string | null; isActive: boolean; }
+  interface AcceloIntegrationStatus { sourceCode: string; sourceLabel: string; deployment: string; connected: boolean; expiresAt?: string | null; isActive: boolean; }
   const { data: acceloIntegrations } = useQuery<AcceloIntegrationStatus[]>({
     queryKey: ["/api/integrations/accelo/status"],
     queryFn: async () => {
@@ -1075,7 +1075,9 @@ export default function Companies() {
             >
               <Download className="mr-2 h-4 w-4" />
               Import from Accelo
-              <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0 h-4">{integration.sourceCode}</Badge>
+              <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0 h-4">
+                {integration.sourceLabel && integration.sourceLabel !== integration.sourceCode ? integration.sourceLabel : integration.sourceCode}
+              </Badge>
             </Button>
           ))}
           {canCreateCompany && (
@@ -2065,7 +2067,9 @@ export default function Companies() {
               <DialogTitle className="flex items-center gap-2">
                 <Download className="h-5 w-5 text-primary" />
                 Import from Accelo
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{acceloActiveSource}</Badge>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  {(connectedAcceloIntegrations.find(i => i.sourceCode === acceloActiveSource)?.sourceLabel ?? acceloActiveSource)}
+                </Badge>
               </DialogTitle>
               <DialogDescription>
                 Search for a company in Accelo by name. Selecting a match will open the company wizard pre-filled with their details.

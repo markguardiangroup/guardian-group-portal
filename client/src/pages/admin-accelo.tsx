@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -28,18 +35,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Info, Copy, Check, Eye, EyeOff, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Copy, Check, Eye, EyeOff, Plus, Pencil, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 
 interface AcceloIntegrationRow {
   id: string;
   sourceCode: string;
+  sourceLabel: string;
   deployment: string;
   clientId: string;
   connected: boolean;
   expiresAt?: string | null;
   isActive: boolean;
   createdAt: string;
+}
+
+interface Source {
+  id: string;
+  code: string;
+  label: string;
 }
 
 interface WebhookSecretResponse {
@@ -96,18 +110,22 @@ function IntegrationCard({
   const isExpired = expiresAt ? expiresAt < new Date() : false;
   const isLive = integration.connected && !isExpired;
 
+  const displayTitle = integration.sourceLabel && integration.sourceLabel !== integration.sourceCode
+    ? integration.sourceLabel
+    : integration.sourceCode;
+
   return (
     <Card className={!integration.isActive ? "opacity-60" : ""}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-base">{integration.sourceCode}</CardTitle>
-            <Badge variant="outline" className="text-xs font-mono">{integration.deployment}</Badge>
+          <div className="flex items-center gap-2 min-w-0">
+            <CardTitle className="text-base truncate">{displayTitle}</CardTitle>
+            <Badge variant="outline" className="text-xs font-mono shrink-0">{integration.sourceCode}</Badge>
             {!integration.isActive && (
-              <Badge variant="secondary" className="text-xs">Inactive</Badge>
+              <Badge variant="secondary" className="text-xs shrink-0">Inactive</Badge>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-integration-${integration.sourceCode}`}>
               <Pencil className="h-3.5 w-3.5" />
             </Button>
@@ -118,7 +136,6 @@ function IntegrationCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Connection status */}
         <div className="space-y-3">
           {isLive ? (
             <div className="space-y-2">
@@ -161,7 +178,6 @@ function IntegrationCard({
 
         <Separator />
 
-        {/* Push endpoint */}
         <div className="space-y-1.5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Push Endpoint</p>
           <div className="flex items-stretch gap-1.5">
@@ -202,6 +218,7 @@ function IntegrationFormDialog({
   onSubmit,
   isPending,
   isEdit,
+  sources,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -211,6 +228,7 @@ function IntegrationFormDialog({
   onSubmit: (data: IntegrationFormData) => void;
   isPending: boolean;
   isEdit: boolean;
+  sources: Source[];
 }) {
   const [form, setForm] = useState<IntegrationFormData>(defaultValues);
 
@@ -223,6 +241,9 @@ function IntegrationFormDialog({
     onSubmit(form);
   }
 
+  const existingCodes = new Set<string>();
+  const availableSources = sources.filter(s => !existingCodes.has(s.code));
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px]">
@@ -232,18 +253,43 @@ function IntegrationFormDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="sourceCode">Source Code</Label>
-            <Input
-              id="sourceCode"
-              value={form.sourceCode}
-              onChange={e => setForm(f => ({ ...f, sourceCode: e.target.value.toUpperCase() }))}
-              placeholder="GS"
-              maxLength={8}
-              disabled={isEdit}
-              required
-              data-testid="input-accelo-source-code"
-            />
-            <p className="text-xs text-muted-foreground">Short code like GS, ELIA, CQMS — must match the source record.</p>
+            <Label htmlFor="sourceCode">Source</Label>
+            {isEdit ? (
+              <Input
+                id="sourceCode"
+                value={form.sourceCode}
+                disabled
+                data-testid="input-accelo-source-code"
+              />
+            ) : sources.length > 0 ? (
+              <Select
+                value={form.sourceCode}
+                onValueChange={val => setForm(f => ({ ...f, sourceCode: val }))}
+                required
+              >
+                <SelectTrigger id="sourceCode" data-testid="select-accelo-source-code">
+                  <SelectValue placeholder="Select a source…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sources.map(s => (
+                    <SelectItem key={s.code} value={s.code}>
+                      {s.label} <span className="text-muted-foreground font-mono text-xs ml-1">({s.code})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="sourceCode"
+                value={form.sourceCode}
+                onChange={e => setForm(f => ({ ...f, sourceCode: e.target.value.toUpperCase() }))}
+                placeholder="GS"
+                maxLength={8}
+                required
+                data-testid="input-accelo-source-code"
+              />
+            )}
+            <p className="text-xs text-muted-foreground">The source this integration belongs to.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="deployment">Deployment</Label>
@@ -281,7 +327,7 @@ function IntegrationFormDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" disabled={isPending} data-testid="button-save-integration">
+            <Button type="submit" disabled={isPending || (!isEdit && !form.sourceCode)} data-testid="button-save-integration">
               {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {isEdit ? "Save Changes" : "Add Integration"}
             </Button>
@@ -305,7 +351,10 @@ export default function AdminAcceloPage() {
     queryKey: ["/api/admin/accelo-integrations"],
   });
 
-  // Handle OAuth callback redirect params
+  const { data: sourcesData = [] } = useQuery<Source[]>({
+    queryKey: ["/api/sources"],
+  });
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const connectedSource = params.get("source");
@@ -325,6 +374,9 @@ export default function AdminAcceloPage() {
       window.history.replaceState({}, "", "/admin/integrations/accelo");
     }
   }, []);
+
+  const existingCodes = new Set(integrations.map(i => i.sourceCode));
+  const availableSources = sourcesData.filter(s => !existingCodes.has(s.code));
 
   const createMutation = useMutation({
     mutationFn: (data: IntegrationFormData) => apiRequest("POST", "/api/admin/accelo-integrations", data),
@@ -360,7 +412,14 @@ export default function AdminAcceloPage() {
       setDeleteTarget(null);
       toast({ title: "Integration deleted" });
     },
-    onError: () => toast({ title: "Failed to delete integration", variant: "destructive" }),
+    onError: (err: any) => {
+      const is409 = err?.message?.includes("409");
+      toast({
+        title: is409 ? "Cannot delete a connected integration" : "Failed to delete integration",
+        description: is409 ? "Disconnect first, then delete." : undefined,
+        variant: "destructive",
+      });
+    },
   });
 
   async function handleConnect(sourceCode: string) {
@@ -456,15 +515,14 @@ export default function AdminAcceloPage() {
         </div>
       )}
 
-      {/* How it works */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">How it works</CardTitle>
         </CardHeader>
         <CardContent>
           <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
-            <li>Add an integration above with the source code, Accelo deployment, client ID, and client secret.</li>
-            <li>Connect each integration via OAuth — this authorises the portal to query that Accelo account.</li>
+            <li>Add an integration above — pick the source, enter the Accelo deployment, client ID, and client secret.</li>
+            <li>Connect via OAuth to authorise the portal to query that Accelo account.</li>
             <li>In Accelo, paste the push endpoint URL into a webhook pointing at the portal.</li>
             <li>When triggered, Accelo sends a company ID — the portal looks it up and creates or updates the company.</li>
             <li>New companies arrive with <strong className="text-foreground">pending</strong> status and need module access assigned.</li>
@@ -472,7 +530,6 @@ export default function AdminAcceloPage() {
         </CardContent>
       </Card>
 
-      {/* Add dialog */}
       <IntegrationFormDialog
         open={addOpen}
         onOpenChange={setAddOpen}
@@ -482,14 +539,14 @@ export default function AdminAcceloPage() {
         onSubmit={data => createMutation.mutate(data)}
         isPending={createMutation.isPending}
         isEdit={false}
+        sources={availableSources}
       />
 
-      {/* Edit dialog */}
       {editTarget && (
         <IntegrationFormDialog
           open={!!editTarget}
           onOpenChange={v => { if (!v) setEditTarget(null); }}
-          title={`Edit ${editTarget.sourceCode}`}
+          title={`Edit ${editTarget.sourceLabel !== editTarget.sourceCode ? editTarget.sourceLabel : editTarget.sourceCode}`}
           description="Update the credentials for this Accelo integration."
           defaultValues={{
             sourceCode: editTarget.sourceCode,
@@ -504,27 +561,41 @@ export default function AdminAcceloPage() {
           }}
           isPending={updateMutation.isPending}
           isEdit={true}
+          sources={[]}
         />
       )}
 
-      {/* Delete confirm */}
       <AlertDialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {deleteTarget?.sourceCode}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove the integration and its stored tokens. Any existing Accelo webhooks pointing at this source will stop working.
+            <AlertDialogTitle>Delete {deleteTarget?.sourceLabel ?? deleteTarget?.sourceCode}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                {deleteTarget?.connected && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>This integration is still connected. Disconnect it first before deleting.</span>
+                  </div>
+                )}
+                <span>
+                  {deleteTarget?.connected
+                    ? "Disconnecting clears the stored tokens and allows deletion."
+                    : "This will permanently remove the integration. Any existing Accelo webhooks pointing at this source will stop working."}
+                </span>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.sourceCode)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              data-testid="button-confirm-delete-integration"
-            >
-              {deleteMutation.isPending ? "Deleting…" : "Delete"}
-            </AlertDialogAction>
+            {!deleteTarget?.connected && (
+              <AlertDialogAction
+                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.sourceCode)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                data-testid="button-confirm-delete-integration"
+              >
+                {deleteMutation.isPending ? "Deleting…" : "Delete"}
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

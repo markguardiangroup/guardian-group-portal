@@ -17,6 +17,7 @@ import {
   updateIntegration,
   deleteIntegration,
   decodeOAuthState,
+  getSourceLabels,
 } from "./accelo";
 import fs from "fs/promises";
 import { createWriteStream, existsSync } from "fs";
@@ -17580,13 +17581,14 @@ export async function registerRoutes(
       const allowed = allowedAcceloSources(user);
       if (allowed !== "all" && allowed.length === 0) return res.status(403).json({ error: "Forbidden" });
 
-      const integrations = await listIntegrations();
+      const [integrations, sourceLabelMap] = await Promise.all([listIntegrations(), getSourceLabels()]);
       const filtered = allowed === "all"
         ? integrations
         : integrations.filter(i => allowed.includes(i.sourceCode));
 
       const result = filtered.map(i => ({
         sourceCode: i.sourceCode,
+        sourceLabel: sourceLabelMap[i.sourceCode] ?? i.sourceCode,
         deployment: i.deployment,
         connected: !!i.accessToken,
         expiresAt: i.expiresAt ?? null,
@@ -17684,257 +17686,238 @@ export async function registerRoutes(
     res.json({ ok: true, endpoint: "accelo-push", sourceCode: req.params.sourceCode });
   });
 
-  // POST /api/integrations/accelo/push — Accelo pushes a company (and optionally contacts)
-  // Expects body: { id: string } and ?secret=WEBHOOK_SECRET in the URL
-  app.post("/api/integrations/accelo/push", async (req, res) => {
-    // --- DIAGNOSTIC: log every hit regardless of auth ---
-    console.log("[Accelo push] HIT — body:", JSON.stringify(req.body), "query:", JSON.stringify(req.query));
+  // Validate per-source (or global fallback) webhook secret using constant-time compare.
+  // Returns true when auth passes, false otherwise.
+  // If no secret is configured for the source the endpoint is considered open (no auth).
+  function validatePushSecret(req: any, sourceCode: string): boolean {
+    const secret =
+      process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode.toUpperCase()}`] ??
+      process.env.ACCELO_WEBHOOK_SECRET;
+    if (!secret) return true; // no secret configured — open endpoint
+    const provided =
+      (req.query.secret as string | undefined) ??
+      (req.headers["x-accelo-secret"] as string | undefined);
+    if (!provided) return false;
     try {
-      // Secret check temporarily disabled for delivery diagnostics
-      // const webhookSecret = process.env.ACCELO_WEBHOOK_SECRET;
-      // if (webhookSecret) {
-      //   const provided = req.query.secret as string | undefined;
-      //   if (!provided || provided !== webhookSecret) {
-      //     return res.status(401).json({ error: "Invalid or missing webhook secret" });
-      //   }
-      // }
-
-      // Accelo sends { "id": "824", "resource_url": "..." }
-      const schema = z.object({
-        id: z.string().min(1),
-      });
-      const parsed = schema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "id is required", details: parsed.error.issues });
-      }
-
-      const acceloCompanyId = parsed.data.id;
-
-      // County code → { county, country } lookup (Chapman codes used by Accelo)
-      const ACCELO_COUNTY_LOOKUP: Record<string, { county: string; country: string }> = {
-        BKM: { county: "Buckinghamshire", country: "England" },
-        CRF: { county: "Cardiff",         country: "Wales"   },
-        DEV: { county: "Devon",           country: "England" },
-        ESX: { county: "Essex",           country: "England" },
-        GLS: { county: "Gloucestershire", country: "England" },
-        HAM: { county: "Hampshire",       country: "England" },
-        KEN: { county: "Kent",            country: "England" },
-        LAN: { county: "Lancashire",      country: "England" },
-        LEC: { county: "Leicestershire",  country: "England" },
-        LIN: { county: "Lincolnshire",    country: "England" },
-        LND: { county: "Greater London",  country: "England" },
-        MAN: { county: "Greater Manchester", country: "England" },
-        NTT: { county: "Nottinghamshire", country: "England" },
-        RFW: { county: "Renfrewshire",    country: "Scotland" },
-        SHR: { county: "Shropshire",      country: "England" },
-        SOM: { county: "Somerset",        country: "England" },
-        SRY: { county: "Surrey",          country: "England" },
-        STS: { county: "Staffordshire",   country: "England" },
-        WAR: { county: "Warwickshire",    country: "England" },
-        WOR: { county: "Worcestershire",  country: "England" },
-        WSX: { county: "West Sussex",     country: "England" },
-      };
-
-      // Parse address lines, postcode, county, and country from postal_address.full.
-      // Accelo addresses come in two formats:
-      //   WITH county code:    "Street, City, postcode, GLS, United Kingdom"
-      //   WITHOUT county code: "Street, City, postcode, United Kingdom"
-      // A Chapman code is 2-4 uppercase letters only; anything else is treated as a country name.
-      function parseAcceloAddressFull(full: string | null | undefined, city: string | null | undefined) {
-        const empty = { addressLine1: null as string | null, addressLine2: null as string | null, postcode: null as string | null, county: null as string | null, country: null as string | null };
-        if (!full) return empty;
-        const cityStr = (city || "").trim();
-        const cityIdx = cityStr ? full.indexOf(cityStr) : -1;
-        const beforeCity = cityIdx > 0 ? full.substring(0, cityIdx) : full;
-        const afterCity  = cityIdx > 0 ? full.substring(cityIdx + cityStr.length) : "";
-        const addrParts  = beforeCity.split(",").map((p) => p.trim()).filter(Boolean);
-        const addressLine1 = addrParts[0] || null;
-        const addressLine2 = addrParts.slice(1).join(", ") || null;
-        const afterParts   = afterCity.split(",").map((p) => p.trim()).filter(Boolean);
-        const postcode     = afterParts[0] || null;
-        // Determine whether afterParts[1] is a Chapman code (2–4 uppercase alpha chars)
-        // or a country name (e.g. "United Kingdom").
-        const secondPart   = afterParts[1] || "";
-        const isChapman    = /^[A-Z]{2,4}$/.test(secondPart.toUpperCase()) && secondPart === secondPart.toUpperCase();
-        const lookup       = isChapman ? ACCELO_COUNTY_LOOKUP[secondPart.toUpperCase()] : undefined;
-        // Country: prefer lookup result, then last part of afterParts, then null
-        const rawCountry   = afterParts[afterParts.length - 1] || null;
-        return {
-          addressLine1,
-          addressLine2,
-          postcode,
-          county:  lookup?.county  ?? null,
-          country: lookup?.country ?? rawCountry,
-        };
-      }
-
-      // Source code defaults to 'GS' for the legacy /push endpoint
-      const pushSourceCode = (req as any)._acceloSourceCode ?? "GS";
-
-      // Fetch company + primary contact from Accelo in parallel
-      let acceloCompany: any;
-      let primaryContact: any = null;
-      try {
-        const [companyData, contactsData] = await Promise.all([
-          acceloGet(pushSourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
-          acceloGet(pushSourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
-        ]);
-        acceloCompany = companyData?.response;
-        primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
-      } catch (err: any) {
-        return res.status(502).json({ error: "Failed to fetch company from Accelo", detail: err.message });
-      }
-
-      if (!acceloCompany || !acceloCompany.name) {
-        return res.status(404).json({ error: "Company not found in Accelo" });
-      }
-
-      const companyName = acceloCompany.name.trim();
-      const addrParsed = parseAcceloAddressFull(acceloCompany.postal_address?.full, acceloCompany.postal_address?.city);
-      const companyStatus = "pending" as const;
-
-      // Primary contact details
-      const contactFullName = primaryContact
-        ? [primaryContact.firstname, primaryContact.surname].filter(Boolean).join(" ") || null
-        : null;
-      const contactEmail = primaryContact?.email || null;
-      const contactPhone = acceloCompany.phone || primaryContact?.phone || primaryContact?.mobile || null;
-
-      // Check if already exists
-      const existingCompanies = await storage.getCompanies();
-      const existing = existingCompanies.find(
-        (c) => c.name.trim().toLowerCase() === companyName.toLowerCase()
+      const a = Buffer.from(provided.padEnd(secret.length, "\0"));
+      const b = Buffer.from(secret.padEnd(provided.length, "\0"));
+      return (
+        a.length === b.length &&
+        crypto.timingSafeEqual(a, b) &&
+        provided === secret
       );
+    } catch {
+      return false;
+    }
+  }
 
-      let company;
-      let action: "created" | "updated";
+  // Shared push execution: fetches the Accelo company, creates/updates local record + site,
+  // writes an audit log, and returns { status, body } — identical for all sources.
+  async function executeAcceloPush(
+    sourceCode: string,
+    acceloCompanyId: string
+  ): Promise<{ status: number; body: Record<string, unknown> }> {
+    // County code → { county, country } lookup (Chapman codes used by Accelo)
+    const ACCELO_COUNTY_LOOKUP: Record<string, { county: string; country: string }> = {
+      BKM: { county: "Buckinghamshire",    country: "England"  },
+      CRF: { county: "Cardiff",            country: "Wales"    },
+      DEV: { county: "Devon",              country: "England"  },
+      ESX: { county: "Essex",              country: "England"  },
+      GLS: { county: "Gloucestershire",    country: "England"  },
+      HAM: { county: "Hampshire",          country: "England"  },
+      KEN: { county: "Kent",               country: "England"  },
+      LAN: { county: "Lancashire",         country: "England"  },
+      LEC: { county: "Leicestershire",     country: "England"  },
+      LIN: { county: "Lincolnshire",       country: "England"  },
+      LND: { county: "Greater London",     country: "England"  },
+      MAN: { county: "Greater Manchester", country: "England"  },
+      NTT: { county: "Nottinghamshire",    country: "England"  },
+      RFW: { county: "Renfrewshire",       country: "Scotland" },
+      SHR: { county: "Shropshire",         country: "England"  },
+      SOM: { county: "Somerset",           country: "England"  },
+      SRY: { county: "Surrey",             country: "England"  },
+      STS: { county: "Staffordshire",      country: "England"  },
+      WAR: { county: "Warwickshire",       country: "England"  },
+      WOR: { county: "Worcestershire",     country: "England"  },
+      WSX: { county: "West Sussex",        country: "England"  },
+    };
 
-      if (existing) {
-        company = await storage.updateCompany(existing.id, {
-          website: acceloCompany.website || existing.website,
-          contactPhone: contactPhone || existing.contactPhone,
-          contactEmail: contactEmail || existing.contactEmail,
-          contactName: contactFullName || existing.contactName,
-          city: acceloCompany.postal_address?.city || existing.city,
-          county: addrParsed.county || existing.county,
-          country: addrParsed.country || existing.country,
-          postalCode: addrParsed.postcode || existing.postalCode,
-          addressLine1: addrParsed.addressLine1 || existing.addressLine1,
-          addressLine2: addrParsed.addressLine2 || existing.addressLine2,
-          internalCompanyNumber: acceloCompany.custom_id || existing.internalCompanyNumber,
-        });
-        action = "updated";
-      } else {
-        company = await storage.createCompany({
-          name: companyName,
-          website: acceloCompany.website || null,
-          contactPhone,
-          contactEmail,
-          contactName: contactFullName,
-          city: acceloCompany.postal_address?.city || null,
-          county: addrParsed.county,
-          country: addrParsed.country,
-          postalCode: addrParsed.postcode,
-          addressLine1: addrParsed.addressLine1,
-          industry: "General",
-          status: companyStatus,
-          sources: [],
-          companyNumber: null,
-          internalCompanyNumber: acceloCompany.custom_id || null,
-          addressLine2: addrParsed.addressLine2,
-          contactPosition: null,
-          contactUserId: null,
-          searchTag: null,
-          employeeRange: null,
-          groupOwnerId: null,
-          healthSafetyAccess: false,
-          humanResourcesAccess: false,
-          employmentLawAccess: false,
-          trainingAccess: false,
-          toolkitAccess: false,
-          supportAccess: false,
-          reportsAccess: false,
-        });
+    // Parse address lines, postcode, county, and country from postal_address.full.
+    // Accelo addresses come in two formats:
+    //   WITH county code:    "Street, City, postcode, GLS, United Kingdom"
+    //   WITHOUT county code: "Street, City, postcode, United Kingdom"
+    function parseAcceloAddressFull(full: string | null | undefined, city: string | null | undefined) {
+      const empty = { addressLine1: null as string | null, addressLine2: null as string | null, postcode: null as string | null, county: null as string | null, country: null as string | null };
+      if (!full) return empty;
+      const cityStr   = (city || "").trim();
+      const cityIdx   = cityStr ? full.indexOf(cityStr) : -1;
+      const beforeCity = cityIdx > 0 ? full.substring(0, cityIdx) : full;
+      const afterCity  = cityIdx > 0 ? full.substring(cityIdx + cityStr.length) : "";
+      const addrParts  = beforeCity.split(",").map((p) => p.trim()).filter(Boolean);
+      const addressLine1 = addrParts[0] || null;
+      const addressLine2 = addrParts.slice(1).join(", ") || null;
+      const afterParts   = afterCity.split(",").map((p) => p.trim()).filter(Boolean);
+      const postcode     = afterParts[0] || null;
+      const secondPart   = afterParts[1] || "";
+      const isChapman    = /^[A-Z]{2,4}$/.test(secondPart) && secondPart === secondPart.toUpperCase();
+      const lookup       = isChapman ? ACCELO_COUNTY_LOOKUP[secondPart] : undefined;
+      const rawCountry   = afterParts[afterParts.length - 1] || null;
+      return {
+        addressLine1,
+        addressLine2,
+        postcode,
+        county:  lookup?.county  ?? null,
+        country: lookup?.country ?? rawCountry,
+      };
+    }
 
-        // Create a default primary site
-        await storage.createSite({
-          name: "Head Office",
-          companyId: company!.id,
-          addressLine1: addrParsed.addressLine1,
-          addressLine2: addrParsed.addressLine2,
-          city: acceloCompany.postal_address?.city || null,
-          county: addrParsed.county,
-          postalCode: addrParsed.postcode,
-          country: addrParsed.country,
-          contactName: contactFullName,
-          contactPosition: null,
-          contactPhone,
-          contactEmail,
-        });
+    // Fetch company + primary contact from Accelo in parallel
+    let acceloCompany: any;
+    let primaryContact: any = null;
+    const [companyData, contactsData] = await Promise.all([
+      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
+      acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
+    ]);
+    acceloCompany  = companyData?.response;
+    primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
 
-        action = "created";
-      }
+    if (!acceloCompany || !acceloCompany.name) {
+      return { status: 404, body: { error: "Company not found in Accelo" } };
+    }
 
-      await storage.createAuditLog({
-        action: `accelo_company_${action}`,
-        userId: "system",
-        userName: "Accelo Integration",
-        details: `Company "${companyName}" ${action} via Accelo push (source: ${pushSourceCode}, Accelo ID: ${acceloCompanyId})`,
-        metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id, sourceCode: pushSourceCode }),
+    const companyName     = acceloCompany.name.trim();
+    const addrParsed      = parseAcceloAddressFull(acceloCompany.postal_address?.full, acceloCompany.postal_address?.city);
+    const contactFullName = primaryContact
+      ? [primaryContact.firstname, primaryContact.surname].filter(Boolean).join(" ") || null
+      : null;
+    const contactEmail = primaryContact?.email || null;
+    const contactPhone = acceloCompany.phone || primaryContact?.phone || primaryContact?.mobile || null;
+
+    const existingCompanies = await storage.getCompanies();
+    const existing = existingCompanies.find(
+      (c) => c.name.trim().toLowerCase() === companyName.toLowerCase()
+    );
+
+    let company: any;
+    let action: "created" | "updated";
+
+    if (existing) {
+      company = await storage.updateCompany(existing.id, {
+        website:               acceloCompany.website            || existing.website,
+        contactPhone:          contactPhone                      || existing.contactPhone,
+        contactEmail:          contactEmail                      || existing.contactEmail,
+        contactName:           contactFullName                   || existing.contactName,
+        city:                  acceloCompany.postal_address?.city || existing.city,
+        county:                addrParsed.county                 || existing.county,
+        country:               addrParsed.country                || existing.country,
+        postalCode:            addrParsed.postcode               || existing.postalCode,
+        addressLine1:          addrParsed.addressLine1           || existing.addressLine1,
+        addressLine2:          addrParsed.addressLine2           || existing.addressLine2,
+        internalCompanyNumber: acceloCompany.custom_id          || existing.internalCompanyNumber,
+      });
+      action = "updated";
+    } else {
+      company = await storage.createCompany({
+        name:                  companyName,
+        website:               acceloCompany.website || null,
+        contactPhone,
+        contactEmail,
+        contactName:           contactFullName,
+        city:                  acceloCompany.postal_address?.city || null,
+        county:                addrParsed.county,
+        country:               addrParsed.country,
+        postalCode:            addrParsed.postcode,
+        addressLine1:          addrParsed.addressLine1,
+        addressLine2:          addrParsed.addressLine2,
+        industry:              "General",
+        status:                "pending" as const,
+        sources:               [],
+        companyNumber:         null,
+        internalCompanyNumber: acceloCompany.custom_id || null,
+        contactPosition:       null,
+        contactUserId:         null,
+        searchTag:             null,
+        employeeRange:         null,
+        groupOwnerId:          null,
+        healthSafetyAccess:    false,
+        humanResourcesAccess:  false,
+        employmentLawAccess:   false,
+        trainingAccess:        false,
+        toolkitAccess:         false,
+        supportAccess:         false,
+        reportsAccess:         false,
       });
 
-      console.log(`[Accelo push] Company "${companyName}" ${action} (source: ${pushSourceCode}, Accelo ID: ${acceloCompanyId})`);
-      res.status(action === "created" ? 201 : 200).json({ ok: true, action, companyId: company?.id });
-    } catch (err) {
+      // Create a default primary site
+      await storage.createSite({
+        name:          "Head Office",
+        companyId:     company!.id,
+        addressLine1:  addrParsed.addressLine1,
+        addressLine2:  addrParsed.addressLine2,
+        city:          acceloCompany.postal_address?.city || null,
+        county:        addrParsed.county,
+        postalCode:    addrParsed.postcode,
+        country:       addrParsed.country,
+        contactName:   contactFullName,
+        contactPosition: null,
+        contactPhone,
+        contactEmail,
+      });
+
+      action = "created";
+    }
+
+    await storage.createAuditLog({
+      action:   `accelo_company_${action}`,
+      userId:   "system",
+      userName: "Accelo Integration",
+      details:  `Company "${companyName}" ${action} via Accelo push (source: ${sourceCode}, Accelo ID: ${acceloCompanyId})`,
+      metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id, sourceCode }),
+    });
+
+    console.log(`[Accelo push] Company "${companyName}" ${action} (source: ${sourceCode}, Accelo ID: ${acceloCompanyId})`);
+    return { status: action === "created" ? 201 : 200, body: { ok: true, action, companyId: company?.id } };
+  }
+
+  // POST /api/integrations/accelo/push — legacy/default webhook (source = GS)
+  // Expects body: { id: string } and optional ?secret= or X-Accelo-Secret header
+  app.post("/api/integrations/accelo/push", async (req, res) => {
+    console.log("[Accelo push] HIT — body:", JSON.stringify(req.body), "query:", JSON.stringify(req.query));
+    if (!validatePushSecret(req, "GS")) {
+      return res.status(401).json({ error: "Invalid or missing webhook secret" });
+    }
+    const parsed = z.object({ id: z.string().min(1) }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "id is required", details: parsed.error.issues });
+    }
+    try {
+      const result = await executeAcceloPush("GS", parsed.data.id);
+      res.status(result.status).json(result.body);
+    } catch (err: any) {
       console.error("Accelo push error:", err);
-      res.status(500).json({ error: "Failed to process Accelo push" });
+      const isAcceloErr = err.message?.includes("Failed to fetch") || err.message?.includes("Accelo");
+      res.status(isAcceloErr ? 502 : 500).json({ error: isAcceloErr ? "Failed to fetch company from Accelo" : "Failed to process Accelo push", detail: err.message });
     }
   });
 
   // POST /api/integrations/accelo/push/:sourceCode — source-scoped webhook (same logic, different source)
   app.post("/api/integrations/accelo/push/:sourceCode", async (req, res) => {
-    (req as any)._acceloSourceCode = req.params.sourceCode.toUpperCase();
-    // Delegate to the legacy push handler by re-routing through same logic
-    // We inline a thin wrapper that calls the shared push logic below
-    const sourceCode = (req as any)._acceloSourceCode;
+    const sourceCode = req.params.sourceCode.toUpperCase();
     console.log(`[Accelo push/:sourceCode] HIT — source=${sourceCode} body:`, JSON.stringify(req.body));
+    if (!validatePushSecret(req, sourceCode)) {
+      return res.status(401).json({ error: "Invalid or missing webhook secret" });
+    }
+    const parsed = z.object({ id: z.string().min(1) }).safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "id is required", details: parsed.error.issues });
+    }
     try {
-      const schema = z.object({ id: z.string().min(1) });
-      const parsed = schema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: "id is required" });
-      const acceloCompanyId = parsed.data.id;
-      let acceloCompany: any;
-      let primaryContact: any = null;
-      try {
-        const [companyData, contactsData] = await Promise.all([
-          acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
-          acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
-        ]);
-        acceloCompany = companyData?.response;
-        primaryContact = Array.isArray(contactsData?.response) ? contactsData.response[0] ?? null : null;
-      } catch (err: any) {
-        return res.status(502).json({ error: "Failed to fetch company from Accelo", detail: err.message });
-      }
-      if (!acceloCompany?.name) return res.status(404).json({ error: "Company not found in Accelo" });
-      const companyName = acceloCompany.name.trim();
-      const contactFullName = primaryContact ? [primaryContact.firstname, primaryContact.surname].filter(Boolean).join(" ") || null : null;
-      const contactEmail = primaryContact?.email || null;
-      const contactPhone = acceloCompany.phone || primaryContact?.phone || primaryContact?.mobile || null;
-      const existingCompanies = await storage.getCompanies();
-      const existing = existingCompanies.find(c => c.name.trim().toLowerCase() === companyName.toLowerCase());
-      let company; let action: "created" | "updated";
-      if (existing) {
-        company = await storage.updateCompany(existing.id, { website: acceloCompany.website || existing.website, contactPhone: contactPhone || existing.contactPhone, contactEmail: contactEmail || existing.contactEmail, contactName: contactFullName || existing.contactName, city: acceloCompany.postal_address?.city || existing.city, internalCompanyNumber: acceloCompany.custom_id || existing.internalCompanyNumber });
-        action = "updated";
-      } else {
-        company = await storage.createCompany({ name: companyName, website: acceloCompany.website || null, contactPhone, contactEmail, contactName: contactFullName, city: acceloCompany.postal_address?.city || null, county: null, country: null, postalCode: null, addressLine1: null, industry: "General", status: "pending" as const, sources: [], companyNumber: null, internalCompanyNumber: acceloCompany.custom_id || null, addressLine2: null, contactPosition: null, contactUserId: null, searchTag: null, employeeRange: null, groupOwnerId: null, healthSafetyAccess: false, humanResourcesAccess: false, employmentLawAccess: false, trainingAccess: false, toolkitAccess: false, supportAccess: false, reportsAccess: false });
-        action = "created";
-      }
-      await storage.createAuditLog({ action: `accelo_company_${action}`, userId: "system", userName: "Accelo Integration", details: `Company "${companyName}" ${action} via Accelo push (source: ${sourceCode}, Accelo ID: ${acceloCompanyId})`, metadata: JSON.stringify({ acceloCompanyId, companyId: company?.id, sourceCode }) });
-      res.status(action === "created" ? 201 : 200).json({ ok: true, action, companyId: company?.id });
-    } catch (err) {
+      const result = await executeAcceloPush(sourceCode, parsed.data.id);
+      res.status(result.status).json(result.body);
+    } catch (err: any) {
       console.error(`Accelo push/:sourceCode error:`, err);
-      res.status(500).json({ error: "Failed to process Accelo push" });
+      const isAcceloErr = err.message?.includes("Failed to fetch") || err.message?.includes("Accelo");
+      res.status(isAcceloErr ? 502 : 500).json({ error: isAcceloErr ? "Failed to fetch company from Accelo" : "Failed to process Accelo push", detail: err.message });
     }
   });
 
@@ -18150,10 +18133,11 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const integrations = await listIntegrations();
+      const [integrations, sourceLabelMap] = await Promise.all([listIntegrations(), getSourceLabels()]);
       res.json(integrations.map(i => ({
         id: i.id,
         sourceCode: i.sourceCode,
+        sourceLabel: sourceLabelMap[i.sourceCode] ?? i.sourceCode,
         deployment: i.deployment,
         clientId: i.clientId,
         connected: !!i.accessToken,
@@ -18215,12 +18199,18 @@ export async function registerRoutes(
   });
 
   // DELETE /api/admin/accelo-integrations/:sourceCode — delete an integration
+  // Blocked if the integration still has active tokens (must disconnect first)
   app.delete("/api/admin/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const { sourceCode } = req.params;
-      const ok = await deleteIntegration(sourceCode.toUpperCase());
+      const code = req.params.sourceCode.toUpperCase();
+      const integration = await getIntegration(code);
+      if (!integration) return res.status(404).json({ error: "Integration not found" });
+      if (integration.accessToken) {
+        return res.status(409).json({ error: "Disconnect the integration before deleting it" });
+      }
+      const ok = await deleteIntegration(code);
       if (!ok) return res.status(404).json({ error: "Integration not found" });
       res.json({ ok: true });
     } catch (err) {
