@@ -5102,6 +5102,13 @@
           "message": "Accelo import: bulk site button toggles between 'Add all to site' and 'Remove all from site'",
           "category": "enhancement",
           "createdAt": "2026-05-24T15:30:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-accelo-key-contact-site-badge-2026",
+          "patch": 7,
+          "message": "Fixed: key contacts imported via Accelo now get the Key Contact badge on their site",
+          "category": "bug",
+          "createdAt": "2026-05-24T15:45:00.000Z"
         }
       ],
       "publishedPatch": 6,

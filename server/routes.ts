@@ -17932,6 +17932,13 @@ export async function registerRoutes(
             } catch {
               // non-fatal: key contact may already exist or conflict
             }
+            if (contact.addToSite && siteId) {
+              try {
+                await storage.addKeyContact(newUser.id, "site", siteId);
+              } catch {
+                // non-fatal
+              }
+            }
           }
 
           await storage.createAuditLog({
