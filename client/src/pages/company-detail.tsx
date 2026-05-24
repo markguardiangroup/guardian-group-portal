@@ -1249,6 +1249,17 @@ export default function CompanyDetail() {
     enabled: !!company?.groupOwnerId,
   });
 
+  // Fetch Accelo links for this company (admin + consultant only)
+  const { data: acceloLinks = [] } = useQuery<{ id: string; sourceCode: string; acceloId: string; acceloStanding: string | null; lastCheckedAt: string | null }[]>({
+    queryKey: ["/api/companies", companyId, "accelo-links"],
+    queryFn: async () => {
+      const res = await fetch(`/api/companies/${companyId}/accelo-links`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!(companyId && (isAdmin || user?.role === "consultant")),
+  });
+
   // Fetch key contacts for this company (all admins and consultants can view badges; only admin/pro can toggle)
   const isConsultant = user?.role === "consultant";
   const { data: companyKeyContacts = [] } = useQuery<{ id: string; userId: string; entityType: string; entityId: string }[]>({
@@ -2099,6 +2110,45 @@ export default function CompanyDetail() {
                     </div>
                   </div>
                 )}
+
+                {(isAdmin || user?.role === "consultant") && acceloLinks.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Accelo</p>
+                    <div className="space-y-1.5">
+                      {acceloLinks.map((link) => {
+                        const s = (link.acceloStanding ?? "").toLowerCase();
+                        const isActive = s === "active";
+                        const isInactive = s === "inactive" || s === "prospect" || s === "churned" || s === "lost";
+                        return (
+                          <div key={link.sourceCode} className="flex items-center gap-2 text-sm flex-wrap" data-testid={`accelo-link-${link.sourceCode}`}>
+                            <span className="text-muted-foreground font-mono text-xs">{link.sourceCode}</span>
+                            <span className="text-xs text-muted-foreground">#{link.acceloId}</span>
+                            {link.acceloStanding && (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  isActive
+                                    ? "text-xs py-0 text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
+                                    : isInactive
+                                    ? "text-xs py-0 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                                    : "text-xs py-0 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-600"
+                                }
+                              >
+                                {link.acceloStanding}
+                              </Badge>
+                            )}
+                            {link.lastCheckedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                checked {new Date(link.lastCheckedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs text-muted-foreground">Primary Contact</p>

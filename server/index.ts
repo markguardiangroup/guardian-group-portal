@@ -9,6 +9,7 @@ import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
 import { autoRecordPublishedPatch, autoIncrementPatchIfChanged } from "./changelog";
+import { acceloGet, getConnectionStatus } from "./accelo";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -158,6 +159,18 @@ process.on("uncaughtException", (err) => {
 (async () => {
   // Idempotent schema migrations for columns added after initial schema creation.
   try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS company_accelo_links (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        company_id varchar NOT NULL,
+        source_code text NOT NULL,
+        accelo_id text NOT NULL,
+        accelo_standing text,
+        last_checked_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE (company_id, source_code)
+      )
+    `);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_notes text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS riddor_reference text`);
     await pool.query(`ALTER TABLE incidents ADD COLUMN IF NOT EXISTS inv_amendments text`);
@@ -406,6 +419,70 @@ process.on("uncaughtException", (err) => {
   runExpiredDocumentSweep();
   // Then schedule for 05:00 UK time each day
   scheduleNextDocumentSweep();
+
+  // Daily Accelo standing sync at 07:00 UK time
+  async function runAcceloStatusSync() {
+    try {
+      const links = await storage.getAcceloLinksForSync();
+      if (links.length === 0) return;
+      const bySource = new Map<string, typeof links>();
+      for (const link of links) {
+        const arr = bySource.get(link.sourceCode) ?? [];
+        arr.push(link);
+        bySource.set(link.sourceCode, arr);
+      }
+      for (const [sourceCode, sourceLinks] of bySource) {
+        try {
+          const { connected } = await getConnectionStatus(sourceCode);
+          if (!connected) {
+            console.warn(`[scheduler] Accelo sync: source ${sourceCode} not connected — skipping ${sourceLinks.length} companies.`);
+            continue;
+          }
+          const BATCH_SIZE = 50;
+          const updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null }> = [];
+          for (let i = 0; i < sourceLinks.length; i += BATCH_SIZE) {
+            const batch = sourceLinks.slice(i, i + BATCH_SIZE);
+            const ids = batch.map(l => l.acceloId).join("|");
+            try {
+              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing&_limit=${BATCH_SIZE}`);
+              const results = Array.isArray(data?.response) ? data.response : [];
+              for (const r of results) {
+                const link = batch.find(l => String(l.acceloId) === String(r.id));
+                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null });
+              }
+            } catch (batchErr: any) {
+              console.error(`[scheduler] Accelo sync batch error (source=${sourceCode}):`, batchErr.message);
+            }
+          }
+          if (updates.length > 0) await storage.bulkUpdateAcceloStandings(updates);
+          await storage.createAuditLog({
+            action: "accelo_status_sync",
+            userId: "system",
+            userName: "Scheduled Sync",
+            details: `Accelo standing sync for source ${sourceCode}: ${updates.length}/${sourceLinks.length} companies updated`,
+            metadata: JSON.stringify({ sourceCode, updated: updates.length, total: sourceLinks.length }),
+          });
+          console.log(`[scheduler] Accelo sync (source=${sourceCode}): ${updates.length}/${sourceLinks.length} standing(s) updated.`);
+        } catch (sourceErr: any) {
+          console.error(`[scheduler] Accelo sync source ${sourceCode} error:`, sourceErr.message);
+        }
+      }
+    } catch (err) {
+      console.error("[scheduler] Accelo status sync error:", err);
+    }
+  }
+
+  function scheduleNextAcceloSync() {
+    const ms = msUntilNextUKTime(7, 0);
+    const nextRun = new Date(Date.now() + ms);
+    console.log(`[scheduler] Next Accelo status sync scheduled for ${nextRun.toISOString()} (${Math.round(ms / 60000)} min from now).`);
+    setTimeout(async () => {
+      await runAcceloStatusSync();
+      scheduleNextAcceloSync();
+    }, ms).unref();
+  }
+
+  scheduleNextAcceloSync();
 
   await registerRoutes(httpServer, app);
 

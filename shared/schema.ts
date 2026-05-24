@@ -88,6 +88,7 @@ export type CompanyWithSiteCount = Company & {
   siteCount: number;
   isGroupOwner?: boolean;      // true when other companies reference this as their GO
   groupOwnerName?: string | null; // name of the GO this company belongs to (if any)
+  acceloLinks?: { sourceCode: string; acceloId: string; acceloStanding: string | null; lastCheckedAt: Date | null }[];
 };
 
 // Paginated response for companies
@@ -1849,3 +1850,18 @@ export const keyContacts = pgTable("key_contacts", {
 export const insertKeyContactSchema = createInsertSchema(keyContacts).omit({ id: true, createdAt: true });
 export type InsertKeyContact = z.infer<typeof insertKeyContactSchema>;
 export type KeyContact = typeof keyContacts.$inferSelect;
+
+// ==================== COMPANY ACCELO LINKS ====================
+export const companyAcceloLinks = pgTable("company_accelo_links", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull(),
+  sourceCode: text("source_code").notNull(),
+  acceloId: text("accelo_id").notNull(),
+  acceloStanding: text("accelo_standing"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCompanySource: uniqueIndex("company_accelo_links_company_source_unique").on(table.companyId, table.sourceCode),
+}));
+
+export type CompanyAcceloLink = typeof companyAcceloLinks.$inferSelect;

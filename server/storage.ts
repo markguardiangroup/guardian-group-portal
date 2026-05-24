@@ -122,9 +122,11 @@ import {
   SECURITY_CONFIG,
   type KeyContact, type InsertKeyContact, type KeyContactEntityType,
   keyContacts as keyContactsTable,
+  type CompanyAcceloLink,
+  companyAcceloLinks as companyAcceloLinksTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, or, asc, desc, isNull, isNotNull, gt, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
@@ -566,6 +568,12 @@ export interface IStorage {
   getAllKeyContacts(): Promise<KeyContact[]>;
   addKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<KeyContact>;
   removeKeyContact(userId: string, entityType: KeyContactEntityType, entityId: string): Promise<boolean>;
+
+  // Accelo Links
+  upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null): Promise<void>;
+  getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]>;
+  getAcceloLinksForSync(): Promise<CompanyAcceloLink[]>;
+  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null }>): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -1110,8 +1118,11 @@ export class MemStorage implements IStorage {
   }
 
   async getCompaniesWithSiteCount(): Promise<CompanyWithSiteCount[]> {
-    const companies = await db.select().from(companiesTable);
-    const sites = await db.select().from(sitesTable);
+    const [companies, sites, acceloLinksRaw] = await Promise.all([
+      db.select().from(companiesTable),
+      db.select().from(sitesTable),
+      db.select().from(companyAcceloLinksTable),
+    ]);
     
     // Single pass to count sites per company - O(sites) instead of O(companies * sites)
     const siteCountByCompany = new Map<string, number>();
@@ -1128,12 +1139,21 @@ export class MemStorage implements IStorage {
         goMemberCounts.set(c.groupOwnerId, (goMemberCounts.get(c.groupOwnerId) || 0) + 1);
       }
     }
+
+    // Build accelo links map (one row per company-source)
+    const acceloLinksByCompany = new Map<string, { sourceCode: string; acceloId: string; acceloStanding: string | null; lastCheckedAt: Date | null }[]>();
+    for (const link of acceloLinksRaw) {
+      const arr = acceloLinksByCompany.get(link.companyId) ?? [];
+      arr.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, acceloStanding: link.acceloStanding ?? null, lastCheckedAt: link.lastCheckedAt ?? null });
+      acceloLinksByCompany.set(link.companyId, arr);
+    }
     
     return companies.map(company => ({
       ...company,
       siteCount: siteCountByCompany.get(company.id) || 0,
       isGroupOwner: (goMemberCounts.get(company.id) || 0) > 0,
       groupOwnerName: company.groupOwnerId ? (companyNameById.get(company.groupOwnerId) ?? null) : null,
+      acceloLinks: acceloLinksByCompany.get(company.id) ?? [],
     }));
   }
 
@@ -5971,6 +5991,37 @@ export class MemStorage implements IStorage {
       ))
       .returning();
     return result.length > 0;
+  }
+
+  // Accelo Links
+  async upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null): Promise<void> {
+    await pool.query(
+      `INSERT INTO company_accelo_links (company_id, source_code, accelo_id, accelo_standing, last_checked_at)
+       VALUES ($1, $2, $3, $4, now())
+       ON CONFLICT (company_id, source_code) DO UPDATE SET
+         accelo_id = EXCLUDED.accelo_id,
+         accelo_standing = EXCLUDED.accelo_standing,
+         last_checked_at = now()`,
+      [companyId, sourceCode, acceloId, acceloStanding ?? null]
+    );
+  }
+
+  async getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]> {
+    return db.select().from(companyAcceloLinksTable).where(eq(companyAcceloLinksTable.companyId, companyId));
+  }
+
+  async getAcceloLinksForSync(): Promise<CompanyAcceloLink[]> {
+    return db.select().from(companyAcceloLinksTable);
+  }
+
+  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null }>): Promise<void> {
+    if (updates.length === 0) return;
+    for (const u of updates) {
+      await pool.query(
+        `UPDATE company_accelo_links SET accelo_standing = $1, last_checked_at = now() WHERE company_id = $2 AND source_code = $3`,
+        [u.acceloStanding, u.companyId, u.sourceCode]
+      );
+    }
   }
 
 }

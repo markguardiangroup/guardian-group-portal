@@ -5130,6 +5130,13 @@
           "message": "Admins can manage multiple Accelo integrations (one per source) with per-source OAuth, push endpoints, and source badges on import buttons",
           "category": "feature",
           "createdAt": "2026-05-24T17:00:00.000Z"
+        },
+        {
+          "id": "b0c1d2e3-accelo-company-link-daily-sync-2026",
+          "patch": 7,
+          "message": "Accelo standing badges appear on company cards; detail page shows Accelo source, ID, and standing; server syncs standings daily at 07:00",
+          "category": "feature",
+          "createdAt": "2026-05-24T18:00:00.000Z"
         }
       ],
       "publishedPatch": 6,

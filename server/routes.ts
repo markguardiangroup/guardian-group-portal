@@ -7152,6 +7152,20 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/companies/:companyId/accelo-links — admin + consultant only
+  app.get("/api/companies/:companyId/accelo-links", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role !== "admin" && user.role !== "consultant") return res.status(403).json({ error: "Forbidden" });
+      const links = await storage.getAcceloLinksByCompany(req.params.companyId);
+      res.json(links);
+    } catch (err) {
+      console.error("Accelo links fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch Accelo links" });
+    }
+  });
+
   // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin + pro consultant)
   app.patch("/api/companies/:companyId/group-owner", requireAuth, async (req, res) => {
     try {
@@ -17775,7 +17789,7 @@ export async function registerRoutes(
     let acceloCompany: any;
     let primaryContact: any = null;
     const [companyData, contactsData] = await Promise.all([
-      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full)`),
+      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing`),
       acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
     ]);
     acceloCompany  = companyData?.response;
@@ -17865,6 +17879,15 @@ export async function registerRoutes(
       });
 
       action = "created";
+    }
+
+    // Persist / update the Accelo link with standing
+    if (company?.id) {
+      try {
+        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null);
+      } catch (linkErr: any) {
+        console.warn(`[Accelo push] Failed to upsert accelo link for company ${company.id}:`, linkErr.message);
+      }
     }
 
     await storage.createAuditLog({
