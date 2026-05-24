@@ -5270,6 +5270,13 @@
           "message": "Fixed: county now populates on import when Accelo stores the state as a code or text name",
           "category": "bug",
           "createdAt": "2026-05-24T23:05:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-accelo-city-of-london-county-2026",
+          "patch": 8,
+          "message": "Fixed: 'City of London' now populates correctly when importing from Accelo",
+          "category": "bug",
+          "createdAt": "2026-05-24T23:15:00.000Z"
         }
       ],
       "publishedPatch": 7,

@@ -2239,9 +2239,16 @@ export default function Companies() {
                         // Backend resolves numeric state IDs → county name in postal_address.county.
                         // For text state values (Chapman code or written name) fall back to
                         // postal_address.state and run it through the Chapman lookup first.
+                        // Some Accelo state titles come back in inverted form (e.g. "London, City of")
+                        // — normalise those to their preferred names.
+                        const ACCELO_COUNTY_NAME_MAP: Record<string, string> = {
+                          "london, city of": "City of London",
+                        };
                         const rawCounty = detail?.postal_address?.county ?? detail?.postal_address?.state ?? null;
                         const resolvedCounty = rawCounty
-                          ? (ACCELO_COUNTY_LOOKUP[String(rawCounty).toUpperCase().trim()]?.county ?? String(rawCounty).trim())
+                          ? (ACCELO_COUNTY_LOOKUP[String(rawCounty).toUpperCase().trim()]?.county
+                              ?? ACCELO_COUNTY_NAME_MAP[String(rawCounty).toLowerCase().trim()]
+                              ?? String(rawCounty).trim())
                           : null;
                         setFormData({
                           name: result.name || "",
