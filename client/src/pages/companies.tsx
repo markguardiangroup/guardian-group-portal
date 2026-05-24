@@ -2231,12 +2231,12 @@ export default function Companies() {
                           country: addr.country,
                           sources: [],
                         });
+                        setAcceloImportContext({ acceloCompanyId: rid, acceloStanding: detail?.standing ?? null });
+                        setIsAcceloSearchOpen(false);
+                        setIsAddOpen(true);
                       } finally {
                         setAcceloSelectingId(null);
                       }
-                      setAcceloImportContext({ acceloCompanyId: rid, acceloStanding: detail?.standing ?? null });
-                      setIsAcceloSearchOpen(false);
-                      setIsAddOpen(true);
                     }}
                     data-testid={`button-accelo-result-${result.id}`}
                   >

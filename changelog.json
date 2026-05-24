@@ -5137,6 +5137,13 @@
           "message": "Accelo standing badges appear on company cards; detail page shows Accelo source, ID, and standing; server syncs standings daily at 07:00",
           "category": "feature",
           "createdAt": "2026-05-24T18:00:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-accelo-import-detail-scope-fix-2026",
+          "patch": 8,
+          "message": "Fixed: selecting an Accelo company to import no longer crashes with 'detail is not defined'",
+          "category": "bug",
+          "createdAt": "2026-05-24T19:45:00.000Z"
         }
       ],
       "publishedPatch": 7,
