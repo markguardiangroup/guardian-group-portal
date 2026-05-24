@@ -2197,8 +2197,9 @@ export default function UserManagement() {
                         <Select
                           value={editFormData.managerId || "none"}
                           onValueChange={(v) => setEditFormData({ ...editFormData, managerId: v === "none" ? "" : v })}
+                          disabled={editingUser.id === user?.id}
                         >
-                          <SelectTrigger id="edit-manager" data-testid="select-edit-manager">
+                          <SelectTrigger id="edit-manager" data-testid="select-edit-manager" disabled={editingUser.id === user?.id}>
                             <SelectValue placeholder="Not managed" />
                           </SelectTrigger>
                           <SelectContent>

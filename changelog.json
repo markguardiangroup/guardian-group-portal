@@ -5298,6 +5298,13 @@
           "message": "Managed By list now only shows Pro Consultants from the same source as the consultant being edited",
           "category": "enhancement",
           "createdAt": "2026-05-24T23:45:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-managed-by-self-lock-2026",
+          "patch": 8,
+          "message": "Pro Consultants can no longer change their own Managed By setting",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T23:50:00.000Z"
         }
       ],
       "publishedPatch": 7,
