@@ -7214,6 +7214,35 @@ export async function registerRoutes(
     }
   });
 
+  // POST /api/companies/:companyId/accelo-sync — re-fetch type + standing for all Accelo links (admin + pro consultant)
+  app.post("/api/companies/:companyId/accelo-sync", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role !== "admin" && !isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
+      const links = await storage.getAcceloLinksByCompany(req.params.companyId);
+      if (links.length === 0) return res.json({ updated: 0 });
+      let updated = 0;
+      for (const link of links) {
+        try {
+          if (!canAccessAcceloSource(user, link.sourceCode)) continue;
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type`);
+          const r = data?.response;
+          if (r) {
+            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, r.type ?? null);
+            updated++;
+          }
+        } catch (linkErr: any) {
+          console.warn(`[accelo-sync] Failed for source=${link.sourceCode} id=${link.acceloId}:`, linkErr.message);
+        }
+      }
+      res.json({ updated });
+    } catch (err) {
+      console.error("Accelo sync error:", err);
+      res.status(500).json({ error: "Failed to sync Accelo data" });
+    }
+  });
+
   // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin + pro consultant)
   app.patch("/api/companies/:companyId/group-owner", requireAuth, async (req, res) => {
     try {

@@ -5165,6 +5165,13 @@
           "message": "Accelo badges now show type only (e.g. 'Accelo: Internal') — standing removed from all views",
           "category": "enhancement",
           "createdAt": "2026-05-24T20:40:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-accelo-sync-button-2026",
+          "patch": 8,
+          "message": "Sync button on company detail page pulls latest Accelo type on demand",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T20:55:00.000Z"
         }
       ],
       "publishedPatch": 7,

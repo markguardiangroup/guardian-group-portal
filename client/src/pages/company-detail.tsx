@@ -1404,6 +1404,21 @@ export default function CompanyDetail() {
     },
   });
 
+  const acceloSyncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/companies/${companyId}/accelo-sync`, { method: "POST", credentials: "include" });
+      if (!res.ok) throw new Error("Sync failed");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "accelo-links"] });
+      toast({ title: "Accelo data refreshed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to sync Accelo data", variant: "destructive" });
+    },
+  });
+
   type Source = { id: string; code: string; label: string; isActive: boolean };
   const { data: availableSources = [] } = useQuery<Source[]>({
     queryKey: ["/api/sources"],
@@ -2113,7 +2128,20 @@ export default function CompanyDetail() {
 
                 {(isAdmin || user?.role === "consultant") && acceloLinks.length > 0 && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Accelo</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground">Accelo</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        disabled={acceloSyncMutation.isPending}
+                        onClick={() => acceloSyncMutation.mutate()}
+                        data-testid="button-accelo-sync"
+                      >
+                        <RefreshCw className={`h-3 w-3 mr-1 ${acceloSyncMutation.isPending ? "animate-spin" : ""}`} />
+                        {acceloSyncMutation.isPending ? "Syncing…" : "Sync"}
+                      </Button>
+                    </div>
                     <div className="space-y-1.5">
                       {acceloLinks.map((link) => {
                         const typeLabel = link.acceloType
