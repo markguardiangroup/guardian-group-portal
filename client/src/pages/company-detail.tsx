@@ -2147,22 +2147,9 @@ export default function CompanyDetail() {
 
                 {(isAdmin || user?.role === "consultant") && acceloLinks.length > 0 && (
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-xs text-muted-foreground">Accelo Status</p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-5 px-1.5 text-xs"
-                        disabled={acceloSyncMutation.isPending}
-                        onClick={() => acceloSyncMutation.mutate()}
-                        data-testid="button-accelo-sync"
-                      >
-                        <RefreshCw className={`h-3 w-3 mr-1 ${acceloSyncMutation.isPending ? "animate-spin" : ""}`} />
-                        {acceloSyncMutation.isPending ? "Syncing…" : "Sync"}
-                      </Button>
-                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">Accelo Status</p>
                     <div className="space-y-1.5">
-                      {acceloLinks.map((link) => {
+                      {acceloLinks.map((link, idx) => {
                         const typeLabel = link.acceloType
                           ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
                           : null;
@@ -2181,6 +2168,19 @@ export default function CompanyDetail() {
                                 checked {new Date(link.lastCheckedAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                               </span>
                             )}
+                            {idx === 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-5 px-1.5 text-xs"
+                                disabled={acceloSyncMutation.isPending}
+                                onClick={() => acceloSyncMutation.mutate()}
+                                data-testid="button-accelo-sync"
+                              >
+                                <RefreshCw className={`h-3 w-3 mr-1 ${acceloSyncMutation.isPending ? "animate-spin" : ""}`} />
+                                {acceloSyncMutation.isPending ? "Syncing…" : "Sync"}
+                              </Button>
+                            )}
                           </div>
                         );
                       })}
@@ -2189,24 +2189,7 @@ export default function CompanyDetail() {
                 )}
 
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-xs text-muted-foreground">Primary Contact</p>
-                    {isAdmin && companyUsers.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-5 px-1.5 text-xs"
-                        onClick={() => {
-                          setSelectedNewContactId(company.contactUserId || "");
-                          setChangePrimaryContactOpen(true);
-                        }}
-                        data-testid="button-change-primary-contact"
-                      >
-                        <Pencil className="h-3 w-3 mr-1" />
-                        {company.contactName ? "Change" : "Set"}
-                      </Button>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">Primary Contact</p>
                   {(company.contactName || company.contactPhone || company.contactEmail) ? (
                     <div className="flex items-start gap-2 text-sm">
                       <UserIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
@@ -2218,13 +2201,45 @@ export default function CompanyDetail() {
                           <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 shrink-0">
                             Primary Contact
                           </Badge>
+                          {isAdmin && companyUsers.length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-5 px-1.5 text-xs"
+                              onClick={() => {
+                                setSelectedNewContactId(company.contactUserId || "");
+                                setChangePrimaryContactOpen(true);
+                              }}
+                              data-testid="button-change-primary-contact"
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Change
+                            </Button>
+                          )}
                         </div>
                         {company.contactPhone && <p className="text-xs text-muted-foreground truncate">{company.contactPhone}</p>}
                         {company.contactEmail && <p className="text-xs text-muted-foreground truncate">{company.contactEmail}</p>}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No primary contact set</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-muted-foreground">No primary contact set</p>
+                      {isAdmin && companyUsers.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-5 px-1.5 text-xs"
+                          onClick={() => {
+                            setSelectedNewContactId(company.contactUserId || "");
+                            setChangePrimaryContactOpen(true);
+                          }}
+                          data-testid="button-change-primary-contact"
+                        >
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Set
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 

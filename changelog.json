@@ -5235,6 +5235,13 @@
           "message": "Accelo section renamed to 'Accelo Status'; last sync now shows date and time",
           "category": "enhancement",
           "createdAt": "2026-05-24T22:20:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-buttons-moved-inline-with-fields-2026",
+          "patch": 8,
+          "message": "Sync and Set/Change buttons moved to sit inline with their field content",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T22:25:00.000Z"
         }
       ],
       "publishedPatch": 7,
