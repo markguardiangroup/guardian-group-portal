@@ -360,6 +360,9 @@ export default function Companies() {
   const [acceloImportContext, setAcceloImportContext] = useState<{ acceloCompanyId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null } | null>(null);
   const acceloImportContextRef = useRef<{ acceloCompanyId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null } | null>(null);
   useEffect(() => { acceloImportContextRef.current = acceloImportContext; }, [acceloImportContext]);
+  // Snapshot of the import context captured synchronously in handleSubmit, before the add-company
+  // dialog closes (which calls resetForm → setAcceloImportContext(null) → clears the ref).
+  const pendingAcceloContextRef = useRef<{ acceloCompanyId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null } | null>(null);
   const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
   const [acceloContacts, setAcceloContacts] = useState<any[]>([]);
   const [acceloContactsLoading, setAcceloContactsLoading] = useState(false);
@@ -481,7 +484,8 @@ export default function Companies() {
       setIsSiteModalOpen(false);
       setPendingCompanyData(null);
       setPendingModuleAccess(null);
-      const ctx = acceloImportContextRef.current;
+      const ctx = pendingAcceloContextRef.current;
+      pendingAcceloContextRef.current = null;
       resetForm();
       setSiteData({
         name: "",
@@ -1014,6 +1018,9 @@ export default function Companies() {
     } else {
       setPendingCompanyData({ ...submittedData });
       setPendingModuleAccess({ ...moduleAccessData });
+      // Snapshot the Accelo import context NOW, before setIsAddOpen(false) triggers
+      // onOpenChange → resetForm → setAcceloImportContext(null) → clears the ref.
+      pendingAcceloContextRef.current = acceloImportContextRef.current;
       setIsAddOpen(false);
       setSiteData({
         name: "",
