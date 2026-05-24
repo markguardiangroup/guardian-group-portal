@@ -7223,16 +7223,14 @@ export async function registerRoutes(
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
       if (links.length === 0) return res.json({ updated: 0 });
       let updated = 0;
-      const debugSnapshots: any[] = [];
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,name,standing,type,type_id,standing_id,status`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,company_status(id,title)`);
           const r = data?.response;
-          debugSnapshots.push({ sourceCode: link.sourceCode, acceloId: link.acceloId, raw: r, fullResponse: data });
-          const rawType = r?.type;
-          const acceloType = rawType
-            ? (typeof rawType === "string" ? rawType : (rawType?.title ?? rawType?.name ?? String(rawType?.id ?? "")))
+          const rawStatus = r?.company_status;
+          const acceloType = rawStatus
+            ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
             : null;
           if (r) {
             await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType || null);
@@ -7245,7 +7243,7 @@ export async function registerRoutes(
           console.warn(`[accelo-sync] Failed for source=${link.sourceCode} id=${link.acceloId}:`, linkErr.message);
         }
       }
-      res.json({ updated, _debug: debugSnapshots });
+      res.json({ updated });
     } catch (err: any) {
       if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) {
         return res.status(503).json({ error: "Accelo not connected for this source" });
@@ -17878,7 +17876,7 @@ export async function registerRoutes(
     let acceloCompany: any;
     let primaryContact: any = null;
     const [companyData, contactsData] = await Promise.all([
-      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,type`),
+      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,company_status(id,title)`),
       acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
     ]);
     acceloCompany  = companyData?.response;
@@ -17973,9 +17971,10 @@ export async function registerRoutes(
     // Persist / update the Accelo link with standing
     if (company?.id) {
       try {
-        const acceloTypeVal = acceloCompany.type
-          ? (typeof acceloCompany.type === "string" ? acceloCompany.type : acceloCompany.type?.title ?? null)
-          : (acceloCompany.standing ?? null);
+        const rawStatus = acceloCompany.company_status;
+        const acceloTypeVal = rawStatus
+          ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
+          : null;
         await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloTypeVal);
       } catch (linkErr: any) {
         console.warn(`[Accelo push] Failed to upsert accelo link for company ${company.id}:`, linkErr.message);
