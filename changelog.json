@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 7,
+      "patch": 8,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -5133,13 +5133,13 @@
         },
         {
           "id": "b0c1d2e3-accelo-company-link-daily-sync-2026",
-          "patch": 7,
+          "patch": 8,
           "message": "Accelo standing badges appear on company cards; detail page shows Accelo source, ID, and standing; server syncs standings daily at 07:00",
           "category": "feature",
           "createdAt": "2026-05-24T18:00:00.000Z"
         }
       ],
-      "publishedPatch": 6,
+      "publishedPatch": 7,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -5224,7 +5224,26 @@
         "z9a0b1c2-accelo-payload-format-fix-2026",
         "f6g7h8i9-accelo-integration-2026",
         "g7h8i9j1-toolkit-folder-create-null-code-crash-2026",
-        "h8i9j0k1-table-view-matches-folder-view-count-2026"
+        "h8i9j0k1-table-view-matches-folder-view-count-2026",
+        "a3b4c5d6-accelo-import-pull-flow-2026",
+        "b4c5d6e7-accelo-search-empty-state-fix-2026",
+        "c5d6e7f8-accelo-richer-company-fields-2026",
+        "d6e7f8a9-accelo-status-always-pending-2026",
+        "e7f8a9b0-accelo-custom-id-mapping-2026",
+        "f8a9b0c1-accelo-search-numeric-removed-2026",
+        "a9b0c1d2-accelo-search-results-client-number-2026",
+        "b0c1d2e3-accelo-full-address-mapping-2026",
+        "c1d2e3f4-accelo-address-detail-fetch-2026",
+        "d2e3f4a5-accelo-contacts-filter-fix-2026",
+        "e3f4a5b6-accelo-name-lock-2026",
+        "a1b2c3d4-accelo-address-country-fallback-2026",
+        "f4a5b6c7-accelo-contacts-add-to-site-default-2026",
+        "c8d9e0f1-accelo-contacts-bulk-site-toggle-2026",
+        "b2c3d4e5-accelo-key-contact-site-badge-2026",
+        "e1f2a3b4-key-contact-all-levels-2026",
+        "f3a4b5c6-key-contact-backfill-site-2026",
+        "a9b8c7d6-multi-source-accelo-integrations-2026",
+        "b0c1d2e3-accelo-company-link-daily-sync-2026"
       ]
     }
   ]
