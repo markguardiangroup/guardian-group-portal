@@ -138,8 +138,9 @@ function CompanyCard({
                 {company.acceloLinks && company.acceloLinks.length > 0 && (
                   <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                     {company.acceloLinks.map((link) => {
-                      const typeLabel = link.acceloType
-                        ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
+                      const rawLabel = link.acceloType || link.acceloStanding;
+                      const typeLabel = rawLabel
+                        ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase()
                         : null;
                       return (
                         <Badge
@@ -1263,8 +1264,9 @@ export default function Companies() {
                         {company.acceloLinks && company.acceloLinks.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
                             {company.acceloLinks.map((link) => {
-                              const typeLabel = link.acceloType
-                                ? link.acceloType.charAt(0).toUpperCase() + link.acceloType.slice(1).toLowerCase()
+                              const rawLabel = link.acceloType || link.acceloStanding;
+                              const typeLabel = rawLabel
+                                ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase()
                                 : null;
                               return (
                                 <Badge
