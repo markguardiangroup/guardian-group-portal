@@ -1411,7 +1411,9 @@ export default function CompanyDetail() {
       if (!res.ok) throw new Error(body?.error ?? "Sync failed");
       return body;
     },
-    onSuccess: () => {
+    onSuccess: (body: any) => {
+      // eslint-disable-next-line no-console
+      console.log("[accelo-debug] sync response:", JSON.stringify(body, null, 2));
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "accelo-links"] });
       toast({ title: "Accelo data refreshed" });
     },
