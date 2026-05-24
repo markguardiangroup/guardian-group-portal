@@ -446,11 +446,12 @@ process.on("uncaughtException", (err) => {
             const batch = sourceLinks.slice(i, i + BATCH_SIZE);
             const ids = batch.map(l => l.acceloId).join("|");
             try {
-              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing,type&_limit=${BATCH_SIZE}`);
+              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing,type(id,title)&_limit=${BATCH_SIZE}`);
               const results = Array.isArray(data?.response) ? data.response : [];
               for (const r of results) {
                 const link = batch.find(l => String(l.acceloId) === String(r.id));
-                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null, acceloType: r.type ?? null });
+                const acceloType = r.type ? (typeof r.type === "string" ? r.type : r.type?.title ?? null) : null;
+                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null, acceloType });
               }
             } catch (batchErr: any) {
               console.error(`[scheduler] Accelo sync batch error (source=${sourceCode}):`, batchErr.message);

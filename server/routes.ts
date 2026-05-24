@@ -7226,10 +7226,14 @@ export async function registerRoutes(
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,type(id,title)`);
           const r = data?.response;
+          console.log(`[accelo-sync] raw response for ${link.acceloId}:`, JSON.stringify(r));
+          const acceloType = r?.type
+            ? (typeof r.type === "string" ? r.type : r.type?.title ?? null)
+            : null;
           if (r) {
-            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, r.type ?? null);
+            await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType);
             updated++;
           }
         } catch (linkErr: any) {
@@ -17872,7 +17876,7 @@ export async function registerRoutes(
     let acceloCompany: any;
     let primaryContact: any = null;
     const [companyData, contactsData] = await Promise.all([
-      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,type`),
+      acceloGet(sourceCode, `/companies/${acceloCompanyId}?_fields=id,name,phone,website,custom_id,postal_address(city,state,full),standing,type(id,title)`),
       acceloGet(sourceCode, `/contacts?_filters=company_id(${acceloCompanyId})&_fields=id,firstname,surname,email,phone,mobile&_limit=1`),
     ]);
     acceloCompany  = companyData?.response;
@@ -17967,7 +17971,10 @@ export async function registerRoutes(
     // Persist / update the Accelo link with standing
     if (company?.id) {
       try {
-        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloCompany.type ?? null);
+        const acceloTypeVal = acceloCompany.type
+          ? (typeof acceloCompany.type === "string" ? acceloCompany.type : acceloCompany.type?.title ?? null)
+          : null;
+        await storage.upsertAcceloLink(company.id, sourceCode, String(acceloCompanyId), acceloCompany.standing ?? null, acceloTypeVal);
       } catch (linkErr: any) {
         console.warn(`[Accelo push] Failed to upsert accelo link for company ${company.id}:`, linkErr.message);
       }
@@ -18054,7 +18061,7 @@ export async function registerRoutes(
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
-      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type`);
+      const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type(id,title)`);
       const company = data?.response ?? null;
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
         try {
