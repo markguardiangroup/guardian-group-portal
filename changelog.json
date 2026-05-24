@@ -5095,6 +5095,13 @@
           "message": "Accelo import: 'Add to site' is now off by default; 'Add all to site' button appears when 2+ contacts selected",
           "category": "enhancement",
           "createdAt": "2026-05-23T20:05:00.000Z"
+        },
+        {
+          "id": "c8d9e0f1-accelo-contacts-bulk-site-toggle-2026",
+          "patch": 7,
+          "message": "Accelo import: bulk site button toggles between 'Add all to site' and 'Remove all from site'",
+          "category": "enhancement",
+          "createdAt": "2026-05-24T15:30:00.000Z"
         }
       ],
       "publishedPatch": 6,

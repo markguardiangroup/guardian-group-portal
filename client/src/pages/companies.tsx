@@ -2260,23 +2260,25 @@ export default function Companies() {
                   <div className="flex items-center gap-2">
                     {(() => {
                       const selectedIds = Object.entries(contactRows).filter(([, r]) => r.selected).map(([id]) => id);
-                      return selectedIds.length > 1 && (
+                      if (selectedIds.length < 2) return null;
+                      const allAdded = selectedIds.every(id => contactRows[id]?.addToSite);
+                      return (
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs px-2 gap-1"
+                          className={`h-7 text-xs px-2 gap-1 ${allAdded ? "border-blue-500 text-blue-700 dark:text-blue-400" : ""}`}
                           onClick={() => {
                             setContactRows(prev => {
                               const next = { ...prev };
-                              selectedIds.forEach(id => { if (next[id]) next[id] = { ...next[id], addToSite: true }; });
+                              selectedIds.forEach(id => { if (next[id]) next[id] = { ...next[id], addToSite: !allAdded }; });
                               return next;
                             });
                           }}
                           data-testid="button-add-all-to-site"
                         >
                           <Building2 className="h-3.5 w-3.5" />
-                          Add all to site
+                          {allAdded ? "Remove all from site" : "Add all to site"}
                         </Button>
                       );
                     })()}
