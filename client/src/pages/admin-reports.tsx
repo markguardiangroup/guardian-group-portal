@@ -605,7 +605,7 @@ export default function AdminReports() {
     tasks: ScheduledTask[];
   }
   const [showScheduledTasks, setShowScheduledTasks] = useState(false);
-  const { data: scheduledTasksData, isLoading: scheduledTasksLoading, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
+  const { data: scheduledTasksData, isPending: scheduledTasksLoading, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
     queryKey: ["/api/admin/scheduled-tasks"],
     enabled: showScheduledTasks,
     staleTime: 0,
@@ -1411,7 +1411,7 @@ export default function AdminReports() {
           )}
 
           <div className="flex-1 overflow-y-auto min-h-0">
-            {!scheduledTasksData || scheduledTasksLoading ? (
+            {scheduledTasksLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />Loading…
               </div>
