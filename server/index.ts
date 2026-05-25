@@ -508,6 +508,10 @@ process.on("uncaughtException", (err) => {
   }
 
   function scheduleNextAcceloSync() {
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[scheduler] Accelo status sync skipped — only runs in production.");
+      return;
+    }
     const ms = msUntilNextUKTime(7, 0);
     const nextRun = new Date(Date.now() + ms);
     console.log(`[scheduler] Next Accelo status sync scheduled for ${nextRun.toISOString()} (${Math.round(ms / 60000)} min from now).`);

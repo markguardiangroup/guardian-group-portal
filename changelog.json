@@ -5319,6 +5319,13 @@
           "message": "Fixed: feedback comments dialog now scrolls correctly when there are many messages",
           "category": "bug",
           "createdAt": "2026-05-25T00:10:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-accelo-scheduled-sync-prod-only-2026",
+          "patch": 8,
+          "message": "Accelo daily status sync now only runs in production, not in dev",
+          "category": "enhancement",
+          "createdAt": "2026-05-25T20:55:00.000Z"
         }
       ],
       "publishedPatch": 7,
