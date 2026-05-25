@@ -7321,6 +7321,14 @@ export async function registerRoutes(
 
       const tasks = [
         {
+          id: "folder-cleanup",
+          name: "Expired Folder Cleanup",
+          description: "Deletes client upload files past their 30-day expiry, then removes any folders that are empty or past their safety-net date",
+          schedule: "Daily at 03:00 UK",
+          runsIn: "all" as const,
+          lastRunAt: null as string | null,
+        },
+        {
           id: "document-sweep",
           name: "Expired Document Sweep",
           description: "Marks overdue documents as expired and auto-corrects any misclassified compliant documents",

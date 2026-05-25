@@ -375,17 +375,26 @@ process.on("uncaughtException", (err) => {
     console.error("Startup required-doc status fix warning (non-fatal):", err);
   }
 
-  // Run expired folder cleanup on startup and then daily
-  storage.cleanupExpiredFolders().catch((err) =>
-    console.error("Startup folder cleanup error:", err)
-  );
-  setInterval(
-    () =>
-      storage.cleanupExpiredFolders().catch((err) =>
-        console.error("Scheduled folder cleanup error:", err)
-      ),
-    24 * 60 * 60 * 1000
-  );
+  // Run expired folder/file cleanup on startup and then daily at 03:00 UK time
+  async function runExpiredFolderCleanup() {
+    try {
+      const count = await storage.cleanupExpiredFolders();
+      if (count > 0) {
+        console.log(`[scheduler] Deleted ${count} expired client upload file(s) and any empty folders.`);
+      }
+    } catch (err) {
+      console.error("[scheduler] Expired folder cleanup error:", err);
+    }
+  }
+  function scheduleNextFolderCleanup() {
+    const ms = msUntilNextUKTime(3, 0);
+    const nextRun = new Date(Date.now() + ms);
+    console.log(`[scheduler] Next expired-folder cleanup scheduled for ${nextRun.toISOString()} (${Math.round(ms / 60000)} min from now).`);
+    setTimeout(async () => {
+      await runExpiredFolderCleanup();
+      scheduleNextFolderCleanup();
+    }, ms).unref();
+  }
 
   // Run expired document status sweep on startup, then every day at 05:00 UK time.
   // Finds compliant documents whose renewalDate or expiryDate has passed and marks them overdue.
@@ -432,6 +441,10 @@ process.on("uncaughtException", (err) => {
       scheduleNextDocumentSweep();
     }, ms).unref();
   }
+
+  // Run folder cleanup once on startup, then schedule for 03:00 UK each day
+  runExpiredFolderCleanup();
+  scheduleNextFolderCleanup();
 
   // Run once immediately on startup to catch anything that expired overnight
   runExpiredDocumentSweep();
