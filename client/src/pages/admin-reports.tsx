@@ -615,6 +615,7 @@ export default function AdminReports() {
     setScheduledTasksData(null);
     try {
       const res = await fetch("/api/admin/scheduled-tasks", { credentials: "include" });
+      if (res.status === 401) { window.location.href = "/login"; return; }
       if (!res.ok) throw new Error(`${res.status}`);
       setScheduledTasksData(await res.json());
     } catch {
