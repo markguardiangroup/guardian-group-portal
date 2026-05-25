@@ -606,12 +606,24 @@ export default function AdminReports() {
     tasks: ScheduledTask[];
   }
   const [showScheduledTasks, setShowScheduledTasks] = useState(false);
-  const { data: scheduledTasksData, isLoading: scheduledTasksLoading, isError: scheduledTasksError, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
-    queryKey: ["/api/admin/scheduled-tasks"],
-    enabled: showScheduledTasks,
-    staleTime: 0,
-    gcTime: 0,
-  });
+  const [scheduledTasksData, setScheduledTasksData] = useState<ScheduledTasksResponse | null>(null);
+  const [scheduledTasksLoading, setScheduledTasksLoading] = useState(false);
+  const [scheduledTasksError, setScheduledTasksError] = useState(false);
+  async function loadScheduledTasks() {
+    setScheduledTasksLoading(true);
+    setScheduledTasksError(false);
+    setScheduledTasksData(null);
+    try {
+      const res = await fetch("/api/admin/scheduled-tasks", { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
+      setScheduledTasksData(await res.json());
+    } catch {
+      setScheduledTasksError(true);
+    } finally {
+      setScheduledTasksLoading(false);
+    }
+  }
+  function refetchScheduledTasks() { loadScheduledTasks(); }
 
   const [showLoginReport, setShowLoginReport] = useState(false);
   type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
@@ -903,7 +915,7 @@ export default function AdminReports() {
             {isAdmin && (
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
-                onClick={() => { queryClient.resetQueries({ queryKey: ["/api/admin/scheduled-tasks"] }); setShowScheduledTasks(true); }}
+                onClick={() => { setShowScheduledTasks(true); loadScheduledTasks(); }}
                 data-testid="report-scheduled-tasks"
               >
                 <div className="flex items-center gap-3">
