@@ -5354,6 +5354,20 @@
           "message": "Scheduled Tasks report now shows real last-run times for Folder Cleanup and Document Sweep",
           "category": "enhancement",
           "createdAt": "2026-05-25T22:08:00.000Z"
+        },
+        {
+          "id": "e1f2a3b4-consultant-temporary-coverage-2026",
+          "patch": 8,
+          "message": "Consultants can now arrange temporary client cover — delegates client access to covering consultants for a date range",
+          "category": "feature",
+          "createdAt": "2026-05-25T23:20:00.000Z"
+        },
+        {
+          "id": "f2a3b4c5-consultant-coverage-admin-report-2026",
+          "patch": 8,
+          "message": "New Consultant Coverage admin report shows all active, upcoming, and expired cover arrangements",
+          "category": "feature",
+          "createdAt": "2026-05-25T23:20:00.000Z"
         }
       ],
       "publishedPatch": 7,

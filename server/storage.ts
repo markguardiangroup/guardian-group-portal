@@ -125,10 +125,12 @@ import {
   type CompanyAcceloLink,
   companyAcceloLinks as companyAcceloLinksTable,
   type AcceloSyncLog,
+  type ConsultantCoverage, type InsertConsultantCoverage,
+  consultantCoverage as consultantCoverageTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db, pool } from "./db";
-import { eq, and, or, asc, desc, isNull, isNotNull, gt, count, sql, inArray } from "drizzle-orm";
+import { eq, and, or, asc, desc, isNull, isNotNull, gt, gte, lte, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
@@ -583,6 +585,13 @@ export interface IStorage {
   // Scheduler Run Tracking
   getSchedulerRun(taskId: string): Promise<Date | null>;
   upsertSchedulerRun(taskId: string): Promise<void>;
+
+  // Consultant Coverage
+  createConsultantCoverageEntries(entries: InsertConsultantCoverage[]): Promise<ConsultantCoverage[]>;
+  getActiveCoverageForCovering(consultantId: string): Promise<ConsultantCoverage[]>;
+  getActiveCoverageForAbsent(consultantId: string): Promise<ConsultantCoverage[]>;
+  getAllCoverageEntries(includeExpired: boolean): Promise<ConsultantCoverage[]>;
+  deleteConsultantCoverage(id: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -6089,6 +6098,52 @@ export class MemStorage implements IStorage {
        ON CONFLICT (task_id) DO UPDATE SET last_run_at = NOW()`,
       [taskId]
     );
+  }
+
+  // Consultant Coverage
+  async createConsultantCoverageEntries(entries: InsertConsultantCoverage[]): Promise<ConsultantCoverage[]> {
+    if (!entries.length) return [];
+    const results: ConsultantCoverage[] = [];
+    for (const entry of entries) {
+      const [row] = await db.insert(consultantCoverageTable).values(entry).returning();
+      results.push(row);
+    }
+    return results;
+  }
+
+  async getActiveCoverageForCovering(consultantId: string): Promise<ConsultantCoverage[]> {
+    const today = new Date().toISOString().split("T")[0];
+    return await db.select().from(consultantCoverageTable)
+      .where(and(
+        eq(consultantCoverageTable.coveringConsultantId, consultantId),
+        lte(consultantCoverageTable.startDate, today),
+        gte(consultantCoverageTable.endDate, today),
+      ));
+  }
+
+  async getActiveCoverageForAbsent(consultantId: string): Promise<ConsultantCoverage[]> {
+    const today = new Date().toISOString().split("T")[0];
+    return await db.select().from(consultantCoverageTable)
+      .where(and(
+        eq(consultantCoverageTable.absentConsultantId, consultantId),
+        lte(consultantCoverageTable.startDate, today),
+        gte(consultantCoverageTable.endDate, today),
+      ));
+  }
+
+  async getAllCoverageEntries(includeExpired: boolean): Promise<ConsultantCoverage[]> {
+    if (includeExpired) {
+      return await db.select().from(consultantCoverageTable)
+        .orderBy(desc(consultantCoverageTable.createdAt));
+    }
+    const today = new Date().toISOString().split("T")[0];
+    return await db.select().from(consultantCoverageTable)
+      .where(gte(consultantCoverageTable.endDate, today))
+      .orderBy(desc(consultantCoverageTable.createdAt));
+  }
+
+  async deleteConsultantCoverage(id: string): Promise<void> {
+    await db.delete(consultantCoverageTable).where(eq(consultantCoverageTable.id, id));
   }
 
 }

@@ -1170,6 +1170,21 @@ export async function registerRoutes(
   // Helper: check if a consultant user has the pro tier
   // Function definition moved to before its first usage in Companies list route
 
+  // Helper: returns the union of a consultant's own assigned site IDs plus the site IDs
+  // of any consultant they are actively covering for today.
+  const getEffectiveSiteIds = async (consultantId: string): Promise<Set<string>> => {
+    const [ownAssignments, coveringFor] = await Promise.all([
+      storage.getConsultantSites(consultantId),
+      storage.getActiveCoverageForCovering(consultantId),
+    ]);
+    const siteIds = new Set<string>(ownAssignments.map(a => a.siteId));
+    for (const c of coveringFor) {
+      const absentAssignments = await storage.getConsultantSites(c.absentConsultantId);
+      for (const a of absentAssignments) siteIds.add(a.siteId);
+    }
+    return siteIds;
+  };
+
   // Helper to check if a client user can access a site (based on companyId)
   const canUserAccessSite = async (user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null }, siteId: string): Promise<boolean> => {
     // Admins have unrestricted access to all sites
@@ -1193,14 +1208,14 @@ export async function registerRoutes(
     }
     
     // Standard consultants: must be assigned to the site (with source overlap),
-    // OR the site is in a GO member company and consultant is assigned to the GO (GO-level source check)
+    // OR the site is in a GO member company and consultant is assigned to the GO (GO-level source check),
+    // OR the site belongs to a consultant they are actively covering for.
     if (user.role === "consultant" && user.id) {
       const site = await storage.getSite(siteId);
       if (!site) return false;
       const company = await storage.getCompany(site.companyId);
       if (!company) return false;
-      const assignments = await storage.getConsultantSites(user.id);
-      const assignedSiteIds = new Set(assignments.map(a => a.siteId));
+      const assignedSiteIds = await getEffectiveSiteIds(user.id);
       
       // Case 1: Direct assignment with source overlap
       if (assignedSiteIds.has(siteId)) {
@@ -6847,11 +6862,12 @@ export async function registerRoutes(
           filteredCompanies = allCompanies.filter(c => goExpandedIds.has(c.id));
         } else {
           // Standard consultants (or pro with myAssigned=true) see only their assigned companies
+          // (including companies of any consultant they're actively covering for)
           // that also share at least one source, PLUS member companies of any GO they're assigned to
-          const assignments = await storage.getConsultantSites(user.id);
+          const effectiveSiteIds = await getEffectiveSiteIds(user.id);
           const siteCompanyIds = new Set<string>();
-          for (const a of assignments) {
-            const site = await storage.getSite(a.siteId);
+          for (const siteId of effectiveSiteIds) {
+            const site = await storage.getSite(siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
           // Source-overlapping assigned companies
@@ -7899,6 +7915,140 @@ export async function registerRoutes(
     }
   });
 
+  // ── Consultant Coverage ─────────────────────────────────────────────────────
+
+  // Eligible covering consultants for a given absent consultant
+  app.get("/api/consultant-coverage/eligible-consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+      const absentConsultantId = req.query.absentConsultantId as string;
+      if (!absentConsultantId) return res.status(400).json({ error: "absentConsultantId required" });
+      const absentConsultant = await storage.getUser(absentConsultantId);
+      if (!absentConsultant || absentConsultant.role !== "consultant") {
+        return res.status(404).json({ error: "Consultant not found" });
+      }
+      const allUsers = await storage.getUsers();
+      const consultants = allUsers.filter(u =>
+        u.role === "consultant" && u.status === "active" && u.id !== absentConsultantId
+      );
+      // Admins see all consultants; others filtered by source overlap
+      const eligible = user.role === "admin"
+        ? consultants
+        : consultants.filter(c => sourcesOverlap(absentConsultant.sources ?? [], c.sources ?? []));
+      res.json(eligible.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
+    } catch (error) {
+      console.error("Eligible consultants error:", error);
+      res.status(500).json({ error: "Failed to fetch eligible consultants" });
+    }
+  });
+
+  // Get my active coverage entries (covering for + being covered by)
+  app.get("/api/consultant-coverage/my-active", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+      const [coveringFor, beingCoveredBy] = await Promise.all([
+        storage.getActiveCoverageForCovering(user.id),
+        storage.getActiveCoverageForAbsent(user.id),
+      ]);
+      // Enrich with names
+      const allIds = new Set([
+        ...coveringFor.map(e => e.absentConsultantId),
+        ...beingCoveredBy.map(e => e.coveringConsultantId),
+      ]);
+      const userMap = new Map<string, string>();
+      for (const id of allIds) {
+        const u = await storage.getUser(id);
+        if (u) userMap.set(id, u.fullName);
+      }
+      res.json({
+        coveringFor: coveringFor.map(e => ({ ...e, absentConsultantName: userMap.get(e.absentConsultantId) ?? "Unknown" })),
+        beingCoveredBy: beingCoveredBy.map(e => ({ ...e, coveringConsultantName: userMap.get(e.coveringConsultantId) ?? "Unknown" })),
+      });
+    } catch (error) {
+      console.error("My active coverage error:", error);
+      res.status(500).json({ error: "Failed to fetch coverage" });
+    }
+  });
+
+  // Create coverage entries
+  app.post("/api/consultant-coverage", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+      const { absentConsultantId, coveringConsultantIds, startDate, endDate } = req.body;
+      if (!absentConsultantId || !Array.isArray(coveringConsultantIds) || coveringConsultantIds.length === 0 || !startDate || !endDate) {
+        return res.status(400).json({ error: "absentConsultantId, coveringConsultantIds (non-empty array), startDate, and endDate are required" });
+      }
+      if (startDate > endDate) return res.status(400).json({ error: "startDate must be on or before endDate" });
+      // Permission: consultants can only arrange cover for themselves or their managed consultants
+      if (user.role === "consultant") {
+        if (absentConsultantId !== user.id) {
+          if (!isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
+          const managed = await storage.getUser(absentConsultantId);
+          if (!managed || managed.managerId !== user.id) return res.status(403).json({ error: "Forbidden" });
+        }
+      }
+      const entries = (coveringConsultantIds as string[]).map(coveringConsultantId => ({
+        absentConsultantId,
+        coveringConsultantId,
+        startDate,
+        endDate,
+        createdBy: user.id,
+      }));
+      const created = await storage.createConsultantCoverageEntries(entries);
+      res.json(created);
+    } catch (error) {
+      console.error("Create coverage error:", error);
+      res.status(500).json({ error: "Failed to create coverage" });
+    }
+  });
+
+  // Admin: get all coverage entries
+  app.get("/api/admin/consultant-coverage", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const includeExpired = req.query.includeExpired === "true";
+      const entries = await storage.getAllCoverageEntries(includeExpired);
+      const allIds = new Set([
+        ...entries.map(e => e.absentConsultantId),
+        ...entries.map(e => e.coveringConsultantId),
+        ...entries.map(e => e.createdBy),
+      ]);
+      const userMap = new Map<string, string>();
+      for (const id of allIds) {
+        const u = await storage.getUser(id);
+        if (u) userMap.set(id, u.fullName);
+      }
+      const today = new Date().toISOString().split("T")[0];
+      res.json(entries.map(e => ({
+        ...e,
+        absentConsultantName: userMap.get(e.absentConsultantId) ?? "Unknown",
+        coveringConsultantName: userMap.get(e.coveringConsultantId) ?? "Unknown",
+        createdByName: userMap.get(e.createdBy) ?? "Unknown",
+        status: e.endDate < today ? "expired" : e.startDate > today ? "upcoming" : "active",
+      })));
+    } catch (error) {
+      console.error("Admin coverage error:", error);
+      res.status(500).json({ error: "Failed to fetch coverage entries" });
+    }
+  });
+
+  // Delete a coverage entry
+  app.delete("/api/consultant-coverage/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+      await storage.deleteConsultantCoverage(req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Delete coverage error:", error);
+      res.status(500).json({ error: "Failed to delete coverage entry" });
+    }
+  });
+
   // Sites
   app.get("/api/sites", requireAuth, async (req, res) => {
     try {
@@ -7954,9 +8104,9 @@ export async function registerRoutes(
           res.json(filteredSites);
           return;
         }
-        // Standard consultants (or pro with myAssigned=true) see only their directly assigned sites
-        const assignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = new Set(assignments.map(a => a.entityId));
+        // Standard consultants (or pro with myAssigned=true) see their directly assigned sites
+        // plus any sites belonging to consultants they are actively covering for
+        const assignedSiteIds = await getEffectiveSiteIds(user.id);
         let filteredSites = allSites.filter(site => assignedSiteIds.has(site.id));
         if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
         res.json(filteredSites);

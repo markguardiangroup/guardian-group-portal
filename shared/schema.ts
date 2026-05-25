@@ -1892,3 +1892,18 @@ export const schedulerRuns = pgTable("scheduler_runs", {
 });
 
 export type SchedulerRun = typeof schedulerRuns.$inferSelect;
+
+// ==================== CONSULTANT COVERAGE ====================
+export const consultantCoverage = pgTable("consultant_coverage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  absentConsultantId: varchar("absent_consultant_id").notNull(),
+  coveringConsultantId: varchar("covering_consultant_id").notNull(),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertConsultantCoverageSchema = createInsertSchema(consultantCoverage).omit({ id: true, createdAt: true });
+export type InsertConsultantCoverage = z.infer<typeof insertConsultantCoverageSchema>;
+export type ConsultantCoverage = typeof consultantCoverage.$inferSelect;

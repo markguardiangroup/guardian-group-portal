@@ -56,7 +56,16 @@ import {
   CalendarClock,
   PlayCircle,
   PauseCircle,
+  UserCog,
+  UserPlus,
+  UserCheck,
+  UserMinus,
+  X,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -626,6 +635,34 @@ export default function AdminReports() {
   function refetchScheduledTasks() { loadScheduledTasks(); }
 
   const [showLoginReport, setShowLoginReport] = useState(false);
+
+  // Coverage report
+  const [showCoverageReport, setShowCoverageReport] = useState(false);
+  const [includeExpiredCoverage, setIncludeExpiredCoverage] = useState(false);
+  interface AdminCoverageEntry {
+    id: string;
+    absentConsultantId: string;
+    coveringConsultantId: string;
+    startDate: string;
+    endDate: string;
+    createdBy: string;
+    createdAt: string;
+    absentConsultantName: string;
+    coveringConsultantName: string;
+    createdByName: string;
+    status: "active" | "upcoming" | "expired";
+  }
+  const { data: coverageEntries = [], isLoading: coverageLoading } = useQuery<AdminCoverageEntry[]>({
+    queryKey: ["/api/admin/consultant-coverage", includeExpiredCoverage],
+    queryFn: () =>
+      fetch(`/api/admin/consultant-coverage?includeExpired=${includeExpiredCoverage}`, { credentials: "include" }).then(r => r.json()),
+    enabled: showCoverageReport,
+    staleTime: 0,
+  });
+  const cancelCoverageMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/consultant-coverage/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/consultant-coverage"] }),
+  });
   type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
   const [loginReportRange, setLoginReportRange] = useState<LoginRangePreset>("today");
   const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -905,6 +942,26 @@ export default function AdminReports() {
                   <div>
                     <p className="font-medium">Accelo Sync Log</p>
                     <p className="text-sm text-muted-foreground">History of imports, manual syncs, and scheduled Accelo syncs</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">View</Badge>
+              </div>
+            )}
+
+            {/* Consultant Coverage — admin only */}
+            {isAdmin && (
+              <div
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+                onClick={() => setShowCoverageReport(true)}
+                data-testid="report-consultant-coverage"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-orange-500/10">
+                    <UserCog className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Consultant Coverage</p>
+                    <p className="text-sm text-muted-foreground">Active and historical client cover arrangements</p>
                   </div>
                 </div>
                 <Badge variant="secondary">View</Badge>
@@ -1481,6 +1538,108 @@ export default function AdminReports() {
                       </TableRow>
                     );
                   })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Consultant Coverage Dialog */}
+      <Dialog open={showCoverageReport} onOpenChange={setShowCoverageReport}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-auto" data-testid="dialog-coverage-report">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5" />
+              Consultant Coverage
+            </DialogTitle>
+            <DialogDescription>
+              Client cover arrangements — consultants delegating their clients to a covering consultant.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="include-expired"
+                  checked={includeExpiredCoverage}
+                  onCheckedChange={setIncludeExpiredCoverage}
+                  data-testid="switch-include-expired-coverage"
+                />
+                <Label htmlFor="include-expired" className="text-sm cursor-pointer">Show expired arrangements</Label>
+              </div>
+            </div>
+
+            {coverageLoading ? (
+              <FetchingOverlay />
+            ) : coverageEntries.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
+                <UserCog className="h-8 w-8 opacity-40" />
+                <p className="text-sm">No coverage arrangements found.</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Absent Consultant</TableHead>
+                    <TableHead>Covering Consultant</TableHead>
+                    <TableHead>From</TableHead>
+                    <TableHead>To</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created By</TableHead>
+                    <TableHead className="w-[60px]" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {coverageEntries.map(e => (
+                    <TableRow key={e.id} data-testid={`coverage-row-${e.id}`}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <UserMinus className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          {e.absentConsultantName}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <UserCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          {e.coveringConsultantName}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">{e.startDate}</TableCell>
+                      <TableCell className="text-sm">{e.endDate}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            e.status === "active"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                              : e.status === "upcoming"
+                              ? "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                              : "bg-muted text-muted-foreground"
+                          }
+                          data-testid={`badge-coverage-status-${e.id}`}
+                        >
+                          {e.status === "active" ? "Active" : e.status === "upcoming" ? "Upcoming" : "Expired"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{e.createdByName}</TableCell>
+                      <TableCell>
+                        {e.status !== "expired" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => cancelCoverageMutation.mutate(e.id)}
+                            disabled={cancelCoverageMutation.isPending}
+                            data-testid={`button-cancel-coverage-admin-${e.id}`}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             )}

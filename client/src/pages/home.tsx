@@ -1,8 +1,13 @@
 import { useState, useRef, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { CountUp } from "@/components/ui/count-up";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import {
@@ -10,6 +15,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,6 +51,8 @@ import {
   ClipboardList,
   ListChecks,
   X,
+  UserPlus,
+  UserMinus,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -1345,6 +1354,228 @@ function UrgentActionsModal({
   );
 }
 
+// ── Consultant Coverage ───────────────────────────────────────────────────────
+
+interface CoverageEntry {
+  id: string;
+  absentConsultantId: string;
+  coveringConsultantId: string;
+  startDate: string;
+  endDate: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+interface MyCoverageResponse {
+  coveringFor: (CoverageEntry & { absentConsultantName: string })[];
+  beingCoveredBy: (CoverageEntry & { coveringConsultantName: string })[];
+}
+
+interface EligibleConsultant {
+  id: string;
+  fullName: string;
+  consultantTier?: string;
+}
+
+function ArrangeCoverDialog({ open, onClose, defaultAbsentId }: { open: boolean; onClose: () => void; defaultAbsentId: string }) {
+  const { toast } = useToast();
+  const today = format(new Date(), "yyyy-MM-dd");
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [selectedCoveringIds, setSelectedCoveringIds] = useState<string[]>([]);
+
+  const { data: eligible = [], isLoading: loadingEligible } = useQuery<EligibleConsultant[]>({
+    queryKey: ["/api/consultant-coverage/eligible-consultants", defaultAbsentId],
+    queryFn: () =>
+      fetch(`/api/consultant-coverage/eligible-consultants?absentConsultantId=${encodeURIComponent(defaultAbsentId)}`, { credentials: "include" }).then(r => r.json()),
+    enabled: open && !!defaultAbsentId,
+    staleTime: 0,
+  });
+
+  const mutation = useMutation({
+    mutationFn: (body: object) => apiRequest("POST", "/api/consultant-coverage", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/consultant-coverage/my-active"] });
+      toast({ description: "Cover arranged successfully." });
+      setSelectedCoveringIds([]);
+      onClose();
+    },
+    onError: () => toast({ variant: "destructive", description: "Failed to arrange cover." }),
+  });
+
+  const toggleCovering = (id: string) => {
+    setSelectedCoveringIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleSubmit = () => {
+    if (!startDate || !endDate || selectedCoveringIds.length === 0) return;
+    mutation.mutate({ absentConsultantId: defaultAbsentId, coveringConsultantIds: selectedCoveringIds, startDate, endDate });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={v => !v && onClose()}>
+      <DialogContent className="sm:max-w-md" data-testid="dialog-arrange-cover">
+        <DialogHeader>
+          <DialogTitle>Arrange Cover</DialogTitle>
+          <DialogDescription>
+            Selected consultants will temporarily see all of your assigned clients.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">From</Label>
+              <Input type="date" value={startDate} min={today} onChange={e => setStartDate(e.target.value)} data-testid="input-cover-start" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">To</Label>
+              <Input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} data-testid="input-cover-end" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Covering consultants</Label>
+            {loadingEligible ? (
+              <p className="text-sm text-muted-foreground py-2">Loading…</p>
+            ) : eligible.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">No eligible consultants found.</p>
+            ) : (
+              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
+                {eligible.map(c => (
+                  <label key={c.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40" data-testid={`cover-consultant-${c.id}`}>
+                    <Checkbox
+                      checked={selectedCoveringIds.includes(c.id)}
+                      onCheckedChange={() => toggleCovering(c.id)}
+                    />
+                    <span className="text-sm flex-1">{c.fullName}</span>
+                    {c.consultantTier === "pro" && (
+                      <Badge variant="secondary" className="text-[10px]">Pro</Badge>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} data-testid="button-cancel-cover">Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={mutation.isPending || selectedCoveringIds.length === 0 || !startDate || !endDate || startDate > endDate}
+            data-testid="button-confirm-cover"
+          >
+            {mutation.isPending ? "Saving…" : "Arrange Cover"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ConsultantCoveragePanel({ userId }: { userId: string }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const { data, isLoading } = useQuery<MyCoverageResponse>({
+    queryKey: ["/api/consultant-coverage/my-active"],
+    staleTime: 30000,
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/consultant-coverage/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/consultant-coverage/my-active"] });
+      toast({ description: "Coverage arrangement removed." });
+    },
+    onError: () => toast({ variant: "destructive", description: "Failed to remove coverage." }),
+  });
+
+  const coveringFor = data?.coveringFor ?? [];
+  const beingCoveredBy = data?.beingCoveredBy ?? [];
+  const hasAny = coveringFor.length > 0 || beingCoveredBy.length > 0;
+
+  return (
+    <>
+      <Card data-testid="panel-consultant-coverage">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserCog className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-semibold">Client Cover</CardTitle>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => setDialogOpen(true)}
+              data-testid="button-arrange-cover"
+            >
+              <UserPlus className="h-3.5 w-3.5 mr-1" />
+              Arrange Cover
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {isLoading ? (
+            <FetchingOverlay />
+          ) : !hasAny ? (
+            <p className="text-sm text-muted-foreground">
+              No active cover arrangements. Use <strong>Arrange Cover</strong> to delegate your clients while you're away.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {beingCoveredBy.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Being covered by</p>
+                  <div className="space-y-1.5">
+                    {beingCoveredBy.map(e => (
+                      <div key={e.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2" data-testid={`coverage-covered-by-${e.id}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <UserCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                          <span className="text-sm truncate">{e.coveringConsultantName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-muted-foreground">{e.startDate} – {e.endDate}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => cancelMutation.mutate(e.id)}
+                            disabled={cancelMutation.isPending}
+                            data-testid={`button-cancel-coverage-${e.id}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {coveringFor.length > 0 && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Covering for</p>
+                  <div className="space-y-1.5">
+                    {coveringFor.map(e => (
+                      <div key={e.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2" data-testid={`coverage-covering-for-${e.id}`}>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <UserMinus className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span className="text-sm truncate">{e.absentConsultantName}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">{e.startDate} – {e.endDate}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <ArrangeCoverDialog open={dialogOpen} onClose={() => setDialogOpen(false)} defaultAbsentId={userId} />
+    </>
+  );
+}
+
 const EMPTY_URGENT_ACTIONS: HomeSummary["urgentActions"] = {
   overdueDocuments: 0,
   approvalRequiredDocuments: 0,
@@ -1425,6 +1656,11 @@ export default function HomePage() {
           : <div />
         }
       </div>
+
+      {/* Client Cover — consultants only */}
+      {user?.role === "consultant" && user?.id && (
+        <ConsultantCoveragePanel userId={user.id} />
+      )}
 
       {/* My Actions — full width, between portfolio and messages */}
       <MyActionsPanel role={user?.role ?? "client"} />
