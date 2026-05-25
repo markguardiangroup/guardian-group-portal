@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
@@ -902,7 +903,7 @@ export default function AdminReports() {
             {isAdmin && (
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
-                onClick={() => setShowScheduledTasks(true)}
+                onClick={() => { queryClient.resetQueries({ queryKey: ["/api/admin/scheduled-tasks"] }); setShowScheduledTasks(true); }}
                 data-testid="report-scheduled-tasks"
               >
                 <div className="flex items-center gap-3">

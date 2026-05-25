@@ -5337,9 +5337,9 @@
         {
           "id": "b8c9d0e1-scheduled-tasks-loading-fix-2026",
           "patch": 8,
-          "message": "Fixed: Scheduled Tasks report now shows the task list correctly",
+          "message": "Fixed: Scheduled Tasks report now opens and loads correctly",
           "category": "bug",
-          "createdAt": "2026-05-25T21:35:00.000Z"
+          "createdAt": "2026-05-25T21:40:00.000Z"
         }
       ],
       "publishedPatch": 7,
