@@ -5333,6 +5333,13 @@
           "message": "New report: Scheduled Tasks — shows all background jobs, their schedule, live/paused status, and last run",
           "category": "feature",
           "createdAt": "2026-05-25T21:15:00.000Z"
+        },
+        {
+          "id": "b8c9d0e1-scheduled-tasks-empty-fix-2026",
+          "patch": 8,
+          "message": "Fixed: Scheduled Tasks report no longer shows blank while loading",
+          "category": "bug",
+          "createdAt": "2026-05-25T21:25:00.000Z"
         }
       ],
       "publishedPatch": 7,

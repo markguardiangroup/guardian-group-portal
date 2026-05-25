@@ -1411,7 +1411,7 @@ export default function AdminReports() {
           )}
 
           <div className="flex-1 overflow-y-auto min-h-0">
-            {scheduledTasksLoading ? (
+            {!scheduledTasksData || scheduledTasksLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />Loading…
               </div>
