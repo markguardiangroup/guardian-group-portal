@@ -53,6 +53,9 @@ import {
   RefreshCw,
   Clock,
   Activity,
+  CalendarClock,
+  PlayCircle,
+  PauseCircle,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -589,6 +592,25 @@ export default function AdminReports() {
     staleTime: 0,
   });
 
+  interface ScheduledTask {
+    id: string;
+    name: string;
+    description: string;
+    schedule: string;
+    runsIn: "all" | "production";
+    lastRunAt: string | null;
+  }
+  interface ScheduledTasksResponse {
+    environment: "production" | "development";
+    tasks: ScheduledTask[];
+  }
+  const [showScheduledTasks, setShowScheduledTasks] = useState(false);
+  const { data: scheduledTasksData, isLoading: scheduledTasksLoading, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
+    queryKey: ["/api/admin/scheduled-tasks"],
+    enabled: showScheduledTasks,
+    staleTime: 0,
+  });
+
   const [showLoginReport, setShowLoginReport] = useState(false);
   type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
   const [loginReportRange, setLoginReportRange] = useState<LoginRangePreset>("today");
@@ -869,6 +891,26 @@ export default function AdminReports() {
                   <div>
                     <p className="font-medium">Accelo Sync Log</p>
                     <p className="text-sm text-muted-foreground">History of imports, manual syncs, and scheduled Accelo syncs</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">View</Badge>
+              </div>
+            )}
+
+            {/* Scheduled Tasks — admin only */}
+            {isAdmin && (
+              <div
+                className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+                onClick={() => setShowScheduledTasks(true)}
+                data-testid="report-scheduled-tasks"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-teal-500/10">
+                    <CalendarClock className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Scheduled Tasks</p>
+                    <p className="text-sm text-muted-foreground">All background jobs — schedule, environment, and last run</p>
                   </div>
                 </div>
                 <Badge variant="secondary">View</Badge>
@@ -1340,6 +1382,94 @@ export default function AdminReports() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Scheduled Tasks Dialog */}
+      <Dialog open={showScheduledTasks} onOpenChange={setShowScheduledTasks}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5" />
+              Scheduled Tasks
+            </DialogTitle>
+            <DialogDescription>
+              All background jobs configured on this server. Status reflects the current environment.
+            </DialogDescription>
+          </DialogHeader>
+
+          {scheduledTasksData && (
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Environment:</span>
+              {scheduledTasksData.environment === "production" ? (
+                <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" variant="outline">Production</Badge>
+              ) : (
+                <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800" variant="outline">Development</Badge>
+              )}
+              <Button variant="ghost" size="sm" className="ml-auto h-7 px-2 text-xs" onClick={() => refetchScheduledTasks()} data-testid="button-refresh-scheduled-tasks">
+                <RefreshCw className="h-3 w-3 mr-1" />Refresh
+              </Button>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {scheduledTasksLoading ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />Loading…
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Task</TableHead>
+                    <TableHead className="w-36">Schedule</TableHead>
+                    <TableHead className="w-28 text-center">Status</TableHead>
+                    <TableHead className="w-40">Last Run</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(scheduledTasksData?.tasks ?? []).map((task) => {
+                    const isProd = scheduledTasksData?.environment === "production";
+                    const isLive = task.runsIn === "all" || isProd;
+                    return (
+                      <TableRow key={task.id} data-testid={`row-scheduled-task-${task.id}`}>
+                        <TableCell>
+                          <p className="font-medium text-sm">{task.name}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>
+                          {task.runsIn === "production" && (
+                            <Badge variant="outline" className="mt-1 text-[10px] border-slate-300 text-slate-500 dark:border-slate-600 dark:text-slate-400">Production only</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm tabular-nums whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            {task.schedule}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {isLive ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 text-xs font-medium" data-testid={`badge-task-status-${task.id}`}>
+                              <PlayCircle className="h-3.5 w-3.5" />
+                              Live
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-400 text-xs font-medium" data-testid={`badge-task-status-${task.id}`}>
+                              <PauseCircle className="h-3.5 w-3.5" />
+                              Paused
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {task.lastRunAt ? safeFormatDate(task.lastRunAt, "dd MMM yyyy, HH:mm") : <span className="text-muted-foreground/60">No record</span>}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </div>
   );

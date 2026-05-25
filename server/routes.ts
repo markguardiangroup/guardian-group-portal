@@ -7308,6 +7308,43 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/admin/scheduled-tasks — list all server scheduled tasks + current env status
+  app.get("/api/admin/scheduled-tasks", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+      const environment = process.env.NODE_ENV === "production" ? "production" : "development";
+
+      // Last scheduled Accelo sync from the log table
+      const acceloLastRows = await storage.getAcceloSyncLogs(1);
+      const acceloLastScheduled = acceloLastRows.find(r => r.syncType === "scheduled");
+
+      const tasks = [
+        {
+          id: "document-sweep",
+          name: "Expired Document Sweep",
+          description: "Marks overdue documents as expired and auto-corrects any misclassified compliant documents",
+          schedule: "Daily at 05:00 UK",
+          runsIn: "all" as const,
+          lastRunAt: null as string | null,
+        },
+        {
+          id: "accelo-status-sync",
+          name: "Accelo Status Sync",
+          description: "Fetches the latest standing and company status from Accelo for all linked companies",
+          schedule: "Daily at 07:00 UK",
+          runsIn: "production" as const,
+          lastRunAt: acceloLastScheduled?.syncedAt ? new Date(acceloLastScheduled.syncedAt).toISOString() : null,
+        },
+      ];
+
+      res.json({ environment, tasks });
+    } catch (err) {
+      console.error("Scheduled tasks error:", err);
+      res.status(500).json({ error: "Failed to fetch scheduled tasks" });
+    }
+  });
+
   // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin + pro consultant)
   app.patch("/api/companies/:companyId/group-owner", requireAuth, async (req, res) => {
     try {

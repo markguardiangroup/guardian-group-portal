@@ -5326,6 +5326,13 @@
           "message": "Accelo daily status sync now only runs in production, not in dev",
           "category": "enhancement",
           "createdAt": "2026-05-25T20:55:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-scheduled-tasks-report-2026",
+          "patch": 8,
+          "message": "New report: Scheduled Tasks — shows all background jobs, their schedule, live/paused status, and last run",
+          "category": "feature",
+          "createdAt": "2026-05-25T21:15:00.000Z"
         }
       ],
       "publishedPatch": 7,
