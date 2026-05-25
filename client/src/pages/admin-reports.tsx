@@ -605,10 +605,9 @@ export default function AdminReports() {
     tasks: ScheduledTask[];
   }
   const [showScheduledTasks, setShowScheduledTasks] = useState(false);
-  const { data: scheduledTasksData, isPending: scheduledTasksLoading, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
+  const { data: scheduledTasksData, isLoading: scheduledTasksLoading, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
     queryKey: ["/api/admin/scheduled-tasks"],
-    enabled: showScheduledTasks,
-    staleTime: 0,
+    enabled: user?.role === "admin",
   });
 
   const [showLoginReport, setShowLoginReport] = useState(false);
