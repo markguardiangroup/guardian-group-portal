@@ -310,17 +310,17 @@ export default function AdminFeedback() {
                                 <span>Comments ({item.commentCount || 0})</span>
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
                               <DialogHeader>
                                 <DialogTitle>Comments ({item.commentCount || 0})</DialogTitle>
                               </DialogHeader>
-                              <div className="rounded-md border-l-4 border-l-primary bg-muted/50 px-4 py-3 space-y-1 max-h-[220px] overflow-y-auto">
-                                <p className="text-xs font-medium text-muted-foreground sticky top-0 bg-muted/50 pb-1">
+                              <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-2">
+                              <div className="rounded-md border-l-4 border-l-primary bg-muted/50 px-4 py-3 space-y-1">
+                                <p className="text-xs font-medium text-muted-foreground pb-1">
                                   {item.userName} &middot; {format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}
                                 </p>
                                 <p className="text-sm whitespace-pre-wrap">{item.message}</p>
                               </div>
-                              <div className="space-y-4 max-h-[340px] overflow-y-auto pr-2">
                                 {comments?.map((comment) => {
                                   const isEditingComment = editingCommentId === comment.id;
                                   const canEditComment = comment.userId === user?.id;
