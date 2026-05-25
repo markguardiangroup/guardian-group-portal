@@ -382,6 +382,7 @@ process.on("uncaughtException", (err) => {
       if (count > 0) {
         console.log(`[scheduler] Deleted ${count} expired client upload file(s) and any empty folders.`);
       }
+      storage.upsertSchedulerRun("folder-cleanup").catch(() => {});
     } catch (err) {
       console.error("[scheduler] Expired folder cleanup error:", err);
     }
@@ -427,6 +428,7 @@ process.on("uncaughtException", (err) => {
       if (corrected > 0) {
         console.log(`[scheduler] Corrected ${corrected} misclassified document(s) back to compliant/approved.`);
       }
+      storage.upsertSchedulerRun("document-sweep").catch(() => {});
     } catch (err) {
       console.error("[scheduler] Expired document sweep error:", err);
     }

@@ -7315,8 +7315,12 @@ export async function registerRoutes(
       if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
       const environment = process.env.NODE_ENV === "production" ? "production" : "development";
 
-      // Last scheduled Accelo sync from the log table
-      const acceloLastRows = await storage.getAcceloSyncLogs(1);
+      // Fetch last run times in parallel
+      const [folderCleanupRun, documentSweepRun, acceloLastRows] = await Promise.all([
+        storage.getSchedulerRun("folder-cleanup"),
+        storage.getSchedulerRun("document-sweep"),
+        storage.getAcceloSyncLogs(1),
+      ]);
       const acceloLastScheduled = acceloLastRows.find(r => r.syncType === "scheduled");
 
       const tasks = [
@@ -7326,7 +7330,7 @@ export async function registerRoutes(
           description: "Deletes client upload files past their 30-day expiry, then removes any folders that are empty or past their safety-net date",
           schedule: "Daily at 03:00 UK",
           runsIn: "all" as const,
-          lastRunAt: null as string | null,
+          lastRunAt: folderCleanupRun ? new Date(folderCleanupRun).toISOString() : null,
         },
         {
           id: "document-sweep",
@@ -7334,7 +7338,7 @@ export async function registerRoutes(
           description: "Marks overdue documents as expired and auto-corrects any misclassified compliant documents",
           schedule: "Daily at 05:00 UK",
           runsIn: "all" as const,
-          lastRunAt: null as string | null,
+          lastRunAt: documentSweepRun ? new Date(documentSweepRun).toISOString() : null,
         },
         {
           id: "accelo-status-sync",

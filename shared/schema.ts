@@ -1884,3 +1884,11 @@ export const acceloSyncLogs = pgTable("accelo_sync_logs", {
 });
 
 export type AcceloSyncLog = typeof acceloSyncLogs.$inferSelect;
+
+// Scheduler run tracking — one row per task, upserted after each run
+export const schedulerRuns = pgTable("scheduler_runs", {
+  taskId: text("task_id").primaryKey(),
+  lastRunAt: timestamp("last_run_at").notNull(),
+});
+
+export type SchedulerRun = typeof schedulerRuns.$inferSelect;

@@ -5347,6 +5347,13 @@
           "message": "Expired Folder Cleanup now runs daily at 03:00 UK time and appears in Scheduled Tasks report",
           "category": "enhancement",
           "createdAt": "2026-05-25T21:55:00.000Z"
+        },
+        {
+          "id": "d0e1f2a3-scheduler-last-run-tracking-2026",
+          "patch": 8,
+          "message": "Scheduled Tasks report now shows real last-run times for Folder Cleanup and Document Sweep",
+          "category": "enhancement",
+          "createdAt": "2026-05-25T22:08:00.000Z"
         }
       ],
       "publishedPatch": 7,

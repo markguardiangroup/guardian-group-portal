@@ -579,6 +579,10 @@ export interface IStorage {
   // Accelo Sync Logs
   createAcceloSyncLog(log: { syncType: string; sourceCode: string; triggeredBy: string; triggeredByName: string; companyId?: string | null; companyName?: string | null; companiesTotal: number; companiesUpdated: number; success: boolean; errorMessage?: string | null }): Promise<void>;
   getAcceloSyncLogs(limit?: number): Promise<AcceloSyncLog[]>;
+
+  // Scheduler Run Tracking
+  getSchedulerRun(taskId: string): Promise<Date | null>;
+  upsertSchedulerRun(taskId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -6069,6 +6073,22 @@ export class MemStorage implements IStorage {
       [limit]
     );
     return r.rows;
+  }
+
+  async getSchedulerRun(taskId: string): Promise<Date | null> {
+    const r = await pool.query(
+      `SELECT last_run_at FROM scheduler_runs WHERE task_id = $1`,
+      [taskId]
+    );
+    return r.rows[0]?.last_run_at ?? null;
+  }
+
+  async upsertSchedulerRun(taskId: string): Promise<void> {
+    await pool.query(
+      `INSERT INTO scheduler_runs (task_id, last_run_at) VALUES ($1, NOW())
+       ON CONFLICT (task_id) DO UPDATE SET last_run_at = NOW()`,
+      [taskId]
+    );
   }
 
 }
