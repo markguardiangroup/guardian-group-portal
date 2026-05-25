@@ -605,9 +605,11 @@ export default function AdminReports() {
     tasks: ScheduledTask[];
   }
   const [showScheduledTasks, setShowScheduledTasks] = useState(false);
-  const { data: scheduledTasksData, isLoading: scheduledTasksLoading, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
+  const { data: scheduledTasksData, isLoading: scheduledTasksLoading, isError: scheduledTasksError, refetch: refetchScheduledTasks } = useQuery<ScheduledTasksResponse>({
     queryKey: ["/api/admin/scheduled-tasks"],
-    enabled: user?.role === "admin",
+    enabled: showScheduledTasks,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const [showLoginReport, setShowLoginReport] = useState(false);
@@ -1410,7 +1412,11 @@ export default function AdminReports() {
           )}
 
           <div className="flex-1 overflow-y-auto min-h-0">
-            {scheduledTasksLoading ? (
+            {scheduledTasksError ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground">
+                <p className="text-sm">Failed to load scheduled tasks. <button className="underline" onClick={() => refetchScheduledTasks()}>Try again</button></p>
+              </div>
+            ) : !scheduledTasksData ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />Loading…
               </div>
