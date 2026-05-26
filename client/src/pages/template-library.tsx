@@ -496,7 +496,7 @@ export default function TemplateLibraryPage() {
       const url = sourceFilter !== "all"
         ? `/api/document-templates?source=${encodeURIComponent(sourceFilter)}`
         : "/api/document-templates";
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(url, { credentials: "include", cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch templates");
       return res.json();
     },
@@ -544,9 +544,11 @@ export default function TemplateLibraryPage() {
     mutationFn: async (data: Partial<TemplateFormData>) => {
       return apiRequest("POST", "/api/document-templates", data);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
       invalidateDocumentsHierarchy();
+      const fId = (variables as any).folderTemplateId as string | undefined;
+      if (fId) setOpenFolders(prev => prev.includes(fId) ? prev : [...prev, fId]);
       setIsTemplateDialogOpen(false);
       setTemplateFormData(defaultTemplateFormData);
       toast({ title: "Template created", description: "The document template has been created successfully." });
@@ -697,11 +699,13 @@ export default function TemplateLibraryPage() {
   // Folder mutations
   const createFolderMutation = useMutation({
     mutationFn: async (data: FolderFormData) => {
-      return apiRequest("POST", "/api/folder-templates", data);
+      const res = await apiRequest("POST", "/api/folder-templates", data);
+      return res.json() as Promise<FolderTemplate>;
     },
-    onSuccess: () => {
+    onSuccess: (newFolder) => {
       queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
       invalidateDocumentsHierarchy();
+      setOpenFolders(prev => prev.includes(newFolder.id) ? prev : [...prev, newFolder.id]);
       setIsFolderDialogOpen(false);
       setFolderFormData(defaultFolderFormData);
       toast({ title: "Folder created", description: "The folder template has been created successfully." });
@@ -1275,6 +1279,7 @@ export default function TemplateLibraryPage() {
 
     queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
     invalidateDocumentsHierarchy();
+    if (folderId) setOpenFolders(prev => prev.includes(folderId) ? prev : [...prev, folderId]);
     setIsBulkCreating(false);
 
     if (errorCount === 0) {
