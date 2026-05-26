@@ -5377,6 +5377,13 @@
           "createdAt": "2026-05-26T09:30:00.000Z"
         },
         {
+          "id": "b4c5d6e7-coverage-covering-list-prompt-2026",
+          "patch": 8,
+          "message": "Fixed: Covering Consultants list now waits for absent consultant selection before loading",
+          "category": "bug",
+          "createdAt": "2026-05-26T09:45:00.000Z"
+        },
+        {
           "id": "g3c4d5e6-home-page-duplicate-import-fix-2026",
           "patch": 8,
           "message": "Fixed: app failed to load after merge due to duplicate component code",

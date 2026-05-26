@@ -880,16 +880,7 @@ export function ArrangeCoverDialog({
 
   // For admin: fetch all active consultants for the absent picker
   const { data: allConsultants = [] } = useQuery<EligibleConsultant[]>({
-    queryKey: ["/api/users", "consultants-for-coverage"],
-    queryFn: () =>
-      fetch("/api/users", { credentials: "include" })
-        .then(r => r.json())
-        .then((data: any) => {
-          const arr: any[] = Array.isArray(data) ? data : (data?.users ?? []);
-          return arr
-            .filter((u: any) => u.role === "consultant" && u.status === "active")
-            .map((u: any) => ({ id: u.id, fullName: u.fullName, consultantTier: u.consultantTier }));
-        }),
+    queryKey: ["/api/consultant-coverage/all-consultants"],
     enabled: open && isAdmin,
   });
 
@@ -1035,7 +1026,9 @@ export function ArrangeCoverDialog({
           {/* Covering consultants checklist */}
           <div className="space-y-1.5">
             <Label>Covering Consultants</Label>
-            {eligibleLoading ? (
+            {isAdmin && !effectiveAbsentId ? (
+              <p className="text-sm text-muted-foreground py-2">Select an absent consultant above first.</p>
+            ) : eligibleLoading ? (
               <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" /> Loading…
               </div>
