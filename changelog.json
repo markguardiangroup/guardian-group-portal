@@ -5557,6 +5557,13 @@
           "message": "Covered consultants now appear inside the Pro Consultant staff picker, not a separate dropdown",
           "category": "enhancement",
           "createdAt": "2026-05-26T13:35:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-client-account-all-consultants-2026",
+          "patch": 8,
+          "message": "Your Account card now shows all assigned consultants, not just the primary one",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T13:50:00.000Z"
         }
       ],
       "publishedPatch": 7,

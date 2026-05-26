@@ -17422,15 +17422,23 @@ export async function registerRoutes(
           sources: sourcesData,
         };
       } else {
-        // Client portfolio: primary consultant + company info
+        // Client portfolio: all consultants + company info
         const clientSites = await storage.getClientSites(user.id);
         let primaryConsultant: { id: string; name: string } | null = null;
+        let allConsultantsList: { id: string; name: string; isPrimary: boolean }[] = [];
         if (clientSites.length > 0) {
           const assignments = await storage.getConsultantAssignments(clientSites[0].siteId);
-          const primary = assignments.find((a) => a.isPrimary) ?? assignments[0];
-          if (primary) {
-            const consultant = await storage.getUser(primary.consultantId);
-            if (consultant) primaryConsultant = { id: consultant.id, name: consultant.fullName };
+          // Sort: primary first, then alphabetical
+          const sorted = [...assignments].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+          for (const a of sorted) {
+            const consultant = await storage.getUser(a.consultantId);
+            if (consultant) {
+              allConsultantsList.push({ id: consultant.id, name: consultant.fullName, isPrimary: !!a.isPrimary });
+              if (a.isPrimary && !primaryConsultant) primaryConsultant = { id: consultant.id, name: consultant.fullName };
+            }
+          }
+          if (!primaryConsultant && allConsultantsList.length > 0) {
+            primaryConsultant = { id: allConsultantsList[0].id, name: allConsultantsList[0].name };
           }
         }
         let siteInfo: { id: string; name: string } | null = null;
@@ -17443,7 +17451,7 @@ export async function registerRoutes(
             siteInfo = { id: companyRes.rows[0].id, name: companyRes.rows[0].name };
           }
         }
-        portfolio = { site: siteInfo, primaryConsultant };
+        portfolio = { site: siteInfo, primaryConsultant, consultants: allConsultantsList };
       }
 
       // Portal messages visible to this user (banners separated)

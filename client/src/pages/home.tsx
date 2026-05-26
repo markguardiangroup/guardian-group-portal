@@ -1220,7 +1220,14 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
   const p = portfolio as {
     site: { id: string; name: string } | null;
     primaryConsultant: { id: string; name: string } | null;
+    consultants?: { id: string; name: string; isPrimary: boolean }[];
   };
+
+  const consultantList = p.consultants && p.consultants.length > 0
+    ? p.consultants
+    : p.primaryConsultant
+      ? [{ ...p.primaryConsultant, isPrimary: true }]
+      : [];
 
   return (
     <Card data-testid="card-portfolio" className="h-full">
@@ -1243,19 +1250,28 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
           </div>
         )}
 
-        {p.primaryConsultant && (
-          <div className="flex items-center gap-3 py-3" data-testid="portfolio-consultant">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
-              <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Your Consultant</p>
-              <p className="text-sm font-semibold">{p.primaryConsultant.name}</p>
-            </div>
+        {consultantList.length > 0 && (
+          <div className="py-3 space-y-2" data-testid="portfolio-consultants">
+            <p className="text-xs text-muted-foreground">
+              {consultantList.length === 1 ? "Your Consultant" : "Your Consultants"}
+            </p>
+            {consultantList.map((c) => (
+              <div key={c.id} className="flex items-center gap-3" data-testid={`portfolio-consultant-${c.id}`}>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                  <UserCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <p className="text-sm font-semibold truncate">{c.name}</p>
+                  {c.isPrimary && consultantList.length > 1 && (
+                    <span className="text-xs text-muted-foreground shrink-0">(Primary)</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {!p.site && !p.primaryConsultant && (
+        {!p.site && consultantList.length === 0 && (
           <div className="py-6 text-center">
             <p className="text-sm text-muted-foreground">Contact support to set up your account.</p>
           </div>
