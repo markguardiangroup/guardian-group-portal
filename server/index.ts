@@ -246,6 +246,19 @@ process.on("uncaughtException", (err) => {
         synced_at timestamp NOT NULL DEFAULT now()
       )
     `);
+    // Toolkit folders table and folder_templates columns added after initial schema
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS toolkit_folders (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        name text NOT NULL,
+        module text NOT NULL,
+        sort_order integer NOT NULL DEFAULT 0,
+        created_by varchar NOT NULL,
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`ALTER TABLE folder_templates ADD COLUMN IF NOT EXISTS is_locked boolean NOT NULL DEFAULT false`);
+    await pool.query(`ALTER TABLE folder_templates ADD COLUMN IF NOT EXISTS toolkit_folder_id varchar`);
   } catch (err) {
     console.error("Startup migration warning (non-fatal):", err);
   }

@@ -5585,6 +5585,13 @@
           "message": "Fixed: Client Cover card no longer flashes on home page load when empty",
           "category": "bug",
           "createdAt": "2026-05-26T14:35:00.000Z"
+        },
+        {
+          "id": "c9d0e1f2-toolkit-folder-create-migration-2026",
+          "patch": 8,
+          "message": "Fixed: creating a toolkit folder (H&S, Employment Law) failed with server error",
+          "category": "bug",
+          "createdAt": "2026-05-26T16:00:00.000Z"
         }
       ],
       "publishedPatch": 7,
