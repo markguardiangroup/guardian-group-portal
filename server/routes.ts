@@ -7958,7 +7958,7 @@ export async function registerRoutes(
       }
       const allConsultants = await storage.getConsultants();
       const consultants = allConsultants.filter(u =>
-        u.status === "active" && u.id !== absentConsultantId
+        u.status === "active" && u.id !== absentConsultantId && u.id !== absentConsultant.managerId
       );
       // Admins see all consultants; others filtered by source overlap.
       // If the absent consultant has no sources configured, skip the source filter
