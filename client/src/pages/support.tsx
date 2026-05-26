@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -702,9 +703,15 @@ export default function Support() {
   const [activeTab, setActiveTab] = useState("all");
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
   });
 
   const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
@@ -797,6 +804,28 @@ export default function Support() {
                 ))}
             </SelectContent>
           </Select>
+          {hasCoverage && (
+            <Select
+              value={coverageFilter}
+              onValueChange={(v) => { setCoverageFilter(v); setCompanyFilter("all"); setSiteFilter("all"); }}
+            >
+              <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-support">
+                <span className="truncate pointer-events-none">
+                  {coverageFilter === "my"
+                    ? "My client sites"
+                    : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My client sites</SelectItem>
+                {coveringFor.map(c => (
+                  <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-support-${c.absentConsultantId}`}>
+                    {c.absentConsultantName}'s client sites
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       )}
 

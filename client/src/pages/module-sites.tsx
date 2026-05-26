@@ -13,6 +13,7 @@ import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Button } from "@/components/ui/button";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Select,
@@ -134,6 +135,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
   const basePath =
     module === "health_safety"
       ? "/health-safety"
@@ -158,12 +160,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     enabled: isProConsultant,
   });
 
-  const sitesUrl = !isProConsultant
-    ? "/api/sites"
-    : staffFilter === "my"
-    ? "/api/sites?myAssigned=true"
-    : staffFilter !== "all"
-    ? `/api/sites?staffId=${staffFilter}`
+  const sitesUrl = isProConsultant
+    ? staffFilter === "my"
+      ? "/api/sites?myAssigned=true"
+      : staffFilter !== "all"
+      ? `/api/sites?staffId=${staffFilter}`
+      : "/api/sites"
+    : hasCoverage && coverageFilter !== "my"
+    ? `/api/sites?staffId=${coverageFilter}`
     : "/api/sites";
 
   const { data: sites, isLoading: isLoadingSites } = useQuery<SiteWithCompany[]>({
@@ -474,6 +478,28 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     </SelectItem>
                   ))}
                   <SelectItem value="all">All companies</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {hasCoverage && (
+              <Select
+                value={coverageFilter}
+                onValueChange={(v) => { setCoverageFilter(v); setSelectedGroup("all"); handleCompanyChange(null); }}
+              >
+                <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-sites">
+                  <span className="truncate pointer-events-none">
+                    {coverageFilter === "my"
+                      ? "My client sites"
+                      : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  {coveringFor.map(c => (
+                    <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-sites-${c.absentConsultantId}`}>
+                      {c.absentConsultantName}'s client sites
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}

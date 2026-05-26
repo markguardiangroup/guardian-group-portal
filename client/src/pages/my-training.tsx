@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -65,9 +66,15 @@ export default function MyTraining() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
   });
 
   const { data: trainingBookings = [], isLoading } = useQuery<TrainingBooking[]>({
@@ -233,6 +240,28 @@ export default function MyTraining() {
                   disabled={companies.length > 1 && (!selectedCompany || selectedCompany === "all")}
                 />
               </div>
+              {hasCoverage && (
+                <Select
+                  value={coverageFilter}
+                  onValueChange={(v) => { setCoverageFilter(v); handleCompanyChange(null); }}
+                >
+                  <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-my-training">
+                    <span className="truncate pointer-events-none">
+                      {coverageFilter === "my"
+                        ? "My client sites"
+                        : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="my">My client sites</SelectItem>
+                    {coveringFor.map(c => (
+                      <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-my-training-${c.absentConsultantId}`}>
+                        {c.absentConsultantName}'s client sites
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           )}
 

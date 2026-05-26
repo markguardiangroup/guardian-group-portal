@@ -106,6 +106,7 @@ import {
 } from "@/components/ui/table";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
@@ -3913,8 +3914,15 @@ function IncidentsListView() {
   });
   const incidents = Array.isArray(incidentsRaw) ? incidentsRaw : [];
 
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
+
   const { data: sites = [] } = useQuery<any[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
   });
 
   const { data: companiesData } = useQuery<any>({
@@ -4049,6 +4057,28 @@ function IncidentsListView() {
                   />
                 </div>
               </div>
+            )}
+            {hasCoverage && (
+              <Select
+                value={coverageFilter}
+                onValueChange={(v) => { setCoverageFilter(v); resetFilters(); }}
+              >
+                <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-incidents">
+                  <span className="truncate pointer-events-none">
+                    {coverageFilter === "my"
+                      ? "My client sites"
+                      : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  {coveringFor.map(c => (
+                    <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-incidents-${c.absentConsultantId}`}>
+                      {c.absentConsultantName}'s client sites
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             {view === "register" && (
               <>

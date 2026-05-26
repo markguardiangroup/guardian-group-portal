@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo, Fragment } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -203,8 +204,15 @@ export default function ModuleAccessRequests() {
   });
   const companies = companiesData?.companies || [];
 
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
+
   const { data: sites = [] } = useQuery<Site[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
   });
 
   const reviewMutation = useMutation({
@@ -583,6 +591,29 @@ export default function ModuleAccessRequests() {
             ))}
           </SelectContent>
         </Select>
+
+        {hasCoverage && (
+          <Select
+            value={coverageFilter}
+            onValueChange={(v) => { setCoverageFilter(v); setCompanyFilter("all"); setSiteFilter("all"); setCurrentPage(1); }}
+          >
+            <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-access">
+              <span className="truncate pointer-events-none">
+                {coverageFilter === "my"
+                  ? "My client sites"
+                  : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my">My client sites</SelectItem>
+              {coveringFor.map(c => (
+                <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-access-${c.absentConsultantId}`}>
+                  {c.absentConsultantName}'s client sites
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         
         <Select value={sortBy} onValueChange={(v: "date" | "entity" | "module") => setSortBy(v)}>
           <SelectTrigger className="w-[140px]" data-testid="select-sort-by">

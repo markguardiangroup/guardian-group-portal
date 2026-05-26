@@ -34,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useAuth } from "@/hooks/use-auth";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isToday } from "date-fns";
@@ -212,6 +213,7 @@ function EventTable({
 }: EventTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
@@ -287,6 +289,28 @@ function EventTable({
           testId="select-table-site-filter"
           disabled={isPrivileged && (!selectedCompany || selectedCompany === "all")}
         />
+        {hasCoverage && (
+          <Select
+            value={coverageFilter}
+            onValueChange={(v) => { setCoverageFilter(v); onCompanyChange(null); onSiteChange("all"); }}
+          >
+            <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-calendar">
+              <span className="truncate pointer-events-none">
+                {coverageFilter === "my"
+                  ? "My client sites"
+                  : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="my">My client sites</SelectItem>
+              {coveringFor.map(c => (
+                <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-calendar-${c.absentConsultantId}`}>
+                  {c.absentConsultantName}'s client sites
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={moduleFilter} onValueChange={onModuleChange}>
           <SelectTrigger className="w-[160px]" data-testid="select-table-module-filter">
             <SelectValue placeholder="All Modules" />
@@ -452,8 +476,16 @@ export default function CalendarPage() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
-  const { data: sites = [] } = useQuery<any[]>({ queryKey: ["/api/sites"] });
+  const { data: sites = [] } = useQuery<any[]>({
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
+  });
 
   const filteredSitesForCombobox = useMemo(() => {
     if (!sites || !selectedCompany || selectedCompany === "all") return sites;

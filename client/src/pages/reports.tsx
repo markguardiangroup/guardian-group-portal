@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -822,13 +823,21 @@ export default function Reports() {
 
   const isAdmin = user?.role === "admin";
   const isCaseAdvocate = isAdmin || (user?.role === "consultant" && (user?.consultantPermissions as any)?.caseAdvocate === true);
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies?limit=1000"] });
   const companies = companiesData?.companies || [];
-  const { data: allSites = [] } = useQuery<Site[]>({ queryKey: ["/api/sites"] });
+  const { data: allSites = [] } = useQuery<Site[]>({
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
+  });
 
   // Derive company ID from the company name for API calls
   const companyId = companyFilter === "all"
@@ -1043,6 +1052,28 @@ export default function Reports() {
               <SelectContent>
                 <SelectItem value="all">All Sites</SelectItem>
                 {filteredSites.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {hasCoverage && (
+            <Select
+              value={coverageFilter}
+              onValueChange={(v) => { setCoverageFilter(v); setCompanyFilter("all"); setSiteFilter("all"); }}
+            >
+              <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-reports">
+                <span className="truncate pointer-events-none">
+                  {coverageFilter === "my"
+                    ? "My client sites"
+                    : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My client sites</SelectItem>
+                {coveringFor.map(c => (
+                  <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-reports-${c.absentConsultantId}`}>
+                    {c.absentConsultantName}'s client sites
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           )}

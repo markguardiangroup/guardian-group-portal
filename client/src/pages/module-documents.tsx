@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -334,7 +335,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
-  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters, coverageConsultantId } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -479,9 +481,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Fetch sites for all users — when covering for someone, fetch only that person's sites
   const { data: sites } = useQuery<SiteWithCompany[]>({
-    queryKey: coverageConsultantId ? ["/api/sites", "coverage", coverageConsultantId] : ["/api/sites"],
-    queryFn: coverageConsultantId ? async () => {
-      const res = await fetch(`/api/sites?staffId=${coverageConsultantId}`, { credentials: "include" });
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch sites");
       return res.json();
     } : undefined,
@@ -1471,6 +1473,28 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             </div>
           </div>
           
+          {hasCoverage && (
+            <Select
+              value={coverageFilter}
+              onValueChange={(v) => { setCoverageFilter(v); handleCompanyChange(null); }}
+            >
+              <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-docs">
+                <span className="truncate pointer-events-none">
+                  {coverageFilter === "my"
+                    ? "My client sites"
+                    : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My client sites</SelectItem>
+                {coveringFor.map(c => (
+                  <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-docs-${c.absentConsultantId}`}>
+                    {c.absentConsultantName}'s client sites
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {isPrivilegedUser && (
             <Button
               variant="outline"

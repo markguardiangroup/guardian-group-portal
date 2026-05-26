@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { CountUp } from "@/components/ui/count-up";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
@@ -209,9 +210,15 @@ function CasesList() {
   const isConsultant = user?.role === "consultant";
   const isCaseAdvocate = isAdmin || (isConsultant && user?.consultantPermissions?.caseAdvocate === true);
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
   
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
   });
 
   const { data: sourcesData = [] } = useQuery<SourceOption[]>({
@@ -508,6 +515,28 @@ function CasesList() {
                   />
                 </div>
               </div>
+            )}
+            {hasCoverage && (
+              <Select
+                value={coverageFilter}
+                onValueChange={(v) => { setCoverageFilter(v); resetFilters(); }}
+              >
+                <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-cases">
+                  <span className="truncate pointer-events-none">
+                    {coverageFilter === "my"
+                      ? "My client sites"
+                      : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  {coveringFor.map(c => (
+                    <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-cases-${c.absentConsultantId}`}>
+                      {c.absentConsultantName}'s client sites
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             {isCaseAdvocate && (
               <Button 

@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { CompanyCombobox } from "@/components/company-combobox";
 
@@ -51,10 +52,16 @@ export default function ToolkitDashboard() {
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const isClient = user?.role === "client";
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const { data: sites } = useQuery<Site[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
     enabled: isPrivilegedUser,
+    queryFn: coverageFilter !== "my" ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    } : undefined,
   });
 
   const activeCompany = selectedCompany && selectedCompany !== "all" ? selectedCompany : null;
@@ -150,6 +157,28 @@ export default function ToolkitDashboard() {
                   testId="select-company-toolkit"
                 />
               </div>
+            )}
+            {hasCoverage && (
+              <Select
+                value={coverageFilter}
+                onValueChange={(v) => { setCoverageFilter(v); handleCompanyChange(null); }}
+              >
+                <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-toolkit">
+                  <span className="truncate pointer-events-none">
+                    {coverageFilter === "my"
+                      ? "My client sites"
+                      : (coveringFor.find(c => c.absentConsultantId === coverageFilter)?.absentConsultantName ?? "") + "'s client sites"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  {coveringFor.map(c => (
+                    <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-toolkit-${c.absentConsultantId}`}>
+                      {c.absentConsultantName}'s client sites
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
             <Button asChild className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground">
               <Link href="/toolkit/browse" data-testid="link-browse-templates">

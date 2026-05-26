@@ -5508,6 +5508,13 @@
           "message": "Documents page filters to the absent consultant's sites when coverage mode is active",
           "category": "feature",
           "createdAt": "2026-05-26T11:21:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-coverage-filter-all-pages-2026",
+          "patch": 8,
+          "message": "Coverage filter now appears on all module pages (incidents, training, support, reports, cases, uploads, toolkit, calendar, access requests)",
+          "category": "feature",
+          "createdAt": "2026-05-26T12:31:00.000Z"
         }
       ],
       "publishedPatch": 7,
