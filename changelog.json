@@ -5571,6 +5571,13 @@
           "message": "Fixed: Your Account card now correctly displays all consultants (e.g. Dine Tails showing 2)",
           "category": "bug",
           "createdAt": "2026-05-26T14:10:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-auth-loading-blank-screen-fix-2026",
+          "patch": 8,
+          "message": "Fixed: blank screen on page reload or direct URL visit while session loads",
+          "category": "bug",
+          "createdAt": "2026-05-26T14:20:00.000Z"
         }
       ],
       "publishedPatch": 7,

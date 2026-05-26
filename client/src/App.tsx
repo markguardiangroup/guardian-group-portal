@@ -642,11 +642,26 @@ function AuthenticatedApp() {
     }
   }, [isLoading, isAuthenticated]);
 
-  if (!isLoading && !isAuthenticated) {
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src={logoIcon}
+            alt="Guardian Group"
+            className="h-16 w-16 rounded-full object-cover shadow-md"
+          />
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
     return <Login />;
   }
 
-  const showSplash = isFreshLogin.current && (isLoading || (isAuthenticated && !splashDone));
+  const showSplash = isFreshLogin.current && (isAuthenticated && !splashDone);
 
   const sidebarStyle = {
     "--sidebar-width": "16rem",
