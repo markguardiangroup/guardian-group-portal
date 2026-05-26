@@ -5384,6 +5384,13 @@
           "createdAt": "2026-05-26T09:45:00.000Z"
         },
         {
+          "id": "c5d6e7f8-coverage-absent-picker-route-fix-2026",
+          "patch": 8,
+          "message": "Fixed: Absent Consultant dropdown blank again in Arrange Cover dialog (admin)",
+          "category": "bug",
+          "createdAt": "2026-05-26T10:10:00.000Z"
+        },
+        {
           "id": "g3c4d5e6-home-page-duplicate-import-fix-2026",
           "patch": 8,
           "message": "Fixed: app failed to load after merge due to duplicate component code",

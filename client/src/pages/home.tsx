@@ -881,6 +881,11 @@ export function ArrangeCoverDialog({
   // For admin: fetch all active consultants for the absent picker
   const { data: allConsultants = [] } = useQuery<EligibleConsultant[]>({
     queryKey: ["/api/consultant-coverage/all-consultants"],
+    queryFn: async () => {
+      const res = await fetch("/api/consultant-coverage/all-consultants", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch consultants");
+      return res.json();
+    },
     enabled: open && isAdmin,
   });
 

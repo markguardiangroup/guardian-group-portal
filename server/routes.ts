@@ -8098,6 +8098,19 @@ export async function registerRoutes(
     }
   });
 
+  // All consultants — admin-only, used by ArrangeCoverDialog absent picker
+  app.get("/api/consultant-coverage/all-consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const consultants = await storage.getConsultants();
+      res.json(consultants.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
+    } catch (error) {
+      console.error("All consultants error:", error);
+      res.status(500).json({ error: "Failed to fetch consultants" });
+    }
+  });
+
   // Delete a coverage entry
   app.delete("/api/consultant-coverage/:id", requireAuth, async (req, res) => {
     try {
@@ -8113,19 +8126,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete coverage error:", error);
       res.status(500).json({ error: "Failed to delete coverage entry" });
-    }
-  });
-
-  // All consultants — admin-only, used by ArrangeCoverDialog absent picker
-  app.get("/api/consultant-coverage/all-consultants", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
-      const consultants = await storage.getConsultants();
-      res.json(consultants.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
-    } catch (error) {
-      console.error("All consultants error:", error);
-      res.status(500).json({ error: "Failed to fetch consultants" });
     }
   });
 
