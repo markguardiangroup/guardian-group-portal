@@ -5515,6 +5515,13 @@
           "message": "Coverage filter now appears on all module pages (incidents, training, support, reports, cases, uploads, toolkit, calendar, access requests)",
           "category": "feature",
           "createdAt": "2026-05-26T12:31:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-client-cover-card-style-match-portfolio-2026",
+          "patch": 8,
+          "message": "Client Cover card on home page now matches the My Portfolio card style",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T12:45:00.000Z"
         }
       ],
       "publishedPatch": 7,
