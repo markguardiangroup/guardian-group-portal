@@ -5370,6 +5370,13 @@
           "createdAt": "2026-05-25T23:20:00.000Z"
         },
         {
+          "id": "a3b4c5d6-coverage-absent-picker-empty-fix-2026",
+          "patch": 8,
+          "message": "Fixed: Absent Consultant list was empty when arranging cover as admin",
+          "category": "bug",
+          "createdAt": "2026-05-26T09:30:00.000Z"
+        },
+        {
           "id": "g3c4d5e6-home-page-duplicate-import-fix-2026",
           "patch": 8,
           "message": "Fixed: app failed to load after merge due to duplicate component code",

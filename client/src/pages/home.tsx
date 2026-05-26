@@ -878,9 +878,18 @@ export function ArrangeCoverDialog({
     },
   });
 
-  // For admin: fetch all consultants for the absent picker
+  // For admin: fetch all active consultants for the absent picker
   const { data: allConsultants = [] } = useQuery<EligibleConsultant[]>({
-    queryKey: ["/api/consultant-coverage/all-consultants"],
+    queryKey: ["/api/users", "consultants-for-coverage"],
+    queryFn: () =>
+      fetch("/api/users", { credentials: "include" })
+        .then(r => r.json())
+        .then((data: any) => {
+          const arr: any[] = Array.isArray(data) ? data : (data?.users ?? []);
+          return arr
+            .filter((u: any) => u.role === "consultant" && u.status === "active")
+            .map((u: any) => ({ id: u.id, fullName: u.fullName, consultantTier: u.consultantTier }));
+        }),
     enabled: open && isAdmin,
   });
 
