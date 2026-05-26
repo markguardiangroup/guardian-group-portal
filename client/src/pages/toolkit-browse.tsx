@@ -550,6 +550,8 @@ export default function ToolkitBrowse() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === "admin";
+  const hasTemplateLibraryPerm = user?.role === "consultant" && !!(user.consultantPermissions as { templateLibrary?: boolean } | null | undefined)?.templateLibrary;
+  const canManageFolders = isAdmin || hasTemplateLibraryPerm;
 
   const [selectedModule, setSelectedModule] = useState<ModuleType>("health_safety");
   const [search, setSearch] = useState("");
@@ -683,7 +685,7 @@ export default function ToolkitBrowse() {
               </p>
             </div>
           </div>
-          {isAdmin && (
+          {canManageFolders && (
             <Button
               variant="outline"
               size="sm"
@@ -1010,8 +1012,8 @@ export default function ToolkitBrowse() {
         </SheetContent>
       </Sheet>
 
-      {/* Admin: Manage Toolkit Folders Dialog */}
-      {isAdmin && (
+      {/* Manage Toolkit Folders Dialog — admins + consultants with templateLibrary permission */}
+      {canManageFolders && (
         <Dialog open={showManageFolders} onOpenChange={setShowManageFolders}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -1020,38 +1022,42 @@ export default function ToolkitBrowse() {
                 Manage Toolkit Folders
               </DialogTitle>
               <DialogDescription>
-                Create and delete folders that templates are organised into within the Toolkit.
+                {isAdmin
+                  ? "Create and delete folders that templates are organised into within the Toolkit."
+                  : "Delete folders that templates are organised into within the Toolkit."}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5">
-              <div className="space-y-2">
-                <Label>Add a new folder</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Folder name"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && newFolderName.trim()) {
-                        createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule });
-                      }
-                    }}
-                    data-testid="input-new-folder-name"
-                  />
-                  <Button
-                    onClick={() => createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule })}
-                    disabled={!newFolderName.trim() || createFolderMutation.isPending}
-                    data-testid="button-create-toolkit-folder"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
+              {isAdmin && (
+                <div className="space-y-2">
+                  <Label>Add a new folder</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Folder name"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newFolderName.trim()) {
+                          createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule });
+                        }
+                      }}
+                      data-testid="input-new-folder-name"
+                    />
+                    <Button
+                      onClick={() => createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule })}
+                      disabled={!newFolderName.trim() || createFolderMutation.isPending}
+                      data-testid="button-create-toolkit-folder"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Adding to: <strong>{MODULE_CONFIG[selectedModule].label}</strong>. Switch the module tab above to add to a different module.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Adding to: <strong>{MODULE_CONFIG[selectedModule].label}</strong>. Switch the module tab above to add to a different module.
-                </p>
-              </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Existing folders — {MODULE_CONFIG[selectedModule].label}</Label>

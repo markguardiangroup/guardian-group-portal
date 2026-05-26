@@ -5749,7 +5749,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can delete toolkit folders" });
+      if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only admins or template library managers can delete toolkit folders" });
 
       // Find and delete the mirrored FolderTemplate subfolder first
       const mirroredFolder = await storage.getFolderTemplateByToolkitFolderId(req.params.id);
