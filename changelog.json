@@ -5613,6 +5613,13 @@
           "message": "Fixed: Toolkit Dashboard and My Training pages crashed with a runtime error",
           "category": "bug",
           "createdAt": "2026-05-26T17:25:00.000Z"
+        },
+        {
+          "id": "a3b4c5d6-toolkit-folder-delete-with-templates-2026",
+          "patch": 10,
+          "message": "Deleting a toolkit folder now also deletes all templates inside it, with a confirmation prompt",
+          "category": "feature",
+          "createdAt": "2026-05-26T17:40:00.000Z"
         }
       ],
       "publishedPatch": 9,

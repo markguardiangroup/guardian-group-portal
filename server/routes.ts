@@ -5751,7 +5751,18 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only admins or template library managers can delete toolkit folders" });
 
-      // Find and delete the mirrored FolderTemplate subfolder first
+      // Soft-delete all active templates inside this toolkit folder
+      const templatesInFolder = await storage.getDocumentTemplatesByToolkitFolderId(req.params.id);
+      for (const template of templatesInFolder) {
+        await storage.deleteDocumentTemplate(
+          template.id,
+          user.id,
+          user.fullName,
+          "Deleted with toolkit folder",
+        );
+      }
+
+      // Delete the mirrored FolderTemplate subfolder (templates already soft-deleted so nothing to unassign)
       const mirroredFolder = await storage.getFolderTemplateByToolkitFolderId(req.params.id);
       if (mirroredFolder) {
         await storage.deleteFolderTemplate(mirroredFolder.id);
@@ -5765,11 +5776,11 @@ export async function registerRoutes(
         userId: user.id,
         userName: user.fullName,
         module: "health_safety",
-        details: `Deleted toolkit folder`,
-        metadata: JSON.stringify({ folderId: req.params.id }),
+        details: `Deleted toolkit folder and ${templatesInFolder.length} template(s) inside it`,
+        metadata: JSON.stringify({ folderId: req.params.id, deletedTemplateCount: templatesInFolder.length }),
       });
 
-      res.json({ success: true });
+      res.json({ success: true, deletedTemplateCount: templatesInFolder.length });
     } catch (error) {
       console.error("Delete toolkit folder error:", error);
       res.status(500).json({ error: "Failed to delete toolkit folder" });

@@ -388,6 +388,7 @@ export interface IStorage {
   getDocumentTemplates(module?: ModuleType, folderTemplateId?: string, userSources?: string[]): Promise<DocumentTemplate[]>;
   bulkUpdateTemplateSources(templateIds: string[], sources: string[], mode: "merge" | "clear"): Promise<void>;
   getDocumentTemplatesByIds(ids: string[]): Promise<DocumentTemplate[]>;
+  getDocumentTemplatesByToolkitFolderId(toolkitFolderId: string): Promise<DocumentTemplate[]>;
   getArchivedDocumentTemplates(): Promise<DocumentTemplate[]>;
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
@@ -3675,6 +3676,14 @@ export class MemStorage implements IStorage {
     if (!ids.length) return [];
     return await db.select().from(documentTemplatesTable)
       .where(sql`${documentTemplatesTable.id} = ANY(${ids})`);
+  }
+
+  async getDocumentTemplatesByToolkitFolderId(toolkitFolderId: string): Promise<DocumentTemplate[]> {
+    return await db.select().from(documentTemplatesTable)
+      .where(and(
+        eq(documentTemplatesTable.toolkitFolderId, toolkitFolderId),
+        eq(documentTemplatesTable.isActive, true),
+      ));
   }
   
   async createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {

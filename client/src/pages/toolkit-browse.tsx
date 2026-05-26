@@ -562,6 +562,7 @@ export default function ToolkitBrowse() {
   // Admin folder management
   const [showManageFolders, setShowManageFolders] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [folderToDelete, setFolderToDelete] = useState<{ id: string; name: string; templateCount: number } | null>(null);
 
   const closeFolderDialog = () => {
     setIsFolderClosing(true);
@@ -605,11 +606,21 @@ export default function ToolkitBrowse() {
   });
 
   const deleteFolderMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/toolkit/folders/${id}`),
-    onSuccess: () => {
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/toolkit/folders/${id}`);
+      return res.json() as Promise<{ success: boolean; deletedTemplateCount: number }>;
+    },
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
-      toast({ title: "Folder deleted" });
+      setFolderToDelete(null);
+      const count = data?.deletedTemplateCount ?? 0;
+      toast({
+        title: "Folder deleted",
+        description: count > 0
+          ? `${count} template${count === 1 ? "" : "s"} inside were also deleted.`
+          : "The folder has been removed.",
+      });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message || "Failed to delete folder", variant: "destructive" });
@@ -1079,7 +1090,7 @@ export default function ToolkitBrowse() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => deleteFolderMutation.mutate(folder.id)}
+                              onClick={() => setFolderToDelete({ id: folder.id, name: folder.name, templateCount: inUse })}
                               disabled={deleteFolderMutation.isPending}
                               data-testid={`button-delete-folder-${folder.id}`}
                               className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -1102,6 +1113,56 @@ export default function ToolkitBrowse() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete folder confirmation dialog */}
+      <Dialog open={!!folderToDelete} onOpenChange={(o) => { if (!o) setFolderToDelete(null); }}>
+        <DialogContent className="max-w-md" data-testid="dialog-confirm-delete-folder">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5 shrink-0" />
+              Delete "{folderToDelete?.name}"?
+            </DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-1">
+                {folderToDelete && folderToDelete.templateCount > 0 ? (
+                  <>
+                    <p>
+                      This folder contains{" "}
+                      <strong>{folderToDelete.templateCount} template{folderToDelete.templateCount === 1 ? "" : "s"}</strong>.
+                      Deleting the folder will also permanently delete {folderToDelete.templateCount === 1 ? "it" : "all of them"}.
+                    </p>
+                    <p className="text-sm">
+                      If you'd like to keep any templates, close this dialog and move them to a different folder first, then come back to delete this one.
+                    </p>
+                  </>
+                ) : (
+                  <p>This folder is empty. It will be permanently removed.</p>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setFolderToDelete(null)}
+              data-testid="button-cancel-delete-folder"
+            >
+              {folderToDelete && folderToDelete.templateCount > 0 ? "Cancel — I'll move the templates first" : "Cancel"}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => folderToDelete && deleteFolderMutation.mutate(folderToDelete.id)}
+              disabled={deleteFolderMutation.isPending}
+              data-testid="button-confirm-delete-folder"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              {folderToDelete && folderToDelete.templateCount > 0
+                ? `Delete folder and ${folderToDelete.templateCount} template${folderToDelete.templateCount === 1 ? "" : "s"}`
+                : "Delete folder"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
     </div>
