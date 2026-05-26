@@ -5536,6 +5536,13 @@
           "message": "Client Cover box no longer shown on home page for admin users",
           "category": "enhancement",
           "createdAt": "2026-05-26T13:00:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-client-cover-duplicate-button-removed-2026",
+          "patch": 8,
+          "message": "Fixed: duplicate Arrange Cover button removed from inside the Client Cover card",
+          "category": "bug",
+          "createdAt": "2026-05-26T13:10:00.000Z"
         }
       ],
       "publishedPatch": 7,

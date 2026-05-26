@@ -1681,27 +1681,13 @@ function ConsultantCoveragePanel({ userId, role }: { userId: string; role: strin
     <>
       <Card data-testid="panel-consultant-coverage" className="h-full border-t-4 border-t-primary overflow-hidden">
         <CardHeader className="pb-3 bg-gradient-to-br from-primary/5 to-transparent">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
-                  <UserCog className="h-4 w-4 text-primary" />
-                </div>
-                Client Cover
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 ml-9">Active cover arrangements</p>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+              <UserCog className="h-4 w-4 text-primary" />
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs shrink-0"
-              onClick={() => setDialogOpen(true)}
-              data-testid="button-arrange-cover"
-            >
-              <UserPlus className="h-3.5 w-3.5 mr-1" />
-              Arrange Cover
-            </Button>
-          </div>
+            Client Cover
+          </CardTitle>
+          <p className="text-xs text-muted-foreground ml-9">Active cover arrangements</p>
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
