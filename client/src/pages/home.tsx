@@ -96,6 +96,7 @@ interface HomeSummary {
     | {
         site: { id: string; name: string; companyName?: string } | null;
         primaryConsultant: { id: string; name: string } | null;
+        consultants?: { id: string; name: string; isPrimary: boolean }[];
       }
     | null;
   portalMessages: {
