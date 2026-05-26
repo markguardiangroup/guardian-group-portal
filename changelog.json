@@ -5543,6 +5543,13 @@
           "message": "Fixed: duplicate Arrange Cover button removed from inside the Client Cover card",
           "category": "bug",
           "createdAt": "2026-05-26T13:10:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-coverage-filter-pro-consultants-2026",
+          "patch": 8,
+          "message": "Fixed: Pro Consultants now see the coverage filter dropdown when covering for someone",
+          "category": "bug",
+          "createdAt": "2026-05-26T13:20:00.000Z"
         }
       ],
       "publishedPatch": 7,

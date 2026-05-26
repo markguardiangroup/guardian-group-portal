@@ -12,8 +12,7 @@ export function useCoverageFilter() {
   const { coverageConsultantId, setCoverageConsultantId } = useSiteFilter();
 
   const isConsultant = user?.role === "consultant";
-  const isProConsultant = isConsultant && (user as any)?.consultantTier === "pro";
-  const showCoverageFilter = isConsultant && !isProConsultant;
+  const showCoverageFilter = isConsultant;
 
   const { data } = useQuery<{
     coveringFor: CoveringForEntry[];
