@@ -5391,6 +5391,13 @@
           "createdAt": "2026-05-26T10:10:00.000Z"
         },
         {
+          "id": "d6e7f8a9-coverage-fixed-height-box-2026",
+          "patch": 8,
+          "message": "Improved: Covering Consultants box stays fixed height with centred loading spinner",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T10:20:00.000Z"
+        },
+        {
           "id": "g3c4d5e6-home-page-duplicate-import-fix-2026",
           "patch": 8,
           "message": "Fixed: app failed to load after merge due to duplicate component code",

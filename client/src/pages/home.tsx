@@ -1031,40 +1031,46 @@ export function ArrangeCoverDialog({
           {/* Covering consultants checklist */}
           <div className="space-y-1.5">
             <Label>Covering Consultants</Label>
-            {isAdmin && !effectiveAbsentId ? (
-              <p className="text-sm text-muted-foreground py-2">Select an absent consultant above first.</p>
-            ) : eligibleLoading ? (
-              <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-              </div>
-            ) : eligibleConsultants.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">No eligible covering consultants found.</p>
-            ) : (
-              <div className="max-h-48 overflow-y-auto rounded-md border divide-y">
-                {eligibleConsultants.map(c => (
-                  <label
-                    key={c.id}
-                    className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
-                    data-testid={`covering-consultant-${c.id}`}
-                  >
-                    <Checkbox
-                      checked={selectedCoveringIds.has(c.id)}
-                      onCheckedChange={checked => {
-                        setSelectedCoveringIds(prev => {
-                          const next = new Set(prev);
-                          if (checked) next.add(c.id); else next.delete(c.id);
-                          return next;
-                        });
-                      }}
-                    />
-                    <span className="text-sm flex-1">{c.fullName}</span>
-                    {c.consultantTier === "pro" && (
-                      <span className="text-[10px] font-semibold uppercase text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 rounded px-1.5 py-0.5">Pro</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            )}
+            <div className="h-48 rounded-md border overflow-hidden flex flex-col">
+              {isAdmin && !effectiveAbsentId ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Select an absent consultant above first.</p>
+                </div>
+              ) : eligibleLoading ? (
+                <div className="flex-1 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                </div>
+              ) : eligibleConsultants.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">No eligible covering consultants found.</p>
+                </div>
+              ) : (
+                <div className="overflow-y-auto divide-y flex-1">
+                  {eligibleConsultants.map(c => (
+                    <label
+                      key={c.id}
+                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                      data-testid={`covering-consultant-${c.id}`}
+                    >
+                      <Checkbox
+                        checked={selectedCoveringIds.has(c.id)}
+                        onCheckedChange={checked => {
+                          setSelectedCoveringIds(prev => {
+                            const next = new Set(prev);
+                            if (checked) next.add(c.id); else next.delete(c.id);
+                            return next;
+                          });
+                        }}
+                      />
+                      <span className="text-sm flex-1">{c.fullName}</span>
+                      {c.consultantTier === "pro" && (
+                        <span className="text-[10px] font-semibold uppercase text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 rounded px-1.5 py-0.5">Pro</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             {eligibleConsultants.length > 0 && (
               <p className="text-xs text-muted-foreground flex items-start gap-1.5 mt-1">
                 <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
