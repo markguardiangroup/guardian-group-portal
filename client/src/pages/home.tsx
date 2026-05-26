@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { CountUp } from "@/components/ui/count-up";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
@@ -53,6 +61,10 @@ import {
   X,
   UserPlus,
   UserMinus,
+  CalendarClock,
+  UserRoundCog,
+  Info,
+  Loader2,
 } from "lucide-react";
 
 interface HomeSummary {
@@ -800,6 +812,277 @@ function MyActionsPanel({ role }: { role: string }) {
   );
 }
 
+// ── Types for consultant coverage ─────────────────────────────────────────────
+
+interface CoverageEntry {
+  id: string;
+  absentConsultantId: string;
+  coveringConsultantId: string;
+  startDate: string;
+  endDate: string;
+  createdBy: string;
+  createdAt: string;
+  absentConsultantName?: string;
+  coveringConsultantName?: string;
+}
+
+interface EligibleConsultant {
+  id: string;
+  fullName: string;
+  consultantTier: string | null;
+}
+
+interface MyCoverageResponse {
+  coveringFor: (CoverageEntry & { absentConsultantName: string })[];
+  beingCoveredBy: (CoverageEntry & { coveringConsultantName: string })[];
+}
+
+interface ManagedConsultant {
+  id: string;
+  fullName: string;
+  consultantTier: string | null;
+}
+
+// ── Arrange Cover Dialog ────────────────────────────────────────────────────
+
+export function ArrangeCoverDialog({
+  open,
+  onOpenChange,
+  isAdmin = false,
+  currentUserId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isAdmin?: boolean;
+  currentUserId: string;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
+
+  // For pro consultants: fetch managed consultants so they can arrange cover on behalf of someone
+  const { data: managedConsultants = [] } = useQuery<ManagedConsultant[]>({
+    queryKey: ["/api/users?role=consultant&myManaged=true"],
+    enabled: open && (isProConsultant || isAdmin),
+    select: (data: any) => {
+      if (Array.isArray(data)) {
+        if (isAdmin) return data.filter((u: any) => u.role === "consultant");
+        return data.filter((u: any) => u.role === "consultant" && u.managerId === currentUserId);
+      }
+      if (data?.users) {
+        if (isAdmin) return data.users.filter((u: any) => u.role === "consultant");
+        return data.users.filter((u: any) => u.role === "consultant" && u.managerId === currentUserId);
+      }
+      return [];
+    },
+  });
+
+  // For admin: fetch all consultants for the absent picker
+  const { data: allConsultants = [] } = useQuery<EligibleConsultant[]>({
+    queryKey: ["/api/consultant-coverage/all-consultants"],
+    enabled: open && isAdmin,
+  });
+
+  const today = new Date().toISOString().split("T")[0];
+  const [absentConsultantId, setAbsentConsultantId] = useState(isAdmin ? "" : currentUserId);
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  const [selectedCoveringIds, setSelectedCoveringIds] = useState<Set<string>>(new Set());
+
+  // Determine the effective absent consultant ID for fetching eligible coverers
+  const effectiveAbsentId = isAdmin ? absentConsultantId : (isProConsultant && absentConsultantId !== currentUserId ? absentConsultantId : currentUserId);
+
+  const { data: eligibleConsultants = [], isLoading: eligibleLoading } = useQuery<EligibleConsultant[]>({
+    queryKey: ["/api/consultant-coverage/eligible-consultants", effectiveAbsentId],
+    queryFn: async () => {
+      const res = await fetch(`/api/consultant-coverage/eligible-consultants?absentConsultantId=${effectiveAbsentId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch eligible consultants");
+      return res.json();
+    },
+    enabled: open && !!effectiveAbsentId,
+  });
+
+  // Reset selections when absent changes
+  const [prevAbsent, setPrevAbsent] = useState(effectiveAbsentId);
+  if (effectiveAbsentId !== prevAbsent) {
+    setPrevAbsent(effectiveAbsentId);
+    setSelectedCoveringIds(new Set());
+  }
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/consultant-coverage", {
+        absentConsultantId: effectiveAbsentId,
+        coveringConsultantIds: [...selectedCoveringIds],
+        startDate,
+        endDate,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Cover arranged", description: "The selected consultants will cover during the specified period." });
+      queryClient.invalidateQueries({ queryKey: ["/api/consultant-coverage/my-active"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/consultant-coverage"] });
+      onOpenChange(false);
+      setSelectedCoveringIds(new Set());
+    },
+    onError: (err: any) => {
+      toast({ title: "Error", description: err.message ?? "Failed to arrange cover", variant: "destructive" });
+    },
+  });
+
+  const canSubmit = selectedCoveringIds.size > 0 && startDate && endDate && endDate >= startDate && (!isAdmin || !!effectiveAbsentId);
+
+  // Reset state when dialog closes
+  const handleOpenChange = (v: boolean) => {
+    if (!v) {
+      setSelectedCoveringIds(new Set());
+      setStartDate(today);
+      setEndDate(today);
+      if (isAdmin) setAbsentConsultantId("");
+      else setAbsentConsultantId(currentUserId);
+    }
+    onOpenChange(v);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md" data-testid="dialog-arrange-cover">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarClock className="h-5 w-5 text-primary" />
+            Arrange Cover
+          </DialogTitle>
+          <DialogDescription>
+            Temporarily assign clients to another consultant while you are away.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {/* Admin: absent consultant picker */}
+          {isAdmin && (
+            <div className="space-y-1.5">
+              <Label htmlFor="absent-consultant">Absent Consultant</Label>
+              <Select value={absentConsultantId} onValueChange={setAbsentConsultantId}>
+                <SelectTrigger id="absent-consultant" data-testid="select-absent-consultant">
+                  <SelectValue placeholder="Select consultant…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allConsultants.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.fullName}{c.consultantTier === "pro" ? " (Pro)" : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Pro consultant: pick who they're arranging cover for */}
+          {isProConsultant && !isAdmin && managedConsultants.length > 0 && (
+            <div className="space-y-1.5">
+              <Label htmlFor="absent-consultant-pro">Arranging cover for</Label>
+              <Select value={absentConsultantId} onValueChange={setAbsentConsultantId}>
+                <SelectTrigger id="absent-consultant-pro" data-testid="select-absent-consultant-pro">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={currentUserId}>Myself</SelectItem>
+                  {managedConsultants.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Date range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="start-date">Start Date</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                min={today}
+                onChange={e => setStartDate(e.target.value)}
+                data-testid="input-cover-start-date"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="end-date">End Date</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                min={startDate || today}
+                onChange={e => setEndDate(e.target.value)}
+                data-testid="input-cover-end-date"
+              />
+            </div>
+          </div>
+          {endDate && startDate && endDate < startDate && (
+            <p className="text-xs text-destructive">End date must be on or after start date.</p>
+          )}
+
+          {/* Covering consultants checklist */}
+          <div className="space-y-1.5">
+            <Label>Covering Consultants</Label>
+            {eligibleLoading ? (
+              <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+              </div>
+            ) : eligibleConsultants.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-2">No eligible covering consultants found.</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto rounded-md border divide-y">
+                {eligibleConsultants.map(c => (
+                  <label
+                    key={c.id}
+                    className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                    data-testid={`covering-consultant-${c.id}`}
+                  >
+                    <Checkbox
+                      checked={selectedCoveringIds.has(c.id)}
+                      onCheckedChange={checked => {
+                        setSelectedCoveringIds(prev => {
+                          const next = new Set(prev);
+                          if (checked) next.add(c.id); else next.delete(c.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="text-sm flex-1">{c.fullName}</span>
+                    {c.consultantTier === "pro" && (
+                      <span className="text-[10px] font-semibold uppercase text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/30 rounded px-1.5 py-0.5">Pro</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+            {eligibleConsultants.length > 0 && (
+              <p className="text-xs text-muted-foreground flex items-start gap-1.5 mt-1">
+                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                Each selected consultant will see all of your clients for the duration — clients are not split between them.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={!canSubmit || mutation.isPending}
+            data-testid="button-submit-arrange-cover"
+          >
+            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Arrange Cover
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 const PORTFOLIO_INITIAL_ROWS = 4;
 
 function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["portfolio"]; role: string; animate: boolean }) {
@@ -1354,123 +1637,6 @@ function UrgentActionsModal({
   );
 }
 
-// ── Consultant Coverage ───────────────────────────────────────────────────────
-
-interface CoverageEntry {
-  id: string;
-  absentConsultantId: string;
-  coveringConsultantId: string;
-  startDate: string;
-  endDate: string;
-  createdBy: string;
-  createdAt: string;
-}
-
-interface MyCoverageResponse {
-  coveringFor: (CoverageEntry & { absentConsultantName: string })[];
-  beingCoveredBy: (CoverageEntry & { coveringConsultantName: string })[];
-}
-
-interface EligibleConsultant {
-  id: string;
-  fullName: string;
-  consultantTier?: string;
-}
-
-function ArrangeCoverDialog({ open, onClose, defaultAbsentId }: { open: boolean; onClose: () => void; defaultAbsentId: string }) {
-  const { toast } = useToast();
-  const today = format(new Date(), "yyyy-MM-dd");
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
-  const [selectedCoveringIds, setSelectedCoveringIds] = useState<string[]>([]);
-
-  const { data: eligible = [], isLoading: loadingEligible } = useQuery<EligibleConsultant[]>({
-    queryKey: ["/api/consultant-coverage/eligible-consultants", defaultAbsentId],
-    queryFn: () =>
-      fetch(`/api/consultant-coverage/eligible-consultants?absentConsultantId=${encodeURIComponent(defaultAbsentId)}`, { credentials: "include" }).then(r => r.json()),
-    enabled: open && !!defaultAbsentId,
-    staleTime: 0,
-  });
-
-  const mutation = useMutation({
-    mutationFn: (body: object) => apiRequest("POST", "/api/consultant-coverage", body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/consultant-coverage/my-active"] });
-      toast({ description: "Cover arranged successfully." });
-      setSelectedCoveringIds([]);
-      onClose();
-    },
-    onError: () => toast({ variant: "destructive", description: "Failed to arrange cover." }),
-  });
-
-  const toggleCovering = (id: string) => {
-    setSelectedCoveringIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  const handleSubmit = () => {
-    if (!startDate || !endDate || selectedCoveringIds.length === 0) return;
-    mutation.mutate({ absentConsultantId: defaultAbsentId, coveringConsultantIds: selectedCoveringIds, startDate, endDate });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="sm:max-w-md" data-testid="dialog-arrange-cover">
-        <DialogHeader>
-          <DialogTitle>Arrange Cover</DialogTitle>
-          <DialogDescription>
-            Selected consultants will temporarily see all of your assigned clients.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-1">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">From</Label>
-              <Input type="date" value={startDate} min={today} onChange={e => setStartDate(e.target.value)} data-testid="input-cover-start" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">To</Label>
-              <Input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} data-testid="input-cover-end" />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Covering consultants</Label>
-            {loadingEligible ? (
-              <p className="text-sm text-muted-foreground py-2">Loading…</p>
-            ) : eligible.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-2">No eligible consultants found.</p>
-            ) : (
-              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
-                {eligible.map(c => (
-                  <label key={c.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40" data-testid={`cover-consultant-${c.id}`}>
-                    <Checkbox
-                      checked={selectedCoveringIds.includes(c.id)}
-                      onCheckedChange={() => toggleCovering(c.id)}
-                    />
-                    <span className="text-sm flex-1">{c.fullName}</span>
-                    {c.consultantTier === "pro" && (
-                      <Badge variant="secondary" className="text-[10px]">Pro</Badge>
-                    )}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} data-testid="button-cancel-cover">Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={mutation.isPending || selectedCoveringIds.length === 0 || !startDate || !endDate || startDate > endDate}
-            data-testid="button-confirm-cover"
-          >
-            {mutation.isPending ? "Saving…" : "Arrange Cover"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function ConsultantCoveragePanel({ userId }: { userId: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -1561,7 +1727,19 @@ function ConsultantCoveragePanel({ userId }: { userId: string }) {
                           <UserMinus className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                           <span className="text-sm truncate">{e.absentConsultantName}</span>
                         </div>
-                        <span className="text-xs text-muted-foreground shrink-0">{e.startDate} – {e.endDate}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-muted-foreground">{e.startDate} – {e.endDate}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => cancelMutation.mutate(e.id)}
+                            disabled={cancelMutation.isPending}
+                            data-testid={`button-cancel-covering-for-${e.id}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1571,7 +1749,7 @@ function ConsultantCoveragePanel({ userId }: { userId: string }) {
           )}
         </CardContent>
       </Card>
-      <ArrangeCoverDialog open={dialogOpen} onClose={() => setDialogOpen(false)} defaultAbsentId={userId} />
+      <ArrangeCoverDialog open={dialogOpen} onOpenChange={setDialogOpen} currentUserId={userId} />
     </>
   );
 }
@@ -1589,6 +1767,7 @@ const EMPTY_URGENT_ACTIONS: HomeSummary["urgentActions"] = {
 export default function HomePage() {
   const { user } = useAuth();
   const [activeActionType, setActiveActionType] = useState<string | null>(null);
+  const [arrangeCoverOpen, setArrangeCoverOpen] = useState(false);
   const wasLoadingRef = useRef(false);
 
   const { data, isLoading } = useQuery<HomeSummary>({
@@ -1605,6 +1784,7 @@ export default function HomePage() {
   const todayLabel = format(now, "EEEE, d MMMM yyyy");
 
   const urgentActions = data?.urgentActions ?? EMPTY_URGENT_ACTIONS;
+  const isConsultant = user?.role === "consultant";
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
   const assignedConsultants = data?.assignedConsultants ?? [];
   const showThirdTile = isProConsultant && assignedConsultants.length > 0;
@@ -1629,13 +1809,37 @@ export default function HomePage() {
       )}
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" data-testid="text-home-greeting">
-          {greeting}{firstName ? `, ${firstName}` : ""}
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          {todayLabel} · Here's what's happening across the portal.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-home-greeting">
+            {greeting}{firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            {todayLabel} · Here's what's happening across the portal.
+          </p>
+        </div>
+        {/* Arrange Cover button — consultants only */}
+        {isConsultant && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5"
+                  onClick={() => setArrangeCoverOpen(true)}
+                  data-testid="button-arrange-cover"
+                >
+                  <CalendarClock className="h-4 w-4" />
+                  Arrange Cover
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Temporarily assign your clients to another consultant while you are away.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       <div className="grid gap-6 items-stretch md:grid-cols-2">
@@ -1678,7 +1882,21 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* Arrange Cover Dialog */}
+      {isConsultant && user?.id && (
+        <ArrangeCoverDialog
+          open={arrangeCoverOpen}
+          onOpenChange={setArrangeCoverOpen}
+          currentUserId={user.id}
+        />
+      )}
+
       {/* Urgent Actions drill-down modal — hidden while panel is hidden */}
+      <UrgentActionsModal
+        open={!!activeActionType}
+        onClose={() => setActiveActionType(null)}
+        actionType={activeActionType}
+      />
     </div>
   );
 }

@@ -588,6 +588,7 @@ export interface IStorage {
 
   // Consultant Coverage
   createConsultantCoverageEntries(entries: InsertConsultantCoverage[]): Promise<ConsultantCoverage[]>;
+  getCoverageEntryById(id: string): Promise<ConsultantCoverage | null>;
   getActiveCoverageForCovering(consultantId: string): Promise<ConsultantCoverage[]>;
   getActiveCoverageForAbsent(consultantId: string): Promise<ConsultantCoverage[]>;
   getAllCoverageEntries(includeExpired: boolean): Promise<ConsultantCoverage[]>;
@@ -6101,6 +6102,12 @@ export class MemStorage implements IStorage {
   }
 
   // Consultant Coverage
+
+  async getCoverageEntryById(id: string): Promise<ConsultantCoverage | null> {
+    const [row] = await db.select().from(consultantCoverageTable).where(eq(consultantCoverageTable.id, id)).limit(1);
+    return row ?? null;
+  }
+
   async createConsultantCoverageEntries(entries: InsertConsultantCoverage[]): Promise<ConsultantCoverage[]> {
     if (!entries.length) return [];
     const results: ConsultantCoverage[] = [];

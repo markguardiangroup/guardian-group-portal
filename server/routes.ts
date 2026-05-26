@@ -1207,18 +1207,21 @@ export async function registerRoutes(
       return false;
     }
     
-    // Standard consultants: must be assigned to the site (with source overlap),
-    // OR the site is in a GO member company and consultant is assigned to the GO (GO-level source check),
-    // OR the site belongs to a consultant they are actively covering for.
+    // Standard consultants: must be directly assigned to the site (with source overlap),
+    // OR the site is in a GO member company (GO-level source check),
+    // OR the site belongs to a consultant they are actively covering for (no source check).
     if (user.role === "consultant" && user.id) {
       const site = await storage.getSite(siteId);
       if (!site) return false;
       const company = await storage.getCompany(site.companyId);
       if (!company) return false;
-      const assignedSiteIds = await getEffectiveSiteIds(user.id);
-      
+
+      // Use direct assignments only — source-overlap must apply to direct assignments
+      const ownAssignments = await storage.getConsultantSites(user.id);
+      const directSiteIds = new Set(ownAssignments.map(a => a.siteId));
+
       // Case 1: Direct assignment with source overlap
-      if (assignedSiteIds.has(siteId)) {
+      if (directSiteIds.has(siteId)) {
         return sourcesOverlap(user.sources ?? [], company.sources ?? []);
       }
       
@@ -1226,12 +1229,20 @@ export async function registerRoutes(
       if (company.groupOwnerId) {
         const allSites = await storage.getSitesWithDetails();
         const goSiteIds = new Set(allSites.filter(s => s.companyId === company.groupOwnerId).map(s => s.id));
-        if ([...assignedSiteIds].some(id => goSiteIds.has(id))) {
+        if ([...directSiteIds].some(id => goSiteIds.has(id))) {
           // Consultant is assigned to the GO — allow access to member site if effective GO sources overlap
           const goEffectiveSources = await getEffectiveGoSources(company.groupOwnerId);
           return sourcesOverlap(user.sources ?? [], goEffectiveSources);
         }
       }
+
+      // Case 3: Coverage-derived — covering consultant gets full access without source check
+      const coveringFor = await storage.getActiveCoverageForCovering(user.id);
+      for (const coverage of coveringFor) {
+        const absentAssignments = await storage.getConsultantSites(coverage.absentConsultantId);
+        if (absentAssignments.some(a => a.siteId === siteId)) return true;
+      }
+
       return false;
     }
     
@@ -6870,13 +6881,30 @@ export async function registerRoutes(
             const site = await storage.getSite(siteId);
             if (site) siteCompanyIds.add(site.companyId);
           }
-          // Source-overlapping assigned companies
+          // Source-overlapping assigned companies (coverage sites are allowed regardless of source)
+          const ownAssignments = await storage.getConsultantSites(user.id);
+          const directAssignedSiteIds = new Set(ownAssignments.map(a => a.siteId));
+          const directCompanyIds = new Set<string>();
+          for (const siteId of directAssignedSiteIds) {
+            const site = await storage.getSite(siteId);
+            if (site) directCompanyIds.add(site.companyId);
+          }
           const sourceOverlapCompanyIds = new Set(
-            [...siteCompanyIds].filter(cId => {
+            [...directCompanyIds].filter(cId => {
               const co = allCompanies.find(c => c.id === cId);
               return co && sourcesOverlap(mySources, co.sources ?? []);
             })
           );
+          // Add coverage-derived companies only (no source check needed for coverage)
+          // Coverage-derived = effectiveSiteIds minus the consultant's own direct assignments
+          const coverageCompanyIds = new Set<string>();
+          for (const siteId of effectiveSiteIds) {
+            if (!directAssignedSiteIds.has(siteId)) {
+              const site = await storage.getSite(siteId);
+              if (site) coverageCompanyIds.add(site.companyId);
+            }
+          }
+          for (const cId of coverageCompanyIds) sourceOverlapCompanyIds.add(cId);
           // GO expansion: member companies of any source-overlapping GO (no member source check)
           const goExpandedIds = new Set<string>(sourceOverlapCompanyIds);
           for (const cId of sourceOverlapCompanyIds) {
@@ -7928,14 +7956,22 @@ export async function registerRoutes(
       if (!absentConsultant || absentConsultant.role !== "consultant") {
         return res.status(404).json({ error: "Consultant not found" });
       }
-      const allUsers = await storage.getUsers();
-      const consultants = allUsers.filter(u =>
-        u.role === "consultant" && u.status === "active" && u.id !== absentConsultantId
+      const allConsultants = await storage.getConsultants();
+      const consultants = allConsultants.filter(u =>
+        u.status === "active" && u.id !== absentConsultantId
       );
-      // Admins see all consultants; others filtered by source overlap
-      const eligible = user.role === "admin"
+      // Admins see all consultants; others filtered by source overlap.
+      // If the absent consultant has no sources configured, skip the source filter
+      // (no constraint defined means any consultant can cover).
+      const absentSources = absentConsultant.sources ?? [];
+      // Eligible if: admin, OR absent has no sources (unconstrained), OR covering consultant
+      // has no sources (unconfigured = no restriction), OR there is a shared source.
+      const eligible = user.role === "admin" || absentSources.length === 0
         ? consultants
-        : consultants.filter(c => sourcesOverlap(absentConsultant.sources ?? [], c.sources ?? []));
+        : consultants.filter(c => {
+            const coveringSources = c.sources ?? [];
+            return coveringSources.length === 0 || sourcesOverlap(absentSources, coveringSources);
+          });
       res.json(eligible.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
     } catch (error) {
       console.error("Eligible consultants error:", error);
@@ -7983,11 +8019,37 @@ export async function registerRoutes(
       }
       if (startDate > endDate) return res.status(400).json({ error: "startDate must be on or before endDate" });
       // Permission: consultants can only arrange cover for themselves or their managed consultants
+      // Validate absent consultant exists and is a consultant
+      const absentUser = await storage.getUser(absentConsultantId);
+      if (!absentUser || absentUser.role !== "consultant") {
+        return res.status(400).json({ error: "absentConsultantId must refer to a consultant" });
+      }
       if (user.role === "consultant") {
         if (absentConsultantId !== user.id) {
           if (!isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
           const managed = await storage.getUser(absentConsultantId);
           if (!managed || managed.managerId !== user.id) return res.status(403).json({ error: "Forbidden" });
+        }
+      }
+      // Validate each covering consultant: must exist, be a consultant, and not be the absent consultant.
+      // For non-admins, enforce source-overlap eligibility — unless the absent consultant has no sources
+      // configured, in which case any consultant can cover (no constraint to apply).
+      const absentSources = absentUser.sources ?? [];
+      // Source check applies only for non-admins when the absent consultant has sources configured.
+      // If the absent has no sources (unconstrained) or the covering has no sources (unconfigured),
+      // the check is skipped — same logic as the eligible-consultants picker.
+      const sourceCheckApplies = user.role !== "admin" && absentSources.length > 0;
+      for (const cId of coveringConsultantIds as string[]) {
+        const covering = await storage.getUser(cId);
+        if (!covering || covering.role !== "consultant") {
+          return res.status(400).json({ error: `User ${cId} is not a valid consultant` });
+        }
+        if (cId === absentConsultantId) {
+          return res.status(400).json({ error: "A consultant cannot cover for themselves" });
+        }
+        const coveringSources = covering.sources ?? [];
+        if (sourceCheckApplies && coveringSources.length > 0 && !sourcesOverlap(absentSources, coveringSources)) {
+          return res.status(403).json({ error: `Consultant ${covering.fullName} is not eligible to cover (no shared source)` });
         }
       }
       const entries = (coveringConsultantIds as string[]).map(coveringConsultantId => ({
@@ -8041,11 +8103,29 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+      const entry = await storage.getCoverageEntryById(req.params.id);
+      if (!entry) return res.status(404).json({ error: "Coverage entry not found" });
+      if (user.role !== "admin" && user.id !== entry.createdBy && user.id !== entry.absentConsultantId && user.id !== entry.coveringConsultantId) {
+        return res.status(403).json({ error: "Not authorised to cancel this coverage arrangement" });
+      }
       await storage.deleteConsultantCoverage(req.params.id);
       res.json({ ok: true });
     } catch (error) {
       console.error("Delete coverage error:", error);
       res.status(500).json({ error: "Failed to delete coverage entry" });
+    }
+  });
+
+  // All consultants — admin-only, used by ArrangeCoverDialog absent picker
+  app.get("/api/consultant-coverage/all-consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "admin") return res.status(403).json({ error: "Admin only" });
+      const consultants = await storage.getConsultants();
+      res.json(consultants.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
+    } catch (error) {
+      console.error("All consultants error:", error);
+      res.status(500).json({ error: "Failed to fetch consultants" });
     }
   });
 
@@ -12077,33 +12157,50 @@ export async function registerRoutes(
       // Standard (non-pro) consultants: only see clients for companies they are assigned to
       // that also share at least one source. They never see other consultants or admins.
       // GO expansion: also includes clients from member companies of any GO they're assigned to.
+      // Coverage expansion: also includes clients from sites/companies of consultants being covered.
       const isStandardConsultant = user.role === "consultant" && !isProConsultant(user);
       let allowedClientIds: Set<string> | null = null;
       if (isStandardConsultant) {
         const myAssignments = await storage.getConsultantSites(user.id);
-        const mySiteIds = new Set(myAssignments.map(a => a.entityId));
-        // Only keep sites whose parent company shares at least one source
+        const mySiteIds = new Set(myAssignments.map(a => a.siteId));
+        // Coverage expansion: also include sites of consultants being covered right now
+        const coveringForEntries = await storage.getActiveCoverageForCovering(user.id);
+        const coverageSiteIds: string[] = [];
+        for (const c of coveringForEntries) {
+          const absentAssignments = await storage.getConsultantSites(c.absentConsultantId);
+          for (const a of absentAssignments) coverageSiteIds.push(a.siteId);
+        }
+        const allEffectiveSiteIds = new Set([...mySiteIds, ...coverageSiteIds]);
+        // Only keep sites (direct assignments) whose parent company shares at least one source
         const mySourceCompanyIds = new Set(
           allSites
             .filter(s => mySiteIds.has(s.id) && sourcesOverlap(mySources, allCompanies.find(c => c.id === s.companyId)?.sources ?? []))
             .map(s => s.companyId)
         );
+        // Also track coverage company IDs (no source check needed)
+        const coverageCompanyIds = new Set(
+          allSites.filter(s => coverageSiteIds.includes(s.id)).map(s => s.companyId)
+        );
         allowedClientIds = new Set<string>();
-        // Include clients explicitly assigned to one of the consultant's sites (with source overlap)
-        for (const siteId of mySiteIds) {
+        // Include clients explicitly assigned to one of the consultant's effective sites
+        for (const siteId of allEffectiveSiteIds) {
           const site = allSites.find(s => s.id === siteId);
           if (!site) continue;
-          const company = allCompanies.find(c => c.id === site.companyId);
-          if (!sourcesOverlap(mySources, company?.sources ?? [])) continue;
+          // For direct assignments: require source overlap; for coverage sites: no source check
+          if (mySiteIds.has(siteId)) {
+            const company = allCompanies.find(c => c.id === site.companyId);
+            if (!sourcesOverlap(mySources, company?.sources ?? [])) continue;
+          }
           const siteClients = await storage.getClientSiteAssignments(siteId);
           siteClients.forEach(a => allowedClientIds!.add(a.clientId));
         }
         // Also include clients who belong to an allowed company but have no site yet
         allUsers
-          .filter(u => u.role === "client" && u.companyId && mySourceCompanyIds.has(u.companyId))
+          .filter(u => u.role === "client" && u.companyId && (mySourceCompanyIds.has(u.companyId) || coverageCompanyIds.has(u.companyId)))
           .forEach(u => allowedClientIds!.add(u.id));
         // GO expansion: for each source-overlapping company that is a GO, also see clients in member companies
-        for (const cId of mySourceCompanyIds) {
+        const allAllowedCompanyIds = new Set([...mySourceCompanyIds, ...coverageCompanyIds]);
+        for (const cId of allAllowedCompanyIds) {
           const members = await storage.getGroupMembers(cId);
           for (const m of members) {
             allUsers

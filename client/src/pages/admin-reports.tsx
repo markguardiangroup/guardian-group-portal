@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ArrangeCoverDialog } from "@/pages/home";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -60,6 +61,7 @@ import {
   UserPlus,
   UserCheck,
   UserMinus,
+  UserRoundCog,
   X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -639,6 +641,7 @@ export default function AdminReports() {
   // Coverage report
   const [showCoverageReport, setShowCoverageReport] = useState(false);
   const [includeExpiredCoverage, setIncludeExpiredCoverage] = useState(false);
+  const [arrangeCoverOpen, setArrangeCoverOpen] = useState(false);
   interface AdminCoverageEntry {
     id: string;
     absentConsultantId: string;
@@ -1569,6 +1572,14 @@ export default function AdminReports() {
                 />
                 <Label htmlFor="include-expired" className="text-sm cursor-pointer">Show expired arrangements</Label>
               </div>
+              <Button
+                size="sm"
+                onClick={() => setArrangeCoverOpen(true)}
+                data-testid="button-arrange-cover-admin"
+              >
+                <UserPlus className="h-4 w-4 mr-1.5" />
+                Arrange Cover
+              </Button>
             </div>
 
             {coverageLoading ? (
@@ -1648,6 +1659,15 @@ export default function AdminReports() {
       </Dialog>
 
       </div>
+
+      {user?.id && (
+        <ArrangeCoverDialog
+          open={arrangeCoverOpen}
+          onOpenChange={setArrangeCoverOpen}
+          isAdmin
+          currentUserId={user.id}
+        />
+      )}
     </div>
   );
 }

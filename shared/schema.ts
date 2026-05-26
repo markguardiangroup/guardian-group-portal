@@ -1894,10 +1894,13 @@ export const schedulerRuns = pgTable("scheduler_runs", {
 export type SchedulerRun = typeof schedulerRuns.$inferSelect;
 
 // ==================== CONSULTANT COVERAGE ====================
+// One row per covering consultant; multiple covering consultants = multiple rows sharing the same
+// absentConsultantId, startDate, and endDate.
 export const consultantCoverage = pgTable("consultant_coverage", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   absentConsultantId: varchar("absent_consultant_id").notNull(),
   coveringConsultantId: varchar("covering_consultant_id").notNull(),
+  // Stored as YYYY-MM-DD strings to avoid timezone ambiguity
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
   createdBy: varchar("created_by").notNull(),
