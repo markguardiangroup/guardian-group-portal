@@ -5606,6 +5606,13 @@
           "message": "Consultants with Template Library permission can now delete toolkit subfolders",
           "category": "feature",
           "createdAt": "2026-05-26T17:20:00.000Z"
+        },
+        {
+          "id": "f2a3b4c5-select-not-defined-runtime-error-2026",
+          "patch": 10,
+          "message": "Fixed: Toolkit Dashboard and My Training pages crashed with a runtime error",
+          "category": "bug",
+          "createdAt": "2026-05-26T17:25:00.000Z"
         }
       ],
       "publishedPatch": 9,
