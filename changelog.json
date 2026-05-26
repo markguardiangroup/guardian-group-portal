@@ -5550,6 +5550,13 @@
           "message": "Fixed: Pro Consultants now see the coverage filter dropdown when covering for someone",
           "category": "bug",
           "createdAt": "2026-05-26T13:20:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-pro-coverage-merged-into-staff-picker-2026",
+          "patch": 8,
+          "message": "Covered consultants now appear inside the Pro Consultant staff picker, not a separate dropdown",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T13:35:00.000Z"
         }
       ],
       "publishedPatch": 7,

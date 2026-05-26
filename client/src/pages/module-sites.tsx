@@ -467,7 +467,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       ? "My client sites"
                       : staffFilter === "all"
                       ? "All companies"
-                      : (myStaff.find((s) => s.id === staffFilter)?.fullName ?? "") + "'s client sites"}
+                      : (myStaff.find((s) => s.id === staffFilter)?.fullName
+                          ?? coveringFor.find(c => c.absentConsultantId === staffFilter)?.absentConsultantName
+                          ?? "") + "'s client sites"}
                   </span>
                 </SelectTrigger>
                 <SelectContent>
@@ -477,6 +479,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       {s.fullName}'s client sites
                     </SelectItem>
                   ))}
+                  {coveringFor
+                    .filter(c => !myStaff.some(s => s.id === c.absentConsultantId))
+                    .map(c => (
+                      <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`staff-filter-docs-coverage-${c.absentConsultantId}`}>
+                        {c.absentConsultantName}'s client sites
+                      </SelectItem>
+                    ))}
                   <SelectItem value="all">All companies</SelectItem>
                 </SelectContent>
               </Select>

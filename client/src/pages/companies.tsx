@@ -79,6 +79,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -405,6 +406,7 @@ export default function Companies() {
   }, [searchQuery]);
 
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
+  const { coveringFor } = useCoverageFilter();
 
   type StaffConsultant = { id: string; fullName: string; consultantTier?: string | null };
   const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
@@ -1164,13 +1166,26 @@ export default function Companies() {
         {isProConsultant && (
           <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
             <SelectTrigger className="w-[200px]" data-testid="select-staff-filter-companies">
-              <SelectValue />
+              <SelectValue placeholder={
+                staffFilter === "my" ? "My clients"
+                : staffFilter === "all" ? "All clients"
+                : (myStaff.find(s => s.id === staffFilter)?.fullName
+                    ?? coveringFor.find(c => c.absentConsultantId === staffFilter)?.absentConsultantName
+                    ?? "") + "'s clients"
+              } />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="my">My clients</SelectItem>
               {myStaff.map(s => (
                 <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-${s.id}`}>{s.fullName}'s clients</SelectItem>
               ))}
+              {coveringFor
+                .filter(c => !myStaff.some(s => s.id === c.absentConsultantId))
+                .map(c => (
+                  <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`staff-filter-coverage-${c.absentConsultantId}`}>
+                    {c.absentConsultantName}'s clients
+                  </SelectItem>
+                ))}
               <SelectItem value="all">All clients</SelectItem>
             </SelectContent>
           </Select>

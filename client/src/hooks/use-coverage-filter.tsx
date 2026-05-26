@@ -12,6 +12,7 @@ export function useCoverageFilter() {
   const { coverageConsultantId, setCoverageConsultantId } = useSiteFilter();
 
   const isConsultant = user?.role === "consultant";
+  const isProConsultant = isConsultant && (user as any)?.consultantTier === "pro";
   const showCoverageFilter = isConsultant;
 
   const { data } = useQuery<{
@@ -25,7 +26,8 @@ export function useCoverageFilter() {
   });
 
   const coveringFor: CoveringForEntry[] = data?.coveringFor ?? [];
-  const hasCoverage = showCoverageFilter && coveringFor.length > 0;
+  // Pro Consultants merge coverage into their staff picker — no separate Select needed
+  const hasCoverage = showCoverageFilter && !isProConsultant && coveringFor.length > 0;
 
   const coverageFilter = coverageConsultantId ?? "my";
 

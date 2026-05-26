@@ -3,6 +3,7 @@ import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,7 @@ export default function Sites() {
   
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
   const canCreateSite = user?.role === "admin" || isProConsultant;
+  const { coveringFor } = useCoverageFilter();
 
   type StaffConsultant = { id: string; fullName: string; consultantTier?: string | null };
   const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
@@ -410,13 +412,26 @@ export default function Sites() {
         {isProConsultant && (
           <Select value={staffFilter} onValueChange={(v) => { setStaffFilter(v); setPage(1); }}>
             <SelectTrigger className="w-[200px]" data-testid="select-staff-filter-sites">
-              <SelectValue />
+              <SelectValue placeholder={
+                staffFilter === "my" ? "My client sites"
+                : staffFilter === "all" ? "All client sites"
+                : (myStaff.find(s => s.id === staffFilter)?.fullName
+                    ?? coveringFor.find(c => c.absentConsultantId === staffFilter)?.absentConsultantName
+                    ?? "") + "'s clients"
+              } />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="my">My client sites</SelectItem>
               {myStaff.map(s => (
                 <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-sites-${s.id}`}>{s.fullName}'s clients</SelectItem>
               ))}
+              {coveringFor
+                .filter(c => !myStaff.some(s => s.id === c.absentConsultantId))
+                .map(c => (
+                  <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`staff-filter-sites-coverage-${c.absentConsultantId}`}>
+                    {c.absentConsultantName}'s clients
+                  </SelectItem>
+                ))}
               <SelectItem value="all">All client sites</SelectItem>
             </SelectContent>
           </Select>
