@@ -7984,11 +7984,33 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
+
+      // Admins see all active arrangements
+      if (user.role === "admin") {
+        const allEntries = await storage.getAllCoverageEntries(false);
+        const today = new Date().toISOString().split("T")[0];
+        const active = allEntries.filter(e => e.startDate <= today && e.endDate >= today);
+        const allIds = new Set([...active.map(e => e.absentConsultantId), ...active.map(e => e.coveringConsultantId)]);
+        const userMap = new Map<string, string>();
+        for (const id of allIds) {
+          const u = await storage.getUser(id);
+          if (u) userMap.set(id, u.fullName);
+        }
+        return res.json({
+          coveringFor: [],
+          beingCoveredBy: [],
+          allActive: active.map(e => ({
+            ...e,
+            absentConsultantName: userMap.get(e.absentConsultantId) ?? "Unknown",
+            coveringConsultantName: userMap.get(e.coveringConsultantId) ?? "Unknown",
+          })),
+        });
+      }
+
       const [coveringFor, beingCoveredBy] = await Promise.all([
         storage.getActiveCoverageForCovering(user.id),
         storage.getActiveCoverageForAbsent(user.id),
       ]);
-      // Enrich with names
       const allIds = new Set([
         ...coveringFor.map(e => e.absentConsultantId),
         ...beingCoveredBy.map(e => e.coveringConsultantId),
@@ -8001,6 +8023,7 @@ export async function registerRoutes(
       res.json({
         coveringFor: coveringFor.map(e => ({ ...e, absentConsultantName: userMap.get(e.absentConsultantId) ?? "Unknown" })),
         beingCoveredBy: beingCoveredBy.map(e => ({ ...e, coveringConsultantName: userMap.get(e.coveringConsultantId) ?? "Unknown" })),
+        allActive: [],
       });
     } catch (error) {
       console.error("My active coverage error:", error);

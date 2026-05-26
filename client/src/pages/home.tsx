@@ -836,6 +836,7 @@ interface EligibleConsultant {
 interface MyCoverageResponse {
   coveringFor: (CoverageEntry & { absentConsultantName: string })[];
   beingCoveredBy: (CoverageEntry & { coveringConsultantName: string })[];
+  allActive: (CoverageEntry & { absentConsultantName: string; coveringConsultantName: string })[];
 }
 
 interface ManagedConsultant {
@@ -1649,9 +1650,10 @@ function UrgentActionsModal({
   );
 }
 
-function ConsultantCoveragePanel({ userId }: { userId: string }) {
+function ConsultantCoveragePanel({ userId, role }: { userId: string; role: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
+  const isAdmin = role === "admin";
 
   const { data, isLoading } = useQuery<MyCoverageResponse>({
     queryKey: ["/api/consultant-coverage/my-active"],
@@ -1669,7 +1671,8 @@ function ConsultantCoveragePanel({ userId }: { userId: string }) {
 
   const coveringFor = data?.coveringFor ?? [];
   const beingCoveredBy = data?.beingCoveredBy ?? [];
-  const hasAny = coveringFor.length > 0 || beingCoveredBy.length > 0;
+  const allActive = data?.allActive ?? [];
+  const hasAny = isAdmin ? allActive.length > 0 : (coveringFor.length > 0 || beingCoveredBy.length > 0);
 
   return (
     <>
@@ -1697,8 +1700,37 @@ function ConsultantCoveragePanel({ userId }: { userId: string }) {
             <FetchingOverlay />
           ) : !hasAny ? (
             <p className="text-sm text-muted-foreground">
-              No active cover arrangements. Use <strong>Arrange Cover</strong> to delegate your clients while you're away.
+              {isAdmin
+                ? "No active cover arrangements across the team."
+                : <>No active cover arrangements. Use <strong>Arrange Cover</strong> to delegate your clients while you're away.</>}
             </p>
+          ) : isAdmin ? (
+            <div className="space-y-1.5">
+              {allActive.map(e => (
+                <div key={e.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2" data-testid={`coverage-admin-${e.id}`}>
+                  <div className="flex items-center gap-2 min-w-0 text-sm">
+                    <UserMinus className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span className="font-medium truncate">{e.absentConsultantName}</span>
+                    <span className="text-muted-foreground shrink-0">→</span>
+                    <UserCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span className="truncate">{e.coveringConsultantName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted-foreground">{e.startDate} – {e.endDate}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => cancelMutation.mutate(e.id)}
+                      disabled={cancelMutation.isPending}
+                      data-testid={`button-cancel-coverage-admin-${e.id}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="space-y-4">
               {beingCoveredBy.length > 0 && (
@@ -1761,7 +1793,7 @@ function ConsultantCoveragePanel({ userId }: { userId: string }) {
           )}
         </CardContent>
       </Card>
-      <ArrangeCoverDialog open={dialogOpen} onOpenChange={setDialogOpen} currentUserId={userId} />
+      <ArrangeCoverDialog open={dialogOpen} onOpenChange={setDialogOpen} currentUserId={userId} isAdmin={isAdmin} />
     </>
   );
 }
@@ -1873,9 +1905,9 @@ export default function HomePage() {
         }
       </div>
 
-      {/* Client Cover — consultants only */}
-      {user?.role === "consultant" && user?.id && (
-        <ConsultantCoveragePanel userId={user.id} />
+      {/* Client Cover — consultants and admins */}
+      {(user?.role === "consultant" || user?.role === "admin") && user?.id && (
+        <ConsultantCoveragePanel userId={user.id} role={user.role} />
       )}
 
       {/* My Actions — full width, between portfolio and messages */}
