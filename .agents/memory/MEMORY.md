@@ -1,0 +1,1 @@
+- [Changelog patch discipline](changelog-patch-discipline.md) — always read the live `patch` from the active version in changelog.json; never trust a cached/scratchpad value.
