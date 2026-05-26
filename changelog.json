@@ -5405,6 +5405,13 @@
           "createdAt": "2026-05-26T10:25:00.000Z"
         },
         {
+          "id": "f8a9b0c1-coverage-spinning-logo-loader-2026",
+          "patch": 8,
+          "message": "Improved: Covering Consultants loading state uses the spinning Guardian logo",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T10:30:00.000Z"
+        },
+        {
           "id": "g3c4d5e6-home-page-duplicate-import-fix-2026",
           "patch": 8,
           "message": "Fixed: app failed to load after merge due to duplicate component code",

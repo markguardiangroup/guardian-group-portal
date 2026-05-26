@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo } from "react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -1037,8 +1038,8 @@ export function ArrangeCoverDialog({
                   <p className="text-sm text-muted-foreground">Select an absent consultant above first.</p>
                 </div>
               ) : eligibleLoading ? (
-                <div className="flex-1 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                <div className="flex-1 flex items-center justify-center">
+                  <img src={logoIcon} alt="Loading" className="h-8 w-8 rounded-full object-cover shadow animate-spin" style={{ animationDuration: "1.5s" }} />
                 </div>
               ) : eligibleConsultants.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center">
