@@ -1071,12 +1071,10 @@ export function ArrangeCoverDialog({
                 </div>
               )}
             </div>
-            {eligibleConsultants.length > 0 && (
-              <p className="text-xs text-muted-foreground flex items-start gap-1.5 mt-1">
-                <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                Each selected consultant will see all of your clients for the duration — clients are not split between them.
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground flex items-start gap-1.5 mt-1">
+              <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              Each selected consultant will see all of your clients for the duration — clients are not split between them.
+            </p>
           </div>
         </div>
 
