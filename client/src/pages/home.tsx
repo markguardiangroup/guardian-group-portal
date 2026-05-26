@@ -1692,7 +1692,7 @@ function ConsultantCoveragePanel({ userId, role }: { userId: string; role: strin
   const hasAny = isAdmin ? allActive.length > 0 : (coveringFor.length > 0 || beingCoveredBy.length > 0);
 
   if (isAdmin) return null;
-  if (!isLoading && !hasAny) return null;
+  if (!hasAny) return null;
 
   return (
     <>

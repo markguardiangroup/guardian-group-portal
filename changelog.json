@@ -5578,6 +5578,13 @@
           "message": "Fixed: blank screen on page reload or direct URL visit while session loads",
           "category": "bug",
           "createdAt": "2026-05-26T14:20:00.000Z"
+        },
+        {
+          "id": "b8c9d0e1-client-cover-hide-while-loading-2026",
+          "patch": 8,
+          "message": "Fixed: Client Cover card no longer flashes on home page load when empty",
+          "category": "bug",
+          "createdAt": "2026-05-26T14:35:00.000Z"
         }
       ],
       "publishedPatch": 7,
