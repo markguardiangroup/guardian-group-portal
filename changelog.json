@@ -5529,6 +5529,13 @@
           "message": "Client Cover box is now hidden on the home page when no cover is arranged",
           "category": "enhancement",
           "createdAt": "2026-05-26T12:50:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-client-cover-hidden-for-admins-2026",
+          "patch": 8,
+          "message": "Client Cover box no longer shown on home page for admin users",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T13:00:00.000Z"
         }
       ],
       "publishedPatch": 7,
