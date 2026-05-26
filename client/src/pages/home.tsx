@@ -1674,6 +1674,8 @@ function ConsultantCoveragePanel({ userId, role }: { userId: string; role: strin
   const allActive = data?.allActive ?? [];
   const hasAny = isAdmin ? allActive.length > 0 : (coveringFor.length > 0 || beingCoveredBy.length > 0);
 
+  if (!isLoading && !hasAny) return null;
+
   return (
     <>
       <Card data-testid="panel-consultant-coverage" className="h-full border-t-4 border-t-primary overflow-hidden">
