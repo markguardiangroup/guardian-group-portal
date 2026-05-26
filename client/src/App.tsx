@@ -20,11 +20,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, FileText, Loader2, Eye } from "lucide-react";
+import { ShieldCheck, FileText, Loader2, Eye, UsersRound } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 
 // Eager pages — loaded in the initial bundle so login + home page appear instantly.
 import Login from "@/pages/login";
@@ -620,6 +625,49 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
   return null;
 }
 
+function CoverageContextStrip() {
+  const { user } = useAuth();
+  const { coverageConsultantId, setCoverageConsultantId } = useSiteFilter();
+  const { data } = useQuery<{
+    coveringFor: { absentConsultantId: string; absentConsultantName: string }[];
+    beingCoveredBy: unknown[];
+    allActive: unknown[];
+  }>({
+    queryKey: ["/api/consultant-coverage/my-active"],
+    enabled: user?.role === "consultant",
+    staleTime: 30000,
+  });
+  const coveringFor = data?.coveringFor ?? [];
+  if (!user || user.role !== "consultant" || coveringFor.length === 0) return null;
+  return (
+    <div className="border-b bg-amber-50 dark:bg-amber-950/20 px-4 py-2 flex items-center gap-3 text-sm flex-wrap">
+      <UsersRound className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+      <span className="text-muted-foreground text-xs shrink-0">Viewing clients for:</span>
+      <Select
+        value={coverageConsultantId ?? "own"}
+        onValueChange={(v) => setCoverageConsultantId(v === "own" ? null : v)}
+      >
+        <SelectTrigger className="h-7 w-auto min-w-[160px] text-xs border-amber-300 dark:border-amber-700 bg-white dark:bg-background" data-testid="select-coverage-context">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="own">My own clients</SelectItem>
+          {coveringFor.map(c => (
+            <SelectItem key={c.absentConsultantId} value={c.absentConsultantId}>
+              {c.absentConsultantName}'s clients
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {coverageConsultantId && (
+        <Badge variant="outline" className="text-xs border-amber-400 text-amber-700 dark:text-amber-400 dark:border-amber-600">
+          Coverage mode active
+        </Badge>
+      )}
+    </div>
+  );
+}
+
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [splashFading, setSplashFading] = useState(false);
@@ -698,6 +746,7 @@ function AuthenticatedApp() {
                     <ThemeToggle />
                   </header>
                   <main id="main-content" className="flex-1 overflow-auto">
+                    <CoverageContextStrip />
                     <Router />
                   </main>
                 </SidebarInset>

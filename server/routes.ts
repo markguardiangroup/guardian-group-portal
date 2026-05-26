@@ -8212,6 +8212,16 @@ export async function registerRoutes(
         const assignedSiteIds = await getEffectiveSiteIds(user.id);
         let filteredSites = allSites.filter(site => assignedSiteIds.has(site.id));
         if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
+        // Allow staffId filter for covering consultants — lets them view only the absent consultant's sites
+        if (staffIdFilter) {
+          const activeCovering = await storage.getActiveCoverageForCovering(user.id);
+          const coveringIds = new Set(activeCovering.map(c => c.absentConsultantId));
+          if (coveringIds.has(staffIdFilter)) {
+            const staffAssignments = await storage.getConsultantSites(staffIdFilter);
+            const staffSiteIds = new Set(staffAssignments.map(a => a.siteId).filter(Boolean) as string[]);
+            filteredSites = filteredSites.filter(s => staffSiteIds.has(s.id));
+          }
+        }
         res.json(filteredSites);
         return;
       }

@@ -334,7 +334,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
-  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters, coverageConsultantId } = useSiteFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -477,9 +477,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     },
   });
   
-  // Fetch sites for all users
+  // Fetch sites for all users — when covering for someone, fetch only that person's sites
   const { data: sites } = useQuery<SiteWithCompany[]>({
-    queryKey: ["/api/sites"],
+    queryKey: coverageConsultantId ? ["/api/sites", "coverage", coverageConsultantId] : ["/api/sites"],
+    queryFn: coverageConsultantId ? async () => {
+      const res = await fetch(`/api/sites?staffId=${coverageConsultantId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch sites");
+      return res.json();
+    } : undefined,
   });
 
   // Fetch companies for group scope filtering (when a group is selected or navigated via URL group scope)

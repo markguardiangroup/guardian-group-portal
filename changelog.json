@@ -5487,6 +5487,27 @@
           "message": "Fixed: consultants without a source configuration now appear as eligible to cover",
           "category": "bug",
           "createdAt": "2026-05-26T09:19:34.436Z"
+        },
+        {
+          "id": "a1b2c3d4-coverage-panel-above-portfolio-2026",
+          "patch": 8,
+          "message": "Client Cover panel now appears above the portfolio grid on the home page",
+          "category": "enhancement",
+          "createdAt": "2026-05-26T11:20:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-coverage-context-strip-all-pages-2026",
+          "patch": 8,
+          "message": "Covering consultants now see a 'Viewing clients for' dropdown on every page",
+          "category": "feature",
+          "createdAt": "2026-05-26T11:20:30.000Z"
+        },
+        {
+          "id": "c3d4e5f6-coverage-documents-filter-2026",
+          "patch": 8,
+          "message": "Documents page filters to the absent consultant's sites when coverage mode is active",
+          "category": "feature",
+          "createdAt": "2026-05-26T11:21:00.000Z"
         }
       ],
       "publishedPatch": 7,

@@ -1886,6 +1886,11 @@ export default function HomePage() {
         )}
       </div>
 
+      {/* Client Cover — consultants and admins */}
+      {(user?.role === "consultant" || user?.role === "admin") && user?.id && (
+        <ConsultantCoveragePanel userId={user.id} role={user.role} />
+      )}
+
       <div className="grid gap-6 items-stretch md:grid-cols-2">
         {/* Portfolio — slot 1 */}
         {isLoading ? (
@@ -1904,11 +1909,6 @@ export default function HomePage() {
           : <div />
         }
       </div>
-
-      {/* Client Cover — consultants and admins */}
-      {(user?.role === "consultant" || user?.role === "admin") && user?.id && (
-        <ConsultantCoveragePanel userId={user.id} role={user.role} />
-      )}
 
       {/* My Actions — full width, between portfolio and messages */}
       <MyActionsPanel role={user?.role ?? "client"} />
