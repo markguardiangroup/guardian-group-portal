@@ -240,7 +240,7 @@ export default function Sites() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(20);
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
-  const [staffFilter, setStaffFilter] = useState<string>("my");
+  const { proStaffFilter: staffFilter, setProStaffFilter: setStaffFilter } = useSiteFilter();
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   

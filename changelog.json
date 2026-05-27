@@ -5886,6 +5886,13 @@
           "message": "Go to Documents popover now shows per-module document counts alongside each module",
           "category": "enhancement",
           "createdAt": "2026-05-27T21:40:00.000Z"
+        },
+        {
+          "id": "e5f0a4b3-pro-staff-filter-persists-across-pages-2026",
+          "patch": 10,
+          "message": "Sites list: pro consultant 'My client sites' selection now persists across page navigation",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T21:50:00.000Z"
         }
       ],
       "publishedPatch": 9,
