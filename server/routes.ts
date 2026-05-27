@@ -6853,34 +6853,45 @@ export async function registerRoutes(
       const search = (req.query.search as string || "").toLowerCase();
       const status = req.query.status as string | undefined;
       
-      const [allCompanies, allSitesForCompliance] = await Promise.all([
+      const [rawCompanies, allSitesForCompliance] = await Promise.all([
         storage.getCompaniesWithSiteCount(),
         storage.getSitesWithDetails(),
       ]);
 
       // Aggregate site-level compliance into company-level summaries
-      const complianceAccum = new Map<string, {
-        compliant: number; total: number; totalDocs: number;
-        approvalRequired: number; overdue: number; missing: number;
-      }>();
+      type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
+      const complianceAccum = new Map<string, ComplianceAccum>();
       for (const site of allSitesForCompliance) {
         if (!site.complianceSummary) continue;
         const s = site.complianceSummary;
-        const acc = complianceAccum.get(site.companyId) ?? { compliant: 0, total: 0, totalDocs: 0, approvalRequired: 0, overdue: 0, missing: 0 };
-        acc.compliant += s.compliantDocuments;
-        acc.total += s.totalDocuments;
-        acc.totalDocs += s.totalAllDocuments;
-        acc.approvalRequired += s.approvalRequired;
-        acc.overdue += s.overdueDocuments;
-        acc.missing += s.missingRequiredDocuments;
-        complianceAccum.set(site.companyId, acc);
+        const existing = complianceAccum.get(site.companyId);
+        if (existing) {
+          existing.compliant += s.compliantDocuments;
+          existing.total += s.totalDocuments;
+          existing.totalDocs += s.totalAllDocuments;
+          existing.approvalRequired += s.approvalRequired;
+          existing.overdue += s.overdueDocuments;
+          existing.missing += s.missingRequiredDocuments;
+        } else {
+          complianceAccum.set(site.companyId, {
+            compliant: s.compliantDocuments,
+            total: s.totalDocuments,
+            totalDocs: s.totalAllDocuments,
+            approvalRequired: s.approvalRequired,
+            overdue: s.overdueDocuments,
+            missing: s.missingRequiredDocuments,
+          });
+        }
       }
-      // Attach aggregated compliance to each company
-      for (const c of allCompanies) {
+
+      // Build new objects (spread) so complianceSummary is a plain own property
+      const allCompanies = rawCompanies.map(c => {
         const acc = complianceAccum.get(c.id);
-        if (acc) {
-          const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
-          (c as any).complianceSummary = {
+        if (!acc) return { ...c };
+        const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
+        return {
+          ...c,
+          complianceSummary: {
             totalDocuments: acc.total,
             compliantDocuments: acc.compliant,
             approvalRequired: acc.approvalRequired,
@@ -6895,10 +6906,10 @@ export async function registerRoutes(
             pendingApprovals: 0,
             awaitingYourApproval: 0,
             awaitingOthersApproval: 0,
-          };
-        }
-      }
-      
+          },
+        };
+      });
+
       let filteredCompanies = allCompanies;
       
       // Role-based filtering
