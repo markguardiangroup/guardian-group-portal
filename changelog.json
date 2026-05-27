@@ -5627,6 +5627,13 @@
           "message": "Cloud Share folder list now shows the company name before the site name",
           "category": "enhancement",
           "createdAt": "2026-05-27T10:20:00.000Z"
+        },
+        {
+          "id": "c5d6e7f8-sites-list-ref-under-company-2026",
+          "patch": 10,
+          "message": "Sites list: site ID moved under company name, company number removed, company column widened",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T13:45:00.000Z"
         }
       ],
       "publishedPatch": 9,

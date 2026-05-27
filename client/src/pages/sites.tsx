@@ -481,7 +481,7 @@ export default function Sites() {
               <TableHead onClick={() => handleSortSites("name")} className="cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Site Name {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortSites("company")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortSites("company")} className="cursor-pointer select-none whitespace-nowrap min-w-[180px]">
                 <div className="flex items-center gap-1">Company {sortBy === "company" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead className="hidden md:table-cell">Address</TableHead>
@@ -519,18 +519,13 @@ export default function Sites() {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="font-medium">{site.name}</span>
-                      {site.referenceNumber && (
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {site.referenceNumber}
-                        </Badge>
-                      )}
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">{site.companyName || "—"}</span>
-                    {site.companyNumber && (
-                      <span className="block text-xs text-muted-foreground">
-                        #{site.companyNumber}
+                    {site.referenceNumber && (
+                      <span className="block text-xs text-muted-foreground font-mono mt-0.5">
+                        {site.referenceNumber}
                       </span>
                     )}
                     {site.companySources && site.companySources.length > 0 && (
