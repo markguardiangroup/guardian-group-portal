@@ -2130,8 +2130,14 @@ export default function CompanyDetail() {
                 {(company.addressLine1 || company.city || company.postalCode) && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Address</p>
-                    <div className="flex items-start gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([company.name, company.addressLine1, company.addressLine2, company.city, company.county, company.postalCode].filter(Boolean).join(", "))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-2 text-sm hover:underline transition-colors group"
+                      data-testid="link-maps-company"
+                    >
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-primary transition-colors" />
                       <div>
                         {company.addressLine1 && <p>{company.addressLine1}</p>}
                         {company.addressLine2 && <p>{company.addressLine2}</p>}
@@ -2141,7 +2147,7 @@ export default function CompanyDetail() {
                         {company.postalCode && <p>{company.postalCode}</p>}
                         {company.country && <p>{company.country}</p>}
                       </div>
-                    </div>
+                    </a>
                   </div>
                 )}
 

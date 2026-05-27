@@ -171,7 +171,13 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
           {(entity.addressLine1 || entity.city || entity.postalCode) && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Address</p>
-              <div className="text-sm">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([entity.name, entity.addressLine1, entity.addressLine2, entity.city, entity.county, entity.postalCode].filter(Boolean).join(", "))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline transition-colors group"
+                data-testid="link-maps-site"
+              >
                 {entity.addressLine1 && <p>{entity.addressLine1}</p>}
                 {entity.addressLine2 && <p>{entity.addressLine2}</p>}
                 {(entity.city || entity.county) && (
@@ -179,7 +185,7 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
                 )}
                 {entity.postalCode && <p>{entity.postalCode}</p>}
                 {entity.country && <p>{entity.country}</p>}
-              </div>
+              </a>
             </div>
           )}
           

@@ -542,17 +542,10 @@ export default function Sites() {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {(site.addressLine1 || site.city) ? (
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", "))}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
-                        data-testid={`link-maps-site-${site.id}`}
-                      >
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
-                      </a>
+                      </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}

@@ -5645,7 +5645,7 @@
         {
           "id": "e7f8a9b0-google-maps-address-links-2026",
           "patch": 10,
-          "message": "Addresses on Companies and Sites lists now link directly to Google Maps",
+          "message": "Company and Site detail pages: address now links to Google Maps (includes name in search)",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:10:00.000Z"
         }
