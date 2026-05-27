@@ -5722,7 +5722,7 @@
         {
           "id": "d8e0a2b4-compliance-module-picker-2026",
           "patch": 10,
-          "message": "Compliance badge navigates to the module dashboard (respects selected company/site)",
+          "message": "Compliance badge now pre-selects the company and navigates to its module dashboard",
           "category": "enhancement",
           "createdAt": "2026-05-27T16:05:00.000Z"
         }

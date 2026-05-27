@@ -80,6 +80,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
+import { useSiteFilter } from "@/hooks/use-site-filter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -129,6 +130,7 @@ const COMPLIANCE_MODULES = [
 
 function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) {
   const [, navigate] = useLocation();
+  const { handleCompanyChange } = useSiteFilter();
   const [open, setOpen] = useState(false);
   const enabled = COMPLIANCE_MODULES.filter(m => (company as any)[m.accessKey]);
 
@@ -136,13 +138,18 @@ function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) 
 
   if (!company.complianceSummary) return null;
 
+  const goTo = (path: string) => {
+    handleCompanyChange(company.name);
+    navigate(path);
+  };
+
   if (enabled.length <= 1) {
     const dest = enabled.length === 1 ? enabled[0].path : `/companies/${company.id}`;
     return (
       <span
         role="button"
         className="cursor-pointer"
-        onClick={(e) => { e.stopPropagation(); navigate(dest); }}
+        onClick={(e) => { e.stopPropagation(); goTo(dest); }}
         data-testid={`badge-compliance-link-${company.id}`}
       >
         {badge}
@@ -163,12 +170,12 @@ function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) 
         </span>
       </PopoverTrigger>
       <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
-        <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to documents</p>
+        <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to dashboard</p>
         {enabled.map(({ label, path, Icon, iconClass }) => (
           <button
             key={path}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            onClick={(e) => { e.stopPropagation(); navigate(path); setOpen(false); }}
+            onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
           >
             <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
             {label}
