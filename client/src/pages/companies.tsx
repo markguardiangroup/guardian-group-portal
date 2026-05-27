@@ -122,9 +122,9 @@ function CompanyComplianceBadge({ summary, onClick }: { summary?: ComplianceSumm
 }
 
 const COMPLIANCE_MODULES = [
-  { accessKey: "healthSafetyAccess", label: "Health & Safety", path: "/health-safety/documents", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
-  { accessKey: "humanResourcesAccess", label: "Human Resources", path: "/human-resources/documents", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
-  { accessKey: "employmentLawAccess", label: "Employment Law", path: "/employment-law/documents", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
+  { accessKey: "healthSafetyAccess", label: "Health & Safety", path: "/health-safety/sites", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
+  { accessKey: "humanResourcesAccess", label: "Human Resources", path: "/human-resources/sites", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
+  { accessKey: "employmentLawAccess", label: "Employment Law", path: "/employment-law/sites", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
 ] as const;
 
 function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) {
