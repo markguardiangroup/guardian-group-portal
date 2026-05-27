@@ -5837,6 +5837,13 @@
           "message": "Fixed: disabled module cards now correctly detect company-level module access on dashboard",
           "category": "bug",
           "createdAt": "2026-05-27T20:36:52.769Z"
+        },
+        {
+          "id": "c47a706c-e976-4f64-9991-20608f9cbdf0",
+          "patch": 10,
+          "message": "Fixed: sites list compliance score now excludes disabled module required templates",
+          "category": "bug",
+          "createdAt": "2026-05-27T20:41:15.894Z"
         }
       ],
       "publishedPatch": 9,

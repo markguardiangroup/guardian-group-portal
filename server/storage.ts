@@ -1014,17 +1014,28 @@ export class MemStorage implements IStorage {
         moduleAccess[d.module as keyof typeof moduleAccess] !== "hidden"
       );
 
+      // Filter required templates and site overrides to only include enabled modules.
+      // Disabled modules must not create required slots or count as missing.
+      const siteOverrides = (overridesBySite.get(site.id) ?? []).filter(o => {
+        const tmpl = templateMap.get(o.templateId);
+        return !tmpl?.module || moduleAccess[tmpl.module as keyof typeof moduleAccess] !== "hidden";
+      });
+      const companyRequired = (requiredByCompany.get(site.companyId) ?? []).filter(r => {
+        const tmpl = templateMap.get(r.templateId);
+        return !tmpl?.module || moduleAccess[tmpl.module as keyof typeof moduleAccess] !== "hidden";
+      });
+
       const complianceSummary = this.computeComplianceSummaryInMemory(
         siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        requiredByCompany.get(site.companyId) ?? [],
+        siteOverrides,
+        companyRequired,
         templateMap,
       );
 
       const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
         siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        requiredByCompany.get(site.companyId) ?? [],
+        siteOverrides,
+        companyRequired,
         templateMap,
       );
 
@@ -1175,17 +1186,28 @@ export class MemStorage implements IStorage {
         moduleAccess[d.module as keyof typeof moduleAccess] !== "hidden"
       );
 
+      // Filter required templates and site overrides to only include enabled modules.
+      // Disabled modules must not create required slots or count as missing.
+      const siteOverrides = (overridesBySite.get(site.id) ?? []).filter(o => {
+        const tmpl = templateMap.get(o.templateId);
+        return !tmpl?.module || moduleAccess[tmpl.module as keyof typeof moduleAccess] !== "hidden";
+      });
+      const activeCompanyRequired = allCompanyRequired.filter(r => {
+        const tmpl = templateMap.get(r.templateId);
+        return !tmpl?.module || moduleAccess[tmpl.module as keyof typeof moduleAccess] !== "hidden";
+      });
+
       const complianceSummary = this.computeComplianceSummaryInMemory(
         siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        allCompanyRequired,
+        siteOverrides,
+        activeCompanyRequired,
         templateMap,
       );
 
       const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
         siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        allCompanyRequired,
+        siteOverrides,
+        activeCompanyRequired,
         templateMap,
       );
 
