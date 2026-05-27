@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +186,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       return res.json();
     },
     staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({

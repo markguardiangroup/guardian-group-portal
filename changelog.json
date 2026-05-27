@@ -5956,6 +5956,13 @@
           "message": "Fixed: module site document page heading no longer wraps when filters are visible",
           "category": "bug",
           "createdAt": "2026-05-27T23:00:27.860Z"
+        },
+        {
+          "id": "9d646f60-fb44-4d29-bbca-913aecc41bc3",
+          "patch": 10,
+          "message": "Fixed: group and company filters no longer flicker when changing the staff scope on site document pages",
+          "category": "bug",
+          "createdAt": "2026-05-27T23:02:23.381Z"
         }
       ],
       "publishedPatch": 9,
