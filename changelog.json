@@ -5697,6 +5697,13 @@
           "message": "Companies list: dedicated Compliance column, sortable, matching Sites layout",
           "category": "enhancement",
           "createdAt": "2026-05-27T15:15:00.000Z"
+        },
+        {
+          "id": "a5b6c7d8-compliance-badge-size-consistent-2026",
+          "patch": 10,
+          "message": "Compliance and document count badges now the same size on Sites and Companies",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T15:20:00.000Z"
         }
       ],
       "publishedPatch": 9,

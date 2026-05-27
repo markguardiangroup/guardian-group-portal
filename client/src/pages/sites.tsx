@@ -60,8 +60,8 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 
   if (score >= 90) {
     return (
-      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
-        <CheckCircle className="mr-1 h-3 w-3" />
+      <Badge variant="outline" className="text-xs gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+        <CheckCircle className="h-3 w-3" />
         {score}%
       </Badge>
     );
@@ -69,16 +69,16 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 
   if (score >= 70) {
     return (
-      <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
-        <AlertTriangle className="mr-1 h-3 w-3" />
+      <Badge variant="outline" className="text-xs gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+        <AlertTriangle className="h-3 w-3" />
         {score}%
       </Badge>
     );
   }
 
   return (
-    <Badge variant="outline" className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
-      <XCircle className="mr-1 h-3 w-3" />
+    <Badge variant="outline" className="text-xs gap-1 bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
+      <XCircle className="h-3 w-3" />
       {score}%
     </Badge>
   );
