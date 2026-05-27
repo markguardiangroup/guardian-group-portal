@@ -436,7 +436,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               <ModuleIcon className="h-7 w-7 text-module-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-semibold">
+              <h1 className="text-3xl font-semibold whitespace-nowrap">
                 {moduleLabels[module]}
                 <span className="font-normal text-muted-foreground text-2xl"> — Site Documents</span>
               </h1>

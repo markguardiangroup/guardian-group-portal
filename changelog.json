@@ -5949,6 +5949,13 @@
           "message": "Moved the clear-filters button to the left of all filters on the dashboard",
           "category": "enhancement",
           "createdAt": "2026-05-27T22:59:37.538Z"
+        },
+        {
+          "id": "a52b3022-45e5-460d-b0df-fd910b0c04d1",
+          "patch": 10,
+          "message": "Fixed: module site document page heading no longer wraps when filters are visible",
+          "category": "bug",
+          "createdAt": "2026-05-27T23:00:27.860Z"
         }
       ],
       "publishedPatch": 9,
