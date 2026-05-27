@@ -303,6 +303,7 @@ function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; grou
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "module-access"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/module-access"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       if (groupOwnerId) {
         queryClient.invalidateQueries({ queryKey: ["/api/companies", groupOwnerId, "module-access"] });
       }

@@ -5809,6 +5809,13 @@
           "message": "Locked sidebar modules now navigate to the module not enabled screen",
           "category": "enhancement",
           "createdAt": "2026-05-27T20:07:23.258Z"
+        },
+        {
+          "id": "2fe5dfc8-d59b-403b-b865-598f5703433a",
+          "patch": 10,
+          "message": "Fixed: enabling a module for a company now reflects immediately without a page refresh",
+          "category": "bug",
+          "createdAt": "2026-05-27T20:12:01.302Z"
         }
       ],
       "publishedPatch": 9,
