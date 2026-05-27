@@ -5823,6 +5823,13 @@
           "message": "Fixed: disabled modules no longer count toward compliance scores",
           "category": "bug",
           "createdAt": "2026-05-27T20:25:46.932Z"
+        },
+        {
+          "id": "431c30a1-345f-456a-a755-c2592bb77a0b",
+          "patch": 10,
+          "message": "Disabled module cards on dashboard now show not active/not enabled instead of a score",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T20:34:04.041Z"
         }
       ],
       "publishedPatch": 9,

@@ -506,14 +506,19 @@ interface SiteComplianceSummary {
 function OverallComplianceCard({
   summaries,
   siteComplianceSummary,
+  disabledModules,
+  isClient,
 }: {
   summaries: ModuleSummary[];
   siteComplianceSummary?: SiteComplianceSummary | null;
+  disabledModules?: Set<string>;
+  isClient?: boolean;
 }) {
-  const compliantDocs = siteComplianceSummary?.compliantDocuments ?? summaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
-  const overdueDocs = siteComplianceSummary?.overdueDocuments ?? summaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
-  const approvalRequiredSlots = siteComplianceSummary?.approvalRequired ?? summaries.reduce((acc, s) => acc + (s.approvalRequired || 0), 0);
-  const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? summaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
+  const activeSummaries = disabledModules?.size ? summaries.filter(s => !disabledModules.has(s.module)) : summaries;
+  const compliantDocs = siteComplianceSummary?.compliantDocuments ?? activeSummaries.reduce((acc, s) => acc + s.compliantDocuments, 0);
+  const overdueDocs = siteComplianceSummary?.overdueDocuments ?? activeSummaries.reduce((acc, s) => acc + s.overdueDocuments, 0);
+  const approvalRequiredSlots = siteComplianceSummary?.approvalRequired ?? activeSummaries.reduce((acc, s) => acc + (s.approvalRequired || 0), 0);
+  const missingDocs = siteComplianceSummary?.missingRequiredDocuments ?? activeSummaries.reduce((acc, s) => acc + (s.missingRequiredDocuments || 0), 0);
   const complianceDenominator = compliantDocs + approvalRequiredSlots + overdueDocs + missingDocs;
   const overallScore = siteComplianceSummary?.complianceScore ?? (complianceDenominator > 0 ? Math.round((compliantDocs / complianceDenominator) * 100) : 0);
   const awaitingYourApproval = siteComplianceSummary?.awaitingYourApproval ?? summaries.reduce((acc, s) => acc + (s.awaitingYourApproval || 0), 0);
@@ -611,6 +616,25 @@ function OverallComplianceCard({
 
         <div className="grid grid-cols-3 gap-3">
           {moduleConfig.map((mc) => {
+            const isDisabled = disabledModules?.has(mc.module);
+            if (isDisabled) {
+              return (
+                <div key={mc.module} className={`rounded-md border border-dashed border-border ${mc.tileBg} p-3 opacity-60`} data-testid={`stat-module-${mc.module}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`flex h-7 w-7 items-center justify-center rounded-md ${mc.avatarBg} opacity-40 ${mc.avatarText} shrink-0`}>
+                      {mc.icon}
+                    </div>
+                    <span className="text-xs font-semibold text-muted-foreground leading-tight">{mc.label}</span>
+                    <Lock className="h-3 w-3 text-muted-foreground ml-auto shrink-0" />
+                  </div>
+                  <div className="flex items-center justify-center h-12">
+                    <p className="text-xs text-muted-foreground text-center">
+                      {isClient ? "This module is not enabled" : "This module is not active"}
+                    </p>
+                  </div>
+                </div>
+              );
+            }
             const summary = summaries.find(s => s.module === mc.module);
             const score = summary?.complianceScore ?? 0;
             const docs = summary?.allDocuments ?? 0;
@@ -937,6 +961,23 @@ export default function Dashboard2() {
 
   const complianceSummaries = moduleSummaries ? realComplianceSummaries : placeholderComplianceSummaries;
 
+  // Determine which compliance modules are disabled in the current context.
+  // For a specific site: use the site's moduleAccess (covers consultant/admin viewing a client's site).
+  // For client users with no site selected: use their own module access from the hook.
+  const disabledComplianceModules = useMemo(() => {
+    const modules = ["health_safety", "human_resources", "employment_law"];
+    if (siteId && sites) {
+      const sel = sites.find((s) => s.id === siteId);
+      if (sel?.moduleAccess) {
+        return new Set(modules.filter(m => (sel.moduleAccess as Record<string, string>)[m] === "hidden"));
+      }
+    }
+    if (isClientUser) {
+      return new Set(modules.filter(m => isHidden(m as ModuleType)));
+    }
+    return new Set<string>();
+  }, [siteId, sites, isClientUser, isHidden]);
+
   const hasSupportAccess = hasActiveAccess("support");
   const isSupportLocked = !hasSupportAccess;
   const showContentSkeleton = isAuthLoading;
@@ -1072,6 +1113,8 @@ export default function Dashboard2() {
             <OverallComplianceCard
               summaries={complianceSummaries}
               siteComplianceSummary={selectedSiteComplianceSummary}
+              disabledModules={disabledComplianceModules}
+              isClient={isClientUser}
             />
 
             {/* Overdue Status Section */}
