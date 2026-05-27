@@ -5662,6 +5662,13 @@
           "message": "Improved wording on the 'Join a group' option to reflect that any company can be selected",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:35:00.000Z"
+        },
+        {
+          "id": "b0c1d2e3-group-source-matching-2026",
+          "patch": 10,
+          "message": "Groups: companies must share at least one source to be grouped together",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T14:45:00.000Z"
         }
       ],
       "publishedPatch": 9,

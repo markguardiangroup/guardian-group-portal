@@ -2348,8 +2348,12 @@ export default function CompanyDetail() {
               const hasGroupOwner = !!company.groupOwnerId;
               const isGroupOwnerCompany = company.isGroupOwner || members.length > 0;
 
+              const companySrcs = new Set(company.sources ?? []);
+              const sharesSource = (c: CompanyWithSites) =>
+                (c.sources ?? []).some((s) => companySrcs.has(s));
+
               const eligibleToAdd = allCompanies.filter(
-                (c) => c.id !== companyId && !c.groupOwnerId && !members.some((m) => m.id === c.id) && !c.isGroupOwner
+                (c) => c.id !== companyId && !c.groupOwnerId && !members.some((m) => m.id === c.id) && !c.isGroupOwner && sharesSource(c)
               );
 
               const inheritedSources = Array.from(
@@ -2526,7 +2530,7 @@ export default function CompanyDetail() {
                               <SelectContent>
                                 <SelectItem value="none">None (remove from group)</SelectItem>
                                 {allCompanies
-                                  .filter(c => c.id !== companyId && !c.groupOwnerId)
+                                  .filter(c => c.id !== companyId && !c.groupOwnerId && sharesSource(c))
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map(c => (
                                     <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
@@ -2629,7 +2633,7 @@ export default function CompanyDetail() {
                             <div>
                               <p className="text-sm font-medium">Join a group</p>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                Link this company to another company to form or join a group. The selected company will become the Group Owner.
+                                Link this company to another company to form or join a group. The selected company will become the Group Owner. Only companies sharing at least one source are shown.
                               </p>
                             </div>
                             <Select
@@ -2644,7 +2648,7 @@ export default function CompanyDetail() {
                               </SelectTrigger>
                               <SelectContent>
                                 {allCompanies
-                                  .filter(c => c.id !== companyId && !c.groupOwnerId)
+                                  .filter(c => c.id !== companyId && !c.groupOwnerId && sharesSource(c))
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map(c => (
                                     <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
