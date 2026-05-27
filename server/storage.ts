@@ -904,6 +904,17 @@ export class MemStorage implements IStorage {
     const templateMap = new Map(allActiveTemplates.map(t => [t.id, t]));
     const usersMap = new Map(allUsers.map(u => [u.id, u]));
 
+    // Build group-owner → members map so inherited module access is respected.
+    // A Group Owner company has humanResourcesAccess=false on its own row, but
+    // should be treated as having HR if any member company has it enabled.
+    const membersByGoId = new Map<string, typeof companies>();
+    for (const c of companies) {
+      if (c.groupOwnerId) {
+        if (!membersByGoId.has(c.groupOwnerId)) membersByGoId.set(c.groupOwnerId, []);
+        membersByGoId.get(c.groupOwnerId)!.push(c);
+      }
+    }
+
     // Build share lookup: docId → shares
     const sharesByDocId = new Map<string, typeof allShares>();
     for (const s of allShares) {
@@ -958,30 +969,33 @@ export class MemStorage implements IStorage {
 
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
+      const goMembers = membersByGoId.get(site.companyId) ?? [];
 
       // Compute moduleAccess first so disabled modules can be excluded from compliance scoring.
+      // Group Owner companies have their own DB flags set to false but inherit access from
+      // member companies — OR in member flags so their sites are not incorrectly hidden.
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
-      // Default access from company-level flags: if the company has a module
-      // enabled and the site has no explicit override record, treat it as "active".
-      // If the company doesn't have a module, it's always "hidden".
+      const hsEnabled  = !!company?.healthSafetyAccess  || goMembers.some(m => m.healthSafetyAccess);
+      const hrEnabled  = !!company?.humanResourcesAccess || goMembers.some(m => m.humanResourcesAccess);
+      const elEnabled  = !!company?.employmentLawAccess  || goMembers.some(m => m.employmentLawAccess);
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
         support: "active" | "visible" | "hidden";
       } = {
-        health_safety: company?.healthSafetyAccess ? "active" : "hidden",
-        human_resources: company?.humanResourcesAccess ? "active" : "hidden",
-        employment_law: company?.employmentLawAccess ? "active" : "hidden",
+        health_safety: hsEnabled ? "active" : "hidden",
+        human_resources: hrEnabled ? "active" : "hidden",
+        employment_law: elEnabled ? "active" : "hidden",
         support: "hidden",
       };
-      // Apply per-site refinements, but only when the company has the module enabled.
+      // Apply per-site refinements, but only when the company (or its GO inheritance) has the module enabled.
       for (const a of moduleAccessList) {
         const key = a.module as "health_safety" | "human_resources" | "employment_law" | "support";
         if (key !== "health_safety" && key !== "human_resources" && key !== "employment_law" && key !== "support") continue;
-        const companyAllows = key === "health_safety" ? !!company?.healthSafetyAccess
-          : key === "human_resources" ? !!company?.humanResourcesAccess
-          : key === "employment_law" ? !!company?.employmentLawAccess
+        const companyAllows = key === "health_safety" ? hsEnabled
+          : key === "human_resources" ? hrEnabled
+          : key === "employment_law" ? elEnabled
           : false;
         if (companyAllows || key === "support") {
           moduleAccess[key] = a.status as "active" | "visible" | "hidden";
@@ -1063,9 +1077,10 @@ export class MemStorage implements IStorage {
 
   async getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]> {
     // Filter sites first then batch the rest — avoids per-site queries
-    const [companySites, company, allSiteOverrides, allCompanyRequired, allActiveTemplates, allModuleAccess, allAssignments, allUsers, allShares] = await Promise.all([
+    const [companySites, company, groupMembers, allSiteOverrides, allCompanyRequired, allActiveTemplates, allModuleAccess, allAssignments, allUsers, allShares] = await Promise.all([
       db.select().from(sitesTable).where(eq(sitesTable.companyId, companyId)),
       this.getCompany(companyId),
+      db.select().from(companiesTable).where(eq(companiesTable.groupOwnerId, companyId)),
       db.select().from(siteTemplateOverridesTable),
       db.select().from(companyRequiredTemplatesTable).where(eq(companyRequiredTemplatesTable.companyId, companyId)),
       db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.isActive, true)),
@@ -1145,28 +1160,29 @@ export class MemStorage implements IStorage {
 
     return companySites.map(site => {
       // Compute moduleAccess first so disabled modules can be excluded from compliance scoring.
+      // Group Owner companies inherit module access from member companies — OR in member flags.
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
-      // Default access from company-level flags: if the company has a module
-      // enabled and the site has no explicit override record, treat it as "active".
-      // If the company doesn't have a module, it's always "hidden".
+      const hsEnabled  = !!company?.healthSafetyAccess  || groupMembers.some(m => m.healthSafetyAccess);
+      const hrEnabled  = !!company?.humanResourcesAccess || groupMembers.some(m => m.humanResourcesAccess);
+      const elEnabled  = !!company?.employmentLawAccess  || groupMembers.some(m => m.employmentLawAccess);
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
         support: "active" | "visible" | "hidden";
       } = {
-        health_safety: company?.healthSafetyAccess ? "active" : "hidden",
-        human_resources: company?.humanResourcesAccess ? "active" : "hidden",
-        employment_law: company?.employmentLawAccess ? "active" : "hidden",
+        health_safety: hsEnabled ? "active" : "hidden",
+        human_resources: hrEnabled ? "active" : "hidden",
+        employment_law: elEnabled ? "active" : "hidden",
         support: "hidden",
       };
-      // Apply per-site refinements, but only when the company has the module enabled.
+      // Apply per-site refinements, but only when the company (or GO inheritance) has the module enabled.
       for (const a of moduleAccessList) {
         const key = a.module as "health_safety" | "human_resources" | "employment_law" | "support";
         if (key !== "health_safety" && key !== "human_resources" && key !== "employment_law" && key !== "support") continue;
-        const companyAllows = key === "health_safety" ? !!company?.healthSafetyAccess
-          : key === "human_resources" ? !!company?.humanResourcesAccess
-          : key === "employment_law" ? !!company?.employmentLawAccess
+        const companyAllows = key === "health_safety" ? hsEnabled
+          : key === "human_resources" ? hrEnabled
+          : key === "employment_law" ? elEnabled
           : false;
         if (companyAllows || key === "support") {
           moduleAccess[key] = a.status as "active" | "visible" | "hidden";

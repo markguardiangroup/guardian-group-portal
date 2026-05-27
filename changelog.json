@@ -5851,6 +5851,13 @@
           "message": "Fixed: dashboard disabled-module cards now show not active/not enabled correctly",
           "category": "bug",
           "createdAt": "2026-05-27T20:48:58.426Z"
+        },
+        {
+          "id": "bf04cd36-990c-4d76-9e18-ad42ffb348c5",
+          "patch": 10,
+          "message": "Fixed: Group Owner sites now correctly inherit module access from member companies",
+          "category": "bug",
+          "createdAt": "2026-05-27T21:07:35.207Z"
         }
       ],
       "publishedPatch": 9,
