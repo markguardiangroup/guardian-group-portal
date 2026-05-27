@@ -242,17 +242,17 @@ function Router() {
       <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={NOT_CLIENT} />}</Route>
       <Route path="/sites">{() => <AccessGuard component={Sites} allow={NOT_CLIENT} />}</Route>
       <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={NOT_CLIENT} />}</Route>
-      <Route path="/reports" component={Reports} />
+      <Route path="/reports">{() => <ModuleGuard module="reports"><Reports /></ModuleGuard>}</Route>
       <Route path="/admin-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
       <Route path="/admin-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
-      <Route path="/support" component={Support} />
+      <Route path="/support">{() => <ModuleGuard module="support"><Support /></ModuleGuard>}</Route>
       <Route path="/settings" component={Settings} />
       <Route path="/users">{() => <AccessGuard component={UserManagement} allow={NOT_CLIENT} />}</Route>
       <Route path="/template-library">{() => <AccessGuard component={TemplateLibrary} allow={TEMPLATE_LIB} />}</Route>
       <Route path="/training-library">{() => <AccessGuard component={TrainingLibrary} allow={TRAINING_LIB} />}</Route>
-      <Route path="/training" component={Training} />
+      <Route path="/training">{() => <ModuleGuard module="training"><Training /></ModuleGuard>}</Route>
       <Route path="/training/dashboard">{() => <AccessGuard component={TrainingDashboard} allow={NOT_CLIENT} />}</Route>
-      <Route path="/training/my-training" component={MyTraining} />
+      <Route path="/training/my-training">{() => <ModuleGuard module="training"><MyTraining /></ModuleGuard>}</Route>
       <Route path="/training/certificates">{() => <AccessGuard component={TrainingCertificates} allow={NOT_CLIENT} />}</Route>
       <Route path="/training/certificates/upload">{() => <AccessGuard component={TrainingCertificateUpload} allow={NOT_CLIENT} />}</Route>
       <Route path="/training/certificates/:id">{() => <AccessGuard component={TrainingCertificates} allow={NOT_CLIENT} />}</Route>
@@ -261,8 +261,8 @@ function Router() {
       <Route path="/feedback">{() => <AccessGuard component={AdminFeedback} allow={NOT_CLIENT} />}</Route>
       <Route path="/help" component={HelpGuide} />
       <Route path="/calendar" component={CalendarPage} />
-      <Route path="/toolkit" component={ToolkitDashboard} />
-      <Route path="/toolkit/browse" component={ToolkitBrowse} />
+      <Route path="/toolkit">{() => <ModuleGuard module="toolkit"><ToolkitDashboard /></ModuleGuard>}</Route>
+      <Route path="/toolkit/browse">{() => <ModuleGuard module="toolkit"><ToolkitBrowse /></ModuleGuard>}</Route>
       <Route path="/admin/pathways">{() => <AccessGuard component={AdminPathways} allow={ADMIN_ONLY} />}</Route>
       <Route path="/admin/sources">{() => <AccessGuard component={AdminSources} allow={ADMIN_ONLY} />}</Route>
       <Route path="/admin/services">{() => <AccessGuard component={AdminServices} allow={NOT_CLIENT} />}</Route>

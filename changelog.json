@@ -5802,6 +5802,13 @@
           "message": "Client users see a 'module not enabled' message if they navigate to a disabled module",
           "category": "enhancement",
           "createdAt": "2026-05-27T20:05:00.000Z"
+        },
+        {
+          "id": "dd5c9c80-3008-496e-b9ce-26dd90e02c4e",
+          "patch": 10,
+          "message": "Locked sidebar modules now navigate to the module not enabled screen",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T20:07:23.258Z"
         }
       ],
       "publishedPatch": 9,

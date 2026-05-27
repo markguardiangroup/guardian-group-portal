@@ -474,15 +474,18 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   return (
                     <SidebarMenuItem key={item.title} className={item.themeClass}>
                       <SidebarMenuButton
-                        className="cursor-default opacity-60 nav-module-btn"
+                        asChild
+                        className="opacity-60 nav-module-btn"
                         data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                       >
-                        <item.icon className="h-4 w-4 text-module-accent" />
-                        <span className="flex-1 nav-module-label">{item.title}</span>
-                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Locked
-                        </Badge>
+                        <Link href={item.basePath ?? item.url}>
+                          <item.icon className="h-4 w-4 text-module-accent" />
+                          <span className="flex-1 nav-module-label">{item.title}</span>
+                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Locked
+                          </Badge>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -566,15 +569,18 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   return (
                     <SidebarMenuItem key={item.title} className={item.noColor ? undefined : item.themeClass}>
                       <SidebarMenuButton
-                        className={cn("cursor-default opacity-60", !item.noColor && "nav-module-btn")}
+                        asChild
+                        className={cn("opacity-60", !item.noColor && "nav-module-btn")}
                         data-testid={testId}
                       >
-                        <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
-                        <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
-                        <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Locked
-                        </Badge>
+                        <Link href={item.basePath ?? item.url}>
+                          <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
+                          <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
+                          <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Locked
+                          </Badge>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
