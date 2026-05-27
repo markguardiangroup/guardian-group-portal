@@ -91,6 +91,7 @@ export type CompanyWithSiteCount = Company & {
   acceloLinks?: { sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; acceloColor: string | null; lastCheckedAt: Date | null }[];
   complianceSummary?: ComplianceSummary;
   moduleScores?: { health_safety: number; human_resources: number; employment_law: number };
+  moduleDocCounts?: { health_safety: number; human_resources: number; employment_law: number };
 };
 
 // Paginated response for companies
@@ -1037,6 +1038,7 @@ export interface SiteWithDetails extends Site {
   complianceSummary?: ComplianceSummary;
   moduleScores?: { health_safety: number; human_resources: number; employment_law: number };
   moduleRawCounts?: { health_safety: { compliant: number; denom: number }; human_resources: { compliant: number; denom: number }; employment_law: { compliant: number; denom: number } };
+  moduleDocCounts?: { health_safety: number; human_resources: number; employment_law: number };
   moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];
 }

@@ -7045,6 +7045,7 @@ export async function registerRoutes(
       // Aggregate site-level compliance summaries into company-level totals
       type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
       const complianceAccum = new Map<string, ComplianceAccum>();
+      const moduleDocAccum = new Map<string, { health_safety: number; human_resources: number; employment_law: number }>();
       for (const site of allSitesForCompliance) {
         if (!site.complianceSummary) continue;
         const s = site.complianceSummary;
@@ -7066,6 +7067,17 @@ export async function registerRoutes(
             missing: s.missingRequiredDocuments,
           });
         }
+        const mdc = site.moduleDocCounts;
+        if (mdc) {
+          const existingMdc = moduleDocAccum.get(site.companyId);
+          if (existingMdc) {
+            existingMdc.health_safety += mdc.health_safety;
+            existingMdc.human_resources += mdc.human_resources;
+            existingMdc.employment_law += mdc.employment_law;
+          } else {
+            moduleDocAccum.set(site.companyId, { health_safety: mdc.health_safety, human_resources: mdc.human_resources, employment_law: mdc.employment_law });
+          }
+        }
       }
 
       // Build new objects (spread) so complianceSummary is a plain own property
@@ -7074,11 +7086,13 @@ export async function registerRoutes(
         // Use the per-company module scores computed by computePerCompanyModuleScores,
         // which mirrors computeSlotBasedCompliance exactly (correct deduplication across sites).
         const moduleScores = perCompanyModuleScores.get(c.id);
-        if (!acc) return { ...c, moduleScores };
+        const moduleDocCounts = moduleDocAccum.get(c.id);
+        if (!acc) return { ...c, moduleScores, moduleDocCounts };
         const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
         return {
           ...c,
           moduleScores,
+          moduleDocCounts,
           complianceSummary: {
             totalDocuments: acc.total,
             compliantDocuments: acc.compliant,

@@ -1060,6 +1060,12 @@ export class MemStorage implements IStorage {
         isPrimary: a.isPrimary,
       }));
 
+      const moduleDocCounts = {
+        health_safety: siteDocs.filter(d => d.module === "health_safety").length,
+        human_resources: siteDocs.filter(d => d.module === "human_resources").length,
+        employment_law: siteDocs.filter(d => d.module === "employment_law").length,
+      };
+
       return {
         ...site,
         companyName: company?.name,
@@ -1069,6 +1075,7 @@ export class MemStorage implements IStorage {
         complianceSummary,
         moduleScores,
         moduleRawCounts,
+        moduleDocCounts,
         moduleAccess,
         assignedConsultants,
       };
@@ -1234,6 +1241,12 @@ export class MemStorage implements IStorage {
         isPrimary: a.isPrimary,
       }));
 
+      const moduleDocCounts = {
+        health_safety: siteDocs.filter(d => d.module === "health_safety").length,
+        human_resources: siteDocs.filter(d => d.module === "human_resources").length,
+        employment_law: siteDocs.filter(d => d.module === "employment_law").length,
+      };
+
       return {
         ...site,
         companyName: company?.name,
@@ -1243,6 +1256,7 @@ export class MemStorage implements IStorage {
         complianceSummary,
         moduleScores,
         moduleRawCounts,
+        moduleDocCounts,
         moduleAccess,
         assignedConsultants,
       };

@@ -230,7 +230,7 @@ function CompanyDocumentsModulePicker({ company }: { company: CompanyWithSiteCou
       </PopoverTrigger>
       <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
         <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to Documents</p>
-        {enabled.map(({ label, path, Icon, iconClass }) => (
+        {enabled.map(({ label, path, Icon, iconClass, scoreKey }) => (
           <button
             key={path}
             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -238,6 +238,9 @@ function CompanyDocumentsModulePicker({ company }: { company: CompanyWithSiteCou
           >
             <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
             <span className="flex-1 text-left">{label}</span>
+            {company.moduleDocCounts?.[scoreKey] !== undefined && (
+              <span className="ml-auto font-mono text-xs text-muted-foreground">{company.moduleDocCounts[scoreKey]}</span>
+            )}
           </button>
         ))}
       </PopoverContent>

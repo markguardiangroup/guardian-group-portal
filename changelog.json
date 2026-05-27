@@ -5879,6 +5879,13 @@
           "message": "Document count badge in sites & companies lists now opens the relevant module's Folders view",
           "category": "enhancement",
           "createdAt": "2026-05-27T21:30:00.000Z"
+        },
+        {
+          "id": "d4e9f3a2-module-doc-counts-in-popover-2026",
+          "patch": 10,
+          "message": "Go to Documents popover now shows per-module document counts alongside each module",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T21:40:00.000Z"
         }
       ],
       "publishedPatch": 9,
