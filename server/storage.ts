@@ -958,40 +958,8 @@ export class MemStorage implements IStorage {
 
     return sites.map(site => {
       const company = companiesMap.get(site.companyId);
-      // Group-owner docs shared to this site's company (member company inherits from group owner)
-      const groupOwnerDocs = company?.groupOwnerId
-        ? (docsByGroupOwner.get(company.groupOwnerId) ?? []).filter(d => {
-            const shares = sharesByDocId.get(d.id) ?? [];
-            return shares.some(s => s.entityType === "company" && s.entityId === site.companyId);
-          })
-        : [];
-      // Restrict to compliance modules only and exclude external-source documents.
-      // Group-scoped docs owned by this site's company appear at own sites only if
-      // they have at least one share record (user chose "share this" on upload).
-      const siteDocs = [
-        ...(docsBySite.get(site.id) ?? []),
-        ...(docsByCompany.get(site.companyId) ?? []).filter(d => {
-          if (d.scope !== "group") return true;
-          const shares = sharesByDocId.get(d.id) ?? [];
-          return shares.length > 0;
-        }),
-        ...groupOwnerDocs,
-      ].filter(d => d.source !== "external" && COMPLIANCE_MODULES.has(d.module ?? ""));
 
-      const complianceSummary = this.computeComplianceSummaryInMemory(
-        siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        requiredByCompany.get(site.companyId) ?? [],
-        templateMap,
-      );
-
-      const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
-        siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        requiredByCompany.get(site.companyId) ?? [],
-        templateMap,
-      );
-
+      // Compute moduleAccess first so disabled modules can be excluded from compliance scoring.
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
       // Default access from company-level flags: if the company has a module
       // enabled and the site has no explicit override record, treat it as "active".
@@ -1019,6 +987,46 @@ export class MemStorage implements IStorage {
           moduleAccess[key] = a.status as "active" | "visible" | "hidden";
         }
       }
+
+      // Group-owner docs shared to this site's company (member company inherits from group owner)
+      const groupOwnerDocs = company?.groupOwnerId
+        ? (docsByGroupOwner.get(company.groupOwnerId) ?? []).filter(d => {
+            const shares = sharesByDocId.get(d.id) ?? [];
+            return shares.some(s => s.entityType === "company" && s.entityId === site.companyId);
+          })
+        : [];
+      // Restrict to enabled compliance modules only and exclude external-source documents.
+      // Modules disabled at company level (moduleAccess === "hidden") are excluded from
+      // compliance scoring so they don't inflate or deflate the overall score.
+      // Group-scoped docs owned by this site's company appear at own sites only if
+      // they have at least one share record (user chose "share this" on upload).
+      const siteDocs = [
+        ...(docsBySite.get(site.id) ?? []),
+        ...(docsByCompany.get(site.companyId) ?? []).filter(d => {
+          if (d.scope !== "group") return true;
+          const shares = sharesByDocId.get(d.id) ?? [];
+          return shares.length > 0;
+        }),
+        ...groupOwnerDocs,
+      ].filter(d =>
+        d.source !== "external" &&
+        COMPLIANCE_MODULES.has(d.module ?? "") &&
+        moduleAccess[d.module as keyof typeof moduleAccess] !== "hidden"
+      );
+
+      const complianceSummary = this.computeComplianceSummaryInMemory(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        requiredByCompany.get(site.companyId) ?? [],
+        templateMap,
+      );
+
+      const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        requiredByCompany.get(site.companyId) ?? [],
+        templateMap,
+      );
 
       const assignments = assignmentsBySite.get(site.id) ?? [];
       const assignedConsultants = assignments.map(a => ({
@@ -1125,27 +1133,7 @@ export class MemStorage implements IStorage {
     const COMPLIANCE_MODULES_COMPANY = new Set(["health_safety", "human_resources", "employment_law"]);
 
     return companySites.map(site => {
-      // Restrict to compliance modules only and exclude external-source documents
-      const siteDocs = [
-        ...(docsBySite.get(site.id) ?? []),
-        ...companyDocs,
-        ...groupOwnerDocs,
-      ].filter(d => d.source !== "external" && COMPLIANCE_MODULES_COMPANY.has(d.module ?? ""));
-
-      const complianceSummary = this.computeComplianceSummaryInMemory(
-        siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        allCompanyRequired,
-        templateMap,
-      );
-
-      const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
-        siteDocs,
-        overridesBySite.get(site.id) ?? [],
-        allCompanyRequired,
-        templateMap,
-      );
-
+      // Compute moduleAccess first so disabled modules can be excluded from compliance scoring.
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
       // Default access from company-level flags: if the company has a module
       // enabled and the site has no explicit override record, treat it as "active".
@@ -1173,6 +1161,33 @@ export class MemStorage implements IStorage {
           moduleAccess[key] = a.status as "active" | "visible" | "hidden";
         }
       }
+
+      // Restrict to enabled compliance modules only and exclude external-source documents.
+      // Modules disabled at company level (moduleAccess === "hidden") are excluded from
+      // compliance scoring so they don't inflate or deflate the overall score.
+      const siteDocs = [
+        ...(docsBySite.get(site.id) ?? []),
+        ...companyDocs,
+        ...groupOwnerDocs,
+      ].filter(d =>
+        d.source !== "external" &&
+        COMPLIANCE_MODULES_COMPANY.has(d.module ?? "") &&
+        moduleAccess[d.module as keyof typeof moduleAccess] !== "hidden"
+      );
+
+      const complianceSummary = this.computeComplianceSummaryInMemory(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        allCompanyRequired,
+        templateMap,
+      );
+
+      const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        allCompanyRequired,
+        templateMap,
+      );
 
       const assignments = assignmentsBySite.get(site.id) ?? [];
       const assignedConsultants = assignments.map(a => ({

@@ -5816,6 +5816,13 @@
           "message": "Fixed: enabling a module for a company now reflects immediately without a page refresh",
           "category": "bug",
           "createdAt": "2026-05-27T20:12:01.302Z"
+        },
+        {
+          "id": "f265f285-3ed8-4def-b365-23490e8992ba",
+          "patch": 10,
+          "message": "Fixed: disabled modules no longer count toward compliance scores",
+          "category": "bug",
+          "createdAt": "2026-05-27T20:25:46.932Z"
         }
       ],
       "publishedPatch": 9,
