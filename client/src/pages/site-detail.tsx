@@ -1727,7 +1727,7 @@ export default function SiteDetail() {
       </div>
       <div id="page-content" className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-6 dash-animate">
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue={new URLSearchParams(searchString).get("tab") || "overview"} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="overview" data-testid="tab-overview">
             <Building2 className="mr-2 h-4 w-4" />

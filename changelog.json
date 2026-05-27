@@ -5669,6 +5669,20 @@
           "message": "Groups: companies must share at least one source to be grouped together",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:45:00.000Z"
+        },
+        {
+          "id": "c1d2e3f4-compliance-doccount-badges-2026",
+          "patch": 10,
+          "message": "Sites and Companies lists now show compliance score and document count badges",
+          "category": "feature",
+          "createdAt": "2026-05-27T15:00:00.000Z"
+        },
+        {
+          "id": "d2e3f4a5-sources-condensed-companies-2026",
+          "patch": 10,
+          "message": "Company list condenses multiple sources to one badge plus a count tooltip",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T15:00:00.000Z"
         }
       ],
       "publishedPatch": 9,

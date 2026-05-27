@@ -89,6 +89,7 @@ export type CompanyWithSiteCount = Company & {
   isGroupOwner?: boolean;      // true when other companies reference this as their GO
   groupOwnerName?: string | null; // name of the GO this company belongs to (if any)
   acceloLinks?: { sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; acceloColor: string | null; lastCheckedAt: Date | null }[];
+  complianceSummary?: ComplianceSummary;
 };
 
 // Paginated response for companies

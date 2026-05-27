@@ -6853,7 +6853,51 @@ export async function registerRoutes(
       const search = (req.query.search as string || "").toLowerCase();
       const status = req.query.status as string | undefined;
       
-      const allCompanies = await storage.getCompaniesWithSiteCount();
+      const [allCompanies, allSitesForCompliance] = await Promise.all([
+        storage.getCompaniesWithSiteCount(),
+        storage.getSitesWithDetails(),
+      ]);
+
+      // Aggregate site-level compliance into company-level summaries
+      const complianceAccum = new Map<string, {
+        compliant: number; total: number; totalDocs: number;
+        approvalRequired: number; overdue: number; missing: number;
+      }>();
+      for (const site of allSitesForCompliance) {
+        if (!site.complianceSummary) continue;
+        const s = site.complianceSummary;
+        const acc = complianceAccum.get(site.companyId) ?? { compliant: 0, total: 0, totalDocs: 0, approvalRequired: 0, overdue: 0, missing: 0 };
+        acc.compliant += s.compliantDocuments;
+        acc.total += s.totalDocuments;
+        acc.totalDocs += s.totalAllDocuments;
+        acc.approvalRequired += s.approvalRequired;
+        acc.overdue += s.overdueDocuments;
+        acc.missing += s.missingRequiredDocuments;
+        complianceAccum.set(site.companyId, acc);
+      }
+      // Attach aggregated compliance to each company
+      for (const c of allCompanies) {
+        const acc = complianceAccum.get(c.id);
+        if (acc) {
+          const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
+          (c as any).complianceSummary = {
+            totalDocuments: acc.total,
+            compliantDocuments: acc.compliant,
+            approvalRequired: acc.approvalRequired,
+            overdueDocuments: acc.overdue,
+            missingRequiredDocuments: acc.missing,
+            complianceScore: scoreDenom > 0 ? Math.round((acc.compliant / scoreDenom) * 100) : 0,
+            totalAllDocuments: acc.totalDocs,
+            allDocuments: acc.totalDocs,
+            allCompliantDocuments: 0,
+            allApprovalRequired: 0,
+            allOverdueDocuments: 0,
+            pendingApprovals: 0,
+            awaitingYourApproval: 0,
+            awaitingOthersApproval: 0,
+          };
+        }
+      }
       
       let filteredCompanies = allCompanies;
       

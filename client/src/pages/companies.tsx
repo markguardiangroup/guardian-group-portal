@@ -84,8 +84,36 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Info, Copy, Hash } from "lucide-react";
-import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User } from "@shared/schema";
+import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User, ComplianceSummary } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+function CompanyComplianceBadge({ summary, onClick }: { summary?: ComplianceSummary; onClick?: (e: React.MouseEvent) => void }) {
+  if (!summary) return null;
+  const score = summary.complianceScore;
+  const cls = score >= 90
+    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+    : score >= 70
+    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800"
+    : "bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800";
+  const Icon = score >= 90 ? CheckCircle2 : score >= 70 ? AlertTriangle : XCircle;
+  return (
+    <Badge
+      variant="outline"
+      className={`${cls} cursor-pointer gap-1 text-xs`}
+      onClick={onClick}
+      data-testid="badge-compliance"
+    >
+      <Icon className="h-3 w-3" />
+      {score}%
+    </Badge>
+  );
+}
 
 function CompanyCard({ 
   company, 
@@ -100,9 +128,15 @@ function CompanyCard({
   onDelete: (company: CompanyWithSiteCount) => void;
   isAdmin: boolean;
 }) {
+  const [, navigate] = useLocation();
+
   const formatStatusDisplay = (status: string) => {
     return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
+
+  const sources = company.sources ?? [];
+  const firstSource = sources[0];
+  const extraSources = sources.slice(1);
 
   return (
     <Card className="hover-elevate cursor-pointer" onClick={() => onView(company.id)}>
@@ -159,10 +193,27 @@ function CompanyCard({
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
                   {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
                 </Badge>
+                {company.complianceSummary && (
+                  <CompanyComplianceBadge
+                    summary={company.complianceSummary}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}
+                  />
+                )}
+                {company.complianceSummary && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}?tab=required-documents`); }}
+                    data-testid={`badge-doccount-${company.id}`}
+                  >
+                    <FileText className="h-3 w-3" />
+                    {company.complianceSummary.totalAllDocuments}
+                  </Badge>
+                )}
                 <Badge 
                   variant={company.status === "on_hold" ? "secondary" : (company.status === "active" ? "default" : "secondary")} 
                   className={company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-900" : ""}
@@ -231,13 +282,27 @@ function CompanyCard({
                 </span>
               )}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {company.sources && company.sources.length > 0 ? (
-                company.sources.map((code) => (
-                  <Badge key={code} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-source-${company.id}-${code}`}>
-                    {code}
+            <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+              {sources.length > 0 ? (
+                <>
+                  <Badge key={firstSource} variant="outline" className="text-xs px-1.5 py-0 font-mono" data-testid={`badge-source-${company.id}-${firstSource}`}>
+                    {firstSource}
                   </Badge>
-                ))
+                  {extraSources.length > 0 && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="text-xs px-1.5 py-0 cursor-default" data-testid={`badge-source-extra-${company.id}`}>
+                            +{extraSources.length}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">{extraSources.join(", ")}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </>
               ) : (
                 <Badge variant="outline" className="text-xs px-1.5 py-0 text-amber-600 border-amber-400 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400" data-testid={`badge-no-source-${company.id}`}>
                   No source assigned

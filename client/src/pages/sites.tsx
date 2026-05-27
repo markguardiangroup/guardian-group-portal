@@ -43,6 +43,7 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -554,7 +555,29 @@ export default function Sites() {
                     <span className="text-sm">{site.contactName || "—"}</span>
                   </TableCell>
                   <TableCell>
-                    <ComplianceBadge summary={site.complianceSummary} />
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        role="button"
+                        className="cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/sites/${site.id}`); }}
+                        data-testid={`badge-compliance-link-${site.id}`}
+                      >
+                        <ComplianceBadge summary={site.complianceSummary} />
+                      </span>
+                      {site.complianceSummary && (
+                        <span
+                          role="button"
+                          className="cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/sites/${site.id}?tab=compliance`); }}
+                          data-testid={`badge-doccount-${site.id}`}
+                        >
+                          <Badge variant="outline" className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                            <FileText className="h-3 w-3" />
+                            {site.complianceSummary.totalAllDocuments}
+                          </Badge>
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Button
