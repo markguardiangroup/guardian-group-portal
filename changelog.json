@@ -5729,9 +5729,9 @@
         {
           "id": "e9f1b3c5-site-compliance-module-picker-2026",
           "patch": 10,
-          "message": "Sites list: compliance badge now navigates to the site's module dashboard",
+          "message": "Sites list: compliance badge navigates to the site's active module dashboard",
           "category": "enhancement",
-          "createdAt": "2026-05-27T16:30:00.000Z"
+          "createdAt": "2026-05-27T16:35:00.000Z"
         }
       ],
       "publishedPatch": 9,

@@ -95,16 +95,16 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 }
 
 const SITE_COMPLIANCE_MODULES = [
-  { accessKey: "healthSafetyAccess", label: "Health & Safety", path: "/health-safety", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
-  { accessKey: "humanResourcesAccess", label: "Human Resources", path: "/human-resources", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
-  { accessKey: "employmentLawAccess", label: "Employment Law", path: "/employment-law", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
-] as const;
+  { moduleKey: "health_safety" as const, label: "Health & Safety", path: "/health-safety", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
+  { moduleKey: "human_resources" as const, label: "Human Resources", path: "/human-resources", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
+  { moduleKey: "employment_law" as const, label: "Employment Law", path: "/employment-law", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
+];
 
 function SiteComplianceModulePicker({ site }: { site: SiteWithDetails }) {
   const [, navigate] = useLocation();
   const { setSelectedSiteId } = useSiteFilter();
   const [open, setOpen] = useState(false);
-  const enabled = SITE_COMPLIANCE_MODULES.filter(m => (site as any)[m.accessKey]);
+  const enabled = SITE_COMPLIANCE_MODULES.filter(m => site.moduleAccess?.[m.moduleKey] === "active");
 
   if (!site.complianceSummary) return null;
 
