@@ -5704,6 +5704,13 @@
           "message": "Compliance and document count badges now fixed uniform width on both tables",
           "category": "enhancement",
           "createdAt": "2026-05-27T15:25:00.000Z"
+        },
+        {
+          "id": "b6c8e0f2-status-badge-inline-company-name-2026",
+          "patch": 10,
+          "message": "Companies list: status badge now shown inline next to the company name",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T15:37:00.000Z"
         }
       ],
       "publishedPatch": 9,
