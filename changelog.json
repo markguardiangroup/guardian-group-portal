@@ -5907,6 +5907,13 @@
           "message": "Pro consultant 'My/All client sites' dropdown now visible and changeable on all module pages",
           "category": "enhancement",
           "createdAt": "2026-05-27T22:15:00.000Z"
+        },
+        {
+          "id": "h8c3d7e9-calendar-pro-staff-filter-fix-2026",
+          "patch": 10,
+          "message": "Fixed: calendar page error when logged in as a pro consultant",
+          "category": "bug",
+          "createdAt": "2026-05-27T22:20:00.000Z"
         }
       ],
       "publishedPatch": 9,

@@ -213,7 +213,7 @@ function EventTable({
 }: EventTableProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
 
