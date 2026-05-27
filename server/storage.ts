@@ -1060,11 +1060,6 @@ export class MemStorage implements IStorage {
         isPrimary: a.isPrimary,
       }));
 
-      // TEMP DEBUG
-      if (site.id === "site-3") {
-        console.log("[DEBUG site-3 London Office]", { goMembers: goMembers.map(m => m.name), moduleAccess });
-      }
-
       return {
         ...site,
         companyName: company?.name,

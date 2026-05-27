@@ -5858,6 +5858,13 @@
           "message": "Fixed: Group Owner sites now correctly inherit module access from member companies",
           "category": "bug",
           "createdAt": "2026-05-27T21:07:35.207Z"
+        },
+        {
+          "id": "1f9bdb38-bfd4-4fa2-87de-cfd470c7bb17",
+          "patch": 10,
+          "message": "Fixed: Group Owner sites now correctly show in module document views via inherited access",
+          "category": "bug",
+          "createdAt": "2026-05-27T21:14:55.678Z"
         }
       ],
       "publishedPatch": 9,
