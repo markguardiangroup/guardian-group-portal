@@ -518,16 +518,18 @@ export default function Sites() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="font-medium">{site.name}</span>
+                      <div>
+                        <span className="font-medium">{site.name}</span>
+                        {site.referenceNumber && (
+                          <span className="block text-xs text-muted-foreground font-mono mt-0.5">
+                            {site.referenceNumber}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">{site.companyName || "—"}</span>
-                    {site.referenceNumber && (
-                      <span className="block text-xs text-muted-foreground font-mono mt-0.5">
-                        {site.referenceNumber}
-                      </span>
-                    )}
                     {site.companySources && site.companySources.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {site.companySources.map((code) => (
