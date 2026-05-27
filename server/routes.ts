@@ -6860,9 +6860,9 @@ export async function registerRoutes(
 
       // Aggregate site-level compliance into company-level summaries
       type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
-      type ModuleScoreAccum = { sum: number; count: number };
+      type ModuleRawAccum = { compliant: number; denom: number };
       const complianceAccum = new Map<string, ComplianceAccum>();
-      const moduleScoreAccum = new Map<string, { health_safety: ModuleScoreAccum; human_resources: ModuleScoreAccum; employment_law: ModuleScoreAccum }>();
+      const moduleScoreAccum = new Map<string, { health_safety: ModuleRawAccum; human_resources: ModuleRawAccum; employment_law: ModuleRawAccum }>();
       for (const site of allSitesForCompliance) {
         if (!site.complianceSummary) continue;
         const s = site.complianceSummary;
@@ -6884,19 +6884,19 @@ export async function registerRoutes(
             missing: s.missingRequiredDocuments,
           });
         }
-        if (site.moduleScores) {
-          const ms = site.moduleScores;
+        if (site.moduleRawCounts) {
+          const mr = site.moduleRawCounts;
           const mExisting = moduleScoreAccum.get(site.companyId) ?? {
-            health_safety: { sum: 0, count: 0 },
-            human_resources: { sum: 0, count: 0 },
-            employment_law: { sum: 0, count: 0 },
+            health_safety: { compliant: 0, denom: 0 },
+            human_resources: { compliant: 0, denom: 0 },
+            employment_law: { compliant: 0, denom: 0 },
           };
-          mExisting.health_safety.sum += ms.health_safety;
-          mExisting.health_safety.count++;
-          mExisting.human_resources.sum += ms.human_resources;
-          mExisting.human_resources.count++;
-          mExisting.employment_law.sum += ms.employment_law;
-          mExisting.employment_law.count++;
+          mExisting.health_safety.compliant += mr.health_safety.compliant;
+          mExisting.health_safety.denom += mr.health_safety.denom;
+          mExisting.human_resources.compliant += mr.human_resources.compliant;
+          mExisting.human_resources.denom += mr.human_resources.denom;
+          mExisting.employment_law.compliant += mr.employment_law.compliant;
+          mExisting.employment_law.denom += mr.employment_law.denom;
           moduleScoreAccum.set(site.companyId, mExisting);
         }
       }
@@ -6906,9 +6906,9 @@ export async function registerRoutes(
         const acc = complianceAccum.get(c.id);
         const msAcc = moduleScoreAccum.get(c.id);
         const moduleScores = msAcc ? {
-          health_safety: msAcc.health_safety.count > 0 ? Math.round(msAcc.health_safety.sum / msAcc.health_safety.count) : 0,
-          human_resources: msAcc.human_resources.count > 0 ? Math.round(msAcc.human_resources.sum / msAcc.human_resources.count) : 0,
-          employment_law: msAcc.employment_law.count > 0 ? Math.round(msAcc.employment_law.sum / msAcc.employment_law.count) : 0,
+          health_safety: msAcc.health_safety.denom > 0 ? Math.round((msAcc.health_safety.compliant / msAcc.health_safety.denom) * 100) : 0,
+          human_resources: msAcc.human_resources.denom > 0 ? Math.round((msAcc.human_resources.compliant / msAcc.human_resources.denom) * 100) : 0,
+          employment_law: msAcc.employment_law.denom > 0 ? Math.round((msAcc.employment_law.compliant / msAcc.employment_law.denom) * 100) : 0,
         } : undefined;
         if (!acc) return { ...c, moduleScores };
         const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;

@@ -1036,6 +1036,7 @@ export interface SiteWithDetails extends Site {
   companySources?: string[] | null;
   complianceSummary?: ComplianceSummary;
   moduleScores?: { health_safety: number; human_resources: number; employment_law: number };
+  moduleRawCounts?: { health_safety: { compliant: number; denom: number }; human_resources: { compliant: number; denom: number }; employment_law: { compliant: number; denom: number } };
   moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];
 }

@@ -805,11 +805,12 @@ export class MemStorage implements IStorage {
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null; module?: string | null }>,
-  ): { health_safety: number; human_resources: number; employment_law: number } {
+  ): { scores: { health_safety: number; human_resources: number; employment_law: number }; raw: { health_safety: { compliant: number; denom: number }; human_resources: { compliant: number; denom: number }; employment_law: { compliant: number; denom: number } } } {
     // This mirrors computeSlotBasedCompliance exactly — exclude-only overrides,
     // consumed tracked by doc ID — so scores match the module dashboard numbers.
     const modules = ["health_safety", "human_resources", "employment_law"] as const;
     const scores = {} as { health_safety: number; human_resources: number; employment_law: number };
+    const raw = {} as { health_safety: { compliant: number; denom: number }; human_resources: { compliant: number; denom: number }; employment_law: { compliant: number; denom: number } };
 
     const _now = new Date();
     const isOverdue = (d: { expiryDate?: Date | string | null; renewalDate?: Date | string | null }) =>
@@ -861,8 +862,9 @@ export class MemStorage implements IStorage {
       const overdue = slotOverdue + manualOverdue;
       const denom = compliant + approval + overdue + missing;
       scores[m] = denom > 0 ? Math.round((compliant / denom) * 100) : 0;
+      raw[m] = { compliant, denom };
     }
-    return scores;
+    return { scores, raw };
   }
 
   /**
@@ -983,7 +985,7 @@ export class MemStorage implements IStorage {
         templateMap,
       );
 
-      const moduleScores = this.computePerModuleScores(
+      const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
         siteDocs,
         overridesBySite.get(site.id) ?? [],
         requiredByCompany.get(site.companyId) ?? [],
@@ -1018,6 +1020,7 @@ export class MemStorage implements IStorage {
         companySources: company?.sources ?? null,
         complianceSummary,
         moduleScores,
+        moduleRawCounts,
         moduleAccess,
         assignedConsultants,
       };
@@ -1121,7 +1124,7 @@ export class MemStorage implements IStorage {
         templateMap,
       );
 
-      const moduleScores = this.computePerModuleScores(
+      const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
         siteDocs,
         overridesBySite.get(site.id) ?? [],
         allCompanyRequired,
@@ -1156,6 +1159,7 @@ export class MemStorage implements IStorage {
         companySources: company?.sources ?? null,
         complianceSummary,
         moduleScores,
+        moduleRawCounts,
         moduleAccess,
         assignedConsultants,
       };

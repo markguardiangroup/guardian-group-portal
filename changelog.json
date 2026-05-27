@@ -5753,6 +5753,13 @@
           "message": "Fixed: module scores in the picker now match the module dashboard figures",
           "category": "bug",
           "createdAt": "2026-05-27T18:40:00.000Z"
+        },
+        {
+          "id": "c3d5e7f9-company-module-scores-combined-not-averaged-2026",
+          "patch": 10,
+          "message": "Fixed: company module scores now combine all sites' data rather than averaging per-site percentages",
+          "category": "bug",
+          "createdAt": "2026-05-27T18:50:00.000Z"
         }
       ],
       "publishedPatch": 9,
