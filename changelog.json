@@ -5781,6 +5781,13 @@
           "message": "Fixed: site module access now correctly follows the company-level on/off switch",
           "category": "bug",
           "createdAt": "2026-05-27T19:42:00.000Z"
+        },
+        {
+          "id": "a1b3c5d7-module-sites-filters-by-access-2026",
+          "patch": 10,
+          "message": "Fixed: Site Overview page now hides companies/sites without that module enabled",
+          "category": "bug",
+          "createdAt": "2026-05-27T19:50:00.000Z"
         }
       ],
       "publishedPatch": 9,

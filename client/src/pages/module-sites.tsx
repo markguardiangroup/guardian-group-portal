@@ -43,11 +43,20 @@ import {
 } from "lucide-react";
 import type { ModuleType } from "@shared/schema";
 
+interface SiteModuleAccess {
+  health_safety: "active" | "visible" | "hidden";
+  human_resources: "active" | "visible" | "hidden";
+  employment_law: "active" | "visible" | "hidden";
+  training: "active" | "visible" | "hidden";
+  support: "active" | "visible" | "hidden";
+}
+
 interface SiteWithCompany {
   id: string;
   name: string;
   companyName?: string | null;
   companyId: string;
+  moduleAccess?: SiteModuleAccess;
 }
 
 interface Document {
@@ -285,7 +294,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   const filteredSites = useMemo(() => {
     if (!sites) return [];
-    let result = sites;
+    const moduleKey = module as keyof SiteModuleAccess;
+    let result = sites.filter(s => {
+      const access = s.moduleAccess?.[moduleKey];
+      return access === "active" || access === "visible";
+    });
     if (selectedGroup !== "all") {
       const groupCompanyIds = new Set(selectedGroupCompanies.map((c) => c.id));
       result = result.filter((s) => groupCompanyIds.has(s.companyId));
@@ -294,7 +307,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       result = result.filter((s) => s.companyName === selectedCompany);
     }
     return result;
-  }, [sites, selectedCompany, selectedGroup, selectedGroupCompanies]);
+  }, [sites, module, selectedCompany, selectedGroup, selectedGroupCompanies]);
 
   // Sort sites by compliance priority:
   // 1. Any issues (missing, overdue, review) — sorted by compliance % ascending (0% first)
