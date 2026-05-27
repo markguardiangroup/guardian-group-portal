@@ -1303,6 +1303,9 @@ export default function Companies() {
               <TableHead onClick={() => handleSortCompanies("name")} className="cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Company {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
+              <TableHead onClick={() => handleSortCompanies("status")} className="w-28 cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead onClick={() => handleSortCompanies("city")} className="cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Address {sortBy === "city" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
@@ -1322,13 +1325,13 @@ export default function Companies() {
           <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <FetchingOverlay />
                 </TableCell>
               </TableRow>
             ) : companies.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   {debouncedSearch || statusFilter !== "all"
                     ? "No companies match your filters."
                     : "No companies found. Add your first company to get started."}
@@ -1355,13 +1358,6 @@ export default function Companies() {
                               <Hash className="h-2.5 w-2.5" />{company.internalCompanyNumber}
                             </span>
                           )}
-                          <Badge
-                            variant={company.status === "on_hold" ? "secondary" : (company.status === "active" ? "default" : "secondary")}
-                            className={`text-xs py-0 ${company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-900" : ""}`}
-                            data-testid={`badge-status-${company.id}`}
-                          >
-                            {formatStatusDisplay(company.status)}
-                          </Badge>
                         </div>
                         {(company.isGroupOwner || company.groupOwnerName) && (
                           <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
@@ -1401,6 +1397,15 @@ export default function Companies() {
                         )}
                       </div>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={company.status === "on_hold" ? "secondary" : (company.status === "active" ? "default" : "secondary")}
+                      className={company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-900" : ""}
+                      data-testid={`badge-status-${company.id}`}
+                    >
+                      {formatStatusDisplay(company.status)}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {(company.addressLine1 || company.city) ? (

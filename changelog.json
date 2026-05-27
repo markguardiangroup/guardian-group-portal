@@ -5711,6 +5711,13 @@
           "message": "Companies list: status badge now shown inline next to the company name",
           "category": "enhancement",
           "createdAt": "2026-05-27T15:37:00.000Z"
+        },
+        {
+          "id": "c7d9f1a3-status-col-next-to-company-2026",
+          "patch": 10,
+          "message": "Companies list: Status column repositioned immediately after Company column",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T15:45:00.000Z"
         }
       ],
       "publishedPatch": 9,
