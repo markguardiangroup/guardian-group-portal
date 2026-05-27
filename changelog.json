@@ -5648,6 +5648,13 @@
           "message": "Company and Site detail pages: address shows an 'Open in Google Maps' link with the Google Maps icon",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:10:00.000Z"
+        },
+        {
+          "id": "f8a9b0c1-group-owner-any-company-2026",
+          "patch": 10,
+          "message": "Groups: any company can now be set as a group owner, not just existing group owners",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T14:30:00.000Z"
         }
       ],
       "publishedPatch": 9,

@@ -2526,11 +2526,11 @@ export default function CompanyDetail() {
                               <SelectContent>
                                 <SelectItem value="none">None (remove from group)</SelectItem>
                                 {allCompanies
-                                  .filter(c => c.id !== companyId && c.isGroupOwner)
+                                  .filter(c => c.id !== companyId && !c.groupOwnerId)
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map(c => (
                                     <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
-                                      {c.name}
+                                      {c.name}{c.isGroupOwner ? " (Group Owner)" : ""}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
@@ -2644,11 +2644,11 @@ export default function CompanyDetail() {
                               </SelectTrigger>
                               <SelectContent>
                                 {allCompanies
-                                  .filter(c => c.id !== companyId && c.isGroupOwner)
+                                  .filter(c => c.id !== companyId && !c.groupOwnerId)
                                   .sort((a, b) => a.name.localeCompare(b.name))
                                   .map(c => (
                                     <SelectItem key={c.id} value={c.id} data-testid={`go-option-${c.id}`}>
-                                      {c.name}
+                                      {c.name}{c.isGroupOwner ? " (Group Owner)" : ""}
                                     </SelectItem>
                                   ))}
                               </SelectContent>
