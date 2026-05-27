@@ -192,6 +192,59 @@ function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) 
   );
 }
 
+function CompanyDocumentsModulePicker({ company }: { company: CompanyWithSiteCount }) {
+  const [, navigate] = useLocation();
+  const { handleCompanyChange } = useSiteFilter();
+  const [open, setOpen] = useState(false);
+  const enabled = COMPLIANCE_MODULES.filter(m => (company as any)[m.accessKey]);
+
+  if (!company.complianceSummary) return null;
+
+  const docsBadge = (
+    <Badge variant="outline" className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer" style={{ minWidth: '3rem', justifyContent: 'center' }}>
+      <FileText className="h-3 w-3" />
+      {company.complianceSummary.totalAllDocuments}
+    </Badge>
+  );
+
+  const goTo = (path: string) => {
+    handleCompanyChange(company.name);
+    navigate(`${path}/documents`);
+  };
+
+  if (enabled.length <= 1) {
+    const dest = enabled.length === 1 ? enabled[0].path : "/health-safety";
+    return (
+      <span role="button" className="cursor-pointer" onClick={(e) => { e.stopPropagation(); goTo(dest); }} data-testid={`badge-doccount-${company.id}`}>
+        {docsBadge}
+      </span>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <span role="button" className="cursor-pointer" onClick={(e) => e.stopPropagation()} data-testid={`badge-doccount-${company.id}`}>
+          {docsBadge}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to Documents</p>
+        {enabled.map(({ label, path, Icon, iconClass }) => (
+          <button
+            key={path}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
+          >
+            <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
+            <span className="flex-1 text-left">{label}</span>
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function CompanyCard({ 
   company, 
   onEdit, 
@@ -280,17 +333,7 @@ function CompanyCard({
                     onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}
                   />
                 )}
-                {company.complianceSummary && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}?tab=required-documents`); }}
-                    data-testid={`badge-doccount-${company.id}`}
-                  >
-                    <FileText className="h-3 w-3" />
-                    {company.complianceSummary.totalAllDocuments}
-                  </Badge>
-                )}
+                <CompanyDocumentsModulePicker company={company} />
                 <Badge 
                   variant={company.status === "on_hold" ? "secondary" : (company.status === "active" ? "default" : "secondary")} 
                   className={company.status === "on_hold" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-900" : ""}
@@ -1521,19 +1564,7 @@ export default function Companies() {
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <ComplianceModulePicker company={company} />
-                      {company.complianceSummary && (
-                        <span
-                          role="button"
-                          className="cursor-pointer"
-                          onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}?tab=required-documents`); }}
-                          data-testid={`badge-doccount-${company.id}`}
-                        >
-                          <Badge variant="outline" className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer" style={{ minWidth: '3rem', justifyContent: 'center' }}>
-                            <FileText className="h-3 w-3" />
-                            {company.complianceSummary.totalAllDocuments}
-                          </Badge>
-                        </span>
-                      )}
+                      <CompanyDocumentsModulePicker company={company} />
                     </div>
                   </TableCell>
                   <TableCell>

@@ -5872,6 +5872,13 @@
           "message": "Removed 4 stale external test documents (files and records) from HR module",
           "category": "other",
           "createdAt": "2026-05-27T21:22:01.634Z"
+        },
+        {
+          "id": "c3d8e2f1-doccount-badge-links-to-folders-view-2026",
+          "patch": 10,
+          "message": "Document count badge in sites & companies lists now opens the relevant module's Folders view",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T21:30:00.000Z"
         }
       ],
       "publishedPatch": 9,
