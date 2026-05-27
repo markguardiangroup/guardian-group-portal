@@ -154,6 +154,7 @@ export type ClientUploadFolderWithMeta = ClientUploadFolder & {
   creatorName: string;
   allocatedClientName: string | null;
   siteName: string;
+  companyName: string;
 };
 
 export type FolderAccessWithUser = ClientUploadFolderAccess & {
@@ -4791,7 +4792,17 @@ export class MemStorage implements IStorage {
         .limit(1);
       const siteName = site[0]?.name ?? "Unknown Site";
 
-      results.push({ ...folder, fileCount, totalSize, creatorName, allocatedClientName, siteName });
+      let companyName = "Unknown Company";
+      if (site[0]?.companyId) {
+        const company = await db
+          .select()
+          .from(companiesTable)
+          .where(eq(companiesTable.id, site[0].companyId))
+          .limit(1);
+        companyName = company[0]?.name ?? "Unknown Company";
+      }
+
+      results.push({ ...folder, fileCount, totalSize, creatorName, allocatedClientName, siteName, companyName });
     }
 
     return results;

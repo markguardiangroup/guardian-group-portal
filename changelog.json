@@ -5620,6 +5620,13 @@
           "message": "Deleting a toolkit folder now also deletes all templates inside it, with a confirmation prompt",
           "category": "feature",
           "createdAt": "2026-05-26T17:40:00.000Z"
+        },
+        {
+          "id": "b4c5d6e7-cloud-share-folder-company-name-2026",
+          "patch": 10,
+          "message": "Cloud Share folder list now shows the company name before the site name",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T10:20:00.000Z"
         }
       ],
       "publishedPatch": 9,

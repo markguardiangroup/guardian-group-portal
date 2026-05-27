@@ -93,6 +93,7 @@ interface ClientUploadFolderWithMeta {
   creatorName: string;
   allocatedClientName: string | null;
   siteName: string;
+  companyName: string;
 }
 
 interface ClientUploadWithUploader {
@@ -1215,6 +1216,8 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                   <p className="text-xs text-muted-foreground mt-0.5">{folder.description}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-muted-foreground">
+                  <span>{folder.companyName}</span>
+                  <span>·</span>
                   <span>{folder.siteName}</span>
                   <span>·</span>
                   <span>{folder.fileCount} file{folder.fileCount !== 1 ? "s" : ""}{folder.totalSize > 0 ? ` · ${formatBytes(folder.totalSize)}` : ""}</span>
