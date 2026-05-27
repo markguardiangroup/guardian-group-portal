@@ -5844,6 +5844,13 @@
           "message": "Fixed: sites list compliance score now excludes disabled module required templates",
           "category": "bug",
           "createdAt": "2026-05-27T20:41:15.894Z"
+        },
+        {
+          "id": "072471d6-8866-47e5-9a2e-ba9e401dc0db",
+          "patch": 10,
+          "message": "Fixed: dashboard disabled-module cards now show not active/not enabled correctly",
+          "category": "bug",
+          "createdAt": "2026-05-27T20:48:58.426Z"
         }
       ],
       "publishedPatch": 9,
