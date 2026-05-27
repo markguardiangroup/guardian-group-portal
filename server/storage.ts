@@ -993,22 +993,32 @@ export class MemStorage implements IStorage {
       );
 
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
+      // Default access from company-level flags: if the company has a module
+      // enabled and the site has no explicit override record, treat it as "active".
+      // If the company doesn't have a module, it's always "hidden".
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
         support: "active" | "visible" | "hidden";
-      } = { health_safety: "hidden", human_resources: "hidden", employment_law: "hidden", support: "hidden" };
+      } = {
+        health_safety: company?.healthSafetyAccess ? "active" : "hidden",
+        human_resources: company?.humanResourcesAccess ? "active" : "hidden",
+        employment_law: company?.employmentLawAccess ? "active" : "hidden",
+        support: "hidden",
+      };
+      // Apply per-site refinements, but only when the company has the module enabled.
       for (const a of moduleAccessList) {
-        if (a.module === "health_safety" || a.module === "human_resources" || a.module === "employment_law" || a.module === "support") {
-          moduleAccess[a.module] = a.status as "active" | "visible" | "hidden";
+        const key = a.module as "health_safety" | "human_resources" | "employment_law" | "support";
+        if (key !== "health_safety" && key !== "human_resources" && key !== "employment_law" && key !== "support") continue;
+        const companyAllows = key === "health_safety" ? !!company?.healthSafetyAccess
+          : key === "human_resources" ? !!company?.humanResourcesAccess
+          : key === "employment_law" ? !!company?.employmentLawAccess
+          : false;
+        if (companyAllows || key === "support") {
+          moduleAccess[key] = a.status as "active" | "visible" | "hidden";
         }
       }
-      // Company-level flags are the authoritative gate. If the company doesn't
-      // have a module switched on, force "hidden" regardless of site_module_access.
-      if (!company?.healthSafetyAccess) moduleAccess.health_safety = "hidden";
-      if (!company?.humanResourcesAccess) moduleAccess.human_resources = "hidden";
-      if (!company?.employmentLawAccess) moduleAccess.employment_law = "hidden";
 
       const assignments = assignmentsBySite.get(site.id) ?? [];
       const assignedConsultants = assignments.map(a => ({
@@ -1137,22 +1147,32 @@ export class MemStorage implements IStorage {
       );
 
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
+      // Default access from company-level flags: if the company has a module
+      // enabled and the site has no explicit override record, treat it as "active".
+      // If the company doesn't have a module, it's always "hidden".
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
         human_resources: "active" | "visible" | "hidden";
         employment_law: "active" | "visible" | "hidden";
         support: "active" | "visible" | "hidden";
-      } = { health_safety: "hidden", human_resources: "hidden", employment_law: "hidden", support: "hidden" };
+      } = {
+        health_safety: company?.healthSafetyAccess ? "active" : "hidden",
+        human_resources: company?.humanResourcesAccess ? "active" : "hidden",
+        employment_law: company?.employmentLawAccess ? "active" : "hidden",
+        support: "hidden",
+      };
+      // Apply per-site refinements, but only when the company has the module enabled.
       for (const a of moduleAccessList) {
-        if (a.module === "health_safety" || a.module === "human_resources" || a.module === "employment_law" || a.module === "support") {
-          moduleAccess[a.module] = a.status as "active" | "visible" | "hidden";
+        const key = a.module as "health_safety" | "human_resources" | "employment_law" | "support";
+        if (key !== "health_safety" && key !== "human_resources" && key !== "employment_law" && key !== "support") continue;
+        const companyAllows = key === "health_safety" ? !!company?.healthSafetyAccess
+          : key === "human_resources" ? !!company?.humanResourcesAccess
+          : key === "employment_law" ? !!company?.employmentLawAccess
+          : false;
+        if (companyAllows || key === "support") {
+          moduleAccess[key] = a.status as "active" | "visible" | "hidden";
         }
       }
-      // Company-level flags are the authoritative gate. If the company doesn't
-      // have a module switched on, force "hidden" regardless of site_module_access.
-      if (!company?.healthSafetyAccess) moduleAccess.health_safety = "hidden";
-      if (!company?.humanResourcesAccess) moduleAccess.human_resources = "hidden";
-      if (!company?.employmentLawAccess) moduleAccess.employment_law = "hidden";
 
       const assignments = assignmentsBySite.get(site.id) ?? [];
       const assignedConsultants = assignments.map(a => ({

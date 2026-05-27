@@ -5788,6 +5788,13 @@
           "message": "Fixed: Site Overview page now hides companies/sites without that module enabled",
           "category": "bug",
           "createdAt": "2026-05-27T19:50:00.000Z"
+        },
+        {
+          "id": "b2c4d6e8-module-access-default-from-company-flag-2026",
+          "patch": 10,
+          "message": "Fixed: sites with no explicit access record now default to enabled when company has the module on",
+          "category": "bug",
+          "createdAt": "2026-05-27T19:58:00.000Z"
         }
       ],
       "publishedPatch": 9,
