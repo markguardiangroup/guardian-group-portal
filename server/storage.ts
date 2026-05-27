@@ -718,7 +718,7 @@ export class MemStorage implements IStorage {
     }[],
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
-    templateMap: Map<string, { id: string; visibility?: string | null }>,
+    templateMap: Map<string, { id: string; visibility?: string | null; module?: string | null }>,
   ): ComplianceSummary {
     const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
     const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
@@ -798,6 +798,26 @@ export class MemStorage implements IStorage {
       allApprovalRequired,
       allOverdueDocuments,
     };
+  }
+
+  private computePerModuleScores(
+    siteDocs: Array<{ module?: string | null; templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }>,
+    siteOverrides: { templateId: string; action: string }[],
+    companyRequired: { templateId: string; removedAt?: Date | null }[],
+    templateMap: Map<string, { id: string; visibility?: string | null; module?: string | null }>,
+  ): { health_safety: number; human_resources: number; employment_law: number } {
+    const modules = ["health_safety", "human_resources", "employment_law"] as const;
+    const scores = {} as { health_safety: number; human_resources: number; employment_law: number };
+    for (const m of modules) {
+      const moduleDocs = siteDocs.filter(d => d.module === m);
+      const moduleTemplateIds = new Set(
+        [...templateMap.entries()].filter(([, t]) => t.module === m).map(([id]) => id)
+      );
+      const moduleRequired = companyRequired.filter(r => moduleTemplateIds.has(r.templateId));
+      const summary = this.computeComplianceSummaryInMemory(moduleDocs, siteOverrides, moduleRequired, templateMap);
+      scores[m] = summary.complianceScore;
+    }
+    return scores;
   }
 
   /**
@@ -918,6 +938,13 @@ export class MemStorage implements IStorage {
         templateMap,
       );
 
+      const moduleScores = this.computePerModuleScores(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        requiredByCompany.get(site.companyId) ?? [],
+        templateMap,
+      );
+
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
@@ -945,6 +972,7 @@ export class MemStorage implements IStorage {
         companySearchTag: company?.searchTag ?? undefined,
         companySources: company?.sources ?? null,
         complianceSummary,
+        moduleScores,
         moduleAccess,
         assignedConsultants,
       };
@@ -1048,6 +1076,13 @@ export class MemStorage implements IStorage {
         templateMap,
       );
 
+      const moduleScores = this.computePerModuleScores(
+        siteDocs,
+        overridesBySite.get(site.id) ?? [],
+        allCompanyRequired,
+        templateMap,
+      );
+
       const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
       const moduleAccess: {
         health_safety: "active" | "visible" | "hidden";
@@ -1075,6 +1110,7 @@ export class MemStorage implements IStorage {
         companySearchTag: company?.searchTag ?? undefined,
         companySources: company?.sources ?? null,
         complianceSummary,
+        moduleScores,
         moduleAccess,
         assignedConsultants,
       };

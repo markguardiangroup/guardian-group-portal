@@ -123,9 +123,9 @@ function CompanyComplianceBadge({ summary, onClick }: { summary?: ComplianceSumm
 }
 
 const COMPLIANCE_MODULES = [
-  { accessKey: "healthSafetyAccess", label: "Health & Safety", path: "/health-safety", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
-  { accessKey: "humanResourcesAccess", label: "Human Resources", path: "/human-resources", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
-  { accessKey: "employmentLawAccess", label: "Employment Law", path: "/employment-law", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
+  { accessKey: "healthSafetyAccess", scoreKey: "health_safety", label: "Health & Safety", path: "/health-safety", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
+  { accessKey: "humanResourcesAccess", scoreKey: "human_resources", label: "Human Resources", path: "/human-resources", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
+  { accessKey: "employmentLawAccess", scoreKey: "employment_law", label: "Employment Law", path: "/employment-law", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
 ] as const;
 
 function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) {
@@ -171,16 +171,22 @@ function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) 
       </PopoverTrigger>
       <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
         <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to dashboard</p>
-        {enabled.map(({ label, path, Icon, iconClass }) => (
-          <button
-            key={path}
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
-          >
-            <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
-            {label}
-          </button>
-        ))}
+        {enabled.map(({ label, path, Icon, iconClass, scoreKey }) => {
+          const score = company.moduleScores?.[scoreKey];
+          return (
+            <button
+              key={path}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+              onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
+            >
+              <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
+              <span className="flex-1 text-left">{label}</span>
+              {score !== undefined && (
+                <span className="ml-auto font-mono text-xs text-muted-foreground">{score}%</span>
+              )}
+            </button>
+          );
+        })}
       </PopoverContent>
     </Popover>
   );

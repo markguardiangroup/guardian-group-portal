@@ -90,6 +90,7 @@ export type CompanyWithSiteCount = Company & {
   groupOwnerName?: string | null; // name of the GO this company belongs to (if any)
   acceloLinks?: { sourceCode: string; acceloId: string; acceloStanding: string | null; acceloType: string | null; acceloColor: string | null; lastCheckedAt: Date | null }[];
   complianceSummary?: ComplianceSummary;
+  moduleScores?: { health_safety: number; human_resources: number; employment_law: number };
 };
 
 // Paginated response for companies
@@ -1034,6 +1035,7 @@ export interface SiteWithDetails extends Site {
   companySearchTag?: string;
   companySources?: string[] | null;
   complianceSummary?: ComplianceSummary;
+  moduleScores?: { health_safety: number; human_resources: number; employment_law: number };
   moduleAccess?: SiteModuleAccessSummary;
   assignedConsultants?: AssignedConsultantSummary[];
 }

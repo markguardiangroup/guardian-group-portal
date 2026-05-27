@@ -5739,6 +5739,13 @@
           "message": "Fixed: sites compliance badge now navigates to correct module dashboard",
           "category": "bug",
           "createdAt": "2026-05-27T17:00:00.000Z"
+        },
+        {
+          "id": "a1b3c5d7-per-module-scores-in-picker-2026",
+          "patch": 10,
+          "message": "Compliance module picker now shows each module's individual score",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T17:50:00.000Z"
         }
       ],
       "publishedPatch": 9,

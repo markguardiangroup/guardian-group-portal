@@ -6860,7 +6860,9 @@ export async function registerRoutes(
 
       // Aggregate site-level compliance into company-level summaries
       type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
+      type ModuleScoreAccum = { sum: number; count: number };
       const complianceAccum = new Map<string, ComplianceAccum>();
+      const moduleScoreAccum = new Map<string, { health_safety: ModuleScoreAccum; human_resources: ModuleScoreAccum; employment_law: ModuleScoreAccum }>();
       for (const site of allSitesForCompliance) {
         if (!site.complianceSummary) continue;
         const s = site.complianceSummary;
@@ -6882,15 +6884,37 @@ export async function registerRoutes(
             missing: s.missingRequiredDocuments,
           });
         }
+        if (site.moduleScores) {
+          const ms = site.moduleScores;
+          const mExisting = moduleScoreAccum.get(site.companyId) ?? {
+            health_safety: { sum: 0, count: 0 },
+            human_resources: { sum: 0, count: 0 },
+            employment_law: { sum: 0, count: 0 },
+          };
+          mExisting.health_safety.sum += ms.health_safety;
+          mExisting.health_safety.count++;
+          mExisting.human_resources.sum += ms.human_resources;
+          mExisting.human_resources.count++;
+          mExisting.employment_law.sum += ms.employment_law;
+          mExisting.employment_law.count++;
+          moduleScoreAccum.set(site.companyId, mExisting);
+        }
       }
 
       // Build new objects (spread) so complianceSummary is a plain own property
       const allCompanies = rawCompanies.map(c => {
         const acc = complianceAccum.get(c.id);
-        if (!acc) return { ...c };
+        const msAcc = moduleScoreAccum.get(c.id);
+        const moduleScores = msAcc ? {
+          health_safety: msAcc.health_safety.count > 0 ? Math.round(msAcc.health_safety.sum / msAcc.health_safety.count) : 0,
+          human_resources: msAcc.human_resources.count > 0 ? Math.round(msAcc.human_resources.sum / msAcc.human_resources.count) : 0,
+          employment_law: msAcc.employment_law.count > 0 ? Math.round(msAcc.employment_law.sum / msAcc.employment_law.count) : 0,
+        } : undefined;
+        if (!acc) return { ...c, moduleScores };
         const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
         return {
           ...c,
+          moduleScores,
           complianceSummary: {
             totalDocuments: acc.total,
             compliantDocuments: acc.compliant,

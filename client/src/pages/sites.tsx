@@ -149,16 +149,22 @@ function SiteComplianceModulePicker({ site }: { site: SiteWithDetails }) {
       </PopoverTrigger>
       <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
         <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to dashboard</p>
-        {enabled.map(({ label, path, Icon, iconClass }) => (
-          <button
-            key={path}
-            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
-            onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
-          >
-            <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
-            {label}
-          </button>
-        ))}
+        {enabled.map(({ label, path, Icon, iconClass, moduleKey }) => {
+          const score = site.moduleScores?.[moduleKey];
+          return (
+            <button
+              key={path}
+              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+              onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
+            >
+              <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
+              <span className="flex-1 text-left">{label}</span>
+              {score !== undefined && (
+                <span className="ml-auto font-mono text-xs text-muted-foreground">{score}%</span>
+              )}
+            </button>
+          );
+        })}
       </PopoverContent>
     </Popover>
   );
