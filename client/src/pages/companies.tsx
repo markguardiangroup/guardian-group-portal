@@ -1237,7 +1237,7 @@ export default function Companies() {
                 <div className="flex items-center gap-1">Company {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead onClick={() => handleSortCompanies("city")} className="cursor-pointer select-none whitespace-nowrap">
-                <div className="flex items-center gap-1">Location {sortBy === "city" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+                <div className="flex items-center gap-1">Address {sortBy === "city" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead onClick={() => handleSortCompanies("industry")} className="cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Industry {sortBy === "industry" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
@@ -1329,10 +1329,10 @@ export default function Companies() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {(company.city || company.county) ? (
+                    {(company.addressLine1 || company.city) ? (
                       <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
-                        {[company.city, company.county].filter(Boolean).join(", ")}
+                        {[company.addressLine1, company.city, company.postalCode].filter(Boolean).join(", ")}
                       </span>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>

@@ -5634,6 +5634,13 @@
           "message": "Sites list: site ID now shown under the site name, company number removed, company column widened",
           "category": "enhancement",
           "createdAt": "2026-05-27T13:45:00.000Z"
+        },
+        {
+          "id": "d6e7f8a9-address-pin-icon-companies-sites-2026",
+          "patch": 10,
+          "message": "Companies and Sites lists: address column now consistent with pin icon and full address",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T14:00:00.000Z"
         }
       ],
       "publishedPatch": 9,

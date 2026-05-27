@@ -541,9 +541,14 @@ export default function Sites() {
                     )}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    <span className="text-sm text-muted-foreground">
-                      {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ") || "—"}
-                    </span>
+                    {(site.addressLine1 || site.city) ? (
+                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        {[site.addressLine1, site.city, site.postalCode].filter(Boolean).join(", ")}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <span className="text-sm">{site.contactName || "—"}</span>
