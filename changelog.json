@@ -5774,6 +5774,13 @@
           "message": "Site Documents no longer shows companies/sites without that module enabled",
           "category": "enhancement",
           "createdAt": "2026-05-27T19:35:00.000Z"
+        },
+        {
+          "id": "f6a8b0c2-site-module-access-respects-company-flags-2026",
+          "patch": 10,
+          "message": "Fixed: site module access now correctly follows the company-level on/off switch",
+          "category": "bug",
+          "createdAt": "2026-05-27T19:42:00.000Z"
         }
       ],
       "publishedPatch": 9,

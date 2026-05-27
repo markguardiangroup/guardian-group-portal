@@ -1004,6 +1004,11 @@ export class MemStorage implements IStorage {
           moduleAccess[a.module] = a.status as "active" | "visible" | "hidden";
         }
       }
+      // Company-level flags are the authoritative gate. If the company doesn't
+      // have a module switched on, force "hidden" regardless of site_module_access.
+      if (!company?.healthSafetyAccess) moduleAccess.health_safety = "hidden";
+      if (!company?.humanResourcesAccess) moduleAccess.human_resources = "hidden";
+      if (!company?.employmentLawAccess) moduleAccess.employment_law = "hidden";
 
       const assignments = assignmentsBySite.get(site.id) ?? [];
       const assignedConsultants = assignments.map(a => ({
@@ -1143,6 +1148,11 @@ export class MemStorage implements IStorage {
           moduleAccess[a.module] = a.status as "active" | "visible" | "hidden";
         }
       }
+      // Company-level flags are the authoritative gate. If the company doesn't
+      // have a module switched on, force "hidden" regardless of site_module_access.
+      if (!company?.healthSafetyAccess) moduleAccess.health_safety = "hidden";
+      if (!company?.humanResourcesAccess) moduleAccess.human_resources = "hidden";
+      if (!company?.employmentLawAccess) moduleAccess.employment_law = "hidden";
 
       const assignments = assignmentsBySite.get(site.id) ?? [];
       const assignedConsultants = assignments.map(a => ({
