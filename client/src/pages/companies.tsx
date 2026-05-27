@@ -439,7 +439,7 @@ export default function Companies() {
   const [acceloImportResults, setAcceloImportResults] = useState<AcceloImportResult[] | null>(null);
   const [pendingCreatedCompanyId, setPendingCreatedCompanyId] = useState<string | null>(null);
   const [staffFilter, setStaffFilter] = useState<string>("my");
-  const [sortBy, setSortBy] = useState<"name" | "city" | "industry" | "siteCount" | "status">("name");
+  const [sortBy, setSortBy] = useState<"name" | "city" | "industry" | "siteCount" | "status" | "compliance">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const handleSortCompanies = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -1154,6 +1154,7 @@ export default function Companies() {
     if (sortBy === "industry") return dir * (a.industry || "").toLowerCase().localeCompare((b.industry || "").toLowerCase());
     if (sortBy === "siteCount") return dir * ((a.siteCount ?? 0) - (b.siteCount ?? 0));
     if (sortBy === "status") return dir * (a.status || "").localeCompare(b.status || "");
+    if (sortBy === "compliance") return dir * ((a.complianceSummary?.complianceScore ?? -1) - (b.complianceSummary?.complianceScore ?? -1));
     return 0;
   });
   const total = data?.total || 0;
@@ -1311,6 +1312,9 @@ export default function Companies() {
               <TableHead onClick={() => handleSortCompanies("siteCount")} className="w-20 cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Sites {sortBy === "siteCount" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
+              <TableHead onClick={() => handleSortCompanies("compliance")} className="cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Compliance {sortBy === "compliance" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              </TableHead>
               <TableHead onClick={() => handleSortCompanies("status")} className="w-28 cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
@@ -1320,13 +1324,13 @@ export default function Companies() {
           <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={8}>
                   <FetchingOverlay />
                 </TableCell>
               </TableRow>
             ) : companies.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   {debouncedSearch || statusFilter !== "all"
                     ? "No companies match your filters."
                     : "No companies found. Add your first company to get started."}
@@ -1424,26 +1428,32 @@ export default function Companies() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
-                        {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
-                      </Badge>
+                    <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
+                      {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        role="button"
+                        className="cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}
+                        data-testid={`badge-compliance-link-${company.id}`}
+                      >
+                        <CompanyComplianceBadge summary={company.complianceSummary} />
+                      </span>
                       {company.complianceSummary && (
-                        <CompanyComplianceBadge
-                          summary={company.complianceSummary}
-                          onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}
-                        />
-                      )}
-                      {company.complianceSummary && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                        <span
+                          role="button"
+                          className="cursor-pointer"
                           onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}?tab=required-documents`); }}
                           data-testid={`badge-doccount-${company.id}`}
                         >
-                          <FileText className="h-3 w-3" />
-                          {company.complianceSummary.totalAllDocuments}
-                        </Badge>
+                          <Badge variant="outline" className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                            <FileText className="h-3 w-3" />
+                            {company.complianceSummary.totalAllDocuments}
+                          </Badge>
+                        </span>
                       )}
                     </div>
                   </TableCell>
