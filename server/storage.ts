@@ -801,21 +801,66 @@ export class MemStorage implements IStorage {
   }
 
   private computePerModuleScores(
-    siteDocs: Array<{ module?: string | null; templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }>,
+    siteDocs: Array<{ id?: string | null; module?: string | null; templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }>,
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null; module?: string | null }>,
   ): { health_safety: number; human_resources: number; employment_law: number } {
+    // This mirrors computeSlotBasedCompliance exactly — exclude-only overrides,
+    // consumed tracked by doc ID — so scores match the module dashboard numbers.
     const modules = ["health_safety", "human_resources", "employment_law"] as const;
     const scores = {} as { health_safety: number; human_resources: number; employment_law: number };
+
+    const _now = new Date();
+    const isOverdue = (d: { expiryDate?: Date | string | null; renewalDate?: Date | string | null }) =>
+      !!(d.expiryDate && new Date(d.expiryDate as string) < _now) ||
+      !!(d.renewalDate && new Date(d.renewalDate as string) < _now);
+    const isApprovalRequired = (d: { approvalStatus?: string | null }) =>
+      d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+
+    // Only exclude overrides — matching computeSlotBasedCompliance (include overrides are ignored)
+    const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
+    const activeCompanyRequired = companyRequired.filter(r => !r.removedAt);
+
     for (const m of modules) {
-      const moduleDocs = siteDocs.filter(d => d.module === m);
-      const moduleTemplateIds = new Set(
-        [...templateMap.entries()].filter(([, t]) => t.module === m).map(([id]) => id)
+      let slotTotal = 0;
+      let slotCompliant = 0;
+      let slotApproval = 0;
+      let slotOverdue = 0;
+      let missing = 0;
+      const consumedDocIds = new Set<string>();
+
+      for (const req of activeCompanyRequired) {
+        if (excludedIds.has(req.templateId)) continue;
+        const tmpl = templateMap.get(req.templateId);
+        if (!tmpl || tmpl.visibility !== "private") continue;
+        if (tmpl.module !== m) continue;
+
+        slotTotal++;
+        const matchingDocs = siteDocs.filter(d => d.templateId === req.templateId);
+        for (const d of matchingDocs) { if (d.id) consumedDocIds.add(d.id); }
+
+        if (matchingDocs.length === 0) { missing++; continue; }
+        for (const d of matchingDocs) {
+          if (isOverdue(d)) slotOverdue++;
+          else if (isApprovalRequired(d)) slotApproval++;
+          else if (d.status === "compliant") slotCompliant++;
+        }
+      }
+
+      // Manual required: isRequired=true, this module, not already consumed by a template slot
+      const manualRequired = siteDocs.filter(d =>
+        d.isRequired && d.module === m && (d.id ? !consumedDocIds.has(d.id) : !d.templateId)
       );
-      const moduleRequired = companyRequired.filter(r => moduleTemplateIds.has(r.templateId));
-      const summary = this.computeComplianceSummaryInMemory(moduleDocs, siteOverrides, moduleRequired, templateMap);
-      scores[m] = summary.complianceScore;
+      const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isOverdue(d) && !isApprovalRequired(d)).length;
+      const manualApproval = manualRequired.filter(d => !isOverdue(d) && isApprovalRequired(d)).length;
+      const manualOverdue = manualRequired.filter(isOverdue).length;
+
+      const compliant = slotCompliant + manualCompliant;
+      const approval = slotApproval + manualApproval;
+      const overdue = slotOverdue + manualOverdue;
+      const denom = compliant + approval + overdue + missing;
+      scores[m] = denom > 0 ? Math.round((compliant / denom) * 100) : 0;
     }
     return scores;
   }

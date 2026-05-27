@@ -5746,6 +5746,13 @@
           "message": "Compliance module picker now shows each module's individual score",
           "category": "enhancement",
           "createdAt": "2026-05-27T17:50:00.000Z"
+        },
+        {
+          "id": "b2c4e6f8-per-module-scores-match-dashboard-2026",
+          "patch": 10,
+          "message": "Fixed: module scores in the picker now match the module dashboard figures",
+          "category": "bug",
+          "createdAt": "2026-05-27T18:40:00.000Z"
         }
       ],
       "publishedPatch": 9,
