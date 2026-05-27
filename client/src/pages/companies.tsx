@@ -105,7 +105,7 @@ function CompanyComplianceBadge({ summary, onClick }: { summary?: ComplianceSumm
   return (
     <Badge
       variant="outline"
-      className={`${cls} cursor-pointer gap-1 text-xs`}
+      className={`${cls} cursor-pointer gap-1 text-xs min-w-[3.5rem] justify-center`}
       onClick={onClick}
       data-testid="badge-compliance"
     >
@@ -1449,7 +1449,7 @@ export default function Companies() {
                           onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}?tab=required-documents`); }}
                           data-testid={`badge-doccount-${company.id}`}
                         >
-                          <Badge variant="outline" className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                          <Badge variant="outline" className="text-xs gap-1 min-w-[2.75rem] justify-center text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
                             <FileText className="h-3 w-3" />
                             {company.complianceSummary.totalAllDocuments}
                           </Badge>

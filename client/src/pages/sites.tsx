@@ -60,7 +60,7 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 
   if (score >= 90) {
     return (
-      <Badge variant="outline" className="text-xs gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+      <Badge variant="outline" className="text-xs gap-1 min-w-[3.5rem] justify-center bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
         <CheckCircle className="h-3 w-3" />
         {score}%
       </Badge>
@@ -69,7 +69,7 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
 
   if (score >= 70) {
     return (
-      <Badge variant="outline" className="text-xs gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
+      <Badge variant="outline" className="text-xs gap-1 min-w-[3.5rem] justify-center bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800">
         <AlertTriangle className="h-3 w-3" />
         {score}%
       </Badge>
@@ -77,7 +77,7 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
   }
 
   return (
-    <Badge variant="outline" className="text-xs gap-1 bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
+    <Badge variant="outline" className="text-xs gap-1 min-w-[3.5rem] justify-center bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
       <XCircle className="h-3 w-3" />
       {score}%
     </Badge>
@@ -571,7 +571,7 @@ export default function Sites() {
                           onClick={(e) => { e.stopPropagation(); navigate(`/sites/${site.id}?tab=compliance`); }}
                           data-testid={`badge-doccount-${site.id}`}
                         >
-                          <Badge variant="outline" className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                          <Badge variant="outline" className="text-xs gap-1 min-w-[2.75rem] justify-center text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
                             <FileText className="h-3 w-3" />
                             {site.complianceSummary.totalAllDocuments}
                           </Badge>
