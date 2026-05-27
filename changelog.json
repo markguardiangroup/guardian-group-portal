@@ -5921,6 +5921,13 @@
           "message": "Fixed: company filter on Sites page now persists across navigation",
           "category": "bug",
           "createdAt": "2026-05-27T22:28:43.291Z"
+        },
+        {
+          "id": "22d82c9b-c1d9-4906-b91d-dab66d699842",
+          "patch": 10,
+          "message": "Fixed: My/All client sites filter now persists when navigating between pages",
+          "category": "bug",
+          "createdAt": "2026-05-27T22:35:42.964Z"
         }
       ],
       "publishedPatch": 9,

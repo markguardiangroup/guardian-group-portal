@@ -748,7 +748,7 @@ function LockedModuleCard({ moduleName, module }: {
 
 export default function Dashboard2() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters, proStaffFilter: staffFilter, setProStaffFilter: setStaffFilter } = useSiteFilter();
   const [, navigate] = useLocation();
 
   const isClientUser = user?.role === "client";
@@ -756,7 +756,6 @@ export default function Dashboard2() {
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
-  const [staffFilter, setStaffFilter] = useState("my");
 
   const { data: myStaff = [] } = useQuery<{ id: string; fullName: string }[]>({
     queryKey: ["/api/consultants/my-staff"],
