@@ -5767,6 +5767,13 @@
           "message": "Fixed: company picker module scores now exactly match the module dashboard figures",
           "category": "bug",
           "createdAt": "2026-05-27T19:05:00.000Z"
+        },
+        {
+          "id": "e5f7a9b1-site-docs-hides-unallocated-module-sites-2026",
+          "patch": 10,
+          "message": "Site Documents no longer shows companies/sites without that module enabled",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T19:35:00.000Z"
         }
       ],
       "publishedPatch": 9,

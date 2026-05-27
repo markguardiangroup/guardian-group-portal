@@ -511,12 +511,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return ids.length > 0 ? new Set(ids) : null;
   }, [selectedGroup, companies, urlScope, urlEntityId]);
 
-  // With company-level module access, all sites in a company have the same access
-  // So no per-site filtering needed - just show all sites for the user's company
+  // Filter to sites where this module is enabled (active or visible).
+  // Sites with no moduleAccess record at all, or where the module is "hidden",
+  // are excluded — their documents stay in place but don't appear in this view.
   const clientSites = useMemo(() => {
     if (!sites) return [];
-    return sites;
-  }, [sites]);
+    const moduleKey = module as keyof SiteModuleAccess;
+    return sites.filter(s => {
+      const access = s.moduleAccess?.[moduleKey];
+      return access === "active" || access === "visible";
+    });
+  }, [sites, module]);
   
   // Filter sites by selected group, then by selected company (for privileged users)
   const filteredSites = useMemo(() => {
