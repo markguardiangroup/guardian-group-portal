@@ -5699,11 +5699,11 @@
           "createdAt": "2026-05-27T15:15:00.000Z"
         },
         {
-          "id": "a5b6c7d8-compliance-badge-size-consistent-2026",
+          "id": "a5b6c7d8-compliance-badge-uniform-width-2026",
           "patch": 10,
-          "message": "Compliance and document count badges now uniform width on Sites and Companies",
+          "message": "Compliance and document count badges now fixed uniform width on both tables",
           "category": "enhancement",
-          "createdAt": "2026-05-27T15:20:00.000Z"
+          "createdAt": "2026-05-27T15:25:00.000Z"
         }
       ],
       "publishedPatch": 9,
