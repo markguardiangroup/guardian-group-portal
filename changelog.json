@@ -5928,6 +5928,13 @@
           "message": "Fixed: My/All client sites filter now persists when navigating between pages",
           "category": "bug",
           "createdAt": "2026-05-27T22:35:42.964Z"
+        },
+        {
+          "id": "b3ca33be-e179-48e4-a837-de033f6bb073",
+          "patch": 10,
+          "message": "Fixed: changing the client scope filter no longer resets the company filter on other pages",
+          "category": "bug",
+          "createdAt": "2026-05-27T22:44:06.148Z"
         }
       ],
       "publishedPatch": 9,

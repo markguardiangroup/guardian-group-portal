@@ -1021,7 +1021,7 @@ export default function Dashboard2() {
                 value={staffFilter}
                 onValueChange={(v) => {
                   setStaffFilter(v);
-                  resetFilters();
+                  setSelectedSiteId(null);
                 }}
               >
                 <SelectTrigger className="w-[205px] text-sm" data-testid="select-staff-filter-dashboard">

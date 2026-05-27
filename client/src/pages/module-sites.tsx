@@ -470,7 +470,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 onValueChange={(v) => {
                   setStaffFilter(v);
                   setSelectedGroup("all");
-                  handleCompanyChange(null);
+                  setSelectedSiteId(null);
                 }}
               >
                 <SelectTrigger className="w-[205px] text-sm" data-testid="select-staff-filter-docs">
@@ -505,7 +505,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {hasCoverage && (
               <Select
                 value={coverageFilter}
-                onValueChange={(v) => { setCoverageFilter(v); setSelectedGroup("all"); handleCompanyChange(null); }}
+                onValueChange={(v) => { setCoverageFilter(v); setSelectedGroup("all"); setSelectedSiteId(null); }}
               >
                 <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-sites">
                   <span className="truncate pointer-events-none">

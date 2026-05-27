@@ -1481,7 +1481,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {hasCoverage && (
             <Select
               value={coverageFilter}
-              onValueChange={(v) => { setCoverageFilter(v); handleCompanyChange(null); }}
+              onValueChange={(v) => { setCoverageFilter(v); setSelectedSiteId(null); }}
             >
               <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-docs">
                 <span className="truncate pointer-events-none">
@@ -1503,7 +1503,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {isProConsultant && (
             <Select
               value={proStaffFilter}
-              onValueChange={(v) => { setProStaffFilter(v); handleCompanyChange(null); }}
+              onValueChange={(v) => { setProStaffFilter(v); setSelectedSiteId(null); }}
             >
               <SelectTrigger className="w-[205px] text-sm" data-testid="select-pro-staff-filter-docs">
                 <span className="truncate pointer-events-none">

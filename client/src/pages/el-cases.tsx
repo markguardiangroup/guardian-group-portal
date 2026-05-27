@@ -519,7 +519,7 @@ function CasesList() {
             {hasCoverage && (
               <Select
                 value={coverageFilter}
-                onValueChange={(v) => { setCoverageFilter(v); resetFilters(); }}
+                onValueChange={(v) => { setCoverageFilter(v); setSelectedSiteId(null); }}
               >
                 <SelectTrigger className="w-[205px] text-sm" data-testid="select-coverage-filter-cases">
                   <span className="truncate pointer-events-none">
@@ -541,7 +541,7 @@ function CasesList() {
             {isProConsultant && (
               <Select
                 value={proStaffFilter}
-                onValueChange={(v) => { setProStaffFilter(v); resetFilters(); }}
+                onValueChange={(v) => { setProStaffFilter(v); setSelectedSiteId(null); }}
               >
                 <SelectTrigger className="w-[205px] text-sm" data-testid="select-pro-staff-filter-cases">
                   <span className="truncate pointer-events-none">
