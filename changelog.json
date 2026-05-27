@@ -5935,6 +5935,13 @@
           "message": "Fixed: changing the client scope filter no longer resets the company filter on other pages",
           "category": "bug",
           "createdAt": "2026-05-27T22:44:06.148Z"
+        },
+        {
+          "id": "706b68b9-8807-4428-86ad-78905a2ce7bf",
+          "patch": 10,
+          "message": "Fixed: company and site filter boxes no longer flicker when changing the staff scope filter on the dashboard",
+          "category": "bug",
+          "createdAt": "2026-05-27T22:54:33.494Z"
         }
       ],
       "publishedPatch": 9,

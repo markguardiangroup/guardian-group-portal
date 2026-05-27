@@ -783,6 +783,7 @@ export default function Dashboard2() {
       if (!res.ok) throw new Error("Failed to fetch sites");
       return res.json();
     },
+    placeholderData: keepPreviousData,
   });
 
   const clientHasSites = isClientUser && sites && sites.length > 0;
