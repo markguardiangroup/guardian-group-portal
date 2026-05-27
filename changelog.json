@@ -5683,6 +5683,13 @@
           "message": "Company list condenses multiple sources to one badge plus a count tooltip",
           "category": "enhancement",
           "createdAt": "2026-05-27T15:00:00.000Z"
+        },
+        {
+          "id": "e3f4a5b6-company-compliance-doccount-badges-table-2026",
+          "patch": 10,
+          "message": "Companies list now shows compliance score and document count badges per row",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T15:10:00.000Z"
         }
       ],
       "publishedPatch": 9,

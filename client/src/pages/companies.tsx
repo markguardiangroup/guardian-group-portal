@@ -1424,9 +1424,28 @@ export default function Companies() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
-                      {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="secondary" data-testid={`badge-site-count-${company.id}`}>
+                        {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
+                      </Badge>
+                      {company.complianceSummary && (
+                        <CompanyComplianceBadge
+                          summary={company.complianceSummary}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}
+                        />
+                      )}
+                      {company.complianceSummary && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs gap-1 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}?tab=required-documents`); }}
+                          data-testid={`badge-doccount-${company.id}`}
+                        >
+                          <FileText className="h-3 w-3" />
+                          {company.complianceSummary.totalAllDocuments}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge
