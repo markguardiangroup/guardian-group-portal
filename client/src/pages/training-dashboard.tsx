@@ -124,12 +124,12 @@ export default function TrainingDashboard() {
   });
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<SiteWithDetails[]>({
-    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
-    queryFn: coverageFilter !== "my" ? async () => {
-      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+    queryKey: coverageQueryKey,
+    queryFn: coverageSitesUrl !== "/api/sites" ? async () => {
+      const res = await fetch(coverageSitesUrl, { credentials: "include" });
       if (!res.ok) throw new Error("Failed");
       return res.json();
     } : undefined,

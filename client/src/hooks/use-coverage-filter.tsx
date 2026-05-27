@@ -9,7 +9,7 @@ export interface CoveringForEntry {
 
 export function useCoverageFilter() {
   const { user } = useAuth();
-  const { coverageConsultantId, setCoverageConsultantId } = useSiteFilter();
+  const { coverageConsultantId, setCoverageConsultantId, proStaffFilter } = useSiteFilter();
 
   const isConsultant = user?.role === "consultant";
   const isProConsultant = isConsultant && (user as any)?.consultantTier === "pro";
@@ -35,15 +35,26 @@ export function useCoverageFilter() {
     setCoverageConsultantId(v === "my" ? null : v);
   };
 
-  const coverageSitesUrl =
-    coverageFilter !== "my"
+  // Unified sites URL — pro consultants use proStaffFilter, others use coverageFilter
+  const coverageSitesUrl = isProConsultant
+    ? proStaffFilter === "my"
+      ? "/api/sites?myAssigned=true"
+      : proStaffFilter !== "all"
+        ? `/api/sites?staffId=${proStaffFilter}`
+        : "/api/sites"
+    : coverageFilter !== "my"
       ? `/api/sites?staffId=${coverageFilter}`
       : "/api/sites";
 
-  const coverageQueryKey =
-    coverageFilter !== "my"
-      ? (["/api/sites", "coverage", coverageFilter] as const)
-      : (["/api/sites"] as const);
+  const coverageQueryKey: readonly string[] = isProConsultant
+    ? proStaffFilter === "my"
+      ? ["/api/sites", "pro", "my"]
+      : proStaffFilter !== "all"
+        ? ["/api/sites", "pro", proStaffFilter]
+        : ["/api/sites"]
+    : coverageFilter !== "my"
+      ? ["/api/sites", "coverage", coverageFilter]
+      : ["/api/sites"];
 
   return {
     hasCoverage,

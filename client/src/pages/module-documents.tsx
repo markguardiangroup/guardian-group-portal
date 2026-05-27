@@ -336,7 +336,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
   const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey } = useCoverageFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -481,9 +481,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Fetch sites for all users — when covering for someone, fetch only that person's sites
   const { data: sites } = useQuery<SiteWithCompany[]>({
-    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
-    queryFn: coverageFilter !== "my" ? async () => {
-      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+    queryKey: coverageQueryKey,
+    queryFn: coverageSitesUrl !== "/api/sites" ? async () => {
+      const res = await fetch(coverageSitesUrl, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch sites");
       return res.json();
     } : undefined,

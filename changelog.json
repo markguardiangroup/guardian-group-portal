@@ -5893,6 +5893,13 @@
           "message": "Sites list: pro consultant 'My client sites' selection now persists across page navigation",
           "category": "enhancement",
           "createdAt": "2026-05-27T21:50:00.000Z"
+        },
+        {
+          "id": "f6a1b5c7-pro-staff-filter-propagates-all-module-pages-2026",
+          "patch": 10,
+          "message": "Pro consultant site filter now applies across all module pages (documents, training, toolkit, calendar, incidents, cases, support, reports)",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T22:05:00.000Z"
         }
       ],
       "publishedPatch": 9,

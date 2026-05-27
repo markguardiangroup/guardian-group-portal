@@ -823,7 +823,7 @@ export default function Reports() {
 
   const isAdmin = user?.role === "admin";
   const isCaseAdvocate = isAdmin || (user?.role === "consultant" && (user?.consultantPermissions as any)?.caseAdvocate === true);
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey } = useCoverageFilter();
 
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -831,9 +831,9 @@ export default function Reports() {
   const { data: companiesData } = useQuery<{ companies: Company[]; total: number }>({ queryKey: ["/api/companies?limit=1000"] });
   const companies = companiesData?.companies || [];
   const { data: allSites = [] } = useQuery<Site[]>({
-    queryKey: coverageFilter !== "my" ? ["/api/sites", "coverage", coverageFilter] : ["/api/sites"],
-    queryFn: coverageFilter !== "my" ? async () => {
-      const res = await fetch(`/api/sites?staffId=${coverageFilter}`, { credentials: "include" });
+    queryKey: coverageQueryKey,
+    queryFn: coverageSitesUrl !== "/api/sites" ? async () => {
+      const res = await fetch(coverageSitesUrl, { credentials: "include" });
       if (!res.ok) throw new Error("Failed");
       return res.json();
     } : undefined,
