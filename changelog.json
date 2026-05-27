@@ -5760,6 +5760,13 @@
           "message": "Fixed: company module scores now combine all sites' data rather than averaging per-site percentages",
           "category": "bug",
           "createdAt": "2026-05-27T18:50:00.000Z"
+        },
+        {
+          "id": "d4e6f8a0-company-module-scores-exact-dashboard-match-2026",
+          "patch": 10,
+          "message": "Fixed: company picker module scores now exactly match the module dashboard figures",
+          "category": "bug",
+          "createdAt": "2026-05-27T19:05:00.000Z"
         }
       ],
       "publishedPatch": 9,

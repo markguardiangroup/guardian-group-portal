@@ -1790,6 +1790,189 @@ export async function registerRoutes(
     return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
   }
 
+  /**
+   * Computes per-company module scores (health_safety / human_resources / employment_law)
+   * using exactly the same algorithm as computeSlotBasedCompliance — one consumedDocIds set
+   * and one sharedRequiredCandidates map shared across all sites of the same company.
+   * This avoids double-counting company-scoped required docs across sites.
+   */
+  async function computePerCompanyModuleScores(
+    user: any,
+  ): Promise<Map<string, { health_safety: number; human_resources: number; employment_law: number }>> {
+    const [allDocuments, sites, templates, companies, allSharesRaw, allSiteOverridesRaw, allCompanyReqsRaw] = await Promise.all([
+      storage.getDocuments(),
+      storage.getSites(),
+      storage.getDocumentTemplates(),
+      storage.getCompanies(),
+      storage.getAllDocumentSharesRaw(),
+      storage.getAllSiteTemplateOverridesRaw(),
+      storage.getAllCompanyRequiredTemplatesRaw(),
+    ]);
+
+    const templateMap = new Map(templates.map(t => [t.id, t]));
+    const companyMap = new Map(companies.map(c => [c.id, c]));
+
+    const sharesByDocId = new Map<string, typeof allSharesRaw>();
+    for (const share of allSharesRaw) {
+      if (!sharesByDocId.has(share.documentId)) sharesByDocId.set(share.documentId, []);
+      sharesByDocId.get(share.documentId)!.push(share);
+    }
+
+    const excludedTemplatesBySiteId = new Map<string, Set<string>>();
+    for (const ov of allSiteOverridesRaw) {
+      if (ov.action !== "exclude") continue;
+      if (!excludedTemplatesBySiteId.has(ov.siteId)) excludedTemplatesBySiteId.set(ov.siteId, new Set());
+      excludedTemplatesBySiteId.get(ov.siteId)!.add(ov.templateId);
+    }
+
+    const companyReqsByCompanyId = new Map<string, Set<string>>();
+    for (const req of allCompanyReqsRaw) {
+      if (req.removedAt) continue;
+      if (!companyReqsByCompanyId.has(req.companyId)) companyReqsByCompanyId.set(req.companyId, new Set());
+      companyReqsByCompanyId.get(req.companyId)!.add(req.templateId);
+    }
+
+    // All scoped (non-site) docs — used for per-module shared-doc computation
+    const allScopedDocs = allDocuments.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group"));
+
+    function computeSharedDocsForSite(site: typeof sites[0], module: string) {
+      const company = companyMap.get(site.companyId);
+      if (!company) return [];
+      const seenIds = new Set<string>();
+      const results: any[] = [];
+      for (const doc of allScopedDocs) {
+        if (seenIds.has(doc.id)) continue;
+        if (doc.isArchived) continue;
+        if (doc.module !== module) continue;
+        const shares = sharesByDocId.get(doc.id) ?? [];
+        if (doc.scope === "company" && doc.entityId === site.companyId) {
+          seenIds.add(doc.id); results.push(doc);
+        } else if (doc.scope === "group" && doc.entityId === site.companyId) {
+          if (shares.length > 0) { seenIds.add(doc.id); results.push(doc); }
+        } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
+          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+            seenIds.add(doc.id); results.push(doc);
+          }
+        }
+      }
+      return results;
+    }
+
+    // Only accessible sites (admins get all)
+    const accessResults = await Promise.all(sites.map(s => canUserAccessSite(user, s.id)));
+    const accessibleSites = sites.filter((_, i) => accessResults[i] && sites[i].companyId);
+    const filteredSiteIds = new Set(accessibleSites.map(s => s.id));
+    const siteToCompany = new Map(accessibleSites.map(s => [s.id, s.companyId]));
+
+    const _now = new Date();
+    function isDateOverdue(d: any) {
+      return !!(d.expiryDate && new Date(d.expiryDate) < _now) || !!(d.renewalDate && new Date(d.renewalDate) < _now);
+    }
+    function isApprovalPending(d: any) {
+      return d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+    }
+
+    // Final result map
+    const result = new Map<string, { health_safety: number; human_resources: number; employment_law: number }>();
+
+    for (const module of complianceModules) {
+      // Per-company accumulators — shared across all sites of the same company.
+      // This exactly mirrors computeSlotBasedCompliance called per-company.
+      const cSlotCompliant  = new Map<string, number>();
+      const cSlotApproval   = new Map<string, number>();
+      const cSlotOverdue    = new Map<string, number>();
+      const cMissing        = new Map<string, number>();
+      const cConsumed       = new Map<string, Set<string>>();
+      const cSharedReq      = new Map<string, Map<string, any>>();
+
+      function ensureCompany(cid: string) {
+        if (!cConsumed.has(cid)) {
+          cConsumed.set(cid, new Set());
+          cSharedReq.set(cid, new Map());
+          cSlotCompliant.set(cid, 0);
+          cSlotApproval.set(cid, 0);
+          cSlotOverdue.set(cid, 0);
+          cMissing.set(cid, 0);
+        }
+      }
+
+      for (const site of accessibleSites) {
+        const cid = site.companyId;
+        ensureCompany(cid);
+        const consumedDocIds = cConsumed.get(cid)!;
+        const sharedReq      = cSharedReq.get(cid)!;
+
+        const requiredIds  = companyReqsByCompanyId.get(cid) ?? new Set<string>();
+        const siteExcluded = excludedTemplatesBySiteId.get(site.id) ?? new Set<string>();
+
+        const siteDocs   = allDocuments.filter(d => d.siteId === site.id && !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external");
+        const validShared = computeSharedDocsForSite(site, module).filter((sd: any) => !sd.isArchived && !sd.caseId && !sd.incidentId && sd.source !== "external");
+        const allSiteDocs = [...siteDocs, ...validShared];
+
+        for (const rtTemplateId of requiredIds) {
+          if (siteExcluded.has(rtTemplateId)) continue;
+          const tmpl = templateMap.get(rtTemplateId);
+          if (!tmpl || !tmpl.isActive || tmpl.visibility !== "private" || tmpl.module !== module) continue;
+
+          const matchingDocs = allSiteDocs.filter(d => d.templateId === rtTemplateId);
+          matchingDocs.forEach(d => consumedDocIds.add(d.id));
+
+          if (matchingDocs.length === 0) {
+            cMissing.set(cid, (cMissing.get(cid) ?? 0) + 1);
+            continue;
+          }
+          matchingDocs.forEach(d => {
+            if (isDateOverdue(d))    cSlotOverdue.set(cid, (cSlotOverdue.get(cid) ?? 0) + 1);
+            else if (isApprovalPending(d)) cSlotApproval.set(cid, (cSlotApproval.get(cid) ?? 0) + 1);
+            else if (d.status === "compliant") cSlotCompliant.set(cid, (cSlotCompliant.get(cid) ?? 0) + 1);
+          });
+        }
+
+        // Collect company/group-scoped required docs not consumed by a slot (deduplicated per company)
+        for (const sd of validShared) {
+          if (sd.isRequired && !consumedDocIds.has(sd.id)) sharedReq.set(sd.id, sd);
+        }
+      }
+
+      // Site-scoped manual-required docs (not consumed by any slot), grouped by company
+      const siteManualByCompany = new Map<string, any[]>();
+      for (const d of allDocuments) {
+        if (!d.isRequired || d.isArchived || d.caseId || d.incidentId || d.source === "external") continue;
+        if (!filteredSiteIds.has(d.siteId)) continue;
+        if (d.module !== module) continue;
+        const cid = siteToCompany.get(d.siteId);
+        if (!cid) continue;
+        if (cConsumed.get(cid)?.has(d.id)) continue;
+        if (!siteManualByCompany.has(cid)) siteManualByCompany.set(cid, []);
+        siteManualByCompany.get(cid)!.push(d);
+      }
+
+      // Compute score for each company that had at least one site
+      for (const cid of cConsumed.keys()) {
+        const sharedManual   = [...(cSharedReq.get(cid)?.values() ?? [])].filter((d: any) => !cConsumed.get(cid)?.has(d.id));
+        const siteManual     = siteManualByCompany.get(cid) ?? [];
+        const manualRequired = [...sharedManual, ...siteManual];
+
+        const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDateOverdue(d) && !isApprovalPending(d)).length;
+        const manualApproval  = manualRequired.filter(d => !isDateOverdue(d) && isApprovalPending(d)).length;
+        const manualOverdue   = manualRequired.filter(isDateOverdue).length;
+
+        const compliant = (cSlotCompliant.get(cid) ?? 0) + manualCompliant;
+        const approval  = (cSlotApproval.get(cid) ?? 0)  + manualApproval;
+        const overdue   = (cSlotOverdue.get(cid) ?? 0)   + manualOverdue;
+        const missing   = cMissing.get(cid) ?? 0;
+        const denom     = compliant + approval + overdue + missing;
+
+        const existing = result.get(cid) ?? { health_safety: 0, human_resources: 0, employment_law: 0 };
+        existing[module as "health_safety" | "human_resources" | "employment_law"] =
+          denom > 0 ? Math.round((compliant / denom) * 100) : 0;
+        result.set(cid, existing);
+      }
+    }
+
+    return result;
+  }
+
   interface MissingRequiredTemplateDetail {
     templateId: string;
     templateName: string;
@@ -6853,16 +7036,15 @@ export async function registerRoutes(
       const search = (req.query.search as string || "").toLowerCase();
       const status = req.query.status as string | undefined;
       
-      const [rawCompanies, allSitesForCompliance] = await Promise.all([
+      const [rawCompanies, allSitesForCompliance, perCompanyModuleScores] = await Promise.all([
         storage.getCompaniesWithSiteCount(),
         storage.getSitesWithDetails(),
+        computePerCompanyModuleScores(user),
       ]);
 
-      // Aggregate site-level compliance into company-level summaries
+      // Aggregate site-level compliance summaries into company-level totals
       type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
-      type ModuleRawAccum = { compliant: number; denom: number };
       const complianceAccum = new Map<string, ComplianceAccum>();
-      const moduleScoreAccum = new Map<string, { health_safety: ModuleRawAccum; human_resources: ModuleRawAccum; employment_law: ModuleRawAccum }>();
       for (const site of allSitesForCompliance) {
         if (!site.complianceSummary) continue;
         const s = site.complianceSummary;
@@ -6884,32 +7066,14 @@ export async function registerRoutes(
             missing: s.missingRequiredDocuments,
           });
         }
-        if (site.moduleRawCounts) {
-          const mr = site.moduleRawCounts;
-          const mExisting = moduleScoreAccum.get(site.companyId) ?? {
-            health_safety: { compliant: 0, denom: 0 },
-            human_resources: { compliant: 0, denom: 0 },
-            employment_law: { compliant: 0, denom: 0 },
-          };
-          mExisting.health_safety.compliant += mr.health_safety.compliant;
-          mExisting.health_safety.denom += mr.health_safety.denom;
-          mExisting.human_resources.compliant += mr.human_resources.compliant;
-          mExisting.human_resources.denom += mr.human_resources.denom;
-          mExisting.employment_law.compliant += mr.employment_law.compliant;
-          mExisting.employment_law.denom += mr.employment_law.denom;
-          moduleScoreAccum.set(site.companyId, mExisting);
-        }
       }
 
       // Build new objects (spread) so complianceSummary is a plain own property
       const allCompanies = rawCompanies.map(c => {
         const acc = complianceAccum.get(c.id);
-        const msAcc = moduleScoreAccum.get(c.id);
-        const moduleScores = msAcc ? {
-          health_safety: msAcc.health_safety.denom > 0 ? Math.round((msAcc.health_safety.compliant / msAcc.health_safety.denom) * 100) : 0,
-          human_resources: msAcc.human_resources.denom > 0 ? Math.round((msAcc.human_resources.compliant / msAcc.human_resources.denom) * 100) : 0,
-          employment_law: msAcc.employment_law.denom > 0 ? Math.round((msAcc.employment_law.compliant / msAcc.employment_law.denom) * 100) : 0,
-        } : undefined;
+        // Use the per-company module scores computed by computePerCompanyModuleScores,
+        // which mirrors computeSlotBasedCompliance exactly (correct deduplication across sites).
+        const moduleScores = perCompanyModuleScores.get(c.id);
         if (!acc) return { ...c, moduleScores };
         const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
         return {
