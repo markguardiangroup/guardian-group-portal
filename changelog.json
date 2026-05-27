@@ -5830,6 +5830,13 @@
           "message": "Disabled module cards on dashboard now show not active/not enabled instead of a score",
           "category": "enhancement",
           "createdAt": "2026-05-27T20:34:04.041Z"
+        },
+        {
+          "id": "ea143d1e-ea06-4382-b6ec-73d96064ef8d",
+          "patch": 10,
+          "message": "Fixed: disabled module cards now correctly detect company-level module access on dashboard",
+          "category": "bug",
+          "createdAt": "2026-05-27T20:36:52.769Z"
         }
       ],
       "publishedPatch": 9,

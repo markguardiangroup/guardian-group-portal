@@ -962,8 +962,9 @@ export default function Dashboard2() {
   const complianceSummaries = moduleSummaries ? realComplianceSummaries : placeholderComplianceSummaries;
 
   // Determine which compliance modules are disabled in the current context.
-  // For a specific site: use the site's moduleAccess (covers consultant/admin viewing a client's site).
-  // For client users with no site selected: use their own module access from the hook.
+  // For a specific site: use that site's moduleAccess.
+  // For a selected company (no specific site): use any site from that company — all share the same company-level flags.
+  // For client users with no selection: use their own module access from the hook.
   const disabledComplianceModules = useMemo(() => {
     const modules = ["health_safety", "human_resources", "employment_law"];
     if (siteId && sites) {
@@ -972,11 +973,18 @@ export default function Dashboard2() {
         return new Set(modules.filter(m => (sel.moduleAccess as Record<string, string>)[m] === "hidden"));
       }
     }
+    if (filteredSites && filteredSites.length > 0 && filteredSites !== sites) {
+      // A specific company is selected — use the first site's moduleAccess (all sites share company-level flags)
+      const rep = filteredSites[0];
+      if (rep?.moduleAccess) {
+        return new Set(modules.filter(m => (rep.moduleAccess as Record<string, string>)[m] === "hidden"));
+      }
+    }
     if (isClientUser) {
       return new Set(modules.filter(m => isHidden(m as ModuleType)));
     }
     return new Set<string>();
-  }, [siteId, sites, isClientUser, isHidden]);
+  }, [siteId, sites, filteredSites, isClientUser, isHidden]);
 
   const hasSupportAccess = hasActiveAccess("support");
   const isSupportLocked = !hasSupportAccess;
