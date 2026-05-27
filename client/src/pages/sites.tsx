@@ -102,21 +102,27 @@ const SITE_COMPLIANCE_MODULES = [
 
 function SiteComplianceModulePicker({ site }: { site: SiteWithDetails }) {
   const [, navigate] = useLocation();
-  const { setSelectedSiteId } = useSiteFilter();
+  const { setSelectedSiteId, setSelectedCompany } = useSiteFilter();
   const [open, setOpen] = useState(false);
-  const enabled = SITE_COMPLIANCE_MODULES.filter(m => site.moduleAccess?.[m.moduleKey] === "active");
+  // Include any module that is not explicitly hidden ("active" or "visible").
+  // Sites without site_module_access records default to all "hidden", so when
+  // no modules qualify we still navigate to the primary H&S dashboard with the
+  // site filter pre-set so the user sees compliance details for their site.
+  const enabled = SITE_COMPLIANCE_MODULES.filter(m => site.moduleAccess?.[m.moduleKey] !== "hidden");
 
   if (!site.complianceSummary) return null;
 
   const goTo = (path: string) => {
     setSelectedSiteId(site.id);
+    if (site.companyName) setSelectedCompany(site.companyName);
     navigate(path);
   };
 
   const badge = <ComplianceBadge summary={site.complianceSummary} />;
 
   if (enabled.length <= 1) {
-    const dest = enabled.length === 1 ? enabled[0].path : `/sites/${site.id}`;
+    // When 0 modules are accessible fall back to the primary H&S dashboard
+    const dest = enabled.length === 1 ? enabled[0].path : "/health-safety";
     return (
       <span
         role="button"
