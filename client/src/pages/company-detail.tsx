@@ -2629,7 +2629,7 @@ export default function CompanyDetail() {
                             <div>
                               <p className="text-sm font-medium">Join a group</p>
                               <p className="text-xs text-muted-foreground mt-0.5">
-                                Assign this company as a member under an existing Group Owner.
+                                Link this company to another company to form or join a group. The selected company will become the Group Owner.
                               </p>
                             </div>
                             <Select

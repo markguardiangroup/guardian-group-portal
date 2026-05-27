@@ -5655,6 +5655,13 @@
           "message": "Groups: any company can now be set as a group owner, not just existing group owners",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:30:00.000Z"
+        },
+        {
+          "id": "a9b0c1d2-join-group-description-updated-2026",
+          "patch": 10,
+          "message": "Improved wording on the 'Join a group' option to reflect that any company can be selected",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T14:35:00.000Z"
         }
       ],
       "publishedPatch": 9,
