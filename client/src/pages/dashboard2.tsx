@@ -1017,6 +1017,18 @@ export default function Dashboard2() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={resetFilters}
+                className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                data-testid="button-clear-filters-dashboard"
+                title="Clear selection"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             {isProConsultant && (
               <Select
                 value={staffFilter}
@@ -1078,18 +1090,6 @@ export default function Dashboard2() {
             )}
             {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
               <>
-                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetFilters}
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters-dashboard"
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
                 {isPrivilegedUser && (
                   <CompanyCombobox
                     sites={sites}

@@ -5942,6 +5942,13 @@
           "message": "Fixed: company and site filter boxes no longer flicker when changing the staff scope filter on the dashboard",
           "category": "bug",
           "createdAt": "2026-05-27T22:54:33.494Z"
+        },
+        {
+          "id": "5d80cbe2-b95f-4e3e-a954-ae5d84121452",
+          "patch": 10,
+          "message": "Moved the clear-filters button to the left of all filters on the dashboard",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T22:59:37.538Z"
         }
       ],
       "publishedPatch": 9,
