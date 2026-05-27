@@ -3914,7 +3914,7 @@ function IncidentsListView() {
   });
   const incidents = Array.isArray(incidentsRaw) ? incidentsRaw : [];
 
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<any[]>({
     queryKey: coverageQueryKey,
@@ -4075,6 +4075,31 @@ function IncidentsListView() {
                   {coveringFor.map(c => (
                     <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-incidents-${c.absentConsultantId}`}>
                       {c.absentConsultantName}'s client sites
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {isProConsultant && (
+              <Select
+                value={proStaffFilter}
+                onValueChange={(v) => { setProStaffFilter(v); resetFilters(); }}
+              >
+                <SelectTrigger className="w-[205px] text-sm" data-testid="select-pro-staff-filter-incidents">
+                  <span className="truncate pointer-events-none">
+                    {proStaffFilter === "my"
+                      ? "My client sites"
+                      : proStaffFilter === "all"
+                        ? "All client sites"
+                        : (myStaff.find(s => s.id === proStaffFilter)?.fullName ?? "Staff") + "'s client sites"}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="my">My client sites</SelectItem>
+                  <SelectItem value="all">All client sites</SelectItem>
+                  {myStaff.map(s => (
+                    <SelectItem key={s.id} value={s.id} data-testid={`pro-staff-filter-incidents-${s.id}`}>
+                      {s.fullName}'s client sites
                     </SelectItem>
                   ))}
                 </SelectContent>

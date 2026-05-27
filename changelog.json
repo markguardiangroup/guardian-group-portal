@@ -5900,6 +5900,13 @@
           "message": "Pro consultant site filter now applies across all module pages (documents, training, toolkit, calendar, incidents, cases, support, reports)",
           "category": "enhancement",
           "createdAt": "2026-05-27T22:05:00.000Z"
+        },
+        {
+          "id": "g7b2c6d8-pro-staff-filter-dropdown-on-module-pages-2026",
+          "patch": 10,
+          "message": "Pro consultant 'My/All client sites' dropdown now visible and changeable on all module pages",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T22:15:00.000Z"
         }
       ],
       "publishedPatch": 9,

@@ -336,7 +336,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
   const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
@@ -1495,6 +1495,31 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 {coveringFor.map(c => (
                   <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-docs-${c.absentConsultantId}`}>
                     {c.absentConsultantName}'s client sites
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {isProConsultant && (
+            <Select
+              value={proStaffFilter}
+              onValueChange={(v) => { setProStaffFilter(v); handleCompanyChange(null); }}
+            >
+              <SelectTrigger className="w-[205px] text-sm" data-testid="select-pro-staff-filter-docs">
+                <span className="truncate pointer-events-none">
+                  {proStaffFilter === "my"
+                    ? "My client sites"
+                    : proStaffFilter === "all"
+                      ? "All client sites"
+                      : (myStaff.find(s => s.id === proStaffFilter)?.fullName ?? "Staff") + "'s client sites"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My client sites</SelectItem>
+                <SelectItem value="all">All client sites</SelectItem>
+                {myStaff.map(s => (
+                  <SelectItem key={s.id} value={s.id} data-testid={`pro-staff-filter-docs-${s.id}`}>
+                    {s.fullName}'s client sites
                   </SelectItem>
                 ))}
               </SelectContent>

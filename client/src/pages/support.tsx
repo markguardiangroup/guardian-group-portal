@@ -703,7 +703,7 @@ export default function Support() {
   const [activeTab, setActiveTab] = useState("all");
 
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
-  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey } = useCoverageFilter();
+  const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: coverageQueryKey,
@@ -821,6 +821,31 @@ export default function Support() {
                 {coveringFor.map(c => (
                   <SelectItem key={c.absentConsultantId} value={c.absentConsultantId} data-testid={`coverage-filter-support-${c.absentConsultantId}`}>
                     {c.absentConsultantName}'s client sites
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {isProConsultant && (
+            <Select
+              value={proStaffFilter}
+              onValueChange={(v) => { setProStaffFilter(v); setCompanyFilter("all"); setSiteFilter("all"); }}
+            >
+              <SelectTrigger className="w-[205px] text-sm" data-testid="select-pro-staff-filter-support">
+                <span className="truncate pointer-events-none">
+                  {proStaffFilter === "my"
+                    ? "My client sites"
+                    : proStaffFilter === "all"
+                      ? "All client sites"
+                      : (myStaff.find(s => s.id === proStaffFilter)?.fullName ?? "Staff") + "'s client sites"}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="my">My client sites</SelectItem>
+                <SelectItem value="all">All client sites</SelectItem>
+                {myStaff.map(s => (
+                  <SelectItem key={s.id} value={s.id} data-testid={`pro-staff-filter-support-${s.id}`}>
+                    {s.fullName}'s client sites
                   </SelectItem>
                 ))}
               </SelectContent>
