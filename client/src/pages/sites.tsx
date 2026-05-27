@@ -232,15 +232,13 @@ let _sitesShown = false;
 
 export default function Sites() {
   const { user } = useAuth();
-  const [localSelectedCompany, setLocalSelectedCompany] = useState<string | null>(null);
-  const handleCompanyChange = (val: string | null) => setLocalSelectedCompany(val);
-  const companyFilter = localSelectedCompany || "all";
-  const setCompanyFilter = (val: string) => setLocalSelectedCompany(val === "all" ? null : val);
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(20);
   const [complianceFilter, setComplianceFilter] = useState<string>("all");
-  const { proStaffFilter: staffFilter, setProStaffFilter: setStaffFilter } = useSiteFilter();
+  const { sitesCompanyId, setSitesCompanyId, proStaffFilter: staffFilter, setProStaffFilter: setStaffFilter } = useSiteFilter();
+  const companyFilter = sitesCompanyId || "all";
+  const setCompanyFilter = (val: string) => setSitesCompanyId(val === "all" ? null : val);
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   
@@ -302,8 +300,8 @@ export default function Sites() {
       )
     : [];
 
-  // Derive selected company for primary contact display
-  const selectedCompany = companies?.find(c => c.id === newSite.companyId) ?? null;
+  // Derive selected company for primary contact display (for the new-site form)
+  const newSiteCompany = companies?.find(c => c.id === newSite.companyId) ?? null;
 
   const createSiteMutation = useMutation({
     mutationFn: async (data: typeof newSite) => {
@@ -889,11 +887,11 @@ export default function Sites() {
                 <>
                   {/* Company primary contact — read-only */}
                   {(() => {
-                    const linkedUser = selectedCompany?.contactUserId ? allUsers.find(u => u.id === selectedCompany.contactUserId) : null;
-                    const displayName = selectedCompany?.contactName || linkedUser?.fullName;
-                    const displayPosition = selectedCompany?.contactPosition || linkedUser?.jobTitle;
-                    const displayEmail = selectedCompany?.contactEmail || linkedUser?.email;
-                    const displayPhone = selectedCompany?.contactPhone || linkedUser?.phone || linkedUser?.mobile;
+                    const linkedUser = newSiteCompany?.contactUserId ? allUsers.find(u => u.id === newSiteCompany.contactUserId) : null;
+                    const displayName = newSiteCompany?.contactName || linkedUser?.fullName;
+                    const displayPosition = newSiteCompany?.contactPosition || linkedUser?.jobTitle;
+                    const displayEmail = newSiteCompany?.contactEmail || linkedUser?.email;
+                    const displayPhone = newSiteCompany?.contactPhone || linkedUser?.phone || linkedUser?.mobile;
                     return (
                       <div className="mb-3">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Company Primary Contact</p>
@@ -924,10 +922,10 @@ export default function Sites() {
                   {/* Additional users */}
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Additional Users</p>
-                    {companyUsers.filter(u => u.id !== selectedCompany?.contactUserId).length > 0 ? (
+                    {companyUsers.filter(u => u.id !== newSiteCompany?.contactUserId).length > 0 ? (
                       <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
                         {companyUsers
-                          .filter(u => u.id !== selectedCompany?.contactUserId)
+                          .filter(u => u.id !== newSiteCompany?.contactUserId)
                           .map((u) => {
                             const checked = newSite.additionalUserIds.includes(u.id);
                             return (

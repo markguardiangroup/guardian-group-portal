@@ -5914,6 +5914,13 @@
           "message": "Fixed: calendar page error when logged in as a pro consultant",
           "category": "bug",
           "createdAt": "2026-05-27T22:20:00.000Z"
+        },
+        {
+          "id": "17fbab6b-615c-4d1b-9cc9-64a77fab4108",
+          "patch": 10,
+          "message": "Fixed: company filter on Sites page now persists across navigation",
+          "category": "bug",
+          "createdAt": "2026-05-27T22:28:43.291Z"
         }
       ],
       "publishedPatch": 9,

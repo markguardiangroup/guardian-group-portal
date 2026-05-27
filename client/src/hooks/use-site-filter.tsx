@@ -6,11 +6,13 @@ interface SiteFilterContextType {
   selectedGroup: string;
   coverageConsultantId: string | null;
   proStaffFilter: string;
+  sitesCompanyId: string | null;
   setSelectedCompany: (company: string | null) => void;
   setSelectedSiteId: (siteId: string | null) => void;
   setSelectedGroup: (group: string) => void;
   setCoverageConsultantId: (id: string | null) => void;
   setProStaffFilter: (v: string) => void;
+  setSitesCompanyId: (id: string | null) => void;
   handleCompanyChange: (company: string | null) => void;
   resetFilters: () => void;
 }
@@ -23,6 +25,7 @@ export function SiteFilterProvider({ children }: { children: ReactNode }) {
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [coverageConsultantId, setCoverageConsultantId] = useState<string | null>(null);
   const [proStaffFilter, setProStaffFilter] = useState<string>("my");
+  const [sitesCompanyId, setSitesCompanyId] = useState<string | null>(null);
 
   const handleCompanyChange = useCallback((company: string | null) => {
     setSelectedCompany(company);
@@ -43,11 +46,13 @@ export function SiteFilterProvider({ children }: { children: ReactNode }) {
         selectedGroup,
         coverageConsultantId,
         proStaffFilter,
+        sitesCompanyId,
         setSelectedCompany,
         setSelectedSiteId,
         setSelectedGroup,
         setCoverageConsultantId,
         setProStaffFilter,
+        setSitesCompanyId,
         handleCompanyChange,
         resetFilters,
       }}
