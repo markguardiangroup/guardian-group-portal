@@ -5865,6 +5865,13 @@
           "message": "Fixed: Group Owner sites now correctly show in module document views via inherited access",
           "category": "bug",
           "createdAt": "2026-05-27T21:14:55.678Z"
+        },
+        {
+          "id": "bfb67135-1152-4650-b413-9f6ff3d1e987",
+          "patch": 10,
+          "message": "Removed 4 stale external test documents (files and records) from HR module",
+          "category": "other",
+          "createdAt": "2026-05-27T21:22:01.634Z"
         }
       ],
       "publishedPatch": 9,
