@@ -1032,6 +1032,19 @@ export class MemStorage implements IStorage {
         templateMap,
       );
 
+      // TEMP DEBUG — remove after confirming fix
+      if (site.name?.toLowerCase().includes("gloucester")) {
+        console.log("[DEBUG gloucester]", {
+          siteId: site.id,
+          companyId: site.companyId,
+          moduleAccess,
+          siteDocsCount: siteDocs.length,
+          companyRequiredCount: companyRequired.length,
+          companyRequiredRaw: (requiredByCompany.get(site.companyId) ?? []).length,
+          complianceScore: complianceSummary.complianceScore,
+        });
+      }
+
       const { scores: moduleScores, raw: moduleRawCounts } = this.computePerModuleScores(
         siteDocs,
         siteOverrides,
