@@ -5722,7 +5722,7 @@
         {
           "id": "d8e0a2b4-compliance-module-picker-2026",
           "patch": 10,
-          "message": "Compliance badge now links to Site Documents area; picker for multi-module companies",
+          "message": "Compliance badge navigates to the module dashboard (respects selected company/site)",
           "category": "enhancement",
           "createdAt": "2026-05-27T16:05:00.000Z"
         }
