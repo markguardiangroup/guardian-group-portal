@@ -5795,6 +5795,13 @@
           "message": "Fixed: sites with no explicit access record now default to enabled when company has the module on",
           "category": "bug",
           "createdAt": "2026-05-27T19:58:00.000Z"
+        },
+        {
+          "id": "c3d5e7f9-module-guard-blocks-disabled-module-pages-2026",
+          "patch": 10,
+          "message": "Client users see a 'module not enabled' message if they navigate to a disabled module",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T20:05:00.000Z"
         }
       ],
       "publishedPatch": 9,

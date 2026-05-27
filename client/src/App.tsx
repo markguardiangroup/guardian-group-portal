@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, FileText, Loader2, Eye } from "lucide-react";
+import { ShieldCheck, FileText, Loader2, Eye, Lock } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
@@ -105,51 +105,59 @@ function CanonicalTag() {
 }
 
 function HealthSafetyDashboard() {
-  return <ModuleDashboard module="health_safety" />;
+  return <ModuleGuard module="health_safety"><ModuleDashboard module="health_safety" /></ModuleGuard>;
 }
 
 function HumanResourcesDashboard() {
-  return <ModuleDashboard module="human_resources" />;
+  return <ModuleGuard module="human_resources"><ModuleDashboard module="human_resources" /></ModuleGuard>;
 }
 
 function EmploymentLawDashboard() {
-  return <ModuleDashboard module="employment_law" />;
+  return <ModuleGuard module="employment_law"><ModuleDashboard module="employment_law" /></ModuleGuard>;
 }
 
 function HealthSafetyDocuments() {
-  return <ModuleDocuments module="health_safety" />;
+  return <ModuleGuard module="health_safety"><ModuleDocuments module="health_safety" /></ModuleGuard>;
 }
 
 function HumanResourcesDocuments() {
-  return <ModuleDocuments module="human_resources" />;
+  return <ModuleGuard module="human_resources"><ModuleDocuments module="human_resources" /></ModuleGuard>;
 }
 
 function EmploymentLawDocuments() {
-  return <ModuleDocuments module="employment_law" />;
+  return <ModuleGuard module="employment_law"><ModuleDocuments module="employment_law" /></ModuleGuard>;
 }
 
 function HealthSafetySites() {
-  return <ModuleSites module="health_safety" />;
+  return <ModuleGuard module="health_safety"><ModuleSites module="health_safety" /></ModuleGuard>;
 }
 
 function HumanResourcesSites() {
-  return <ModuleSites module="human_resources" />;
+  return <ModuleGuard module="human_resources"><ModuleSites module="human_resources" /></ModuleGuard>;
 }
 
 function EmploymentLawSites() {
-  return <ModuleSites module="employment_law" />;
+  return <ModuleGuard module="employment_law"><ModuleSites module="employment_law" /></ModuleGuard>;
 }
 
 function HSClientUploads() {
-  return <ClientUploads module="health_safety" />;
+  return <ModuleGuard module="health_safety"><ClientUploads module="health_safety" /></ModuleGuard>;
 }
 
 function HRClientUploads() {
-  return <ClientUploads module="human_resources" />;
+  return <ModuleGuard module="human_resources"><ClientUploads module="human_resources" /></ModuleGuard>;
 }
 
 function ELClientUploads() {
-  return <ClientUploads module="employment_law" />;
+  return <ModuleGuard module="employment_law"><ClientUploads module="employment_law" /></ModuleGuard>;
+}
+
+function HSIncidentsGuarded() {
+  return <ModuleGuard module="health_safety"><HSIncidents /></ModuleGuard>;
+}
+
+function ElCasesGuarded() {
+  return <ModuleGuard module="employment_law"><ElCasesPage /></ModuleGuard>;
 }
 
 
@@ -170,6 +178,27 @@ function AccessGuard({ component: Component, allow }: { component: ComponentType
   return <Component />;
 }
 
+function ModuleGuard({ module, children }: { module: ModuleType; children: React.ReactNode }) {
+  const { isHidden, isLoading } = useModuleAccess();
+  if (isLoading) return null;
+  if (isHidden(module)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="rounded-full bg-muted p-4">
+            <Lock className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h2 className="text-xl font-semibold">This module is not enabled</h2>
+          <p className="text-muted-foreground max-w-sm">
+            For more information about this service, please contact your advisor.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 function Router() {
   return (
     <>
@@ -186,8 +215,8 @@ function Router() {
       <Route path="/health-safety/documents" component={HealthSafetyDocuments} />
       <Route path="/health-safety/documents/upload" component={DocumentUpload} />
       <Route path="/health-safety/documents/:id" component={HealthSafetyDocuments} />
-      <Route path="/health-safety/incidents" component={HSIncidents} />
-      <Route path="/health-safety/incidents/:id" component={HSIncidents} />
+      <Route path="/health-safety/incidents" component={HSIncidentsGuarded} />
+      <Route path="/health-safety/incidents/:id" component={HSIncidentsGuarded} />
       <Route path="/health-safety/cloud-share" component={HSClientUploads} />
       
       <Route path="/human-resources" component={HumanResourcesDashboard} />
@@ -202,8 +231,8 @@ function Router() {
       <Route path="/employment-law/documents" component={EmploymentLawDocuments} />
       <Route path="/employment-law/documents/upload" component={DocumentUpload} />
       <Route path="/employment-law/documents/:id" component={EmploymentLawDocuments} />
-      <Route path="/employment-law/cases" component={ElCasesPage} />
-      <Route path="/employment-law/cases/:id" component={ElCasesPage} />
+      <Route path="/employment-law/cases" component={ElCasesGuarded} />
+      <Route path="/employment-law/cases/:id" component={ElCasesGuarded} />
       <Route path="/employment-law/cloud-share" component={ELClientUploads} />
       
       <Route path="/documents" component={Documents} />
