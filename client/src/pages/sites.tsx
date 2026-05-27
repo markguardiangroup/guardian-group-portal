@@ -44,12 +44,20 @@ import {
   ChevronUp,
   ChevronDown,
   FileText,
+  HardHat,
+  Scale,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails, ComplianceSummary, Company, User } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
 import { Users } from "lucide-react";
+import { useSiteFilter } from "@/hooks/use-site-filter";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
   if (!summary) {
@@ -83,6 +91,70 @@ function ComplianceBadge({ summary }: { summary?: ComplianceSummary }) {
       <XCircle className="h-3 w-3" />
       {score}%
     </Badge>
+  );
+}
+
+const SITE_COMPLIANCE_MODULES = [
+  { accessKey: "healthSafetyAccess", label: "Health & Safety", path: "/health-safety", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
+  { accessKey: "humanResourcesAccess", label: "Human Resources", path: "/human-resources", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
+  { accessKey: "employmentLawAccess", label: "Employment Law", path: "/employment-law", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
+] as const;
+
+function SiteComplianceModulePicker({ site }: { site: SiteWithDetails }) {
+  const [, navigate] = useLocation();
+  const { setSelectedSiteId } = useSiteFilter();
+  const [open, setOpen] = useState(false);
+  const enabled = SITE_COMPLIANCE_MODULES.filter(m => (site as any)[m.accessKey]);
+
+  if (!site.complianceSummary) return null;
+
+  const goTo = (path: string) => {
+    setSelectedSiteId(site.id);
+    navigate(path);
+  };
+
+  const badge = <ComplianceBadge summary={site.complianceSummary} />;
+
+  if (enabled.length <= 1) {
+    const dest = enabled.length === 1 ? enabled[0].path : `/sites/${site.id}`;
+    return (
+      <span
+        role="button"
+        className="cursor-pointer"
+        onClick={(e) => { e.stopPropagation(); goTo(dest); }}
+        data-testid={`badge-compliance-link-${site.id}`}
+      >
+        {badge}
+      </span>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <span
+          role="button"
+          className="cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+          data-testid={`badge-compliance-link-${site.id}`}
+        >
+          {badge}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to dashboard</p>
+        {enabled.map(({ label, path, Icon, iconClass }) => (
+          <button
+            key={path}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            onClick={(e) => { e.stopPropagation(); goTo(path); setOpen(false); }}
+          >
+            <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
+            {label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -558,14 +630,7 @@ export default function Sites() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <span
-                        role="button"
-                        className="cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/sites/${site.id}`); }}
-                        data-testid={`badge-compliance-link-${site.id}`}
-                      >
-                        <ComplianceBadge summary={site.complianceSummary} />
-                      </span>
+                      <SiteComplianceModulePicker site={site} />
                       {site.complianceSummary && (
                         <span
                           role="button"

@@ -5725,6 +5725,13 @@
           "message": "Compliance badge now pre-selects the company and navigates to its module dashboard",
           "category": "enhancement",
           "createdAt": "2026-05-27T16:05:00.000Z"
+        },
+        {
+          "id": "e9f1b3c5-site-compliance-module-picker-2026",
+          "patch": 10,
+          "message": "Sites list: compliance badge now navigates to the site's module dashboard",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T16:30:00.000Z"
         }
       ],
       "publishedPatch": 9,
