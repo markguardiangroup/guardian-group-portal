@@ -92,6 +92,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 function CompanyComplianceBadge({ summary, onClick }: { summary?: ComplianceSummary; onClick?: (e: React.MouseEvent) => void }) {
   if (!summary) return null;
@@ -113,6 +118,64 @@ function CompanyComplianceBadge({ summary, onClick }: { summary?: ComplianceSumm
       <Icon className="h-3 w-3" />
       {score}%
     </Badge>
+  );
+}
+
+const COMPLIANCE_MODULES = [
+  { accessKey: "healthSafetyAccess", label: "Health & Safety", path: "/health-safety/documents", Icon: HardHat, iconClass: "text-emerald-600 dark:text-emerald-400" },
+  { accessKey: "humanResourcesAccess", label: "Human Resources", path: "/human-resources/documents", Icon: Users, iconClass: "text-blue-600 dark:text-blue-400" },
+  { accessKey: "employmentLawAccess", label: "Employment Law", path: "/employment-law/documents", Icon: Scale, iconClass: "text-pink-600 dark:text-pink-400" },
+] as const;
+
+function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) {
+  const [, navigate] = useLocation();
+  const [open, setOpen] = useState(false);
+  const enabled = COMPLIANCE_MODULES.filter(m => (company as any)[m.accessKey]);
+
+  const badge = <CompanyComplianceBadge summary={company.complianceSummary} />;
+
+  if (!company.complianceSummary) return null;
+
+  if (enabled.length <= 1) {
+    const dest = enabled.length === 1 ? enabled[0].path : `/companies/${company.id}`;
+    return (
+      <span
+        role="button"
+        className="cursor-pointer"
+        onClick={(e) => { e.stopPropagation(); navigate(dest); }}
+        data-testid={`badge-compliance-link-${company.id}`}
+      >
+        {badge}
+      </span>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <span
+          role="button"
+          className="cursor-pointer"
+          onClick={(e) => e.stopPropagation()}
+          data-testid={`badge-compliance-link-${company.id}`}
+        >
+          {badge}
+        </span>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-1.5" align="start" onClick={(e) => e.stopPropagation()}>
+        <p className="px-2 py-1 text-xs font-medium text-muted-foreground">Go to documents</p>
+        {enabled.map(({ label, path, Icon, iconClass }) => (
+          <button
+            key={path}
+            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+            onClick={(e) => { e.stopPropagation(); navigate(path); setOpen(false); }}
+          >
+            <Icon className={`h-3.5 w-3.5 shrink-0 ${iconClass}`} />
+            {label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -1444,14 +1507,7 @@ export default function Companies() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <span
-                        role="button"
-                        className="cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); navigate(`/companies/${company.id}`); }}
-                        data-testid={`badge-compliance-link-${company.id}`}
-                      >
-                        <CompanyComplianceBadge summary={company.complianceSummary} />
-                      </span>
+                      <ComplianceModulePicker company={company} />
                       {company.complianceSummary && (
                         <span
                           role="button"

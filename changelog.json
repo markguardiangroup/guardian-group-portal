@@ -5718,6 +5718,13 @@
           "message": "Companies list: Status column repositioned immediately after Company column",
           "category": "enhancement",
           "createdAt": "2026-05-27T15:45:00.000Z"
+        },
+        {
+          "id": "d8e0a2b4-compliance-module-picker-2026",
+          "patch": 10,
+          "message": "Compliance badge links to module documents; multi-module companies show a picker",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T15:55:00.000Z"
         }
       ],
       "publishedPatch": 9,
