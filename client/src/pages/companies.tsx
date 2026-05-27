@@ -1330,10 +1330,17 @@ export default function Companies() {
                   </TableCell>
                   <TableCell>
                     {(company.addressLine1 || company.city) ? (
-                      <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([company.addressLine1, company.city, company.postalCode].filter(Boolean).join(", "))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                        data-testid={`link-maps-company-${company.id}`}
+                      >
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         {[company.addressLine1, company.city, company.postalCode].filter(Boolean).join(", ")}
-                      </span>
+                      </a>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}

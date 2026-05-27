@@ -5641,6 +5641,13 @@
           "message": "Companies and Sites lists: address column now consistent with pin icon and full address",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:00:00.000Z"
+        },
+        {
+          "id": "e7f8a9b0-google-maps-address-links-2026",
+          "patch": 10,
+          "message": "Addresses on Companies and Sites lists now link directly to Google Maps",
+          "category": "enhancement",
+          "createdAt": "2026-05-27T14:10:00.000Z"
         }
       ],
       "publishedPatch": 9,
