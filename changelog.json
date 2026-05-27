@@ -5645,7 +5645,7 @@
         {
           "id": "e7f8a9b0-google-maps-address-links-2026",
           "patch": 10,
-          "message": "Company and Site detail pages: address now links to Google Maps (includes name in search)",
+          "message": "Company and Site detail pages: address shows an 'Open in Google Maps' link with the Google Maps icon",
           "category": "enhancement",
           "createdAt": "2026-05-27T14:10:00.000Z"
         }

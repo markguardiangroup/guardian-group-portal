@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { SiGooglemaps } from "react-icons/si";
 import { useParams, useLocation, useSearch, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -171,13 +172,7 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
           {(entity.addressLine1 || entity.city || entity.postalCode) && (
             <div>
               <p className="text-xs text-muted-foreground mb-1">Address</p>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([entity.name, entity.addressLine1, entity.addressLine2, entity.city, entity.county, entity.postalCode].filter(Boolean).join(", "))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm hover:underline transition-colors group"
-                data-testid="link-maps-site"
-              >
+              <div className="text-sm">
                 {entity.addressLine1 && <p>{entity.addressLine1}</p>}
                 {entity.addressLine2 && <p>{entity.addressLine2}</p>}
                 {(entity.city || entity.county) && (
@@ -185,7 +180,17 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
                 )}
                 {entity.postalCode && <p>{entity.postalCode}</p>}
                 {entity.country && <p>{entity.country}</p>}
-              </a>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([entity.name, entity.addressLine1, entity.addressLine2, entity.city, entity.county, entity.postalCode].filter(Boolean).join(", "))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid="link-maps-site"
+                >
+                  <SiGooglemaps className="h-3.5 w-3.5 text-[#EA4335]" />
+                  Open in Google Maps
+                </a>
+              </div>
             </div>
           )}
           

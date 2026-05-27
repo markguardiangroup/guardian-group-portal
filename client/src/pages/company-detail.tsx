@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SiGooglemaps } from "react-icons/si";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -2130,14 +2131,8 @@ export default function CompanyDetail() {
                 {(company.addressLine1 || company.city || company.postalCode) && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Address</p>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([company.name, company.addressLine1, company.addressLine2, company.city, company.county, company.postalCode].filter(Boolean).join(", "))}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-2 text-sm hover:underline transition-colors group"
-                      data-testid="link-maps-company"
-                    >
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0 group-hover:text-primary transition-colors" />
+                    <div className="flex items-start gap-2 text-sm">
+                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                       <div>
                         {company.addressLine1 && <p>{company.addressLine1}</p>}
                         {company.addressLine2 && <p>{company.addressLine2}</p>}
@@ -2146,8 +2141,19 @@ export default function CompanyDetail() {
                         )}
                         {company.postalCode && <p>{company.postalCode}</p>}
                         {company.country && <p>{company.country}</p>}
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([company.name, company.addressLine1, company.addressLine2, company.city, company.county, company.postalCode].filter(Boolean).join(", "))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 mt-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid="link-maps-company"
+                        >
+                          <SiGooglemaps className="h-3.5 w-3.5 text-[#EA4335]" />
+                          Open in Google Maps
+                        </a>
                       </div>
-                    </a>
+                    </div>
                   </div>
                 )}
 
