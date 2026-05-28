@@ -6140,6 +6140,13 @@
           "createdAt": "2026-05-28T20:30:00.000Z"
         },
         {
+          "id": "u2o4p6q8-toolkit-pinned-top-tree-view-2026",
+          "patch": 11,
+          "message": "Fixed: Toolkit folder now appears at the top of the Template Library tree view",
+          "category": "bug",
+          "createdAt": "2026-05-28T20:45:00.000Z"
+        },
+        {
           "id": "t1n3o5p7-toolkit-folders-pinned-top-in-table-2026",
           "patch": 11,
           "message": "Template Library Folders tab: Toolkit folders now correctly appear at the top of the list",

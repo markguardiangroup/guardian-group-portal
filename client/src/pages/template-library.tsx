@@ -998,7 +998,14 @@ export default function TemplateLibraryPage() {
   };
   
   const getRootFolders = (module: ModuleType) => {
-    return filteredFolders.filter(f => f.module === module && !f.parentId).sort((a, b) => a.name.localeCompare(b.name));
+    return filteredFolders
+      .filter(f => f.module === module && !f.parentId)
+      .sort((a, b) => {
+        const aIsToolkit = !!(a.isLocked || a.toolkitFolderId);
+        const bIsToolkit = !!(b.isLocked || b.toolkitFolderId);
+        if (aIsToolkit !== bIsToolkit) return aIsToolkit ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
   };
   
   const getChildFolders = (parentId: string) => {
