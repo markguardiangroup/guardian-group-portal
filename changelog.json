@@ -6117,6 +6117,13 @@
           "message": "Manage Toolkit Folders moved to the Template Library page with module dropdown",
           "category": "enhancement",
           "createdAt": "2026-05-28T20:10:00.000Z"
+        },
+        {
+          "id": "p7j9k1l3-manage-tk-folders-live-update-2026",
+          "patch": 11,
+          "message": "Fixed: new toolkit folders now appear immediately without a page refresh",
+          "category": "bug",
+          "createdAt": "2026-05-28T20:20:00.000Z"
         }
       ],
       "publishedPatch": 10,

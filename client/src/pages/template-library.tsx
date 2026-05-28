@@ -760,7 +760,7 @@ export default function TemplateLibraryPage() {
     mutationFn: (data: { name: string; module: string; sources: string[] }) =>
       apiRequest("POST", "/api/toolkit/folders", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
       setNewTkFolderName("");
       setNewTkFolderSources([]);
@@ -775,7 +775,7 @@ export default function TemplateLibraryPage() {
     mutationFn: ({ id, sources }: { id: string; sources: string[] }) =>
       apiRequest("PATCH", `/api/toolkit/folders/${id}`, { sources }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
       setEditingTkFolderId(null);
       setEditingTkFolderSources([]);
@@ -792,7 +792,7 @@ export default function TemplateLibraryPage() {
       return res.json() as Promise<{ success: boolean; deletedTemplateCount: number }>;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
       setTkFolderToDelete(null);
       const count = data?.deletedTemplateCount ?? 0;
