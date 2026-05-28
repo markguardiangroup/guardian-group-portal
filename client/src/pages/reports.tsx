@@ -33,21 +33,33 @@ import {
   Building2,
   Calendar,
   CheckCircle,
+  Check,
   Clock,
   Download,
   Filter,
+  Lock,
   Scale,
+  Search,
   ShieldAlert,
   TrendingDown,
   GitPullRequest,
   Target,
   Info,
+  X,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Site, Company } from "@shared/schema";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-type ReportId = "gaps" | "expiry" | "comparison" | "pipeline" | "deadline" | "el-cases";
+type ReportId = "gaps" | "expiry" | "comparison" | "pipeline" | "deadline" | "el-cases" | "private-templates";
 
 const MODULE_LABELS: Record<string, string> = {
   health_safety: "Health & Safety",
@@ -740,6 +752,154 @@ function ElCasesReport({ companyId, siteId }: { companyId: string; siteId: strin
   );
 }
 
+// ─── Report: Private Templates ────────────────────────────────────────────────
+
+interface PrivateTemplateRow {
+  id: string;
+  name: string;
+  module: string;
+  folderName: string | null;
+  isRequired: boolean;
+  requiresApproval: boolean;
+  sources: string[];
+  sourceLabels: string[];
+}
+
+function PrivateTemplatesReport() {
+  const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  const { data, isLoading } = useQuery<{ templates: PrivateTemplateRow[]; total: number }>({
+    queryKey: ["/api/admin/private-templates"],
+    staleTime: 60_000,
+  });
+
+  const allCodes = Array.from(new Set((data?.templates ?? []).flatMap(t => t.sources))).sort();
+  const codeToLabel = new Map<string, string>();
+  (data?.templates ?? []).forEach(t => t.sources.forEach((code, i) => { if (!codeToLabel.has(code)) codeToLabel.set(code, t.sourceLabels[i]); }));
+
+  const filtered = (data?.templates ?? []).filter(t => {
+    const q = search.toLowerCase();
+    const matchesSearch = !q || t.name.toLowerCase().includes(q) || (t.folderName ?? "").toLowerCase().includes(q) || t.sourceLabels.some(l => l.toLowerCase().includes(q));
+    const matchesSource = sourceFilter === "all" || t.sources.includes(sourceFilter);
+    return matchesSearch && matchesSource;
+  });
+
+  function downloadCsv() {
+    if (!data) return;
+    const headers = ["Name", "Module", "Folder", "Sources", "Required", "Requires Approval"];
+    const rows = data.templates.map(r => [
+      r.name,
+      r.module,
+      r.folderName ?? "Unassigned",
+      r.sourceLabels.join("; "),
+      r.isRequired ? "Yes" : "No",
+      r.requiresApproval ? "Yes" : "No",
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `private_templates_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  if (isLoading) return <FetchingOverlay />;
+
+  return (
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-8 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Search by name, folder or source…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            data-testid="input-private-templates-search"
+          />
+        </div>
+        <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <SelectTrigger className="w-[200px]" data-testid="select-private-templates-source">
+            <SelectValue placeholder="All sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sources</SelectItem>
+            {allCodes.map(code => (
+              <SelectItem key={code} value={code}>{codeToLabel.get(code) ?? code}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" disabled={!data} onClick={downloadCsv} data-testid="button-download-private-templates-csv">
+          <Download className="h-4 w-4 mr-1.5" />
+          Download CSV
+        </Button>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Lock} title="No private templates found" description="No source-restricted templates match your current filters." />
+      ) : (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} template{filtered.length !== 1 ? "s" : ""}
+            {data && filtered.length < data.total ? ` (filtered from ${data.total})` : ""}
+          </p>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Template Name</TableHead>
+                  <TableHead>Module</TableHead>
+                  <TableHead>Folder</TableHead>
+                  <TableHead>Source(s)</TableHead>
+                  <TableHead className="text-center w-[90px]">Required</TableHead>
+                  <TableHead className="text-center w-[120px]">Req. Approval</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(t => (
+                  <TableRow key={t.id} data-testid={`private-template-row-${t.id}`}>
+                    <TableCell className="font-medium">{t.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs ${MODULE_COLORS[t.module] ?? "bg-muted text-muted-foreground"}`}>
+                        {MODULE_LABELS[t.module] ?? t.module}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {t.folderName ?? <span className="italic">Unassigned</span>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {t.sourceLabels.map((label, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">{label}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {t.isRequired
+                        ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                        : <X className="h-4 w-4 text-muted-foreground mx-auto" />}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {t.requiresApproval
+                        ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                        : <X className="h-4 w-4 text-muted-foreground mx-auto" />}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Summary data hooks (for tiles) ──────────────────────────────────────────
 
 function useTileSummaries(companyId: string, siteId: string) {
@@ -937,6 +1097,16 @@ export default function Reports() {
         : "live cases",
       accentColor: "hover:border-pink-400 dark:hover:border-pink-600",
     }] : []),
+    ...((isAdmin || isProConsultant) ? [{
+      id: "private-templates" as ReportId,
+      icon: Lock,
+      iconColor: "text-rose-600 dark:text-rose-400",
+      title: "Private Templates",
+      description: "All source-restricted templates — with folder, required and approval flags.",
+      metric: <MetricNumber value={undefined} loading={false} />,
+      metricLabel: "source-restricted",
+      accentColor: "hover:border-rose-400 dark:hover:border-rose-600",
+    }] : []),
   ];
 
   const REPORT_COMPONENTS: Record<ReportId, React.ReactNode> = {
@@ -946,6 +1116,7 @@ export default function Reports() {
     pipeline: <ApprovalPipelineReport companyId={companyId} siteId={siteFilter} />,
     deadline: <DeadlineRiskReport companyId={companyId} siteId={siteFilter} />,
     "el-cases": <ElCasesReport companyId={companyId} siteId={siteFilter} />,
+    "private-templates": <PrivateTemplatesReport />,
   };
 
   const activeTile = REPORT_TILES.find((t) => t.id === activeReport);

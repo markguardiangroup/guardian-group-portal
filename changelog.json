@@ -6033,6 +6033,13 @@
           "message": "New report: Private Templates — lists all source-restricted templates with folder, required and approval flags",
           "category": "feature",
           "createdAt": "2026-05-28T13:30:00.000Z"
+        },
+        {
+          "id": "c3e5a7b9-private-templates-moved-to-reports-2026",
+          "patch": 11,
+          "message": "Private Templates report moved to the main Reports module (visible to admins and Pro consultants)",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T13:55:00.000Z"
         }
       ],
       "publishedPatch": 10,
