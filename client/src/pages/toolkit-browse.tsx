@@ -601,7 +601,9 @@ export default function ToolkitBrowse() {
     },
   });
 
-  const filteredFolders = (toolkit?.folders ?? []).filter(f => f.module === selectedModule);
+  const filteredFolders = (toolkit?.folders ?? [])
+    .filter(f => f.module === selectedModule)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const visibleFolders = search.trim()
     ? filteredFolders.filter(f =>

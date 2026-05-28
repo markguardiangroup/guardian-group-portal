@@ -6124,6 +6124,13 @@
           "message": "Fixed: new toolkit folders now appear immediately without a page refresh",
           "category": "bug",
           "createdAt": "2026-05-28T20:20:00.000Z"
+        },
+        {
+          "id": "q8k0l2m4-toolkit-folders-alphabetical-2026",
+          "patch": 11,
+          "message": "Toolkit folders now appear in alphabetical order throughout the portal",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T20:25:00.000Z"
         }
       ],
       "publishedPatch": 10,

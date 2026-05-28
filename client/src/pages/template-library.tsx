@@ -2664,7 +2664,7 @@ export default function TemplateLibraryPage() {
                     <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false })}>
                       <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
                       <SelectContent>
-                        {toolkitFolders.filter(f => f.module === bulkShared.module).map(f => (
+                        {toolkitFolders.filter(f => f.module === bulkShared.module).sort((a, b) => a.name.localeCompare(b.name)).map(f => (
                           <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -3031,7 +3031,7 @@ export default function TemplateLibraryPage() {
                         <SelectValue placeholder="No folder (unassigned)" />
                       </SelectTrigger>
                       <SelectContent>
-                        {toolkitFolders.filter(f => f.module === templateFormData.module).map(folder => (
+                        {toolkitFolders.filter(f => f.module === templateFormData.module).sort((a, b) => a.name.localeCompare(b.name)).map(folder => (
                           <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -4015,7 +4015,7 @@ export default function TemplateLibraryPage() {
                     <div className="divide-y rounded-md border">
                       {toolkitFolders
                         .filter(f => f.module === manageTkModule)
-                        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+                        .sort((a, b) => a.name.localeCompare(b.name))
                         .map(folder => {
                           const inUse = templates.filter(t => (t as any).toolkitFolderId === folder.id).length;
                           const isEditing = editingTkFolderId === folder.id;
