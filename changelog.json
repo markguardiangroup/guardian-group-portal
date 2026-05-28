@@ -6005,6 +6005,13 @@
           "message": "Fixed: Report Incident button now shows on the dashboard view, not just the register view",
           "category": "bug",
           "createdAt": "2026-05-28T13:20:00.000Z"
+        },
+        {
+          "id": "e3a7b9c5-save-permissions-patch-request-fix-2026",
+          "patch": 11,
+          "message": "Fixed: Save Permissions button now reliably sends the permission update to the server",
+          "category": "bug",
+          "createdAt": "2026-05-28T10:35:00.000Z"
         }
       ],
       "publishedPatch": 10,

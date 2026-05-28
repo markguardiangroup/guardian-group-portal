@@ -4107,7 +4107,7 @@ export default function UserManagement() {
               </div>
               <Switch
                 checked={permissionsForm.caseAdvocate}
-                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, caseAdvocate: checked })}
+                onCheckedChange={(checked) => setPermissionsForm(prev => ({ ...prev, caseAdvocate: checked }))}
                 data-testid="switch-permission-case-advocate"
               />
             </div>
@@ -4121,7 +4121,7 @@ export default function UserManagement() {
               </div>
               <Switch
                 checked={permissionsForm.templateLibrary}
-                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, templateLibrary: checked })}
+                onCheckedChange={(checked) => setPermissionsForm(prev => ({ ...prev, templateLibrary: checked }))}
                 data-testid="switch-permission-template-library"
               />
             </div>
@@ -4135,7 +4135,7 @@ export default function UserManagement() {
               </div>
               <Switch
                 checked={permissionsForm.trainingLibrary}
-                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, trainingLibrary: checked })}
+                onCheckedChange={(checked) => setPermissionsForm(prev => ({ ...prev, trainingLibrary: checked }))}
                 data-testid="switch-permission-training-library"
               />
             </div>
@@ -4149,7 +4149,7 @@ export default function UserManagement() {
               </div>
               <Switch
                 checked={permissionsForm.services}
-                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, services: checked })}
+                onCheckedChange={(checked) => setPermissionsForm(prev => ({ ...prev, services: checked }))}
                 data-testid="switch-permission-services"
               />
             </div>
@@ -4163,7 +4163,7 @@ export default function UserManagement() {
               </div>
               <Switch
                 checked={permissionsForm.reportIncident}
-                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, reportIncident: checked })}
+                onCheckedChange={(checked) => setPermissionsForm(prev => ({ ...prev, reportIncident: checked }))}
                 data-testid="switch-permission-report-incident"
               />
             </div>
@@ -4173,6 +4173,7 @@ export default function UserManagement() {
               Cancel
             </Button>
             <Button
+              type="button"
               disabled={isSavingPermissions}
               data-testid="button-save-permissions"
               onClick={async () => {
@@ -4183,8 +4184,8 @@ export default function UserManagement() {
                   queryClient.invalidateQueries({ queryKey: ["/api/users"] });
                   toast({ title: "Permissions updated", description: `Permissions saved for ${permissionsUser.fullName}.` });
                   setPermissionsUser(null);
-                } catch {
-                  toast({ title: "Failed to save permissions", variant: "destructive" });
+                } catch (err) {
+                  toast({ title: "Failed to save permissions", description: String(err), variant: "destructive" });
                 } finally {
                   setIsSavingPermissions(false);
                 }
