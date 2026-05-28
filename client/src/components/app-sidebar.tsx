@@ -341,7 +341,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           <img 
             src={logoIcon} 
             alt="Guardian Group" 
-            className="h-10 w-10 rounded-full object-cover shrink-0"
+            className="h-10 w-10 rounded-full object-cover shrink-0 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8"
           />
           <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="text-base font-semibold text-sidebar-foreground">
