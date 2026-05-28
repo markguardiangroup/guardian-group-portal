@@ -1179,6 +1179,11 @@ export default function TemplateLibraryPage() {
       return;
     }
 
+    if (bulkShared.sources.length === 0) {
+      toast({ title: "Validation error", description: "Please select at least one source", variant: "destructive" });
+      return;
+    }
+
     // For public templates, library folder is auto-assigned by the server from the toolkit folder
     const isBulkPublic = bulkShared.visibility === "public";
 
@@ -1322,6 +1327,11 @@ export default function TemplateLibraryPage() {
   
   const handleUpdateTemplate = async () => {
     if (!selectedTemplate) return;
+
+    if (templateFormData.sources.length === 0) {
+      toast({ title: "Validation error", description: "Please select at least one source", variant: "destructive" });
+      return;
+    }
 
     let toolkitFolderId: string | null = templateFormData.toolkitFolderId || null;
     if (templateFormData.visibility === "public") {
@@ -2647,12 +2657,12 @@ export default function TemplateLibraryPage() {
               )}
             </div>
 
-            {/* Source Restrictions */}
+            {/* Source */}
             {allSources.filter(s => s.isActive).length > 0 && (
               <div className="space-y-2">
                 <div>
-                  <Label className="text-sm font-medium">Source Restrictions</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Limit visibility to users from specific sources. Leave empty to show to everyone.</p>
+                  <Label className="text-sm font-medium">Source <span className="text-destructive">*</span></Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select at least one source. This controls which source users can see this template.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {allSources.filter(s => s.isActive).map(s => {
@@ -2675,6 +2685,9 @@ export default function TemplateLibraryPage() {
                     );
                   })}
                 </div>
+                {bulkShared.sources.length === 0 && (
+                  <p className="text-xs text-destructive">At least one source is required.</p>
+                )}
               </div>
             )}
 
@@ -2984,12 +2997,12 @@ export default function TemplateLibraryPage() {
               </div>
               )}
             </div>
-            {/* Source Restrictions */}
+            {/* Source */}
             {allSources.filter(s => s.isActive).length > 0 && (
               <div className="space-y-2">
                 <div>
-                  <Label className="text-sm font-medium">Source Restrictions</Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Limit visibility to users from specific sources. Leave empty to show to everyone.</p>
+                  <Label className="text-sm font-medium">Source <span className="text-destructive">*</span></Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select at least one source. This controls which source users can see this template.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {allSources.filter(s => s.isActive).map(s => {
@@ -3012,6 +3025,9 @@ export default function TemplateLibraryPage() {
                     );
                   })}
                 </div>
+                {templateFormData.sources.length === 0 && (
+                  <p className="text-xs text-destructive">At least one source is required.</p>
+                )}
               </div>
             )}
           </div>

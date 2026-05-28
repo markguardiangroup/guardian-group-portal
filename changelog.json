@@ -6012,6 +6012,13 @@
           "message": "Fixed: Save Permissions button now reliably sends the permission update to the server",
           "category": "bug",
           "createdAt": "2026-05-28T10:35:00.000Z"
+        },
+        {
+          "id": "f4b8c0d6-template-source-mandatory-backfill-2026",
+          "patch": 11,
+          "message": "Source is now required when adding or editing templates; existing sourceless templates set to Guardian Support",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T12:25:00.000Z"
         }
       ],
       "publishedPatch": 10,
