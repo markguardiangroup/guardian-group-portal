@@ -5864,14 +5864,18 @@ export async function registerRoutes(
       const module = req.query.module as string | undefined;
       const allFolders = await storage.getToolkitFolders(module as any);
 
-      // Source-filter: admins see all; consultants/clients see folders whose sources
-      // list is empty (legacy/unrestricted) OR overlaps with the user's own sources.
-      const userSources: string[] = (user.sources ?? []) as string[];
+      // Source-filter: admins see all; consultants use their own sources;
+      // clients use their company's sources.
+      let effectiveSourcesForFolders: string[] = (user.sources ?? []) as string[];
+      if (user.role === "client" && user.companyId) {
+        const company = await storage.getCompany(user.companyId);
+        effectiveSourcesForFolders = (company?.sources ?? []) as string[];
+      }
       const filteredFolders = user.role === "admin"
         ? allFolders
         : allFolders.filter(f => {
             const fs = (f.sources ?? []) as string[];
-            return fs.length === 0 || fs.some(s => userSources.includes(s));
+            return fs.length === 0 || fs.some(s => effectiveSourcesForFolders.includes(s));
           });
 
       // Enrich each folder with its linked FolderTemplate id (for auto-assign in template library)
@@ -6065,15 +6069,23 @@ export async function registerRoutes(
         });
       }
 
+      // Build a set of ALL toolkit folder ids (visible + hidden) so we can
+      // distinguish "genuinely unassigned" from "assigned to a hidden folder".
+      const allFolderIds = new Set(allToolkitFolders.map(f => f.id));
+
       const unassigned: typeof publicTemplates = [];
 
       for (const template of publicTemplates) {
         const tkFolderId = (template as any).toolkitFolderId;
         if (tkFolderId && folderMap.has(tkFolderId)) {
+          // Assigned to a visible folder — add to that folder's template list
           folderMap.get(tkFolderId)!.templates.push(template);
-        } else {
+        } else if (!tkFolderId || !allFolderIds.has(tkFolderId)) {
+          // Truly unassigned (no folder id, or orphaned reference) — include in unassigned
           unassigned.push(template);
         }
+        // else: template is assigned to a folder that exists but is outside this
+        // user's source scope — silently drop it (no data leak via unassigned)
       }
 
       const folders = Array.from(folderMap.values()).sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
