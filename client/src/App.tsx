@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import type { ModuleType } from "@shared/schema";
@@ -650,6 +650,38 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
 }
 
 
+function SidebarExpandHint() {
+  const { state } = useSidebar();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (state === "collapsed") {
+      const alreadySeen = localStorage.getItem("sidebar_hint_seen") === "true";
+      if (!alreadySeen) {
+        setVisible(true);
+        const t = setTimeout(() => {
+          setVisible(false);
+          localStorage.setItem("sidebar_hint_seen", "true");
+        }, 5000);
+        return () => clearTimeout(t);
+      }
+    } else {
+      setVisible(false);
+    }
+  }, [state]);
+
+  if (!visible) return null;
+
+  return (
+    <div className="absolute left-10 top-1/2 -translate-y-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-left-1 duration-200">
+      <div className="relative bg-primary text-primary-foreground text-xs font-medium px-3 py-2 rounded-md shadow-lg whitespace-nowrap">
+        <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-b-[5px] border-r-[6px] border-t-transparent border-b-transparent border-r-primary" />
+        Click to expand the sidebar
+      </div>
+    </div>
+  );
+}
+
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [splashFading, setSplashFading] = useState(false);
@@ -731,13 +763,14 @@ function AuthenticatedApp() {
               role={user!.role}
               consultantPermissions={user!.consultantPermissions}
             />
-            <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+            <SidebarProvider defaultOpen={false} style={sidebarStyle as React.CSSProperties}>
               <div className="flex h-screen w-full">
                 <AppSidebar user={user} />
                 <SidebarInset className="flex flex-1 flex-col overflow-hidden">
                   <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-3 min-w-0 flex-1 relative">
                       <SidebarTrigger data-testid="button-sidebar-toggle" />
+                      <SidebarExpandHint />
                       <BreadcrumbNav />
                     </div>
                     <ThemeToggle />

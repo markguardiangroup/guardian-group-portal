@@ -6082,6 +6082,13 @@
           "message": "Sidebar collapse and expand animation is now faster and smoother",
           "category": "enhancement",
           "createdAt": "2026-05-28T15:10:00.000Z"
+        },
+        {
+          "id": "j2e4f6a8-sidebar-collapsed-default-hint-2026",
+          "patch": 11,
+          "message": "Sidebar starts collapsed; a hint tooltip guides first-time users to expand it",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T15:20:00.000Z"
         }
       ],
       "publishedPatch": 10,
