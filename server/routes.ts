@@ -17436,13 +17436,28 @@ export async function registerRoutes(
       );
 
       const userIds = sessRows.rows.map((r) => r.user_id).filter(Boolean);
-      const users = await Promise.all(userIds.map((id) => storage.getUser(id)));
+
+      const [users, auditRows] = await Promise.all([
+        Promise.all(userIds.map((id) => storage.getUser(id))),
+        userIds.length > 0
+          ? pool.query<{ user_id: string; last_action_at: Date }>(
+              `SELECT user_id, MAX(created_at) AS last_action_at
+               FROM audit_logs
+               WHERE user_id = ANY($1)
+               GROUP BY user_id`,
+              [userIds]
+            )
+          : Promise.resolve({ rows: [] as { user_id: string; last_action_at: Date }[] }),
+      ]);
+
       const userById = new Map(users.filter((u): u is NonNullable<typeof u> => !!u).map((u) => [u.id, u]));
+      const lastActionById = new Map(auditRows.rows.map((r) => [r.user_id, r.last_action_at]));
 
       const activeUsers = sessRows.rows
         .map((r) => {
           const u = userById.get(r.user_id);
           if (!u) return null;
+          const lastAction = lastActionById.get(r.user_id);
           return {
             id: u.id,
             name: u.name ?? null,
@@ -17451,6 +17466,7 @@ export async function registerRoutes(
             companyId: u.companyId ?? null,
             sessionCount: Number(r.session_count),
             sessionExpiresAt: new Date(r.latest_expire).toISOString(),
+            lastActionAt: lastAction ? new Date(lastAction).toISOString() : null,
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);

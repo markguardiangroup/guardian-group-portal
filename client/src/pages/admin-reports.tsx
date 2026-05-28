@@ -582,6 +582,7 @@ export default function AdminReports() {
     companyId: string | null;
     sessionCount: number;
     sessionExpiresAt: string;
+    lastActionAt: string | null;
   }
   const {
     data: activeUsersData,
@@ -1216,20 +1217,21 @@ export default function AdminReports() {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Company</TableHead>
+                  <TableHead>Last action</TableHead>
                   <TableHead>Session expires</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {activeUsersLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6">
+                    <TableCell colSpan={6} className="text-center py-6">
                       <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" />
                       Loading active users…
                     </TableCell>
                   </TableRow>
                 ) : (activeUsersData?.activeUsers ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                       No active sessions right now.
                     </TableCell>
                   </TableRow>
@@ -1249,6 +1251,9 @@ export default function AdminReports() {
                         </TableCell>
                         <TableCell data-testid={`text-active-company-${u.id}`}>
                           {company?.name ?? (u.companyId ? "—" : "—")}
+                        </TableCell>
+                        <TableCell data-testid={`text-active-last-action-${u.id}`} className="text-muted-foreground text-sm">
+                          {u.lastActionAt ? format(parseISO(u.lastActionAt), "dd MMM HH:mm") : "—"}
                         </TableCell>
                         <TableCell data-testid={`text-active-expires-${u.id}`}>
                           {format(parseISO(u.sessionExpiresAt), "PP HH:mm")}

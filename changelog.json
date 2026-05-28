@@ -6054,6 +6054,13 @@
           "message": "Fixed: Required Document toggle restored in private template upload and edit dialogs",
           "category": "bug",
           "createdAt": "2026-05-28T14:20:00.000Z"
+        },
+        {
+          "id": "f8a0b2c4-active-users-last-action-2026",
+          "patch": 11,
+          "message": "Active Users Now report shows each user's last recorded action date and time",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T14:35:00.000Z"
         }
       ],
       "publishedPatch": 10,
