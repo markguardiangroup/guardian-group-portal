@@ -998,11 +998,11 @@ export default function TemplateLibraryPage() {
   };
   
   const getRootFolders = (module: ModuleType) => {
-    return filteredFolders.filter(f => f.module === module && !f.parentId);
+    return filteredFolders.filter(f => f.module === module && !f.parentId).sort((a, b) => a.name.localeCompare(b.name));
   };
   
   const getChildFolders = (parentId: string) => {
-    return filteredFolders.filter(f => f.parentId === parentId);
+    return filteredFolders.filter(f => f.parentId === parentId).sort((a, b) => a.name.localeCompare(b.name));
   };
 
   const getUnassignedTemplates = (module: string) => {

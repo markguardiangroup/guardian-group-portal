@@ -6138,6 +6138,13 @@
           "message": "Template Library folder list now sorts alphabetically within each module",
           "category": "enhancement",
           "createdAt": "2026-05-28T20:30:00.000Z"
+        },
+        {
+          "id": "s0m2n4o6-template-library-tree-alphabetical-2026",
+          "patch": 11,
+          "message": "Fixed: Template Library folder tree now sorts folders alphabetically",
+          "category": "bug",
+          "createdAt": "2026-05-28T20:35:00.000Z"
         }
       ],
       "publishedPatch": 10,
