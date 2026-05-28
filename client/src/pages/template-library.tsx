@@ -2466,7 +2466,7 @@ export default function TemplateLibraryPage() {
                       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()) || f.code.toLowerCase().includes(searchQuery.toLowerCase()))
                       .sort((a, b) => {
                         if (a.module !== b.module) return a.module.localeCompare(b.module);
-                        return a.sortOrder - b.sortOrder;
+                        return a.name.localeCompare(b.name);
                       })
                       .map((folder) => {
                         const ModuleIcon = moduleIcons[folder.module];
