@@ -486,6 +486,15 @@ export default function TemplateLibraryPage() {
   const [bulkSourcesMode, setBulkSourcesMode] = useState<"merge" | "clear">("merge");
   const [bulkSourcesPick, setBulkSourcesPick] = useState<string[]>([]);
 
+  // Manage Toolkit Folders dialog state
+  const [showManageTkFolders, setShowManageTkFolders] = useState(false);
+  const [manageTkModule, setManageTkModule] = useState<"health_safety" | "human_resources" | "employment_law">("health_safety");
+  const [newTkFolderName, setNewTkFolderName] = useState("");
+  const [newTkFolderSources, setNewTkFolderSources] = useState<string[]>([]);
+  const [tkFolderToDelete, setTkFolderToDelete] = useState<{ id: string; name: string; templateCount: number } | null>(null);
+  const [editingTkFolderId, setEditingTkFolderId] = useState<string | null>(null);
+  const [editingTkFolderSources, setEditingTkFolderSources] = useState<string[]>([]);
+
   // Folder expansion state - starts collapsed by default
   const [openFolders, setOpenFolders] = useState<string[]>([]);
 
@@ -519,7 +528,7 @@ export default function TemplateLibraryPage() {
     queryKey: ["/api/folder-document-type-rules"],
   });
 
-  const { data: toolkitFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number }>>({
+  const { data: toolkitFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number; sources: string[] }>>({
     queryKey: ["/api/toolkit/folders"],
     refetchOnMount: "always",
   });
@@ -746,6 +755,59 @@ export default function TemplateLibraryPage() {
   });
   
   
+  // Toolkit folder mutations
+  const createTkFolderMutation = useMutation({
+    mutationFn: (data: { name: string; module: string; sources: string[] }) =>
+      apiRequest("POST", "/api/toolkit/folders", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setNewTkFolderName("");
+      setNewTkFolderSources([]);
+      toast({ title: "Folder created", description: "The toolkit folder has been created." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to create folder", variant: "destructive" });
+    },
+  });
+
+  const updateTkFolderSourcesMutation = useMutation({
+    mutationFn: ({ id, sources }: { id: string; sources: string[] }) =>
+      apiRequest("PATCH", `/api/toolkit/folders/${id}`, { sources }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setEditingTkFolderId(null);
+      setEditingTkFolderSources([]);
+      toast({ title: "Sources updated", description: "The folder sources have been updated." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to update sources", variant: "destructive" });
+    },
+  });
+
+  const deleteTkFolderMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/toolkit/folders/${id}`);
+      return res.json() as Promise<{ success: boolean; deletedTemplateCount: number }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setTkFolderToDelete(null);
+      const count = data?.deletedTemplateCount ?? 0;
+      toast({
+        title: "Folder deleted",
+        description: count > 0
+          ? `${count} template${count === 1 ? "" : "s"} inside were also deleted.`
+          : "The folder has been removed.",
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to delete folder", variant: "destructive" });
+    },
+  });
+
   // Document type mutations
   const createDocTypeMutation = useMutation({
     mutationFn: async (data: DocTypeFormData) => {
@@ -1849,6 +1911,21 @@ export default function TemplateLibraryPage() {
         </div>
         {isAdmin && (
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setManageTkModule("health_safety");
+                setNewTkFolderName("");
+                setNewTkFolderSources([]);
+                setEditingTkFolderId(null);
+                setEditingTkFolderSources([]);
+                setShowManageTkFolders(true);
+              }}
+              data-testid="button-manage-toolkit-folders"
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Manage Toolkit Folders
+            </Button>
             <Button
               variant="outline"
               onClick={() => { setFolderFormData({ ...defaultFolderFormData, module: selectedModule === "all" ? "" : selectedModule }); setIsFolderDialogOpen(true); }}
@@ -3835,6 +3912,265 @@ export default function TemplateLibraryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Manage Toolkit Folders ── */}
+      {isAdmin && (
+        <>
+          <Dialog open={showManageTkFolders} onOpenChange={(open) => {
+            if (!open) { setEditingTkFolderId(null); setEditingTkFolderSources([]); }
+            setShowManageTkFolders(open);
+          }}>
+            <DialogContent className="max-w-lg max-h-[85vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <FolderPlus className="h-5 w-5" />
+                  Manage Toolkit Folders
+                </DialogTitle>
+                <DialogDescription>
+                  Create, edit sources, and delete folders that templates are organised into within the Toolkit.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 overflow-y-auto flex-1 pr-1">
+                {/* Module selector — dropdown */}
+                <div className="space-y-1.5">
+                  <Label>Module</Label>
+                  <Select
+                    value={manageTkModule}
+                    onValueChange={(v) => {
+                      setManageTkModule(v as typeof manageTkModule);
+                      setEditingTkFolderId(null);
+                      setEditingTkFolderSources([]);
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-manage-tk-module">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="health_safety">Health &amp; Safety</SelectItem>
+                      <SelectItem value="human_resources">Human Resources</SelectItem>
+                      <SelectItem value="employment_law">Employment Law</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Create new folder */}
+                <div className="space-y-3 p-3 rounded-md border bg-muted/30">
+                  <Label>Add a new folder</Label>
+                  <Input
+                    placeholder="Folder name"
+                    value={newTkFolderName}
+                    onChange={(e) => setNewTkFolderName(e.target.value)}
+                    data-testid="input-new-tk-folder-name"
+                  />
+                  {allSources.filter(s => s.isActive).length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Sources <span className="text-destructive">*</span></Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {allSources.filter(s => s.isActive).map(s => {
+                          const selected = newTkFolderSources.includes(s.code);
+                          return (
+                            <button
+                              key={s.code}
+                              type="button"
+                              onClick={() => setNewTkFolderSources(prev =>
+                                selected ? prev.filter(x => x !== s.code) : [...prev, s.code]
+                              )}
+                              data-testid={`button-new-tk-folder-source-${s.code}`}
+                              className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "text-muted-foreground hover:border-primary/50"
+                              }`}
+                            >
+                              {s.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {newTkFolderSources.length === 0 && (
+                        <p className="text-[11px] text-destructive">Select at least one source.</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      onClick={() => createTkFolderMutation.mutate({ name: newTkFolderName.trim(), module: manageTkModule, sources: newTkFolderSources })}
+                      disabled={!newTkFolderName.trim() || newTkFolderSources.length === 0 || createTkFolderMutation.isPending}
+                      data-testid="button-create-toolkit-folder"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Folder
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Existing folders list */}
+                <div className="space-y-2">
+                  <Label>Existing folders</Label>
+                  {toolkitFolders.filter(f => f.module === manageTkModule).length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-2">No folders yet for this module.</p>
+                  ) : (
+                    <div className="divide-y rounded-md border">
+                      {toolkitFolders
+                        .filter(f => f.module === manageTkModule)
+                        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+                        .map(folder => {
+                          const inUse = templates.filter(t => (t as any).toolkitFolderId === folder.id).length;
+                          const isEditing = editingTkFolderId === folder.id;
+                          return (
+                            <div key={folder.id} className="px-3 py-2.5 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium">{folder.name}</p>
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {(folder.sources ?? []).map(s => (
+                                      <span key={s} className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/60" data-testid={`badge-tk-folder-source-${folder.id}-${s}`}>
+                                        {s}
+                                      </span>
+                                    ))}
+                                    {(!folder.sources || folder.sources.length === 0) && (
+                                      <span className="text-[10px] text-amber-600 dark:text-amber-400">No sources set</span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{inUse} {inUse === 1 ? "template" : "templates"}</p>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (isEditing) {
+                                        setEditingTkFolderId(null);
+                                        setEditingTkFolderSources([]);
+                                      } else {
+                                        setEditingTkFolderId(folder.id);
+                                        setEditingTkFolderSources(folder.sources ?? []);
+                                      }
+                                    }}
+                                    data-testid={`button-edit-tk-folder-sources-${folder.id}`}
+                                    className="text-xs h-7 px-2"
+                                  >
+                                    {isEditing ? "Cancel" : "Edit Sources"}
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setTkFolderToDelete({ id: folder.id, name: folder.name, templateCount: inUse })}
+                                    disabled={deleteTkFolderMutation.isPending}
+                                    data-testid={`button-delete-tk-folder-${folder.id}`}
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {isEditing && allSources.filter(s => s.isActive).length > 0 && (
+                                <div className="space-y-2 pt-1 border-t">
+                                  <div className="flex flex-wrap gap-1.5 pt-1">
+                                    {allSources.filter(s => s.isActive).map(s => {
+                                      const selected = editingTkFolderSources.includes(s.code);
+                                      return (
+                                        <button
+                                          key={s.code}
+                                          type="button"
+                                          onClick={() => setEditingTkFolderSources(prev =>
+                                            selected ? prev.filter(x => x !== s.code) : [...prev, s.code]
+                                          )}
+                                          data-testid={`button-edit-tk-source-${folder.id}-${s.code}`}
+                                          className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                                            selected
+                                              ? "bg-primary text-primary-foreground border-primary"
+                                              : "text-muted-foreground hover:border-primary/50"
+                                          }`}
+                                        >
+                                          {s.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    disabled={editingTkFolderSources.length === 0 || updateTkFolderSourcesMutation.isPending}
+                                    onClick={() => updateTkFolderSourcesMutation.mutate({ id: folder.id, sources: editingTkFolderSources })}
+                                    data-testid={`button-save-tk-folder-sources-${folder.id}`}
+                                  >
+                                    Save Sources
+                                  </Button>
+                                  {editingTkFolderSources.length === 0 && (
+                                    <p className="text-[11px] text-destructive">Select at least one source.</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowManageTkFolders(false)} data-testid="button-close-manage-tk-folders">
+                  Done
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Toolkit folder delete confirmation */}
+          <Dialog open={!!tkFolderToDelete} onOpenChange={(o) => { if (!o) setTkFolderToDelete(null); }}>
+            <DialogContent className="max-w-md" data-testid="dialog-confirm-delete-tk-folder">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-5 w-5 shrink-0" />
+                  Delete &ldquo;{tkFolderToDelete?.name}&rdquo;?
+                </DialogTitle>
+                <DialogDescription asChild>
+                  <div className="space-y-3 pt-1">
+                    {tkFolderToDelete && tkFolderToDelete.templateCount > 0 ? (
+                      <>
+                        <p>
+                          This folder contains{" "}
+                          <strong>{tkFolderToDelete.templateCount} template{tkFolderToDelete.templateCount === 1 ? "" : "s"}</strong>.
+                          Deleting the folder will also permanently delete {tkFolderToDelete.templateCount === 1 ? "it" : "all of them"}.
+                        </p>
+                        <p className="text-sm">
+                          Move any templates you want to keep to a different folder first, then come back to delete this one.
+                        </p>
+                      </>
+                    ) : (
+                      <p>This folder is empty. It will be permanently removed.</p>
+                    )}
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setTkFolderToDelete(null)}
+                  data-testid="button-cancel-delete-tk-folder"
+                >
+                  {tkFolderToDelete && tkFolderToDelete.templateCount > 0 ? "Cancel — I'll move the templates first" : "Cancel"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => tkFolderToDelete && deleteTkFolderMutation.mutate(tkFolderToDelete.id)}
+                  disabled={deleteTkFolderMutation.isPending}
+                  data-testid="button-confirm-delete-tk-folder"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {tkFolderToDelete && tkFolderToDelete.templateCount > 0
+                    ? `Delete folder and ${tkFolderToDelete.templateCount} template${tkFolderToDelete.templateCount === 1 ? "" : "s"}`
+                    : "Delete folder"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
+
       </div>
     </div>
   );

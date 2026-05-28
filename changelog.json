@@ -6110,6 +6110,13 @@
           "message": "Toolkit folders are now ringfenced by source — clients only see folders matching their company's source, consultants see folders matching their own source",
           "category": "feature",
           "createdAt": "2026-05-28T19:50:00.000Z"
+        },
+        {
+          "id": "n6i8j0k2-manage-toolkit-folders-moved-to-library-2026",
+          "patch": 11,
+          "message": "Manage Toolkit Folders moved to the Template Library page with module dropdown",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T20:10:00.000Z"
         }
       ],
       "publishedPatch": 10,
