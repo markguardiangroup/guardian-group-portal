@@ -5970,6 +5970,13 @@
           "message": "Fixed: per-module compliance percentages in the companies list now match the overall badge",
           "category": "bug",
           "createdAt": "2026-05-28T08:17:51.123Z"
+        },
+        {
+          "id": "f7a2b4c6-go-inherited-modules-compliance-picker-2026",
+          "patch": 11,
+          "message": "Fixed: Group Owner companies now show inherited module breakdown when clicking their compliance badge",
+          "category": "bug",
+          "createdAt": "2026-05-28T12:00:00.000Z"
         }
       ],
       "publishedPatch": 10,

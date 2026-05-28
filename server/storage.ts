@@ -1347,10 +1347,18 @@ export class MemStorage implements IStorage {
     // Determine which companies are Group Owners (have at least one member) and build name lookup
     const goMemberCounts = new Map<string, number>();
     const companyNameById = new Map<string, string>();
+    // Track which modules any member company has enabled so GO companies inherit them
+    const goMemberModuleAccess = new Map<string, { hs: boolean; hr: boolean; el: boolean }>();
     for (const c of companies) {
       companyNameById.set(c.id, c.name);
       if (c.groupOwnerId) {
         goMemberCounts.set(c.groupOwnerId, (goMemberCounts.get(c.groupOwnerId) || 0) + 1);
+        const existing = goMemberModuleAccess.get(c.groupOwnerId) ?? { hs: false, hr: false, el: false };
+        goMemberModuleAccess.set(c.groupOwnerId, {
+          hs: existing.hs || c.healthSafetyAccess,
+          hr: existing.hr || c.humanResourcesAccess,
+          el: existing.el || c.employmentLawAccess,
+        });
       }
     }
 
@@ -1362,13 +1370,19 @@ export class MemStorage implements IStorage {
       acceloLinksByCompany.set(link.companyId, arr);
     }
     
-    return companies.map(company => ({
-      ...company,
-      siteCount: siteCountByCompany.get(company.id) || 0,
-      isGroupOwner: (goMemberCounts.get(company.id) || 0) > 0,
-      groupOwnerName: company.groupOwnerId ? (companyNameById.get(company.groupOwnerId) ?? null) : null,
-      acceloLinks: acceloLinksByCompany.get(company.id) ?? [],
-    }));
+    return companies.map(company => {
+      const memberAccess = goMemberModuleAccess.get(company.id);
+      return {
+        ...company,
+        siteCount: siteCountByCompany.get(company.id) || 0,
+        isGroupOwner: (goMemberCounts.get(company.id) || 0) > 0,
+        groupOwnerName: company.groupOwnerId ? (companyNameById.get(company.groupOwnerId) ?? null) : null,
+        acceloLinks: acceloLinksByCompany.get(company.id) ?? [],
+        effectiveHealthSafetyAccess: company.healthSafetyAccess || (memberAccess?.hs ?? false),
+        effectiveHumanResourcesAccess: company.humanResourcesAccess || (memberAccess?.hr ?? false),
+        effectiveEmploymentLawAccess: company.employmentLawAccess || (memberAccess?.el ?? false),
+      };
+    });
   }
 
   async getCompany(id: string): Promise<Company | undefined> {

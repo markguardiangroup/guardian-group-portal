@@ -132,7 +132,14 @@ function ComplianceModulePicker({ company }: { company: CompanyWithSiteCount }) 
   const [, navigate] = useLocation();
   const { handleCompanyChange } = useSiteFilter();
   const [open, setOpen] = useState(false);
-  const enabled = COMPLIANCE_MODULES.filter(m => (company as any)[m.accessKey]);
+  // For Group Owner companies, raw flags may be false while modules are inherited from members.
+  // Prefer effectiveHealthSafetyAccess / effectiveHumanResourcesAccess / effectiveEmploymentLawAccess
+  // (set by the backend) so the popover correctly reflects inherited module access.
+  const isModuleEffectivelyEnabled = (accessKey: string) => {
+    const effectiveKey = "effective" + accessKey.charAt(0).toUpperCase() + accessKey.slice(1);
+    return (company as any)[effectiveKey] ?? (company as any)[accessKey];
+  };
+  const enabled = COMPLIANCE_MODULES.filter(m => isModuleEffectivelyEnabled(m.accessKey));
 
   const badge = <CompanyComplianceBadge summary={company.complianceSummary} />;
 
@@ -196,7 +203,11 @@ function CompanyDocumentsModulePicker({ company }: { company: CompanyWithSiteCou
   const [, navigate] = useLocation();
   const { handleCompanyChange } = useSiteFilter();
   const [open, setOpen] = useState(false);
-  const enabled = COMPLIANCE_MODULES.filter(m => (company as any)[m.accessKey]);
+  const isModuleEffectivelyEnabled = (accessKey: string) => {
+    const effectiveKey = "effective" + accessKey.charAt(0).toUpperCase() + accessKey.slice(1);
+    return (company as any)[effectiveKey] ?? (company as any)[accessKey];
+  };
+  const enabled = COMPLIANCE_MODULES.filter(m => isModuleEffectivelyEnabled(m.accessKey));
 
   if (!company.complianceSummary) return null;
 

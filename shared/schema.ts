@@ -92,6 +92,10 @@ export type CompanyWithSiteCount = Company & {
   complianceSummary?: ComplianceSummary;
   moduleScores?: { health_safety: number; human_resources: number; employment_law: number };
   moduleDocCounts?: { health_safety: number; human_resources: number; employment_law: number };
+  // Effective access flags account for Group Owner inheritance (own flag OR any member's flag)
+  effectiveHealthSafetyAccess?: boolean;
+  effectiveHumanResourcesAccess?: boolean;
+  effectiveEmploymentLawAccess?: boolean;
 };
 
 // Paginated response for companies
