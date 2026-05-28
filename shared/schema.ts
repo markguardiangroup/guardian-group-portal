@@ -628,6 +628,7 @@ export const toolkitFolders = pgTable("toolkit_folders", {
   name: text("name").notNull(),
   module: text("module").$type<ModuleType>().notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
+  sources: text("sources").array().notNull().default(sql`ARRAY[]::text[]`),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -1073,10 +1073,16 @@ export default function TemplateLibraryPage() {
           return;
         }
         try {
+          const templateSources: string[] = (templateFormData as any).sources ?? [];
+          if (templateSources.length === 0) {
+            toast({ title: "Validation error", description: "Set at least one source on the template before creating a new Toolkit folder", variant: "destructive" });
+            return;
+          }
           const response = await apiRequest("POST", "/api/toolkit/folders", {
             name: templateFormData.newToolkitFolderName,
             module: templateFormData.module,
             sortOrder: 0,
+            sources: templateSources,
           });
           const newToolkitFolder = await response.json();
           toolkitFolderId = newToolkitFolder.id;
@@ -1225,10 +1231,16 @@ export default function TemplateLibraryPage() {
           return;
         }
         try {
+          const bulkSources: string[] = (bulkShared as any).sources ?? [];
+          if (bulkSources.length === 0) {
+            toast({ title: "Validation error", description: "Set at least one source before creating a new Toolkit folder", variant: "destructive" });
+            return;
+          }
           const res = await apiRequest("POST", "/api/toolkit/folders", {
             name: bulkShared.newToolkitFolderName,
             module: bulkShared.module,
             sortOrder: 0,
+            sources: bulkSources,
           });
           const newTkFolder = await res.json();
           toolkitFolderId = newTkFolder.id;
@@ -1341,10 +1353,16 @@ export default function TemplateLibraryPage() {
           return;
         }
         try {
+          const editSources: string[] = (templateFormData as any).sources ?? [];
+          if (editSources.length === 0) {
+            toast({ title: "Validation error", description: "Set at least one source on the template before creating a new Toolkit folder", variant: "destructive" });
+            return;
+          }
           const response = await apiRequest("POST", "/api/toolkit/folders", {
             name: templateFormData.newToolkitFolderName,
             module: templateFormData.module,
             sortOrder: 0,
+            sources: editSources,
           });
           const newToolkitFolder = await response.json();
           toolkitFolderId = newToolkitFolder.id;

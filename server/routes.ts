@@ -5862,9 +5862,20 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as string | undefined;
-      const folders = await storage.getToolkitFolders(module as any);
+      const allFolders = await storage.getToolkitFolders(module as any);
+
+      // Source-filter: admins see all; consultants/clients see folders whose sources
+      // list is empty (legacy/unrestricted) OR overlaps with the user's own sources.
+      const userSources: string[] = (user.sources ?? []) as string[];
+      const filteredFolders = user.role === "admin"
+        ? allFolders
+        : allFolders.filter(f => {
+            const fs = (f.sources ?? []) as string[];
+            return fs.length === 0 || fs.some(s => userSources.includes(s));
+          });
+
       // Enrich each folder with its linked FolderTemplate id (for auto-assign in template library)
-      const enriched = await Promise.all(folders.map(async (f) => {
+      const enriched = await Promise.all(filteredFolders.map(async (f) => {
         const linked = await storage.getFolderTemplateByToolkitFolderId(f.id);
         return { ...f, linkedFolderTemplateId: linked?.id ?? null };
       }));
@@ -5885,6 +5896,7 @@ export async function registerRoutes(
         name: z.string().min(1).max(100),
         module: z.enum(["health_safety", "human_resources", "employment_law"]),
         sortOrder: z.number().optional(),
+        sources: z.array(z.string()).min(1, "At least one source is required"),
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
@@ -5893,6 +5905,7 @@ export async function registerRoutes(
         name: parsed.data.name,
         module: parsed.data.module,
         sortOrder: parsed.data.sortOrder ?? 0,
+        sources: parsed.data.sources,
         createdBy: user.id,
       });
 
@@ -5925,6 +5938,39 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create toolkit folder error:", error);
       res.status(500).json({ error: "Failed to create toolkit folder" });
+    }
+  });
+
+  app.patch("/api/toolkit/folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can update toolkit folders" });
+
+      const schema = z.object({
+        name: z.string().min(1).max(100).optional(),
+        sortOrder: z.number().optional(),
+        sources: z.array(z.string()).min(1, "At least one source is required").optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+
+      const updated = await storage.updateToolkitFolder(req.params.id, parsed.data);
+      if (!updated) return res.status(404).json({ error: "Folder not found" });
+
+      await storage.createAuditLog({
+        action: "toolkit_folder_updated",
+        userId: user.id,
+        userName: user.fullName,
+        module: updated.module as any,
+        details: `Updated toolkit folder "${updated.name}"`,
+        metadata: JSON.stringify({ folderId: updated.id, changes: parsed.data }),
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Update toolkit folder error:", error);
+      res.status(500).json({ error: "Failed to update toolkit folder" });
     }
   });
 
@@ -5976,8 +6022,26 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
 
-      // Get all toolkit folders
+      // Get all toolkit folders then apply source-based visibility filter.
+      // Admins see all folders.
+      // Consultants see folders whose sources list is empty OR overlaps with their sources.
+      // Clients use their company's sources for the same check.
       const allToolkitFolders = await storage.getToolkitFolders();
+      let visibleFolders = allToolkitFolders;
+
+      if (user.role !== "admin") {
+        let effectiveSources: string[] = (user.sources ?? []) as string[];
+
+        if (user.role === "client" && user.companyId) {
+          const company = await storage.getCompany(user.companyId);
+          effectiveSources = (company?.sources ?? []) as string[];
+        }
+
+        visibleFolders = allToolkitFolders.filter(f => {
+          const fs = (f.sources ?? []) as string[];
+          return fs.length === 0 || fs.some(s => effectiveSources.includes(s));
+        });
+      }
 
       // Get all public, active, non-deleted document templates
       const allTemplates = await storage.getDocumentTemplates();
@@ -5987,15 +6051,16 @@ export async function registerRoutes(
 
       // Build folder map with templates, keyed by toolkit folder id
       const folderMap = new Map<string, {
-        id: string; name: string; module: string; sortOrder: number; templates: typeof publicTemplates;
+        id: string; name: string; module: string; sortOrder: number; sources: string[]; templates: typeof publicTemplates;
       }>();
 
-      for (const folder of allToolkitFolders) {
+      for (const folder of visibleFolders) {
         folderMap.set(folder.id, {
           id: folder.id,
           name: folder.name,
           module: folder.module,
           sortOrder: folder.sortOrder,
+          sources: (folder.sources ?? []) as string[],
           templates: [],
         });
       }

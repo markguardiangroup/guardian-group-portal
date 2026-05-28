@@ -6103,6 +6103,13 @@
           "message": "Collapsed sidebar: clicking a module icon now pops out a flyout sub-menu with all section links",
           "category": "enhancement",
           "createdAt": "2026-05-28T15:45:00.000Z"
+        },
+        {
+          "id": "m5h7i9j1-toolkit-folder-source-ringfencing-2026",
+          "patch": 11,
+          "message": "Toolkit folders are now ringfenced by source — clients only see folders matching their company's source, consultants see folders matching their own source",
+          "category": "feature",
+          "createdAt": "2026-05-28T19:50:00.000Z"
         }
       ],
       "publishedPatch": 10,

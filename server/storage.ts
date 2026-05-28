@@ -352,6 +352,7 @@ export interface IStorage {
   // Toolkit Folders (separate from Template Library — admin-managed)
   getToolkitFolders(module?: ModuleType): Promise<ToolkitFolder[]>;
   createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder>;
+  updateToolkitFolder(id: string, updates: { name?: string; sortOrder?: number; sources?: string[] }): Promise<ToolkitFolder | undefined>;
   deleteToolkitFolder(id: string): Promise<boolean>;
   trackTemplateDownload(templateId: string, userId: string, userName: string, companyId?: string | null, companyName?: string | null, siteId?: string | null, siteName?: string | null): Promise<void>;
   getToolkitStats(filter?: { companyName?: string; userId?: string }): Promise<{ totalDownloads: number; downloadsLast30Days: number; downloadsByModule: { health_safety: number; human_resources: number; employment_law: number }; recentDownloads: Array<{ id: string; templateName: string; templateId: string; module: string | null; folderName: string | null; fileUrl: string | null; fileName: string | null; downloadedAt: string; downloadedBy: string; companyName: string | null; siteName: string | null }> }>;
@@ -3432,6 +3433,15 @@ export class MemStorage implements IStorage {
 
   async createToolkitFolder(folder: InsertToolkitFolder): Promise<ToolkitFolder> {
     const [result] = await db.insert(toolkitFoldersTable).values(folder).returning();
+    return result;
+  }
+
+  async updateToolkitFolder(id: string, updates: { name?: string; sortOrder?: number; sources?: string[] }): Promise<ToolkitFolder | undefined> {
+    const [result] = await db
+      .update(toolkitFoldersTable)
+      .set(updates)
+      .where(eq(toolkitFoldersTable.id, id))
+      .returning();
     return result;
   }
 

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import type { Source } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -106,6 +107,7 @@ interface ToolkitFolder {
   name: string;
   module: string;
   sortOrder: number;
+  sources: string[];
   templates: ToolkitTemplate[];
 }
 
@@ -562,7 +564,10 @@ export default function ToolkitBrowse() {
   // Admin folder management
   const [showManageFolders, setShowManageFolders] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderSources, setNewFolderSources] = useState<string[]>([]);
   const [folderToDelete, setFolderToDelete] = useState<{ id: string; name: string; templateCount: number } | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderSources, setEditingFolderSources] = useState<string[]>([]);
 
   const closeFolderDialog = () => {
     setIsFolderClosing(true);
@@ -587,21 +592,43 @@ export default function ToolkitBrowse() {
     queryKey: ["/api/toolkit"],
   });
 
-  const { data: allFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number }>>({
+  const { data: allFolders = [] } = useQuery<Array<{ id: string; name: string; module: string; sortOrder: number; sources: string[] }>>({
     queryKey: ["/api/toolkit/folders"],
   });
 
+  const { data: allSources = [] } = useQuery<Source[]>({
+    queryKey: ["/api/sources"],
+  });
+
+  const activeSources = allSources.filter(s => s.isActive);
+
   const createFolderMutation = useMutation({
-    mutationFn: (data: { name: string; module: string }) =>
+    mutationFn: (data: { name: string; module: string; sources: string[] }) =>
       apiRequest("POST", "/api/toolkit/folders", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
       setNewFolderName("");
+      setNewFolderSources([]);
       toast({ title: "Folder created", description: "The toolkit folder has been created." });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message || "Failed to create folder", variant: "destructive" });
+    },
+  });
+
+  const updateFolderSourcesMutation = useMutation({
+    mutationFn: ({ id, sources }: { id: string; sources: string[] }) =>
+      apiRequest("PATCH", `/api/toolkit/folders/${id}`, { sources }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      setEditingFolderId(null);
+      setEditingFolderSources([]);
+      toast({ title: "Sources updated", description: "The folder sources have been updated." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to update sources", variant: "destructive" });
     },
   });
 
@@ -836,6 +863,15 @@ export default function ToolkitBrowse() {
                   <p className={`text-xs font-medium ${color}`}>
                     {matchCount} {matchCount === 1 ? "file" : "files"}
                   </p>
+                  {canManageFolders && folder.sources && folder.sources.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-0.5">
+                      {folder.sources.map(s => (
+                        <span key={s} className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/60">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             );
@@ -1041,32 +1077,58 @@ export default function ToolkitBrowse() {
 
             <div className="space-y-5">
               {isAdmin && (
-                <div className="space-y-2">
+                <div className="space-y-3 p-3 rounded-md border bg-muted/30">
                   <Label>Add a new folder</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Folder name"
-                      value={newFolderName}
-                      onChange={(e) => setNewFolderName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newFolderName.trim()) {
-                          createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule });
-                        }
-                      }}
-                      data-testid="input-new-folder-name"
-                    />
+                  <Input
+                    placeholder="Folder name"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    data-testid="input-new-folder-name"
+                  />
+                  {activeSources.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Sources <span className="text-destructive">*</span></Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {activeSources.map(s => {
+                          const selected = newFolderSources.includes(s.code);
+                          return (
+                            <button
+                              key={s.code}
+                              type="button"
+                              onClick={() => setNewFolderSources(prev =>
+                                selected ? prev.filter(x => x !== s.code) : [...prev, s.code]
+                              )}
+                              data-testid={`button-new-folder-source-${s.code}`}
+                              className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                                selected
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "text-muted-foreground hover:border-primary/50"
+                              }`}
+                            >
+                              {s.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {newFolderSources.length === 0 && (
+                        <p className="text-[11px] text-destructive">Select at least one source.</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Adding to: <strong>{MODULE_CONFIG[selectedModule].label}</strong>
+                    </p>
                     <Button
-                      onClick={() => createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule })}
-                      disabled={!newFolderName.trim() || createFolderMutation.isPending}
+                      size="sm"
+                      onClick={() => createFolderMutation.mutate({ name: newFolderName.trim(), module: selectedModule, sources: newFolderSources })}
+                      disabled={!newFolderName.trim() || newFolderSources.length === 0 || createFolderMutation.isPending}
                       data-testid="button-create-toolkit-folder"
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      Add
+                      Add Folder
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Adding to: <strong>{MODULE_CONFIG[selectedModule].label}</strong>. Switch the module tab above to add to a different module.
-                  </p>
                 </div>
               )}
 
@@ -1081,22 +1143,93 @@ export default function ToolkitBrowse() {
                       .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
                       .map(folder => {
                         const inUse = (toolkit?.folders ?? []).find(f => f.id === folder.id)?.templates.length ?? 0;
+                        const isEditing = editingFolderId === folder.id;
                         return (
-                          <div key={folder.id} className="flex items-center justify-between px-3 py-2.5">
-                            <div>
-                              <p className="text-sm font-medium">{folder.name}</p>
-                              <p className="text-xs text-muted-foreground">{inUse} {inUse === 1 ? "template" : "templates"}</p>
+                          <div key={folder.id} className="px-3 py-2.5 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{folder.name}</p>
+                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                  {(folder.sources ?? []).map(s => (
+                                    <span key={s} className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/60" data-testid={`badge-folder-source-${folder.id}-${s}`}>
+                                      {s}
+                                    </span>
+                                  ))}
+                                  {(!folder.sources || folder.sources.length === 0) && (
+                                    <span className="text-[10px] text-amber-600 dark:text-amber-400">No sources set</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">{inUse} {inUse === 1 ? "template" : "templates"}</p>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {isAdmin && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      if (isEditing) {
+                                        setEditingFolderId(null);
+                                        setEditingFolderSources([]);
+                                      } else {
+                                        setEditingFolderId(folder.id);
+                                        setEditingFolderSources(folder.sources ?? []);
+                                      }
+                                    }}
+                                    data-testid={`button-edit-folder-sources-${folder.id}`}
+                                    className="text-xs h-7 px-2"
+                                  >
+                                    {isEditing ? "Cancel" : "Edit Sources"}
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setFolderToDelete({ id: folder.id, name: folder.name, templateCount: inUse })}
+                                  disabled={deleteFolderMutation.isPending}
+                                  data-testid={`button-delete-folder-${folder.id}`}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setFolderToDelete({ id: folder.id, name: folder.name, templateCount: inUse })}
-                              disabled={deleteFolderMutation.isPending}
-                              data-testid={`button-delete-folder-${folder.id}`}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {isEditing && activeSources.length > 0 && (
+                              <div className="pl-0 space-y-2 pt-1 border-t">
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  {activeSources.map(s => {
+                                    const selected = editingFolderSources.includes(s.code);
+                                    return (
+                                      <button
+                                        key={s.code}
+                                        type="button"
+                                        onClick={() => setEditingFolderSources(prev =>
+                                          selected ? prev.filter(x => x !== s.code) : [...prev, s.code]
+                                        )}
+                                        data-testid={`button-edit-source-${folder.id}-${s.code}`}
+                                        className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                                          selected
+                                            ? "bg-primary text-primary-foreground border-primary"
+                                            : "text-muted-foreground hover:border-primary/50"
+                                        }`}
+                                      >
+                                        {s.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <Button
+                                  size="sm"
+                                  disabled={editingFolderSources.length === 0 || updateFolderSourcesMutation.isPending}
+                                  onClick={() => updateFolderSourcesMutation.mutate({ id: folder.id, sources: editingFolderSources })}
+                                  data-testid={`button-save-folder-sources-${folder.id}`}
+                                >
+                                  Save Sources
+                                </Button>
+                                {editingFolderSources.length === 0 && (
+                                  <p className="text-[11px] text-destructive">Select at least one source.</p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
