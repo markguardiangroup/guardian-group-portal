@@ -51,7 +51,16 @@ import {
   SidebarHeader,
   SidebarFooter,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Collapsible,
   CollapsibleContent,
@@ -307,6 +316,7 @@ const roleLabels: Record<UserRole, string> = {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const [location] = useLocation();
+  const { state: sidebarState } = useSidebar();
   const { logout, isLoggingOut } = useAuth();
   const { hasActiveAccess, hasVisibleAccess, isHidden, isLoading: moduleAccessLoading } = useModuleAccess();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
@@ -764,11 +774,57 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2">
         <div className="rounded-lg bg-sidebar-accent/50 px-3 py-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-1 group-data-[collapsible=icon]:bg-transparent">
           <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                {user ? getInitials(user.fullName) : "?"}
-              </AvatarFallback>
-            </Avatar>
+            {sidebarState === "collapsed" ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    data-testid="button-user-avatar-collapsed"
+                  >
+                    <Avatar className="h-8 w-8 shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                        {user ? getInitials(user.fullName) : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="end" sideOffset={8} className="w-52">
+                  <DropdownMenuLabel className="font-normal pb-2">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-sm leading-tight">{user?.fullName || "Guest"}</span>
+                      {user?.companyName && (
+                        <span className="text-xs text-muted-foreground leading-tight">{user.companyName}</span>
+                      )}
+                      {user?.role !== "client" && (
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground leading-tight">
+                          {user ? roleLabels[user.role] : ""}
+                          {user?.role === "consultant" && user?.consultantTier === "pro" && (
+                            <span className="inline-flex items-center rounded px-1 py-0 text-[10px] font-bold tracking-wide bg-amber-100 text-amber-700 leading-4">PRO</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => logout()}
+                    disabled={isLoggingOut}
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                    data-testid="button-logout-collapsed"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Avatar className="h-8 w-8 shrink-0">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                  {user ? getInitials(user.fullName) : "?"}
+                </AvatarFallback>
+              </Avatar>
+            )}
             <div className="flex flex-col min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <span className="truncate text-sm font-semibold leading-tight" data-testid="text-user-name">
                 {user?.fullName || "Guest"}
@@ -791,9 +847,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </div>
             <button
               type="button"
-              onClick={() => {
-                logout();
-              }}
+              onClick={() => logout()}
               disabled={isLoggingOut}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover-elevate group-data-[collapsible=icon]:hidden"
               data-testid="button-logout"

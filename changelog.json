@@ -6089,6 +6089,13 @@
           "message": "Sidebar starts collapsed; a hint tooltip guides first-time users to expand it",
           "category": "enhancement",
           "createdAt": "2026-05-28T15:20:00.000Z"
+        },
+        {
+          "id": "k3f5a7b9-avatar-collapsed-logout-dropdown-2026",
+          "patch": 11,
+          "message": "Clicking your initials in the collapsed sidebar opens a sign-out menu",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T15:30:00.000Z"
         }
       ],
       "publishedPatch": 10,
