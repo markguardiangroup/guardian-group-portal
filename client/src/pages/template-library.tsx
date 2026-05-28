@@ -2623,6 +2623,17 @@ export default function TemplateLibraryPage() {
               <p className="text-sm font-medium">Compliance Settings</p>
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
+                  <Label className="font-medium text-sm">Required Document</Label>
+                  <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
+                </div>
+                <Switch
+                  checked={bulkShared.isRequired}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, isRequired: checked })}
+                  data-testid="switch-bulk-is-required"
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-background rounded-md border">
+                <div className="space-y-0.5">
                   <Label className="font-medium text-sm">Client Approval</Label>
                   <p className="text-xs text-muted-foreground">Needs client sign-off</p>
                 </div>
@@ -2959,6 +2970,18 @@ export default function TemplateLibraryPage() {
             {templateFormData.visibility !== "public" && (
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
+              <div className="flex items-center justify-between p-3 bg-background rounded-md border">
+                <div className="space-y-0.5">
+                  <Label htmlFor="edit-template-isRequired" className="font-medium text-sm">Required Document</Label>
+                  <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
+                </div>
+                <Switch
+                  id="edit-template-isRequired"
+                  checked={templateFormData.isRequired}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isRequired: checked })}
+                  data-testid="switch-edit-template-is-required"
+                />
+              </div>
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
                   <Label htmlFor="edit-template-requiresApproval" className="font-medium text-sm">Client Approval</Label>

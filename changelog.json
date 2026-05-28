@@ -6047,6 +6047,13 @@
           "message": "Fixed: Private Templates report now shows a clear error message if data fails to load",
           "category": "bug",
           "createdAt": "2026-05-28T14:10:00.000Z"
+        },
+        {
+          "id": "e7f9a1b3-required-doc-toggle-restored-2026",
+          "patch": 11,
+          "message": "Fixed: Required Document toggle restored in private template upload and edit dialogs",
+          "category": "bug",
+          "createdAt": "2026-05-28T14:20:00.000Z"
         }
       ],
       "publishedPatch": 10,
