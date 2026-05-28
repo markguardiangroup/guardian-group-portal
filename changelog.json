@@ -6159,6 +6159,20 @@
           "message": "Fixed: Template Library folder tree now sorts folders alphabetically",
           "category": "bug",
           "createdAt": "2026-05-28T20:35:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-inv-witnesses-no-duplicate-question-2026",
+          "patch": 11,
+          "message": "Follow-up investigation: witness details pre-filled from initial report, duplicate Yes/No question removed",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T21:30:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-inv-actions-auto-create-milestones-2026",
+          "patch": 11,
+          "message": "Follow-up investigation: saving actions now automatically adds them as Action Items on the incident",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T21:31:00.000Z"
         }
       ],
       "publishedPatch": 10,
