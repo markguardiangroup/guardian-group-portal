@@ -2618,9 +2618,9 @@ export default function TemplateLibraryPage() {
             )}
 
             {/* Compliance Settings */}
+            {bulkShared.visibility !== "public" && (
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
-              {bulkShared.visibility !== "public" && (
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
                   <Label className="font-medium text-sm">Client Approval</Label>
@@ -2633,7 +2633,6 @@ export default function TemplateLibraryPage() {
                 />
               </div>
               )}
-              {bulkShared.visibility !== "public" && (
               <div className="space-y-1">
                 <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period</Label>
                 <Select
@@ -2654,8 +2653,8 @@ export default function TemplateLibraryPage() {
                 </Select>
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
-              )}
             </div>
+            )}
 
             {/* Source */}
             {allSources.filter(s => s.isActive).length > 0 && (
@@ -2958,9 +2957,9 @@ export default function TemplateLibraryPage() {
               </div>
             )}
             {/* Compliance Settings */}
+            {templateFormData.visibility !== "public" && (
             <div className="space-y-4 p-3 border rounded-md bg-muted/30">
               <p className="text-sm font-medium">Compliance Settings</p>
-              {templateFormData.visibility !== "public" && (
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
                   <Label htmlFor="edit-template-requiresApproval" className="font-medium text-sm">Client Approval</Label>
@@ -2973,8 +2972,6 @@ export default function TemplateLibraryPage() {
                   data-testid="switch-edit-template-requires-approval"
                 />
               </div>
-              )}
-              {templateFormData.visibility !== "public" && (
               <div className="space-y-1">
                 <Label htmlFor="edit-template-renewal" className="text-sm">Renewal Period</Label>
                 <Select
@@ -2995,8 +2992,8 @@ export default function TemplateLibraryPage() {
                 </Select>
                 <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
               </div>
-              )}
             </div>
+            )}
             {/* Source */}
             {allSources.filter(s => s.isActive).length > 0 && (
               <div className="space-y-2">

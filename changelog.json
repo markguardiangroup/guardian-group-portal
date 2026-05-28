@@ -6019,6 +6019,13 @@
           "message": "Source is now required when adding or editing templates; existing sourceless templates set to Guardian Support",
           "category": "enhancement",
           "createdAt": "2026-05-28T12:25:00.000Z"
+        },
+        {
+          "id": "a1c3e5f7-hide-compliance-box-public-templates-2026",
+          "patch": 11,
+          "message": "Compliance Settings box is now hidden for public (Toolkit) templates when adding or editing",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T12:40:00.000Z"
         }
       ],
       "publishedPatch": 10,
