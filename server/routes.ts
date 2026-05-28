@@ -15036,7 +15036,9 @@ export async function registerRoutes(
 
   app.post("/api/incidents", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const freshUser = await storage.getUser((req.session as any).userId);
+      if (!freshUser) return res.status(401).json({ error: "User not found" });
+      const user = freshUser;
       const body = req.body;
 
       if (!body.title || !body.description || !body.incidentType || !body.severity || !body.siteId || !body.entityId || !body.incidentDate) {
