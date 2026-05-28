@@ -1566,43 +1566,71 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     if (invDocInputRef.current) invDocInputRef.current.value = "";
   };
 
+  const { data: existingMilestones = [] } = useQuery<any[]>({
+    queryKey: ["/api/incidents", incident.id, "milestones"],
+    queryFn: () => fetch(`/api/incidents/${incident.id}/milestones`, { credentials: "include" }).then(r => r.json()),
+    enabled: open,
+    staleTime: 30000,
+  });
+
   const saveMutation = useMutation({
     mutationFn: (data: any) => apiRequest("PATCH", `/api/incidents/${incident.id}`, data),
-    onSuccess: () => {
-      toast({ title: "Follow Up Investigation saved" });
-      onSaved();
-      onClose();
-    },
     onError: () => toast({ title: "Save failed", variant: "destructive" }),
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const filledEquipment = invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
-    saveMutation.mutate({
-      invAbsentFromWork: absentFromWork,
-      invAbsentTimeframe: absentTimeframe,
-      invWitnessesPresent: witnessesPresent,
-      invWitnesses: invWitnesses.length > 0 ? JSON.stringify(invWitnesses) : "",
-      invEquipmentInvolved: equipmentInvolved,
-      invEquipment: filledEquipment.length > 0 ? JSON.stringify(filledEquipment) : "",
-      invOperators: operators,
-      invOperatorsQualified: operatorsQualified,
-      invDocumentsReviewed: documentsReviewed,
-      invDocumentsOther: documentsOther,
-      invDocumentsComments: documentsComments,
-      invContributingFactors: contributingFactors,
-      invPrimaryCause: primaryCause,
-      invRootCause: invRootCause,
-      invConclusion: conclusion,
-      invActions: JSON.stringify(invActions.filter(a => a.trim())),
-      invRecommendations: JSON.stringify(invRecommendations.filter(r => r.trim())),
-      invAmendments: invAmendments,
-      invCompletedAt: new Date().toISOString(),
-      riddorReportable: invRiddorReportable,
-      riddorResponsiblePerson: invRiddorResponsiblePerson,
-      riddorNotes: invRiddorNotes,
-      riddorReference: invRiddorReference,
-    });
+    const derivedWitnessesPresent = invWitnesses.length > 0 ? true : (witnessesPresent === false ? false : null);
+    try {
+      await saveMutation.mutateAsync({
+        invAbsentFromWork: absentFromWork,
+        invAbsentTimeframe: absentTimeframe,
+        invWitnessesPresent: derivedWitnessesPresent,
+        invWitnesses: invWitnesses.length > 0 ? JSON.stringify(invWitnesses) : "",
+        invEquipmentInvolved: equipmentInvolved,
+        invEquipment: filledEquipment.length > 0 ? JSON.stringify(filledEquipment) : "",
+        invOperators: operators,
+        invOperatorsQualified: operatorsQualified,
+        invDocumentsReviewed: documentsReviewed,
+        invDocumentsOther: documentsOther,
+        invDocumentsComments: documentsComments,
+        invContributingFactors: contributingFactors,
+        invPrimaryCause: primaryCause,
+        invRootCause: invRootCause,
+        invConclusion: conclusion,
+        invActions: JSON.stringify(invActions.filter(a => a.trim())),
+        invRecommendations: JSON.stringify(invRecommendations.filter(r => r.trim())),
+        invAmendments: invAmendments,
+        invCompletedAt: new Date().toISOString(),
+        riddorReportable: invRiddorReportable,
+        riddorResponsiblePerson: invRiddorResponsiblePerson,
+        riddorNotes: invRiddorNotes,
+        riddorReference: invRiddorReference,
+      });
+
+      // Auto-create Action Items for each action recorded in the investigation
+      const existingTitles = new Set(
+        (existingMilestones as any[]).map((m: any) => m.title?.trim().toLowerCase())
+      );
+      const newActions = invActions
+        .map(a => a.trim())
+        .filter(a => a && !existingTitles.has(a.toLowerCase()));
+
+      let addedCount = 0;
+      for (const action of newActions) {
+        try {
+          await apiRequest("POST", `/api/incidents/${incident.id}/milestones`, { title: action });
+          addedCount++;
+        } catch { /* non-fatal: action items panel will show existing ones */ }
+      }
+
+      const msg = addedCount > 0
+        ? `Follow Up Investigation saved. ${addedCount} action item${addedCount === 1 ? "" : "s"} added.`
+        : "Follow Up Investigation saved.";
+      toast({ title: msg });
+      onSaved();
+      onClose();
+    } catch { /* saveMutation already shows error toast */ }
   };
 
   const toggleDocument = (doc: string) =>
@@ -1629,7 +1657,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
             <Search className="h-5 w-5 text-module-accent" />
             Follow Up Investigation
           </DialogTitle>
-          <DialogDescription>Complete the investigation details for this incident. Witness and equipment details are pre-filled from the initial report.</DialogDescription>
+          <DialogDescription>Complete the investigation details for this incident. Witness details are pre-filled from the initial report — update statement status or add additional witnesses as needed. Equipment details are also pre-filled.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-8 py-2">
@@ -1654,43 +1682,37 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
           {/* ── Witnesses ── */}
           <div className="space-y-4">
             <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Witnesses</h3>
-            <div>
-              <p className="text-sm mb-2">Were there witnesses to the accident/incident?</p>
-              <YesNo value={witnessesPresent} onChange={setWitnessesPresent} testPrefix="inv-witnesses" />
-            </div>
-            {witnessesPresent && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">If yes, please complete the table below:</p>
-                <div className="border rounded-md overflow-x-auto">
-                  <table className="w-full text-sm min-w-[560px]">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[28%]">Name</th>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Job Role</th>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Company</th>
-                        <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">Witness Statement attached</th>
-                        <th className="px-3 py-2 w-16" />
+            <p className="text-xs text-muted-foreground">Pre-filled from the initial report. Add any additional witnesses and confirm whether a witness statement has been obtained.</p>
+            <div className="space-y-2">
+              <div className="border rounded-md overflow-x-auto">
+                <table className="w-full text-sm min-w-[560px]">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[28%]">Name</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Job Role</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">Company</th>
+                      <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground">Witness Statement attached</th>
+                      <th className="px-3 py-2 w-16" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {invWitnesses.map((w, i) => (
+                      <tr key={i}>
+                        <td className="px-2 py-1.5"><Input value={w.name} onChange={e => updateWitnessField(i, "name", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-name-${i}`} /></td>
+                        <td className="px-2 py-1.5"><Input value={w.jobRole} onChange={e => updateWitnessField(i, "jobRole", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-jobrole-${i}`} /></td>
+                        <td className="px-2 py-1.5"><Input value={w.company} onChange={e => updateWitnessField(i, "company", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-company-${i}`} /></td>
+                        <td className="px-2 py-1.5"><YesNo value={w.statementAttached} onChange={v => updateWitnessField(i, "statementAttached", v)} testPrefix={`inv-witness-stmt-${i}`} /></td>
+                        <td className="px-2 py-1.5 text-right"><button type="button" onClick={() => removeWitnessRow(i)} className="text-xs text-destructive hover:underline">Remove</button></td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {invWitnesses.map((w, i) => (
-                        <tr key={i}>
-                          <td className="px-2 py-1.5"><Input value={w.name} onChange={e => updateWitnessField(i, "name", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-name-${i}`} /></td>
-                          <td className="px-2 py-1.5"><Input value={w.jobRole} onChange={e => updateWitnessField(i, "jobRole", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-jobrole-${i}`} /></td>
-                          <td className="px-2 py-1.5"><Input value={w.company} onChange={e => updateWitnessField(i, "company", e.target.value)} className="h-8 text-sm" data-testid={`input-inv-witness-company-${i}`} /></td>
-                          <td className="px-2 py-1.5"><YesNo value={w.statementAttached} onChange={v => updateWitnessField(i, "statementAttached", v)} testPrefix={`inv-witness-stmt-${i}`} /></td>
-                          <td className="px-2 py-1.5 text-right"><button type="button" onClick={() => removeWitnessRow(i)} className="text-xs text-destructive hover:underline">Remove</button></td>
-                        </tr>
-                      ))}
-                      {invWitnesses.length === 0 && (
-                        <tr><td colSpan={5} className="px-3 py-3 text-sm text-muted-foreground italic text-center">No witnesses added</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                <button type="button" onClick={addWitnessRow} className="text-sm text-module-accent hover:underline font-medium" data-testid="button-add-inv-witness">+ Add witness row</button>
+                    ))}
+                    {invWitnesses.length === 0 && (
+                      <tr><td colSpan={5} className="px-3 py-3 text-sm text-muted-foreground italic text-center">No witnesses recorded on the initial report</td></tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
+              <button type="button" onClick={addWitnessRow} className="text-sm text-module-accent hover:underline font-medium" data-testid="button-add-inv-witness">+ Add witness row</button>
+            </div>
           </div>
 
           {/* ── Equipment involved ── */}
