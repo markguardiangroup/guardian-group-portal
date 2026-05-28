@@ -5977,6 +5977,13 @@
           "message": "Fixed: Group Owner companies now show inherited module breakdown when clicking their compliance badge",
           "category": "bug",
           "createdAt": "2026-05-28T12:00:00.000Z"
+        },
+        {
+          "id": "a8c3e5f2-inv-report-file-upload-replace-textarea-2026",
+          "patch": 11,
+          "message": "Investigation report: replaced text box with Add Photos and Add Documents upload buttons",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T12:30:00.000Z"
         }
       ],
       "publishedPatch": 10,

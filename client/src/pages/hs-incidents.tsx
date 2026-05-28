@@ -1437,6 +1437,10 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const { toast } = useToast();
+  const invPhotoInputRef = useRef<HTMLInputElement>(null);
+  const invDocInputRef   = useRef<HTMLInputElement>(null);
+  const [invUploadingFiles, setInvUploadingFiles] = useState(false);
+  const [invRecentUploads, setInvRecentUploads] = useState<{ name: string; isImage: boolean }[]>([]);
 
   const [absentFromWork, setAbsentFromWork] = useState<boolean | null>(null);
   const [absentTimeframe, setAbsentTimeframe] = useState("");
@@ -1463,6 +1467,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
 
   useEffect(() => {
     if (!open || !incident) return;
+    setInvRecentUploads([]);
 
     setAbsentFromWork(incident.invAbsentFromWork ?? null);
     setAbsentTimeframe(incident.invAbsentTimeframe ?? "");
@@ -1519,6 +1524,47 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     setInvRiddorNotes(incident.riddorNotes ?? "");
     setInvRiddorReference(incident.riddorReference ?? "");
   }, [open, incident]);
+
+  const handleInvFileUpload = async (files: FileList | null, isImage: boolean) => {
+    if (!files || files.length === 0) return;
+    setInvUploadingFiles(true);
+    const newUploads: { name: string; isImage: boolean }[] = [];
+    let successCount = 0;
+    for (const file of Array.from(files)) {
+      try {
+        const buffer = await file.arrayBuffer();
+        const uploadRes = await fetch("/api/uploads/file", {
+          method: "POST",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "X-File-Name": encodeURIComponent(file.name),
+          },
+          body: buffer,
+        });
+        if (!uploadRes.ok) throw new Error("Upload failed");
+        const { objectPath } = await uploadRes.json();
+        await apiRequest("POST", `/api/incidents/${incident.id}/documents`, {
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          fileName: file.name,
+          fileUrl: objectPath,
+          fileSize: file.size,
+          mimeType: file.type,
+        });
+        newUploads.push({ name: file.name, isImage });
+        successCount++;
+      } catch {
+        toast({ title: "Upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
+      }
+    }
+    if (successCount > 0) {
+      setInvRecentUploads(prev => [...prev, ...newUploads]);
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", incident.id, "documents"] });
+      toast({ title: successCount === 1 ? "File uploaded" : `${successCount} files uploaded`, description: "File added to the incident case file." });
+    }
+    setInvUploadingFiles(false);
+    if (invPhotoInputRef.current) invPhotoInputRef.current.value = "";
+    if (invDocInputRef.current) invDocInputRef.current.value = "";
+  };
 
   const saveMutation = useMutation({
     mutationFn: (data: any) => apiRequest("PATCH", `/api/incidents/${incident.id}`, data),
@@ -1717,9 +1763,84 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
                 ))}
               </div>
             )}
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Add all relevant documents, additional images and comments:</p>
-              <Textarea value={documentsComments} onChange={e => setDocumentsComments(e.target.value)} rows={3} placeholder="- Add images here." className="resize-none" data-testid="textarea-inv-docs-comments" />
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Add all relevant documents, additional images and comments:</p>
+              {/* Hidden file inputs */}
+              <input
+                ref={invPhotoInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                data-testid="input-inv-photo-upload"
+                onChange={e => handleInvFileUpload(e.target.files, true)}
+              />
+              <input
+                ref={invDocInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                data-testid="input-inv-doc-upload"
+                onChange={e => handleInvFileUpload(e.target.files, false)}
+              />
+              {/* Upload zone */}
+              <div className="border border-dashed border-border rounded-lg p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={invUploadingFiles}
+                    onClick={() => invPhotoInputRef.current?.click()}
+                    data-testid="button-inv-add-photos"
+                  >
+                    <Camera className="h-3.5 w-3.5 mr-1.5" />
+                    Add Photos
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={invUploadingFiles}
+                    onClick={() => invDocInputRef.current?.click()}
+                    data-testid="button-inv-add-documents"
+                  >
+                    <Paperclip className="h-3.5 w-3.5 mr-1.5" />
+                    Add Documents
+                  </Button>
+                  {invUploadingFiles && (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Uploading…
+                    </span>
+                  )}
+                </div>
+                {invRecentUploads.length > 0 ? (
+                  <div className="space-y-1">
+                    {invRecentUploads.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {f.isImage
+                          ? <Camera className="h-3 w-3 shrink-0 text-blue-500" />
+                          : <FileText className="h-3 w-3 shrink-0" />}
+                        <span className="truncate flex-1">{f.name}</span>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Uploaded files will appear in the incident's Photos and Documents sections.
+                  </p>
+                )}
+              </div>
+              {/* Optional text notes */}
+              <Textarea
+                value={documentsComments}
+                onChange={e => setDocumentsComments(e.target.value)}
+                rows={2}
+                placeholder="Additional notes or comments…"
+                className="resize-none"
+                data-testid="textarea-inv-docs-comments"
+              />
             </div>
           </div>
 
