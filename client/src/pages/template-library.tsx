@@ -2632,7 +2632,6 @@ export default function TemplateLibraryPage() {
                   data-testid="switch-bulk-requires-approval"
                 />
               </div>
-              )}
               <div className="space-y-1">
                 <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period</Label>
                 <Select
