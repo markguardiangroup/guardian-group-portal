@@ -5998,6 +5998,13 @@
           "message": "Fixed: Report Incident permission was not recognised until the consultant logged out and back in",
           "category": "bug",
           "createdAt": "2026-05-28T13:10:00.000Z"
+        },
+        {
+          "id": "d2f6a8b4-report-incident-button-always-visible-2026",
+          "patch": 11,
+          "message": "Fixed: Report Incident button now shows on the dashboard view, not just the register view",
+          "category": "bug",
+          "createdAt": "2026-05-28T13:20:00.000Z"
         }
       ],
       "publishedPatch": 10,

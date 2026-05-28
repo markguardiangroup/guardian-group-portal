@@ -260,8 +260,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return failureCount < 3;
     },
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const effectiveUser = user ?? (isError || !isLoading ? devUser : null);

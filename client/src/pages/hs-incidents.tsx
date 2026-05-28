@@ -4227,6 +4227,16 @@ function IncidentsListView() {
                 </SelectContent>
               </Select>
             )}
+            {view === "dashboard" && canReport && (
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white border-transparent"
+                onClick={() => setShowReportDialog(true)}
+                data-testid="button-report-incident-dashboard"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Report Incident
+              </Button>
+            )}
             {view === "register" && (
               <>
                 <Button
