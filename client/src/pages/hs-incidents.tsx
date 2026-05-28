@@ -1516,7 +1516,16 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     setPrimaryCause(incident.invPrimaryCause ?? "");
     setInvRootCause(incident.invRootCause ?? "");
     setConclusion(incident.invConclusion ?? "");
-    try { setInvActions(incident.invActions ? JSON.parse(incident.invActions) : [""]); } catch { setInvActions([""]); }
+    try {
+      if (incident.invActions) {
+        setInvActions(JSON.parse(incident.invActions));
+      } else if (incident.immediateActions?.trim()) {
+        const lines = incident.immediateActions.split("\n").map((l: string) => l.trim()).filter(Boolean);
+        setInvActions(lines.length > 0 ? lines : [""]);
+      } else {
+        setInvActions([""]);
+      }
+    } catch { setInvActions([""]); }
     try { setInvRecommendations(incident.invRecommendations ? JSON.parse(incident.invRecommendations) : [""]); } catch { setInvRecommendations([""]); }
     setInvAmendments(incident.invAmendments ?? "");
     setInvRiddorReportable(incident.riddorReportable ?? false);
@@ -1657,7 +1666,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
             <Search className="h-5 w-5 text-module-accent" />
             Follow Up Investigation
           </DialogTitle>
-          <DialogDescription>Complete the investigation details for this incident. Witness details are pre-filled from the initial report — update statement status or add additional witnesses as needed. Equipment details are also pre-filled.</DialogDescription>
+          <DialogDescription>Complete the investigation details for this incident. Witness details, immediate actions, and equipment are pre-filled from the initial report.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-8 py-2">

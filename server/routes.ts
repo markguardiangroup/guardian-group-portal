@@ -14703,7 +14703,13 @@ export async function registerRoutes(
       declarationName: incident.declarationName != null ? REDACTED : incident.declarationName,
       declarationSignature: incident.declarationSignature != null ? REDACTED : incident.declarationSignature,
       reportedByName: incident.reportedByName != null ? REDACTED : incident.reportedByName,
-      witnesses: incident.witnesses != null ? REDACTED : incident.witnesses,
+      witnesses: (() => {
+        if (!incident.witnesses) return incident.witnesses;
+        try {
+          const parsed: any[] = JSON.parse(incident.witnesses);
+          return JSON.stringify(parsed.map((w: any) => ({ ...w, name: w.name != null ? REDACTED : w.name })));
+        } catch { return REDACTED; }
+      })(),
       invCompletedBy: incident.invCompletedBy != null ? REDACTED : incident.invCompletedBy,
       riddorResponsiblePerson: incident.riddorResponsiblePerson != null ? REDACTED : incident.riddorResponsiblePerson,
       invWitnesses: redactedInvWitnesses,
