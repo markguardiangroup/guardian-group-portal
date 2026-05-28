@@ -335,15 +335,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const consultantNavItemsWithPro = consultantNavItems;
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-3">
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
+        <Link href="/" className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <img 
             src={logoIcon} 
             alt="Guardian Group" 
-            className="h-10 w-10 rounded-full object-cover"
+            className="h-10 w-10 rounded-full object-cover shrink-0"
           />
-          <div className="flex flex-col">
+          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
             <span className="text-base font-semibold text-sidebar-foreground">
               Guardian Group
             </span>
@@ -761,15 +761,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
       <SidebarSeparator />
 
-      <SidebarFooter className="p-3">
-        <div className="rounded-lg bg-sidebar-accent/50 px-3 py-2">
-          <div className="flex items-center gap-3">
+      <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2">
+        <div className="rounded-lg bg-sidebar-accent/50 px-3 py-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-1 group-data-[collapsible=icon]:bg-transparent">
+          <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                 {user ? getInitials(user.fullName) : "?"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col min-w-0 flex-1">
+            <div className="flex flex-col min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
               <span className="truncate text-sm font-semibold leading-tight" data-testid="text-user-name">
                 {user?.fullName || "Guest"}
               </span>
@@ -792,11 +792,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
             <button
               type="button"
               onClick={() => {
-                console.log("Logout clicked");
                 logout();
               }}
               disabled={isLoggingOut}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover-elevate"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors hover-elevate group-data-[collapsible=icon]:hidden"
               data-testid="button-logout"
               title="Sign out"
             >

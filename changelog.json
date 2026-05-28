@@ -6061,6 +6061,13 @@
           "message": "Active Users Now report shows each user's last recorded action date and time",
           "category": "enhancement",
           "createdAt": "2026-05-28T14:35:00.000Z"
+        },
+        {
+          "id": "g9b1c3d5-sidebar-icon-collapse-2026",
+          "patch": 11,
+          "message": "Sidebar now collapses to an icon-only rail instead of hiding entirely",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T14:50:00.000Z"
         }
       ],
       "publishedPatch": 10,
