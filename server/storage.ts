@@ -819,9 +819,17 @@ export class MemStorage implements IStorage {
     const isApprovalRequired = (d: { approvalStatus?: string | null }) =>
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
 
-    // Only exclude overrides — matching computeSlotBasedCompliance (include overrides are ignored)
+    // Mirror computeComplianceSummaryInMemory exactly: process both company-required
+    // templates (minus excluded overrides) AND site-level include overrides.
     const excludedIds = new Set(siteOverrides.filter(o => o.action === "exclude").map(o => o.templateId));
+    const includedIds = new Set(siteOverrides.filter(o => o.action === "include").map(o => o.templateId));
     const activeCompanyRequired = companyRequired.filter(r => !r.removedAt);
+    const activeCompanyRequiredIds = new Set(activeCompanyRequired.map(r => r.templateId));
+    // Combined effective template IDs: company-required (not excluded) + site-included (not already company-required)
+    const effectiveTemplateIds = [
+      ...activeCompanyRequired.filter(r => !excludedIds.has(r.templateId)).map(r => r.templateId),
+      ...[...includedIds].filter(id => !activeCompanyRequiredIds.has(id)),
+    ];
 
     for (const m of modules) {
       let slotTotal = 0;
@@ -831,14 +839,13 @@ export class MemStorage implements IStorage {
       let missing = 0;
       const consumedDocIds = new Set<string>();
 
-      for (const req of activeCompanyRequired) {
-        if (excludedIds.has(req.templateId)) continue;
-        const tmpl = templateMap.get(req.templateId);
+      for (const templateId of effectiveTemplateIds) {
+        const tmpl = templateMap.get(templateId);
         if (!tmpl || tmpl.visibility !== "private") continue;
         if (tmpl.module !== m) continue;
 
         slotTotal++;
-        const matchingDocs = siteDocs.filter(d => d.templateId === req.templateId);
+        const matchingDocs = siteDocs.filter(d => d.templateId === templateId);
         for (const d of matchingDocs) { if (d.id) consumedDocIds.add(d.id); }
 
         if (matchingDocs.length === 0) { missing++; continue; }

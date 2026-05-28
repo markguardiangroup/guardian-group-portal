@@ -5963,6 +5963,13 @@
           "message": "Fixed: group and company filters no longer flicker when changing the staff scope on site document pages",
           "category": "bug",
           "createdAt": "2026-05-27T23:02:23.381Z"
+        },
+        {
+          "id": "e3d74b75-0369-4aee-a1f7-ae766068fff9",
+          "patch": 11,
+          "message": "Fixed: per-module compliance percentages in the companies list now match the overall badge",
+          "category": "bug",
+          "createdAt": "2026-05-28T08:17:51.123Z"
         }
       ],
       "publishedPatch": 10,
