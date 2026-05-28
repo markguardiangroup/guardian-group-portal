@@ -9382,6 +9382,60 @@ export async function registerRoutes(
     return new Set(companySites.filter((s: any) => clientSiteIds.has(s.id)).map((s: any) => s.id));
   }
 
+  // Admin Report: Private Templates
+  app.get("/api/admin/private-templates", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
+      if (user.role !== "admin" && !isProConsultant) {
+        return res.status(403).json({ error: "Not authorised" });
+      }
+
+      const [allTemplates, allFolders, allSources] = await Promise.all([
+        storage.getDocumentTemplates(),
+        storage.getFolderTemplates(),
+        storage.getSources(false),
+      ]);
+
+      const privateTemplates = allTemplates.filter(t => t.sources && t.sources.length > 0);
+      const folderMap = new Map(allFolders.map((f: any) => [f.id, f]));
+      const sourceMap = new Map(allSources.map((s: any) => [s.code, s.label]));
+
+      const result = privateTemplates.map(t => {
+        const folder = t.folderTemplateId ? folderMap.get(t.folderTemplateId) : null;
+        const parentFolder = folder?.parentId ? folderMap.get(folder.parentId) : null;
+        const folderPath = folder
+          ? parentFolder
+            ? `${parentFolder.name} / ${folder.name}`
+            : folder.name
+          : null;
+        return {
+          id: t.id,
+          name: t.name,
+          module: t.module,
+          folderName: folderPath,
+          isRequired: t.isRequired,
+          requiresApproval: t.requiresApproval,
+          sources: t.sources,
+          sourceLabels: (t.sources as string[]).map((code: string) => (sourceMap.get(code) as string) ?? code),
+        };
+      });
+
+      result.sort((a, b) => {
+        const aSource = a.sourceLabels[0] ?? "";
+        const bSource = b.sourceLabels[0] ?? "";
+        if (aSource !== bSource) return aSource.localeCompare(bSource);
+        return a.name.localeCompare(b.name);
+      });
+
+      return res.json({ templates: result, total: result.length });
+    } catch (err) {
+      console.error("Private templates report error:", err);
+      return res.status(500).json({ error: "Failed to load private templates report" });
+    }
+  });
+
   // Report: Compliance Gap Report
   app.get("/api/reports/gaps", requireAuth, async (req, res) => {
     try {

@@ -63,6 +63,7 @@ import {
   UserMinus,
   UserRoundCog,
   X,
+  Lock,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -89,6 +90,17 @@ interface UserReportData {
   siteAssignments?: { siteId: string; siteName: string }[];
   keyContactCompanies?: string[];
   keyContactSites?: string[];
+}
+
+interface PrivateTemplateRow {
+  id: string;
+  name: string;
+  module: string;
+  folderName: string | null;
+  isRequired: boolean;
+  requiresApproval: boolean;
+  sources: string[];
+  sourceLabels: string[];
 }
 
 interface EmailSummary {
@@ -572,6 +584,14 @@ function EmailDeliveryLogDialog({
 export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
+  const [showPrivateTemplates, setShowPrivateTemplates] = useState(false);
+  const [privateTemplatesSearch, setPrivateTemplatesSearch] = useState("");
+  const [privateTemplatesSourceFilter, setPrivateTemplatesSourceFilter] = useState("all");
+  const { data: privateTemplatesData, isLoading: privateTemplatesLoading } = useQuery<{ templates: PrivateTemplateRow[]; total: number }>({
+    queryKey: ["/api/admin/private-templates"],
+    enabled: showPrivateTemplates,
+    staleTime: 60_000,
+  });
   const [showEmailLog, setShowEmailLog] = useState(false);
   const [showActiveUsers, setShowActiveUsers] = useState(false);
   interface ActiveUserEntry {
@@ -838,6 +858,24 @@ export default function AdminReports() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Private Templates Report */}
+            <div
+              className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+              onClick={() => setShowPrivateTemplates(true)}
+              data-testid="report-private-templates"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-rose-500/10">
+                  <Lock className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                </div>
+                <div>
+                  <p className="font-medium">Private Templates</p>
+                  <p className="text-sm text-muted-foreground">Source-restricted templates with compliance flags</p>
+                </div>
+              </div>
+              <Badge variant="secondary">View</Badge>
+            </div>
+
             {/* Users Report — visible to admins and consultants */}
             <div
               className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
@@ -1012,6 +1050,145 @@ export default function AdminReports() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Private Templates Report Dialog */}
+      <Dialog open={showPrivateTemplates} onOpenChange={open => { setShowPrivateTemplates(open); if (!open) { setPrivateTemplatesSearch(""); setPrivateTemplatesSourceFilter("all"); } }}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-auto" data-testid="dialog-private-templates-report">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Private Templates Report
+            </DialogTitle>
+            <DialogDescription>
+              All source-restricted templates — only visible to users with a matching source assignment.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-4">
+            {/* Toolbar */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-8 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="Search templates…"
+                  value={privateTemplatesSearch}
+                  onChange={e => setPrivateTemplatesSearch(e.target.value)}
+                  data-testid="input-private-templates-search"
+                />
+              </div>
+              <Select value={privateTemplatesSourceFilter} onValueChange={setPrivateTemplatesSourceFilter}>
+                <SelectTrigger className="w-[180px]" data-testid="select-private-templates-source">
+                  <SelectValue placeholder="All sources" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All sources</SelectItem>
+                  {Array.from(new Set((privateTemplatesData?.templates ?? []).flatMap(t => t.sources))).sort().map(code => {
+                    const found = (privateTemplatesData?.templates ?? []).find(t => t.sources.includes(code));
+                    const idx = found?.sources.indexOf(code) ?? 0;
+                    const label = found?.sourceLabels[idx] ?? code;
+                    return <SelectItem key={code} value={code}>{label}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!privateTemplatesData}
+                onClick={() => {
+                  if (!privateTemplatesData) return;
+                  const rows = privateTemplatesData.templates;
+                  const headers = ["Name", "Module", "Folder", "Sources", "Required", "Requires Approval"];
+                  const csvRows = rows.map(r => [
+                    r.name,
+                    r.module,
+                    r.folderName ?? "Unassigned",
+                    r.sourceLabels.join("; "),
+                    r.isRequired ? "Yes" : "No",
+                    r.requiresApproval ? "Yes" : "No",
+                  ]);
+                  const csv = [headers, ...csvRows].map(row => row.map(c => `"${c}"`).join(",")).join("\n");
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `private_templates_${format(new Date(), "yyyy-MM-dd")}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                }}
+                data-testid="button-download-private-templates-csv"
+              >
+                <Download className="h-4 w-4 mr-1.5" />
+                Download CSV
+              </Button>
+            </div>
+
+            {privateTemplatesLoading ? (
+              <FetchingOverlay />
+            ) : (() => {
+              const search = privateTemplatesSearch.toLowerCase();
+              const rows = (privateTemplatesData?.templates ?? []).filter(t => {
+                const matchesSearch = !search || t.name.toLowerCase().includes(search) || (t.folderName ?? "").toLowerCase().includes(search) || t.sourceLabels.some(l => l.toLowerCase().includes(search));
+                const matchesSource = privateTemplatesSourceFilter === "all" || t.sources.includes(privateTemplatesSourceFilter);
+                return matchesSearch && matchesSource;
+              });
+              return rows.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-8 text-center text-muted-foreground">
+                  <Lock className="h-8 w-8 opacity-40" />
+                  <p className="text-sm">No private templates found.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">{rows.length} template{rows.length !== 1 ? "s" : ""}{privateTemplatesData && rows.length < privateTemplatesData.total ? ` (filtered from ${privateTemplatesData.total})` : ""}</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Template Name</TableHead>
+                        <TableHead>Module</TableHead>
+                        <TableHead>Folder</TableHead>
+                        <TableHead>Source(s)</TableHead>
+                        <TableHead className="text-center w-[90px]">Required</TableHead>
+                        <TableHead className="text-center w-[120px]">Req. Approval</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map(t => (
+                        <TableRow key={t.id} data-testid={`private-template-row-${t.id}`}>
+                          <TableCell className="font-medium">{t.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs capitalize">
+                              {t.module.replace(/_/g, " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{t.folderName ?? <span className="italic">Unassigned</span>}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {t.sourceLabels.map((label, i) => (
+                                <Badge key={i} variant="secondary" className="text-xs">{label}</Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {t.isRequired
+                              ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                              : <X className="h-4 w-4 text-muted-foreground mx-auto" />}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {t.requiresApproval
+                              ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
+                              : <X className="h-4 w-4 text-muted-foreground mx-auto" />}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Users Report Dialog */}
       <Dialog open={showUsersReport} onOpenChange={setShowUsersReport}>
