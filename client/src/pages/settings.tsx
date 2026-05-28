@@ -888,6 +888,7 @@ export default function Settings() {
                       { key: "caseAdvocate" as const, label: "Case Advocate", description: "Access to case advocacy tools and workflows" },
                       { key: "trainingLibrary" as const, label: "Training Library", description: "Manage and publish training content" },
                       { key: "templateLibrary" as const, label: "Template Library", description: "Create and manage document templates" },
+                      { key: "reportIncident" as const, label: "Report Incident", description: "Report new incidents and near misses for assigned sites" },
                     ].map(({ key, label, description }) => (
                       <div key={key} className="flex items-center justify-between rounded-lg border px-4 py-3 opacity-80">
                         <div>

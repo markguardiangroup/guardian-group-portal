@@ -314,7 +314,7 @@ export default function UserManagement() {
   } | null>(null);
 
   const [permissionsUser, setPermissionsUser] = useState<UserWithAssignments | null>(null);
-  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean; services: boolean }>({ caseAdvocate: false, trainingLibrary: false, templateLibrary: false, services: false });
+  const [permissionsForm, setPermissionsForm] = useState<{ caseAdvocate: boolean; trainingLibrary: boolean; templateLibrary: boolean; services: boolean; reportIncident: boolean }>({ caseAdvocate: false, trainingLibrary: false, templateLibrary: false, services: false, reportIncident: false });
   const [isSavingPermissions, setIsSavingPermissions] = useState(false);
 
   const generateUsername = (firstName: string, lastName: string): string => {
@@ -1741,6 +1741,7 @@ export default function UserManagement() {
                           { key: "trainingLibrary", label: "Training Lib", className: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" },
                           { key: "templateLibrary", label: "Template Lib", className: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700" },
                           { key: "services", label: "Services", className: "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700" },
+                          { key: "reportIncident", label: "Report Incident", className: "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700" },
                         ];
                         const active = PERMS.filter(p => (u.consultantPermissions as any)?.[p.key]);
                         if (active.length === 0) return <span className="text-sm text-muted-foreground">—</span>;
@@ -1849,7 +1850,7 @@ export default function UserManagement() {
                           <DropdownMenuItem
                             onClick={() => {
                               setPermissionsUser(u);
-                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false, trainingLibrary: u.consultantPermissions?.trainingLibrary ?? false, templateLibrary: u.consultantPermissions?.templateLibrary ?? false, services: (u.consultantPermissions as any)?.services ?? false });
+                              setPermissionsForm({ caseAdvocate: u.consultantPermissions?.caseAdvocate ?? false, trainingLibrary: u.consultantPermissions?.trainingLibrary ?? false, templateLibrary: u.consultantPermissions?.templateLibrary ?? false, services: (u.consultantPermissions as any)?.services ?? false, reportIncident: (u.consultantPermissions as any)?.reportIncident ?? false });
                             }}
                             data-testid={`button-edit-permissions-${u.id}`}
                           >
@@ -3102,6 +3103,21 @@ export default function UserManagement() {
                       data-testid="switch-new-permission-services"
                     />
                   </div>
+                  <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Report Incident</p>
+                      <p className="text-xs text-muted-foreground">
+                        Allows this consultant to report new incidents and near misses for their assigned sites.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={(newUser.consultantPermissions as any).reportIncident ?? false}
+                      onCheckedChange={(checked) =>
+                        setNewUser({ ...newUser, consultantPermissions: { ...newUser.consultantPermissions, reportIncident: checked } })
+                      }
+                      data-testid="switch-new-permission-report-incident"
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -4135,6 +4151,20 @@ export default function UserManagement() {
                 checked={permissionsForm.services}
                 onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, services: checked })}
                 data-testid="switch-permission-services"
+              />
+            </div>
+            {/* Permission row: Report Incident */}
+            <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Report Incident</p>
+                <p className="text-xs text-muted-foreground">
+                  Allows this consultant to report new incidents and near misses for their assigned sites. Admins and clients always have this ability.
+                </p>
+              </div>
+              <Switch
+                checked={permissionsForm.reportIncident}
+                onCheckedChange={(checked) => setPermissionsForm({ ...permissionsForm, reportIncident: checked })}
+                data-testid="switch-permission-report-incident"
               />
             </div>
           </div>

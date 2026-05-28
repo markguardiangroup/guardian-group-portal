@@ -5984,6 +5984,13 @@
           "message": "Investigation report: replaced text box with Add Photos and Add Documents upload buttons",
           "category": "enhancement",
           "createdAt": "2026-05-28T12:30:00.000Z"
+        },
+        {
+          "id": "b9d4f6a8-consultant-report-incident-permission-2026",
+          "patch": 11,
+          "message": "Consultants can now be granted permission to report incidents via their permission settings",
+          "category": "feature",
+          "createdAt": "2026-05-28T13:00:00.000Z"
         }
       ],
       "publishedPatch": 10,

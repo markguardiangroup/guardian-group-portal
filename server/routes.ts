@@ -13894,6 +13894,7 @@ export async function registerRoutes(
         trainingLibrary: z.boolean().optional(),
         templateLibrary: z.boolean().optional(),
         services: z.boolean().optional(),
+        reportIncident: z.boolean().optional(),
       });
       const parsed = permissionsSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -15042,7 +15043,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      if (user.role === "consultant") return res.status(403).json({ error: "Consultants cannot report incidents" });
+      if (user.role === "consultant") {
+        const perms = user.consultantPermissions as { reportIncident?: boolean } | null;
+        if (!perms?.reportIncident) return res.status(403).json({ error: "You do not have permission to report incidents" });
+      }
 
       const canAccess = await canUserAccessSite(user, body.siteId);
       if (!canAccess) return res.status(403).json({ error: "You do not have access to report incidents for this site" });

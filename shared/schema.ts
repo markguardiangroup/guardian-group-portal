@@ -21,6 +21,7 @@ export type ConsultantPermissions = {
   trainingLibrary?: boolean;
   templateLibrary?: boolean;
   services?: boolean;
+  reportIncident?: boolean;
 };
 
 // Site status
