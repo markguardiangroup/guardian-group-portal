@@ -6187,6 +6187,13 @@
           "message": "Follow-up investigation: immediate actions from the initial report now pre-fill the Actions section",
           "category": "enhancement",
           "createdAt": "2026-05-28T21:46:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-inv-witnesses-summary-fallback-2026",
+          "patch": 11,
+          "message": "Fixed: witnesses from the initial report now show in the investigation summary view before the investigation is saved",
+          "category": "bug",
+          "createdAt": "2026-05-28T21:55:00.000Z"
         }
       ],
       "publishedPatch": 10,

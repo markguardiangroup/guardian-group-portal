@@ -2824,29 +2824,31 @@ function IncidentDetailView({ id }: { id: string }) {
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
                       {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
                     </div>
-                    {incident.invWitnessesPresent === null ? (
-                      <p className="text-sm text-muted-foreground italic">Not recorded</p>
-                    ) : (
-                      <>
-                        <p className="text-sm"><span className="text-muted-foreground">Witnesses present:</span> <span className="font-medium">{incident.invWitnessesPresent ? "Yes" : "No"}</span></p>
-                        {incident.invWitnessesPresent && incident.invWitnesses && (() => {
-                          let ws: InvWitness[] = [];
-                          try { ws = JSON.parse(incident.invWitnesses); } catch {}
-                          return ws.length > 0 ? (
-                            <div className="space-y-1.5">
-                              {ws.map((w, i) => (
-                                <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
-                                  <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
-                                </div>
-                              ))}
+                    {(() => {
+                      // Prefer saved investigation witnesses; fall back to initial report witnesses
+                      let ws: InvWitness[] = [];
+                      if (incident.invWitnesses) {
+                        try { ws = JSON.parse(incident.invWitnesses); } catch {}
+                      } else if (incident.witnesses) {
+                        try {
+                          const parsed = JSON.parse(incident.witnesses);
+                          if (Array.isArray(parsed)) ws = parsed.map((w: any) => ({ name: w.name ?? "", jobRole: w.jobRole ?? "", company: w.company ?? "", statementAttached: null }));
+                        } catch {}
+                      }
+                      if (ws.length === 0) return <p className="text-sm text-muted-foreground italic">No witnesses recorded</p>;
+                      return (
+                        <div className="space-y-1.5">
+                          {ws.map((w, i) => (
+                            <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
+                              <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name || "—"}</p></div>
+                              <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
+                              <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
+                              <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
                             </div>
-                          ) : <p className="text-sm text-muted-foreground italic">No witnesses recorded</p>;
-                        })()}
-                      </>
-                    )}
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* ─ Equipment Involved ─ */}
