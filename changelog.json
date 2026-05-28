@@ -6075,6 +6075,13 @@
           "message": "Fixed: sidebar logo no longer gets clipped when the sidebar is collapsed",
           "category": "bug",
           "createdAt": "2026-05-28T15:00:00.000Z"
+        },
+        {
+          "id": "i1d3e5f7-sidebar-animation-speed-2026",
+          "patch": 11,
+          "message": "Sidebar collapse and expand animation is now faster and smoother",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T15:10:00.000Z"
         }
       ],
       "publishedPatch": 10,
