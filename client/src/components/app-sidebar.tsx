@@ -304,6 +304,137 @@ interface AuthUser {
   notes?: string | null;
 }
 
+type ModuleNavItem = (typeof moduleNavItems)[number];
+
+function NavItemWithFlyout({
+  item,
+  user,
+  sidebarState,
+  isModuleActive,
+  openSupportCount = 0,
+  noColor,
+}: {
+  item: ModuleNavItem;
+  user: AppSidebarProps["user"];
+  sidebarState: "expanded" | "collapsed";
+  isModuleActive: boolean;
+  openSupportCount?: number;
+  noColor?: boolean;
+}) {
+  const [location] = useLocation();
+
+  const filteredSubItems = item.subItems.filter((subItem) => {
+    if (subItem.adminOnly && user?.role === "client") return false;
+    if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
+    return true;
+  });
+
+  const testId = `nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`;
+
+  if (sidebarState === "collapsed" && filteredSubItems.length > 0) {
+    return (
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              data-testid={testId}
+              data-slot="sidebar-menu-button"
+              data-sidebar="menu-button"
+              data-active={isModuleActive}
+              className={cn(
+                "peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+                !noColor && "nav-module-btn",
+                isModuleActive && (!noColor ? "nav-module-active" : "bg-sidebar-accent font-medium")
+              )}
+            >
+              <item.icon className={cn("h-4 w-4 shrink-0", noColor ? "text-muted-foreground" : "text-module-accent")} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" sideOffset={4} className="w-48">
+            <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-1">
+              {item.title}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {filteredSubItems.map((subItem) => {
+              const isSubActive = location === subItem.url;
+              return (
+                <DropdownMenuItem
+                  key={subItem.title}
+                  asChild
+                  className={cn("cursor-pointer gap-2", isSubActive && "bg-sidebar-accent font-medium")}
+                >
+                  <Link
+                    href={subItem.url}
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    {subItem.icon && <subItem.icon className="h-4 w-4" />}
+                    <span>{subItem.title}</span>
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <Collapsible
+      asChild
+      defaultOpen={isModuleActive}
+      className={cn("group/collapsible", !noColor && item.themeClass)}
+    >
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            className={cn(
+              "transition-colors",
+              !noColor && "nav-module-btn",
+              isModuleActive && (!noColor ? "nav-module-active" : "bg-sidebar-accent font-medium")
+            )}
+            data-testid={testId}
+          >
+            <item.icon className={cn("h-4 w-4", noColor ? "text-muted-foreground" : "text-module-accent")} />
+            <span className={cn("flex-1", !noColor && "nav-module-label")}>{item.title}</span>
+            {item.module === "support" && openSupportCount > 0 && (
+              <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs font-medium" data-testid="badge-support-notifications">
+                {openSupportCount}
+              </Badge>
+            )}
+            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180", !noColor && "text-module-accent opacity-70")} />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {filteredSubItems.map((subItem) => {
+              const isSubActive = location === subItem.url;
+              return (
+                <SidebarMenuSubItem key={subItem.title}>
+                  <SidebarMenuSubButton
+                    asChild
+                    isActive={isSubActive}
+                    className={cn("transition-colors", isSubActive && "bg-sidebar-accent font-medium")}
+                  >
+                    <Link
+                      href={subItem.url}
+                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
+                    >
+                      {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
+                      <span>{subItem.title}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
 interface AppSidebarProps {
   user?: AuthUser | null;
 }
@@ -502,71 +633,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 }
                 
                 return (
-                  <Collapsible
+                  <NavItemWithFlyout
                     key={item.title}
-                    asChild
-                    defaultOpen={isModuleActive}
-                    className={cn("group/collapsible", item.themeClass)}
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          className={cn(
-                            "transition-colors nav-module-btn",
-                            isModuleActive && "nav-module-active"
-                          )}
-                          data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                        >
-                          <item.icon className="h-4 w-4 text-module-accent" />
-                          <span className="flex-1 nav-module-label">{item.title}</span>
-                          {item.module === "support" && openSupportCount > 0 && (
-                            <Badge 
-                              variant="destructive" 
-                              className="h-5 min-w-5 px-1.5 text-xs font-medium"
-                              data-testid="badge-support-notifications"
-                            >
-                              {openSupportCount}
-                            </Badge>
-                          )}
-                          <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180 text-module-accent opacity-70" />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.subItems
-                            .filter((subItem) => {
-                              // Filter based on role permissions
-                              if (subItem.adminOnly && user?.role === "client") return false;
-                              if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
-                              return true;
-                            })
-                            .map((subItem) => {
-                            const isSubActive = location === subItem.url;
-                            return (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={isSubActive}
-                                  className={cn(
-                                    "transition-colors",
-                                    isSubActive && "bg-sidebar-accent font-medium"
-                                  )}
-                                >
-                                  <Link 
-                                    href={subItem.url}
-                                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
-                                  >
-                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
-                                    <span>{subItem.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
+                    item={item}
+                    user={user}
+                    sidebarState={sidebarState}
+                    isModuleActive={isModuleActive}
+                    openSupportCount={openSupportCount}
+                  />
                 );
               })}
 
@@ -628,71 +702,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 }
                 
                 return (
-                  <Collapsible
+                  <NavItemWithFlyout
                     key={item.title}
-                    asChild
-                    defaultOpen={isModuleActive}
-                    className={cn("group/collapsible", !item.noColor && item.themeClass)}
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          className={cn(
-                            "transition-colors",
-                            !item.noColor && "nav-module-btn",
-                            isModuleActive && (item.noColor ? "bg-sidebar-accent font-medium" : "nav-module-active")
-                          )}
-                          data-testid={testId}
-                        >
-                          <item.icon className={cn("h-4 w-4", item.noColor ? "text-muted-foreground" : "text-module-accent")} />
-                          <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
-                          {item.module === "support" && openSupportCount > 0 && (
-                            <Badge 
-                              variant="destructive" 
-                              className="h-5 min-w-5 px-1.5 text-xs font-medium"
-                              data-testid="badge-support-notifications"
-                            >
-                              {openSupportCount}
-                            </Badge>
-                          )}
-                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180", !item.noColor && "text-module-accent opacity-70")} />
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.subItems
-                            .filter((subItem) => {
-                              if (subItem.adminOnly && user?.role === "client") return false;
-                              if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
-                              return true;
-                            })
-                            .map((subItem) => {
-                            const isSubActive = location === subItem.url;
-                            return (
-                              <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton
-                                  asChild
-                                  isActive={isSubActive}
-                                  className={cn(
-                                    "transition-colors",
-                                    isSubActive && "bg-sidebar-accent font-medium"
-                                  )}
-                                >
-                                  <Link 
-                                    href={subItem.url}
-                                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
-                                  >
-                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
-                                    <span>{subItem.title}</span>
-                                  </Link>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
+                    item={item}
+                    user={user}
+                    sidebarState={sidebarState}
+                    isModuleActive={isModuleActive}
+                    openSupportCount={openSupportCount}
+                    noColor={item.noColor}
+                  />
                 );
               })}
             </SidebarMenu>

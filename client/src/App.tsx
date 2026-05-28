@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarTrigger, SidebarInset, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import type { ModuleType } from "@shared/schema";
@@ -651,24 +651,27 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
 
 
 function SidebarExpandHint() {
-  const { state } = useSidebar();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (state === "collapsed") {
-      const alreadySeen = localStorage.getItem("sidebar_hint_seen") === "true";
-      if (!alreadySeen) {
+    const alreadySeen = localStorage.getItem("sidebar_hint_seen") === "true";
+    if (alreadySeen) return;
+
+    // Read collapsed state from the sidebar DOM attribute — avoids cross-module context issues
+    const t = setTimeout(() => {
+      const sidebar = document.querySelector('[data-sidebar="sidebar"]');
+      if (sidebar?.getAttribute("data-state") === "collapsed") {
         setVisible(true);
-        const t = setTimeout(() => {
+        const hideTimer = setTimeout(() => {
           setVisible(false);
           localStorage.setItem("sidebar_hint_seen", "true");
         }, 5000);
-        return () => clearTimeout(t);
+        return () => clearTimeout(hideTimer);
       }
-    } else {
-      setVisible(false);
-    }
-  }, [state]);
+    }, 150);
+
+    return () => clearTimeout(t);
+  }, []);
 
   if (!visible) return null;
 

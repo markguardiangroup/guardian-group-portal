@@ -6096,6 +6096,13 @@
           "message": "Clicking your initials in the collapsed sidebar opens a sign-out menu",
           "category": "enhancement",
           "createdAt": "2026-05-28T15:30:00.000Z"
+        },
+        {
+          "id": "l4g6h8i0-sidebar-flyout-submenus-2026",
+          "patch": 11,
+          "message": "Collapsed sidebar: clicking a module icon now pops out a flyout sub-menu with all section links",
+          "category": "enhancement",
+          "createdAt": "2026-05-28T15:45:00.000Z"
         }
       ],
       "publishedPatch": 10,
