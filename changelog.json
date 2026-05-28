@@ -6142,7 +6142,7 @@
         {
           "id": "t1n3o5p7-toolkit-folders-pinned-top-in-table-2026",
           "patch": 11,
-          "message": "Template Library Folders tab: Toolkit folders now appear at the top of the list",
+          "message": "Template Library Folders tab: Toolkit folders now correctly appear at the top of the list",
           "category": "enhancement",
           "createdAt": "2026-05-28T20:40:00.000Z"
         },

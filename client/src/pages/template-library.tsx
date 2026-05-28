@@ -2466,8 +2466,8 @@ export default function TemplateLibraryPage() {
                       .filter(f => !searchQuery || f.name.toLowerCase().includes(searchQuery.toLowerCase()) || f.code.toLowerCase().includes(searchQuery.toLowerCase()))
                       .sort((a, b) => {
                         if (a.module !== b.module) return a.module.localeCompare(b.module);
-                        const aIsToolkit = !!(a as any).toolkitFolderId;
-                        const bIsToolkit = !!(b as any).toolkitFolderId;
+                        const aIsToolkit = !!(a.isLocked || a.toolkitFolderId);
+                        const bIsToolkit = !!(b.isLocked || b.toolkitFolderId);
                         if (aIsToolkit !== bIsToolkit) return aIsToolkit ? -1 : 1;
                         return a.name.localeCompare(b.name);
                       })
