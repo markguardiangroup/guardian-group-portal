@@ -6040,6 +6040,13 @@
           "message": "Private Templates report moved to the main Reports module (visible to admins and Pro consultants)",
           "category": "enhancement",
           "createdAt": "2026-05-28T13:55:00.000Z"
+        },
+        {
+          "id": "d6e8f0a2-private-templates-error-state-2026",
+          "patch": 11,
+          "message": "Fixed: Private Templates report now shows a clear error message if data fails to load",
+          "category": "bug",
+          "createdAt": "2026-05-28T14:10:00.000Z"
         }
       ],
       "publishedPatch": 10,

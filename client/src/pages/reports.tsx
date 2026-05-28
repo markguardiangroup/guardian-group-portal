@@ -769,7 +769,7 @@ function PrivateTemplatesReport() {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
 
-  const { data, isLoading } = useQuery<{ templates: PrivateTemplateRow[]; total: number }>({
+  const { data, isLoading, isError, error } = useQuery<{ templates: PrivateTemplateRow[]; total: number }>({
     queryKey: ["/api/admin/private-templates"],
     staleTime: 60_000,
   });
@@ -808,6 +808,11 @@ function PrivateTemplatesReport() {
   }
 
   if (isLoading) return <FetchingOverlay />;
+  if (isError) return (
+    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+      Failed to load private templates: {(error as Error)?.message ?? "Unknown error"}
+    </div>
+  );
 
   return (
     <div className="space-y-4">
