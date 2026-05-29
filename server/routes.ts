@@ -1656,6 +1656,19 @@ export async function registerRoutes(
     // All scoped (non-site) docs for in-memory shared-doc computation.
     const allScopedDocs = documents.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group"));
 
+    // Determine which scoped-doc folders have a folder-template link.
+    // Matched shared docs (folderTemplateId != null) are expanded per-site in the
+    // Document Progress counts — mirroring the folder-view's sharedExpansionDeltas logic.
+    // Unmatched shared docs are counted once globally (same as hierarchy.summary.totalDocuments).
+    const _scopedFolderIds = Array.from(new Set(allScopedDocs.map(d => (d as any).folderId).filter((v): v is string => !!v)));
+    const folderHasTemplate = new Set<string>(); // folderIds whose folder has a folderTemplateId
+    if (_scopedFolderIds.length > 0) {
+      const _folderRows = await Promise.all(_scopedFolderIds.map(fid => storage.getDocumentFolder(fid)));
+      for (const f of _folderRows) {
+        if (f && (f as any).templateId) folderHasTemplate.add(f.id);
+      }
+    }
+
     // In-memory equivalent of getSharedDocumentsForSite — no extra DB calls.
     function computeSharedDocsForSite(site: typeof sites[0]) {
       const company = companyMap.get(site.companyId);
@@ -1727,11 +1740,14 @@ export async function registerRoutes(
 
     // "Document Progress" expanded counts: shared docs counted once per site they cover,
     // matching the folder-view stats bar (hierarchy total + sharedExpansionDeltas).
+    // Unmatched shared docs (no folder template link) are counted once globally —
+    // same as hierarchy.summary.totalDocuments; matched ones are expanded per-site.
     let expandedDocTotal = 0;
     let expandedCompliant = 0;
     let expandedApprovalReq = 0;
     let expandedOverdue = 0;
     const _expNow = new Date();
+    const _seenUnmatchedSharedIds = new Set<string>(); // dedup for unmatched shared docs
 
     for (const site of accessibleSites) {
       filteredSiteIds.add(site.id);
@@ -1781,20 +1797,39 @@ export async function registerRoutes(
         }
       }
 
-      // Expanded document progress counts: each site-scoped doc counts once,
-      // each shared doc counts once per site it is visible at (same logic as the
-      // folder-view stats bar sharedExpansionDeltas).
+      // Expanded document progress counts.
+      // Site-scoped docs: count once each (they only belong to this one site).
+      // Shared docs: matched (folder has a folderTemplateId) → count per-site, same as
+      //   the folder-view's sharedExpansionDeltas; unmatched → count once globally
+      //   (same as hierarchy.summary.totalDocuments, which also counts them once).
       const progressSiteDocs = siteDocs.filter(d => module ? d.module === module : complianceModules.includes(d.module as ModuleType));
       const progressSharedDocs = validShared.filter(d => module ? (d as any).module === module : complianceModules.includes((d as any).module as ModuleType));
-      const allProgressDocs = [...progressSiteDocs, ...progressSharedDocs];
-      expandedDocTotal += allProgressDocs.length;
-      for (const d of allProgressDocs) {
+
+      const _countDoc = (d: any) => {
+        expandedDocTotal++;
         const dateOverdue = !!(d.expiryDate && new Date(d.expiryDate) < _expNow) ||
           !!(d.renewalDate && new Date(d.renewalDate) < _expNow);
         const approvalPending = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
         if (dateOverdue) expandedOverdue++;
         else if (approvalPending) expandedApprovalReq++;
         else if (d.status === "compliant") expandedCompliant++;
+      };
+
+      for (const d of progressSiteDocs) _countDoc(d);
+
+      for (const d of progressSharedDocs) {
+        const folderId = (d as any).folderId;
+        const isMatched = !!folderId && folderHasTemplate.has(folderId);
+        if (isMatched) {
+          // Matched: expand per-site (mirrors sharedExpansionDeltas in the folder view)
+          _countDoc(d);
+        } else {
+          // Unmatched: count once globally across all sites
+          if (!_seenUnmatchedSharedIds.has(d.id)) {
+            _seenUnmatchedSharedIds.add(d.id);
+            _countDoc(d);
+          }
+        }
       }
     }
 
