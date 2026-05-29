@@ -6229,6 +6229,13 @@
           "message": "Fixed: H&S, HR, and EL dashboards were showing 0% compliance due to a server error",
           "category": "bug",
           "createdAt": "2026-05-29T09:02:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-all-sites-tile-compliance-matches-dashboard-2026",
+          "patch": 12,
+          "message": "Fixed: 'All Sites' compliance % on sites page now matches the module dashboard",
+          "category": "bug",
+          "createdAt": "2026-05-29T10:30:00.000Z"
         }
       ],
       "publishedPatch": 11,

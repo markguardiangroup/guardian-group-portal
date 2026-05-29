@@ -57,6 +57,11 @@ interface SiteWithCompany {
   companyName?: string | null;
   companyId: string;
   moduleAccess?: SiteModuleAccess;
+  moduleRawCounts?: {
+    health_safety: { compliant: number; denom: number };
+    human_resources: { compliant: number; denom: number };
+    employment_law: { compliant: number; denom: number };
+  };
 }
 
 interface Document {
@@ -1096,9 +1101,21 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 filteredSites.some((s) => s.id === m.siteId)
               ).length;
               const allDenom = allCompliant + allApprovalRequired + allOverdue + allMissing;
-              const allPct = allDenom > 0 ? Math.round((allCompliant / allDenom) * 100) : null;
+              // Derive the compliance % from the server-side slot-based raw counts that
+              // /api/sites already returns per site — this mirrors the same algorithm the
+              // module dashboard uses (computeSlotBasedCompliance) and keeps both numbers
+              // in sync. Fall back to the client-side isRequired approach only when the
+              // raw counts are absent (e.g. older cached responses).
+              let rawCompliant = 0, rawDenom = 0;
+              for (const site of filteredSites) {
+                const raw = site.moduleRawCounts?.[module as keyof NonNullable<SiteWithCompany["moduleRawCounts"]>];
+                if (raw) { rawCompliant += raw.compliant; rawDenom += raw.denom; }
+              }
+              const allPct = rawDenom > 0
+                ? Math.round((rawCompliant / rawDenom) * 100)
+                : allDenom > 0 ? Math.round((allCompliant / allDenom) * 100) : null;
               const allHasIssues = allMissing > 0 || allOverdue > 0 || allApprovalRequired > 0;
-              const allClear = allDenom > 0 && !allHasIssues && allPct === 100;
+              const allClear = (rawDenom > 0 || allDenom > 0) && !allHasIssues && allPct === 100;
 
               return (
                 <Card
