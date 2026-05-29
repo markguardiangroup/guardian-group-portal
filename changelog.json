@@ -6222,6 +6222,13 @@
           "message": "Template library now shows Toolkit badge on all sub-folders inside the Toolkit section",
           "category": "enhancement",
           "createdAt": "2026-05-29T08:00:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-module-dashboard-500-recentactivity-2026",
+          "patch": 12,
+          "message": "Fixed: H&S, HR, and EL dashboards were showing 0% compliance due to a server error",
+          "category": "bug",
+          "createdAt": "2026-05-29T09:02:00.000Z"
         }
       ],
       "publishedPatch": 11,

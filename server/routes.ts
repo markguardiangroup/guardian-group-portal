@@ -2630,7 +2630,6 @@ export async function registerRoutes(
         summary,
         recentDocuments,
         upcomingReviews,
-        recentActivity,
         ...(module === "employment_law" ? { cases: elCases, allDocuments: elAllDocuments } : {}),
       });
     } catch (error) {
