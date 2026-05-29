@@ -255,6 +255,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     queryKey: ["/api/documents/module", module],
     queryFn: async () => {
       const res = await fetch(`/api/documents/module/${module}`, { credentials: "include" });
+      if (!res.ok) throw new Error(`${res.status}`);
       return res.json();
     },
     staleTime: 0,

@@ -6243,6 +6243,13 @@
           "message": "Fixed: shared documents now count once per site on module dashboards",
           "category": "bug",
           "createdAt": "2026-05-29T21:00:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-sites-page-crash-bad-api-response-2026",
+          "patch": 13,
+          "message": "Fixed: sites page could crash if the documents request returned an error",
+          "category": "bug",
+          "createdAt": "2026-05-29T21:20:00.000Z"
         }
       ],
       "publishedPatch": 12,
