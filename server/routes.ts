@@ -1687,6 +1687,14 @@ export async function registerRoutes(
         const ids = siteFilter.siteIds.split(",");
         if (!ids.includes(site.id)) return false;
       }
+      // Filter by module access on the company — mirrors the tile's filteredSites logic
+      if (module) {
+        const company = companyMap.get(site.companyId);
+        if (!company) return false;
+        if (module === "human_resources" && !company.humanResourcesAccess) return false;
+        if (module === "health_safety" && !company.healthSafetyAccess) return false;
+        if (module === "employment_law" && !company.employmentLawAccess) return false;
+      }
       return true;
     });
     const accessResults = await Promise.all(preFilteredSites.map(s => canUserAccessSite(user, s.id)));
@@ -1699,8 +1707,8 @@ export async function registerRoutes(
     let missingRequired = 0;
     const consumedDocIds = new Set<string>();
     const filteredSiteIds = new Set<string>(accessibleSites.map(s => s.id));
-    // Company/group-scoped required docs shared to any filtered site (keyed by id to deduplicate)
-    const sharedRequiredCandidates = new Map<string, any>();
+    // Company/group-scoped required docs shared to filtered sites — one entry per applicable site
+    const sharedRequiredCandidates: any[] = [];
 
     for (const site of accessibleSites) {
       filteredSiteIds.add(site.id);
@@ -1740,21 +1748,20 @@ export async function registerRoutes(
       }
 
       // Collect shared required docs that weren't consumed by a template slot
-      // (e.g. their template is excluded by a site override). These must still
-      // count as manually-required — they cannot be caught by the post-loop
-      // manualRequired filter because their siteId is null.
+      // (e.g. their template is excluded by a site override). Push once per
+      // applicable site so they expand per-site — matching the tile's coveredSites logic.
       for (const sd of validShared) {
         if (sd.isRequired && !consumedDocIds.has(sd.id)) {
           if (module && sd.module !== module) continue;
           if (!module && !complianceModules.includes(sd.module as ModuleType)) continue;
-          sharedRequiredCandidates.set(sd.id, sd);
+          sharedRequiredCandidates.push(sd);
         }
       }
     }
 
     // Manually-required docs not already consumed by a template slot.
     // Includes site-scoped docs (filtered by filteredSiteIds) plus any
-    // company/group-scoped shared docs collected above.
+    // company/group-scoped shared docs collected above (one entry per applicable site).
     const manualRequired = [
       ...documents.filter(d => {
         if (!d.isRequired) return false;
@@ -1766,7 +1773,7 @@ export async function registerRoutes(
         if (!module && !complianceModules.includes(d.module as ModuleType)) return false;
         return true;
       }),
-      ...[...sharedRequiredCandidates.values()].filter(d => !consumedDocIds.has(d.id)),
+      ...sharedRequiredCandidates.filter(d => !consumedDocIds.has(d.id)),
     ];
 
     const totalDocuments = slotTotal + manualRequired.length;

@@ -6236,6 +6236,13 @@
           "message": "Fixed: 'All Sites' compliance % on sites page now matches the module dashboard",
           "category": "bug",
           "createdAt": "2026-05-29T10:30:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-shared-docs-counted-per-site-dashboard-2026",
+          "patch": 13,
+          "message": "Fixed: shared documents now count once per site on module dashboards",
+          "category": "bug",
+          "createdAt": "2026-05-29T21:00:00.000Z"
         }
       ],
       "publishedPatch": 12,
