@@ -205,15 +205,17 @@ export default function DevelopmentRoadmap() {
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<RoadmapItem>) => {
-      return apiRequest("POST", "/api/roadmap", data);
+      const res = await apiRequest("POST", "/api/roadmap", data);
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
       setIsAddDialogOpen(false);
       toast({ title: "Item added", description: "Roadmap item has been created." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to create item.", variant: "destructive" });
+    onError: (error) => {
+      const msg = error instanceof Error ? error.message : "Failed to create item.";
+      toast({ title: "Error", description: msg, variant: "destructive" });
     },
   });
 
