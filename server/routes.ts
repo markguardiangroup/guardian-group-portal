@@ -1725,6 +1725,14 @@ export async function registerRoutes(
     // Company/group-scoped required docs shared to filtered sites — one entry per applicable site
     const sharedRequiredCandidates: any[] = [];
 
+    // "Document Progress" expanded counts: shared docs counted once per site they cover,
+    // matching the folder-view stats bar (hierarchy total + sharedExpansionDeltas).
+    let expandedDocTotal = 0;
+    let expandedCompliant = 0;
+    let expandedApprovalReq = 0;
+    let expandedOverdue = 0;
+    const _expNow = new Date();
+
     for (const site of accessibleSites) {
       filteredSiteIds.add(site.id);
       const requiredIds = companyReqsByCompanyId.get(site.companyId) ?? new Set<string>();
@@ -1772,6 +1780,22 @@ export async function registerRoutes(
           sharedRequiredCandidates.push(sd);
         }
       }
+
+      // Expanded document progress counts: each site-scoped doc counts once,
+      // each shared doc counts once per site it is visible at (same logic as the
+      // folder-view stats bar sharedExpansionDeltas).
+      const progressSiteDocs = siteDocs.filter(d => module ? d.module === module : complianceModules.includes(d.module as ModuleType));
+      const progressSharedDocs = validShared.filter(d => module ? (d as any).module === module : complianceModules.includes((d as any).module as ModuleType));
+      const allProgressDocs = [...progressSiteDocs, ...progressSharedDocs];
+      expandedDocTotal += allProgressDocs.length;
+      for (const d of allProgressDocs) {
+        const dateOverdue = !!(d.expiryDate && new Date(d.expiryDate) < _expNow) ||
+          !!(d.renewalDate && new Date(d.renewalDate) < _expNow);
+        const approvalPending = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+        if (dateOverdue) expandedOverdue++;
+        else if (approvalPending) expandedApprovalReq++;
+        else if (d.status === "compliant") expandedCompliant++;
+      }
     }
 
     // Manually-required docs not already consumed by a template slot.
@@ -1809,7 +1833,7 @@ export async function registerRoutes(
     const complianceScoreDenominator = compliantDocuments + approvalRequired + overdueDocuments + missingRequiredDocuments;
     const complianceScore = complianceScoreDenominator > 0 ? Math.round((compliantDocuments / complianceScoreDenominator) * 100) : 0;
 
-    return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds };
+    return { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds, expandedDocTotal, expandedCompliant, expandedApprovalReq, expandedOverdue };
   }
 
   /**
@@ -2514,40 +2538,17 @@ export async function registerRoutes(
       const complianceResult = await computeSlotBasedCompliance(
         user, documents, module, { siteId: requestedSiteId, siteIds: requestedSiteIds }
       );
-      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds } = complianceResult;
+      const { totalDocuments, compliantDocuments, approvalRequired, overdueDocuments, missingRequiredDocuments, complianceScore, consumedDocIds, expandedDocTotal, expandedCompliant, expandedApprovalReq, expandedOverdue } = complianceResult;
       // Pending approvals remain based on ALL docs (approval workflow, not compliance scope)
       const pendingApprovals = documents.filter(d => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off").length;
 
-      // Document Progress stats — compliance modules only (H&S/HR/EL).
-      // Training, Toolkit, and Support are excluded from all compliance counts.
-      const _modComplianceModules = new Set(["health_safety", "human_resources", "employment_law"]);
-      // Group-scoped docs with no share records are not visible to any site (shares are
-      // required to make group-scoped docs available outside the owning company's admin).
-      // Fetch shares once to identify which docs are actually shared somewhere.
-      const _allSharesRaw = await storage.getAllDocumentSharesRaw();
-      const _docIdsWithShares = new Set(_allSharesRaw.map((s: any) => s.documentId));
-      const docProgressSet = documents.filter(d =>
-        !d.isArchived &&
-        !d.caseId &&
-        !d.incidentId &&
-        d.source !== "external" &&
-        _modComplianceModules.has(d.module ?? "") &&
-        (_modComplianceModules.has(module) ? d.module === module : true) &&
-        // Exclude group-scoped docs that have no share records — they are not
-        // visible at any site (mirrors the hierarchy endpoint's computeSharedDocsForSiteH logic).
-        !(!(d as any).siteId && (d as any).scope === "group" && !_docIdsWithShares.has(d.id))
-      );
-      const _progNow = new Date();
-      // Overdue strictly date-based; approval from workflow state
-      const isDocOverdue = (d: any): boolean =>
-        !!(d.expiryDate && new Date(d.expiryDate) < _progNow) ||
-        !!(d.renewalDate && new Date(d.renewalDate) < _progNow);
-      const isDocApprovalRequired = (d: any): boolean =>
-        d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      const allDocumentsCount = docProgressSet.length;
-      const allCompliantDocuments = docProgressSet.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
-      const allApprovalRequired = docProgressSet.filter(isDocApprovalRequired).length;
-      const allOverdueDocuments = docProgressSet.filter(isDocOverdue).length;
+      // Document Progress counts: shared docs counted once per site they're visible at,
+      // matching the folder-view stats bar (hierarchy total + sharedExpansionDeltas).
+      // These come from computeSlotBasedCompliance's per-site expansion loop.
+      const allDocumentsCount = expandedDocTotal;
+      const allCompliantDocuments = expandedCompliant;
+      const allApprovalRequired = expandedApprovalReq;
+      const allOverdueDocuments = expandedOverdue;
       
       // Calculate split approval metrics based on user role (all docs)
       let awaitingYourApproval = 0;

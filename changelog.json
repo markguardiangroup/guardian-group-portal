@@ -6264,6 +6264,13 @@
           "message": "Fixed: Document Progress Total now matches the folder view document count",
           "category": "bug",
           "createdAt": "2026-05-29T22:15:00.000Z"
+        },
+        {
+          "id": "d4e6f8a0-doc-progress-shared-per-site-count-2026",
+          "patch": 13,
+          "message": "Fixed: Document Progress totals now count shared docs once per site, matching the folder view",
+          "category": "bug",
+          "createdAt": "2026-05-29T22:22:00.000Z"
         }
       ],
       "publishedPatch": 12,
