@@ -6194,6 +6194,13 @@
           "message": "Fixed: witnesses from the initial report now show in the investigation summary view before the investigation is saved",
           "category": "bug",
           "createdAt": "2026-05-28T21:55:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-client-ringfencing-5-gaps-2026",
+          "patch": 11,
+          "message": "Security: closed 5 client data-isolation gaps (audit logs, incident milestones, incident documents)",
+          "category": "bug",
+          "createdAt": "2026-05-28T22:10:00.000Z"
         }
       ],
       "publishedPatch": 10,

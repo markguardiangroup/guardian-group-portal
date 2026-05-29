@@ -2568,8 +2568,15 @@ export async function registerRoutes(
         awaitingOthersApproval,
       };
       
-      const auditLogs = await storage.getAuditLogs(undefined, module);
-      
+      const _allAuditLogs2 = await storage.getAuditLogs(undefined, module);
+      const _accessibleEntityIds2 = new Set([
+        ...documents.map((d: any) => d.entityId).filter(Boolean),
+        ...documents.map((d: any) => d.siteId).filter(Boolean),
+      ]);
+      const recentActivity = _allAuditLogs2.filter((log: any) =>
+        !log.entityId || _accessibleEntityIds2.has(log.entityId) || log.userId === user.id
+      ).slice(0, 10);
+
       const recentDocuments = documents.slice(0, 5);
       
       const now = new Date();
@@ -2577,8 +2584,6 @@ export async function registerRoutes(
         .filter(doc => doc.renewalDate && new Date(doc.renewalDate) > now)
         .sort((a, b) => new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime())
         .slice(0, 5);
-      
-      const recentActivity = auditLogs.slice(0, 10);
 
       // For employment_law, include cases and all documents for client-side metrics
       let elCases: any[] | undefined;
@@ -2741,8 +2746,15 @@ export async function registerRoutes(
         awaitingOthersApproval,
       };
       
-      const auditLogs = await storage.getAuditLogs(undefined, module);
-      
+      const allAuditLogs = await storage.getAuditLogs(undefined, module);
+      const _accessibleEntityIds = new Set([
+        ...documents.map((d: any) => d.entityId).filter(Boolean),
+        ...documents.map((d: any) => d.siteId).filter(Boolean),
+      ]);
+      const recentActivity = allAuditLogs.filter((log: any) =>
+        !log.entityId || _accessibleEntityIds.has(log.entityId) || log.userId === user.id
+      ).slice(0, 10);
+
       const recentDocuments = documents.slice(0, 5);
       
       const now = new Date();
@@ -2750,8 +2762,6 @@ export async function registerRoutes(
         .filter(doc => doc.renewalDate && new Date(doc.renewalDate) > now)
         .sort((a, b) => new Date(a.renewalDate!).getTime() - new Date(b.renewalDate!).getTime())
         .slice(0, 5);
-      
-      const recentActivity = auditLogs.slice(0, 10);
       
       res.json({
         summary,
@@ -15554,6 +15564,11 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
     try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
       const milestones = await storage.getIncidentMilestones(req.params.id);
       res.json(milestones);
     } catch (error) {
@@ -15601,6 +15616,12 @@ export async function registerRoutes(
   app.patch("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
+      const existing = await storage.getIncidentMilestone(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Milestone not found" });
+      const parentIncident = await storage.getIncident(existing.incidentId);
+      if (!parentIncident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, parentIncident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
       const updates = req.body;
       if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
       if (updates.completedDate) updates.completedDate = new Date(updates.completedDate);
@@ -15704,6 +15725,11 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id/documents", requireAuth, async (req, res) => {
     try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
       const docs = await storage.getIncidentDocuments(req.params.id);
       const enriched = await Promise.all(docs.map(async (doc) => {
         const uploader = await storage.getUser(doc.uploadedBy);
@@ -15721,6 +15747,8 @@ export async function registerRoutes(
       const user = (req.session as any).user;
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
 
       const { title, fileName, fileUrl, fileSize, mimeType } = req.body;
       if (!title || !fileName || !fileUrl) {

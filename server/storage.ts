@@ -292,6 +292,7 @@ export interface IStorage {
   updateIncident(id: string, updates: Partial<Incident>): Promise<Incident | undefined>;
   getIncidentDocuments(incidentId: string): Promise<Document[]>;
   getIncidentMilestones(incidentId: string): Promise<IncidentMilestone[]>;
+  getIncidentMilestone(id: string): Promise<IncidentMilestone | undefined>;
   createIncidentMilestone(milestone: InsertIncidentMilestone): Promise<IncidentMilestone>;
   updateIncidentMilestone(id: string, updates: Partial<IncidentMilestone>): Promise<IncidentMilestone | undefined>;
   deleteIncidentMilestone(id: string): Promise<void>;
@@ -2847,6 +2848,12 @@ export class MemStorage implements IStorage {
       .where(and(eq(documentsTable.incidentId, incidentId), eq(documentsTable.isArchived, false)))
       .orderBy(desc(documentsTable.createdAt));
     return docs;
+  }
+
+  async getIncidentMilestone(id: string): Promise<IncidentMilestone | undefined> {
+    const [milestone] = await db.select().from(incidentMilestonesTable)
+      .where(eq(incidentMilestonesTable.id, id));
+    return milestone;
   }
 
   async getIncidentMilestones(incidentId: string): Promise<IncidentMilestone[]> {
