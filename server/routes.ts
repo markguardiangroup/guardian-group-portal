@@ -1624,6 +1624,16 @@ export async function registerRoutes(
     const templateMap = new Map(templates.map(t => [t.id, t]));
     const companyMap = new Map(companies.map(c => [c.id, c]));
 
+    // Build group-owner → members map so inherited module access is respected —
+    // mirrors the same logic in storage.ts computePerModuleScores / getSitesWithDetails.
+    const membersByGoId = new Map<string, typeof companies>();
+    for (const company of companies) {
+      if (company.groupOwnerId) {
+        if (!membersByGoId.has(company.groupOwnerId)) membersByGoId.set(company.groupOwnerId, []);
+        membersByGoId.get(company.groupOwnerId)!.push(company);
+      }
+    }
+
     // Build lookup maps from the bulk data (all in-memory, zero additional DB calls).
     const sharesByDocId = new Map<string, typeof allSharesRaw>();
     for (const share of allSharesRaw) {
@@ -1687,13 +1697,18 @@ export async function registerRoutes(
         const ids = siteFilter.siteIds.split(",");
         if (!ids.includes(site.id)) return false;
       }
-      // Filter by module access on the company — mirrors the tile's filteredSites logic
+      // Filter by module access — use inherited access for Group Owner companies,
+      // matching storage.ts getSitesWithDetails (hrEnabled = own flag OR any member flag).
       if (module) {
         const company = companyMap.get(site.companyId);
         if (!company) return false;
-        if (module === "human_resources" && !company.humanResourcesAccess) return false;
-        if (module === "health_safety" && !company.healthSafetyAccess) return false;
-        if (module === "employment_law" && !company.employmentLawAccess) return false;
+        const goMembers = membersByGoId.get(site.companyId) ?? [];
+        const hrEffective = !!company.humanResourcesAccess || goMembers.some(m => m.humanResourcesAccess);
+        const hsEffective = !!company.healthSafetyAccess  || goMembers.some(m => m.healthSafetyAccess);
+        const elEffective = !!company.employmentLawAccess || goMembers.some(m => m.employmentLawAccess);
+        if (module === "human_resources" && !hrEffective) return false;
+        if (module === "health_safety"   && !hsEffective) return false;
+        if (module === "employment_law"  && !elEffective) return false;
       }
       return true;
     });
