@@ -2521,13 +2521,21 @@ export async function registerRoutes(
       // Document Progress stats — compliance modules only (H&S/HR/EL).
       // Training, Toolkit, and Support are excluded from all compliance counts.
       const _modComplianceModules = new Set(["health_safety", "human_resources", "employment_law"]);
+      // Group-scoped docs with no share records are not visible to any site (shares are
+      // required to make group-scoped docs available outside the owning company's admin).
+      // Fetch shares once to identify which docs are actually shared somewhere.
+      const _allSharesRaw = await storage.getAllDocumentSharesRaw();
+      const _docIdsWithShares = new Set(_allSharesRaw.map((s: any) => s.documentId));
       const docProgressSet = documents.filter(d =>
         !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
         d.source !== "external" &&
         _modComplianceModules.has(d.module ?? "") &&
-        (_modComplianceModules.has(module) ? d.module === module : true)
+        (_modComplianceModules.has(module) ? d.module === module : true) &&
+        // Exclude group-scoped docs that have no share records — they are not
+        // visible at any site (mirrors the hierarchy endpoint's computeSharedDocsForSiteH logic).
+        !(!(d as any).siteId && (d as any).scope === "group" && !_docIdsWithShares.has(d.id))
       );
       const _progNow = new Date();
       // Overdue strictly date-based; approval from workflow state
@@ -12092,13 +12100,10 @@ export async function registerRoutes(
           if (module && doc.module !== module) continue;
           const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
           if (doc.scope === "company" && doc.entityId === companyId) {
-            if (shares.some((s: any) =>
-              (s.entityType === "site" && s.entityId === siteId) ||
-              (s.entityType === "company" && s.entityId === companyId)
-            )) {
-              seenIds.add(doc.id);
-              results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
-            }
+            // Company-owned docs are visible at ALL of their company's sites without an
+            // explicit share record — shares are only needed when sharing cross-company.
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && doc.entityId === companyId) {
             // Own group doc: appears at own sites only if at least one share record exists
             if (shares.length > 0) {

@@ -1961,23 +1961,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
-                      <span>{((hierarchy.summary.totalDocuments ?? 0) + (sharedExpansionDeltas.summary.totalDocuments ?? 0))} Total</span>
+                      <span>{(hierarchy.summary.totalDocuments ?? 0)} Total</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{((hierarchy.summary as any).compliant ?? 0) + (sharedExpansionDeltas.summary.compliant ?? 0)} Compliant</span>
+                      <span>{((hierarchy.summary as any).compliant ?? 0)} Compliant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-emerald-500" />
-                      <span>{((hierarchy.summary as any).approved ?? 0) + (sharedExpansionDeltas.summary.approved ?? 0)} Approved</span>
+                      <span>{((hierarchy.summary as any).approved ?? 0)} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{((hierarchy.summary.approvalRequired ?? 0) + (sharedExpansionDeltas.summary.approvalRequired ?? 0))} Approval Required</span>
+                      <span>{(hierarchy.summary.approvalRequired ?? 0)} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{((hierarchy.summary.overdue ?? 0) + (sharedExpansionDeltas.summary.overdue ?? 0))} Overdue</span>
+                      <span>{(hierarchy.summary.overdue ?? 0)} Overdue</span>
                     </div>
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
