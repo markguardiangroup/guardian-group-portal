@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 12,
+      "patch": 13,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -6238,7 +6238,7 @@
           "createdAt": "2026-05-29T10:30:00.000Z"
         }
       ],
-      "publishedPatch": 11,
+      "publishedPatch": 12,
       "patchedEntryIds": [
         "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
         "b3d5f7a9-patch-bump-after-build-not-before-2026",
@@ -6495,7 +6495,11 @@
         "d4e5f6a7-inv-immediate-actions-prefill-2026",
         "e5f6a7b8-inv-witnesses-summary-fallback-2026",
         "f6a7b8c9-client-ringfencing-5-gaps-2026",
-        "a1b2c3d4-remove-unused-recent-activity-2026"
+        "a1b2c3d4-remove-unused-recent-activity-2026",
+        "b2c3d4e5-sidebar-collapsed-icon-colours-2026",
+        "c3d4e5f6-toolkit-subfolder-badge-in-template-library-2026",
+        "d4e5f6a7-module-dashboard-500-recentactivity-2026",
+        "e5f6a7b8-all-sites-tile-compliance-matches-dashboard-2026"
       ]
     }
   ]
