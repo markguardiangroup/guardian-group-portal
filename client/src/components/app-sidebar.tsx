@@ -344,6 +344,7 @@ function NavItemWithFlyout({
               data-active={isModuleActive}
               className={cn(
                 "peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+                !noColor && item.themeClass,
                 !noColor && "nav-module-btn",
                 isModuleActive && (!noColor ? "nav-module-active" : "bg-sidebar-accent font-medium")
               )}
