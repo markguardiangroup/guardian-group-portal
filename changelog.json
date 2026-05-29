@@ -6201,6 +6201,13 @@
           "message": "Security: closed 5 client data-isolation gaps (audit logs, incident milestones, incident documents)",
           "category": "bug",
           "createdAt": "2026-05-28T22:10:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-remove-unused-recent-activity-2026",
+          "patch": 11,
+          "message": "Removed unused audit log fetch from dashboard — reduces DB load on every page load",
+          "category": "enhancement",
+          "createdAt": "2026-05-29T07:35:00.000Z"
         }
       ],
       "publishedPatch": 10,

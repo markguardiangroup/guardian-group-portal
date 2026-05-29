@@ -27,7 +27,7 @@ import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import type { ComplianceSummary, Document, AuditLog, ModuleType } from "@shared/schema";
+import type { ComplianceSummary, Document, ModuleType } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 
 interface SiteWithCompany {
@@ -64,7 +64,6 @@ interface MissingRequiredTemplateDetail {
 interface ModuleDashboardData {
   summary: ComplianceSummary;
   recentDocuments: Document[];
-  recentActivity: AuditLog[];
   upcomingReviews: Document[];
 }
 

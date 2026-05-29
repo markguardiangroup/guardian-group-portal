@@ -2568,15 +2568,6 @@ export async function registerRoutes(
         awaitingOthersApproval,
       };
       
-      const _allAuditLogs2 = await storage.getAuditLogs(undefined, module);
-      const _accessibleEntityIds2 = new Set([
-        ...documents.map((d: any) => d.entityId).filter(Boolean),
-        ...documents.map((d: any) => d.siteId).filter(Boolean),
-      ]);
-      const recentActivity = _allAuditLogs2.filter((log: any) =>
-        !log.entityId || _accessibleEntityIds2.has(log.entityId) || log.userId === user.id
-      ).slice(0, 10);
-
       const recentDocuments = documents.slice(0, 5);
       
       const now = new Date();
@@ -2746,15 +2737,6 @@ export async function registerRoutes(
         awaitingOthersApproval,
       };
       
-      const allAuditLogs = await storage.getAuditLogs(undefined, module);
-      const _accessibleEntityIds = new Set([
-        ...documents.map((d: any) => d.entityId).filter(Boolean),
-        ...documents.map((d: any) => d.siteId).filter(Boolean),
-      ]);
-      const recentActivity = allAuditLogs.filter((log: any) =>
-        !log.entityId || _accessibleEntityIds.has(log.entityId) || log.userId === user.id
-      ).slice(0, 10);
-
       const recentDocuments = documents.slice(0, 5);
       
       const now = new Date();
@@ -2767,7 +2749,6 @@ export async function registerRoutes(
         summary,
         recentDocuments,
         upcomingReviews,
-        recentActivity,
       });
     } catch (error) {
       console.error("Dashboard error:", error);
