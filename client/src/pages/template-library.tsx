@@ -1804,7 +1804,7 @@ export default function TemplateLibraryPage() {
   );
   
   // Folder tree renderer
-  const renderFolderTree = (folder: FolderTemplate, depth: number = 0, moduleContext?: ModuleType) => {
+  const renderFolderTree = (folder: FolderTemplate, depth: number = 0, moduleContext?: ModuleType, isInsideToolkit: boolean = false) => {
     const children = getChildFolders(folder.id);
     const templatesInFolder = getTemplatesForFolder(folder.id);
     const hasContent = children.length > 0 || templatesInFolder.length > 0;
@@ -1815,6 +1815,9 @@ export default function TemplateLibraryPage() {
     // Root level folders get gradient styling
     const isRootLevel = depth === 0;
     const isFolderOver = overDropId === `folder-header-${folder.id}` || overDropId === `folder-${folder.id}`;
+    // Locked folders ARE the Toolkit root — their children (and all descendants) should show the Toolkit badge
+    const passInsideToolkit = isInsideToolkit || !!(folder as any).isLocked;
+    const showToolkitBadge = !!(folder as any).isLocked === false && (isInsideToolkit || !!(folder as any).toolkitFolderId);
     
     return (
       <DroppableFolderAccordionItem key={folder.id} folderId={folder.id} isOver={isAdmin && isFolderOver && activeTemplateId !== null}>
@@ -1835,7 +1838,7 @@ export default function TemplateLibraryPage() {
             {(folder as any).isLocked && (
               <Lock className="h-3 w-3 text-muted-foreground ml-1" title="System-managed folder" />
             )}
-            {(folder as any).toolkitFolderId && !(folder as any).isLocked && (
+            {showToolkitBadge && (
               <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 h-4 text-muted-foreground">Toolkit</Badge>
             )}
             {totalTemplatesInTree > 0 && (
@@ -1889,7 +1892,7 @@ export default function TemplateLibraryPage() {
                   value={openFolders}
                   onValueChange={setOpenFolders}
                 >
-                  {children.map(child => renderFolderTree(child, depth + 1, folderModule))}
+                  {children.map(child => renderFolderTree(child, depth + 1, folderModule, passInsideToolkit))}
                 </Accordion>
               )}
             </div>

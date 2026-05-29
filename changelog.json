@@ -6215,6 +6215,13 @@
           "message": "Fixed: module icon colours now show correctly in the collapsed sidebar",
           "category": "bug",
           "createdAt": "2026-05-29T07:45:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-toolkit-subfolder-badge-in-template-library-2026",
+          "patch": 12,
+          "message": "Template library now shows Toolkit badge on all sub-folders inside the Toolkit section",
+          "category": "enhancement",
+          "createdAt": "2026-05-29T08:00:00.000Z"
         }
       ],
       "publishedPatch": 11,
