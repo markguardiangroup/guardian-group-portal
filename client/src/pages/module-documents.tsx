@@ -1220,10 +1220,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
       const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
       const docEntityId = (doc as any).entityId as string | undefined;
+      const docScope = (doc as any).scope as string | undefined;
       const coveredSites = filteredSites.filter(s =>
         sharedWithSiteIds?.includes(s.id) ||
         sharedWithCompanyIds?.includes(s.companyId) ||
-        (docEntityId !== undefined && docEntityId === s.companyId)
+        // Group-scoped docs appear at their own company's sites (server requires shares.length>0)
+        // Company-scoped docs must have explicit share records — no auto-inherit by entityId
+        (docScope === "group" && docEntityId !== undefined && docEntityId === s.companyId)
       );
       if (coveredSites.length === 0) {
         result.push({ doc, rowKey: doc.id });
@@ -1260,10 +1263,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
       const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
       const docEntityId = (full as any).entityId as string | undefined;
+      const docScope = (full as any).scope as string | undefined;
       const coveredSites = filteredSites.filter(s =>
         sharedWithSiteIds?.includes(s.id) ||
         sharedWithCompanyIds?.includes(s.companyId) ||
-        (docEntityId !== undefined && docEntityId === s.companyId)
+        (docScope === "group" && docEntityId !== undefined && docEntityId === s.companyId)
       );
       if (coveredSites.length === 0) {
         result.push(doc);
@@ -1293,10 +1297,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
         const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
         const docEntityId = (full as any).entityId as string | undefined;
+        const docScope = (full as any).scope as string | undefined;
         const coveredSites = filteredSites.filter(s =>
           sharedWithSiteIds?.includes(s.id) ||
           sharedWithCompanyIds?.includes(s.companyId) ||
-          (docEntityId !== undefined && docEntityId === s.companyId)
+          (docScope === "group" && docEntityId !== undefined && docEntityId === s.companyId)
         );
         if (coveredSites.length === 0) {
           expandedDocs.push(doc);

@@ -1681,9 +1681,16 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          // Company docs auto-inherit to all sites of that company (no explicit share required)
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          // Company docs require an explicit share record to appear at a site —
+          // they do NOT auto-inherit just because they share the same company.
+          const hasShare = shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          );
+          if (hasShare) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           // Own group doc: appears at own sites only if at least one share record exists
           // (i.e. the user chose "share this" when uploading — 0 shares = not shared)
@@ -1927,7 +1934,11 @@ export async function registerRoutes(
         if (doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          seenIds.add(doc.id); results.push(doc);
+          const hasShare = shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          );
+          if (hasShare) { seenIds.add(doc.id); results.push(doc); }
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           if (shares.length > 0) { seenIds.add(doc.id); results.push(doc); }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
@@ -2190,9 +2201,15 @@ export async function registerRoutes(
         if (module && doc.module !== module) continue;
         const shares = sharesByDocId.get(doc.id) ?? [];
         if (doc.scope === "company" && doc.entityId === site.companyId) {
-          // Company docs auto-inherit to all sites of that company (no explicit share required)
-          seenIds.add(doc.id);
-          results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          // Company docs require an explicit share record to appear at a site
+          const hasShare = shares.some(s =>
+            (s.entityType === "site" && s.entityId === site.id) ||
+            (s.entityType === "company" && s.entityId === site.companyId)
+          );
+          if (hasShare) {
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+          }
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           // Own group doc: appears at own sites only if at least one share record exists
           if (shares.length > 0) {
@@ -2529,9 +2546,10 @@ export async function registerRoutes(
               if (!doc.siteId && (doc.scope === "company" || doc.scope === "group")) {
                 const site = await storage.getSite(requestedSiteId);
                 if (!site) return null;
-                // Doc owned by the same company as the site — no share record needed
-                if (doc.entityId === site.companyId) return doc;
                 const shares = await storage.getDocumentShares(doc.id);
+                // Group-scoped docs owned by this company appear if at least one share exists
+                if (doc.scope === "group" && doc.entityId === site.companyId && shares.length > 0) return doc;
+                // All other scoped docs require an explicit site or company share record
                 const isSharedToSite = shares.some(s =>
                   (s.entityType === "site" && s.entityId === requestedSiteId) ||
                   (s.entityType === "company" && s.entityId === site.companyId)
@@ -2548,9 +2566,10 @@ export async function registerRoutes(
               if (doc.scope === "company" || doc.scope === "group") {
                 const matchedSite = await Promise.all(siteIdList.map(sid => storage.getSite(sid)));
                 const matchedCompanyIds = new Set(matchedSite.filter(Boolean).map(s => s!.companyId));
-                // Doc owned by one of the matched companies — no share record needed
-                if (doc.entityId && matchedCompanyIds.has(doc.entityId)) return doc;
                 const shares = await storage.getDocumentShares(doc.id);
+                // Group-scoped docs owned by one of the matched companies appear if at least one share exists
+                if (doc.scope === "group" && doc.entityId && matchedCompanyIds.has(doc.entityId) && shares.length > 0) return doc;
+                // All other scoped docs require an explicit site or company share record
                 const isShared = shares.some(s =>
                   (s.entityType === "site" && siteIdList.includes(s.entityId)) ||
                   (s.entityType === "company" && matchedCompanyIds.has(s.entityId))
@@ -12136,10 +12155,15 @@ export async function registerRoutes(
           if (module && doc.module !== module) continue;
           const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
           if (doc.scope === "company" && doc.entityId === companyId) {
-            // Company-owned docs are visible at ALL of their company's sites without an
-            // explicit share record — shares are only needed when sharing cross-company.
-            seenIds.add(doc.id);
-            results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+            // Company docs require an explicit share record to appear at a site.
+            const hasShare = shares.some((s: any) =>
+              (s.entityType === "site" && s.entityId === siteId) ||
+              (s.entityType === "company" && s.entityId === companyId)
+            );
+            if (hasShare) {
+              seenIds.add(doc.id);
+              results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
+            }
           } else if (doc.scope === "group" && doc.entityId === companyId) {
             // Own group doc: appears at own sites only if at least one share record exists
             if (shares.length > 0) {
