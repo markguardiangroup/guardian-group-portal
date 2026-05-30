@@ -6285,6 +6285,13 @@
           "message": "Fixed: HR document count now consistent across dashboard, folder view, and sites tile",
           "category": "bug",
           "createdAt": "2026-05-30T00:13:09.175055+00:00"
+        },
+        {
+          "id": "1b159f7c-f93b-49d9-b583-33ab156d4385",
+          "patch": 13,
+          "message": "Fixed: main dashboard document count now matches the module dashboard (per-site total)",
+          "category": "bug",
+          "createdAt": "2026-05-30T00:21:06.321724+00:00"
         }
       ],
       "publishedPatch": 12,
