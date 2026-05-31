@@ -3079,6 +3079,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showReissueDialog, setShowReissueDialog] = useState(false);
   const [reissueNote, setReissueNote] = useState("");
   const [reissueBase, setReissueBase] = useState<"today" | "last_approval">("today");
+  const [reissueRenewalMonths, setReissueRenewalMonths] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -3435,7 +3436,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   };
 
   const reissueMutation = useMutation({
-    mutationFn: async (data: { renewalBase?: string; note?: string }) => {
+    mutationFn: async (data: { renewalBase?: string; note?: string; renewalPeriodMonths?: number | null }) => {
       return apiRequest("POST", `/api/documents/${id}/reissue`, data);
     },
     onSuccess: () => {
@@ -3526,11 +3527,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   // Re-issue dialog helpers
   const reissueLastApproved = document.lastApprovedAt ? new Date(document.lastApprovedAt) : null;
   const reissueIsToday = reissueLastApproved?.toDateString() === new Date().toDateString();
-  const showReissueBaseChoice = !!(reissueLastApproved && !reissueIsToday && ((document as any).renewalDate || document.renewalPeriodMonths));
+  const showReissueBaseChoice = !!(reissueLastApproved && !reissueIsToday && reissueRenewalMonths !== null);
   const getReissuePreview = (base: "today" | "last_approval"): Date | null => {
-    if (base === "last_approval" && (document as any).renewalDate) return new Date((document as any).renewalDate);
-    if (document.renewalPeriodMonths) { const d = new Date(); d.setMonth(d.getMonth() + document.renewalPeriodMonths); return d; }
-    return null;
+    if (!reissueRenewalMonths) return null;
+    const start = base === "last_approval" && reissueLastApproved ? new Date(reissueLastApproved) : new Date();
+    const d = new Date(start);
+    d.setMonth(d.getMonth() + reissueRenewalMonths);
+    return d;
   };
   const reissuePreview = getReissuePreview(reissueBase);
 
@@ -3559,12 +3562,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         <div className="flex items-center gap-3">
           <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
           <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} expiryDate={(document as any).expiryDate} />
-          {isPrivilegedUser && !document.isArchived && (
-            <Button variant="outline" size="sm" onClick={() => setShowReissueDialog(true)} data-testid="button-reissue">
-              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-              Re-issue
-            </Button>
-          )}
         </div>
       </div>
 
@@ -4093,6 +4090,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             <span className="font-bold text-xs tracking-wider">NOT REQUIRED</span>
                           </div>
                           <span className="text-xs text-center text-gray-500/80 dark:text-gray-400/80">Excluded from compliance metrics</span>
+                          {(document as any).renewalDate && (
+                            <span className="text-xs text-gray-500/80 dark:text-gray-400/80">Renewal due {format(new Date((document as any).renewalDate), "d MMM yyyy")}</span>
+                          )}
                         </div>
                       );
                     }
@@ -4143,6 +4143,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     );
                   })()}
                 </div>
+
+                {isPrivilegedUser && !document.isArchived && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => { setShowReissueDialog(true); setReissueRenewalMonths(document.renewalPeriodMonths ?? null); }}
+                    data-testid="button-reissue"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Re-issue Document
+                  </Button>
+                )}
 
                 <div className="border-t border-border" />
 
@@ -4542,9 +4554,34 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Renewal period</label>
+              <div className="space-y-2">
+                <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${reissueRenewalMonths === null ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}>
+                  <input type="radio" checked={reissueRenewalMonths === null} onChange={() => setReissueRenewalMonths(null)} className="accent-primary" data-testid="radio-reissue-no-renewal" />
+                  <span className="text-sm">No renewal period</span>
+                </label>
+                <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${reissueRenewalMonths !== null ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`}>
+                  <input type="radio" checked={reissueRenewalMonths !== null} onChange={() => setReissueRenewalMonths(document.renewalPeriodMonths ?? 12)} className="accent-primary" data-testid="radio-reissue-renewal" />
+                  <span className="text-sm flex-1">Renewal every</span>
+                  {reissueRenewalMonths !== null && (
+                    <Select value={String(reissueRenewalMonths)} onValueChange={(v) => setReissueRenewalMonths(Number(v))}>
+                      <SelectTrigger className="w-32 h-8" data-testid="select-reissue-renewal-months">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 6, 12, 18, 24, 36].map(m => (
+                          <SelectItem key={m} value={String(m)}>{m} {m === 1 ? "month" : "months"}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </label>
+              </div>
+            </div>
             {showReissueBaseChoice && (
               <div className="space-y-2">
-                <label className="text-sm font-medium">Calculate next renewal from</label>
+                <label className="text-sm font-medium">Calculate renewal from</label>
                 <div className="flex gap-3">
                   <Button
                     variant={reissueBase === "today" ? "default" : "outline"}
@@ -4563,12 +4600,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     Last approval ({format(reissueLastApproved!, "d MMM yyyy")})
                   </Button>
                 </div>
-                {reissuePreview && (
-                  <p className="text-sm text-muted-foreground">
-                    New renewal date: <strong>{format(reissuePreview, "d MMM yyyy")}</strong>
-                  </p>
-                )}
               </div>
+            )}
+            {reissuePreview && (
+              <p className="text-sm text-muted-foreground">
+                New renewal date: <strong>{format(reissuePreview, "d MMM yyyy")}</strong>
+              </p>
             )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Review note <span className="text-muted-foreground font-normal">(optional)</span></label>
@@ -4584,7 +4621,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowReissueDialog(false)}>Cancel</Button>
             <Button
-              onClick={() => reissueMutation.mutate({ renewalBase: showReissueBaseChoice ? reissueBase : "today", note: reissueNote || undefined })}
+              onClick={() => reissueMutation.mutate({ renewalBase: showReissueBaseChoice ? reissueBase : "today", note: reissueNote || undefined, renewalPeriodMonths: reissueRenewalMonths })}
               disabled={reissueMutation.isPending}
               data-testid="button-confirm-reissue"
             >

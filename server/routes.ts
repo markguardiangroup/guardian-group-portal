@@ -4592,7 +4592,8 @@ export async function registerRoutes(
       }
 
       const { id: documentId } = req.params;
-      const { renewalBase, note } = req.body as { renewalBase?: "today" | "last_approval"; note?: string };
+      const { renewalBase, note, renewalPeriodMonths: overrideRenewalPeriod } = req.body as { renewalBase?: "today" | "last_approval"; note?: string; renewalPeriodMonths?: number | null };
+      const hasRenewalOverride = "renewalPeriodMonths" in req.body;
 
       const existingDoc = await storage.getDocument(documentId);
       if (!existingDoc) return res.status(404).json({ error: "Document not found" });
@@ -4607,14 +4608,19 @@ export async function registerRoutes(
         newLastApprovedAt = today;
       }
 
-      // Determine effective renewal period
-      let effectiveRenewalPeriodMonths: number | null = existingDoc.renewalPeriodMonths ?? null;
-      if (!effectiveRenewalPeriodMonths && existingDoc.templateId) {
-        const template = await storage.getDocumentTemplate(existingDoc.templateId);
-        effectiveRenewalPeriodMonths = template?.renewalPeriodMonths ?? null;
+      // Determine effective renewal period (override from request takes priority)
+      let effectiveRenewalPeriodMonths: number | null;
+      if (hasRenewalOverride) {
+        effectiveRenewalPeriodMonths = typeof overrideRenewalPeriod === "number" ? overrideRenewalPeriod : null;
+      } else {
+        effectiveRenewalPeriodMonths = existingDoc.renewalPeriodMonths ?? null;
+        if (!effectiveRenewalPeriodMonths && existingDoc.templateId) {
+          const template = await storage.getDocumentTemplate(existingDoc.templateId);
+          effectiveRenewalPeriodMonths = template?.renewalPeriodMonths ?? null;
+        }
       }
 
-      let newRenewalDate: Date | undefined;
+      let newRenewalDate: Date | null = null;
       if (effectiveRenewalPeriodMonths) {
         newRenewalDate = new Date(newLastApprovedAt);
         newRenewalDate.setMonth(newRenewalDate.getMonth() + effectiveRenewalPeriodMonths);
@@ -4639,7 +4645,8 @@ export async function registerRoutes(
         status: "compliant",
         version: newVersion,
         lastApprovedAt: newLastApprovedAt,
-        ...(newRenewalDate ? { renewalDate: newRenewalDate } : {}),
+        ...(hasRenewalOverride ? { renewalPeriodMonths: effectiveRenewalPeriodMonths } : {}),
+        renewalDate: newRenewalDate ?? null,
       });
 
       if (!updated) return res.status(404).json({ error: "Document not found" });
