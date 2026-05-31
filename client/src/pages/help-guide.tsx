@@ -22,6 +22,7 @@ import {
   Upload,
   UserPlus,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -932,6 +933,7 @@ const guideSections: GuideSection[] = [
 ];
 
 export default function HelpGuide() {
+  const { user } = useAuth();
   const [selectedSection, setSelectedSection] = useState<string>("getting-started");
 
   const currentSection =
@@ -998,14 +1000,16 @@ export default function HelpGuide() {
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>Last updated: {currentSection.lastUpdated}</span>
-              <span className="flex items-center gap-1">
-                For:{" "}
-                {currentSection.forRoles.map((role) => (
-                  <Badge key={role} variant="outline" className="text-xs">
-                    {role}
-                  </Badge>
-                ))}
-              </span>
+              {user?.role !== "client" && (
+                <span className="flex items-center gap-1">
+                  For:{" "}
+                  {currentSection.forRoles.map((role) => (
+                    <Badge key={role} variant="outline" className="text-xs">
+                      {role}
+                    </Badge>
+                  ))}
+                </span>
+              )}
             </div>
           </div>
 
