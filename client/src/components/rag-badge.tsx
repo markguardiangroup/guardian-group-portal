@@ -56,18 +56,27 @@ export function ComplianceBadge({ isMandatory, status, approvalStatus, renewalDa
 interface DocumentStatusBadgeProps {
   status: DocumentStatus;
   approvalStatus: ApprovalStatus;
+  expiryDate?: string | Date | null;
   className?: string;
 }
 
-export function DocumentStatusBadge({ status, approvalStatus, className }: DocumentStatusBadgeProps) {
+export function DocumentStatusBadge({ status, approvalStatus, expiryDate, className }: DocumentStatusBadgeProps) {
+  const now = new Date();
   let label: string;
   let Icon: typeof CheckCircle;
   let statusClassName: string;
 
   if (status === "overdue") {
-    label = "Overdue";
-    Icon = XCircle;
-    statusClassName = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
+    const isExpired = !!expiryDate && new Date(expiryDate as string) < now;
+    if (isExpired) {
+      label = "Expired";
+      Icon = CalendarX;
+      statusClassName = "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20";
+    } else {
+      label = "Overdue";
+      Icon = XCircle;
+      statusClassName = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
+    }
   } else if (status === "approval_required") {
     label = "Approval Required";
     Icon = AlertTriangle;
@@ -117,10 +126,12 @@ export function DocumentStatusBadge({ status, approvalStatus, className }: Docum
 interface RAGBadgeProps {
   status: DocumentStatus;
   approvalStatus?: ApprovalStatus;
+  expiryDate?: string | Date | null;
   className?: string;
 }
 
-export function RAGBadge({ status, approvalStatus, className }: RAGBadgeProps) {
+export function RAGBadge({ status, approvalStatus, expiryDate, className }: RAGBadgeProps) {
+  const now = new Date();
   if (approvalStatus === "client_signed_off") {
     return (
       <Badge 
@@ -129,6 +140,15 @@ export function RAGBadge({ status, approvalStatus, className }: RAGBadgeProps) {
       >
         <ShieldCheck className="h-3 w-3" />
         Awaiting Final Approval
+      </Badge>
+    );
+  }
+
+  if (status === "overdue" && !!expiryDate && new Date(expiryDate as string) < now) {
+    return (
+      <Badge variant="outline" className={cn("gap-1.5 font-medium", "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20", className)}>
+        <CalendarX className="h-3 w-3" />
+        Expired
       </Badge>
     );
   }

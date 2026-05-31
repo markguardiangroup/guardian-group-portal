@@ -1613,7 +1613,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               Shared
                             </Badge>
                             <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </Link>
@@ -1642,7 +1642,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               Shared to {shareCount} {shareCount === 1 ? "site" : "sites"}
                             </Badge>
                             <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                            <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
                         </Link>
@@ -1672,7 +1672,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                          <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                          <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                         </div>
                       </Link>
                     );
@@ -2109,7 +2109,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                   </Badge>
                                                 )}
                                                 <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                                                <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                                <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                               </div>
                                             </Link>
@@ -2143,7 +2143,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                   Shared
                                                 </Badge>
                                                 <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                                                <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                                <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                               </div>
                                             </Link>
@@ -2223,7 +2223,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </Link>
@@ -2264,7 +2264,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                         Shared
                                       </Badge>
                                       <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </Link>
@@ -2367,7 +2367,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
@@ -2400,7 +2400,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         Shared
                       </Badge>
                       <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
-                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </Link>
@@ -2623,7 +2623,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
+                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "d MMM yyyy")}
@@ -3523,7 +3523,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         </div>
         <div className="flex items-center gap-3">
           <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
-          <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} />
+          <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} expiryDate={(document as any).expiryDate} />
         </div>
       </div>
 

@@ -148,6 +148,7 @@ const sections: GuideSection[] = [
               ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Compliant", "Document is current and counts towards your compliance score"],
               ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Approved", "Fully approved and counts towards your compliance score"],
               ["bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20", "Changes Requested", "Your consultant has asked for changes before approving"],
+              ["bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20", "Expired", "Document has passed its expiry date and must be replaced"],
               ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Overdue", "Document has passed its renewal date and needs attention"],
             ].map(([badgeClass, label, desc]) => (
               <div key={label} className="flex items-center gap-3 p-2 rounded border">
