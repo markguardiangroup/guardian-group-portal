@@ -6418,6 +6418,13 @@
           "message": "Fixed: online presence dot and Last Seen now work on User Management",
           "category": "bug",
           "createdAt": "2026-05-31T15:38:00.000Z"
+        },
+        {
+          "id": "d4f2b8e3-grey-dot-offline-users-2026",
+          "patch": 13,
+          "message": "Offline users now show a grey dot on User Management",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T15:42:00.000Z"
         }
       ],
       "publishedPatch": 12,

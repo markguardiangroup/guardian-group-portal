@@ -1644,11 +1644,17 @@ export default function UserManagement() {
                     >
                       <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
                         {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        {onlineUserIds.has(u.id) && (
+                        {onlineUserIds.has(u.id) ? (
                           <span
                             className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
                             title="Online now"
                             data-testid={`dot-online-${u.id}`}
+                          />
+                        ) : (
+                          <span
+                            className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-muted-foreground/30 ring-2 ring-background"
+                            title="Offline"
+                            data-testid={`dot-offline-${u.id}`}
                           />
                         )}
                       </div>
