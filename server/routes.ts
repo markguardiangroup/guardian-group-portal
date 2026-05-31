@@ -2949,12 +2949,18 @@ export async function registerRoutes(
       type ScopedExpansion = { module: string; status: string; approvalStatus: string; siteCount: number };
       const scopedExpansions: ScopedExpansion[] = [];
       const accessibleScopedDocIds = new Set<string>();
-      for (const doc of rawScopedDocs) {
-        const canAccess = await canUserAccessDocument(user, doc);
-        if (!canAccess) continue;
-        accessibleScopedDocIds.add(doc.id);
 
-        const shareRecords = await storage.getDocumentShares(doc.id);
+      // Batch step 1: check access for all scoped docs in parallel (replaces sequential awaits)
+      const accessFlags = await Promise.all(rawScopedDocs.map(doc => canUserAccessDocument(user, doc)));
+      const accessibleScopedDocs = rawScopedDocs.filter((_, i) => accessFlags[i]);
+      accessibleScopedDocs.forEach(doc => accessibleScopedDocIds.add(doc.id));
+
+      // Batch step 2: load all share records in parallel
+      const allShareResults = await Promise.all(accessibleScopedDocs.map(doc => storage.getDocumentShares(doc.id)));
+
+      for (let i = 0; i < accessibleScopedDocs.length; i++) {
+        const doc = accessibleScopedDocs[i];
+        const shareRecords = allShareResults[i];
         const sharedWithCompanyIds = new Set(shareRecords.filter(s => s.entityType === "company").map(s => s.entityId));
         const sharedWithSiteIds = new Set(shareRecords.filter(s => s.entityType === "site").map(s => s.entityId));
 

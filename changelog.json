@@ -6299,6 +6299,20 @@
           "message": "Fixed: clients no longer see sign-off requests from other clients in the same company",
           "category": "bug",
           "createdAt": "2026-05-31T10:17:09.017818+00:00"
+        },
+        {
+          "id": "ad2da083-6d1a-4a22-95f2-f609ecc9f830",
+          "patch": 13,
+          "message": "Improved: home page panels now load from cache on return visits (prefetched on login)",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T10:49:29.943810+00:00"
+        },
+        {
+          "id": "31f5d0fc-0ae5-4533-ae7b-7ede9aa09a28",
+          "patch": 13,
+          "message": "Improved: module summary loads faster \u2014 DB calls now run in parallel",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T10:49:29.943934+00:00"
         }
       ],
       "publishedPatch": 12,

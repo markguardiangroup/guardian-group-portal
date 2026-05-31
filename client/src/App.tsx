@@ -611,6 +611,10 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
       if (!isClientUser) p(["/api/users"], "/api/users");
       p(["/api/support-requests/counts"], "/api/support-requests/counts");
 
+      // Home page panels – prefetch so they're instant on first landing
+      p(["/api/home-summary"], "/api/home-summary");
+      p(["/api/my-actions"], "/api/my-actions");
+
       // Main dashboard – all queries used by the overview page (no site/company filter)
       p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
       p(["/api/documents", null, null], "/api/documents");
