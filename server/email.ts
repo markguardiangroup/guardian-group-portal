@@ -278,7 +278,7 @@ export async function sendDocumentApprovedEmail({
   fullName,
   documentTitle,
   siteName,
-  isRequired,
+  isMandatory,
   documentUrl,
   approvedBy,
   role,
@@ -287,26 +287,26 @@ export async function sendDocumentApprovedEmail({
   fullName: string;
   documentTitle: string;
   siteName: string;
-  isRequired: boolean;
+  isMandatory: boolean;
   documentUrl: string;
   approvedBy: string;
   role?: string;
 }) {
   const recipient = resolveRecipient(to, role);
 
-  const subject = isRequired
+  const subject = isMandatory
     ? `Document Now Compliant — ${documentTitle}`
     : `Document Approved — ${documentTitle}`;
 
-  const headingText = isRequired
+  const headingText = isMandatory
     ? "Your Document is Now Compliant"
     : "Your Document Has Been Approved";
 
-  const bodyText = isRequired
+  const bodyText = isMandatory
     ? `Great news! <strong>${documentTitle}</strong> has been approved and your compliance requirement for this document has been fulfilled. Your site is one step closer to full compliance.`
     : `Great news! <strong>${documentTitle}</strong> has been reviewed and approved by your consultant. No further action is needed for this document at this time.`;
 
-  const statusLabel = isRequired ? "Compliant" : "Approved";
+  const statusLabel = isMandatory ? "Compliant" : "Approved";
   const statusColour = "#16a34a";
 
   const { data, error } = await resend.emails.send({

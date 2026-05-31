@@ -424,9 +424,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const docsDialogDocs = useMemo((): Document[] => {
     if (!docsDialogFilter) return [];
     switch (docsDialogFilter) {
-      case "req_compliant": return filteredModuleDocs.filter(d => d.isRequired && d.status === "compliant");
-      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isRequired && (d.status === "overdue" || d.status === "approval_required"));
-      case "req_overdue": return filteredModuleDocs.filter(d => d.isRequired && d.status === "overdue");
+      case "req_compliant": return filteredModuleDocs.filter(d => d.isMandatory && d.status === "compliant");
+      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
+      case "req_overdue": return filteredModuleDocs.filter(d => d.isMandatory && d.status === "overdue");
       case "total": return filteredModuleDocs;
       case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
       case "all_review": return filteredModuleDocs.filter(d => d.status === "approval_required");
@@ -822,7 +822,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             ) : (
               <>
                 {expandedDocsDialogRows.map(({ doc, key, siteName }) => {
-                  const isNonRequired = !doc.isRequired && doc.status === "compliant";
+                  const isNonRequired = !doc.isMandatory && doc.status === "compliant";
                   const statusKey = isNonRequired ? "complete" : doc.status;
                   const statusLabel = doc.status === "approval_required" ? "Approval Required" : doc.status === "overdue" ? "Overdue" : isNonRequired ? "Complete" : "Compliant";
                   return (

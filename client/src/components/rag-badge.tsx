@@ -4,7 +4,7 @@ import type { DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 interface ComplianceBadgeProps {
-  isRequired: boolean;
+  isMandatory: boolean;
   status: DocumentStatus;
   approvalStatus: ApprovalStatus;
   renewalDate?: string | Date | null;
@@ -13,20 +13,20 @@ interface ComplianceBadgeProps {
   className?: string;
 }
 
-export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, className }: ComplianceBadgeProps) {
+export function ComplianceBadge({ isMandatory, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, className }: ComplianceBadgeProps) {
   const now = new Date();
   const isPastRenewal = !!renewalDate && new Date(renewalDate as string) < now;
 
   interface ChipDef { label: string; Icon: typeof CheckCircle; cls: string; testId: string }
   const chips: ChipDef[] = [];
 
-  if (isRequired && status !== "compliant") {
+  if (isMandatory && status !== "compliant") {
     chips.push({ label: "Non Compliant", Icon: ShieldAlert, cls: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", testId: "badge-non-compliant" });
-  } else if (!isRequired && status !== "approved" && !hideApprovalChips) {
+  } else if (!isMandatory && status !== "approved" && !hideApprovalChips) {
     chips.push({ label: "Not Approved", Icon: ShieldAlert, cls: "bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20", testId: "badge-not-approved" });
   }
 
-  if (isRequired) {
+  if (isMandatory) {
     chips.push({ label: "Mandatory", Icon: ShieldCheck, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", testId: "badge-mandatory" });
   }
 

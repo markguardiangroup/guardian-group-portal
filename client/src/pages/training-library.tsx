@@ -166,7 +166,7 @@ export default function TrainingLibrary() {
       { question: "", answer: "" },
     ] as TrainingFAQ[],
     pricingTable: emptyPricingTable,
-    isRequired: false,
+    isMandatory: false,
     isFeatured: false,
     renewalPeriodMonths: null as number | null,
   });
@@ -330,7 +330,7 @@ export default function TrainingLibrary() {
         { question: "", answer: "" },
       ],
       pricingTable: emptyPricingTable,
-      isRequired: false,
+      isMandatory: false,
       isFeatured: false,
       renewalPeriodMonths: null,
     });
@@ -388,7 +388,7 @@ export default function TrainingLibrary() {
         headingRow: headingRow,
         dataRows: paddedPricingDataRows,
       },
-      isRequired: course.isRequired,
+      isMandatory: course.isMandatory,
       isFeatured: course.isFeatured,
       renewalPeriodMonths: course.renewalPeriodMonths,
     });
@@ -794,8 +794,8 @@ export default function TrainingLibrary() {
                 <div className="flex items-center gap-2">
                   <Switch
                     id="course-required"
-                    checked={courseForm.isRequired}
-                    onCheckedChange={(checked) => setCourseForm(prev => ({ ...prev, isRequired: checked as boolean }))}
+                    checked={courseForm.isMandatory}
+                    onCheckedChange={(checked) => setCourseForm(prev => ({ ...prev, isMandatory: checked as boolean }))}
                     data-testid="switch-course-required"
                   />
                   <Label htmlFor="course-required">Required Training</Label>
@@ -809,7 +809,7 @@ export default function TrainingLibrary() {
                   />
                   <Label htmlFor="course-featured">Featured</Label>
                 </div>
-                {courseForm.isRequired && (
+                {courseForm.isMandatory && (
                   <div className="flex items-center gap-2">
                     <Label htmlFor="course-renewal">Renewal (months)</Label>
                     <Input
@@ -1070,7 +1070,7 @@ function CourseDetailView({
             </DialogDescription>
           </div>
           <div className="flex items-center gap-2">
-            {course.isRequired ? (
+            {course.isMandatory ? (
               <Badge variant="destructive" className="gap-1">
                 <AlertCircle className="h-3 w-3" />
                 Required
@@ -1502,7 +1502,7 @@ function CourseListView({
                 )}
               </TableCell>
               <TableCell>
-                {course.isRequired ? (
+                {course.isMandatory ? (
                   <Badge variant="destructive" className="gap-1">
                     <AlertCircle className="h-3 w-3" />
                     Required
@@ -1579,7 +1579,7 @@ function CourseRow({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {course.isRequired ? (
+        {course.isMandatory ? (
           <Badge variant="destructive" className="gap-1">
             <AlertCircle className="h-3 w-3" />
             Required

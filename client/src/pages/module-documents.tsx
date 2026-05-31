@@ -231,7 +231,7 @@ interface HierarchyDocument {
   approvalStatus: ApprovalStatus;
   updatedAt: string;
   documentTypeId?: string | null;
-  isRequired: boolean;
+  isMandatory: boolean;
   isArchived?: boolean;
   renewalPeriodMonths?: number | null;
   lastApprovedAt?: string | null;
@@ -247,7 +247,7 @@ interface HierarchyFolder {
   id: string;
   name: string;
   code: string;
-  isRequired: boolean;
+  isMandatory: boolean;
   sortOrder: number;
   documents: HierarchyDocument[];
   stats: {
@@ -1612,7 +1612,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             <Badge variant="outline" className={`text-xs ${isGroupScope ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
                               Shared
                             </Badge>
-                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                            <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                             <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
@@ -1641,7 +1641,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             <Badge variant="outline" className={`text-xs ${originIsGroup ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
                               Shared to {shareCount} {shareCount === 1 ? "site" : "sites"}
                             </Badge>
-                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                            <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                             <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                           </div>
@@ -1671,7 +1671,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                          <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                           <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                         </div>
                       </Link>
@@ -2066,7 +2066,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                               <FolderOpen className={`h-3.5 w-3.5 ${moduleColors[module]}`} />
                                             </div>
                                             <span className="font-medium text-sm">{childFolder.name}</span>
-                                            {childFolder.isRequired && (
+                                            {childFolder.isMandatory && (
                                               <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Mandatory</Badge>
                                             )}
                                           </div>
@@ -2108,7 +2108,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                     Archived
                                                   </Badge>
                                                 )}
-                                                <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                                                <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                                 <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                               </div>
@@ -2142,7 +2142,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                 <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
                                                   Shared
                                                 </Badge>
-                                                <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                                                <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                                 <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                               </div>
@@ -2222,7 +2222,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
@@ -2263,7 +2263,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
                                         Shared
                                       </Badge>
-                                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </div>
@@ -2366,7 +2366,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -2399,7 +2399,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <Badge variant="outline" className={`text-xs ${isGrp ? "border-purple-400 text-purple-700 dark:text-purple-300" : "border-blue-400 text-blue-700 dark:text-blue-300"}`}>
                         Shared
                       </Badge>
-                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -2599,7 +2599,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
@@ -3188,10 +3188,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         setEditExpiryDate("");
         setEditRenewalPeriodMonths(null);
       }
-      setEditIsRequired(document.isRequired);
+      setEditIsRequired(document.isMandatory);
       setComplianceDirty(false);
     }
-  }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
+  }, [document?.id, document?.isMandatory, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
   const invalidateComplianceCaches = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
@@ -3213,7 +3213,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const isRequiredMutation = useMutation({
     mutationFn: async (checked: boolean) => {
-      return apiRequest("PATCH", `/api/documents/${id}`, { isRequired: checked });
+      return apiRequest("PATCH", `/api/documents/${id}`, { isMandatory: checked });
     },
     onMutate: (checked: boolean) => {
       const previous = editIsRequired;
@@ -3234,7 +3234,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     mutationFn: async () => {
       const body: Record<string, any> = {};
       if (!isRequiredTemplate) {
-        body.isRequired = editIsRequired;
+        body.isMandatory = editIsRequired;
       }
       if (editComplianceMode === "none") {
         body.expiryDate = null;
@@ -3522,7 +3522,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <ComplianceBadge isRequired={document.isRequired} status={document.status} approvalStatus={document.approvalStatus} />
+          <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
           <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} />
         </div>
       </div>

@@ -67,7 +67,7 @@ const documentUploadSchema = z.object({
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   folderId: z.string().optional(),
   requiresApproval: z.boolean().default(true),
-  isRequired: z.boolean().default(false),
+  isMandatory: z.boolean().default(false),
   expiryDate: z.string().optional(),
   complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
   renewalPeriodMonths: z.number().nullable().optional(),
@@ -129,7 +129,7 @@ interface DocumentUploadPayload {
   fileSize: number;
   mimeType: string;
   requiresApproval: boolean;
-  isRequired: boolean;
+  isMandatory: boolean;
   expiryDate?: string | null;
   renewalPeriodMonths?: number | null;
   notifyUserIds: string[];
@@ -307,7 +307,7 @@ export default function DocumentUpload() {
       module: initialModule,
       folderId: "",
       requiresApproval: true,
-      isRequired: false,
+      isMandatory: false,
       expiryDate: "",
       complianceMode: "none",
       renewalPeriodMonths: null,
@@ -628,7 +628,7 @@ export default function DocumentUpload() {
           shareDestinations: resolvedShareDestinations,
           folderId: data.folderId || undefined,
           requiresApproval: data.requiresApproval,
-          isRequired: data.isRequired,
+          isMandatory: data.isMandatory,
           expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
           renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
           type: "supporting_document",
@@ -680,7 +680,7 @@ export default function DocumentUpload() {
           siteId,
           folderId: siteFolderId || undefined,
           requiresApproval: data.requiresApproval,
-          isRequired: data.isRequired,
+          isMandatory: data.isMandatory,
           expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
           renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
           type: "supporting_document",
@@ -1308,7 +1308,7 @@ export default function DocumentUpload() {
                       </div>
                       <FormField
                         control={form.control}
-                        name="isRequired"
+                        name="isMandatory"
                         render={({ field }) => (
                           <FormItem>
                             <div className="flex items-start justify-between gap-4">

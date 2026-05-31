@@ -50,7 +50,7 @@ const uploadSchema = z.object({
   comments: z.string().optional(),
   folderId: z.string().min(1, "Please select a folder"),
   requiresApproval: z.boolean().default(true),
-  isRequired: z.boolean().default(false),
+  isMandatory: z.boolean().default(false),
   expiryDate: z.string().optional(),
   complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
   renewalPeriodMonths: z.number().nullable().optional(),
@@ -119,7 +119,7 @@ export function UploadDocumentDialog({
       comments: "",
       folderId: initialFolderId || "",
       requiresApproval: true,
-      isRequired: false,
+      isMandatory: false,
       expiryDate: "",
       complianceMode: "none",
       renewalPeriodMonths: null,
@@ -137,7 +137,7 @@ export function UploadDocumentDialog({
         comments: "",
         folderId: initialFolderId || "",
         requiresApproval: true,
-        isRequired: false,
+        isMandatory: false,
         expiryDate: "",
         complianceMode: "none",
         renewalPeriodMonths: null,
@@ -241,7 +241,7 @@ export function UploadDocumentDialog({
         siteId,
         folderId: data.folderId || undefined,
         requiresApproval: data.requiresApproval,
-        isRequired: data.isRequired,
+        isMandatory: data.isMandatory,
         expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
         renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
         type: "supporting_document",
@@ -491,7 +491,7 @@ export function UploadDocumentDialog({
               </div>
               <FormField
                 control={form.control}
-                name="isRequired"
+                name="isMandatory"
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between gap-4">

@@ -390,7 +390,7 @@ export default function CreateFromTemplate() {
   useEffect(() => {
     if (selectedTemplate) {
       setRequiresApproval(selectedTemplate.requiresApproval !== false);
-      const templateIsRequired = requiredTemplateIdSet.has(selectedTemplate.id) || !!selectedTemplate.isRequired;
+      const templateIsRequired = requiredTemplateIdSet.has(selectedTemplate.id) || !!selectedTemplate.isMandatory;
       setIsRequiredForCompliance(templateIsRequired);
       if (selectedTemplate.renewalPeriodMonths) {
         setComplianceMode("renewal");
@@ -742,7 +742,7 @@ export default function CreateFromTemplate() {
           source: "template" as const,
           templateId: selectedTemplate.id,
           templateVersion: selectedTemplate.version,
-          isRequired: isRequiredForCompliance,
+          isMandatory: isRequiredForCompliance,
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
@@ -804,7 +804,7 @@ export default function CreateFromTemplate() {
           source: "template" as const,
           templateId: selectedTemplate.id,
           templateVersion: selectedTemplate.version,
-          isRequired: isRequiredForCompliance,
+          isMandatory: isRequiredForCompliance,
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
@@ -1140,7 +1140,7 @@ export default function CreateFromTemplate() {
               const folderName = template.folderTemplateId ? folderTemplateMap.get(template.folderTemplateId) : null;
               const FolderIcon = folderName ? getFolderIcon(folderName) : Folder;
               const showModuleBadge = selectedModule === "all";
-              const isRequired = requiredTemplateIdSet.has(template.id);
+              const isMandatory = requiredTemplateIdSet.has(template.id);
               const isFulfilled = fulfilledTemplateIdSet.has(template.id);
 
               return (
@@ -1183,7 +1183,7 @@ export default function CreateFromTemplate() {
                     ) : null}
 
                     <div className="flex flex-wrap items-center gap-1 mt-auto">
-                      {isRequired && (
+                      {isMandatory && (
                         <Badge className="text-xs bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40">
                           <Shield className="h-3 w-3 mr-1 shrink-0" />
                           Required
@@ -1441,15 +1441,15 @@ export default function CreateFromTemplate() {
                 <div className="space-y-1 flex-1">
                   <p className="text-sm font-medium text-foreground">Mandatory for Compliance</p>
                   <p className="text-xs text-muted-foreground leading-snug">
-                    {requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isRequired
+                    {requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isMandatory
                       ? "This template is marked as required — the document will automatically count towards the compliance score for this site."
                       : "Mark this document as required. If it is not compliant and up to date, it will count against the compliance score for this site."}
                   </p>
                 </div>
                 <Switch
                   checked={isRequiredForCompliance}
-                  onCheckedChange={requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isRequired ? undefined : setIsRequiredForCompliance}
-                  disabled={requiredTemplateIdSet.has(selectedTemplateId) || !!selectedTemplate?.isRequired}
+                  onCheckedChange={requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isMandatory ? undefined : setIsRequiredForCompliance}
+                  disabled={requiredTemplateIdSet.has(selectedTemplateId) || !!selectedTemplate?.isMandatory}
                   data-testid="toggle-is-required-compliance"
                   className="shrink-0 mt-0.5"
                 />

@@ -197,7 +197,7 @@ type TemplateFormData = {
   synopsis: string;
   module: ModuleType;
   folderTemplateId: string;
-  isRequired: boolean;
+  isMandatory: boolean;
   renewalPeriodMonths: number | null;
   requiresApproval: boolean;
   visibility: "public" | "private";
@@ -260,7 +260,7 @@ type FolderFormData = {
   module: ModuleType | "";
   description: string;
   parentId: string | null;
-  isRequired: boolean;
+  isMandatory: boolean;
   sortOrder: number;
   isActive: boolean;
 };
@@ -270,7 +270,7 @@ type DocTypeFormData = {
   module: ModuleType;
   folderTemplateId: string;
   description: string;
-  isRequired: boolean;
+  isMandatory: boolean;
   renewalPeriodMonths: number | null;
   sortOrder: number;
   isActive: boolean;
@@ -282,7 +282,7 @@ const defaultTemplateFormData: TemplateFormData = {
   synopsis: "",
   module: "health_safety",
   folderTemplateId: "",
-  isRequired: false,
+  isMandatory: false,
   renewalPeriodMonths: null,
   requiresApproval: true,
   visibility: "private",
@@ -305,7 +305,7 @@ const defaultFolderFormData: FolderFormData = {
   module: "",
   description: "",
   parentId: null,
-  isRequired: false,
+  isMandatory: false,
   sortOrder: 0,
   isActive: true,
 };
@@ -315,7 +315,7 @@ const defaultDocTypeFormData: DocTypeFormData = {
   module: "health_safety",
   folderTemplateId: "",
   description: "",
-  isRequired: false,
+  isMandatory: false,
   renewalPeriodMonths: null,
   sortOrder: 0,
   isActive: true,
@@ -866,7 +866,7 @@ export default function TemplateLibraryPage() {
       return apiRequest("POST", "/api/folder-document-type-rules", {
         folderTemplateId,
         documentTypeId,
-        isRequired: false,
+        isMandatory: false,
         sortOrder: 0,
       });
     },
@@ -909,9 +909,9 @@ export default function TemplateLibraryPage() {
     }
     // Compliance filter: required vs optional
     if (requiredFilter === "required") {
-      result = result.filter(t => t.isRequired === true);
+      result = result.filter(t => t.isMandatory === true);
     } else if (requiredFilter === "optional") {
-      result = result.filter(t => t.isRequired !== true);
+      result = result.filter(t => t.isMandatory !== true);
     }
     // Renewal filter: has renewal period vs no renewal
     if (renewalFilter === "has_renewal") {
@@ -1179,7 +1179,7 @@ export default function TemplateLibraryPage() {
       mimeType: templateFormData.mimeType || "application/octet-stream",
       placeholders: templateFormData.placeholders || undefined,
       sortOrder: templateFormData.sortOrder,
-      isRequired: templateFormData.isRequired,
+      isMandatory: templateFormData.isMandatory,
       renewalPeriodMonths: templateFormData.renewalPeriodMonths,
       requiresApproval: templateFormData.requiresApproval,
       visibility: templateFormData.visibility,
@@ -1342,7 +1342,7 @@ export default function TemplateLibraryPage() {
           fileSize: item.fileSize,
           mimeType: item.mimeType,
           sortOrder: 0,
-          isRequired: false,
+          isMandatory: false,
           renewalPeriodMonths: bulkShared.renewalPeriodMonths,
           requiresApproval: bulkShared.requiresApproval,
           visibility: bulkShared.visibility,
@@ -1386,7 +1386,7 @@ export default function TemplateLibraryPage() {
       synopsis: (template as any).synopsis || "",
       module: template.module,
       folderTemplateId: template.folderTemplateId,
-      isRequired: template.isRequired || false,
+      isMandatory: template.isMandatory || false,
       renewalPeriodMonths: template.renewalPeriodMonths || null,
       requiresApproval: template.requiresApproval !== false,
       visibility: (template.visibility as "public" | "private") || "public",
@@ -1455,7 +1455,7 @@ export default function TemplateLibraryPage() {
         synopsis: templateFormData.synopsis || undefined,
         placeholders: templateFormData.placeholders || undefined,
         sortOrder: templateFormData.sortOrder,
-        isRequired: templateFormData.isRequired,
+        isMandatory: templateFormData.isMandatory,
         renewalPeriodMonths: templateFormData.renewalPeriodMonths,
         requiresApproval: templateFormData.requiresApproval,
         visibility: templateFormData.visibility,
@@ -1507,7 +1507,7 @@ export default function TemplateLibraryPage() {
       module: folder.module,
       description: folder.description || "",
       parentId: folder.parentId,
-      isRequired: folder.isRequired,
+      isMandatory: folder.isMandatory,
       sortOrder: folder.sortOrder,
       isActive: folder.isActive,
     });
@@ -1545,7 +1545,7 @@ export default function TemplateLibraryPage() {
         name: docTypeFormData.name,
         module: docTypeFormData.module,
         description: docTypeFormData.description || undefined,
-        isRequired: docTypeFormData.isRequired,
+        isMandatory: docTypeFormData.isMandatory,
         renewalPeriodMonths: docTypeFormData.renewalPeriodMonths,
         sortOrder: docTypeFormData.sortOrder,
         isActive: docTypeFormData.isActive,
@@ -1554,7 +1554,7 @@ export default function TemplateLibraryPage() {
       await apiRequest("POST", "/api/folder-document-type-rules", {
         folderTemplateId: docTypeFormData.folderTemplateId,
         documentTypeId: newDocType.id,
-        isRequired: docTypeFormData.isRequired,
+        isMandatory: docTypeFormData.isMandatory,
         sortOrder: 0,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/document-types"] });
@@ -1581,7 +1581,7 @@ export default function TemplateLibraryPage() {
       module: docType.module,
       folderTemplateId: folderId,
       description: docType.description || "",
-      isRequired: docType.isRequired,
+      isMandatory: docType.isMandatory,
       renewalPeriodMonths: docType.renewalPeriodMonths,
       sortOrder: docType.sortOrder,
       isActive: docType.isActive,
@@ -1596,7 +1596,7 @@ export default function TemplateLibraryPage() {
       data: {
         name: docTypeFormData.name,
         description: docTypeFormData.description,
-        isRequired: docTypeFormData.isRequired,
+        isMandatory: docTypeFormData.isMandatory,
         renewalPeriodMonths: docTypeFormData.renewalPeriodMonths,
         sortOrder: docTypeFormData.sortOrder,
         isActive: docTypeFormData.isActive,
@@ -1663,7 +1663,7 @@ export default function TemplateLibraryPage() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-medium text-sm">{template.name}</p>
-              {template.isRequired && (
+              {template.isMandatory && (
                 <Badge variant="outline" className="text-amber-600 border-amber-600 text-xs py-0" title="This document is required for compliance">
                   <AlertCircle className="h-3 w-3 mr-1" />
                   Compliance
@@ -2735,8 +2735,8 @@ export default function TemplateLibraryPage() {
                   <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
                 </div>
                 <Switch
-                  checked={bulkShared.isRequired}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, isRequired: checked })}
+                  checked={bulkShared.isMandatory}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, isMandatory: checked })}
                   data-testid="switch-bulk-is-required"
                 />
               </div>
@@ -3080,13 +3080,13 @@ export default function TemplateLibraryPage() {
               <p className="text-sm font-medium">Compliance Settings</p>
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
-                  <Label htmlFor="edit-template-isRequired" className="font-medium text-sm">Mandatory Document</Label>
+                  <Label htmlFor="edit-template-isMandatory" className="font-medium text-sm">Mandatory Document</Label>
                   <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
                 </div>
                 <Switch
-                  id="edit-template-isRequired"
-                  checked={templateFormData.isRequired}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isRequired: checked })}
+                  id="edit-template-isMandatory"
+                  checked={templateFormData.isMandatory}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, isMandatory: checked })}
                   data-testid="switch-edit-template-is-required"
                 />
               </div>
@@ -3704,11 +3704,11 @@ export default function TemplateLibraryPage() {
               </Select>
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="doctype-isRequired">Required document</Label>
+              <Label htmlFor="doctype-isMandatory">Required document</Label>
               <Switch
-                id="doctype-isRequired"
-                checked={docTypeFormData.isRequired}
-                onCheckedChange={(checked) => setDocTypeFormData({ ...docTypeFormData, isRequired: checked })}
+                id="doctype-isMandatory"
+                checked={docTypeFormData.isMandatory}
+                onCheckedChange={(checked) => setDocTypeFormData({ ...docTypeFormData, isMandatory: checked })}
                 data-testid="switch-doctype-required"
               />
             </div>
@@ -3772,11 +3772,11 @@ export default function TemplateLibraryPage() {
               </Select>
             </div>
             <div className="flex items-center justify-between">
-              <Label htmlFor="edit-doctype-isRequired">Required document</Label>
+              <Label htmlFor="edit-doctype-isMandatory">Required document</Label>
               <Switch
-                id="edit-doctype-isRequired"
-                checked={docTypeFormData.isRequired}
-                onCheckedChange={(checked) => setDocTypeFormData({ ...docTypeFormData, isRequired: checked })}
+                id="edit-doctype-isMandatory"
+                checked={docTypeFormData.isMandatory}
+                onCheckedChange={(checked) => setDocTypeFormData({ ...docTypeFormData, isMandatory: checked })}
                 data-testid="switch-edit-doctype-required"
               />
             </div>

@@ -75,7 +75,7 @@ interface Document {
   source?: string;
   scope?: "site" | "company" | "group" | null;
   entityId?: string | null;
-  isRequired?: boolean;
+  isMandatory?: boolean;
   templateId?: string | null;
   sharedWithCompanyIds?: string[];
   sharedWithSiteIds?: string[];
@@ -862,7 +862,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     let cOverdueAll = 0;
                     for (const d of companyDocs) {
                       if (isCOverdue(d)) cOverdueAll++;
-                      if (!d.isRequired) continue;
+                      if (!d.isMandatory) continue;
                       if (isCOverdue(d)) cOverdue++;
                       else if (isCApproval(d)) cApprovalRequired++;
                       else if (d.status === "compliant") cCompliant++;
@@ -1085,7 +1085,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               for (const d of allDocs) {
                 const n = coveredSites(d);
                 allTotal += n;
-                if (d.isRequired) {
+                if (d.isMandatory) {
                   if (isAsOverdue(d)) allOverdue += n;
                   else if (isAsApproval(d)) allApprovalRequired += n;
                   else if (d.status === "compliant") allCompliant += n;
@@ -1105,7 +1105,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               // Derive the compliance % from the server-side slot-based raw counts that
               // /api/sites already returns per site — this mirrors the same algorithm the
               // module dashboard uses (computeSlotBasedCompliance) and keeps both numbers
-              // in sync. Fall back to the client-side isRequired approach only when the
+              // in sync. Fall back to the client-side isMandatory approach only when the
               // raw counts are absent (e.g. older cached responses).
               let rawCompliant = 0, rawDenom = 0;
               for (const site of filteredSites) {
@@ -1315,7 +1315,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               let overdueRequired = 0;
               const countedDocIds = new Set<string>();
               for (const d of siteDocs) {
-                if (!d.isRequired || !d.templateId) continue;
+                if (!d.isMandatory || !d.templateId) continue;
                 if (!siteEffectiveRequired.has(d.templateId)) continue;
                 countedDocIds.add(d.id);
                 if (isSOverdue(d)) overdueRequired++;
@@ -1326,7 +1326,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               // or template excluded at site level but doc is still marked required).
               const seenManualDocIds = new Set<string>();
               for (const d of siteDocs) {
-                if (!d.isRequired) continue;
+                if (!d.isMandatory) continue;
                 if (countedDocIds.has(d.id)) continue;
                 if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
                 if (seenManualDocIds.has(d.id)) continue;

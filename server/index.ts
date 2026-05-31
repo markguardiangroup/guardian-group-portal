@@ -326,7 +326,7 @@ process.on("uncaughtException", (err) => {
       `UPDATE documents d
        SET status = 'approved', updated_at = NOW()
        WHERE d.status = 'compliant'
-         AND d.is_required = false
+         AND d.is_mandatory = false
          AND NOT EXISTS (
            SELECT 1 FROM company_required_templates crt
            WHERE crt.template_id = d.template_id
@@ -342,15 +342,15 @@ process.on("uncaughtException", (err) => {
   }
 
   // One-time data migration: legacy documents whose template is in company_required_templates
-  // for their company should have is_required = true and status = 'compliant' (not 'approved').
+  // for their company should have is_mandatory = true and status = 'compliant' (not 'approved').
   // Idempotent — safe to run on every startup.
   try {
     const result = await pool.query(
       `UPDATE documents d
-       SET is_required = true,
+       SET is_mandatory = true,
            status = CASE WHEN d.status = 'approved' THEN 'compliant' ELSE d.status END,
            updated_at = NOW()
-       WHERE d.is_required = false
+       WHERE d.is_mandatory = false
          AND d.is_archived = false
          AND d.template_id IS NOT NULL
          AND EXISTS (
@@ -361,13 +361,13 @@ process.on("uncaughtException", (err) => {
     );
     const count = result.rowCount ?? 0;
     if (count > 0) {
-      console.log(`[migration] Backfilled is_required=true for ${count} legacy document(s) required via company templates.`);
+      console.log(`[migration] Backfilled is_mandatory=true for ${count} legacy document(s) required via company templates.`);
     }
   } catch (err) {
-    console.error("Startup company-required-template is_required backfill warning (non-fatal):", err);
+    console.error("Startup company-required-template is_mandatory backfill warning (non-fatal):", err);
   }
 
-  // One-time data migration: documents marked is_required=true that are approved
+  // One-time data migration: documents marked is_mandatory=true that are approved
   // should have status='compliant' not 'approved'. Covers cases where the toggle
   // was flipped before the status-recalculation logic was in place.
   // Idempotent — safe to run on every startup.
@@ -375,7 +375,7 @@ process.on("uncaughtException", (err) => {
     const result = await pool.query(
       `UPDATE documents
        SET status = 'compliant', updated_at = NOW()
-       WHERE is_required = true
+       WHERE is_mandatory = true
          AND approval_status = 'approved'
          AND status = 'approved'
          AND is_archived = false`

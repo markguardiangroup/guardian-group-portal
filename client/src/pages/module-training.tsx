@@ -250,8 +250,8 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
       }
       
       // Required filter
-      if (filterRequired === "required" && !c.isRequired) return false;
-      if (filterRequired === "recommended" && c.isRequired) return false;
+      if (filterRequired === "required" && !c.isMandatory) return false;
+      if (filterRequired === "recommended" && c.isMandatory) return false;
       
       // Training method filter
       if (filterMethod !== "all" && c.trainingMethod !== filterMethod) return false;
@@ -291,8 +291,8 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
   }, [filteredCourses]);
 
   // Count training by status
-  const requiredCount = filteredCourses.filter((c) => c.isRequired).length;
-  const recommendedCount = filteredCourses.filter((c) => !c.isRequired).length;
+  const requiredCount = filteredCourses.filter((c) => c.isMandatory).length;
+  const recommendedCount = filteredCourses.filter((c) => !c.isMandatory).length;
   const totalCourses = trainingCourses?.length || 0;
   const totalFolders = trainingFolders?.length || 0;
 
@@ -841,7 +841,7 @@ function FeaturedCourseCard({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                {course.isRequired && (
+                {course.isMandatory && (
                   <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
                     <Target className="h-3 w-3 mr-1" />
                     Required
@@ -945,7 +945,7 @@ function TrainingCard({
                   {course.title}
                 </h4>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {course.isRequired ? (
+                  {course.isMandatory ? (
                     <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
                       <Target className="h-3 w-3 mr-1" />
                       Required
@@ -1058,7 +1058,7 @@ function CourseDetailView({
                   {course.productCode}
                 </Badge>
               )}
-              {course.isRequired ? (
+              {course.isMandatory ? (
                 <Badge className="bg-amber-500 hover:bg-amber-600">
                   <Target className="h-3 w-3 mr-1" />
                   Required

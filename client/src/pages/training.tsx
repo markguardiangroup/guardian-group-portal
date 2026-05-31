@@ -501,8 +501,8 @@ export default function Training() {
         if (!matchesSearch) return false;
       }
       
-      if (filterRequired === "required" && !c.isRequired) return false;
-      if (filterRequired === "recommended" && c.isRequired) return false;
+      if (filterRequired === "required" && !c.isMandatory) return false;
+      if (filterRequired === "recommended" && c.isMandatory) return false;
       if (filterMethod !== "all" && c.trainingMethod !== filterMethod) return false;
       if (filterProvider !== "all" && c.provider !== filterProvider) return false;
       
@@ -535,7 +535,7 @@ export default function Training() {
       .sort((a, b) => a.title.localeCompare(b.title));
   }, [filteredCourses]);
 
-  const requiredCount = filteredCourses.filter((c) => c.isRequired).length;
+  const requiredCount = filteredCourses.filter((c) => c.isMandatory).length;
   const totalCourses = trainingCourses?.length || 0;
   const totalFolders = trainingFolders?.length || 0;
 
@@ -1172,7 +1172,7 @@ function FeaturedCourseCard({
                 <Badge variant="outline" className="text-xs">
                   {moduleNames[course.module]}
                 </Badge>
-                {course.isRequired && (
+                {course.isMandatory && (
                   <Badge className="bg-amber-500 text-white text-xs">
                     <Target className="h-3 w-3 mr-1" />
                     Mandatory
@@ -1270,7 +1270,7 @@ function TrainingCard({
                   {course.title}
                 </h4>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {course.isRequired ? (
+                  {course.isMandatory ? (
                     <Badge className="bg-amber-500 text-white text-xs">
                       <Target className="h-3 w-3 mr-1" />
                       Mandatory
@@ -1386,7 +1386,7 @@ function CourseDetailView({
                   {course.productCode}
                 </Badge>
               )}
-              {course.isRequired ? (
+              {course.isMandatory ? (
                 <Badge className="bg-amber-500 text-white">
                   <Target className="h-3 w-3 mr-1" />
                   Mandatory

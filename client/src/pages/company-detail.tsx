@@ -103,7 +103,7 @@ interface DocumentTemplate {
   module: string;
   visibility: "public" | "private";
   isActive: boolean;
-  isRequired: boolean;
+  isMandatory: boolean;
   requiresApproval: boolean;
   folderTemplateId: string | null;
 }

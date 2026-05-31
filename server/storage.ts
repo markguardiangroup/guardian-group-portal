@@ -712,7 +712,7 @@ export class MemStorage implements IStorage {
   private computeComplianceSummaryInMemory(
     siteDocs: {
       templateId?: string | null;
-      isRequired?: boolean | null;
+      isMandatory?: boolean | null;
       status?: string | null;
       approvalStatus?: string | null;
       expiryDate?: Date | string | null;
@@ -766,7 +766,7 @@ export class MemStorage implements IStorage {
     }
 
     const manualRequired = siteDocs.filter(d =>
-      d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
+      d.isMandatory && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
     const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isOverdue(d) && !isApprovalRequired(d)).length;
 
@@ -803,7 +803,7 @@ export class MemStorage implements IStorage {
   }
 
   private computePerModuleScores(
-    siteDocs: Array<{ id?: string | null; module?: string | null; templateId?: string | null; isRequired?: boolean | null; status?: string | null; approvalStatus?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }>,
+    siteDocs: Array<{ id?: string | null; module?: string | null; templateId?: string | null; isMandatory?: boolean | null; status?: string | null; approvalStatus?: string | null; expiryDate?: Date | string | null; renewalDate?: Date | string | null }>,
     siteOverrides: { templateId: string; action: string }[],
     companyRequired: { templateId: string; removedAt?: Date | null }[],
     templateMap: Map<string, { id: string; visibility?: string | null; module?: string | null }>,
@@ -858,9 +858,9 @@ export class MemStorage implements IStorage {
         }
       }
 
-      // Manual required: isRequired=true, this module, not already consumed by a template slot
+      // Manual required: isMandatory=true, this module, not already consumed by a template slot
       const manualRequired = siteDocs.filter(d =>
-        d.isRequired && d.module === m && (d.id ? !consumedDocIds.has(d.id) : !d.templateId)
+        d.isMandatory && d.module === m && (d.id ? !consumedDocIds.has(d.id) : !d.templateId)
       );
       const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isOverdue(d) && !isApprovalRequired(d)).length;
       const manualApproval = manualRequired.filter(d => !isOverdue(d) && isApprovalRequired(d)).length;
@@ -1548,7 +1548,7 @@ export class MemStorage implements IStorage {
       d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
 
     const manualRequired = docs.filter(d =>
-      d.isRequired && (!d.templateId || !consumedTemplateIds.has(d.templateId))
+      d.isMandatory && (!d.templateId || !consumedTemplateIds.has(d.templateId))
     );
     const manualCompliant = manualRequired.filter(d => d.status === "compliant" && !isDocOverdue(d) && !isDocApprovalRequired(d)).length;
 
@@ -2306,9 +2306,9 @@ export class MemStorage implements IStorage {
       }
     }
 
-    // Manual required docs: isRequired=true but not consumed by a template slot
+    // Manual required docs: isMandatory=true but not consumed by a template slot
     const manualRequired = docs.filter(d =>
-      d.isRequired && !consumedDocIds.has(d.id) &&
+      d.isMandatory && !consumedDocIds.has(d.id) &&
       d.siteId && relevantSiteIds.includes(d.siteId)
     );
     manualRequired.forEach(d => consumedDocIds.add(d.id));
@@ -2474,7 +2474,7 @@ export class MemStorage implements IStorage {
       hasAccess: accessibleTypeIds.has(dt.id),
       // Count documents for this specific entity matching this document type code
       documentCount: docs.filter(d => d.type === dt.code).length,
-      isRequired: dt.isRequired,
+      isMandatory: dt.isMandatory,
       renewalPeriodMonths: dt.renewalPeriodMonths,
     }));
   }
@@ -3297,7 +3297,7 @@ export class MemStorage implements IStorage {
       code,
       module: docType.module as ModuleType,
       description: docType.description ?? null,
-      isRequired: docType.isRequired ?? false,
+      isMandatory: docType.isMandatory ?? false,
       renewalPeriodMonths: docType.renewalPeriodMonths ?? null,
       sortOrder: docType.sortOrder ?? 0,
       isActive: docType.isActive ?? true,
@@ -3675,7 +3675,7 @@ export class MemStorage implements IStorage {
         const payload: InsertFolderTemplate = {
           name: "Toolkit",
           module,
-          isRequired: false,
+          isMandatory: false,
           sortOrder: 0,
           isActive: true,
           isLocked: true,
@@ -3719,7 +3719,7 @@ export class MemStorage implements IStorage {
       module: template.module as ModuleType,
       description: template.description ?? null,
       parentId: template.parentId ?? null,
-      isRequired: template.isRequired ?? false,
+      isMandatory: template.isMandatory ?? false,
       sortOrder: template.sortOrder ?? 0,
       isActive: template.isActive ?? true,
       isLocked: (template as any).isLocked ?? false,
@@ -3789,7 +3789,7 @@ export class MemStorage implements IStorage {
       id,
       folderTemplateId: rule.folderTemplateId,
       documentTypeId: rule.documentTypeId,
-      isRequired: rule.isRequired ?? false,
+      isMandatory: rule.isMandatory ?? false,
       sortOrder: rule.sortOrder ?? 0,
       createdBy: rule.createdBy,
       createdAt: now,
@@ -3924,7 +3924,7 @@ export class MemStorage implements IStorage {
       mimeType: template.mimeType,
       version: template.version ?? 1,
       placeholders: template.placeholders ?? null,
-      isRequired: template.isRequired ?? false,
+      isMandatory: template.isMandatory ?? false,
       renewalPeriodMonths: template.renewalPeriodMonths ?? null,
       requiresApproval: template.requiresApproval ?? true,
       visibility: template.visibility ?? "public",
@@ -4361,7 +4361,7 @@ export class MemStorage implements IStorage {
         duration: course.duration || null,
         courseOverview: course.courseOverview || null,
         faqs: course.faqs || null,
-        isRequired: course.isRequired ?? false,
+        isMandatory: course.isMandatory ?? false,
         renewalPeriodMonths: course.renewalPeriodMonths || null,
         sortOrder: course.sortOrder || 0,
         isActive: course.isActive ?? true,
@@ -5251,10 +5251,10 @@ export class MemStorage implements IStorage {
     );
     const r1 = await db.update(documentsTable)
       .set({ status: "compliant", updatedAt: now })
-      .where(and(notExpired, eq(documentsTable.isRequired, true)));
+      .where(and(notExpired, eq(documentsTable.isMandatory, true)));
     const r2 = await db.update(documentsTable)
       .set({ status: "approved", updatedAt: now })
-      .where(and(notExpired, eq(documentsTable.isRequired, false)));
+      .where(and(notExpired, eq(documentsTable.isMandatory, false)));
     return ((r1 as any).rowCount ?? 0) + ((r2 as any).rowCount ?? 0);
   }
 

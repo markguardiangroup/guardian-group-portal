@@ -114,7 +114,7 @@ interface DocumentHierarchyDocument {
   siteId?: string | null;
   status: DocumentStatus;
   approvalStatus: ApprovalStatus;
-  isRequired: boolean;
+  isMandatory: boolean;
   source: string;
   templateId: string | null;
   expiryDate: string | null;
@@ -148,7 +148,7 @@ interface FolderStats {
 interface TemplateInfo {
   id: string;
   name: string;
-  isRequired: boolean;
+  isMandatory: boolean;
   renewalPeriodMonths: number | null;
   hasFulfilledDocument: boolean;
 }
@@ -157,7 +157,7 @@ interface ChildFolder {
   id: string;
   name: string;
   description: string | null;
-  isRequired: boolean;
+  isMandatory: boolean;
   siteFolder: { id: string; name: string } | null;
   documents: DocumentHierarchyDocument[];
   stats: FolderStats;
@@ -167,7 +167,7 @@ interface HierarchyFolder {
   id: string;
   name: string;
   description: string | null;
-  isRequired: boolean;
+  isMandatory: boolean;
   sortOrder: number;
   siteFolder: { id: string; name: string } | null;
   documents: DocumentHierarchyDocument[];
@@ -786,7 +786,7 @@ function DocumentsListView() {
                           <div className="mb-4 rounded-md border bg-muted/30 p-3">
                             <h4 className="mb-2 text-sm font-medium">Mandatory Documents</h4>
                             <div className="flex flex-wrap gap-2">
-                              {folder.templateInfo.filter(t => t.isRequired).map((template) => (
+                              {folder.templateInfo.filter(t => t.isMandatory).map((template) => (
                                 <Badge
                                   key={template.id}
                                   variant={template.hasFulfilledDocument ? "default" : "outline"}
@@ -796,7 +796,7 @@ function DocumentsListView() {
                                   {template.name}
                                 </Badge>
                               ))}
-                              {folder.templateInfo.filter(t => t.isRequired).length === 0 && (
+                              {folder.templateInfo.filter(t => t.isMandatory).length === 0 && (
                                 <span className="text-sm text-muted-foreground">No mandatory documents for this folder</span>
                               )}
                             </div>
@@ -825,7 +825,7 @@ function DocumentsListView() {
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                  <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                                  <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                   <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                   <span className="text-sm text-muted-foreground">
                                     {format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -878,7 +878,7 @@ function DocumentsListView() {
                                     <div className="flex items-center gap-2">
                                       <Folder className="h-4 w-4 text-muted-foreground" />
                                       <span className="font-medium">{child.name}</span>
-                                      {child.isRequired && (
+                                      {child.isMandatory && (
                                         <Badge variant="outline" className="text-xs">Mandatory</Badge>
                                       )}
                                     </div>
@@ -902,7 +902,7 @@ function DocumentsListView() {
                                             </div>
                                           </div>
                                           <div className="flex items-center gap-2">
-                                            <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                                            <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                                             <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                                           </div>
                                         </Link>
@@ -962,7 +962,7 @@ function DocumentsListView() {
                         <span className="font-medium">{doc.title}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                        <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                         <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
                         <span className="text-sm text-muted-foreground">
                           {format(new Date(doc.updatedAt), "MMM d, yyyy")}
@@ -1087,7 +1087,7 @@ function DocumentsListView() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge isRequired={doc.isRequired} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
                     <TableCell>
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} />
@@ -1371,10 +1371,10 @@ function DocumentDetailView({ id }: { id: string }) {
         setEditExpiryDate("");
         setEditRenewalPeriodMonths(null);
       }
-      setEditIsRequired(document.isRequired);
+      setEditIsRequired(document.isMandatory);
       setComplianceDirty(false);
     }
-  }, [document?.id, document?.isRequired, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
+  }, [document?.id, document?.isMandatory, document?.expiryDate, document?.renewalDate, document?.renewalPeriodMonths]);
 
   const invalidateComplianceCaches = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
@@ -1395,7 +1395,7 @@ function DocumentDetailView({ id }: { id: string }) {
 
   const isRequiredMutation = useMutation({
     mutationFn: async (checked: boolean) => {
-      return apiRequest("PATCH", `/api/documents/${id}`, { isRequired: checked });
+      return apiRequest("PATCH", `/api/documents/${id}`, { isMandatory: checked });
     },
     onMutate: (checked: boolean) => {
       const previous = editIsRequired;
@@ -1416,7 +1416,7 @@ function DocumentDetailView({ id }: { id: string }) {
     mutationFn: async () => {
       const body: Record<string, any> = {};
       if (!isRequiredTemplate) {
-        body.isRequired = editIsRequired;
+        body.isMandatory = editIsRequired;
       }
       if (editComplianceMode === "none") {
         body.expiryDate = null;
@@ -1506,7 +1506,7 @@ function DocumentDetailView({ id }: { id: string }) {
             <h1 className="text-3xl font-semibold">{document.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
-              <ComplianceBadge isRequired={document.isRequired} status={document.status} approvalStatus={document.approvalStatus} />
+              <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
               <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} />
               <span className="text-sm text-muted-foreground">Version {document.version}</span>
             </div>

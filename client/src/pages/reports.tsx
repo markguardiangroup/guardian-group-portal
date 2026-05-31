@@ -759,7 +759,7 @@ interface PrivateTemplateRow {
   name: string;
   module: string;
   folderName: string | null;
-  isRequired: boolean;
+  isMandatory: boolean;
   requiresApproval: boolean;
   sources: string[];
   sourceLabels: string[];
@@ -793,7 +793,7 @@ function PrivateTemplatesReport() {
       r.module,
       r.folderName ?? "Unassigned",
       r.sourceLabels.join("; "),
-      r.isRequired ? "Yes" : "No",
+      r.isMandatory ? "Yes" : "No",
       r.requiresApproval ? "Yes" : "No",
     ]);
     const csv = [headers, ...rows].map(row => row.map(c => `"${c}"`).join(",")).join("\n");
@@ -885,7 +885,7 @@ function PrivateTemplatesReport() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {t.isRequired
+                      {t.isMandatory
                         ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mx-auto" />
                         : <X className="h-4 w-4 text-muted-foreground mx-auto" />}
                     </TableCell>

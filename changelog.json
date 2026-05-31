@@ -6446,6 +6446,13 @@
           "message": "Renamed \"Required\" to \"Mandatory\" across all compliance document labels",
           "category": "enhancement",
           "createdAt": "2026-05-31T17:00:00.000Z"
+        },
+        {
+          "id": "a1f2b3c4-d5e6-7890-abcd-ef1234567891",
+          "patch": 13,
+          "message": "Renamed isRequired → isMandatory in DB schema and all code identifiers",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T17:47:33.403Z"
         }
       ],
       "publishedPatch": 12,

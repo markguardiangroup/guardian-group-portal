@@ -390,7 +390,7 @@ const createDocumentSchema = z.object({
   trainingCourseCode: z.string().optional(),
   trainingDate: z.string().optional(),
   requiresApproval: z.boolean().optional(),
-  isRequired: z.boolean().optional(),
+  isMandatory: z.boolean().optional(),
   notifyUserIds: z.array(z.string()).optional(),
   renewalPeriodMonths: z.number().nullable().optional(),
   shareDestinations: z.array(z.string()).optional(),
@@ -477,7 +477,7 @@ const createDocumentTypeSchema = z.object({
   name: z.string().min(1),
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   description: z.string().optional(),
-  isRequired: z.boolean().optional(),
+  isMandatory: z.boolean().optional(),
   renewalPeriodMonths: z.number().positive().optional().nullable(),
   sortOrder: z.number().optional(),
   isActive: z.boolean().optional(),
@@ -486,7 +486,7 @@ const createDocumentTypeSchema = z.object({
 const updateDocumentTypeSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
-  isRequired: z.boolean().optional(),
+  isMandatory: z.boolean().optional(),
   renewalPeriodMonths: z.number().positive().optional().nullable(),
   sortOrder: z.number().optional(),
   isActive: z.boolean().optional(),
@@ -1854,7 +1854,7 @@ export async function registerRoutes(
       // (e.g. their template is excluded by a site override). Push once per
       // applicable site so they expand per-site — matching the tile's coveredSites logic.
       for (const sd of validShared) {
-        if (sd.isRequired && !consumedDocIds.has(sd.id)) {
+        if (sd.isMandatory && !consumedDocIds.has(sd.id)) {
           if (module && sd.module !== module) continue;
           if (!module && !complianceModules.includes(sd.module as ModuleType)) continue;
           sharedRequiredCandidates.push(sd);
@@ -1902,7 +1902,7 @@ export async function registerRoutes(
     // company/group-scoped shared docs collected above (one entry per applicable site).
     const manualRequired = [
       ...documents.filter(d => {
-        if (!d.isRequired) return false;
+        if (!d.isMandatory) return false;
         if (consumedDocIds.has(d.id)) return false;
         if (d.isArchived || d.caseId || d.incidentId) return false;
         if (d.source === "external") return false;
@@ -2079,14 +2079,14 @@ export async function registerRoutes(
 
         // Collect company/group-scoped required docs not consumed by a slot (deduplicated per company)
         for (const sd of validShared) {
-          if (sd.isRequired && !consumedDocIds.has(sd.id)) sharedReq.set(sd.id, sd);
+          if (sd.isMandatory && !consumedDocIds.has(sd.id)) sharedReq.set(sd.id, sd);
         }
       }
 
       // Site-scoped manual-required docs (not consumed by any slot), grouped by company
       const siteManualByCompany = new Map<string, any[]>();
       for (const d of allDocuments) {
-        if (!d.isRequired || d.isArchived || d.caseId || d.incidentId || d.source === "external") continue;
+        if (!d.isMandatory || d.isArchived || d.caseId || d.incidentId || d.source === "external") continue;
         if (!filteredSiteIds.has(d.siteId)) continue;
         if (d.module !== module) continue;
         const cid = siteToCompany.get(d.siteId);
@@ -2358,7 +2358,7 @@ export async function registerRoutes(
 
       const allTemplates = await storage.getDocumentTemplates();
       for (const t of allTemplates) {
-        if (t.isRequired) requiredIds.add(t.id);
+        if (t.isMandatory) requiredIds.add(t.id);
       }
 
       res.json([...requiredIds]);
@@ -3126,7 +3126,7 @@ export async function registerRoutes(
       const includeArchived = req.query.includeArchived === "true";
       const allDocuments = await storage.getDocuments(module, includeArchived);
       
-      // Get document templates to enrich documents with isRequired/renewalPeriodMonths
+      // Get document templates to enrich documents with isMandatory/renewalPeriodMonths
       const docTemplates = await storage.getDocumentTemplates(module);
 
       // Build company required-templates lookup so documents required via company
@@ -3153,7 +3153,7 @@ export async function registerRoutes(
             : false;
           return {
             ...doc,
-            isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate,
+            isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate,
             renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
           };
         })
@@ -3224,7 +3224,7 @@ export async function registerRoutes(
 
             return {
               ...doc,
-              isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaScope,
+              isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaScope,
               renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
               folderTemplateId: doc.folderId ? (scopedFolderTemplateMap.get(doc.folderId) ?? null) : null,
               isSharedLink,
@@ -3316,7 +3316,7 @@ export async function registerRoutes(
             : null;
           return {
             ...doc,
-            isRequired: doc.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate,
+            isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate,
             isSharedLink,
             sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
             sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
@@ -3502,7 +3502,7 @@ export async function registerRoutes(
         const template = await storage.getDocumentTemplate(document.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval — required docs → compliant, non-required → approved
-          newStatus = document.isRequired ? "compliant" : "approved";
+          newStatus = document.isMandatory ? "compliant" : "approved";
           newApprovalStatus = null;
         }
       }
@@ -3929,14 +3929,14 @@ export async function registerRoutes(
         isAutoApproved = true;
       } else if (body.requiresApproval === false) {
         // Uploader explicitly set no approval required
-        documentStatus = body.isRequired ? "compliant" : "approved";
+        documentStatus = body.isMandatory ? "compliant" : "approved";
         documentApprovalStatus = "approved";
         isAutoApproved = true;
       } else if (body.templateId) {
         const template = await storage.getDocumentTemplate(body.templateId);
         if (template && template.requiresApproval === false) {
           // Template doesn't require approval — required docs → compliant, non-required → approved
-          const effectiveIsRequired = body.isRequired ?? template.isRequired ?? false;
+          const effectiveIsRequired = body.isMandatory ?? template.isMandatory ?? false;
           documentStatus = effectiveIsRequired ? "compliant" : "approved";
           documentApprovalStatus = "approved";
           isAutoApproved = true;
@@ -3976,7 +3976,7 @@ export async function registerRoutes(
         lastApprovedAt: autoApprovalTime,
         uploadedBy: user.id,
         isArchived: false,
-        isRequired: body.isRequired || false,
+        isMandatory: body.isMandatory || false,
         source: body.source || "upload",
         templateId: body.templateId || null,
         templateVersion: body.templateVersion ?? null,
@@ -4335,7 +4335,7 @@ export async function registerRoutes(
             // Consultant final approval or direct approval of client doc
             // Required docs → compliant; non-required docs → approved
             approvalStatus = "approved";
-            documentStatus = existingDoc.isRequired ? "compliant" : "approved";
+            documentStatus = existingDoc.isMandatory ? "compliant" : "approved";
             auditAction = "document_approved";
           }
           break;
@@ -4541,7 +4541,7 @@ export async function registerRoutes(
                 fullName: client.fullName,
                 documentTitle: existingDoc.title,
                 siteName: site?.name || "Unknown Site",
-                isRequired: !!existingDoc.isRequired,
+                isMandatory: !!existingDoc.isMandatory,
                 documentUrl,
                 approvedBy: user.fullName,
                 role: "client",
@@ -4698,12 +4698,12 @@ export async function registerRoutes(
         }
       }
 
-      // Recalculate compliance status when isRequired is toggled
-      if ("isRequired" in body && doc.approvalStatus === "approved") {
-        if (body.isRequired && doc.status === "approved") {
+      // Recalculate compliance status when isMandatory is toggled
+      if ("isMandatory" in body && doc.approvalStatus === "approved") {
+        if (body.isMandatory && doc.status === "approved") {
           // Toggled ON — doc was approved (non-required) → now required → compliant
           body.status = "compliant";
-        } else if (!body.isRequired && doc.status === "compliant") {
+        } else if (!body.isMandatory && doc.status === "compliant") {
           // Toggled OFF — doc was compliant (required) → no longer required → approved
           body.status = "approved";
         }
@@ -4718,7 +4718,7 @@ export async function registerRoutes(
           body.status = "overdue";
         } else {
           // Required docs → compliant; non-required docs → approved
-          body.status = doc.isRequired ? "compliant" : "approved";
+          body.status = doc.isMandatory ? "compliant" : "approved";
         }
       }
 
@@ -5340,7 +5340,7 @@ export async function registerRoutes(
         module: z.enum(["health_safety", "human_resources", "employment_law", "support"]),
         description: z.string().optional(),
         parentId: z.string().nullable().optional(),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         sortOrder: z.number().optional(),
         isActive: z.boolean().optional(),
       });
@@ -5387,7 +5387,7 @@ export async function registerRoutes(
         code: z.string().min(1).regex(/^[a-z0-9_]+$/, "Code must be lowercase with underscores only").optional(),
         description: z.string().optional(),
         parentId: z.string().nullable().optional(),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         sortOrder: z.number().optional(),
         isActive: z.boolean().optional(),
       });
@@ -5454,7 +5454,7 @@ export async function registerRoutes(
       const schema = z.object({
         folderTemplateId: z.string().min(1),
         documentTypeId: z.string().min(1),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         sortOrder: z.number().optional(),
       });
       
@@ -5480,7 +5480,7 @@ export async function registerRoutes(
       const rule = await storage.createFolderDocumentTypeRule({
         folderTemplateId: parsed.data.folderTemplateId,
         documentTypeId: parsed.data.documentTypeId,
-        isRequired: parsed.data.isRequired ?? false,
+        isMandatory: parsed.data.isMandatory ?? false,
         sortOrder: parsed.data.sortOrder ?? 0,
         createdBy: user.id,
       });
@@ -5525,7 +5525,7 @@ export async function registerRoutes(
       
       const schema = z.object({
         documentTypeId: z.string().min(1),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         sortOrder: z.number().optional(),
       });
       
@@ -5683,7 +5683,7 @@ export async function registerRoutes(
         mimeType: z.string().min(1),
         placeholders: z.string().optional(), // JSON array of placeholder names
         sortOrder: z.number().optional(),
-        isRequired: z.boolean().optional(), // Compliance: is this template required?
+        isMandatory: z.boolean().optional(), // Compliance: is this template required?
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
@@ -5789,7 +5789,7 @@ export async function registerRoutes(
         placeholders: z.string().optional(),
         sortOrder: z.number().optional(),
         isActive: z.boolean().optional(),
-        isRequired: z.boolean().optional(), // Compliance: is this template required?
+        isMandatory: z.boolean().optional(), // Compliance: is this template required?
         renewalPeriodMonths: z.number().nullable().optional(), // Compliance: how often to renew
         requiresApproval: z.boolean().optional(), // Does document need client approval workflow?
         visibility: z.enum(["public", "private"]).optional(),
@@ -6081,7 +6081,7 @@ export async function registerRoutes(
           module: parsed.data.module,
           parentId: rootLibraryFolder.id,
           toolkitFolderId: folder.id,
-          isRequired: false,
+          isMandatory: false,
           sortOrder: parsed.data.sortOrder ?? 0,
           isActive: true,
           createdBy: user.id,
@@ -6509,7 +6509,7 @@ export async function registerRoutes(
         provider: z.string().optional(),
         externalLink: z.string().url(),
         duration: z.string().optional(),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
       });
@@ -6567,7 +6567,7 @@ export async function registerRoutes(
         provider: z.string().optional().nullable(),
         externalLink: z.string().url().optional(),
         duration: z.string().optional().nullable(),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
       });
@@ -6807,7 +6807,7 @@ export async function registerRoutes(
         faqs: z.array(faqSchema).max(5).optional(),
         pricingTable: pricingTableSchema.optional(),
         trainingMethod: z.enum(["online", "in_person"]).optional().nullable(),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         isFeatured: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
@@ -6872,7 +6872,7 @@ export async function registerRoutes(
         courseOverview: z.array(z.string()).optional().nullable(),
         faqs: z.array(faqSchema).max(5).optional().nullable(),
         pricingTable: pricingTableSchema.optional().nullable(),
-        isRequired: z.boolean().optional(),
+        isMandatory: z.boolean().optional(),
         isFeatured: z.boolean().optional(),
         renewalPeriodMonths: z.number().nullable().optional(),
         sortOrder: z.number().optional(),
@@ -9530,7 +9530,7 @@ export async function registerRoutes(
         name: body.name,
         module: body.module,
         description: body.description || null,
-        isRequired: body.isRequired ?? false,
+        isMandatory: body.isMandatory ?? false,
         renewalPeriodMonths: body.renewalPeriodMonths ?? null,
         sortOrder: body.sortOrder ?? 0,
         isActive: body.isActive ?? true,
@@ -9688,7 +9688,7 @@ export async function registerRoutes(
           name: t.name,
           module: t.module,
           folderName: folderPath,
-          isRequired: t.isRequired,
+          isMandatory: t.isMandatory,
           requiresApproval: t.requiresApproval,
           sources: t.sources,
           sourceLabels: (t.sources as string[]).map((code: string) => (sourceMap.get(code) as string) ?? code),
@@ -12370,12 +12370,12 @@ export async function registerRoutes(
         }
       }
 
-      const getEffectiveIsRequired = (doc: { isRequired: boolean; templateId?: string | null; siteId: string }, docTmpl?: { isRequired?: boolean } | null) => {
+      const getEffectiveIsRequired = (doc: { isMandatory: boolean; templateId?: string | null; siteId: string }, docTmpl?: { isMandatory?: boolean } | null) => {
         const companyId = siteToCompanyHierarchy.get(doc.siteId);
         const isRequiredViaCompanyTemplate = companyId && doc.templateId
           ? (companyReqCacheHierarchy.get(companyId)?.has(doc.templateId) ?? false)
           : false;
-        return doc.isRequired || docTmpl?.isRequired || isRequiredViaCompanyTemplate;
+        return doc.isMandatory || docTmpl?.isMandatory || isRequiredViaCompanyTemplate;
       };
 
       // Flat set of all required template IDs across any target company (for templateInfo slots)
@@ -12404,11 +12404,11 @@ export async function registerRoutes(
           })()
         : null;
 
-      const getEffectiveTemplateIsRequired = (dt: { id: string; isRequired: boolean }) => {
+      const getEffectiveTemplateIsRequired = (dt: { id: string; isMandatory: boolean }) => {
         if (singleSiteEffectiveRequired !== null) {
-          return dt.isRequired || singleSiteEffectiveRequired.has(dt.id);
+          return dt.isMandatory || singleSiteEffectiveRequired.has(dt.id);
         }
-        return dt.isRequired || allCompanyRequiredTemplateIds.has(dt.id);
+        return dt.isMandatory || allCompanyRequiredTemplateIds.has(dt.id);
       };
 
       // Build the hierarchy: for each folder template, find matching site folders and their documents
@@ -12423,7 +12423,7 @@ export async function registerRoutes(
           // Get document templates in this folder template
           const folderDocTemplates = moduleDocTemplates.filter(dt => dt.folderTemplateId === folderTemplate.id);
           // Use getEffectiveTemplateIsRequired so company-required templates (from company_required_templates)
-          // are counted as required slots, not just templates with dt.isRequired=true on the template itself.
+          // are counted as required slots, not just templates with dt.isMandatory=true on the template itself.
           const requiredTemplates = folderDocTemplates.filter(dt => getEffectiveTemplateIsRequired(dt));
           
           // Get documents from ALL matching folders across all sites
@@ -12482,7 +12482,7 @@ export async function registerRoutes(
               id: childTemplate.id,
               name: childTemplate.name,
               description: childTemplate.description,
-              isRequired: childTemplate.isRequired,
+              isMandatory: childTemplate.isMandatory,
               isDynamic: false,
               siteFolder: childSiteFolder ? {
                 id: childSiteFolder.id,
@@ -12504,7 +12504,7 @@ export async function registerRoutes(
                   expiryDate: d.expiryDate,
                   updatedAt: d.updatedAt,
                   isArchived: d.isArchived,
-                  isRequired: getEffectiveIsRequired(d, docTemplate),
+                  isMandatory: getEffectiveIsRequired(d, docTemplate),
                   renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
                 };
               }),
@@ -12524,7 +12524,7 @@ export async function registerRoutes(
                         // Only flag as missing for sites whose company actually requires this template
                         const siteCompanyId = siteToCompanyHierarchy.get(sId);
                         const siteCompanyReq = siteCompanyId ? companyReqCacheHierarchy.get(siteCompanyId) : null;
-                        const isRequiredForSite = dt.isRequired || (siteCompanyReq?.has(dt.id) ?? false);
+                        const isRequiredForSite = dt.isMandatory || (siteCompanyReq?.has(dt.id) ?? false);
                         if (!isRequiredForSite) return false;
                         const siteOvr = siteOverridesCache.get(sId);
                         if (siteOvr?.excludedIds.has(dt.id)) return false;
@@ -12537,7 +12537,7 @@ export async function registerRoutes(
                 return {
                   id: dt.id,
                   name: dt.name,
-                  isRequired: isReq,
+                  isMandatory: isReq,
                   renewalPeriodMonths: dt.renewalPeriodMonths,
                   hasFulfilledDocument:
                     childFolderDocs.some(d => d.templateId === dt.id) ||
@@ -12560,7 +12560,7 @@ export async function registerRoutes(
                 id: dynamicFolder.id,
                 name: dynamicFolder.name,
                 description: dynamicFolder.description || "",
-                isRequired: false,
+                isMandatory: false,
                 isDynamic: true, // Flag to indicate this is a dynamically created folder (like case folder)
                 siteFolder: {
                   id: dynamicFolder.id,
@@ -12582,7 +12582,7 @@ export async function registerRoutes(
                     expiryDate: d.expiryDate,
                     updatedAt: d.updatedAt,
                     isArchived: d.isArchived,
-                    isRequired: getEffectiveIsRequired(d, docTemplate),
+                    isMandatory: getEffectiveIsRequired(d, docTemplate),
                     renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
                   };
                 }),
@@ -12609,7 +12609,7 @@ export async function registerRoutes(
             id: folderTemplate.id,
             name: folderTemplate.name,
             description: folderTemplate.description,
-            isRequired: folderTemplate.isRequired,
+            isMandatory: folderTemplate.isMandatory,
             sortOrder: folderTemplate.sortOrder,
             siteFolder: siteFolder ? {
               id: siteFolder.id,
@@ -12631,7 +12631,7 @@ export async function registerRoutes(
                 expiryDate: d.expiryDate,
                 updatedAt: d.updatedAt,
                 isArchived: d.isArchived,
-                isRequired: getEffectiveIsRequired(d, docTemplate),
+                isMandatory: getEffectiveIsRequired(d, docTemplate),
                 renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
               };
             }),
@@ -12654,7 +12654,7 @@ export async function registerRoutes(
                       // Only flag as missing for sites whose company actually requires this template
                       const siteCompanyId = siteToCompanyHierarchy.get(sId);
                       const siteCompanyReq = siteCompanyId ? companyReqCacheHierarchy.get(siteCompanyId) : null;
-                      const isRequiredForSite = dt.isRequired || (siteCompanyReq?.has(dt.id) ?? false);
+                      const isRequiredForSite = dt.isMandatory || (siteCompanyReq?.has(dt.id) ?? false);
                       if (!isRequiredForSite) return false;
                       const siteOvr = siteOverridesCache.get(sId);
                       if (siteOvr?.excludedIds.has(dt.id)) return false;
@@ -12667,7 +12667,7 @@ export async function registerRoutes(
               return {
                 id: dt.id,
                 name: dt.name,
-                isRequired: isReq,
+                isMandatory: isReq,
                 renewalPeriodMonths: dt.renewalPeriodMonths,
                 hasFulfilledDocument:
                   folderDocuments.some(d => d.templateId === dt.id) ||
@@ -12709,14 +12709,14 @@ export async function registerRoutes(
         }
         sharedDocuments = sharedList.map(d => {
           const docTemplate = moduleDocTemplates.find(dt => dt.id === d.templateId);
-          // Effective isRequired across any target site's company config
+          // Effective isMandatory across any target site's company config
           const isRequiredViaCompanyTemplate = d.templateId
             ? targetSiteIds.some(sId => {
                 const cId = siteToCompanyHierarchy.get(sId);
                 return cId ? (companyReqCacheHierarchy.get(cId)?.has(d.templateId!) ?? false) : false;
               })
             : false;
-          const effectiveIsRequired = d.isRequired || docTemplate?.isRequired || isRequiredViaCompanyTemplate;
+          const effectiveIsRequired = d.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate;
           return {
             id: d.id,
             title: d.title,
@@ -12734,7 +12734,7 @@ export async function registerRoutes(
             folderTemplateId: d.folderId ? (folderTemplateMap.get(d.folderId) ?? null) : null,
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
-            isRequired: effectiveIsRequired,
+            isMandatory: effectiveIsRequired,
             renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
             sharedScope: d.sharedScope,
             sharedFromEntityName: d.sharedFromEntityName,
@@ -12766,7 +12766,7 @@ export async function registerRoutes(
             templateId: d.templateId,
             expiryDate: d.expiryDate,
             updatedAt: d.updatedAt,
-            isRequired: docTemplate ? getEffectiveIsRequired(d, docTemplate) : false,
+            isMandatory: docTemplate ? getEffectiveIsRequired(d, docTemplate) : false,
             renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
           };
         }),
@@ -17688,7 +17688,7 @@ export async function registerRoutes(
       const result = await pool.query(`
         SELECT
           d.id, d.title, d.module, d.type, d.status, d.approval_status,
-          d.source, d.scope, d.is_required, d.is_archived,
+          d.source, d.scope, d.is_mandatory, d.is_archived,
           d.version, d.file_name, d.file_size, d.mime_type,
           u.full_name AS uploaded_by,
           s.name AS site_name, c.name AS company_name,

@@ -560,7 +560,7 @@ export const documentTypes = pgTable("document_types", {
   code: text("code").notNull().unique(), // Unique identifier like "fire_risk_assessment"
   module: text("module").$type<ModuleType>().notNull(),
   description: text("description"), // Guidance for clients
-  isRequired: boolean("is_required").notNull().default(false),
+  isMandatory: boolean("is_mandatory").notNull().default(false),
   renewalPeriodMonths: integer("renewal_period_months"), // null = no renewal needed
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
@@ -586,7 +586,7 @@ export const folderTemplates = pgTable("folder_templates", {
   module: text("module").$type<ModuleType>().notNull(),
   description: text("description"),
   parentId: varchar("parent_id"), // Reference to parent template for nested hierarchy
-  isRequired: boolean("is_required").notNull().default(false), // Required folder per module
+  isMandatory: boolean("is_mandatory").notNull().default(false), // Required folder per module
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   isLocked: boolean("is_locked").notNull().default(false), // Prevents deletion from UI (e.g. system Toolkit folders)
@@ -610,7 +610,7 @@ export const folderDocumentTypeRules = pgTable("folder_document_type_rules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   folderTemplateId: varchar("folder_template_id").notNull(),
   documentTypeId: varchar("document_type_id").notNull(),
-  isRequired: boolean("is_required").notNull().default(false), // Document is required in this folder
+  isMandatory: boolean("is_mandatory").notNull().default(false), // Document is required in this folder
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -656,7 +656,7 @@ export const documentTemplates = pgTable("document_templates", {
   // Placeholder variables available in this template
   placeholders: text("placeholders"), // JSON array of placeholder names like ["COMPANY_NAME", "SITE_ADDRESS"]
   // Compliance properties (moved from document types for simplicity)
-  isRequired: boolean("is_required").notNull().default(false), // Is this template required for compliance?
+  isMandatory: boolean("is_mandatory").notNull().default(false), // Is this template required for compliance?
   renewalPeriodMonths: integer("renewal_period_months"), // How often documents from this template need renewal (null = no renewal)
   requiresApproval: boolean("requires_approval").notNull().default(true), // Does document need client approval workflow?
   visibility: text("visibility").$type<"public" | "private">().notNull().default("public"), // Public = visible to all clients, Private = restricted
@@ -760,7 +760,7 @@ export const documents = pgTable("documents", {
   renewalPeriodMonths: integer("renewal_period_months"), // Stored when admin manually sets renewal tracking
   uploadedBy: varchar("uploaded_by").notNull(),
   isArchived: boolean("is_archived").notNull().default(false),
-  isRequired: boolean("is_required").notNull().default(false), // Marked as required for compliance
+  isMandatory: boolean("is_mandatory").notNull().default(false), // Marked as required for compliance
   // Template lineage tracking
   source: text("source").$type<DocumentSource>().notNull().default("external"), // "template" or "external"
   templateId: varchar("template_id"), // Reference to document template used
@@ -990,7 +990,7 @@ export interface DocumentTypeWithAccess {
   module: ModuleType;
   hasAccess: boolean;
   documentCount: number;
-  isRequired: boolean;
+  isMandatory: boolean;
   renewalPeriodMonths: number | null;
 }
 
@@ -1260,7 +1260,7 @@ export const trainingCourses = pgTable("training_courses", {
   courseOverview: text("course_overview").array(), // List of course topics/sections
   faqs: text("faqs"), // JSON string of TrainingFAQ[] (5 Q&A pairs)
   pricingTable: text("pricing_table"), // JSON string of PricingTable (heading row + 5 data rows)
-  isRequired: boolean("is_required").notNull().default(false),
+  isMandatory: boolean("is_mandatory").notNull().default(false),
   isFeatured: boolean("is_featured").notNull().default(false), // Show in featured section
   renewalPeriodMonths: integer("renewal_period_months"), // For required training refresh
   sortOrder: integer("sort_order").notNull().default(0),
@@ -1325,7 +1325,7 @@ export const trainingModules = pgTable("training_modules", {
   provider: text("provider"),
   externalLink: text("external_link"),
   duration: text("duration"),
-  isRequired: boolean("is_required").notNull().default(false),
+  isMandatory: boolean("is_mandatory").notNull().default(false),
   renewalPeriodMonths: integer("renewal_period_months"),
   sortOrder: integer("sort_order").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
