@@ -14233,6 +14233,12 @@ export async function registerRoutes(
         } catch { /* non-fatal */ }
       }
 
+      // Emit user-updated so admins/consultants see user changes in real time
+      try {
+        emitToRole("admin", "user-updated", { userId: req.params.id });
+        emitToRole("consultant", "user-updated", { userId: req.params.id });
+      } catch { /* non-fatal */ }
+
       // Remove password from response
       const { password, ...safeUser } = updated;
       res.json(safeUser);
@@ -14271,6 +14277,12 @@ export async function registerRoutes(
       const updated = await storage.updateUser(req.params.id, {
         consultantPermissions: { ...existing, ...parsed.data },
       });
+      // Emit user-updated so admins see permission changes in real time
+      try {
+        emitToRole("admin", "user-updated", { userId: req.params.id });
+        emitToRole("consultant", "user-updated", { userId: req.params.id });
+      } catch { /* non-fatal */ }
+
       const { password: _pw, ...safeUser } = updated as Record<string, unknown>;
       res.json(safeUser);
     } catch (error) {

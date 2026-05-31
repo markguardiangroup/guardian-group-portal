@@ -6404,6 +6404,13 @@
           "message": "Real-time updates: Cloud Share uploads appear instantly for folder users",
           "category": "enhancement",
           "createdAt": "2026-05-31T14:59:27.868Z"
+        },
+        {
+          "id": "80f5cc1a-929a-40de-9d64-121e8a16595b",
+          "patch": 13,
+          "message": "Real-time updates: user list refreshes when an existing user is edited",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T15:02:00.529Z"
         }
       ],
       "publishedPatch": 12,
