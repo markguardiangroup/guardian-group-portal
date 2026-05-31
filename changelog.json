@@ -6495,6 +6495,13 @@
           "message": "Real-time: roadmap updates appear instantly for all admin sessions",
           "category": "enhancement",
           "createdAt": "2026-05-31T18:15:00.000Z"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-bcde-567890123457",
+          "patch": 13,
+          "message": "Removed: Notifications tab and 2FA box hidden from Settings",
+          "category": "other",
+          "createdAt": "2026-05-31T18:30:00.000Z"
         }
       ],
       "publishedPatch": 12,

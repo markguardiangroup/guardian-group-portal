@@ -348,10 +348,6 @@ export default function Settings() {
             <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2" data-testid="tab-notifications">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
           <TabsTrigger value="appearance" className="gap-2" data-testid="tab-appearance">
             <Palette className="h-4 w-4" />
             Appearance
@@ -784,33 +780,6 @@ export default function Settings() {
                   >
                     <Key className="mr-2 h-4 w-4" />
                     {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Two-Factor Authentication</CardTitle>
-                <CardDescription>
-                  Add an extra layer of security to your account
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                      <Smartphone className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Authenticator App</p>
-                      <p className="text-sm text-muted-foreground">
-                        Use an authenticator app to generate codes
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="outline" data-testid="button-setup-2fa">
-                    Set Up
                   </Button>
                 </div>
               </CardContent>
