@@ -6516,6 +6516,13 @@
           "message": "Help Guide: 'For: Consultant / Client' badges hidden for client users",
           "category": "enhancement",
           "createdAt": "2026-05-31T18:55:00.000Z"
+        },
+        {
+          "id": "e1f2a3b4-c5d6-7890-efab-890123456780",
+          "patch": 13,
+          "message": "Help Guide: 'User roles at a glance' section hidden for client users",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T19:05:00.000Z"
         }
       ],
       "publishedPatch": 12,

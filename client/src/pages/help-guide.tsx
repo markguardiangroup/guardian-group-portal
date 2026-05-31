@@ -92,6 +92,48 @@ function TipBox({
   );
 }
 
+function UserRolesAtAGlance() {
+  const { user } = useAuth();
+  if (user?.role === "client") return null;
+  return (
+    <>
+      <Separator />
+      <div>
+        <h4 className="font-semibold mb-3">User roles at a glance</h4>
+        <div className="grid gap-3">
+          <div className="p-3 rounded-lg border bg-card">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="secondary">Consultant</Badge>
+              <Badge variant="outline" className="text-xs">Pro</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Has access to all client sites and all other consultants in the portal. Can manage
+              documents, training, and cases across every company, and oversee consultant activity.
+            </p>
+          </div>
+          <div className="p-3 rounded-lg border bg-card">
+            <div className="flex items-center gap-2 mb-1">
+              <Badge variant="secondary">Consultant</Badge>
+              <Badge variant="outline" className="text-xs">Standard</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Manages documents, training, and cases for their assigned client sites only. Can
+              upload documents, approve client sign-offs, and respond to support requests.
+            </p>
+          </div>
+          <div className="p-3 rounded-lg border bg-card">
+            <Badge variant="outline" className="mb-1">Client</Badge>
+            <p className="text-sm text-muted-foreground">
+              Views compliance documents for their sites, signs off documents sent by their
+              consultant, accesses training records, and raises support requests.
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 const guideSections: GuideSection[] = [
   {
     id: "getting-started",
@@ -131,42 +173,7 @@ const guideSections: GuideSection[] = [
           </ul>
         </div>
 
-        <Separator />
-
-        <div>
-          <h4 className="font-semibold mb-3">User roles at a glance</h4>
-          <div className="grid gap-3">
-            <div className="p-3 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="secondary">Consultant</Badge>
-                <Badge variant="outline" className="text-xs">Pro</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Has access to all client sites and all other consultants in the portal. Can manage
-                documents, training, and cases across every company, and oversee consultant activity.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="secondary">Consultant</Badge>
-                <Badge variant="outline" className="text-xs">Standard</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Manages documents, training, and cases for their assigned client sites only. Can
-                upload documents, approve client sign-offs, and respond to support requests.
-              </p>
-            </div>
-            <div className="p-3 rounded-lg border bg-card">
-              <Badge variant="outline" className="mb-1">
-                Client
-              </Badge>
-              <p className="text-sm text-muted-foreground">
-                Views compliance documents for their sites, signs off documents sent by their
-                consultant, accesses training records, and raises support requests.
-              </p>
-            </div>
-          </div>
-        </div>
+        <UserRolesAtAGlance />
 
         <TipBox type="info">
           You only see the sites and companies you've been assigned to. If you're missing access to
