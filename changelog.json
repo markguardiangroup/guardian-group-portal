@@ -6558,6 +6558,13 @@
           "message": "Help Guide: document statuses corrected to match what the app actually shows",
           "category": "bug",
           "createdAt": "2026-05-31T20:00:00.000Z"
+        },
+        {
+          "id": "e7f8a9b0-c1d2-3456-ef01-456789012346",
+          "patch": 13,
+          "message": "Removed: documents can no longer be rejected — use Request Changes instead",
+          "category": "feature",
+          "createdAt": "2026-05-31T20:15:00.000Z"
         }
       ],
       "publishedPatch": 12,

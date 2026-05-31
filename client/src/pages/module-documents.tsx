@@ -3068,7 +3068,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const { user } = useAuth();
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
-  const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
+  const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
@@ -3314,7 +3314,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       setFeedback("");
       toast({
         title: "Success",
-        description: `Document has been ${approvalAction === "approve" ? "approved" : approvalAction === "reject" ? "rejected" : "returned for changes"}`,
+        description: `Document has been ${approvalAction === "approve" ? "approved" : "returned for changes"}`,
       });
     },
     onError: (error: Error) => {
@@ -3646,7 +3646,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               if (canClientAct) return "Review and sign off on this document to confirm you've received and read it";
               if (isSignedOff) return "The client has signed off. Give final approval to complete the workflow";
               if (canConsultantAct && isPending) return "Review and approve this client-uploaded document";
-              return "Review and approve or reject this document";
+              return "Review and approve this document";
             };
             
             const getApproveLabel = () => {
@@ -3778,14 +3778,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     >
                       <AlertTriangle className="mr-2 h-4 w-4" />
                       Request Changes
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => { setApprovalAction("reject"); setShowApprovalDialog(true); }}
-                      data-testid="button-reject"
-                    >
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Reject
                     </Button>
                   </div>
                 </CardContent>
@@ -4088,7 +4080,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     if (document.approvalStatus !== "approved") {
                       reason = document.approvalStatus === "pending" ? "Awaiting client sign-off" :
                                document.approvalStatus === "client_signed_off" ? "Awaiting final approval" :
-                               document.approvalStatus === "rejected" ? "Document has been rejected" :
                                document.approvalStatus === "changes_requested" ? "Changes have been requested" :
                                "Review required";
                     } else if (document.status === "overdue" || (document.expiryDate && new Date(document.expiryDate) < now)) {
@@ -4251,15 +4242,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             <DialogTitle>
               {approvalAction === "approve" 
                 ? (user?.role === "client" && document?.approvalStatus === "pending" ? "Confirm Sign-Off" : "Approve Document")
-                : approvalAction === "reject" ? "Reject Document" : "Request Changes"}
+                : "Request Changes"}
             </DialogTitle>
             <DialogDescription>
               {approvalAction === "approve" 
                 ? (user?.role === "client" && document?.approvalStatus === "pending"
                     ? "By signing off, you confirm that you have received and reviewed this document. It will then be sent to the consultant for final approval."
                     : "This will mark the document as approved and compliant.")
-                : approvalAction === "reject"
-                ? "This will reject the document. Please provide a reason."
                 : "Please describe the changes required."}
             </DialogDescription>
           </DialogHeader>
@@ -4286,7 +4275,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             <Button 
               onClick={handleApproval}
               disabled={approvalMutation.isPending}
-              variant={approvalAction === "reject" ? "destructive" : "default"}
+              variant="default"
               data-testid="button-confirm-approval"
             >
               {approvalMutation.isPending ? "Processing..." : 

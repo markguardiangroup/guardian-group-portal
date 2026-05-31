@@ -323,7 +323,6 @@ const sections: GuideSection[] = [
               ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Approved", "Fully approved and counts towards the compliance score"],
               ["bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20", "Changes Requested", "Changes were requested; awaiting an updated document"],
               ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Overdue", "Document has passed its renewal date"],
-              ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Rejected", "Document was not accepted — a note explains why"],
             ].map(([badgeClass, label, desc]) => (
               <div key={label} className="flex items-center gap-3 p-2 rounded border">
                 <Badge variant="outline" className={badgeClass}>
@@ -379,7 +378,7 @@ const sections: GuideSection[] = [
                     "Open the document — it will show 'Awaiting Final Approval' or 'Awaiting Sign-Off'",
                     "Review the file and any notes",
                     "Click 'Approve' to mark it as compliant — it now counts towards the site score",
-                    "Or click 'Reject' and add a note explaining what needs to change",
+                    "Or click 'Request Changes' and describe what needs to be updated",
                   ]}
                 />
               </div>

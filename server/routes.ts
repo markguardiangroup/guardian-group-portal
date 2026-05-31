@@ -464,7 +464,7 @@ const updateFeedbackSchema = z.object({
 });
 
 const approvalSchema = z.object({
-  action: z.enum(["approve", "reject", "changes"]),
+  action: z.enum(["approve", "changes"]),
   feedback: z.string().optional(),
 });
 
@@ -4320,9 +4320,9 @@ export async function registerRoutes(
         }
       }
 
-      let approvalStatus: "approved" | "rejected" | "changes_requested" | "client_signed_off";
+      let approvalStatus: "approved" | "changes_requested" | "client_signed_off";
       let documentStatus: "compliant" | "approval_required" | "overdue" | "approved";
-      let auditAction: "document_approved" | "document_rejected" | "changes_requested" | "document_signed_off";
+      let auditAction: "document_approved" | "changes_requested" | "document_signed_off";
 
       switch (action) {
         case "approve":
@@ -4338,11 +4338,6 @@ export async function registerRoutes(
             documentStatus = existingDoc.isMandatory ? "compliant" : "approved";
             auditAction = "document_approved";
           }
-          break;
-        case "reject":
-          approvalStatus = "rejected";
-          documentStatus = "overdue";
-          auditAction = "document_rejected";
           break;
         case "changes":
           approvalStatus = "changes_requested";
@@ -4393,7 +4388,7 @@ export async function registerRoutes(
         documentId: document.id,
         supportRequestId: null,
         module: existingDoc.module,
-        details: feedback || (action === "approve" ? "Document approved" : action === "reject" ? "Document rejected" : "Changes requested"),
+        details: feedback || (action === "approve" ? "Document approved" : "Changes requested"),
         metadata: null,
       });
 

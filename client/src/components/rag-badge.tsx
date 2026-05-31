@@ -84,10 +84,6 @@ export function DocumentStatusBadge({ status, approvalStatus, className }: Docum
     label = "Changes Requested";
     Icon = AlertTriangle;
     statusClassName = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
-  } else if (approvalStatus === "rejected") {
-    label = "Rejected";
-    Icon = XCircle;
-    statusClassName = "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20";
   } else if (approvalStatus === "pending") {
     label = "Awaiting Sign-Off";
     Icon = Clock;
@@ -194,11 +190,6 @@ export function ApprovalBadge({ status, className }: ApprovalBadgeProps) {
       label: "Approved",
       icon: CheckCircle,
       className: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
-    },
-    rejected: {
-      label: "Rejected",
-      icon: XCircle,
-      className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20",
     },
     changes_requested: {
       label: "Changes Requested",

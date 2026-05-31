@@ -1227,7 +1227,7 @@ function DocumentDetailView({ id }: { id: string }) {
     user?.role === "client" && user?.clientPermissionRole === "full" && !!doc?.entityId && user?.companyId === doc.entityId;
   const [feedback, setFeedback] = useState("");
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
-  const [approvalAction, setApprovalAction] = useState<"approve" | "reject" | "changes">("approve");
+  const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
   const [editComplianceMode, setEditComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
   const [editRenewalPeriodMonths, setEditRenewalPeriodMonths] = useState<number | null>(null);
   const [editExpiryDate, setEditExpiryDate] = useState<string>("");
@@ -1461,7 +1461,7 @@ function DocumentDetailView({ id }: { id: string }) {
       setFeedback("");
       toast({
         title: "Success",
-        description: `Document has been ${approvalAction === "approve" ? "approved" : approvalAction === "reject" ? "rejected" : "returned for changes"}`,
+        description: `Document has been ${approvalAction === "approve" ? "approved" : "returned for changes"}`,
       });
     },
     onError: (error: Error) => {
@@ -1555,14 +1555,6 @@ function DocumentDetailView({ id }: { id: string }) {
                     >
                       <AlertTriangle className="mr-2 h-4 w-4" />
                       Request Changes
-                    </Button>
-                    <Button
-                      variant={approvalAction === "reject" ? "destructive" : "outline"}
-                      className="flex-1"
-                      onClick={() => setApprovalAction("reject")}
-                    >
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Reject
                     </Button>
                   </div>
                   <div>
@@ -1775,7 +1767,6 @@ function DocumentDetailView({ id }: { id: string }) {
                     if (document.approvalStatus !== "approved") {
                       reason = document.approvalStatus === "pending" ? "Awaiting client sign-off" :
                                document.approvalStatus === "client_signed_off" ? "Awaiting final approval" :
-                               document.approvalStatus === "rejected" ? "Document has been rejected" :
                                document.approvalStatus === "changes_requested" ? "Changes have been requested" :
                                "Review required";
                     } else if (document.status === "overdue" || (document.expiryDate && new Date(document.expiryDate) < now)) {
