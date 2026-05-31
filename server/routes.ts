@@ -18481,16 +18481,9 @@ export async function registerRoutes(
         );
         pendingApprovalsRows = res2.rows;
       } else if (user.role === "client") {
-        // Client: docs with approval_status = "pending" uploaded by someone else on their site(s)
+        // Client: docs with approval_status = "pending" uploaded by someone else on their assigned site(s) only
         const clientSites = await storage.getClientSites(userId);
-        let siteIds = clientSites.map((s) => s.siteId);
-        if (user.companyId) {
-          const companySitesRes = await pool.query<{ id: string }>(
-            "SELECT id FROM sites WHERE entity_id = $1",
-            [user.companyId]
-          );
-          siteIds = [...new Set([...siteIds, ...companySitesRes.rows.map((r) => r.id)])];
-        }
+        const siteIds = clientSites.map((s) => s.siteId);
         if (siteIds.length > 0) {
           const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null }>(
             `SELECT id, title, site_id, module FROM documents

@@ -6292,6 +6292,13 @@
           "message": "Fixed: main dashboard document count now matches the module dashboard (per-site total)",
           "category": "bug",
           "createdAt": "2026-05-30T00:21:06.321724+00:00"
+        },
+        {
+          "id": "e632f533-d82c-4976-9dd8-0a083eee525d",
+          "patch": 13,
+          "message": "Fixed: clients no longer see sign-off requests from other clients in the same company",
+          "category": "bug",
+          "createdAt": "2026-05-31T10:17:09.017818+00:00"
         }
       ],
       "publishedPatch": 12,
