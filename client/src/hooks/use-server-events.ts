@@ -88,6 +88,61 @@ export function useServerEvents() {
 
       es.addEventListener("company-updated", () => {
         queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+      });
+
+      es.addEventListener("company-mandatory-templates-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.companyId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/companies", data.companyId, "required-templates"] });
+          }
+        } catch { /* ignore */ }
+        queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      });
+
+      es.addEventListener("training-booking-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.siteId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/training-bookings", data.siteId] });
+          }
+        } catch { /* ignore */ }
+        queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
+      });
+
+      es.addEventListener("training-request-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.siteId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/training-requests", data.siteId] });
+          }
+        } catch { /* ignore */ }
+        queryClient.invalidateQueries({ queryKey: ["/api/training-requests"] });
+      });
+
+      es.addEventListener("document-template-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+      });
+
+      es.addEventListener("folder-template-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
+      });
+
+      es.addEventListener("roadmap-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/roadmap"] });
       });
 
       es.addEventListener("site-updated", () => {

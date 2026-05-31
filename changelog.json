@@ -6467,6 +6467,34 @@
           "message": "Dashboards and site documents now update in real time for all users",
           "category": "enhancement",
           "createdAt": "2026-05-31T18:02:37.083Z"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-defa-123456789013",
+          "patch": 13,
+          "message": "Real-time: mandatory template changes instantly update compliance for all connected users",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T18:15:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-efab-234567890124",
+          "patch": 13,
+          "message": "Real-time: training bookings and requests update live for clients, admins, and consultants",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T18:15:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-fabc-345678901235",
+          "patch": 13,
+          "message": "Real-time: template library and folder changes push live to all open sessions",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T18:15:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-abcd-456789012346",
+          "patch": 13,
+          "message": "Real-time: roadmap updates appear instantly for all admin sessions",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T18:15:00.000Z"
         }
       ],
       "publishedPatch": 12,

@@ -5358,7 +5358,8 @@ export async function registerRoutes(
       };
       
       const template = await storage.createFolderTemplate(dataForStorage);
-      
+      emitToRole("admin", "folder-template-updated", {});
+      emitToRole("consultant", "folder-template-updated", {});
       res.status(201).json(template);
     } catch (error) {
       console.error("Create folder template error:", error);
@@ -5398,6 +5399,8 @@ export async function registerRoutes(
       }
       
       const updated = await storage.updateFolderTemplate(req.params.id, parsed.data);
+      emitToRole("admin", "folder-template-updated", {});
+      emitToRole("consultant", "folder-template-updated", {});
       res.json(updated);
     } catch (error) {
       console.error("Update folder template error:", error);
@@ -5422,6 +5425,8 @@ export async function registerRoutes(
       }
       
       await storage.deleteFolderTemplate(req.params.id);
+      emitToRole("admin", "folder-template-updated", {});
+      emitToRole("consultant", "folder-template-updated", {});
       res.status(204).send();
     } catch (error) {
       console.error("Delete folder template error:", error);
@@ -5737,6 +5742,8 @@ export async function registerRoutes(
         }),
       });
       
+      emitToRole("admin", "document-template-updated", { templateId: template.id });
+      emitToRole("consultant", "document-template-updated", { templateId: template.id });
       res.status(201).json(template);
     } catch (error) {
       console.error("Create document template error:", error);
@@ -5836,6 +5843,8 @@ export async function registerRoutes(
         }),
       });
       
+      emitToRole("admin", "document-template-updated", { templateId: req.params.id });
+      emitToRole("consultant", "document-template-updated", { templateId: req.params.id });
       res.json(updated);
     } catch (error) {
       console.error("Update document template error:", error);
@@ -6345,6 +6354,8 @@ export async function registerRoutes(
         return res.status(500).json({ error: "Failed to archive document template" });
       }
       
+      emitToRole("admin", "document-template-updated", { templateId: req.params.id });
+      emitToRole("consultant", "document-template-updated", { templateId: req.params.id });
       res.status(200).json({ 
         message: "Template archived successfully",
         archivedAt: new Date().toISOString(),
@@ -6375,6 +6386,8 @@ export async function registerRoutes(
         return res.status(500).json({ error: "Failed to restore document template" });
       }
       
+      emitToRole("admin", "document-template-updated", { templateId: req.params.id });
+      emitToRole("consultant", "document-template-updated", { templateId: req.params.id });
       res.status(200).json({ 
         message: "Template restored successfully",
         restoredAt: new Date().toISOString(),
@@ -6991,6 +7004,8 @@ export async function registerRoutes(
         }
       }
 
+      emitToRole("admin", "training-request-updated", { requestId: request.id, siteId: parsed.data.siteId });
+      emitToRole("consultant", "training-request-updated", { requestId: request.id, siteId: parsed.data.siteId });
       res.status(201).json(request);
     } catch (error) {
       console.error("Create training request error:", error);
@@ -7056,6 +7071,8 @@ export async function registerRoutes(
       }
       
       const updated = await storage.updateTrainingRequest(req.params.id, updateData);
+      emitToRole("admin", "training-request-updated", { requestId: req.params.id, siteId: updated.siteId });
+      emitToRole("consultant", "training-request-updated", { requestId: req.params.id, siteId: updated.siteId });
       res.json(updated);
     } catch (error) {
       console.error("Update training request error:", error);
@@ -7148,7 +7165,12 @@ export async function registerRoutes(
         bookedBy: user.id,
         status: "booked",
       });
-      
+      try {
+        const bSite = await storage.getSite(booking.siteId);
+        if (bSite) emitToCompany(bSite.companyId, "training-booking-updated", { bookingId: booking.id, siteId: booking.siteId });
+      } catch { /* non-fatal */ }
+      emitToRole("admin", "training-booking-updated", { bookingId: booking.id, siteId: booking.siteId });
+      emitToRole("consultant", "training-booking-updated", { bookingId: booking.id, siteId: booking.siteId });
       res.status(201).json(booking);
     } catch (error) {
       console.error("Create training booking error:", error);
@@ -7198,6 +7220,12 @@ export async function registerRoutes(
       }
       
       const updated = await storage.updateTrainingBooking(req.params.id, updateData);
+      try {
+        const bSite = await storage.getSite(updated.siteId);
+        if (bSite) emitToCompany(bSite.companyId, "training-booking-updated", { bookingId: updated.id, siteId: updated.siteId });
+      } catch { /* non-fatal */ }
+      emitToRole("admin", "training-booking-updated", { bookingId: updated.id, siteId: updated.siteId });
+      emitToRole("consultant", "training-booking-updated", { bookingId: updated.id, siteId: updated.siteId });
       res.json(updated);
     } catch (error) {
       console.error("Update training booking error:", error);
@@ -7217,7 +7245,16 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only admins can delete training bookings" });
       }
       
+      const bookingToDelete = await storage.getTrainingBooking(req.params.id).catch(() => null);
       await storage.deleteTrainingBooking(req.params.id);
+      if (bookingToDelete) {
+        try {
+          const bSite = await storage.getSite(bookingToDelete.siteId);
+          if (bSite) emitToCompany(bSite.companyId, "training-booking-updated", { bookingId: req.params.id });
+        } catch { /* non-fatal */ }
+        emitToRole("admin", "training-booking-updated", { bookingId: req.params.id });
+        emitToRole("consultant", "training-booking-updated", { bookingId: req.params.id });
+      }
       res.json({ success: true });
     } catch (error) {
       console.error("Delete training booking error:", error);
@@ -12064,6 +12101,9 @@ export async function registerRoutes(
       const validIds = new Set(allTemplates.filter(t => t.isActive && t.visibility === "private").map(t => t.id));
       const filteredIds = uniqueIds.filter(id => validIds.has(id));
       const result = await storage.setCompanyRequiredTemplates(companyId, filteredIds, user.id);
+      emitToCompany(companyId, "company-mandatory-templates-updated", { companyId });
+      emitToRole("admin", "company-mandatory-templates-updated", { companyId });
+      emitToRole("consultant", "company-mandatory-templates-updated", { companyId });
       res.json(result);
     } catch (error) {
       console.error("Set company required templates error:", error);
@@ -12088,6 +12128,9 @@ export async function registerRoutes(
       const template = allTemplates.find(t => t.id === templateId && t.isActive && t.visibility === "private");
       if (!template) return res.status(400).json({ error: "Template not found or not available" });
       const result = await storage.addCompanyRequiredTemplate(companyId, templateId, user.id);
+      emitToCompany(companyId, "company-mandatory-templates-updated", { companyId });
+      emitToRole("admin", "company-mandatory-templates-updated", { companyId });
+      emitToRole("consultant", "company-mandatory-templates-updated", { companyId });
       res.status(201).json(result);
     } catch (error) {
       console.error("Add company required template error:", error);
@@ -12109,6 +12152,9 @@ export async function registerRoutes(
       // as a struck-through "was required, not anymore" entry, and hard-
       // delete on a subsequent call against an already-soft-removed row.
       await storage.removeCompanyRequiredTemplate(companyId, templateId);
+      emitToCompany(companyId, "company-mandatory-templates-updated", { companyId });
+      emitToRole("admin", "company-mandatory-templates-updated", { companyId });
+      emitToRole("consultant", "company-mandatory-templates-updated", { companyId });
       res.status(204).end();
     } catch (error) {
       console.error("Remove company required template error:", error);
@@ -14358,6 +14404,7 @@ export async function registerRoutes(
         assignedUserId: parsed.data.assignedUserId ?? null,
       });
       
+      emitToRole("admin", "roadmap-updated", {});
       res.status(201).json(item);
     } catch (error) {
       console.error("Create roadmap item error:", error);
@@ -14403,6 +14450,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Roadmap item not found" });
       }
       
+      emitToRole("admin", "roadmap-updated", {});
       res.json(updated);
     } catch (error) {
       console.error("Update roadmap item error:", error);
@@ -14424,6 +14472,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Roadmap item not found" });
       }
       
+      emitToRole("admin", "roadmap-updated", {});
       res.json({ success: true });
     } catch (error) {
       console.error("Delete roadmap item error:", error);
