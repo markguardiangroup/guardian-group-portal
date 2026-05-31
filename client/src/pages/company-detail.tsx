@@ -152,7 +152,7 @@ interface UserWithAssignments {
   role: "admin" | "consultant" | "client";
   companyId: string | null;
   status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
-  lastLogin: string | null;
+
   consultantTier?: string | null;
   clientPermissionRole?: string | null;
   siteAssignments?: SiteAssignment[];

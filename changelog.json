@@ -6432,6 +6432,13 @@
           "message": "User Management: Last Login column replaced with Last Seen",
           "category": "enhancement",
           "createdAt": "2026-05-31T15:46:00.000Z"
+        },
+        {
+          "id": "f6b4d0e5-remove-orphaned-lastlogin-type-fields-2026",
+          "patch": 13,
+          "message": "Removed obsolete lastLogin/lastLoginAt type fields (replaced by lastSeenAt)",
+          "category": "other",
+          "createdAt": "2026-05-31T16:00:00.000Z"
         }
       ],
       "publishedPatch": 12,

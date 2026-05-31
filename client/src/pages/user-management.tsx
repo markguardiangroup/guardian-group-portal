@@ -119,8 +119,7 @@ interface UserWithAssignments {
   role: UserRole;
   companyId: string | null;
   status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
-  lastLogin: string | null;
-  lastLoginAt?: string | null;
+
   consultantTier?: ConsultantTier | null;
   managerId?: string | null;
   clientPermissionRole?: ClientPermissionRole | null;
