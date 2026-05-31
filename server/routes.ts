@@ -4582,6 +4582,100 @@ export async function registerRoutes(
     }
   });
 
+  // Re-issue a document as reviewed with no content changes
+  app.post("/api/documents/:id/reissue", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only admins and consultants can re-issue documents" });
+      }
+
+      const { id: documentId } = req.params;
+      const { renewalBase, note } = req.body as { renewalBase?: "today" | "last_approval"; note?: string };
+
+      const existingDoc = await storage.getDocument(documentId);
+      if (!existingDoc) return res.status(404).json({ error: "Document not found" });
+      if (existingDoc.isArchived) return res.status(400).json({ error: "Cannot re-issue an archived document" });
+
+      // Determine base date for new renewal calculation
+      const today = new Date();
+      let newLastApprovedAt: Date;
+      if (renewalBase === "last_approval" && existingDoc.lastApprovedAt) {
+        newLastApprovedAt = new Date(existingDoc.lastApprovedAt);
+      } else {
+        newLastApprovedAt = today;
+      }
+
+      // Determine effective renewal period
+      let effectiveRenewalPeriodMonths: number | null = existingDoc.renewalPeriodMonths ?? null;
+      if (!effectiveRenewalPeriodMonths && existingDoc.templateId) {
+        const template = await storage.getDocumentTemplate(existingDoc.templateId);
+        effectiveRenewalPeriodMonths = template?.renewalPeriodMonths ?? null;
+      }
+
+      let newRenewalDate: Date | undefined;
+      if (effectiveRenewalPeriodMonths) {
+        newRenewalDate = new Date(newLastApprovedAt);
+        newRenewalDate.setMonth(newRenewalDate.getMonth() + effectiveRenewalPeriodMonths);
+      }
+
+      // Create a new document version (copy of current file)
+      const newVersion = existingDoc.version + 1;
+      await storage.createDocumentVersion({
+        documentId,
+        version: newVersion,
+        fileName: existingDoc.fileName,
+        fileUrl: existingDoc.fileUrl ?? undefined,
+        fileSize: existingDoc.fileSize,
+        mimeType: existingDoc.mimeType,
+        uploadedBy: user.id,
+        changeNote: note || "Re-issued — reviewed with no content changes",
+      });
+
+      // Update the document
+      const updated = await storage.updateDocument(documentId, {
+        approvalStatus: "approved",
+        status: "compliant",
+        version: newVersion,
+        lastApprovedAt: newLastApprovedAt,
+        ...(newRenewalDate ? { renewalDate: newRenewalDate } : {}),
+      });
+
+      if (!updated) return res.status(404).json({ error: "Document not found" });
+
+      await storage.createAuditLog({
+        action: "document_reissued",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: existingDoc.siteId || existingDoc.entityId,
+        documentId,
+        supportRequestId: null,
+        module: existingDoc.module,
+        details: note || "Document re-issued — reviewed with no content changes",
+        metadata: JSON.stringify({
+          renewalBase: renewalBase || "today",
+          newLastApprovedAt: newLastApprovedAt.toISOString(),
+          ...(newRenewalDate ? { newRenewalDate: newRenewalDate.toISOString() } : {}),
+        }),
+      });
+
+      // Invalidation signal for real-time clients
+      try {
+        const payload = { documentId: updated.id, siteId: updated.siteId, entityId: updated.entityId, approvalStatus: updated.approvalStatus };
+        const docSite = await storage.getSite(updated.siteId).catch(() => null);
+        if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        emitToRole("admin", "document-updated", payload);
+        emitToRole("consultant", "document-updated", payload);
+      } catch { /* non-fatal */ }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Document re-issue error:", error);
+      res.status(500).json({ error: "Failed to re-issue document" });
+    }
+  });
+
   // Resend or change approver for a document approval notification
   app.post("/api/documents/:id/approval-notify", requireAuth, async (req, res) => {
     try {

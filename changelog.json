@@ -6572,6 +6572,13 @@
           "message": "New 'Expired' badge distinguishes documents past their expiry date from overdue renewals",
           "category": "feature",
           "createdAt": "2026-05-31T20:30:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
+          "patch": 13,
+          "message": "Re-issue action lets consultants renew an unchanged document at any time, with choice of renewal date base",
+          "category": "feature",
+          "createdAt": "2026-05-31T21:00:00.000Z"
         }
       ],
       "publishedPatch": 12,

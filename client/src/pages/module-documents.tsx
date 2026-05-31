@@ -3076,6 +3076,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [changeNote, setChangeNote] = useState("");
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [archiveReason, setArchiveReason] = useState("");
+  const [showReissueDialog, setShowReissueDialog] = useState(false);
+  const [reissueNote, setReissueNote] = useState("");
+  const [reissueBase, setReissueBase] = useState<"today" | "last_approval">("today");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -3431,6 +3434,27 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     archiveMutation.mutate({ reason: archiveReason || undefined });
   };
 
+  const reissueMutation = useMutation({
+    mutationFn: async (data: { renewalBase?: string; note?: string }) => {
+      return apiRequest("POST", `/api/documents/${id}/reissue`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.removeQueries({ queryKey: ["/api/dashboard", module] });
+      setShowReissueDialog(false);
+      setReissueNote("");
+      setReissueBase("today");
+      toast({ title: "Document re-issued", description: "The document has been re-issued and marked as approved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to re-issue document", variant: "destructive" });
+    },
+  });
+
   const restoreMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/documents/${id}/restore`);
@@ -3499,6 +3523,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     );
   }
 
+  // Re-issue dialog helpers
+  const reissueLastApproved = document.lastApprovedAt ? new Date(document.lastApprovedAt) : null;
+  const reissueIsToday = reissueLastApproved?.toDateString() === new Date().toDateString();
+  const showReissueBaseChoice = !!(reissueLastApproved && !reissueIsToday && ((document as any).renewalDate || document.renewalPeriodMonths));
+  const getReissuePreview = (base: "today" | "last_approval"): Date | null => {
+    if (base === "last_approval" && (document as any).renewalDate) return new Date((document as any).renewalDate);
+    if (document.renewalPeriodMonths) { const d = new Date(); d.setMonth(d.getMonth() + document.renewalPeriodMonths); return d; }
+    return null;
+  };
+  const reissuePreview = getReissuePreview(reissueBase);
+
   return (
     <div className="space-y-6 p-8">
       <div className="flex items-center gap-4">
@@ -3524,6 +3559,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         <div className="flex items-center gap-3">
           <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
           <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} expiryDate={(document as any).expiryDate} />
+          {isPrivilegedUser && !document.isArchived && (
+            <Button variant="outline" size="sm" onClick={() => setShowReissueDialog(true)} data-testid="button-reissue">
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+              Re-issue
+            </Button>
+          )}
         </div>
       </div>
 
@@ -4489,6 +4530,67 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               })()
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showReissueDialog} onOpenChange={(open) => { setShowReissueDialog(open); if (!open) { setReissueNote(""); setReissueBase("today"); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Re-issue Document</DialogTitle>
+            <DialogDescription>
+              Mark this document as reviewed with no content changes. A new version will be recorded in the history and the document will be set to approved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {showReissueBaseChoice && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Calculate next renewal from</label>
+                <div className="flex gap-3">
+                  <Button
+                    variant={reissueBase === "today" ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setReissueBase("today")}
+                    data-testid="button-reissue-base-today"
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant={reissueBase === "last_approval" ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setReissueBase("last_approval")}
+                    data-testid="button-reissue-base-last-approval"
+                  >
+                    Last approval ({format(reissueLastApproved!, "d MMM yyyy")})
+                  </Button>
+                </div>
+                {reissuePreview && (
+                  <p className="text-sm text-muted-foreground">
+                    New renewal date: <strong>{format(reissuePreview, "d MMM yyyy")}</strong>
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Review note <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Textarea
+                placeholder="e.g. Annual review complete — no changes required"
+                value={reissueNote}
+                onChange={(e) => setReissueNote(e.target.value)}
+                rows={3}
+                data-testid="textarea-reissue-note"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReissueDialog(false)}>Cancel</Button>
+            <Button
+              onClick={() => reissueMutation.mutate({ renewalBase: showReissueBaseChoice ? reissueBase : "today", note: reissueNote || undefined })}
+              disabled={reissueMutation.isPending}
+              data-testid="button-confirm-reissue"
+            >
+              {reissueMutation.isPending ? "Re-issuing..." : "Re-issue Document"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
