@@ -3439,13 +3439,25 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     mutationFn: async (data: { renewalBase?: string; note?: string; renewalPeriodMonths?: number | null }) => {
       return apiRequest("POST", `/api/documents/${id}/reissue`, data);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
       queryClient.removeQueries({ queryKey: ["/api/dashboard", module] });
+      // Immediately sync the Renewal & Expiry edit state to match the chosen period
+      if ("renewalPeriodMonths" in variables) {
+        if (variables.renewalPeriodMonths != null) {
+          setEditComplianceMode("renewal");
+          setEditRenewalPeriodMonths(variables.renewalPeriodMonths);
+        } else {
+          setEditComplianceMode("none");
+          setEditRenewalPeriodMonths(null);
+        }
+        setEditExpiryDate("");
+        setComplianceDirty(false);
+      }
       setShowReissueDialog(false);
       setReissueNote("");
       setReissueBase("today");
