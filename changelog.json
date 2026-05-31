@@ -6439,6 +6439,13 @@
           "message": "Removed obsolete lastLogin/lastLoginAt type fields (replaced by lastSeenAt)",
           "category": "other",
           "createdAt": "2026-05-31T16:00:00.000Z"
+        },
+        {
+          "id": "a7c5e3f1-rename-required-to-mandatory-ui-2026",
+          "patch": 13,
+          "message": "Renamed \"Required\" to \"Mandatory\" across all compliance document labels",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T17:00:00.000Z"
         }
       ],
       "publishedPatch": 12,

@@ -2731,7 +2731,7 @@ export default function TemplateLibraryPage() {
               <p className="text-sm font-medium">Compliance Settings</p>
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
-                  <Label className="font-medium text-sm">Required Document</Label>
+                  <Label className="font-medium text-sm">Mandatory Document</Label>
                   <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
                 </div>
                 <Switch
@@ -3080,7 +3080,7 @@ export default function TemplateLibraryPage() {
               <p className="text-sm font-medium">Compliance Settings</p>
               <div className="flex items-center justify-between p-3 bg-background rounded-md border">
                 <div className="space-y-0.5">
-                  <Label htmlFor="edit-template-isRequired" className="font-medium text-sm">Required Document</Label>
+                  <Label htmlFor="edit-template-isRequired" className="font-medium text-sm">Mandatory Document</Label>
                   <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
                 </div>
                 <Switch

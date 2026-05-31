@@ -1217,7 +1217,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold">Required Documents</h3>
+          <h3 className="text-base font-semibold">Mandatory Documents</h3>
           <p className="text-sm text-muted-foreground">
             This list overrides the company-level requirements for this site. Adding a document here requires it only at this site; removing a company requirement excludes it from this site's compliance score only.
           </p>
@@ -1232,7 +1232,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
           <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
             <div className="px-6 pt-6 pb-4 shrink-0 border-b">
               <DialogHeader>
-                <DialogTitle>Manage Required Documents</DialogTitle>
+                <DialogTitle>Manage Mandatory Documents</DialogTitle>
                 <DialogDescription>
                   Tick to require a document at this site. Untick to remove an existing requirement. Changes apply to this site only.
                 </DialogDescription>
@@ -1320,7 +1320,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
           {effectiveRows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
-              <p className="text-sm font-medium text-muted-foreground">No required documents</p>
+              <p className="text-sm font-medium text-muted-foreground">No mandatory documents</p>
               <p className="text-xs text-muted-foreground mt-1">Add requirements above or configure them at the company level.</p>
             </div>
           ) : (
@@ -1739,7 +1739,7 @@ export default function SiteDetail() {
           </TabsTrigger>
           <TabsTrigger value="compliance" data-testid="tab-compliance">
             <FileText className="mr-2 h-4 w-4" />
-            Required Documents
+            Mandatory Documents
           </TabsTrigger>
         </TabsList>
 

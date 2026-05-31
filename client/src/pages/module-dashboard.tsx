@@ -436,9 +436,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   }, [docsDialogFilter, filteredModuleDocs]);
 
   const docsDialogMeta: Record<DocsDialogFilter, { title: string }> = {
-    req_compliant: { title: "Compliant (Required Documents)" },
-    req_non_compliant: { title: "Non Compliant (Required Documents)" },
-    req_overdue: { title: "Overdue (Required Documents)" },
+    req_compliant: { title: "Compliant (Mandatory Documents)" },
+    req_non_compliant: { title: "Non Compliant (Mandatory Documents)" },
+    req_overdue: { title: "Overdue (Mandatory Documents)" },
     total: { title: "All Documents" },
     all_compliant: { title: "All Compliant Documents" },
     all_review: { title: "Approval Required" },
@@ -845,7 +845,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                 {docsDialogFilter === "req_non_compliant" && missingRequiredDetails.length > 0 && (
                   <>
                     {expandedDocsDialogRows.length > 0 && (
-                      <p className="text-xs font-medium text-muted-foreground pt-2 pb-1 uppercase tracking-wide">Missing Required Documents</p>
+                      <p className="text-xs font-medium text-muted-foreground pt-2 pb-1 uppercase tracking-wide">Missing Mandatory Documents</p>
                     )}
                     {missingRequiredDetails.map((item, idx) => (
                       <div
@@ -880,7 +880,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileQuestion className="h-5 w-5 text-orange-500" />
-              Missing Required Documents ({missingRequiredDetails.length})
+              Missing Mandatory Documents ({missingRequiredDetails.length})
             </DialogTitle>
           </DialogHeader>
           {isMissingLoading ? (

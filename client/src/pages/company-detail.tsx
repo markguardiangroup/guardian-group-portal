@@ -909,7 +909,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-semibold">Required Documents</h3>
+          <h3 className="text-base font-semibold">Mandatory Documents</h3>
           <p className="text-sm text-muted-foreground">
             These documents will be required for compliance across every site in this company. Each document affects the compliance score for its site until it is uploaded. Individual sites can override this list to add or remove specific requirements.
           </p>
@@ -924,7 +924,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
           <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
             <div className="px-6 pt-6 pb-4 shrink-0 border-b">
               <DialogHeader>
-                <DialogTitle>Manage Required Documents</DialogTitle>
+                <DialogTitle>Manage Mandatory Documents</DialogTitle>
                 <DialogDescription>
                   Tick to require a document across all sites. Untick to remove an existing requirement. Changes take effect when you save.
                 </DialogDescription>
@@ -1022,7 +1022,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
           {requiredIds.size === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <FileText className="h-10 w-10 text-muted-foreground mb-3 opacity-50" />
-              <p className="text-sm font-medium text-muted-foreground">No required documents</p>
+              <p className="text-sm font-medium text-muted-foreground">No mandatory documents</p>
               <p className="text-xs text-muted-foreground mt-1">Add requirements using the button above.</p>
             </div>
           ) : (
@@ -2056,7 +2056,7 @@ export default function CompanyDetail() {
           {(isAdmin || user?.role === "consultant") && (
             <TabsTrigger value="required-documents" data-testid="tab-required-documents">
               <FileText className="mr-2 h-4 w-4" />
-              Required Documents
+              Mandatory Documents
             </TabsTrigger>
           )}
           {(isAdmin || user?.role === "consultant") && (

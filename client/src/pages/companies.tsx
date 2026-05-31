@@ -845,7 +845,7 @@ export default function Companies() {
       queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
-      toast({ title: "Required documents saved" });
+      toast({ title: "Mandatory documents saved" });
       setIsRequiredDocsOpen(false);
       setCreatedCompanyId(null);
       setSelectedRequiredIds(new Set());
@@ -2211,7 +2211,7 @@ export default function Companies() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Set Required Documents
+                Set Mandatory Documents
               </DialogTitle>
               <DialogDescription>
                 Select which documents are required for compliance at this company's sites.

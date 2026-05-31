@@ -141,7 +141,7 @@ function ComplianceGapsReport({ companyId, siteId }: { companyId: string; siteId
       <div className="flex items-center gap-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
         <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
         <p className="text-sm text-amber-800 dark:text-amber-300">
-          <span className="font-semibold">{totalMissing}</span> required {totalMissing === 1 ? "document" : "documents"} missing across <span className="font-semibold">{data.length}</span> {data.length === 1 ? "site" : "sites"}.
+          <span className="font-semibold">{totalMissing}</span> mandatory {totalMissing === 1 ? "document" : "documents"} missing across <span className="font-semibold">{data.length}</span> {data.length === 1 ? "site" : "sites"}.
         </p>
       </div>
       {data.map((site) => {
@@ -861,7 +861,7 @@ function PrivateTemplatesReport() {
                   <TableHead>Module</TableHead>
                   <TableHead>Folder</TableHead>
                   <TableHead>Source(s)</TableHead>
-                  <TableHead className="text-center w-[90px]">Required</TableHead>
+                  <TableHead className="text-center w-[90px]">Mandatory</TableHead>
                   <TableHead className="text-center w-[120px]">Req. Approval</TableHead>
                 </TableRow>
               </TableHeader>

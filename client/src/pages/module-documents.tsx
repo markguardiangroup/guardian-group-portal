@@ -1733,8 +1733,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const renderMissingRow = (slot: any) => {
                     const affectedSites = missingSiteCountByTemplate.get(slot.templateId) ?? 1;
                     const subtitle = urlScope === "group" && affectedSites > 1
-                      ? `Required — missing across ${affectedSites} site${affectedSites !== 1 ? "s" : ""}`
-                      : "Required — not yet uploaded";
+                      ? `Mandatory — missing across ${affectedSites} site${affectedSites !== 1 ? "s" : ""}`
+                      : "Mandatory — not yet uploaded";
                     const canUpload = isPrivilegedUser && urlScope !== "group";
                     return (
                       <div
@@ -1751,7 +1751,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                          <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory</Badge>
                           <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                         </div>
                       </div>
@@ -2067,7 +2067,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                             </div>
                                             <span className="font-medium text-sm">{childFolder.name}</span>
                                             {childFolder.isRequired && (
-                                              <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Required</Badge>
+                                              <Badge variant="outline" className={`text-xs ${moduleBorderColors[module]} ${moduleColors[module]}`}>Mandatory</Badge>
                                             )}
                                           </div>
                                           <div className="flex items-center gap-2">
@@ -2156,11 +2156,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                                 <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                                                 <div>
                                                   <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                                                  <p className="text-xs text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                                                 </div>
                                               </div>
                                               <div className="flex items-center gap-2">
-                                                <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                                <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory</Badge>
                                                 <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                                               </div>
                                             </div>
@@ -2280,11 +2280,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                                   <div>
                                     <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                                    <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                                    <p className="text-xs text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                                  <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory</Badge>
                                   <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                                 </div>
                               </div>
@@ -2412,11 +2412,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
                       <div>
                         <p className="font-medium text-sm text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                        <p className="text-xs text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required</Badge>
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory</Badge>
                       <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
                     </div>
                   </div>
@@ -2699,12 +2699,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div>
                           <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required — Missing</Badge>
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory — Missing</Badge>
                     </TableCell>
                     <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
                     <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
@@ -2740,12 +2740,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                         <div>
                           <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Required — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                          <p className="text-sm text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Required — Missing</Badge>
+                      <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory — Missing</Badge>
                     </TableCell>
                     <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
                     <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
@@ -3222,7 +3222,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     },
     onSuccess: () => {
       invalidateComplianceCaches();
-      toast({ title: "Compliance updated", description: "Required for compliance setting has been saved." });
+      toast({ title: "Compliance updated", description: "Mandatory for compliance setting has been saved." });
     },
     onError: (error: Error, _vars, context) => {
       if (context) setEditIsRequired(context.previous);
@@ -4027,15 +4027,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
                 {/* Section 1: Required for Compliance */}
                 <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Required for Compliance</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mandatory for Compliance</p>
                   {isRequiredTemplate ? (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
-                      <span className="text-sm text-muted-foreground">Required</span>
-                      <Badge variant="secondary" className="text-xs" data-testid="badge-required-template">Required (via template)</Badge>
+                      <span className="text-sm text-muted-foreground">Mandatory</span>
+                      <Badge variant="secondary" className="text-xs" data-testid="badge-mandatory-template">Mandatory (via template)</Badge>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
-                      <span className="text-sm text-muted-foreground">Required</span>
+                      <span className="text-sm text-muted-foreground">Mandatory</span>
                       <Switch
                         checked={editIsRequired}
                         disabled={isRequiredMutation.isPending}

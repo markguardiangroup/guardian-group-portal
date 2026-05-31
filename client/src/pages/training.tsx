@@ -680,7 +680,7 @@ export default function Training() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              <SelectItem value="required">Required</SelectItem>
+              <SelectItem value="required">Mandatory</SelectItem>
               <SelectItem value="recommended">Recommended</SelectItem>
             </SelectContent>
           </Select>
@@ -1175,7 +1175,7 @@ function FeaturedCourseCard({
                 {course.isRequired && (
                   <Badge className="bg-amber-500 text-white text-xs">
                     <Target className="h-3 w-3 mr-1" />
-                    Required
+                    Mandatory
                   </Badge>
                 )}
                 {course.productCode && (
@@ -1273,7 +1273,7 @@ function TrainingCard({
                   {course.isRequired ? (
                     <Badge className="bg-amber-500 text-white text-xs">
                       <Target className="h-3 w-3 mr-1" />
-                      Required
+                      Mandatory
                     </Badge>
                   ) : (
                     <Badge variant="secondary" className="text-xs">Recommended</Badge>
@@ -1389,7 +1389,7 @@ function CourseDetailView({
               {course.isRequired ? (
                 <Badge className="bg-amber-500 text-white">
                   <Target className="h-3 w-3 mr-1" />
-                  Required
+                  Mandatory
                   {course.renewalPeriodMonths && (
                     <span className="ml-1 opacity-75">
                       ({course.renewalPeriodMonths}mo renewal)

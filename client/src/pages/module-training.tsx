@@ -382,7 +382,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
                 <Target className="h-5 w-5 text-amber-500" />
                 <div>
                   <p className="text-lg font-bold">{requiredCount}</p>
-                  <p className="text-xs text-muted-foreground">Required</p>
+                  <p className="text-xs text-muted-foreground">Mandatory</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background/80 backdrop-blur border shadow-sm">
@@ -436,7 +436,7 @@ export default function ModuleTraining({ module }: ModuleTrainingProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Courses</SelectItem>
-              <SelectItem value="required">Required</SelectItem>
+              <SelectItem value="required">Mandatory</SelectItem>
               <SelectItem value="recommended">Recommended</SelectItem>
             </SelectContent>
           </Select>

@@ -27,7 +27,7 @@ export function ComplianceBadge({ isRequired, status, approvalStatus, renewalDat
   }
 
   if (isRequired) {
-    chips.push({ label: "Required", Icon: ShieldCheck, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", testId: "badge-required" });
+    chips.push({ label: "Mandatory", Icon: ShieldCheck, cls: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", testId: "badge-mandatory" });
   }
 
   if (isPastRenewal) {

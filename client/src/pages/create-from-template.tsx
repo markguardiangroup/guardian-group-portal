@@ -1439,7 +1439,7 @@ export default function CreateFromTemplate() {
               </div>
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1 flex-1">
-                  <p className="text-sm font-medium text-foreground">Required for Compliance</p>
+                  <p className="text-sm font-medium text-foreground">Mandatory for Compliance</p>
                   <p className="text-xs text-muted-foreground leading-snug">
                     {requiredTemplateIdSet.has(selectedTemplateId) || selectedTemplate?.isRequired
                       ? "This template is marked as required — the document will automatically count towards the compliance score for this site."

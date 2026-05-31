@@ -784,7 +784,7 @@ function DocumentsListView() {
                         {/* Template requirements */}
                         {folder.templateInfo && folder.templateInfo.length > 0 && (
                           <div className="mb-4 rounded-md border bg-muted/30 p-3">
-                            <h4 className="mb-2 text-sm font-medium">Required Documents</h4>
+                            <h4 className="mb-2 text-sm font-medium">Mandatory Documents</h4>
                             <div className="flex flex-wrap gap-2">
                               {folder.templateInfo.filter(t => t.isRequired).map((template) => (
                                 <Badge
@@ -797,7 +797,7 @@ function DocumentsListView() {
                                 </Badge>
                               ))}
                               {folder.templateInfo.filter(t => t.isRequired).length === 0 && (
-                                <span className="text-sm text-muted-foreground">No required documents for this folder</span>
+                                <span className="text-sm text-muted-foreground">No mandatory documents for this folder</span>
                               )}
                             </div>
                           </div>
@@ -879,7 +879,7 @@ function DocumentsListView() {
                                       <Folder className="h-4 w-4 text-muted-foreground" />
                                       <span className="font-medium">{child.name}</span>
                                       {child.isRequired && (
-                                        <Badge variant="outline" className="text-xs">Required</Badge>
+                                        <Badge variant="outline" className="text-xs">Mandatory</Badge>
                                       )}
                                     </div>
                                     <span className="text-xs text-muted-foreground">
@@ -1404,7 +1404,7 @@ function DocumentDetailView({ id }: { id: string }) {
     },
     onSuccess: () => {
       invalidateComplianceCaches();
-      toast({ title: "Compliance updated", description: "Required for compliance setting has been saved." });
+      toast({ title: "Compliance updated", description: "Mandatory for compliance setting has been saved." });
     },
     onError: (error: Error, _vars, context) => {
       if (context) setEditIsRequired(context.previous);
@@ -1709,20 +1709,20 @@ function DocumentDetailView({ id }: { id: string }) {
 
                 {/* Section 1: Required for Compliance */}
                 <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Required for Compliance</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Mandatory for Compliance</p>
                   {isRequiredTemplate ? (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
-                      <span className="text-sm text-muted-foreground">Required</span>
-                      <Badge variant="secondary" className="text-xs" data-testid="badge-required-template">Required (via template)</Badge>
+                      <span className="text-sm text-muted-foreground">Mandatory</span>
+                      <Badge variant="secondary" className="text-xs" data-testid="badge-mandatory-template">Mandatory (via template)</Badge>
                     </div>
                   ) : document?.isSharedLink ? (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
-                      <span className="text-sm text-muted-foreground">Required</span>
-                      <Badge variant="outline" className="text-xs" data-testid="badge-required-shared">{editIsRequired ? "Required" : "Not required"}</Badge>
+                      <span className="text-sm text-muted-foreground">Mandatory</span>
+                      <Badge variant="outline" className="text-xs" data-testid="badge-mandatory-shared">{editIsRequired ? "Mandatory" : "Not mandatory"}</Badge>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between px-1" data-testid="compliance-required-toggle">
-                      <span className="text-sm text-muted-foreground">Required</span>
+                      <span className="text-sm text-muted-foreground">Mandatory</span>
                       <Switch
                         checked={editIsRequired}
                         disabled={isRequiredMutation.isPending}

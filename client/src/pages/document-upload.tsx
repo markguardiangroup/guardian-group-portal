@@ -1314,7 +1314,7 @@ export default function DocumentUpload() {
                             <div className="flex items-start justify-between gap-4">
                               <div className="space-y-1 flex-1">
                                 <FormLabel className="text-sm font-medium text-foreground">
-                                  Required for Compliance
+                                  Mandatory for Compliance
                                 </FormLabel>
                                 <p className="text-xs text-muted-foreground leading-snug">
                                   Mark this document as required. If it is not compliant and up to date, it will count against the compliance score for this site.

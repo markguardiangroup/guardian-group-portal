@@ -148,7 +148,7 @@ function ModuleCard({ summary }: { summary: ModuleSummary }) {
               <FileQuestion className="h-4 w-4" />
               <span className="text-lg font-semibold"><CountUp value={summary.missingRequiredDocuments || 0} /></span>
             </div>
-            <p className="text-xs text-muted-foreground">Required Docs Missing</p>
+            <p className="text-xs text-muted-foreground">Mandatory Docs Missing</p>
           </div>
         </div>
 
