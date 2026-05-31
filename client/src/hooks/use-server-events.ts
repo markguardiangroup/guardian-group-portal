@@ -79,7 +79,14 @@ export function useServerEvents() {
       });
 
       es.addEventListener("site-updated", () => {
-        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+        // Predicate covers all site query key variants including filtered URLs
+        // e.g. ["/api/sites"], ["/api/sites", "pro", "my"], ["/api/sites?myAssigned=true"]
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const key = query.queryKey[0];
+            return typeof key === "string" && key.startsWith("/api/sites");
+          },
+        });
       });
 
       es.addEventListener("user-updated", () => {

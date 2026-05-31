@@ -16534,12 +16534,17 @@ export async function registerRoutes(
         siteId: folder.siteId,
       });
 
-      // Emit cloud-share-updated so folder-access users see new files in real time
+      // Emit cloud-share-updated so all folder-access users see new files in real time
       try {
         const folderAccess = await storage.getClientUploadFolderAccess(folderId);
         const csPayload = { folderId, uploadId: upload.id };
+        // Emit to explicitly granted users
         for (const access of folderAccess) {
           emitToUser(access.userId, "cloud-share-updated", csPayload);
+        }
+        // Also emit to the allocatedClientId who has implicit access without a grant row
+        if (folder.allocatedClientId) {
+          emitToUser(folder.allocatedClientId, "cloud-share-updated", csPayload);
         }
         emitToRole("admin", "cloud-share-updated", csPayload);
         emitToRole("consultant", "cloud-share-updated", csPayload);
