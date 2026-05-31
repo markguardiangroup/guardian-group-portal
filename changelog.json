@@ -6425,6 +6425,13 @@
           "message": "Offline users now show a grey dot on User Management",
           "category": "enhancement",
           "createdAt": "2026-05-31T15:42:00.000Z"
+        },
+        {
+          "id": "e5a3c9f4-last-seen-column-replaces-last-login-2026",
+          "patch": 13,
+          "message": "User Management: Last Login column replaced with Last Seen",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T15:46:00.000Z"
         }
       ],
       "publishedPatch": 12,

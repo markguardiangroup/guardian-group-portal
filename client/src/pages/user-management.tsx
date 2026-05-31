@@ -547,7 +547,7 @@ export default function UserManagement() {
 
   const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
 
-  const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastLogin">("username");
+  const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastSeen">("username");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const handleSortUsers = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -597,9 +597,9 @@ export default function UserManagement() {
       if (sA !== sB) return dir * (sA - sB);
       return a.username.toLowerCase().localeCompare(b.username.toLowerCase());
     }
-    if (sortBy === "lastLogin") {
-      const tA = a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0;
-      const tB = b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
+    if (sortBy === "lastSeen") {
+      const tA = a.lastSeenAt ? new Date(a.lastSeenAt).getTime() : 0;
+      const tB = b.lastSeenAt ? new Date(b.lastSeenAt).getTime() : 0;
       return dir * (tA - tB);
     }
     return 0;
@@ -1605,8 +1605,8 @@ export default function UserManagement() {
               <TableHead onClick={() => handleSortUsers("status")} className="cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortUsers("lastLogin")} className="w-32 cursor-pointer select-none whitespace-nowrap">
-                <div className="flex items-center gap-1">Last Login {sortBy === "lastLogin" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
+              <TableHead onClick={() => handleSortUsers("lastSeen")} className="w-32 cursor-pointer select-none whitespace-nowrap">
+                <div className="flex items-center gap-1">Last Seen {sortBy === "lastSeen" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
@@ -1848,9 +1848,9 @@ export default function UserManagement() {
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      const loginAt = u.lastLoginAt || u.lastLogin;
-                      if (!loginAt) return <span className="text-xs text-muted-foreground">Never</span>;
-                      const d = new Date(loginAt);
+                      const seenAt = u.lastSeenAt;
+                      if (!seenAt) return <span className="text-xs text-muted-foreground">Never</span>;
+                      const d = new Date(seenAt);
                       const diffMs = Date.now() - d.getTime();
                       const diffMins = Math.floor(diffMs / 60000);
                       const diffHours = Math.floor(diffMs / 3600000);
