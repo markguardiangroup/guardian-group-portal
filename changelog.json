@@ -6544,6 +6544,13 @@
           "message": "Help Guide: Pro Consultant guide includes Template Library, Training Library, and Bundle Builder sections",
           "category": "feature",
           "createdAt": "2026-05-31T19:30:00.000Z"
+        },
+        {
+          "id": "c5d6e7f8-a9b0-1234-cdef-234567890124",
+          "patch": 13,
+          "message": "Help Guide: admins can toggle between Client, Standard Consultant, and Pro Consultant views",
+          "category": "feature",
+          "createdAt": "2026-05-31T19:45:00.000Z"
         }
       ],
       "publishedPatch": 12,
