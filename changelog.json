@@ -6551,6 +6551,13 @@
           "message": "Help Guide: admins can toggle between Client, Standard Consultant, and Pro Consultant views",
           "category": "feature",
           "createdAt": "2026-05-31T19:45:00.000Z"
+        },
+        {
+          "id": "d6e7f8a9-b0c1-2345-def0-345678901235",
+          "patch": 13,
+          "message": "Help Guide: document statuses corrected to match what the app actually shows",
+          "category": "bug",
+          "createdAt": "2026-05-31T20:00:00.000Z"
         }
       ],
       "publishedPatch": 12,

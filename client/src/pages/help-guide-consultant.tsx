@@ -193,17 +193,16 @@ const sections: GuideSection[] = [
           <h4 className="font-semibold mb-3">Document statuses</h4>
           <div className="grid gap-2">
             {[
-              ["outline", "Pending", "Uploaded but awaiting sign-off or approval"],
-              ["bg-blue-500", "Client Signed Off", "Client has reviewed and signed — you to approve"],
-              ["bg-green-500", "Approved", "Fully approved and counted towards the compliance score"],
-              ["bg-red-500", "Rejected", "Returned for changes — a note explains why"],
-              ["secondary", "Archived", "Superseded by a newer version; kept for audit purposes"],
-            ].map(([variant, label, desc]) => (
+              ["bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20", "Awaiting Sign-Off", "Uploaded but the client hasn't reviewed or signed off yet"],
+              ["bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", "Awaiting Final Approval", "Client has signed off — awaiting your final approval"],
+              ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Compliant", "Document is current and counts towards the compliance score"],
+              ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Approved", "Fully approved and counts towards the compliance score"],
+              ["bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20", "Changes Requested", "Changes were requested; awaiting an updated document"],
+              ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Overdue", "Document has passed its renewal date"],
+              ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Rejected", "Document was not accepted — a note explains why"],
+            ].map(([badgeClass, label, desc]) => (
               <div key={label} className="flex items-center gap-3 p-2 rounded border">
-                <Badge
-                  variant={variant.startsWith("bg-") ? "default" : (variant as any)}
-                  className={variant.startsWith("bg-") ? variant : ""}
-                >
+                <Badge variant="outline" className={badgeClass}>
                   {label}
                 </Badge>
                 <span className="text-sm text-muted-foreground">{desc}</span>
@@ -253,7 +252,7 @@ const sections: GuideSection[] = [
               <div className="space-y-4 pt-2">
                 <StepList
                   steps={[
-                    "Open the document — it will show 'Client Signed Off' or 'Pending' (for client-uploaded docs)",
+                    "Open the document — it will show 'Awaiting Final Approval' or 'Awaiting Sign-Off' (for client-uploaded docs)",
                     "Review the file and any notes",
                     "Click 'Approve' to mark it as compliant — it now counts towards the site score",
                     "Or click 'Reject' and add a note explaining what needs to change",

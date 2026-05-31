@@ -143,17 +143,16 @@ const sections: GuideSection[] = [
           <h4 className="font-semibold mb-3">Document statuses</h4>
           <div className="grid gap-2">
             {[
-              ["outline", "Pending", "Uploaded but awaiting sign-off or approval"],
-              ["bg-blue-500", "Client Signed Off", "You've reviewed and signed — consultant to approve"],
-              ["bg-green-500", "Approved", "Fully approved and counted towards the compliance score"],
-              ["bg-red-500", "Rejected", "Returned for changes — a note will explain why"],
-              ["secondary", "Archived", "Superseded by a newer version; kept for audit purposes"],
-            ].map(([variant, label, desc]) => (
+              ["bg-slate-500/15 text-slate-700 dark:text-slate-400 border-slate-500/20", "Awaiting Sign-Off", "Uploaded by your consultant — needs your review and sign-off"],
+              ["bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20", "Awaiting Final Approval", "You've signed off — your consultant is giving final approval"],
+              ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Compliant", "Document is current and counts towards your compliance score"],
+              ["bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20", "Approved", "Fully approved and counts towards your compliance score"],
+              ["bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20", "Changes Requested", "Your consultant has asked for changes before approving"],
+              ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Overdue", "Document has passed its renewal date and needs attention"],
+              ["bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20", "Rejected", "Document was not accepted — a note will explain why"],
+            ].map(([badgeClass, label, desc]) => (
               <div key={label} className="flex items-center gap-3 p-2 rounded border">
-                <Badge
-                  variant={variant.startsWith("bg-") ? "default" : (variant as any)}
-                  className={variant.startsWith("bg-") ? variant : ""}
-                >
+                <Badge variant="outline" className={badgeClass}>
                   {label}
                 </Badge>
                 <span className="text-sm text-muted-foreground">{desc}</span>
@@ -168,14 +167,14 @@ const sections: GuideSection[] = [
           <h4 className="font-semibold mb-3">Reviewing and signing off a document</h4>
           <p className="text-sm text-muted-foreground mb-3">
             When your consultant uploads a document that needs your sign-off, you'll see it listed
-            under the relevant module with a <strong>Pending</strong> badge.
+            under the relevant module with an <strong>Awaiting Sign-Off</strong> badge.
           </p>
           <StepList
             steps={[
               "Open the document to read or download it",
               "Click 'Sign Off' once you're happy with the content",
               "Add an optional note if needed, then confirm",
-              "The document moves to 'Client Signed Off' and your consultant is notified to approve it",
+              "The document moves to 'Awaiting Final Approval' and your consultant is notified to give final approval",
             ]}
           />
           <div className="mt-4">
