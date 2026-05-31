@@ -69,6 +69,9 @@ const CreateFromTemplate = lazyPage(() => import("@/pages/create-from-template")
 const DevelopmentRoadmap = lazyPage(() => import("@/pages/development-roadmap"));
 const AdminFeedback = lazyPage(() => import("@/pages/admin-feedback"));
 const HelpGuide = lazyPage(() => import("@/pages/help-guide"));
+const HelpGuideClient = lazyPage(() => import("@/pages/help-guide-client"));
+const HelpGuideConsultant = lazyPage(() => import("@/pages/help-guide-consultant"));
+const HelpGuidePro = lazyPage(() => import("@/pages/help-guide-pro"));
 const HSIncidents = lazyPage(() => import("@/pages/hs-incidents"));
 const CalendarPage = lazyPage(() => import("@/pages/calendar"));
 const ClientUploads = lazyPage(() => import("@/pages/client-uploads"));
@@ -307,6 +310,9 @@ function Router() {
       <Route path="/roadmap">{() => <AccessGuard component={DevelopmentRoadmap} allow={NOT_CLIENT} />}</Route>
       <Route path="/feedback">{() => <AccessGuard component={AdminFeedback} allow={NOT_CLIENT} />}</Route>
       <Route path="/help" component={HelpGuide} />
+      <Route path="/help/client" component={HelpGuideClient} />
+      <Route path="/help/consultant" component={HelpGuideConsultant} />
+      <Route path="/help/pro-consultant" component={HelpGuidePro} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/toolkit">{() => <ModuleGuard module="toolkit"><ToolkitDashboard /></ModuleGuard>}</Route>
       <Route path="/toolkit/browse">{() => <ModuleGuard module="toolkit"><ToolkitBrowse /></ModuleGuard>}</Route>
@@ -423,6 +429,10 @@ function RoutePrefetcher({
       Support.preload();
       CalendarPage.preload();
       Dashboard2.preload();
+      HelpGuide.preload();
+      if (role === "client") HelpGuideClient.preload();
+      else if (isAdmin || (isConsultant && hasConsultantPerm("templateLibrary")) || (isConsultant && hasConsultantPerm("trainingLibrary"))) HelpGuidePro.preload();
+      else HelpGuideConsultant.preload();
 
       // Module-gated pages — only fetch chunks for modules the user can access.
       if (canAccess("health_safety")) {

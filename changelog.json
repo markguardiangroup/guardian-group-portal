@@ -6523,6 +6523,27 @@
           "message": "Help Guide: 'User roles at a glance' section hidden for client users",
           "category": "enhancement",
           "createdAt": "2026-05-31T19:05:00.000Z"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-fabc-901234567891",
+          "patch": 13,
+          "message": "Help Guide split into three role-specific guides: Client, Standard Consultant, Pro Consultant",
+          "category": "feature",
+          "createdAt": "2026-05-31T19:30:00.000Z"
+        },
+        {
+          "id": "a3b4c5d6-e7f8-9012-abcd-012345678902",
+          "patch": 13,
+          "message": "Help Guide: new 'Managing Companies & Sites' section added for consultants",
+          "category": "feature",
+          "createdAt": "2026-05-31T19:30:00.000Z"
+        },
+        {
+          "id": "b4c5d6e7-f8a9-0123-bcde-123456789013",
+          "patch": 13,
+          "message": "Help Guide: Pro Consultant guide includes Template Library, Training Library, and Bundle Builder sections",
+          "category": "feature",
+          "createdAt": "2026-05-31T19:30:00.000Z"
         }
       ],
       "publishedPatch": 12,
