@@ -1500,10 +1500,10 @@ export async function registerRoutes(
     // Confirm connection
     res.write(`event: connected\ndata: {"userId":"${userId}"}\n\n`);
 
-    // Heartbeat every 25 seconds to keep the connection alive
+    // Heartbeat every 15 seconds to keep the connection alive through proxies
     const heartbeat = setInterval(() => {
       try { res.write(":ping\n\n"); } catch { clearInterval(heartbeat); }
-    }, 25_000);
+    }, 15_000);
 
     req.on("close", () => {
       clearInterval(heartbeat);

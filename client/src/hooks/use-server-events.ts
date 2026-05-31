@@ -23,6 +23,8 @@ export function useServerEvents() {
 
       es.addEventListener("connected", () => {
         backoffMs = 1_000;
+        // Refresh online presence immediately on (re)connect
+        queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
       });
 
       es.addEventListener("session-revoked", () => {

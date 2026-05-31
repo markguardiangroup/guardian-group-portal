@@ -6411,6 +6411,13 @@
           "message": "Real-time updates: user list refreshes when an existing user is edited",
           "category": "enhancement",
           "createdAt": "2026-05-31T15:02:00.529Z"
+        },
+        {
+          "id": "c3e1a7d2-sse-online-dot-vite-catchall-fix-2026",
+          "patch": 13,
+          "message": "Fixed: online presence dot and Last Seen now work on User Management",
+          "category": "bug",
+          "createdAt": "2026-05-31T15:38:00.000Z"
         }
       ],
       "publishedPatch": 12,
