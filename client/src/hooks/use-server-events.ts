@@ -51,6 +51,65 @@ export function useServerEvents() {
         }
       });
 
+      es.addEventListener("document-uploaded", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.siteId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
+          }
+          queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+        }
+      });
+
+      es.addEventListener("support-request-created", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      });
+
+      es.addEventListener("support-request-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/support-requests/counts"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/support-requests"] });
+      });
+
+      es.addEventListener("company-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      });
+
+      es.addEventListener("site-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      });
+
+      es.addEventListener("user-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      });
+
+      es.addEventListener("case-updated", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
+      });
+
+      es.addEventListener("incident-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.siteId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/incidents", data.siteId] });
+          }
+        } catch { /* ignore */ }
+        queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
+      });
+
+      es.addEventListener("cloud-share-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.folderId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders", data.folderId, "files"] });
+          }
+        } catch { /* ignore */ }
+        queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders"] });
+      });
+
       es.onerror = () => {
         es.close();
         esRef.current = null;

@@ -4050,6 +4050,14 @@ export async function registerRoutes(
         }
       }
 
+      // Emit document-uploaded so all relevant users see new documents in real time
+      try {
+        const uploadPayload = { documentId: document.id, siteId: document.siteId };
+        if (document.entityId) emitToCompany(document.entityId, "document-uploaded", uploadPayload);
+        emitToRole("admin", "document-uploaded", uploadPayload);
+        emitToRole("consultant", "document-uploaded", uploadPayload);
+      } catch { /* non-fatal */ }
+
       res.status(201).json(document);
     } catch (error) {
       console.error("Create document error:", error);
@@ -8077,6 +8085,12 @@ export async function registerRoutes(
         contactEmail: site.contactEmail || null,
       });
       
+      // Emit company-updated so admins/consultants see new companies in real time
+      try {
+        emitToRole("admin", "company-updated", { companyId: company.id });
+        emitToRole("consultant", "company-updated", { companyId: company.id });
+      } catch { /* non-fatal */ }
+
       res.status(201).json(company);
     } catch (error) {
       console.error("Create company error:", error);
@@ -8282,6 +8296,12 @@ export async function registerRoutes(
         }
       }
       
+      // Emit company-updated so admins/consultants see company changes in real time
+      try {
+        emitToRole("admin", "company-updated", { companyId: req.params.id });
+        emitToRole("consultant", "company-updated", { companyId: req.params.id });
+      } catch { /* non-fatal */ }
+
       res.json(company);
     } catch (error) {
       console.error("Update company error:", error);
@@ -8894,6 +8914,12 @@ export async function registerRoutes(
         await storage.autoShareCompanyDocumentsToSite(companyId, entity.id);
       }
 
+      // Emit site-updated so admins/consultants see new sites in real time
+      try {
+        emitToRole("admin", "site-updated", { siteId: entity.id, companyId });
+        emitToRole("consultant", "site-updated", { siteId: entity.id, companyId });
+      } catch { /* non-fatal */ }
+
       res.status(201).json(entity);
     } catch (error) {
       console.error("Create entity error:", error);
@@ -8938,6 +8964,12 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Entity not found" });
       }
       
+      // Emit site-updated so admins/consultants see site changes in real time
+      try {
+        emitToRole("admin", "site-updated", { siteId: req.params.siteId });
+        emitToRole("consultant", "site-updated", { siteId: req.params.siteId });
+      } catch { /* non-fatal */ }
+
       res.json(entity);
     } catch (error) {
       console.error("Update entity error:", error);
@@ -9205,6 +9237,12 @@ export async function registerRoutes(
         metadata: null,
       });
 
+      // Emit support-request-created so admins/consultants see new requests instantly
+      try {
+        emitToRole("admin", "support-request-created", { requestId: request.id });
+        emitToRole("consultant", "support-request-created", { requestId: request.id });
+      } catch { /* non-fatal */ }
+
       res.status(201).json(request);
     } catch (error) {
       console.error("Create support request error:", error);
@@ -9275,6 +9313,12 @@ export async function registerRoutes(
         details: body.response || `Updated support request status to ${body.status}`,
         metadata: null,
       });
+
+      // Emit support-request-updated so badge counts and lists refresh in real time
+      try {
+        emitToRole("admin", "support-request-updated", { requestId: req.params.id });
+        emitToRole("consultant", "support-request-updated", { requestId: req.params.id });
+      } catch { /* non-fatal */ }
 
       res.json(updated);
     } catch (error) {
@@ -10617,6 +10661,12 @@ export async function registerRoutes(
         details: `Case ${caseData.caseReference} created for ${caseData.employeeName}`,
       });
 
+      // Emit case-updated so admins/consultants see new cases in real time
+      try {
+        emitToRole("admin", "case-updated", { caseId: caseData.id });
+        emitToRole("consultant", "case-updated", { caseId: caseData.id });
+      } catch { /* non-fatal */ }
+
       res.status(201).json(caseData);
     } catch (error) {
       console.error("Create case error:", error);
@@ -10690,6 +10740,12 @@ export async function registerRoutes(
           details: `Case access list updated`,
         });
       }
+
+      // Emit case-updated so admins/consultants see case changes in real time
+      try {
+        emitToRole("admin", "case-updated", { caseId: req.params.id });
+        emitToRole("consultant", "case-updated", { caseId: req.params.id });
+      } catch { /* non-fatal */ }
 
       res.json(updatedCase);
     } catch (error) {
@@ -13020,6 +13076,12 @@ export async function registerRoutes(
       });
       
       const { password: _, ...safeUser } = newUser;
+
+      // Emit user-updated so admins/consultants see new users in real time
+      try {
+        emitToRole("admin", "user-updated", { userId: newUser.id });
+        emitToRole("consultant", "user-updated", { userId: newUser.id });
+      } catch { /* non-fatal */ }
 
       // For client users, don't generate invite yet - they need site assignment or primary contact status first
       if (userRole === "client") {
@@ -15428,6 +15490,14 @@ export async function registerRoutes(
         });
       }
 
+      // Emit incident-updated so relevant users see new incidents in real time
+      try {
+        const incPayload = { incidentId: incident.id, siteId: incident.siteId };
+        emitToCompany(incident.entityId, "incident-updated", incPayload);
+        emitToRole("admin", "incident-updated", incPayload);
+        emitToRole("consultant", "incident-updated", incPayload);
+      } catch { /* non-fatal */ }
+
       res.status(201).json({ ...incident, notifiedConsultants });
     } catch (error) {
       console.error("Error creating incident:", error);
@@ -15496,6 +15566,14 @@ export async function registerRoutes(
           : `Details updated on ${existing.incidentReference}`,
         incidentId: id,
       } as any);
+
+      // Emit incident-updated so relevant users see incident changes in real time
+      try {
+        const incUpdatePayload = { incidentId: id, siteId: existing.siteId };
+        emitToCompany(existing.entityId, "incident-updated", incUpdatePayload);
+        emitToRole("admin", "incident-updated", incUpdatePayload);
+        emitToRole("consultant", "incident-updated", incUpdatePayload);
+      } catch { /* non-fatal */ }
 
       res.json(incident);
     } catch (error) {
@@ -16443,6 +16521,17 @@ export async function registerRoutes(
         details: `Uploaded file "${fileName}" to folder "${folder.name}"`,
         siteId: folder.siteId,
       });
+
+      // Emit cloud-share-updated so folder-access users see new files in real time
+      try {
+        const folderAccess = await storage.getClientUploadFolderAccess(folderId);
+        const csPayload = { folderId, uploadId: upload.id };
+        for (const access of folderAccess) {
+          emitToUser(access.userId, "cloud-share-updated", csPayload);
+        }
+        emitToRole("admin", "cloud-share-updated", csPayload);
+        emitToRole("consultant", "cloud-share-updated", csPayload);
+      } catch { /* non-fatal */ }
 
       res.status(201).json(upload);
     } catch (error) {

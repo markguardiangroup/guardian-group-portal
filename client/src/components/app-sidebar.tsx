@@ -454,10 +454,10 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
 
   // Fetch support request counts for notification badge
+  // Badge is kept fresh via SSE 'support-request-created' / 'support-request-updated' events
   const { data: supportCounts } = useQuery<{ openCount: number }>({
     queryKey: ["/api/support-requests/counts"],
-    staleTime: 30000, // Refresh every 30 seconds
-    refetchInterval: 60000, // Auto-refresh every minute
+    staleTime: 30000,
   });
   const openSupportCount = supportCounts?.openCount || 0;
 

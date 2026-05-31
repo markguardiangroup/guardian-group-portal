@@ -6355,6 +6355,55 @@
           "message": "Removed: Active Users Now report card (replaced by live presence in User Management)",
           "category": "other",
           "createdAt": "2026-05-31T14:46:15.614Z"
+        },
+        {
+          "id": "81cdbe8e-b8e1-4095-bf84-260610f3573e",
+          "patch": 13,
+          "message": "Real-time updates: new documents appear instantly for all relevant users",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.867Z"
+        },
+        {
+          "id": "83140f29-f7a7-4455-bcf3-acb22cb2cad2",
+          "patch": 13,
+          "message": "Real-time updates: support request badge updates live without polling",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.868Z"
+        },
+        {
+          "id": "544f7af7-f0f3-49be-86ab-41b5bdf20326",
+          "patch": 13,
+          "message": "Real-time updates: new companies and sites appear instantly for admins",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.868Z"
+        },
+        {
+          "id": "78391bd0-2563-4825-b84b-7291f71e47ce",
+          "patch": 13,
+          "message": "Real-time updates: new users appear instantly for admins and consultants",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.868Z"
+        },
+        {
+          "id": "05393364-fc09-4853-9af4-f5e6d50b77cb",
+          "patch": 13,
+          "message": "Real-time updates: EL cases refresh live on create or update",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.868Z"
+        },
+        {
+          "id": "420795e2-4adb-4695-9901-6366199802e9",
+          "patch": 13,
+          "message": "Real-time updates: incidents refresh live on create or update",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.868Z"
+        },
+        {
+          "id": "2a1d28c6-af88-4697-89ee-e29b0fb795f3",
+          "patch": 13,
+          "message": "Real-time updates: Cloud Share uploads appear instantly for folder users",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T14:59:27.868Z"
         }
       ],
       "publishedPatch": 12,
