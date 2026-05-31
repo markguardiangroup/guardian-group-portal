@@ -34,6 +34,10 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/user/module-access"] });
       });
 
+      es.addEventListener("presence-changed", () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
+      });
+
       es.addEventListener("document-updated", (e) => {
         try {
           const data = JSON.parse(e.data);

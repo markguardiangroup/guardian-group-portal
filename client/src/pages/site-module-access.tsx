@@ -3,6 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -48,6 +58,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails, SiteModuleAccess, ModuleType, ModuleAccessStatus } from "@shared/schema";
+import { AlertTriangle } from "lucide-react";
 
 const modules: { module: ModuleType; name: string; shortName: string; icon: typeof HardHat; color: string; bgColor: string }[] = [
   { 
@@ -141,6 +152,8 @@ function StatusDropdown({
   );
 }
 
+type PendingChange = { siteId: string; siteName: string; module: ModuleType; status: ModuleAccessStatus };
+
 export default function SiteModuleAccess() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -149,10 +162,18 @@ export default function SiteModuleAccess() {
   const [filterModule, setFilterModule] = useState<ModuleType | "all">("all");
   const [filterStatus, setFilterStatus] = useState<ModuleAccessStatus | "all">("all");
   const [selectedSites, setSelectedSites] = useState<Set<string>>(new Set());
+  const [pendingChange, setPendingChange] = useState<PendingChange | null>(null);
 
   const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
     queryKey: ["/api/sites"],
   });
+
+  const { data: onlineData } = useQuery<{ userIds: string[] }>({
+    queryKey: ["/api/users/online"],
+    refetchInterval: 30_000,
+    staleTime: 20_000,
+  });
+  const onlineCount = onlineData?.userIds?.length ?? 0;
 
   const updateAccessMutation = useMutation({
     mutationFn: async ({ siteId, module, status }: { 
@@ -393,7 +414,11 @@ export default function SiteModuleAccess() {
                   isSelected={selectedSites.has(entity.id)}
                   onToggleSelect={() => toggleSelectSite(entity.id)}
                   onUpdateAccess={(module, status) => {
-                    updateAccessMutation.mutate({ siteId: entity.id, module, status });
+                    if (status !== "active" && onlineCount > 0) {
+                      setPendingChange({ siteId: entity.id, siteName: entity.name, module, status });
+                    } else {
+                      updateAccessMutation.mutate({ siteId: entity.id, module, status });
+                    }
                   }}
                   isUpdating={updateAccessMutation.isPending}
                 />
@@ -436,6 +461,47 @@ export default function SiteModuleAccess() {
         </div>
       )}
       </div>
+
+      {/* Confirmation dialog for module access changes when users are online */}
+      <AlertDialog open={!!pendingChange} onOpenChange={(open) => { if (!open) setPendingChange(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Module Access?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>
+                  Set <strong>{modules.find(m => m.module === pendingChange?.module)?.name}</strong> to{" "}
+                  <strong>{pendingChange?.status}</strong> for <strong>{pendingChange?.siteName}</strong>?
+                </p>
+                {onlineCount > 0 && (
+                  <p className="flex items-start gap-2 mt-3 text-amber-600 dark:text-amber-400 font-medium">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    {onlineCount} user{onlineCount !== 1 ? "s are" : " is"} currently online and will see this change immediately.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-module-change">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-module-change"
+              onClick={() => {
+                if (pendingChange) {
+                  updateAccessMutation.mutate({
+                    siteId: pendingChange.siteId,
+                    module: pendingChange.module,
+                    status: pendingChange.status,
+                  });
+                  setPendingChange(null);
+                }
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

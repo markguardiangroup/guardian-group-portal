@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { formatDistanceToNow } from "date-fns";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { CreateClientUserDialog } from "@/components/create-client-user-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1655,6 +1656,11 @@ export default function UserManagement() {
                         <p className="font-medium underline-offset-2 hover:underline">{u.fullName}</p>
                         <p className="text-xs text-muted-foreground">{u.email}</p>
                         <p className="text-xs text-muted-foreground">{u.username}</p>
+                        {!onlineUserIds.has(u.id) && u.lastSeenAt && (
+                          <p className="text-xs text-muted-foreground/70" data-testid={`text-last-seen-${u.id}`}>
+                            Last seen {formatDistanceToNow(new Date(u.lastSeenAt), { addSuffix: true })}
+                          </p>
+                        )}
                       </div>
                     </button>
                   </TableCell>

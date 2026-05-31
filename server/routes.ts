@@ -34,7 +34,7 @@ import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient 
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
-import { addClient, removeClient, emitToUser, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
+import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
 
 const execAsync = promisify(exec);
 
@@ -1492,8 +1492,10 @@ export async function registerRoutes(
     const client = { userId, role: user.role, companyId: user.companyId ?? null, res };
     addClient(client);
 
-    // Record when the user connected
+    // Record when the user connected and notify presence watchers
     storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
+    emitToRole("admin", "presence-changed", { userId, online: true });
+    emitToRole("consultant", "presence-changed", { userId, online: true });
 
     // Confirm connection
     res.write(`event: connected\ndata: {"userId":"${userId}"}\n\n`);
@@ -1506,8 +1508,10 @@ export async function registerRoutes(
     req.on("close", () => {
       clearInterval(heartbeat);
       removeClient(client);
-      // Record when the user disconnected (last seen)
+      // Record when the user disconnected and notify presence watchers
       storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
+      emitToRole("admin", "presence-changed", { userId, online: false });
+      emitToRole("consultant", "presence-changed", { userId, online: false });
     });
   });
 
@@ -4554,14 +4558,18 @@ export async function registerRoutes(
         }
       }
 
-      // Emit document-updated so clients can refresh document lists/compliance
+      // Emit document-updated to the site's company, admins, and consultants only
       try {
-        emitToAll("document-updated", {
+        const payload = {
           documentId: document.id,
           siteId: document.siteId,
           entityId: document.entityId,
           approvalStatus: document.approvalStatus,
-        });
+        };
+        const docSite = await storage.getSite(document.siteId).catch(() => null);
+        if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        emitToRole("admin", "document-updated", payload);
+        emitToRole("consultant", "document-updated", payload);
       } catch { /* non-fatal */ }
 
       res.json(document);
