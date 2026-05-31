@@ -140,11 +140,12 @@ export const users = pgTable("users", {
   sources: text("sources").array(),
   status: text("status").$type<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked">().notNull().default("invited"),
   lastLoginAt: timestamp("last_login_at"),
+  lastSeenAt: timestamp("last_seen_at"),
   legalAcceptedAt: timestamp("legal_accepted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true, legalAcceptedAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true, lastSeenAt: true, legalAcceptedAt: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 

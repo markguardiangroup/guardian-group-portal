@@ -388,6 +388,13 @@ process.on("uncaughtException", (err) => {
     console.error("Startup required-doc status fix warning (non-fatal):", err);
   }
 
+  // Add last_seen_at column to users table (SSE presence tracking)
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at timestamptz`);
+  } catch (err) {
+    console.error("Startup last_seen_at migration warning (non-fatal):", err);
+  }
+
   // Run expired folder/file cleanup on startup and then daily at 03:00 UK time
   async function runExpiredFolderCleanup() {
     try {

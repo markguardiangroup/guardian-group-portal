@@ -34,6 +34,7 @@ import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient 
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
+import { addClient, removeClient, emitToUser, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
 
 const execAsync = promisify(exec);
 
@@ -1466,6 +1467,58 @@ export async function registerRoutes(
   app.use("/api/support", requireAuth);
   app.use("/api/audit", requireAuth);
   app.use("/api/modules", requireAuth);
+
+  // ==================== SERVER-SENT EVENTS (SSE) ====================
+
+  // GET /api/events — persistent SSE stream for real-time updates
+  app.get("/api/events", requireAuth, async (req: any, res) => {
+    const userId = req.session?.userId;
+    if (!userId) return res.status(401).end();
+
+    let user: Awaited<ReturnType<typeof storage.getUser>>;
+    try {
+      user = await storage.getUser(userId);
+    } catch {
+      return res.status(500).end();
+    }
+    if (!user) return res.status(401).end();
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    const client = { userId, role: user.role, companyId: user.companyId ?? null, res };
+    addClient(client);
+
+    // Record when the user connected
+    storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
+
+    // Confirm connection
+    res.write(`event: connected\ndata: {"userId":"${userId}"}\n\n`);
+
+    // Heartbeat every 25 seconds to keep the connection alive
+    const heartbeat = setInterval(() => {
+      try { res.write(":ping\n\n"); } catch { clearInterval(heartbeat); }
+    }, 25_000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      removeClient(client);
+      // Record when the user disconnected (last seen)
+      storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
+    });
+  });
+
+  // GET /api/users/online — returns IDs of users with an active SSE connection
+  app.get("/api/users/online", requireAuth, async (req: any, res) => {
+    const caller = await storage.getUser(req.session?.userId);
+    if (!caller || (caller.role !== "admin" && caller.role !== "consultant")) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+    res.json({ userIds: getOnlineUserIds() });
+  });
 
   // ==================== AUTHENTICATED INVITATION ENDPOINTS ====================
 
@@ -4500,6 +4553,16 @@ export async function registerRoutes(
           console.error("Failed to send document approved notifications:", err);
         }
       }
+
+      // Emit document-updated so clients can refresh document lists/compliance
+      try {
+        emitToAll("document-updated", {
+          documentId: document.id,
+          siteId: document.siteId,
+          entityId: document.entityId,
+          approvalStatus: document.approvalStatus,
+        });
+      } catch { /* non-fatal */ }
 
       res.json(document);
     } catch (error) {
@@ -11764,6 +11827,14 @@ export async function registerRoutes(
         notes
       );
       
+      // Emit module-access-changed to all users assigned to this site
+      try {
+        const siteUsers = await storage.getUsersBySite(req.params.siteId);
+        for (const u of siteUsers) {
+          emitToUser(u.id, "module-access-changed", { siteId: req.params.siteId, module, status });
+        }
+      } catch { /* non-fatal */ }
+
       res.status(201).json(access);
     } catch (error) {
       console.error("Set entity module access error:", error);
@@ -11851,6 +11922,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Company not found" });
       }
       
+      // Emit module-access-changed to all users in this company
+      try {
+        emitToCompany(req.params.companyId, "module-access-changed", { companyId: req.params.companyId });
+      } catch { /* non-fatal */ }
+
       res.json({
         healthSafety: company.healthSafetyAccess,
         humanResources: company.humanResourcesAccess,
@@ -14080,6 +14156,13 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
       
+      // If account was deactivated or locked, revoke their active SSE session
+      if (status === "inactive" || status === "locked") {
+        try {
+          emitToUser(req.params.id, "session-revoked", { reason: "account_deactivated" });
+        } catch { /* non-fatal */ }
+      }
+
       // Remove password from response
       const { password, ...safeUser } = updated;
       res.json(safeUser);
@@ -17588,83 +17671,7 @@ export async function registerRoutes(
     }
   });
 
-  /**
-   * GET /api/admin/active-users
-   * Returns users that currently have an unexpired session in the session
-   * store. This is the simple session-store version (not a per-request
-   * heartbeat), so it counts anyone whose browser still holds a valid
-   * session cookie even if the tab is idle. Admin only.
-   */
-  app.get("/api/admin/active-users", requireAuth, async (req: any, res) => {
-    try {
-      const callerId = req.session?.userId;
-      const caller = callerId ? await storage.getUser(callerId) : null;
-      if (!caller || caller.role !== "admin") {
-        return res.status(403).json({ error: "Forbidden" });
-      }
-
-      const sessRows = await pool.query<{
-        user_id: string;
-        session_count: string;
-        latest_expire: Date;
-      }>(
-        `SELECT
-           sess::json->>'userId' AS user_id,
-           COUNT(*)::int AS session_count,
-           MAX(expire) AS latest_expire
-         FROM session
-         WHERE expire > NOW()
-           AND sess::json->>'userId' IS NOT NULL
-         GROUP BY sess::json->>'userId'
-         ORDER BY MAX(expire) DESC`
-      );
-
-      const userIds = sessRows.rows.map((r) => r.user_id).filter(Boolean);
-
-      const [users, auditRows] = await Promise.all([
-        Promise.all(userIds.map((id) => storage.getUser(id))),
-        userIds.length > 0
-          ? pool.query<{ user_id: string; last_action_at: Date }>(
-              `SELECT user_id, MAX(created_at) AS last_action_at
-               FROM audit_logs
-               WHERE user_id = ANY($1)
-               GROUP BY user_id`,
-              [userIds]
-            )
-          : Promise.resolve({ rows: [] as { user_id: string; last_action_at: Date }[] }),
-      ]);
-
-      const userById = new Map(users.filter((u): u is NonNullable<typeof u> => !!u).map((u) => [u.id, u]));
-      const lastActionById = new Map(auditRows.rows.map((r) => [r.user_id, r.last_action_at]));
-
-      const activeUsers = sessRows.rows
-        .map((r) => {
-          const u = userById.get(r.user_id);
-          if (!u) return null;
-          const lastAction = lastActionById.get(r.user_id);
-          return {
-            id: u.id,
-            name: u.name ?? null,
-            email: u.email ?? null,
-            role: u.role ?? null,
-            companyId: u.companyId ?? null,
-            sessionCount: Number(r.session_count),
-            sessionExpiresAt: new Date(r.latest_expire).toISOString(),
-            lastActionAt: lastAction ? new Date(lastAction).toISOString() : null,
-          };
-        })
-        .filter((x): x is NonNullable<typeof x> => x !== null);
-
-      res.json({
-        count: activeUsers.length,
-        generatedAt: new Date().toISOString(),
-        activeUsers,
-      });
-    } catch (err) {
-      console.error("Active users report error:", err);
-      res.status(500).json({ error: "Failed to fetch active users" });
-    }
-  });
+  // /api/admin/active-users removed — replaced by SSE-based presence (/api/users/online)
 
   app.post("/api/changelog/bump-after-publish", requireAuth, async (req, res) => {
     try {

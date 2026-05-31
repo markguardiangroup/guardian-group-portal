@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useServerEvents } from "@/hooks/use-server-events";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import type { ModuleType } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -738,6 +739,11 @@ function SidebarExpandHint() {
   );
 }
 
+function SseConnector() {
+  useServerEvents();
+  return null;
+}
+
 function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [splashFading, setSplashFading] = useState(false);
@@ -819,6 +825,7 @@ function AuthenticatedApp() {
               role={user!.role}
               consultantPermissions={user!.consultantPermissions}
             />
+            <SseConnector />
             <SidebarProvider defaultOpen={false} style={sidebarStyle as React.CSSProperties}>
               <div className="flex h-screen w-full">
                 <AppSidebar user={user} />

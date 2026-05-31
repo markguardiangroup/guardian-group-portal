@@ -136,6 +136,8 @@ interface UserWithAssignments {
   mobile?: string | null;
   preferredContactMethod?: "email" | "phone" | "mobile" | null;
   notes?: string | null;
+  // Presence
+  lastSeenAt?: string | null;
 }
 
 interface SiteBasic {
@@ -203,6 +205,7 @@ export default function UserManagement() {
     return params.get("staffFilter") === "my_staff" ? "my_staff" : "all";
   });
   const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
+  const [onlineFilter, setOnlineFilter] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
@@ -347,6 +350,15 @@ export default function UserManagement() {
   useEffect(() => {
     if (!isLoadingUsers && allUsers.length > 0) _usersShown = true;
   }, [isLoadingUsers, allUsers.length]);
+
+  const { data: onlineData } = useQuery<{ userIds: string[] }>({
+    queryKey: ["/api/users/online"],
+    enabled: isAdmin || isConsultant,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    staleTime: 20_000,
+  });
+  const onlineUserIds = useMemo(() => new Set(onlineData?.userIds ?? []), [onlineData]);
 
   const { data: consultantsWithAssignments = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants"],
@@ -560,7 +572,8 @@ export default function UserManagement() {
       userTypeTab !== "client" ||
       !staffScopeSet ||
       (u.siteAssignments || []).some(a => staffScopeSet.has(a.siteId));
-    return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany && matchesStaffScope;
+    const matchesOnline = !onlineFilter || onlineUserIds.has(u.id);
+    return matchesTab && matchesSearch && matchesRole && matchesStatus && matchesCompany && matchesStaffScope && matchesOnline;
   }).sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     if (sortBy === "username") return dir * a.username.toLowerCase().localeCompare(b.username.toLowerCase());
@@ -1547,6 +1560,17 @@ export default function UserManagement() {
           </Select>
         )}
         <Button
+          variant={onlineFilter ? "default" : "outline"}
+          size="sm"
+          onClick={() => { setOnlineFilter(v => !v); setPage(1); }}
+          title="Show only online users"
+          data-testid="button-online-filter"
+          className="shrink-0 gap-1.5"
+        >
+          <span className={`inline-block h-2 w-2 rounded-full ${onlineFilter ? "bg-green-300" : "bg-green-500"}`} />
+          Online Now
+        </Button>
+        <Button
           variant="outline"
           size="icon"
           onClick={handleRefresh}
@@ -1617,8 +1641,15 @@ export default function UserManagement() {
                       onClick={() => setViewingUser(u)}
                       data-testid={`button-view-name-${u.id}`}
                     >
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
+                      <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
                         {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        {onlineUserIds.has(u.id) && (
+                          <span
+                            className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
+                            title="Online now"
+                            data-testid={`dot-online-${u.id}`}
+                          />
+                        )}
                       </div>
                       <div>
                         <p className="font-medium underline-offset-2 hover:underline">{u.fullName}</p>
@@ -3822,6 +3853,12 @@ export default function UserManagement() {
                   <span className="block mt-2 text-foreground">
                     This will prevent them from logging in and accessing the portal.
                   </span>
+                  {statusConfirm?.user.id && onlineUserIds.has(statusConfirm.user.id) && (
+                    <span className="flex items-center gap-1.5 mt-2 text-amber-600 dark:text-amber-400 font-medium">
+                      <span className="inline-block h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                      This user is currently online — they will be signed out immediately.
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
