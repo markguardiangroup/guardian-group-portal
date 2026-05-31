@@ -6502,6 +6502,13 @@
           "message": "Removed: Notifications tab and 2FA box hidden from Settings",
           "category": "other",
           "createdAt": "2026-05-31T18:30:00.000Z"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-cdef-678901234568",
+          "patch": 13,
+          "message": "Help & Training Guide now visible to all users in the sidebar",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T18:45:00.000Z"
         }
       ],
       "publishedPatch": 12,

@@ -156,6 +156,11 @@ const moduleNavItems: {
 
 const settingsNavItems = [
   {
+    title: "Help & Training Guide",
+    url: "/help",
+    icon: HelpCircle,
+  },
+  {
     title: "Settings",
     url: "/settings",
     icon: Settings,
@@ -224,11 +229,6 @@ const adminNavItems = [
     icon: MessageSquare,
   },
   {
-    title: "Help & Training Guide",
-    url: "/help",
-    icon: HelpCircle,
-  },
-  {
     title: "Roadmap",
     url: "/roadmap",
     icon: Lightbulb,
@@ -273,11 +273,6 @@ const consultantNavItems = [
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,
-  },
-  {
-    title: "Help & Training Guide",
-    url: "/help",
-    icon: HelpCircle,
   },
 ];
 
