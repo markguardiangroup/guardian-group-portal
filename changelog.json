@@ -6313,6 +6313,13 @@
           "message": "Improved: module summary loads faster \u2014 DB calls now run in parallel",
           "category": "enhancement",
           "createdAt": "2026-05-31T10:49:29.943934+00:00"
+        },
+        {
+          "id": "97449ae5-c332-41e6-ac77-574fb8118a2f",
+          "patch": 13,
+          "message": "Improved: Cloud Share header now shows instantly while content loads",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T11:03:01.460731+00:00"
         }
       ],
       "publishedPatch": 12,

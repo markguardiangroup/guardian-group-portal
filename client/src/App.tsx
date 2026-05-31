@@ -20,7 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, FileText, Loader2, Eye, Lock } from "lucide-react";
+import { ShieldCheck, FileText, Loader2, Eye, Lock, CloudUpload } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { 
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
@@ -141,15 +141,27 @@ function EmploymentLawSites() {
 }
 
 function HSClientUploads() {
-  return <ModuleGuard module="health_safety"><ClientUploads module="health_safety" /></ModuleGuard>;
+  return (
+    <Suspense fallback={<CloudShareSkeleton module="health_safety" />}>
+      <ModuleGuard module="health_safety"><ClientUploads module="health_safety" /></ModuleGuard>
+    </Suspense>
+  );
 }
 
 function HRClientUploads() {
-  return <ModuleGuard module="human_resources"><ClientUploads module="human_resources" /></ModuleGuard>;
+  return (
+    <Suspense fallback={<CloudShareSkeleton module="human_resources" />}>
+      <ModuleGuard module="human_resources"><ClientUploads module="human_resources" /></ModuleGuard>
+    </Suspense>
+  );
 }
 
 function ELClientUploads() {
-  return <ModuleGuard module="employment_law"><ClientUploads module="employment_law" /></ModuleGuard>;
+  return (
+    <Suspense fallback={<CloudShareSkeleton module="employment_law" />}>
+      <ModuleGuard module="employment_law"><ClientUploads module="employment_law" /></ModuleGuard>
+    </Suspense>
+  );
 }
 
 function HSIncidentsGuarded() {
@@ -163,6 +175,40 @@ function ElCasesGuarded() {
 
 function RouteFallback() {
   return <FetchingOverlay />;
+}
+
+const MODULE_CLOUD_SHARE_LABELS = {
+  health_safety: "Health & Safety",
+  human_resources: "Human Resources",
+  employment_law: "Employment Law",
+} as const;
+
+function CloudShareSkeleton({ module }: { module: "health_safety" | "human_resources" | "employment_law" }) {
+  const themeClass = module === "health_safety" ? "theme-hs" : module === "human_resources" ? "theme-hr" : "theme-el";
+  return (
+    <div className={`${themeClass} flex flex-col h-full`}>
+      <div className="dash-header bg-module-accent-subtle border-b border-t-4 border-t-module-accent px-8 py-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-module-accent shrink-0">
+              <CloudUpload className="h-7 w-7 text-module-accent-foreground" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold">
+                {MODULE_CLOUD_SHARE_LABELS[module]}
+                <span className="font-normal text-muted-foreground text-2xl"> - Cloud Share</span>
+              </h1>
+              <div className="h-5 mt-1" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-40 shrink-0" />
+        </div>
+      </div>
+      <div id="page-content" className="flex-1 overflow-auto p-6">
+        <FetchingOverlay />
+      </div>
+    </div>
+  );
 }
 
 type GuardUser = { role: string; consultantPermissions?: { templateLibrary?: boolean; trainingLibrary?: boolean } | null } | null | undefined;
@@ -383,17 +429,20 @@ function RoutePrefetcher({
         ModuleDocuments.preload();
         ModuleSites.preload();
         HSIncidents.preload();
+        ClientUploads.preload();
       }
       if (canAccess("human_resources")) {
         ModuleDashboard.preload();
         ModuleDocuments.preload();
         ModuleSites.preload();
+        ClientUploads.preload();
       }
       if (canAccess("employment_law")) {
         ModuleDashboard.preload();
         ElCasesPage.preload();
         ModuleDocuments.preload();
         ModuleSites.preload();
+        ClientUploads.preload();
       }
       if (canAccess("training")) {
         Training.preload();
