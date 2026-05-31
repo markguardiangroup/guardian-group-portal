@@ -591,7 +591,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <ShieldCheck className="h-4 w-4" />
                   {config.shortName} Compliance
                 </CardTitle>
-                <CardDescription>Based on required documents only</CardDescription>
+                <CardDescription>Based on mandatory documents only</CardDescription>
               </CardHeader>
               <CardContent className={`space-y-6 transition-opacity duration-300 ${isFetching ? "opacity-50" : "opacity-100"}`}>
                     {/* Score */}

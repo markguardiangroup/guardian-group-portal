@@ -592,7 +592,7 @@ function OverallComplianceCard({
           </div>
           <div>
             <CardTitle>Overall Compliance Across All Modules</CardTitle>
-            <CardDescription>Based on required documents only</CardDescription>
+            <CardDescription>Based on mandatory documents only</CardDescription>
           </div>
         </div>
       </CardHeader>

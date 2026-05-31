@@ -6453,6 +6453,13 @@
           "message": "Renamed isRequired → isMandatory in DB schema and all code identifiers",
           "category": "enhancement",
           "createdAt": "2026-05-31T17:47:33.403Z"
+        },
+        {
+          "id": "b2e3f4a5-c6d7-8901-bcde-f12345678902",
+          "patch": 13,
+          "message": "Fixed: compliance card subtitle now reads 'mandatory documents only'",
+          "category": "bug",
+          "createdAt": "2026-05-31T17:54:55.760Z"
         }
       ],
       "publishedPatch": 12,
