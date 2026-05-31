@@ -47,10 +47,15 @@ export function useServerEvents() {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
           }
-          queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-        } catch {
-          queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-        }
+        } catch { /* ignore */ }
+        // Refresh all document, dashboard and compliance-related views for other users
+        queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       });
 
       es.addEventListener("document-uploaded", (e) => {
@@ -60,10 +65,15 @@ export function useServerEvents() {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
           }
-          queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-        } catch {
-          queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
-        }
+        } catch { /* ignore */ }
+        // Refresh all document, dashboard and compliance-related views for other users
+        queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       });
 
       es.addEventListener("support-request-created", () => {

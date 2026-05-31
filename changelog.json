@@ -6460,6 +6460,13 @@
           "message": "Fixed: compliance card subtitle now reads 'mandatory documents only'",
           "category": "bug",
           "createdAt": "2026-05-31T17:54:55.760Z"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-cdef-012345678902",
+          "patch": 13,
+          "message": "Dashboards and site documents now update in real time for all users",
+          "category": "enhancement",
+          "createdAt": "2026-05-31T18:02:37.083Z"
         }
       ],
       "publishedPatch": 12,
