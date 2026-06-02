@@ -91,6 +91,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
         queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
       });
 
       es.addEventListener("company-mandatory-templates-updated", (e) => {
@@ -154,10 +155,12 @@ export function useServerEvents() {
             return typeof key === "string" && key.startsWith("/api/sites");
           },
         });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
       });
 
       es.addEventListener("user-updated", () => {
         queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
       });
 
       es.addEventListener("case-updated", () => {

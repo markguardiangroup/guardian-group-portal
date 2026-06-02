@@ -9047,10 +9047,11 @@ export async function registerRoutes(
         await storage.autoShareCompanyDocumentsToSite(companyId, entity.id);
       }
 
-      // Emit site-updated so admins/consultants see new sites in real time
+      // Emit site-updated so admins/consultants and affected clients see new sites in real time
       try {
         emitToRole("admin", "site-updated", { siteId: entity.id, companyId });
         emitToRole("consultant", "site-updated", { siteId: entity.id, companyId });
+        emitToCompany(companyId, "site-updated", { siteId: entity.id, companyId });
       } catch { /* non-fatal */ }
 
       res.status(201).json(entity);
@@ -9097,10 +9098,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Entity not found" });
       }
       
-      // Emit site-updated so admins/consultants see site changes in real time
+      // Emit site-updated so admins/consultants and affected clients see site changes in real time
       try {
-        emitToRole("admin", "site-updated", { siteId: req.params.siteId });
-        emitToRole("consultant", "site-updated", { siteId: req.params.siteId });
+        emitToRole("admin", "site-updated", { siteId: req.params.siteId, companyId: entity.companyId });
+        emitToRole("consultant", "site-updated", { siteId: req.params.siteId, companyId: entity.companyId });
+        if (entity.companyId) emitToCompany(entity.companyId, "site-updated", { siteId: req.params.siteId, companyId: entity.companyId });
       } catch { /* non-fatal */ }
 
       res.json(entity);
@@ -13611,7 +13613,15 @@ export async function registerRoutes(
         siteId: req.params.siteId,
         isPrimary: isPrimary || false,
       });
-      
+
+      // Emit site-updated so affected clients' home pages refresh in real time
+      try {
+        const site = await storage.getSite(req.params.siteId);
+        emitToRole("admin", "site-updated", { siteId: req.params.siteId, companyId: site?.companyId });
+        emitToRole("consultant", "site-updated", { siteId: req.params.siteId, companyId: site?.companyId });
+        if (site?.companyId) emitToCompany(site.companyId, "site-updated", { siteId: req.params.siteId, companyId: site.companyId });
+      } catch { /* non-fatal */ }
+
       res.status(201).json({
         ...assignment,
         consultantName: consultant.fullName,
@@ -13645,7 +13655,15 @@ export async function registerRoutes(
       if (!removed) {
         return res.status(404).json({ error: "Assignment not found" });
       }
-      
+
+      // Emit site-updated so affected clients' home pages refresh in real time
+      try {
+        const site = await storage.getSite(req.params.siteId);
+        emitToRole("admin", "site-updated", { siteId: req.params.siteId, companyId: site?.companyId });
+        emitToRole("consultant", "site-updated", { siteId: req.params.siteId, companyId: site?.companyId });
+        if (site?.companyId) emitToCompany(site.companyId, "site-updated", { siteId: req.params.siteId, companyId: site.companyId });
+      } catch { /* non-fatal */ }
+
       res.json({ success: true });
     } catch (error) {
       console.error("Remove consultant assignment error:", error);
@@ -13677,7 +13695,15 @@ export async function registerRoutes(
       if (!updated) {
         return res.status(404).json({ error: "Assignment not found" });
       }
-      
+
+      // Emit site-updated so affected clients' home pages refresh in real time
+      try {
+        const site = await storage.getSite(req.params.siteId);
+        emitToRole("admin", "site-updated", { siteId: req.params.siteId, companyId: site?.companyId });
+        emitToRole("consultant", "site-updated", { siteId: req.params.siteId, companyId: site?.companyId });
+        if (site?.companyId) emitToCompany(site.companyId, "site-updated", { siteId: req.params.siteId, companyId: site.companyId });
+      } catch { /* non-fatal */ }
+
       // Get consultant details for response
       const consultant = await storage.getUser(req.params.consultantId);
       res.json({
