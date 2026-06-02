@@ -6628,6 +6628,13 @@
           "message": "My Portfolio tile now groups sites by company for clients with multi-company access",
           "category": "feature",
           "createdAt": "2026-06-02T13:10:00.000Z"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-c9d0-e1f2a3b45678",
+          "patch": 14,
+          "message": "Narrow browser windows now show an icon sidebar instead of a blank gap",
+          "category": "enhancement",
+          "createdAt": "2026-06-02T13:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
