@@ -298,13 +298,19 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   const isLoading = isLoadingSites || isLoadingDocs;
 
-  const filteredSites = useMemo(() => {
+  // Sites that have this module active/visible — used as the base for the
+  // company combobox so companies whose module is disabled don't appear.
+  const moduleActiveSites = useMemo(() => {
     if (!sites) return [];
     const moduleKey = module as keyof SiteModuleAccess;
-    let result = sites.filter(s => {
+    return sites.filter(s => {
       const access = s.moduleAccess?.[moduleKey];
       return access === "active" || access === "visible";
     });
+  }, [sites, module]);
+
+  const filteredSites = useMemo(() => {
+    let result = [...moduleActiveSites];
     if (selectedGroup !== "all") {
       const groupCompanyIds = new Set(selectedGroupCompanies.map((c) => c.id));
       result = result.filter((s) => groupCompanyIds.has(s.companyId));
@@ -313,7 +319,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
       result = result.filter((s) => s.companyName === selectedCompany);
     }
     return result;
-  }, [sites, module, selectedCompany, selectedGroup, selectedGroupCompanies]);
+  }, [moduleActiveSites, selectedCompany, selectedGroup, selectedGroupCompanies]);
+
+  // Auto-clear the selected company if it has no active sites for this module.
+  useEffect(() => {
+    if (!selectedCompany || selectedCompany === "all" || !sites) return;
+    const hasActiveSites = moduleActiveSites.some(s => s.companyName === selectedCompany);
+    if (!hasActiveSites) handleCompanyChange(null);
+  }, [moduleActiveSites, selectedCompany]);
 
   // Sort sites by compliance priority:
   // 1. Any issues (missing, overdue, review) — sorted by compliance % ascending (0% first)
@@ -562,10 +575,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {(isPrivilegedUser || isGoClient) && (() => {
               // When a group is selected, restrict the company filter to
               // companies that belong to that group.
+              // Use moduleActiveSites so companies with this module disabled
+              // are excluded from the dropdown.
               const sitesForCombobox =
                 selectedGroup === "all"
-                  ? sites
-                  : (sites ?? []).filter((s) => {
+                  ? moduleActiveSites
+                  : moduleActiveSites.filter((s) => {
                       const ids = new Set(selectedGroupCompanies.map((c) => c.id));
                       return ids.has(s.companyId);
                     });

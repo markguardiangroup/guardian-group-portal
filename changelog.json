@@ -6593,6 +6593,13 @@
           "message": "Fixed: Renewal & Expiry section updates immediately after re-issuing with a different renewal period",
           "category": "bug",
           "createdAt": "2026-05-31T22:15:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
+          "patch": 14,
+          "message": "Company filter on module Sites pages now only shows companies with that module enabled",
+          "category": "enhancement",
+          "createdAt": "2026-06-02T11:00:00.000Z"
         }
       ],
       "publishedPatch": 13,
