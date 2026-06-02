@@ -10,6 +10,7 @@ export function useServerEvents() {
   const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
+  const isFirstConnectRef = useRef(true);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -23,7 +24,11 @@ export function useServerEvents() {
 
       es.addEventListener("connected", () => {
         backoffMs = 1_000;
-        // Refresh online presence immediately on (re)connect
+        if (!isFirstConnectRef.current) {
+          // Reconnect after a drop — flush everything to catch missed events
+          queryClient.invalidateQueries();
+        }
+        isFirstConnectRef.current = false;
         queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
       });
 

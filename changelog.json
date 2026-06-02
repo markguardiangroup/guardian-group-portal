@@ -6777,6 +6777,13 @@
           "createdAt": "2026-06-02T23:20:00.000Z"
         },
         {
+          "id": "a4b5c6d7-e8f9-abcd-a4b5-c6d7e8f9abcd",
+          "patch": 14,
+          "message": "Removed unnecessary background refetch on tab focus — live updates handle this",
+          "category": "enhancement",
+          "createdAt": "2026-06-02T23:35:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",
