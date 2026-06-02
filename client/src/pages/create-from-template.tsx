@@ -940,7 +940,7 @@ export default function CreateFromTemplate() {
     const isCompanyOrGroup = docScope === "company" || docScope === "group";
     const steps: { key: Step; label: string }[] = [
       ...(isCompanyOrGroup ? [{ key: "scope-decision" as Step, label: "Sharing" }] : []),
-      { key: "template", label: "Select Template" },
+      ...(!preselectedTemplateId ? [{ key: "template" as Step, label: "Select Template" }] : []),
       { key: "placeholders", label: "Customise & Upload" },
     ];
 
@@ -994,7 +994,7 @@ export default function CreateFromTemplate() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card
           className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
-          onClick={() => { setShareToAll(false); setShareDestinations([]); goToStep("template"); }}
+          onClick={() => { setShareToAll(false); setShareDestinations([]); goToStep(preselectedTemplateId ? "placeholders" : "template"); }}
           data-testid="button-scope-this-level-only"
         >
           <CardContent className="py-6 flex flex-col gap-4">
@@ -1016,7 +1016,7 @@ export default function CreateFromTemplate() {
 
         <Card
           className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
-          onClick={() => { setShareToAll(true); goToStep("template"); }}
+          onClick={() => { setShareToAll(true); goToStep(preselectedTemplateId ? "placeholders" : "template"); }}
           data-testid="button-scope-share-all"
         >
           <CardContent className="py-6 flex flex-col gap-4">
@@ -1728,7 +1728,7 @@ export default function CreateFromTemplate() {
       </div>
 
       <div className="flex justify-between pt-4">
-        <Button variant="outline" onClick={() => { goToStep("template"); setSubmitAttempted(false); }} data-testid="button-back-template-from-placeholders">
+        <Button variant="outline" onClick={() => { goToStep(preselectedTemplateId && (docScope === "company" || docScope === "group") ? "scope-decision" : "template"); setSubmitAttempted(false); }} data-testid="button-back-template-from-placeholders">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>

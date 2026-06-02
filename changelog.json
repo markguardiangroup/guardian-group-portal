@@ -6705,6 +6705,13 @@
           "message": "Upload from Mandatory Docs returns to the same page on back and completion",
           "category": "enhancement",
           "createdAt": "2026-06-02T18:35:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
+          "patch": 14,
+          "message": "Create from Template: template step skipped when template is pre-selected",
+          "category": "enhancement",
+          "createdAt": "2026-06-02T18:45:00.000Z"
         }
       ],
       "publishedPatch": 13,
