@@ -6740,6 +6740,13 @@
           "message": "Fixed: delete, archive, restore and edit now trigger live updates for all users",
           "category": "bug",
           "createdAt": "2026-06-02T19:30:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-a7b8-c9d0e1f23456",
+          "patch": 14,
+          "message": "Fixed: site document uploads now live-update client users of that site",
+          "category": "bug",
+          "createdAt": "2026-06-02T19:40:00.000Z"
         }
       ],
       "publishedPatch": 13,

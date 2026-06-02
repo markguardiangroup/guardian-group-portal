@@ -4053,7 +4053,13 @@ export async function registerRoutes(
       // Emit document-uploaded so all relevant users see new documents in real time
       try {
         const uploadPayload = { documentId: document.id, siteId: document.siteId };
-        if (document.entityId) emitToCompany(document.entityId, "document-uploaded", uploadPayload);
+        if (document.entityId) {
+          emitToCompany(document.entityId, "document-uploaded", uploadPayload);
+        } else if (document.siteId) {
+          // Site-scoped doc: look up the site's owning company so client users get the event
+          const docSite = await storage.getSite(document.siteId).catch(() => null);
+          if (docSite) emitToCompany(docSite.companyId, "document-uploaded", uploadPayload);
+        }
         emitToRole("admin", "document-uploaded", uploadPayload);
         emitToRole("consultant", "document-uploaded", uploadPayload);
       } catch { /* non-fatal */ }
