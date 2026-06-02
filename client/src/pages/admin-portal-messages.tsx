@@ -455,15 +455,17 @@ export default function AdminPortalMessages() {
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="msg-pinned"
-                checked={form.pinned}
-                onCheckedChange={(v) => setForm((f) => ({ ...f, pinned: v }))}
-                data-testid="switch-pinned"
-              />
-              <Label htmlFor="msg-pinned">Pin to top of home page</Label>
-            </div>
+            {form.type !== "banner" && (
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="msg-pinned"
+                  checked={form.pinned}
+                  onCheckedChange={(v) => setForm((f) => ({ ...f, pinned: v }))}
+                  data-testid="switch-pinned"
+                />
+                <Label htmlFor="msg-pinned">Pin to top of messages</Label>
+              </div>
+            )}
 
             {/* CTA Section */}
             <div className="space-y-3 rounded-md border p-3 bg-muted/30">
