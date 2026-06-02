@@ -97,7 +97,8 @@ interface HomeSummary {
         site: { id: string; name: string; companyName?: string } | null;
         primaryConsultant: { id: string; name: string } | null;
         consultants?: { id: string; name: string; isPrimary: boolean }[];
-        sites?: { id: string; name: string }[];
+        sites?: { id: string; name: string; companyName: string | null }[];
+        clientCompanies?: { name: string; siteCount: number }[];
       }
     | null;
   portalMessages: {
@@ -1284,7 +1285,25 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
   );
 }
 
-function ClientSitesPanel({ sites }: { sites: { id: string; name: string }[] }) {
+function ClientSitesPanel({
+  sites,
+  companies,
+}: {
+  sites: { id: string; name: string; companyName: string | null }[];
+  companies: { name: string; siteCount: number }[];
+}) {
+  const [expandedCompanies, setExpandedCompanies] = useState<Set<string>>(new Set());
+  const isMultiCompany = companies.length > 1;
+
+  const toggleCompany = (name: string) => {
+    setExpandedCompanies((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   return (
     <Card data-testid="card-client-sites" className="h-full">
       <CardHeader className="pb-2">
@@ -1295,24 +1314,71 @@ function ClientSitesPanel({ sites }: { sites: { id: string; name: string }[] }) 
           My Portfolio
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          {sites.length} {sites.length === 1 ? "site" : "sites"} assigned to you
+          {isMultiCompany
+            ? `${companies.length} companies · ${sites.length} sites`
+            : `${sites.length} ${sites.length === 1 ? "site" : "sites"} assigned to you`}
         </p>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="divide-y divide-border">
-          {sites.map((site) => (
-            <div
-              key={site.id}
-              className="flex items-center gap-2.5 py-2.5"
-              data-testid={`site-portfolio-${site.id}`}
-            >
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                <MapPin className="h-3 w-3 text-primary" />
+        {isMultiCompany ? (
+          <div className="divide-y divide-border">
+            {companies.map((company) => {
+              const companySites = sites.filter((s) => s.companyName === company.name);
+              const isExpanded = expandedCompanies.has(company.name);
+              return (
+                <div key={company.name}>
+                  <button
+                    className="flex w-full items-center justify-between gap-2 py-2.5 text-left hover:text-primary transition-colors"
+                    onClick={() => toggleCompany(company.name)}
+                    data-testid={`company-portfolio-${company.name}`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted">
+                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-medium truncate">{company.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground">
+                        {company.siteCount} {company.siteCount === 1 ? "site" : "sites"}
+                      </span>
+                      <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                    </div>
+                  </button>
+                  {isExpanded && (
+                    <div className="pb-1 pl-8 space-y-0.5">
+                      {companySites.map((site) => (
+                        <div
+                          key={site.id}
+                          className="flex items-center gap-2 py-1.5"
+                          data-testid={`site-portfolio-${site.id}`}
+                        >
+                          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="text-sm text-muted-foreground truncate">{site.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {sites.map((site) => (
+              <div
+                key={site.id}
+                className="flex items-center gap-2.5 py-2.5"
+                data-testid={`site-portfolio-${site.id}`}
+              >
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                  <MapPin className="h-3 w-3 text-primary" />
+                </div>
+                <span className="text-sm font-medium truncate">{site.name}</span>
               </div>
-              <span className="text-sm font-medium truncate">{site.name}</span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -1868,8 +1934,13 @@ export default function HomePage() {
 
   const clientSites = (() => {
     if (user?.role !== "client") return [];
-    const p = data?.portfolio as { sites?: { id: string; name: string }[] } | null;
+    const p = data?.portfolio as { sites?: { id: string; name: string; companyName: string | null }[]; clientCompanies?: { name: string; siteCount: number }[] } | null;
     return p?.sites ?? [];
+  })();
+  const clientCompanies = (() => {
+    if (user?.role !== "client") return [];
+    const p = data?.portfolio as { clientCompanies?: { name: string; siteCount: number }[] } | null;
+    return p?.clientCompanies ?? [];
   })();
 
   const urgentScopeLabel = (() => {
@@ -1945,7 +2016,7 @@ export default function HomePage() {
         {showThirdTile
           ? <AssignedConsultantsPanel consultants={assignedConsultants} animate={animate} />
           : clientSites.length >= 2
-            ? <ClientSitesPanel sites={clientSites} />
+            ? <ClientSitesPanel sites={clientSites} companies={clientCompanies} />
             : <div />
         }
       </div>

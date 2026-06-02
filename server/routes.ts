@@ -18144,7 +18144,7 @@ export async function registerRoutes(
         assignedCases: { id: string; reference: string; employeeName: string; companyName: string | null; status: string }[];
         sources: string[];
       };
-      type PortfolioClient = { site: { id: string; name: string } | null; primaryConsultant: { id: string; name: string } | null; consultants?: { id: string; name: string; isPrimary: boolean }[]; sites: { id: string; name: string }[] };
+      type PortfolioClient = { site: { id: string; name: string } | null; primaryConsultant: { id: string; name: string } | null; consultants?: { id: string; name: string; isPrimary: boolean }[]; sites: { id: string; name: string; companyName: string | null }[]; clientCompanies: { name: string; siteCount: number }[] };
       type Portfolio = PortfolioPrivileged | PortfolioClient | null;
 
       let portfolio: Portfolio = null;
@@ -18246,16 +18246,24 @@ export async function registerRoutes(
           }
         }
         // Fetch all sites accessible to this client (direct assignments + company sites)
-        let clientSitesList: { id: string; name: string }[] = [];
+        let clientSitesList: { id: string; name: string; companyName: string | null }[] = [];
+        let clientCompaniesList: { name: string; siteCount: number }[] = [];
         if (userSiteIds && userSiteIds.length > 0) {
           const sPlaceholders = userSiteIds.map((_, i) => `$${i + 1}`).join(",");
-          const sitesRes = await pool.query<{ id: string; name: string }>(
-            `SELECT id, name FROM sites WHERE id IN (${sPlaceholders}) ORDER BY name`,
+          const sitesRes = await pool.query<{ id: string; name: string; company_name: string | null }>(
+            `SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id WHERE s.id IN (${sPlaceholders}) ORDER BY c.name, s.name`,
             userSiteIds
           );
-          clientSitesList = sitesRes.rows;
+          clientSitesList = sitesRes.rows.map((r) => ({ id: r.id, name: r.name, companyName: r.company_name }));
+          // Build grouped company list
+          const companyMap = new Map<string, number>();
+          for (const row of sitesRes.rows) {
+            const cn = row.company_name ?? "Unknown";
+            companyMap.set(cn, (companyMap.get(cn) ?? 0) + 1);
+          }
+          clientCompaniesList = Array.from(companyMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([name, siteCount]) => ({ name, siteCount }));
         }
-        portfolio = { site: siteInfo, primaryConsultant, consultants: allConsultantsList, sites: clientSitesList };
+        portfolio = { site: siteInfo, primaryConsultant, consultants: allConsultantsList, sites: clientSitesList, clientCompanies: clientCompaniesList };
       }
 
       // Portal messages visible to this user (banners separated)

@@ -6621,6 +6621,13 @@
           "message": "Client home page shows a My Portfolio tile listing assigned sites (only when 2+ sites)",
           "category": "feature",
           "createdAt": "2026-06-02T12:30:00.000Z"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-b8c9-d0e1f2a34567",
+          "patch": 14,
+          "message": "My Portfolio tile now groups sites by company for clients with multi-company access",
+          "category": "feature",
+          "createdAt": "2026-06-02T13:10:00.000Z"
         }
       ],
       "publishedPatch": 13,
