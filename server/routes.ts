@@ -18331,16 +18331,15 @@ export async function registerRoutes(
         };
       } else {
         // Client portfolio: all consultants across ALL assigned sites (deduped)
-        const clientSites = await storage.getClientSites(user.id);
         let primaryConsultant: { id: string; name: string } | null = null;
         let allConsultantsList: { id: string; name: string; isPrimary: boolean }[] = [];
-        if (clientSites.length > 0) {
-          // Collect unique consultants across every site the client is assigned to.
-          // A consultant is marked primary if they hold isPrimary on any of those sites.
+        if (userSiteIds && userSiteIds.length > 0) {
+          // Collect unique consultants across every site the client can access
+          // (userSiteIds already includes direct assignments + all company sites).
           const seenIds = new Set<string>();
           const aggregated: { consultantId: string; isPrimary: boolean }[] = [];
-          for (const site of clientSites) {
-            const assignments = await storage.getConsultantAssignments(site.siteId);
+          for (const siteId of userSiteIds) {
+            const assignments = await storage.getConsultantAssignments(siteId);
             for (const a of assignments) {
               if (!seenIds.has(a.consultantId)) {
                 seenIds.add(a.consultantId);
