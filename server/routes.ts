@@ -18330,24 +18330,39 @@ export async function registerRoutes(
           sources: sourcesData,
         };
       } else {
-        // Client portfolio: all consultants + company info
+        // Client portfolio: all consultants across ALL assigned sites (deduped)
         const clientSites = await storage.getClientSites(user.id);
         let primaryConsultant: { id: string; name: string } | null = null;
         let allConsultantsList: { id: string; name: string; isPrimary: boolean }[] = [];
         if (clientSites.length > 0) {
-          const assignments = await storage.getConsultantAssignments(clientSites[0].siteId);
-          // Sort: primary first, then alphabetical
-          const sorted = [...assignments].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
-          for (const a of sorted) {
-            const consultant = await storage.getUser(a.consultantId);
-            if (consultant) {
-              allConsultantsList.push({ id: consultant.id, name: consultant.fullName, isPrimary: !!a.isPrimary });
-              if (a.isPrimary && !primaryConsultant) primaryConsultant = { id: consultant.id, name: consultant.fullName };
+          // Collect unique consultants across every site the client is assigned to.
+          // A consultant is marked primary if they hold isPrimary on any of those sites.
+          const seenIds = new Set<string>();
+          const aggregated: { consultantId: string; isPrimary: boolean }[] = [];
+          for (const site of clientSites) {
+            const assignments = await storage.getConsultantAssignments(site.siteId);
+            for (const a of assignments) {
+              if (!seenIds.has(a.consultantId)) {
+                seenIds.add(a.consultantId);
+                aggregated.push({ consultantId: a.consultantId, isPrimary: !!a.isPrimary });
+              } else if (a.isPrimary) {
+                const existing = aggregated.find(x => x.consultantId === a.consultantId);
+                if (existing) existing.isPrimary = true;
+              }
             }
           }
-          if (!primaryConsultant && allConsultantsList.length > 0) {
-            primaryConsultant = { id: allConsultantsList[0].id, name: allConsultantsList[0].name };
+          // Resolve user records, then sort: primary first, then alphabetical
+          for (const a of aggregated) {
+            const consultant = await storage.getUser(a.consultantId);
+            if (consultant) {
+              allConsultantsList.push({ id: consultant.id, name: consultant.fullName, isPrimary: a.isPrimary });
+            }
           }
+          allConsultantsList.sort((a, b) =>
+            (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0) || a.name.localeCompare(b.name)
+          );
+          primaryConsultant = allConsultantsList.find(c => c.isPrimary) ?? allConsultantsList[0] ?? null;
+          if (primaryConsultant) primaryConsultant = { id: primaryConsultant.id, name: primaryConsultant.name };
         }
         let siteInfo: { id: string; name: string } | null = null;
         if (user.companyId) {
