@@ -6681,9 +6681,9 @@
         {
           "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
           "patch": 14,
-          "message": "Home page: bobbing scroll hint prompts users to see Guardian Group messages",
-          "category": "feature",
-          "createdAt": "2026-06-02T16:20:00.000Z"
+          "message": "Home page: scroll hint now centred in content area and more prominent",
+          "category": "enhancement",
+          "createdAt": "2026-06-02T16:35:00.000Z"
         }
       ],
       "publishedPatch": 13,

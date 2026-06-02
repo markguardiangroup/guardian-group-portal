@@ -2052,15 +2052,15 @@ export default function HomePage() {
             setShowScrollHint(false);
             messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1 group animate-fade-in"
+          className="fixed bottom-8 z-40 flex flex-col items-center gap-1.5 group"
           data-testid="button-scroll-hint"
-          style={{ animation: "fadeInUp 0.4s ease both" }}
+          style={{ left: "calc(8rem + (100vw - 16rem) / 2)", animation: "fadeInUp 0.4s ease both" }}
         >
-          <span className="rounded-full bg-background/90 backdrop-blur border border-border shadow-lg px-4 py-2 text-xs font-medium text-foreground/80 group-hover:text-foreground transition-colors whitespace-nowrap">
+          <span className="rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 px-5 py-2.5 text-sm font-semibold group-hover:bg-primary/90 transition-colors whitespace-nowrap tracking-tight">
             See what's new from Guardian Group
           </span>
           <ChevronDown
-            className="h-5 w-5 text-primary drop-shadow"
+            className="h-6 w-6 text-primary drop-shadow-md"
             style={{ animation: "scrollBob 1s ease-in-out infinite" }}
           />
         </button>
