@@ -6649,6 +6649,13 @@
           "message": "Home page updates in real time when a site, consultant, or company changes",
           "category": "feature",
           "createdAt": "2026-06-02T13:50:00.000Z"
+        },
+        {
+          "id": "f2a3b4c5-d6e7-8901-f2a3-b4c5d6e78901",
+          "patch": 14,
+          "message": "Admins can delete a site from the sites list (with typed DELETE confirmation)",
+          "category": "feature",
+          "createdAt": "2026-06-02T14:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

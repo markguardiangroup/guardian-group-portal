@@ -9112,6 +9112,94 @@ export async function registerRoutes(
     }
   });
 
+  // Delete a single site — admin only
+  app.delete("/api/sites/:siteId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "admin") return res.status(403).json({ error: "Only admins can delete sites" });
+
+      const siteId = req.params.siteId;
+      const site = await storage.getSite(siteId);
+      if (!site) return res.status(404).json({ error: "Site not found" });
+
+      const companyId = site.companyId;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+
+        // Incidents
+        await client.query(`DELETE FROM incident_milestones WHERE incident_id IN (SELECT id FROM incidents WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM incidents WHERE site_id = $1`, [siteId]);
+
+        // Support
+        await client.query(`DELETE FROM support_request_reads WHERE request_id IN (SELECT id FROM support_requests WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM support_messages WHERE request_id IN (SELECT id FROM support_requests WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM support_requests WHERE site_id = $1`, [siteId]);
+
+        // Documents
+        await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM documents WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM document_folders WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM site_document_type_access WHERE site_id = $1`, [siteId]);
+
+        // Cases
+        await client.query(`DELETE FROM case_milestones WHERE case_id IN (SELECT id FROM cases WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM case_bundles WHERE case_id IN (SELECT id FROM cases WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM cases WHERE site_id = $1`, [siteId]);
+
+        // Training
+        await client.query(`DELETE FROM training_bookings WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM training_requests WHERE site_id = $1`, [siteId]);
+
+        // Client upload folders
+        await client.query(`DELETE FROM client_upload_folder_access WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id = $1)`, [siteId]);
+        await client.query(`DELETE FROM client_uploads WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM client_upload_folders WHERE site_id = $1`, [siteId]);
+
+        // Assignments & access (unassign, not delete users)
+        await client.query(`DELETE FROM consultant_assignments WHERE entity_id = $1`, [siteId]);
+        await client.query(`DELETE FROM client_site_assignments WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM site_module_access WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM module_access_requests WHERE site_id = $1`, [siteId]);
+        await client.query(`DELETE FROM site_template_overrides WHERE site_id = $1`, [siteId]);
+
+        // Delete the site itself
+        await client.query(`DELETE FROM sites WHERE id = $1`, [siteId]);
+
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "site_deleted",
+        entityType: "site",
+        entityId: siteId,
+        details: `Site "${site.name}" deleted`,
+        metadata: { siteName: site.name, companyId },
+      });
+
+      // Notify all connected users so lists refresh immediately
+      try {
+        emitToRole("admin", "site-updated", { siteId, companyId });
+        emitToRole("consultant", "site-updated", { siteId, companyId });
+        if (companyId) emitToCompany(companyId, "site-updated", { siteId, companyId });
+      } catch { /* non-fatal */ }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete site error:", error);
+      res.status(500).json({ error: "Failed to delete site" });
+    }
+  });
+
   // Get single entity
   app.get("/api/sites/:siteId", requireAuth, async (req, res) => {
     try {

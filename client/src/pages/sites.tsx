@@ -46,7 +46,24 @@ import {
   FileText,
   HardHat,
   Scale,
+  MoreVertical,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails, ComplianceSummary, Company, User } from "@shared/schema";
@@ -242,8 +259,12 @@ export default function Sites() {
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   
+  const isAdmin = user?.role === "admin";
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
-  const canCreateSite = user?.role === "admin" || isProConsultant;
+  const canCreateSite = isAdmin || isProConsultant;
+
+  const [siteToDelete, setSiteToDelete] = useState<SiteWithDetails | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const { coveringFor } = useCoverageFilter();
 
   type StaffConsultant = { id: string; fullName: string; consultantTier?: string | null };
@@ -333,6 +354,26 @@ export default function Sites() {
     },
     onError: () => {
       toast({ title: "Failed to create site", variant: "destructive" });
+    },
+  });
+
+  const deleteSiteMutation = useMutation({
+    mutationFn: async (siteId: string) => {
+      const response = await apiRequest("DELETE", `/api/sites/${siteId}`);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to delete site");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+      toast({ title: "Site deleted successfully" });
+      setSiteToDelete(null);
+      setDeleteConfirmText("");
+    },
+    onError: (err: Error) => {
+      toast({ title: err.message || "Failed to delete site", variant: "destructive" });
     },
   });
 
@@ -701,18 +742,40 @@ export default function Sites() {
                       <SiteDocumentsModulePicker site={site} />
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleManageSite(site.id);
-                      }}
-                      data-testid={`button-manage-site-${site.id}`}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          data-testid={`button-site-menu-${site.id}`}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => handleManageSite(site.id)}
+                          data-testid={`button-manage-site-${site.id}`}
+                        >
+                          <Settings className="mr-2 h-4 w-4" />
+                          Manage Site
+                        </DropdownMenuItem>
+                        {isAdmin && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => { setSiteToDelete(site); setDeleteConfirmText(""); }}
+                              data-testid={`button-delete-site-${site.id}`}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Site
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -974,6 +1037,68 @@ export default function Sites() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete site confirmation */}
+      <AlertDialog
+        open={!!siteToDelete}
+        onOpenChange={(open) => { if (!open) { setSiteToDelete(null); setDeleteConfirmText(""); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete &ldquo;{siteToDelete?.name}&rdquo;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the site and all its associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">The following will also be permanently deleted:</p>
+            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+              <li>All documents uploaded for this site</li>
+              <li>All incidents and incident records</li>
+              <li>All cases and case bundles</li>
+              <li>All support requests and messages</li>
+              <li>All training bookings and requests</li>
+              <li>All client upload folders and files</li>
+            </ul>
+            <p className="font-medium">
+              Consultants and client users will be unassigned but not deleted.
+            </p>
+            <div className="space-y-1.5 pt-1">
+              <p className="font-medium">
+                Type <span className="font-mono font-bold">DELETE</span> to confirm:
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="font-mono"
+                data-testid="input-delete-site-confirm"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setSiteToDelete(null); setDeleteConfirmText(""); }}
+              data-testid="button-cancel-delete-site"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirmText !== "DELETE" || deleteSiteMutation.isPending}
+              onClick={() => siteToDelete && deleteSiteMutation.mutate(siteToDelete.id)}
+              data-testid="button-confirm-delete-site"
+            >
+              {deleteSiteMutation.isPending ? "Deleting…" : "Delete Site"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       </div>
     </div>
   );
