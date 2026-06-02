@@ -6784,6 +6784,20 @@
           "createdAt": "2026-06-02T23:35:00.000Z"
         },
         {
+          "id": "b5c6d7e8-f9ab-cdef-b5c6-d7e8f9abcdef",
+          "patch": 14,
+          "message": "Compliance tracking now visible to clients on mandatory documents (read-only)",
+          "category": "feature",
+          "createdAt": "2026-06-02T23:50:00.000Z"
+        },
+        {
+          "id": "c6d7e8f9-abcd-ef01-c6d7-e8f9abcdef01",
+          "patch": 14,
+          "message": "New 'Changes Requested' banner shown when client has requested document changes",
+          "category": "feature",
+          "createdAt": "2026-06-02T23:50:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",
