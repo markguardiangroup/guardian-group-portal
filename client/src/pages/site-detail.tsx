@@ -67,6 +67,8 @@ import {
   UserCheck,
   Clock,
   RotateCcw,
+  UploadCloud,
+  AlertCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -1045,6 +1047,7 @@ const MODULE_BORDER: Record<string, string> = {
 
 function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: string }) {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [addOpen, setAddOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string | null>(null);
@@ -1091,6 +1094,16 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
       return res.json();
     },
   });
+
+  const { data: missingTemplates = [] } = useQuery<Array<{ templateId: string }>>({
+    queryKey: ["/api/missing-required-templates", { siteId }],
+    queryFn: async () => {
+      const res = await fetch(`/api/missing-required-templates?siteId=${siteId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+  const missingTemplateIds = new Set(missingTemplates.map(m => m.templateId));
 
   // Active vs soft-removed company requirements:
   // - Active rows drive compliance and show normally.
@@ -1373,6 +1386,39 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                         <Building2 className="h-3 w-3" />
                         Inherited
                       </Badge>
+                    )}
+                    {!isSoftRemoved && !isSiteExcluded && (
+                      missingTemplateIds.has(templateId) ? (
+                        <>
+                          <Badge
+                            variant="outline"
+                            className="text-xs shrink-0 flex items-center gap-1 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                            data-testid={`badge-status-missing-${templateId}`}
+                          >
+                            <AlertCircle className="h-3 w-3" />
+                            Missing
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 shrink-0 text-xs gap-1"
+                            onClick={() => navigate(`/create-from-template?templateId=${templateId}&siteId=${siteId}`)}
+                            data-testid={`button-upload-${templateId}`}
+                          >
+                            <UploadCloud className="h-3 w-3" />
+                            Upload
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="text-xs shrink-0 flex items-center gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/30"
+                          data-testid={`badge-status-fulfilled-${templateId}`}
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                          Fulfilled
+                        </Badge>
+                      )
                     )}
                     {isSiteExcluded ? (
                       <Button

@@ -6684,6 +6684,13 @@
           "message": "Home page: scroll hint centred in content area, adjusts for sidebar state",
           "category": "enhancement",
           "createdAt": "2026-06-02T16:35:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-e5f6-a7b8c9d01234",
+          "patch": 14,
+          "message": "Mandatory Documents: shows Fulfilled/Missing status and Upload button per row",
+          "category": "feature",
+          "createdAt": "2026-06-02T18:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
