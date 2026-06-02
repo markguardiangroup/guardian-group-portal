@@ -1096,7 +1096,7 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                             variant="outline"
                             size="sm"
                             className="h-7 shrink-0 text-xs gap-1"
-                            onClick={() => navigate(`/create-from-template?templateId=${templateId}&scope=company&entityId=${companyId}`)}
+                            onClick={() => navigate(`/create-from-template?templateId=${templateId}&scope=company&entityId=${companyId}&returnTo=${encodeURIComponent(`/companies/${companyId}?tab=required-documents`)}`)}
                             data-testid={`button-upload-${templateId}`}
                           >
                             <UploadCloud className="h-3 w-3" />

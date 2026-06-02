@@ -1402,7 +1402,7 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                             variant="outline"
                             size="sm"
                             className="h-7 shrink-0 text-xs gap-1"
-                            onClick={() => navigate(`/create-from-template?templateId=${templateId}&siteId=${siteId}`)}
+                            onClick={() => navigate(`/create-from-template?templateId=${templateId}&siteId=${siteId}&returnTo=${encodeURIComponent(`/sites/${siteId}?tab=compliance`)}`)}
                             data-testid={`button-upload-${templateId}`}
                           >
                             <UploadCloud className="h-3 w-3" />

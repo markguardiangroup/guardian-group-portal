@@ -1787,10 +1787,10 @@ export default function CreateFromTemplate() {
             Create Another Document
           </Button>
           <Button
-            onClick={() => navigate(modulePaths[selectedTemplate?.module || "health_safety"] || "/documents")}
+            onClick={() => navigate(returnTo !== "/template-library" ? returnTo : (modulePaths[selectedTemplate?.module || "health_safety"] || "/documents"))}
             data-testid="button-view-documents"
           >
-            View Documents
+            {returnTo !== "/template-library" ? "Back to Mandatory Documents" : "View Documents"}
           </Button>
         </div>
       </CardContent>
@@ -1802,6 +1802,8 @@ export default function CreateFromTemplate() {
     if (returnTo.includes("/human-resources")) return "Human Resources";
     if (returnTo.includes("/employment-law")) return "Employment Law";
     if (returnTo.includes("/template-library")) return "Template Library";
+    if (returnTo.includes("/companies/")) return "Mandatory Documents";
+    if (returnTo.includes("/sites/")) return "Mandatory Documents";
     return "Back";
   })();
 
