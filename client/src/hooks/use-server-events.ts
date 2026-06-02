@@ -155,7 +155,12 @@ export function useServerEvents() {
             return typeof key === "string" && key.startsWith("/api/sites");
           },
         });
+        // Site changes affect company site-counts and compliance scores
+        queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
       });
 
       es.addEventListener("user-updated", () => {

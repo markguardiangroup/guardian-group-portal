@@ -367,6 +367,7 @@ export default function Sites() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
       toast({ title: "Site deleted successfully" });
       setSiteToDelete(null);
