@@ -56,6 +56,7 @@ interface SiteWithCompany {
   name: string;
   companyName?: string | null;
   companyId: string;
+  companyStatus?: string | null;
   moduleAccess?: SiteModuleAccess;
   moduleRawCounts?: {
     health_safety: { compliant: number; denom: number };
@@ -84,9 +85,38 @@ interface Document {
 interface CompanyListItem {
   id: string;
   name: string;
+  status?: string | null;
   groupOwnerId?: string | null;
   groupOwnerName?: string | null;
   isGroupOwner?: boolean;
+}
+
+function CompanyStatusBadge({ status, toned = false }: { status?: string | null; toned?: boolean }) {
+  if (!status || status === "active") return null;
+  const cfg: Record<string, { label: string; cls: string; tonedCls: string }> = {
+    cancelled: {
+      label: "Cancelled",
+      cls: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800",
+      tonedCls: "bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400/70 border border-red-200/60 dark:border-red-800/40",
+    },
+    on_hold: {
+      label: "On Hold",
+      cls: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800",
+      tonedCls: "bg-yellow-50 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400/70 border border-yellow-200/60 dark:border-yellow-800/40",
+    },
+    pending: {
+      label: "Pending",
+      cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800",
+      tonedCls: "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400/70 border border-amber-200/60 dark:border-amber-800/40",
+    },
+  };
+  const c = cfg[status];
+  if (!c) return null;
+  return (
+    <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none shrink-0 ${toned ? c.tonedCls : c.cls}`}>
+      {c.label}
+    </span>
+  );
 }
 
 interface MissingRequired {
@@ -915,20 +945,23 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               </div>
                               <div className="min-w-0">
                                 <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 px-1.5 py-0.5 rounded mb-1">Company</span>
-                                {isPrivilegedUser ? (
-                                  <Link
-                                    href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
-                                    className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer block"
-                                    data-testid={`text-company-name-${company.id}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {company.name}
-                                  </Link>
-                                ) : (
-                                  <span className="font-semibold text-sm leading-snug truncate block" data-testid={`text-company-name-${company.id}`}>
-                                    {company.name}
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {isPrivilegedUser ? (
+                                    <Link
+                                      href={`/companies/${company.id}?from=${encodeURIComponent(`${basePath}/sites`)}`}
+                                      className="font-semibold text-sm leading-snug truncate hover:underline cursor-pointer"
+                                      data-testid={`text-company-name-${company.id}`}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {company.name}
+                                    </Link>
+                                  ) : (
+                                    <span className="font-semibold text-sm leading-snug truncate" data-testid={`text-company-name-${company.id}`}>
+                                      {company.name}
+                                    </span>
+                                  )}
+                                  <CompanyStatusBadge status={company.status} />
+                                </div>
                               </div>
                             </div>
                             {cHasIssues ? (
@@ -1407,19 +1440,22 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </span>
                           )}
                           {site.companyName && (
-                            isPrivilegedUser ? (
-                              <Link
-                                href={`/companies/${site.companyId}?from=${encodeURIComponent(`${basePath}/sites`)}`}
-                                className="text-xs text-muted-foreground truncate hover:underline cursor-pointer block"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {site.companyName}
-                              </Link>
-                            ) : (
-                              <span className="text-xs text-muted-foreground truncate block">
-                                {site.companyName}
-                              </span>
-                            )
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {isPrivilegedUser ? (
+                                <Link
+                                  href={`/companies/${site.companyId}?from=${encodeURIComponent(`${basePath}/sites`)}`}
+                                  className="text-xs text-muted-foreground truncate hover:underline cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {site.companyName}
+                                </Link>
+                              ) : (
+                                <span className="text-xs text-muted-foreground truncate">
+                                  {site.companyName}
+                                </span>
+                              )}
+                              <CompanyStatusBadge status={site.companyStatus} toned />
+                            </div>
                           )}
                         </div>
                       </div>
