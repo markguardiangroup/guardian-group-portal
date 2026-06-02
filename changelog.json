@@ -6768,6 +6768,13 @@
           "message": "Fixed: company HR folder names (Contracts, Handbooks, Policies etc.) now always show for client users",
           "category": "bug",
           "createdAt": "2026-06-02T21:55:16.144Z"
+        },
+        {
+          "id": "e2f3a4b5-go-client-member-folders-access-2026",
+          "patch": 14,
+          "message": "Fixed: group owner clients can now see named folders for member companies",
+          "category": "bug",
+          "createdAt": "2026-06-02T22:08:47.071Z"
         }
       ],
       "publishedPatch": 13,

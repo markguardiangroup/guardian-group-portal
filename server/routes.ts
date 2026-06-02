@@ -5070,8 +5070,11 @@ export async function registerRoutes(
           return res.status(400).json({ error: "entityId is required for scoped folders" });
         }
         // Privileged users (admin/consultant) and clients of that entity may view.
-        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
-          return res.status(403).json({ error: "Access denied to this scope" });
+        // GO clients can also access their member companies' scoped folders.
+        if (user.role !== "admin" && user.role !== "consultant") {
+          if (!user.companyId) return res.status(403).json({ error: "Access denied to this scope" });
+          const effectiveIds = await getEffectiveCompanyIds(user.companyId);
+          if (!effectiveIds.has(entityId)) return res.status(403).json({ error: "Access denied to this scope" });
         }
         const folders = await storage.getScopedDocumentFolders(scope, entityId, module);
         return res.json(folders);
