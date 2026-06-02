@@ -1312,6 +1312,7 @@ export async function registerRoutes(
       // Group Owner client: user's company is the group owner of the doc's entity company
       if (user.role === "client" && user.companyId) {
         const entityCompanyForGO = await storage.getCompany(entityId);
+        console.log(`[canUserAccessDocument] GO check: doc=${doc.id} entityId=${entityId} goId=${entityCompanyForGO?.groupOwnerId} userCompany=${user.companyId} match=${entityCompanyForGO?.groupOwnerId === user.companyId}`);
         if (entityCompanyForGO?.groupOwnerId === user.companyId) return true;
       }
       // Origin consultant: has direct source overlap with the entity company
