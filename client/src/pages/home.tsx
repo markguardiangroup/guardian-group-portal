@@ -1278,20 +1278,6 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
           </div>
         )}
 
-        <div className="flex gap-2 pt-3">
-          <Button variant="outline" size="sm" className="flex-1" asChild>
-            <Link href="/documents" data-testid="link-client-documents">
-              <FileText className="h-3.5 w-3.5 mr-1.5" />
-              Documents
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" asChild>
-            <Link href="/health-safety/incidents" data-testid="link-client-incidents">
-              <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
-              Incidents
-            </Link>
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
