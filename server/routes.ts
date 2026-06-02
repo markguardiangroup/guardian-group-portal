@@ -1309,6 +1309,11 @@ export async function registerRoutes(
     if (doc.scope === "company") {
       // Origin client (owns the company that uploaded the doc)
       if (user.role === "client" && user.companyId === entityId) return true;
+      // Group Owner client: user's company is the group owner of the doc's entity company
+      if (user.role === "client" && user.companyId) {
+        const entityCompanyForGO = await storage.getCompany(entityId);
+        if (entityCompanyForGO?.groupOwnerId === user.companyId) return true;
+      }
       // Origin consultant: has direct source overlap with the entity company
       const originConsultant = await isOriginConsultant();
       if (originConsultant) return true;

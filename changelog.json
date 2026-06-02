@@ -6747,6 +6747,13 @@
           "message": "Fixed: Group Owner users can now see member company document folders",
           "category": "bug",
           "createdAt": "2026-06-02T19:45:00.000Z"
+        },
+        {
+          "id": "b9c0d1e2-f3a4-5678-b9c0-d1e2f3a45678",
+          "patch": 14,
+          "message": "Fixed: Group Owner users can now view member company documents",
+          "category": "bug",
+          "createdAt": "2026-06-02T19:50:00.000Z"
         }
       ],
       "publishedPatch": 13,
