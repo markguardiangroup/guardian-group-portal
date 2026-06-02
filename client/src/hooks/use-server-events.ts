@@ -47,6 +47,10 @@ export function useServerEvents() {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
           }
+          // Refresh audit trail for the affected document (approval, archive, reissue, etc.)
+          if (data.id) {
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.id, "audit"] });
+          }
         } catch { /* ignore */ }
         // Refresh all document, dashboard, compliance and calendar views for other users
         queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -59,6 +63,15 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+      });
+
+      es.addEventListener("document-audit-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.documentId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId, "audit"] });
+          }
+        } catch { /* ignore */ }
       });
 
       es.addEventListener("document-uploaded", (e) => {

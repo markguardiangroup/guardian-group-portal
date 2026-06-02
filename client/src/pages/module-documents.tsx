@@ -3071,6 +3071,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
+  const [auditTypeFilter, setAuditTypeFilter] = useState<string>("all");
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
+  // Track which document we've already sent the "viewed" log for so
+  // window-focus refetches don't duplicate it.
+  const viewedDocRef = useRef<string | null>(null);
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
   const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   const [changeNote, setChangeNote] = useState("");
@@ -3100,6 +3105,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const { data: auditLogs } = useQuery<AuditLog[]>({
     queryKey: ["/api/documents", id, "audit"],
   });
+
+  // Fire the view-log POST exactly once per document mount.
+  useEffect(() => {
+    if (!document?.id) return;
+    if (viewedDocRef.current === document.id) return;
+    viewedDocRef.current = document.id;
+    apiRequest("POST", `/api/documents/${document.id}/view`).catch(() => {});
+  }, [document?.id]);
 
   // Fetch site folders so we can show folder/subfolder path instead of doc type
   const { data: detailSiteFolders } = useQuery<DocumentFolder[]>({
@@ -3837,100 +3850,158 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
           {auditLogs && auditLogs.length > 0 && (() => {
             const INITIAL_DISPLAY_COUNT = 5;
-            // Filter out "viewed" entries for initial display to show important actions
-            const importantActions = ['document_uploaded', 'document_approved', 'document_signed_off', 'document_rejected', 'changes_requested', 'document_archived', 'version_uploaded', 'email_sent'];
-            const importantLogs = auditLogs.filter(log => importantActions.includes(log.action));
-            const viewedLogs = auditLogs.filter(log => log.action === 'document_viewed');
-            
-            // Show important logs first, then viewed logs
-            const sortedLogs = [...importantLogs, ...viewedLogs];
-            const displayedLogs = showAllAuditLogs ? sortedLogs : sortedLogs.slice(0, INITIAL_DISPLAY_COUNT);
-            const hasMoreLogs = sortedLogs.length > INITIAL_DISPLAY_COUNT;
-            
+            const DETAIL_TRUNCATE = 140;
+
             const getActionStyle = (action: string) => {
               switch (action) {
                 case 'document_uploaded':
-                  return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400' };
+                  return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400', label: 'Upload' };
                 case 'document_approved':
-                  return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400' };
+                  return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400', label: 'Approval' };
                 case 'document_signed_off':
-                  return { icon: CheckCircle, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400' };
+                  return { icon: CheckCircle, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400', label: 'Approval' };
                 case 'document_rejected':
-                  return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400' };
+                  return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400', label: 'Approval' };
                 case 'changes_requested':
-                  return { icon: AlertTriangle, bg: 'bg-amber-100 dark:bg-amber-900/40', color: 'text-amber-600 dark:text-amber-400' };
+                  return { icon: AlertTriangle, bg: 'bg-amber-100 dark:bg-amber-900/40', color: 'text-amber-600 dark:text-amber-400', label: 'Approval' };
                 case 'email_sent':
-                  return { icon: Mail, bg: 'bg-indigo-100 dark:bg-indigo-900/40', color: 'text-indigo-600 dark:text-indigo-400' };
+                  return { icon: Mail, bg: 'bg-indigo-100 dark:bg-indigo-900/40', color: 'text-indigo-600 dark:text-indigo-400', label: 'Email' };
                 case 'document_viewed':
-                  return { icon: Eye, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400' };
+                  return { icon: Eye, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400', label: 'View' };
                 case 'document_downloaded':
-                  return { icon: Download, bg: 'bg-purple-100 dark:bg-purple-900/40', color: 'text-purple-600 dark:text-purple-400' };
+                  return { icon: Download, bg: 'bg-purple-100 dark:bg-purple-900/40', color: 'text-purple-600 dark:text-purple-400', label: 'Download' };
+                case 'version_uploaded':
+                  return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400', label: 'Upload' };
+                case 'document_archived':
+                  return { icon: FileText, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400', label: 'Archive' };
                 default:
-                  return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground' };
+                  return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground', label: 'Other' };
               }
             };
 
+            // Map filter value → matching action strings
+            const filterMap: Record<string, string[]> = {
+              uploads:   ['document_uploaded', 'version_uploaded'],
+              approvals: ['document_approved', 'document_signed_off', 'document_rejected', 'changes_requested'],
+              views:     ['document_viewed', 'document_downloaded'],
+              emails:    ['email_sent'],
+              other:     ['document_archived'],
+            };
+
+            // Sort newest first, then apply type filter
+            const sortedAll = [...auditLogs].sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            const filteredLogs = auditTypeFilter === "all"
+              ? sortedAll
+              : sortedAll.filter(log => (filterMap[auditTypeFilter] ?? []).includes(log.action));
+
+            const displayedLogs = showAllAuditLogs ? filteredLogs : filteredLogs.slice(0, INITIAL_DISPLAY_COUNT);
+            const hasMoreLogs = filteredLogs.length > INITIAL_DISPLAY_COUNT;
+
             return (
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
                   <CardTitle className="flex items-center gap-2">
                     <History className="h-5 w-5" />
                     Audit Trail
                     <Badge variant="secondary" className="text-xs">{auditLogs.length}</Badge>
                   </CardTitle>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      const headers = ['Date', 'Time', 'User', 'Action', 'Details'];
-                      const rows = auditLogs.map(log => [
-                        format(new Date(log.createdAt), 'yyyy-MM-dd'),
-                        format(new Date(log.createdAt), 'HH:mm:ss'),
-                        log.userName,
-                        log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-                        log.details
-                      ]);
-                      const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-                      const blob = new Blob([csv], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = window.document.createElement('a');
-                      a.href = url;
-                      a.download = `audit_trail_${document?.title?.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    data-testid="button-export-audit"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Export
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={auditTypeFilter} onValueChange={(v) => { setAuditTypeFilter(v); setShowAllAuditLogs(false); }}>
+                      <SelectTrigger className="h-8 w-36 text-xs" data-testid="select-audit-filter">
+                        <Filter className="h-3 w-3 mr-1 shrink-0" />
+                        <SelectValue placeholder="Filter type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All types</SelectItem>
+                        <SelectItem value="uploads">Uploads</SelectItem>
+                        <SelectItem value="approvals">Approvals</SelectItem>
+                        <SelectItem value="views">Views & Downloads</SelectItem>
+                        <SelectItem value="emails">Emails</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const headers = ['Date', 'Time', 'User', 'Action', 'Details'];
+                        const rows = auditLogs.map(log => [
+                          format(new Date(log.createdAt), 'yyyy-MM-dd'),
+                          format(new Date(log.createdAt), 'HH:mm:ss'),
+                          log.userName,
+                          log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                          `"${(log.details ?? '').replace(/"/g, '""')}"`
+                        ]);
+                        const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                        const blob = new Blob([csv], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+                        const a = window.document.createElement('a');
+                        a.href = url;
+                        a.download = `audit_trail_${document?.title?.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      data-testid="button-export-audit"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {displayedLogs.map((log) => {
-                      const style = getActionStyle(log.action);
-                      const ActionIcon = style.icon;
-                      
-                      return (
-                        <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
-                          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
-                            <ActionIcon className={`h-4 w-4 ${style.color}`} />
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-medium">{log.details}</p>
-                              <Badge variant="secondary" className="shrink-0 text-xs">
-                                {log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                              </Badge>
+                  {filteredLogs.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No entries match this filter.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {displayedLogs.map((log) => {
+                        const style = getActionStyle(log.action);
+                        const ActionIcon = style.icon;
+                        const details = log.details ?? '';
+                        const isLong = details.length > DETAIL_TRUNCATE;
+                        const isExpanded = expandedLogIds.has(log.id);
+
+                        return (
+                          <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
+                            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
+                              <ActionIcon className={`h-4 w-4 ${style.color}`} />
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              {log.userName} - {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                            </p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium break-words">
+                                    {isLong && !isExpanded
+                                      ? details.slice(0, DETAIL_TRUNCATE) + '…'
+                                      : details}
+                                  </p>
+                                  {isLong && (
+                                    <button
+                                      className="text-xs text-primary hover:underline mt-0.5"
+                                      onClick={() => setExpandedLogIds(prev => {
+                                        const next = new Set(prev);
+                                        isExpanded ? next.delete(log.id) : next.add(log.id);
+                                        return next;
+                                      })}
+                                      data-testid={`button-expand-log-${log.id}`}
+                                    >
+                                      {isExpanded ? 'Show less' : 'Show more'}
+                                    </button>
+                                  )}
+                                </div>
+                                <Badge variant="secondary" className="shrink-0 text-xs whitespace-nowrap">
+                                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   {hasMoreLogs && (
                     <Button
                       variant="ghost"
@@ -3947,7 +4018,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       ) : (
                         <>
                           <ChevronDown className="mr-2 h-4 w-4" />
-                          Show {sortedLogs.length - INITIAL_DISPLAY_COUNT} More
+                          Show {filteredLogs.length - INITIAL_DISPLAY_COUNT} More
                         </>
                       )}
                     </Button>

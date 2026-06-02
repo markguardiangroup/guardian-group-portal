@@ -1312,7 +1312,6 @@ export async function registerRoutes(
       // Group Owner client: user's company is the group owner of the doc's entity company
       if (user.role === "client" && user.companyId) {
         const entityCompanyForGO = await storage.getCompany(entityId);
-        console.log(`[canUserAccessDocument] GO check: doc=${doc.id} entityId=${entityId} goId=${entityCompanyForGO?.groupOwnerId} userCompany=${user.companyId} match=${entityCompanyForGO?.groupOwnerId === user.companyId}`);
         if (entityCompanyForGO?.groupOwnerId === user.companyId) return true;
       }
       // Origin consultant: has direct source overlap with the entity company
@@ -3392,19 +3391,6 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this document" });
       }
       
-      // Log document view
-      await storage.createAuditLog({
-        action: "document_viewed",
-        userId: user.id,
-        userName: user.fullName,
-        entityId: document.siteId || document.entityId,
-        documentId: document.id,
-        supportRequestId: null,
-        module: document.module,
-        details: `Viewed ${document.title}`,
-        metadata: null,
-      });
-
       // Add shared-link metadata for destination users
       const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !(await isDocumentOriginUser(user, document));
       let sharedFromEntityName: string | null = null;
@@ -3422,6 +3408,36 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Document error:", error);
       res.status(500).json({ error: "Failed to fetch document" });
+    }
+  });
+
+  // Dedicated view-logging endpoint — called once per mount from the frontend
+  // so window-focus refetches don't create duplicate "viewed" audit entries.
+  app.post("/api/documents/:id/view", async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      const document = await storage.getDocument(req.params.id);
+      if (!document) return res.status(404).json({ error: "Document not found" });
+      const canAccess = await canUserAccessDocument(user, document);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      await storage.createAuditLog({
+        action: "document_viewed",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: document.siteId || document.entityId,
+        documentId: document.id,
+        supportRequestId: null,
+        module: document.module,
+        details: `Viewed ${document.title}`,
+        metadata: null,
+      });
+      // Broadcast so all audit-trail viewers refresh in real time
+      emitToAll("document-audit-updated", { documentId: document.id });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Document view log error:", error);
+      res.status(500).json({ error: "Failed to log view" });
     }
   });
 
