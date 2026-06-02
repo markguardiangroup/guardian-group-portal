@@ -6740,6 +6740,13 @@
           "message": "Fixed: delete, archive, restore and edit now trigger live updates for all users",
           "category": "bug",
           "createdAt": "2026-06-02T19:30:00.000Z"
+        },
+        {
+          "id": "a8b9c0d1-e2f3-4567-a8b9-c0d1e2f34567",
+          "patch": 14,
+          "message": "Fixed: Group Owner users can now see member company document folders",
+          "category": "bug",
+          "createdAt": "2026-06-02T19:45:00.000Z"
         }
       ],
       "publishedPatch": 13,

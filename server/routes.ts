@@ -5063,9 +5063,13 @@ export async function registerRoutes(
         if (!entityId) {
           return res.status(400).json({ error: "entityId is required for scoped folders" });
         }
-        // Privileged users (admin/consultant) and clients of that entity may view.
+        // Privileged users (admin/consultant), clients of that entity, and Group Owner
+        // clients whose company is the groupOwnerId of the entity may view.
         if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
-          return res.status(403).json({ error: "Access denied to this scope" });
+          const entityCompany = await storage.getCompany(entityId);
+          if (!entityCompany || entityCompany.groupOwnerId !== user.companyId) {
+            return res.status(403).json({ error: "Access denied to this scope" });
+          }
         }
         const folders = await storage.getScopedDocumentFolders(scope, entityId, module);
         return res.json(folders);
@@ -5281,7 +5285,10 @@ export async function registerRoutes(
           return res.status(400).json({ error: "entityId is required for scoped provisioning" });
         }
         if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
-          return res.status(403).json({ error: "Access denied to this scope" });
+          const entityCompany = await storage.getCompany(entityId);
+          if (!entityCompany || entityCompany.groupOwnerId !== user.companyId) {
+            return res.status(403).json({ error: "Access denied to this scope" });
+          }
         }
         const existing = await storage.getScopedDocumentFolders(scope, entityId, module);
         if (existing.length === 0) {
