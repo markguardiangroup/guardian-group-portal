@@ -1814,8 +1814,12 @@ export default function CreateFromTemplate() {
           variant="ghost"
           size="icon"
           onClick={() => {
+            // Only append siteId for the default template-library returnTo.
+            // Custom returnTo URLs (company/site detail pages) must navigate
+            // directly without modification.
             const siteId = selectedSiteIds[0];
-            const finalUrl = siteId && !returnTo.includes("siteId")
+            const isCustomReturn = returnTo !== "/template-library";
+            const finalUrl = !isCustomReturn && siteId && !returnTo.includes("siteId")
               ? `${returnTo}${returnTo.includes("?") ? "&" : "?"}siteId=${siteId}`
               : returnTo;
             navigate(finalUrl);

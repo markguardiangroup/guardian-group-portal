@@ -6712,6 +6712,13 @@
           "message": "Create from Template: template step skipped when template is pre-selected",
           "category": "enhancement",
           "createdAt": "2026-06-02T18:45:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
+          "patch": 14,
+          "message": "Fixed: back button from upload always returns to originating page",
+          "category": "bug",
+          "createdAt": "2026-06-02T18:55:00.000Z"
         }
       ],
       "publishedPatch": 13,
