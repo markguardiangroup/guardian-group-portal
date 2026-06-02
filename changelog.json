@@ -6635,6 +6635,13 @@
           "message": "Narrow browser windows now show an icon sidebar instead of a blank gap",
           "category": "enhancement",
           "createdAt": "2026-06-02T13:25:00.000Z"
+        },
+        {
+          "id": "d0e1f2a3-b4c5-6789-d0e1-f2a3b4c56789",
+          "patch": 14,
+          "message": "Company name in the client users list is now a link to the company page",
+          "category": "enhancement",
+          "createdAt": "2026-06-02T13:35:00.000Z"
         }
       ],
       "publishedPatch": 13,

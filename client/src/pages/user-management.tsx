@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { CreateClientUserDialog } from "@/components/create-client-user-dialog";
@@ -1685,9 +1686,13 @@ export default function UserManagement() {
                     <TableCell>
                       {u.companyId ? (
                         <div className="flex flex-col gap-1">
-                          <span className="text-xs">
+                          <Link
+                            href={`/companies/${u.companyId}?from=/users`}
+                            className="text-xs font-medium text-primary hover:underline underline-offset-2 w-fit"
+                            data-testid={`link-company-${u.id}`}
+                          >
                             {companies.find(c => c.id === u.companyId)?.name || "-"}
-                          </span>
+                          </Link>
                           {isPrimaryContact(u) && (
                             <Badge variant="outline" className="w-fit text-xs bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700">
                               Primary Contact
