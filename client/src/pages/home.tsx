@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -1910,7 +1910,14 @@ export default function HomePage() {
   const { user } = useAuth();
   const [activeActionType, setActiveActionType] = useState<string | null>(null);
   const [arrangeCoverOpen, setArrangeCoverOpen] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(true);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const wasLoadingRef = useRef(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowScrollHint(false), 5000);
+    return () => clearTimeout(t);
+  }, []);
 
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
@@ -2026,7 +2033,7 @@ export default function HomePage() {
 
       {/* Portal Messages — full width below */}
       {data?.portalMessages && data.portalMessages.length > 0 && (
-        <div>
+        <div ref={messagesRef}>
           <div className="flex items-center gap-2 mb-4">
             <Zap className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold uppercase tracking-wide">
@@ -2035,6 +2042,28 @@ export default function HomePage() {
           </div>
           <PortalMessagesPanel messages={data.portalMessages} />
         </div>
+      )}
+
+      {/* Scroll hint — bobbing arrow */}
+      {showScrollHint && data?.portalMessages && data.portalMessages.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setShowScrollHint(false);
+            messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1 group animate-fade-in"
+          data-testid="button-scroll-hint"
+          style={{ animation: "fadeInUp 0.4s ease both" }}
+        >
+          <span className="rounded-full bg-background/90 backdrop-blur border border-border shadow-lg px-4 py-2 text-xs font-medium text-foreground/80 group-hover:text-foreground transition-colors whitespace-nowrap">
+            See what's new from Guardian Group
+          </span>
+          <ChevronDown
+            className="h-5 w-5 text-primary drop-shadow"
+            style={{ animation: "scrollBob 1s ease-in-out infinite" }}
+          />
+        </button>
       )}
 
       {/* Arrange Cover Dialog */}
