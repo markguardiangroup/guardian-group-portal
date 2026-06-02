@@ -6747,6 +6747,13 @@
           "message": "Fixed: site document uploads now live-update client users of that site",
           "category": "bug",
           "createdAt": "2026-06-02T19:40:00.000Z"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-b8c9-d0e1f2a34567",
+          "patch": 14,
+          "message": "Fixed: site document cards now recalculate immediately after upload or delete",
+          "category": "bug",
+          "createdAt": "2026-06-02T20:00:00.000Z"
         }
       ],
       "publishedPatch": 13,
