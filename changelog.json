@@ -6754,6 +6754,13 @@
           "message": "Fixed: site document cards now recalculate immediately after upload or delete",
           "category": "bug",
           "createdAt": "2026-06-02T20:00:00.000Z"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-c9d0-e1f2a3b45678",
+          "patch": 14,
+          "message": "Fixed: site cards now update in real time for other users watching the page",
+          "category": "bug",
+          "createdAt": "2026-06-02T21:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
