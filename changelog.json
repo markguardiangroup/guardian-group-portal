@@ -6691,6 +6691,13 @@
           "message": "Mandatory Documents: shows Fulfilled/Missing status and Upload button per row",
           "category": "feature",
           "createdAt": "2026-06-02T18:20:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-f6a7-b8c9d0e12345",
+          "patch": 14,
+          "message": "Fixed: company-level Upload button now opens correctly with company context",
+          "category": "bug",
+          "createdAt": "2026-06-02T18:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
