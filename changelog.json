@@ -6719,6 +6719,13 @@
           "message": "Fixed: back button from upload always returns to originating page",
           "category": "bug",
           "createdAt": "2026-06-02T18:55:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
+          "patch": 14,
+          "message": "Fixed: site documents page now live-updates for all users after an upload",
+          "category": "bug",
+          "createdAt": "2026-06-02T19:05:00.000Z"
         }
       ],
       "publishedPatch": 13,

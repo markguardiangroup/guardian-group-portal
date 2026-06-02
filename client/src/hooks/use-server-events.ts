@@ -54,6 +54,8 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
         queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       });
@@ -72,6 +74,8 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
         queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
       });
