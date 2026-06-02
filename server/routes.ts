@@ -4832,6 +4832,17 @@ export async function registerRoutes(
         ipAddress: req.ip,
       });
 
+      try {
+        const payload = { documentId: updated.id, siteId: updated.siteId };
+        if (updated.entityId) emitToCompany(updated.entityId, "document-updated", payload);
+        else if (updated.siteId) {
+          const docSite = await storage.getSite(updated.siteId).catch(() => null);
+          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        }
+        emitToRole("admin", "document-updated", payload);
+        emitToRole("consultant", "document-updated", payload);
+      } catch { /* non-fatal */ }
+
       res.json(updated);
     } catch (error) {
       console.error("Update document error:", error);
@@ -4889,6 +4900,17 @@ export async function registerRoutes(
         details: reason || "Document archived",
         metadata: null,
       });
+
+      try {
+        const payload = { documentId: document.id, siteId: document.siteId };
+        if (document.entityId) emitToCompany(document.entityId, "document-updated", payload);
+        else if (document.siteId) {
+          const docSite = await storage.getSite(document.siteId).catch(() => null);
+          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        }
+        emitToRole("admin", "document-updated", payload);
+        emitToRole("consultant", "document-updated", payload);
+      } catch { /* non-fatal */ }
 
       res.json({ message: "Document archived successfully", document });
     } catch (error) {
@@ -4948,6 +4970,17 @@ export async function registerRoutes(
         metadata: null,
       });
 
+      try {
+        const payload = { documentId: document.id, siteId: document.siteId };
+        if (document.entityId) emitToCompany(document.entityId, "document-updated", payload);
+        else if (document.siteId) {
+          const docSite = await storage.getSite(document.siteId).catch(() => null);
+          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        }
+        emitToRole("admin", "document-updated", payload);
+        emitToRole("consultant", "document-updated", payload);
+      } catch { /* non-fatal */ }
+
       res.json({ message: "Document restored successfully", document });
     } catch (error) {
       console.error("Document restore error:", error);
@@ -4993,6 +5026,17 @@ export async function registerRoutes(
         details: `Document permanently deleted: "${existingDoc.title}"`,
         metadata: null,
       });
+
+      try {
+        const payload = { documentId: existingDoc.id, siteId: existingDoc.siteId };
+        if (existingDoc.entityId) emitToCompany(existingDoc.entityId, "document-updated", payload);
+        else if (existingDoc.siteId) {
+          const docSite = await storage.getSite(existingDoc.siteId).catch(() => null);
+          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        }
+        emitToRole("admin", "document-updated", payload);
+        emitToRole("consultant", "document-updated", payload);
+      } catch { /* non-fatal */ }
 
       res.json({ message: "Document deleted successfully" });
     } catch (error) {

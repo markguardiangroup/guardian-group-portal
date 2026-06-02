@@ -6733,6 +6733,13 @@
           "message": "Calendar now live-updates when documents, cases, incidents or training change",
           "category": "enhancement",
           "createdAt": "2026-06-02T19:15:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-f6a7-b8c9d0e12345",
+          "patch": 14,
+          "message": "Fixed: delete, archive, restore and edit now trigger live updates for all users",
+          "category": "bug",
+          "createdAt": "2026-06-02T19:30:00.000Z"
         }
       ],
       "publishedPatch": 13,
