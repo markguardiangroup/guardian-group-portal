@@ -6761,6 +6761,13 @@
           "message": "Fixed: site cards now update in real time for other users watching the page",
           "category": "bug",
           "createdAt": "2026-06-02T21:20:00.000Z"
+        },
+        {
+          "id": "d1e2f3a4-scoped-folders-stale-cache-fix-2026",
+          "patch": 14,
+          "message": "Fixed: company HR folder names (Contracts, Handbooks, Policies etc.) now always show for client users",
+          "category": "bug",
+          "createdAt": "2026-06-02T21:55:16.144Z"
         }
       ],
       "publishedPatch": 13,
