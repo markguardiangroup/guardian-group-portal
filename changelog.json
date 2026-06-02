@@ -6770,6 +6770,13 @@
           "createdAt": "2026-06-02T23:05:00.000Z"
         },
         {
+          "id": "f3a4b5c6-d7e8-9abc-f3a4-b5c6d7e89abc",
+          "patch": 14,
+          "message": "Fixed: document 'viewed' log no longer duplicated on window refocus",
+          "category": "bug",
+          "createdAt": "2026-06-02T23:20:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",

@@ -3073,9 +3073,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
   const [auditTypeFilter, setAuditTypeFilter] = useState<string>("all");
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
-  // Track which document we've already sent the "viewed" log for so
-  // window-focus refetches don't duplicate it.
-  const viewedDocRef = useRef<string | null>(null);
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
   const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
   const [changeNote, setChangeNote] = useState("");
@@ -3106,13 +3103,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     queryKey: ["/api/documents", id, "audit"],
   });
 
-  // Fire the view-log POST exactly once per document mount.
+  // Fire the view-log POST exactly once per document (keyed on the route id prop,
+  // which is stable across window-focus refetches and only changes on navigation).
   useEffect(() => {
-    if (!document?.id) return;
-    if (viewedDocRef.current === document.id) return;
-    viewedDocRef.current = document.id;
-    apiRequest("POST", `/api/documents/${document.id}/view`).catch(() => {});
-  }, [document?.id]);
+    if (!id) return;
+    apiRequest("POST", `/api/documents/${id}/view`).catch(() => {});
+  }, [id]);
 
   // Fetch site folders so we can show folder/subfolder path instead of doc type
   const { data: detailSiteFolders } = useQuery<DocumentFolder[]>({
