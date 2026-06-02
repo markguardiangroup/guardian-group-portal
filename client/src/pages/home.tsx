@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useSidebar } from "@/components/ui/sidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1910,6 +1911,7 @@ export default function HomePage() {
   const { user } = useAuth();
   const [activeActionType, setActiveActionType] = useState<string | null>(null);
   const [arrangeCoverOpen, setArrangeCoverOpen] = useState(false);
+  const { state: sidebarState } = useSidebar();
   const [showScrollHint, setShowScrollHint] = useState(true);
   const messagesRef = useRef<HTMLDivElement>(null);
   const wasLoadingRef = useRef(false);
@@ -2054,7 +2056,12 @@ export default function HomePage() {
           }}
           className="fixed bottom-8 z-40 flex flex-col items-center gap-1.5 group"
           data-testid="button-scroll-hint"
-          style={{ left: "calc(8rem + (100vw - 16rem) / 2)", animation: "fadeInUp 0.4s ease both" }}
+          style={{
+            left: sidebarState === "collapsed"
+              ? "calc(1.5rem + 50vw)"
+              : "calc(8rem + 50vw)",
+            animation: "fadeInUp 0.4s ease both",
+          }}
         >
           <span className="rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 px-5 py-2.5 text-sm font-semibold group-hover:bg-primary/90 transition-colors whitespace-nowrap tracking-tight">
             See what's new from Guardian Group

@@ -6681,7 +6681,7 @@
         {
           "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
           "patch": 14,
-          "message": "Home page: scroll hint now centred in content area and more prominent",
+          "message": "Home page: scroll hint centred in content area, adjusts for sidebar state",
           "category": "enhancement",
           "createdAt": "2026-06-02T16:35:00.000Z"
         }
