@@ -6740,41 +6740,6 @@
           "message": "Fixed: delete, archive, restore and edit now trigger live updates for all users",
           "category": "bug",
           "createdAt": "2026-06-02T19:30:00.000Z"
-        },
-        {
-          "id": "a7b8c9d0-e1f2-3456-a7b8-c9d0e1f23456",
-          "patch": 14,
-          "message": "Fixed: site document uploads now live-update client users of that site",
-          "category": "bug",
-          "createdAt": "2026-06-02T19:40:00.000Z"
-        },
-        {
-          "id": "b8c9d0e1-f2a3-4567-b8c9-d0e1f2a34567",
-          "patch": 14,
-          "message": "Fixed: site document cards now recalculate immediately after upload or delete",
-          "category": "bug",
-          "createdAt": "2026-06-02T20:00:00.000Z"
-        },
-        {
-          "id": "c9d0e1f2-a3b4-5678-c9d0-e1f2a3b45678",
-          "patch": 14,
-          "message": "Fixed: site cards now update in real time for other users watching the page",
-          "category": "bug",
-          "createdAt": "2026-06-02T21:20:00.000Z"
-        },
-        {
-          "id": "d1e2f3a4-scoped-folders-stale-cache-fix-2026",
-          "patch": 14,
-          "message": "Fixed: company HR folder names (Contracts, Handbooks, Policies etc.) now always show for client users",
-          "category": "bug",
-          "createdAt": "2026-06-02T21:55:16.144Z"
-        },
-        {
-          "id": "e2f3a4b5-go-client-member-folders-access-2026",
-          "patch": 14,
-          "message": "Fixed: group owner clients can now see named folders for member companies",
-          "category": "bug",
-          "createdAt": "2026-06-02T22:08:47.071Z"
         }
       ],
       "publishedPatch": 13,

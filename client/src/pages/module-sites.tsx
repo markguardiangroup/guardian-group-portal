@@ -284,7 +284,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { data: documents, isLoading: isLoadingDocs } = useQuery<Document[]>({
     queryKey: ["/api/documents/module", module],
     queryFn: async () => {
-      const res = await fetch(`/api/documents/module/${module}`, { credentials: "include", cache: "no-store" });
+      const res = await fetch(`/api/documents/module/${module}`, { credentials: "include" });
       if (!res.ok) throw new Error(`${res.status}`);
       return res.json();
     },
@@ -294,7 +294,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { data: missingRequiredDetails = [] } = useQuery<MissingRequired[]>({
     queryKey: ["/api/missing-required-templates", module],
     queryFn: async () => {
-      const res = await fetch(`/api/missing-required-templates?module=${module}`, { credentials: "include", cache: "no-store" });
+      const res = await fetch(`/api/missing-required-templates?module=${module}`, { credentials: "include" });
       return res.json();
     },
     staleTime: 0,
@@ -305,7 +305,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { data: companyLevelMissingDetails = [] } = useQuery<MissingRequired[]>({
     queryKey: ["/api/missing-required-templates/by-company", module],
     queryFn: async () => {
-      const res = await fetch(`/api/missing-required-templates/by-company?module=${module}`, { credentials: "include", cache: "no-store" });
+      const res = await fetch(`/api/missing-required-templates/by-company?module=${module}`, { credentials: "include" });
       return res.json();
     },
     staleTime: 0,
@@ -320,7 +320,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const { data: effectiveRequiredBySite = {} } = useQuery<Record<string, string[]>>({
     queryKey: ["/api/effective-required-template-ids-by-site", module],
     queryFn: async () => {
-      const res = await fetch(`/api/effective-required-template-ids-by-site?module=${module}`, { credentials: "include", cache: "no-store" });
+      const res = await fetch(`/api/effective-required-template-ids-by-site?module=${module}`, { credentials: "include" });
       return res.json();
     },
     staleTime: 0,

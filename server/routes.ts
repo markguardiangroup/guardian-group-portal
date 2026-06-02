@@ -4053,13 +4053,7 @@ export async function registerRoutes(
       // Emit document-uploaded so all relevant users see new documents in real time
       try {
         const uploadPayload = { documentId: document.id, siteId: document.siteId };
-        if (document.entityId) {
-          emitToCompany(document.entityId, "document-uploaded", uploadPayload);
-        } else if (document.siteId) {
-          // Site-scoped doc: look up the site's owning company so client users get the event
-          const docSite = await storage.getSite(document.siteId).catch(() => null);
-          if (docSite) emitToCompany(docSite.companyId, "document-uploaded", uploadPayload);
-        }
+        if (document.entityId) emitToCompany(document.entityId, "document-uploaded", uploadPayload);
         emitToRole("admin", "document-uploaded", uploadPayload);
         emitToRole("consultant", "document-uploaded", uploadPayload);
       } catch { /* non-fatal */ }
@@ -5070,11 +5064,8 @@ export async function registerRoutes(
           return res.status(400).json({ error: "entityId is required for scoped folders" });
         }
         // Privileged users (admin/consultant) and clients of that entity may view.
-        // GO clients can also access their member companies' scoped folders.
-        if (user.role !== "admin" && user.role !== "consultant") {
-          if (!user.companyId) return res.status(403).json({ error: "Access denied to this scope" });
-          const effectiveIds = await getEffectiveCompanyIds(user.companyId);
-          if (!effectiveIds.has(entityId)) return res.status(403).json({ error: "Access denied to this scope" });
+        if (user.role !== "admin" && user.role !== "consultant" && user.companyId !== entityId) {
+          return res.status(403).json({ error: "Access denied to this scope" });
         }
         const folders = await storage.getScopedDocumentFolders(scope, entityId, module);
         return res.json(folders);

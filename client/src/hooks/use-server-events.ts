@@ -40,11 +40,15 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
       });
 
-      const invalidateDocumentQueries = (siteId?: string | null) => {
-        if (siteId) {
-          queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "documents"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/sites", siteId, "compliance"] });
-        }
+      es.addEventListener("document-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.siteId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
+          }
+        } catch { /* ignore */ }
+        // Refresh all document, dashboard, compliance and calendar views for other users
         queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
         queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
@@ -53,32 +57,29 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
         queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
-        // Catch all /api/sites URL variants (e.g. ?myAssigned=true, ?staffId=...)
-        queryClient.invalidateQueries({
-          predicate: (query) =>
-            typeof query.queryKey[0] === "string" &&
-            (query.queryKey[0] as string).startsWith("/api/sites"),
-        });
-      };
-
-      es.addEventListener("document-updated", (e) => {
-        try {
-          const data = JSON.parse(e.data);
-          invalidateDocumentQueries(data.siteId);
-        } catch {
-          invalidateDocumentQueries();
-        }
       });
 
       es.addEventListener("document-uploaded", (e) => {
         try {
           const data = JSON.parse(e.data);
-          invalidateDocumentQueries(data.siteId);
-        } catch {
-          invalidateDocumentQueries();
-        }
+          if (data.siteId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
+          }
+        } catch { /* ignore */ }
+        // Refresh all document, dashboard, compliance and calendar views for other users
+        queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/documents/module"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
       });
 
       es.addEventListener("support-request-created", () => {

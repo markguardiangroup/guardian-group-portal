@@ -353,22 +353,18 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
   }, [urlScope, urlEntityId, urlEntityName]);
 
-  // Fetch scoped (company/group) folders for this module.
-  // staleTime: 0 ensures a fresh fetch on every mount so a previously-cached
-  // empty result (from before folders were provisioned) never blocks the display.
+  // Fetch scoped (company/group) folders for this module
   const { data: scopedFolders = [] } = useQuery<any[]>({
     queryKey: ["/api/folders", "scoped", urlScope, urlEntityId, module],
     queryFn: async () => {
       if (!urlScope || !urlEntityId) return [];
       const res = await fetch(`/api/folders?scope=${urlScope}&entityId=${urlEntityId}&module=${module}`, {
         credentials: "include",
-        cache: "no-store",
       });
       if (!res.ok) return [];
       return res.json();
     },
     enabled: !!urlScope && !!urlEntityId,
-    staleTime: 0,
   });
 
   // Auto-provision scoped folders once per (scope, entity, module)

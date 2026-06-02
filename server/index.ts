@@ -13,7 +13,6 @@ import { acceloGet, getConnectionStatus } from "./accelo";
 
 const app = express();
 app.set("trust proxy", 1);
-app.set("etag", false);
 const httpServer = createServer(app);
 
 // 301 redirect: enforce www.guardiangroup.ai as canonical
@@ -70,7 +69,6 @@ const authLimiter = rateLimit({
 // Apply rate limiting
 app.use("/api/", apiLimiter);
 app.use("/api/auth/login", authLimiter);
-
 
 declare module "http" {
   interface IncomingMessage {
