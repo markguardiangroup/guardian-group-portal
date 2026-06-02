@@ -6614,6 +6614,13 @@
           "message": "Removed Documents and Incidents shortcut links from the client home page",
           "category": "enhancement",
           "createdAt": "2026-06-02T12:15:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-a7b8-c9d0e1f23456",
+          "patch": 14,
+          "message": "Client home page shows a My Portfolio tile listing assigned sites (only when 2+ sites)",
+          "category": "feature",
+          "createdAt": "2026-06-02T12:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

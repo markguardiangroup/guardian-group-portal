@@ -97,6 +97,7 @@ interface HomeSummary {
         site: { id: string; name: string; companyName?: string } | null;
         primaryConsultant: { id: string; name: string } | null;
         consultants?: { id: string; name: string; isPrimary: boolean }[];
+        sites?: { id: string; name: string }[];
       }
     | null;
   portalMessages: {
@@ -1283,6 +1284,40 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
   );
 }
 
+function ClientSitesPanel({ sites }: { sites: { id: string; name: string }[] }) {
+  return (
+    <Card data-testid="card-client-sites" className="h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <MapPin className="h-4 w-4 text-primary" />
+          </div>
+          My Portfolio
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {sites.length} {sites.length === 1 ? "site" : "sites"} assigned to you
+        </p>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="divide-y divide-border">
+          {sites.map((site) => (
+            <div
+              key={site.id}
+              className="flex items-center gap-2.5 py-2.5"
+              data-testid={`site-portfolio-${site.id}`}
+            >
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <MapPin className="h-3 w-3 text-primary" />
+              </div>
+              <span className="text-sm font-medium truncate">{site.name}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function AssignedConsultantsPanel({
   consultants,
   animate,
@@ -1831,6 +1866,12 @@ export default function HomePage() {
   const showThirdTile = isProConsultant && assignedConsultants.length > 0;
   const animate = wasLoadingRef.current;
 
+  const clientSites = (() => {
+    if (user?.role !== "client") return [];
+    const p = data?.portfolio as { sites?: { id: string; name: string }[] } | null;
+    return p?.sites ?? [];
+  })();
+
   const urgentScopeLabel = (() => {
     const role = user?.role;
     if (role === "admin") return "Across all companies and sites";
@@ -1900,10 +1941,12 @@ export default function HomePage() {
           <PortfolioPanel portfolio={data.portfolio} role={user?.role ?? "client"} animate={animate} />
         ) : null}
 
-        {/* My Assigned Consultants — slot 2, pro consultants only; empty div keeps portfolio width when not shown */}
+        {/* Slot 2: pro-consultant panel / client multi-site portfolio / empty */}
         {showThirdTile
           ? <AssignedConsultantsPanel consultants={assignedConsultants} animate={animate} />
-          : <div />
+          : clientSites.length >= 2
+            ? <ClientSitesPanel sites={clientSites} />
+            : <div />
         }
       </div>
 

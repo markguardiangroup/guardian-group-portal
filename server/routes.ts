@@ -18144,7 +18144,7 @@ export async function registerRoutes(
         assignedCases: { id: string; reference: string; employeeName: string; companyName: string | null; status: string }[];
         sources: string[];
       };
-      type PortfolioClient = { site: { id: string; name: string } | null; primaryConsultant: { id: string; name: string } | null };
+      type PortfolioClient = { site: { id: string; name: string } | null; primaryConsultant: { id: string; name: string } | null; consultants?: { id: string; name: string; isPrimary: boolean }[]; sites: { id: string; name: string }[] };
       type Portfolio = PortfolioPrivileged | PortfolioClient | null;
 
       let portfolio: Portfolio = null;
@@ -18245,7 +18245,17 @@ export async function registerRoutes(
             siteInfo = { id: companyRes.rows[0].id, name: companyRes.rows[0].name };
           }
         }
-        portfolio = { site: siteInfo, primaryConsultant, consultants: allConsultantsList };
+        // Fetch all sites accessible to this client (direct assignments + company sites)
+        let clientSitesList: { id: string; name: string }[] = [];
+        if (userSiteIds && userSiteIds.length > 0) {
+          const sPlaceholders = userSiteIds.map((_, i) => `$${i + 1}`).join(",");
+          const sitesRes = await pool.query<{ id: string; name: string }>(
+            `SELECT id, name FROM sites WHERE id IN (${sPlaceholders}) ORDER BY name`,
+            userSiteIds
+          );
+          clientSitesList = sitesRes.rows;
+        }
+        portfolio = { site: siteInfo, primaryConsultant, consultants: allConsultantsList, sites: clientSitesList };
       }
 
       // Portal messages visible to this user (banners separated)
