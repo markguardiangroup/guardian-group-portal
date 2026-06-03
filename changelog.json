@@ -7153,6 +7153,13 @@
           "message": "Fixed: witnesses from the initial report now correctly auto-fill into the investigation form, with redaction still applied where applicable",
           "category": "bug",
           "createdAt": "2026-06-03T16:40:00.000Z"
+        },
+        {
+          "id": "f2b4d6e8-incident-doc-upload-client-consultant-fix-2026",
+          "patch": 14,
+          "message": "Fixed: incident photo and document upload now works correctly for client and consultant users",
+          "category": "bug",
+          "createdAt": "2026-06-03T16:50:00.000Z"
         }
       ],
       "publishedPatch": 13,

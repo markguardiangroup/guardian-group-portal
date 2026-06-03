@@ -16721,7 +16721,8 @@ export async function registerRoutes(
 
   app.post("/api/incidents/:id/documents", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
@@ -16773,7 +16774,8 @@ export async function registerRoutes(
 
   app.patch("/api/incidents/:incidentId/documents/:docId", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.incidentId);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
@@ -16791,7 +16793,8 @@ export async function registerRoutes(
 
   app.delete("/api/incidents/:incidentId/documents/:docId", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.incidentId);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
