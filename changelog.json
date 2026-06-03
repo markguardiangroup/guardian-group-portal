@@ -7461,6 +7461,13 @@
           "message": "Upload New Version now pre-selects the previous approver automatically",
           "category": "enhancement",
           "createdAt": "2026-06-03T23:15:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-final-approval-client-comment-2026",
+          "patch": 14,
+          "message": "Final Approval card now shows the client's sign-off comment when present",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T23:20:00.000Z"
         }
       ],
       "publishedPatch": 13,

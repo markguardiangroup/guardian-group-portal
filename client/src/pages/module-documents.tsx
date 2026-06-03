@@ -3765,6 +3765,22 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       </Badge>
                     )}
                   </div>
+                  {isSignedOff && (() => {
+                    const signOffEntry = [...(auditLogs ?? [])]
+                      .filter(l => l.action === "document_signed_off")
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                    const comment = signOffEntry?.details;
+                    if (!comment || comment.toLowerCase() === "document approved") return null;
+                    return (
+                      <div className="mt-3 rounded-md border border-blue-300 dark:border-blue-700 bg-white/60 dark:bg-blue-950/30 px-3 py-2.5 space-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-blue-700/70 dark:text-blue-400/70">Client Comment</p>
+                        <p className="text-sm text-blue-900 dark:text-blue-200 leading-relaxed">{comment}</p>
+                        {signOffEntry.userName && (
+                          <p className="text-xs text-blue-600/60 dark:text-blue-400/60">{signOffEntry.userName} · {format(new Date(signOffEntry.createdAt), "d MMM yyyy 'at' HH:mm")}</p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {isPrivilegedUser && isPending && (
