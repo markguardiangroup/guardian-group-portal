@@ -4205,7 +4205,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{style.label}</Badge>
                                   {hasManualComment && (
                                     <button
                                       className="text-xs text-primary hover:underline"
@@ -4215,7 +4216,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       {isExpanded ? 'Hide comment' : 'Expand to see comment'}
                                     </button>
                                   )}
-                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{style.label}</Badge>
                                 </div>
                               </div>
                             </div>

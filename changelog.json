@@ -6989,9 +6989,9 @@
         {
           "id": "f3b6c8d0-audit-log-compact-expand-link-2026",
           "patch": 14,
-          "message": "Audit trail: 'Expand to see comment' moved to the top-right of each row; only shown for manual comments",
+          "message": "Audit trail: 'Expand to see comment' tucked below the badge at the bottom-right of each row",
           "category": "enhancement",
-          "createdAt": "2026-06-03T13:20:00.000Z"
+          "createdAt": "2026-06-03T13:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
