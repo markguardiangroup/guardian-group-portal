@@ -7097,6 +7097,13 @@
           "message": "Incident Details card now has an Export Report button for the initial incident report",
           "category": "feature",
           "createdAt": "2026-06-03T18:05:00.000Z"
+        },
+        {
+          "id": "d4f6b8ca-followup-buttons-match-style-2026",
+          "patch": 14,
+          "message": "Follow Up Investigation section buttons now match the size of the Incident Details buttons",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T18:12:00.000Z"
         }
       ],
       "publishedPatch": 13,
