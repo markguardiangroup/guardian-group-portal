@@ -7363,6 +7363,13 @@
           "message": "Fixed: approved card no longer shows rejection comments from previous approval cycles",
           "category": "bug",
           "createdAt": "2026-06-03T20:25:00.000Z"
+        },
+        {
+          "id": "x2z4a6b8-upload-spinner-guardian-logo-2026",
+          "patch": 14,
+          "message": "Upload loading spinner replaced with spinning Guardian logo",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T20:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

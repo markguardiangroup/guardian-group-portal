@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload } from "lucide-react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 
 interface SimpleFileUploadProps {
   accept?: string;
@@ -104,7 +105,7 @@ export function SimpleFileUpload({
       >
         {isUploading ? (
           <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <img src={logoIcon} alt="" className="h-4 w-4 mr-2 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />
             Uploading... {progress > 0 && `${progress}%`}
           </>
         ) : (
