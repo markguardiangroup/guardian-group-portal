@@ -998,12 +998,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Build meta line for a document row: v1 · PDF · 2.4 MB [· Site] [· Company]
   const docMetaLine = (doc: { fileName: string; version?: number; approvedVersion?: number | null; approvalStatus?: string | null; fileSize?: number | null; siteId?: string | null }) => {
     const parts: string[] = [];
-    // Show version label: v{approvedVersion} for approved docs; skip version for drafts in approval
+    // Show version label: v{approvedVersion} for approved docs; skip version for drafts in approval.
+    // Never fall back to doc.version — that field counted drafts as full versions and is unreliable.
     const isApproved = doc.approvalStatus === "approved" || !doc.approvalStatus;
     if (isApproved) {
       const vNum = doc.approvedVersion ?? 0;
       if (vNum > 0) parts.push(`v${vNum}`);
-      else if (doc.version) parts.push(`v${doc.version}`); // legacy fallback for records before this feature
     }
     const ext = getFileExtension(doc.fileName);
     if (ext) parts.push(ext);
@@ -2819,7 +2819,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">{doc.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{doc.fileName}{(doc as any).approvedVersion ? ` · v${(doc as any).approvedVersion}` : doc.version ? ` · v${doc.version}` : ""}</p>
+                      <p className="text-xs text-muted-foreground truncate">{doc.fileName}{(doc as any).approvedVersion > 0 ? ` · v${(doc as any).approvedVersion}` : ""}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
