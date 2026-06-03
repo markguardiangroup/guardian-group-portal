@@ -3223,7 +3223,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <CardDescription>Reports and files attached to this incident</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{files.filter((f: any) => f.type !== "incident_report").length}</Badge>
+                  <Badge variant="secondary">{files.length}</Badge>
                   <Button
                     size="sm"
                     variant="outline"
@@ -3236,11 +3236,11 @@ function IncidentDetailView({ id }: { id: string }) {
                 </div>
               </CardHeader>
               <CardContent className="pt-5">
-                {files.filter((f: any) => f.type !== "incident_report").length === 0 ? (
+                {files.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">No documents attached yet.</p>
                 ) : (
                   <div className="space-y-2">
-                    {files.filter((f: any) => f.type !== "incident_report").map((doc: any) => (
+                    {files.map((doc: any) => (
                       <div key={doc.id} className="rounded-md border overflow-hidden" data-testid={`doc-${doc.id}`}>
                         <div className="group flex items-start gap-3 p-3 hover:bg-muted/30 transition-colors">
                           <FileText className="h-4 w-4 shrink-0 text-muted-foreground mt-1" />

@@ -7188,6 +7188,13 @@
           "message": "Improved: uploading photos/docs on incidents now collects title and notes upfront in a single dialog",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:55:00.000Z"
+        },
+        {
+          "id": "e7a9c1d3-incident-docs-filter-fix-2026",
+          "patch": 14,
+          "message": "Fixed: uploaded documents now appear correctly in the Documents list on incidents",
+          "category": "bug",
+          "createdAt": "2026-06-03T18:02:00.000Z"
         }
       ],
       "publishedPatch": 13,
