@@ -34,6 +34,7 @@ function writeEvent(res: Response, event: string, data: unknown): void {
 
 export function emitToUser(userId: string, event: string, data: unknown): void {
   const set = registry.get(userId);
+  console.log("[SSE:emitToUser] userId=%s event=%s inRegistry=%s", userId, event, !!set);
   if (!set) return;
   for (const client of set) {
     writeEvent(client.res, event, data);

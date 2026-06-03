@@ -1475,6 +1475,7 @@ export async function registerRoutes(
     doc: { entityId?: string | null; siteId?: string | null },
     payload: object
   ): Promise<void> => {
+    console.log("[SSE:emitDocumentUpdated] called with siteId=%s entityId=%s payload=%j", doc.siteId, doc.entityId, payload);
     const companiesEmitted = new Set<string>();
     if (doc.entityId) {
       emitToCompany(doc.entityId, "document-updated", payload);
@@ -1492,10 +1493,14 @@ export async function registerRoutes(
           `SELECT client_id FROM client_site_assignments WHERE site_id = $1`,
           [doc.siteId]
         );
+        console.log("[SSE:emitDocumentUpdated] cross-company assigned clients for site %s: %j", doc.siteId, assigned.rows);
         for (const row of assigned.rows) {
+          console.log("[SSE:emitDocumentUpdated] emitToUser %s", row.client_id);
           emitToUser(row.client_id, "document-updated", payload);
         }
-      } catch { /* non-fatal */ }
+      } catch (err) {
+        console.error("[SSE:emitDocumentUpdated] client_site_assignments query failed:", err);
+      }
     }
     // Also notify group owner companies so their client users receive updates
     for (const companyId of Array.from(companiesEmitted)) {
@@ -1507,6 +1512,7 @@ export async function registerRoutes(
     }
     emitToRole("admin", "document-updated", payload);
     emitToRole("consultant", "document-updated", payload);
+    console.log("[SSE:emitDocumentUpdated] done — onlineUsers=%j", getOnlineUserIds());
   };
 
   const canUserAccessFolder = async (
