@@ -3710,12 +3710,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   </Card>
                 );
               }
-              return null;
+              // Consultants/admins viewing a pending consultant-uploaded doc fall through
+              // to the informational card (with notification panel, but no action buttons).
+              if (!isConsultantOrAdmin || !isPending) return null;
             }
 
             const getTitle = () => {
               if (canClientAct) return "Client Sign-Off";
               if (isSignedOff) return "Final Approval";
+              if (isConsultantOrAdmin && isPending && !canConsultantAct) return "Awaiting Client Sign-Off";
               return "Approval Actions";
             };
 
@@ -3723,6 +3726,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               if (canClientAct) return "Review and sign off on this document to confirm you've received and read it";
               if (isSignedOff) return "The client has signed off. Give final approval to complete the workflow";
               if (canConsultantAct && isPending) return "Review and approve this client-uploaded document";
+              if (isConsultantOrAdmin && isPending && !canConsultantAct) return "This document has been submitted and is awaiting the client's review and sign-off. You can resend the notification below.";
               return "Review and approve this document";
             };
 
@@ -3858,26 +3862,28 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     </div>
                   )}
 
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      className={isSignedOff ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}
-                      onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
-                      data-testid="button-approve"
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      {getApproveLabel()}
-                    </Button>
-                    {!isSignedOff && (
+                  {(canClientAct || canConsultantAct) && (
+                    <div className="flex flex-wrap gap-3">
                       <Button
-                        variant="outline"
-                        onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
-                        data-testid="button-request-changes"
+                        className={isSignedOff ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}
+                        onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
+                        data-testid="button-approve"
                       >
-                        <AlertTriangle className="mr-2 h-4 w-4" />
-                        Request Changes
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        {getApproveLabel()}
                       </Button>
-                    )}
-                  </div>
+                      {!isSignedOff && (
+                        <Button
+                          variant="outline"
+                          onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
+                          data-testid="button-request-changes"
+                        >
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          Request Changes
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

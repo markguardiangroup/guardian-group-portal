@@ -6964,6 +6964,13 @@
           "message": "Audit trail entries now show a clean summary by default — expand to see full details",
           "category": "enhancement",
           "createdAt": "2026-06-03T12:50:00.000Z"
+        },
+        {
+          "id": "c0e3f5a7-consultant-pending-doc-amber-card-2026",
+          "patch": 14,
+          "message": "Fixed: consultants now see an 'Awaiting Client Sign-Off' card on their own pending documents",
+          "category": "bug",
+          "createdAt": "2026-06-03T12:58:00.000Z"
         }
       ],
       "publishedPatch": 13,
