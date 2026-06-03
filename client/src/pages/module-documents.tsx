@@ -4292,7 +4292,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       onClick={toggleLog}
                                       data-testid={`button-expand-log-${log.id}`}
                                     >
-                                      {isExpanded ? 'Hide details' : 'See more'}
+                                      {isExpanded ? 'Hide details' : 'See details'}
                                     </button>
                                   )}
                                 </div>
