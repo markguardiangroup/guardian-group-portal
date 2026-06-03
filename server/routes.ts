@@ -15692,6 +15692,13 @@ export async function registerRoutes(
       if (updates.incidentDate) updates.incidentDate = new Date(updates.incidentDate);
       if (updates.invCompletedAt) updates.invCompletedAt = new Date(updates.invCompletedAt);
 
+      // Auto-advance status to "under_review" when investigation data is first saved
+      const invFields = ["invCompletedAt","invContributingFactors","invConclusion","invPrimaryCause","invRootCause","invWitnesses","invActions","invRecommendations","invAbsentFromWork","invEquipmentInvolved","invDocumentsReviewed","invOperators","invAmendments"];
+      const hasInvData = invFields.some(f => f in updates);
+      if (hasInvData && existing.status === "reported" && !updates.status) {
+        updates.status = "under_review";
+      }
+
       const incident = await storage.updateIncident(id, updates);
 
       const isStatusChange = updates.status && updates.status !== existing.status;

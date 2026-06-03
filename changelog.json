@@ -7237,6 +7237,13 @@
           "message": "All users (including clients) can now update incident status",
           "category": "feature",
           "createdAt": "2026-06-03T18:20:00.000Z"
+        },
+        {
+          "id": "f4h6i8j0-investigation-start-auto-under-review-2026",
+          "patch": 14,
+          "message": "Saving a follow-up investigation now auto-sets status to Under Review",
+          "category": "feature",
+          "createdAt": "2026-06-03T18:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
