@@ -6880,6 +6880,13 @@
           "message": "Fixed: group owner clients now receive live updates when documents change",
           "category": "bug",
           "createdAt": "2026-06-03T07:30:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
+          "patch": 14,
+          "message": "Request Changes button hidden on final approval stage — not needed after client sign-off",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T07:45:00.000Z"
         }
       ],
       "publishedPatch": 13,

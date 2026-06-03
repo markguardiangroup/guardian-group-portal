@@ -3827,14 +3827,16 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       <CheckCircle className="mr-2 h-4 w-4" />
                       {getApproveLabel()}
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
-                      data-testid="button-request-changes"
-                    >
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Request Changes
-                    </Button>
+                    {!isSignedOff && (
+                      <Button
+                        variant="outline"
+                        onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
+                        data-testid="button-request-changes"
+                      >
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Request Changes
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
