@@ -6873,6 +6873,13 @@
           "message": "Fixed: new version uploads now update the client's view instantly via live connection",
           "category": "bug",
           "createdAt": "2026-06-03T07:05:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
+          "patch": 14,
+          "message": "Fixed: group owner clients now receive live updates when documents change",
+          "category": "bug",
+          "createdAt": "2026-06-03T07:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

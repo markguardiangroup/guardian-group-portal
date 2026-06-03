@@ -1441,6 +1441,38 @@ export async function registerRoutes(
     return false;
   };
 
+  // Emits "document-updated" to all users who should see changes for this document:
+  // – the document's own company (entityId), – the site's company (siteId → getSite),
+  // – the group owner of each company (so group-owner clients receive the update),
+  // – all admin and consultant roles.
+  const emitDocumentUpdated = async (
+    doc: { entityId?: string | null; siteId?: string | null },
+    payload: object
+  ): Promise<void> => {
+    const companiesEmitted = new Set<string>();
+    if (doc.entityId) {
+      emitToCompany(doc.entityId, "document-updated", payload);
+      companiesEmitted.add(doc.entityId);
+    }
+    if (doc.siteId) {
+      const site = await storage.getSite(doc.siteId).catch(() => null);
+      if (site?.companyId && !companiesEmitted.has(site.companyId)) {
+        emitToCompany(site.companyId, "document-updated", payload);
+        companiesEmitted.add(site.companyId);
+      }
+    }
+    // Also notify group owner companies so their client users receive updates
+    for (const companyId of Array.from(companiesEmitted)) {
+      const company = await storage.getCompany(companyId).catch(() => null);
+      if (company?.groupOwnerId && !companiesEmitted.has(company.groupOwnerId)) {
+        emitToCompany(company.groupOwnerId, "document-updated", payload);
+        companiesEmitted.add(company.groupOwnerId);
+      }
+    }
+    emitToRole("admin", "document-updated", payload);
+    emitToRole("consultant", "document-updated", payload);
+  };
+
   const canUserAccessFolder = async (
     user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
     folder: { id: string; siteId: string; allocatedClientId: string | null }
@@ -3569,21 +3601,9 @@ export async function registerRoutes(
           entityId: document.entityId,
           approvalStatus: updatedDocument?.approvalStatus,
         };
-        console.log("[SSE-version] payload:", JSON.stringify(versionPayload));
-        // Company-scoped documents use entityId directly; site-scoped documents resolve via site
-        if (document.entityId) {
-          console.log("[SSE-version] emitToCompany via entityId:", document.entityId);
-          emitToCompany(document.entityId, "document-updated", versionPayload);
-        }
-        if (document.siteId) {
-          const versionSite = await storage.getSite(document.siteId).catch(() => null);
-          console.log("[SSE-version] versionSite:", versionSite?.id, "companyId:", versionSite?.companyId);
-          if (versionSite) emitToCompany(versionSite.companyId, "document-updated", versionPayload);
-        }
-        emitToRole("admin", "document-updated", versionPayload);
-        emitToRole("consultant", "document-updated", versionPayload);
+        await emitDocumentUpdated(document, versionPayload);
         emitToAll("document-audit-updated", { documentId: document.id });
-      } catch (err) { console.error("[SSE-version] error:", err); }
+      } catch { /* non-fatal */ }
 
       res.json(updatedDocument);
     } catch (error) {
@@ -4607,7 +4627,7 @@ export async function registerRoutes(
         }
       }
 
-      // Emit document-updated to the document's company (via entityId or site), admins, and consultants
+      // Emit document-updated to all affected users (company, group owner, admins, consultants)
       try {
         const payload = {
           documentId: document.id,
@@ -4615,15 +4635,7 @@ export async function registerRoutes(
           entityId: document.entityId,
           approvalStatus: document.approvalStatus,
         };
-        if (document.entityId) {
-          emitToCompany(document.entityId, "document-updated", payload);
-        }
-        if (document.siteId) {
-          const docSite = await storage.getSite(document.siteId).catch(() => null);
-          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
-        }
-        emitToRole("admin", "document-updated", payload);
-        emitToRole("consultant", "document-updated", payload);
+        await emitDocumentUpdated(document, payload);
       } catch { /* non-fatal */ }
 
       res.json(document);
@@ -4721,10 +4733,7 @@ export async function registerRoutes(
       // Invalidation signal for real-time clients
       try {
         const payload = { documentId: updated.id, siteId: updated.siteId, entityId: updated.entityId, approvalStatus: updated.approvalStatus };
-        const docSite = await storage.getSite(updated.siteId).catch(() => null);
-        if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
-        emitToRole("admin", "document-updated", payload);
-        emitToRole("consultant", "document-updated", payload);
+        await emitDocumentUpdated(updated, payload);
       } catch { /* non-fatal */ }
 
       res.json(updated);
@@ -4890,13 +4899,7 @@ export async function registerRoutes(
 
       try {
         const payload = { documentId: updated.id, siteId: updated.siteId };
-        if (updated.entityId) emitToCompany(updated.entityId, "document-updated", payload);
-        else if (updated.siteId) {
-          const docSite = await storage.getSite(updated.siteId).catch(() => null);
-          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
-        }
-        emitToRole("admin", "document-updated", payload);
-        emitToRole("consultant", "document-updated", payload);
+        await emitDocumentUpdated(updated, payload);
       } catch { /* non-fatal */ }
 
       res.json(updated);
@@ -4959,13 +4962,7 @@ export async function registerRoutes(
 
       try {
         const payload = { documentId: document.id, siteId: document.siteId };
-        if (document.entityId) emitToCompany(document.entityId, "document-updated", payload);
-        else if (document.siteId) {
-          const docSite = await storage.getSite(document.siteId).catch(() => null);
-          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
-        }
-        emitToRole("admin", "document-updated", payload);
-        emitToRole("consultant", "document-updated", payload);
+        await emitDocumentUpdated(document, payload);
       } catch { /* non-fatal */ }
 
       res.json({ message: "Document archived successfully", document });
@@ -5028,13 +5025,7 @@ export async function registerRoutes(
 
       try {
         const payload = { documentId: document.id, siteId: document.siteId };
-        if (document.entityId) emitToCompany(document.entityId, "document-updated", payload);
-        else if (document.siteId) {
-          const docSite = await storage.getSite(document.siteId).catch(() => null);
-          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
-        }
-        emitToRole("admin", "document-updated", payload);
-        emitToRole("consultant", "document-updated", payload);
+        await emitDocumentUpdated(document, payload);
       } catch { /* non-fatal */ }
 
       res.json({ message: "Document restored successfully", document });
@@ -5085,13 +5076,7 @@ export async function registerRoutes(
 
       try {
         const payload = { documentId: existingDoc.id, siteId: existingDoc.siteId };
-        if (existingDoc.entityId) emitToCompany(existingDoc.entityId, "document-updated", payload);
-        else if (existingDoc.siteId) {
-          const docSite = await storage.getSite(existingDoc.siteId).catch(() => null);
-          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
-        }
-        emitToRole("admin", "document-updated", payload);
-        emitToRole("consultant", "document-updated", payload);
+        await emitDocumentUpdated(existingDoc, payload);
       } catch { /* non-fatal */ }
 
       res.json({ message: "Document deleted successfully" });

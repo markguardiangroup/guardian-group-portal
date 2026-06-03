@@ -48,7 +48,6 @@ export function useServerEvents() {
       es.addEventListener("document-updated", (e) => {
         try {
           const data = JSON.parse(e.data);
-          console.log("[SSE] document-updated received:", data);
           if (data.siteId) {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
