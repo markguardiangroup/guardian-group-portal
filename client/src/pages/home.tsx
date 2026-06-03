@@ -599,7 +599,7 @@ function MyActionsPanel({ role }: { role: string }) {
 
   const { data, isLoading } = useQuery<MyActionsData>({
     queryKey: ["/api/my-actions"],
-    staleTime: 60000,
+    staleTime: 0,
   });
 
   const isPrivileged = role === "admin" || role === "consultant";
