@@ -7160,6 +7160,13 @@
           "message": "Fixed: incident photo and document upload now works correctly for client and consultant users",
           "category": "bug",
           "createdAt": "2026-06-03T16:50:00.000Z"
+        },
+        {
+          "id": "a3c5e7f9-remove-regenerate-report-button-2026",
+          "patch": 14,
+          "message": "Removed the Regenerate Report button from the incident documents section",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T17:00:00.000Z"
         }
       ],
       "publishedPatch": 13,

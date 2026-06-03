@@ -2193,16 +2193,6 @@ function IncidentDetailView({ id }: { id: string }) {
     onError: () => toast({ title: "Error", description: "Failed to delete action item.", variant: "destructive" }),
   });
 
-  const regenerateReportMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/incidents/${id}/regenerate-report`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
-      invalidateAudit();
-      toast({ title: "Report regenerated", description: "The incident report document has been updated with the latest details." });
-    },
-    onError: () => toast({ title: "Error", description: "Failed to regenerate report.", variant: "destructive" }),
-  });
-
   const openEditDialog = (doc: any) => {
     setEditingDoc(doc);
     setEditTitle(doc.title || "");
@@ -3289,23 +3279,6 @@ function IncidentDetailView({ id }: { id: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{files.filter((f: any) => f.type !== "incident_report").length}</Badge>
-                  {isPrivileged && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => regenerateReportMutation.mutate()}
-                      disabled={regenerateReportMutation.isPending}
-                      title="Regenerate the original incident report document with the latest incident details"
-                      data-testid="button-regenerate-report"
-                    >
-                      {regenerateReportMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="mr-2 h-4 w-4" />
-                      )}
-                      Regenerate Report
-                    </Button>
-                  )}
                   <input
                     ref={fileInputRef}
                     type="file"
