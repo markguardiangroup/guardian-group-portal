@@ -7132,6 +7132,13 @@
           "message": "RIDDOR section removed from Incident Details card and initial report export — it now only appears in Follow Up Investigation",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:50:00.000Z"
+        },
+        {
+          "id": "c9e1f3b5-inv-redacted-values-not-saved-2026",
+          "patch": 14,
+          "message": "Fixed: investigation edit no longer overwrites real data with [Redacted] when consultant access toggle is off",
+          "category": "bug",
+          "createdAt": "2026-06-03T16:20:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -1469,18 +1469,31 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     if (!open || !incident) return;
     setInvRecentUploads([]);
 
+    // Strip API redaction placeholders so they are never accidentally persisted to the DB
+    const REDACTED = "[Redacted]";
+    const unredact = (v: string | null | undefined): string => (v === REDACTED ? "" : (v ?? ""));
+    const unredactWitness = (w: any): InvWitness => ({
+      name: unredact(w.name),
+      jobRole: w.jobRole ?? "",
+      company: w.company ?? "",
+      statementAttached: w.statementAttached ?? null,
+    });
+
     setAbsentFromWork(incident.invAbsentFromWork ?? null);
     setAbsentTimeframe(incident.invAbsentTimeframe ?? "");
 
     // Witnesses: prefer saved investigation data, fall back to incident witnesses
     if (incident.invWitnesses) {
-      try { setInvWitnesses(JSON.parse(incident.invWitnesses)); } catch { setInvWitnesses([]); }
+      try {
+        const parsed = JSON.parse(incident.invWitnesses);
+        setInvWitnesses(Array.isArray(parsed) ? parsed.map(unredactWitness) : []);
+      } catch { setInvWitnesses([]); }
       setWitnessesPresent(incident.invWitnessesPresent ?? null);
     } else if (incident.witnesses) {
       try {
         const parsed = JSON.parse(incident.witnesses);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setInvWitnesses(parsed.map((w: any) => ({ name: w.name ?? "", jobRole: w.jobRole ?? "", company: w.company ?? "", statementAttached: null })));
+          setInvWitnesses(parsed.map(unredactWitness));
           setWitnessesPresent(true);
         } else { setInvWitnesses([]); setWitnessesPresent(null); }
       } catch { setInvWitnesses([]); setWitnessesPresent(null); }
@@ -1529,7 +1542,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     try { setInvRecommendations(incident.invRecommendations ? JSON.parse(incident.invRecommendations) : [""]); } catch { setInvRecommendations([""]); }
     setInvAmendments(incident.invAmendments ?? "");
     setInvRiddorReportable(incident.riddorReportable ?? false);
-    setInvRiddorResponsiblePerson(incident.riddorResponsiblePerson ?? "");
+    setInvRiddorResponsiblePerson(unredact(incident.riddorResponsiblePerson));
     setInvRiddorNotes(incident.riddorNotes ?? "");
     setInvRiddorReference(incident.riddorReference ?? "");
   }, [open, incident]);
@@ -2744,7 +2757,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-3 flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       {incident.invCompletedAt
-                        ? <>Completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span>{incident.invCompletedBy ? <> by <span className="font-medium text-foreground">{incident.invCompletedBy}</span></> : ""}</>
+                        ? <>Completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span>{incident.invCompletedBy && incident.invCompletedBy !== "[Redacted]" ? <> by <span className="font-medium text-foreground">{incident.invCompletedBy}</span></> : ""}</>
                         : <span className="italic">Investigation in progress</span>}
                     </p>
                     <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
@@ -2817,7 +2830,7 @@ function IncidentDetailView({ id }: { id: string }) {
                         <div className="space-y-1.5">
                           {ws.map((w, i) => (
                             <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
-                              <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name || "—"}</p></div>
+                              <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{(w.name && w.name !== "[Redacted]") ? w.name : "—"}</p></div>
                               <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
                               <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
                               <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
@@ -2990,7 +3003,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">Responsible Person</p>
-                        <p className="text-sm">{incident.riddorResponsiblePerson || <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</span>}</p>
+                        <p className="text-sm">{(incident.riddorResponsiblePerson && incident.riddorResponsiblePerson !== "[Redacted]") ? incident.riddorResponsiblePerson : <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</span>}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reference</p>
