@@ -51,6 +51,13 @@ export function useServerEvents() {
           if (data.siteId) {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
+            // The folder/hierarchy view uses a string query key — invalidate by prefix
+            queryClient.invalidateQueries({
+              predicate: (query) => {
+                const key = query.queryKey[0];
+                return typeof key === "string" && key.startsWith(`/api/sites/${data.siteId}/modules/`);
+              },
+            });
           }
           // Refresh the specific document detail and its audit trail
           if (data.documentId) {
@@ -87,6 +94,12 @@ export function useServerEvents() {
           if (data.siteId) {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
+            queryClient.invalidateQueries({
+              predicate: (query) => {
+                const key = query.queryKey[0];
+                return typeof key === "string" && key.startsWith(`/api/sites/${data.siteId}/modules/`);
+              },
+            });
           }
           if (data.documentId) {
             queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId] });
