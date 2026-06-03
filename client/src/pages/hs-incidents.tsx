@@ -3045,17 +3045,15 @@ function IncidentDetailView({ id }: { id: string }) {
                   </CardTitle>
                   <CardDescription>Track follow-up tasks and corrective actions</CardDescription>
                 </div>
-                {isPrivileged && (
-                  <Button
-                    size="sm"
-                    onClick={() => setShowMilestoneDialog(true)}
-                    className="bg-module-accent hover:bg-module-accent/90"
-                    data-testid="button-add-milestone"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Action
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  onClick={() => setShowMilestoneDialog(true)}
+                  className="bg-module-accent hover:bg-module-accent/90"
+                  data-testid="button-add-milestone"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Action
+                </Button>
               </CardHeader>
               <CardContent className="pt-5">
                 {totalMilestones > 0 && (
@@ -3105,43 +3103,41 @@ function IncidentDetailView({ id }: { id: string }) {
                           </p>
                         )}
                       </div>
-                      {isPrivileged && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" data-testid={`button-milestone-menu-${milestone.id}`}>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {!milestone.isCompleted ? (
-                              <DropdownMenuItem
-                                onClick={() => completeMilestoneMutation.mutate(milestone.id)}
-                                data-testid={`button-complete-milestone-${milestone.id}`}
-                              >
-                                <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />
-                                Mark Complete
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
-                                data-testid={`button-reopen-milestone-${milestone.id}`}
-                              >
-                                <RotateCcw className="mr-2 h-4 w-4" />
-                                Reopen
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" data-testid={`button-milestone-menu-${milestone.id}`}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {!milestone.isCompleted ? (
                             <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
-                              data-testid={`button-delete-milestone-${milestone.id}`}
+                              onClick={() => completeMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-complete-milestone-${milestone.id}`}
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" />
+                              Mark Complete
                             </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => reopenMilestoneMutation.mutate(milestone.id)}
+                              data-testid={`button-reopen-milestone-${milestone.id}`}
+                            >
+                              <RotateCcw className="mr-2 h-4 w-4" />
+                              Reopen
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => deleteMilestoneMutation.mutate(milestone.id)}
+                            data-testid={`button-delete-milestone-${milestone.id}`}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
                   {milestones.length === 0 && (

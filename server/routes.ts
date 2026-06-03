@@ -16435,7 +16435,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/milestones/incident/:id", requireAuth, requirePrivileged, async (req, res) => {
+  app.delete("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteIncidentMilestone(req.params.id);
       res.status(204).end();

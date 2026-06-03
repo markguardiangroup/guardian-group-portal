@@ -7083,6 +7083,13 @@
           "message": "Simplified the read-only notice on the Incident Details card to a single line",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:42:00.000Z"
+        },
+        {
+          "id": "b2d4f6a8-action-items-all-users-2026",
+          "patch": 14,
+          "message": "All users (including clients and consultants) can now add, complete, reopen and delete action items",
+          "category": "feature",
+          "createdAt": "2026-06-03T17:50:00.000Z"
         }
       ],
       "publishedPatch": 13,
