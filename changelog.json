@@ -7475,6 +7475,13 @@
           "message": "Audit trail now shows 'Expand to see comment' on client sign-off entries",
           "category": "bug",
           "createdAt": "2026-06-03T23:25:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-hide-upload-version-during-approval-2026",
+          "patch": 14,
+          "message": "Upload New Version button hidden while an approval is in progress",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T23:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

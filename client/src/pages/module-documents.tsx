@@ -4513,7 +4513,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     <Download className="mr-2 h-4 w-4" />
                     Download ({currentVersionLabel})
                   </Button>
-                  {user?.role !== "client" && (
+                  {user?.role !== "client" && !approvalInProgress && (
                     <Button
                       variant="outline"
                       className="w-full justify-start"
