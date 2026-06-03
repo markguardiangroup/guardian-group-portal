@@ -7419,6 +7419,13 @@
           "message": "My Actions now shows a 'Changes Requested' tile for documents sent back by a client",
           "category": "feature",
           "createdAt": "2026-06-03T22:20:00.000Z"
+        },
+        {
+          "id": "f6b8c0d2-sse-cross-company-site-clients-2026",
+          "patch": 14,
+          "message": "Fixed: real-time updates now reach clients assigned to sites outside their own company",
+          "category": "bug",
+          "createdAt": "2026-06-03T22:40:00.000Z"
         }
       ],
       "publishedPatch": 13,

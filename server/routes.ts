@@ -1469,6 +1469,7 @@ export async function registerRoutes(
   // Emits "document-updated" to all users who should see changes for this document:
   // – the document's own company (entityId), – the site's company (siteId → getSite),
   // – the group owner of each company (so group-owner clients receive the update),
+  // – all clients directly assigned to the site (cross-company assignments),
   // – all admin and consultant roles.
   const emitDocumentUpdated = async (
     doc: { entityId?: string | null; siteId?: string | null },
@@ -1485,6 +1486,16 @@ export async function registerRoutes(
         emitToCompany(site.companyId, "document-updated", payload);
         companiesEmitted.add(site.companyId);
       }
+      // Notify cross-company clients directly assigned to this site
+      try {
+        const assigned = await pool.query<{ client_id: string }>(
+          `SELECT client_id FROM client_site_assignments WHERE site_id = $1`,
+          [doc.siteId]
+        );
+        for (const row of assigned.rows) {
+          emitToUser(row.client_id, "document-updated", payload);
+        }
+      } catch { /* non-fatal */ }
     }
     // Also notify group owner companies so their client users receive updates
     for (const companyId of Array.from(companiesEmitted)) {
@@ -4177,6 +4188,14 @@ export async function registerRoutes(
           if (uploadSite?.companyId && !companiesEmittedUpload.has(uploadSite.companyId)) {
             emitToCompany(uploadSite.companyId, "document-uploaded", uploadPayload);
             companiesEmittedUpload.add(uploadSite.companyId);
+          }
+          // Notify cross-company clients directly assigned to this site
+          const assignedUpload = await pool.query<{ client_id: string }>(
+            `SELECT client_id FROM client_site_assignments WHERE site_id = $1`,
+            [document.siteId]
+          ).catch(() => ({ rows: [] as { client_id: string }[] }));
+          for (const row of assignedUpload.rows) {
+            emitToUser(row.client_id, "document-uploaded", uploadPayload);
           }
           // Also notify group owner companies
           for (const cId of Array.from(companiesEmittedUpload)) {
