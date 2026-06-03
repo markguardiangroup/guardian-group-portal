@@ -2739,7 +2739,8 @@ export async function registerRoutes(
         const uploadedByCurrentUser = doc.uploadedBy === user.id;
         
         if (user.role === "client") {
-          if (!uploaderIsClient && doc.approvalStatus === "pending") {
+          const isDesignatedApprover = !doc.approvalRequestedFrom || doc.approvalRequestedFrom === user.id;
+          if (!uploaderIsClient && doc.approvalStatus === "pending" && isDesignatedApprover) {
             awaitingYourApproval++;
           } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
             awaitingOthersApproval++;
@@ -2907,7 +2908,8 @@ export async function registerRoutes(
         const uploadedByCurrentUser = doc.uploadedBy === user.id;
         
         if (user.role === "client") {
-          if (!uploaderIsClient && doc.approvalStatus === "pending") {
+          const isDesignatedApprover = !doc.approvalRequestedFrom || doc.approvalRequestedFrom === user.id;
+          if (!uploaderIsClient && doc.approvalStatus === "pending" && isDesignatedApprover) {
             awaitingYourApproval++;
           } else if (uploadedByCurrentUser && doc.approvalStatus === "pending") {
             awaitingOthersApproval++;
@@ -3456,8 +3458,16 @@ export async function registerRoutes(
         sharedFromEntityName = entityCompany?.name ?? null;
       }
       
+      // Add uploaderRole so the frontend can gate approval buttons correctly
+      let uploaderRole: string | undefined;
+      if (document.uploadedBy) {
+        const uploader = await storage.getUser(document.uploadedBy);
+        uploaderRole = uploader?.role ?? undefined;
+      }
+
       res.json({
         ...document,
+        uploaderRole,
         isSharedLink,
         sharedScope: isSharedLink ? document.scope : undefined,
         sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
@@ -4381,6 +4391,11 @@ export async function registerRoutes(
         if (currentApprovalStatus !== "pending") {
           return res.status(400).json({ error: "This document is not awaiting your sign-off" });
         }
+
+        // Enforce designated approver: only the notified person may sign off
+        if (existingDoc.approvalRequestedFrom && existingDoc.approvalRequestedFrom !== user.id) {
+          return res.status(403).json({ error: "This document was sent to a specific approver. Only that person can sign off on it." });
+        }
         
         // Check if client has approval permission (owner or approver role)
         // Group Primary Contacts bypass the permission-role check — their group ownership grants approval rights
@@ -4479,6 +4494,8 @@ export async function registerRoutes(
         ...(lastApprovedAt && { lastApprovedAt }),
         ...(renewalDate && { renewalDate }),
         ...(isFinalApproval && { approvedVersion: (existingDoc.approvedVersion ?? 0) + 1 }),
+        // Clear the designated approver once client has signed off — the next stage is consultant-only
+        ...(isClientSignOff && { approvalRequestedFrom: null }),
       });
 
       if (!document) {
@@ -4859,6 +4876,9 @@ export async function registerRoutes(
       try {
         emitToAll("document-audit-updated", { documentId });
       } catch { /* non-fatal */ }
+
+      // Record which user was designated as the approver for this document
+      await storage.updateDocument(documentId, { approvalRequestedFrom: targetUserId });
 
       res.json({ success: true, message: `Approval notification sent to ${targetUser.fullName}` });
     } catch (error) {
@@ -18370,7 +18390,11 @@ export async function registerRoutes(
       const pendingCount = countableDocs.filter((d) => d.approvalStatus === "pending").length;
       // Docs awaiting THIS client's sign-off: pending status, uploaded by someone else (consultant/admin)
       const pendingSignOffs = user.role === "client"
-        ? countableDocs.filter((d) => d.approvalStatus === "pending" && d.uploadedBy !== user.id).length
+        ? countableDocs.filter((d) =>
+            d.approvalStatus === "pending" &&
+            d.uploadedBy !== user.id &&
+            (!d.approvalRequestedFrom || d.approvalRequestedFrom === user.id)
+          ).length
         : 0;
 
       // Incidents — clients see only incidents they reported
@@ -18662,6 +18686,8 @@ export async function registerRoutes(
         if (type === "pending_sign_offs") {
           params.push(user.id);
           query += ` AND d.uploaded_by != $${params.length}`;
+          params.push(user.id);
+          query += ` AND (d.approval_requested_from IS NULL OR d.approval_requested_from = $${params.length})`;
         }
         query += " ORDER BY d.title LIMIT 50";
 
@@ -19047,6 +19073,7 @@ export async function registerRoutes(
             `SELECT id, title, site_id, module FROM documents
              WHERE approval_status = 'pending' AND uploaded_by != $1
                AND site_id = ANY($2::varchar[]) AND is_archived = false
+               AND (approval_requested_from IS NULL OR approval_requested_from = $1)
              LIMIT 20`,
             [userId, siteIds]
           );

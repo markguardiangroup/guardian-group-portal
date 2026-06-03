@@ -6922,6 +6922,13 @@
           "message": "Fixed: white screens now show a 'Something went wrong' message with a reload button",
           "category": "bug",
           "createdAt": "2026-06-03T10:35:00.000Z"
+        },
+        {
+          "id": "c4d5e6f7-a8b9-0123-c4d5-e6f7a8b90123",
+          "patch": 14,
+          "message": "Fixed: only the designated approver can sign off — others see a 'sent to a specific person' notice",
+          "category": "bug",
+          "createdAt": "2026-06-03T12:15:00.000Z"
         }
       ],
       "publishedPatch": 13,

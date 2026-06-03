@@ -753,6 +753,7 @@ export const documents = pgTable("documents", {
   version: integer("version").notNull().default(1),
   status: text("status").$type<DocumentStatus>().notNull().default("approval_required"),
   approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default("pending"),
+  approvalRequestedFrom: varchar("approval_requested_from").references(() => usersTable.id),
   expiryDate: timestamp("expiry_date"),
   lastApprovedAt: timestamp("last_approved_at"), // When document was last approved
   renewalDate: timestamp("renewal_date"), // Calculated: lastApprovedAt + renewalPeriodMonths

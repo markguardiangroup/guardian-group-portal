@@ -3673,8 +3673,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const clientHasApprovalPermission = isClient &&
               (user?.clientPermissionRole === "full" || user?.isGroupPrimaryContact);
 
-            const canClientAct = isClient && clientHasApprovalPermission && isPending;
-            const canConsultantAct = isConsultantOrAdmin && (isPending || isSignedOff);
+            // Only the designated approver (or any client if no one was designated) can act
+            const isDesignatedApprover = !(document as any).approvalRequestedFrom || (document as any).approvalRequestedFrom === user?.id;
+            const canClientAct = isClient && clientHasApprovalPermission && isPending && isDesignatedApprover;
+            // Consultants/admins can act on client_signed_off docs (final approval) or pending client-uploaded docs
+            const canConsultantAct = isConsultantOrAdmin && (isSignedOff || (isPending && (document as any).uploaderRole === "client"));
 
             if (!canClientAct && !canConsultantAct) {
               if (isClient && isSignedOff) {
@@ -3692,6 +3695,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         Client signed off — awaiting consultant final approval
                       </Badge>
                     </CardContent>
+                  </Card>
+                );
+              }
+              if (isClient && isPending && !isDesignatedApprover) {
+                return (
+                  <Card className="border-2 border-amber-400 dark:border-amber-600 bg-amber-100/80 dark:bg-amber-900/25" data-testid="card-awaiting-designated-approver">
+                    <CardHeader>
+                      <CardTitle className="text-amber-800 dark:text-amber-300">Awaiting Sign-Off</CardTitle>
+                      <CardDescription className="text-amber-700/80 dark:text-amber-400/80">
+                        This document has been sent to a designated person for sign-off. Only that person can approve or request changes.
+                      </CardDescription>
+                    </CardHeader>
                   </Card>
                 );
               }
