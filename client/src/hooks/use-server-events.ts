@@ -52,9 +52,10 @@ export function useServerEvents() {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
           }
-          // Refresh audit trail for the affected document (approval, archive, reissue, etc.)
-          if (data.id) {
-            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.id, "audit"] });
+          // Refresh the specific document detail and its audit trail
+          if (data.documentId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId] });
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId, "audit"] });
           }
         } catch { /* ignore */ }
         // Refresh all document, dashboard, compliance and calendar views for other users

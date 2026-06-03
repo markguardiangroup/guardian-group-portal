@@ -6833,6 +6833,13 @@
           "createdAt": "2026-06-03T06:35:00.000Z"
         },
         {
+          "id": "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
+          "patch": 14,
+          "message": "Fixed: approval status changes now instantly update all other users' views",
+          "category": "bug",
+          "createdAt": "2026-06-03T06:40:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",
