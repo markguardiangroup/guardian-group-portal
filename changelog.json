@@ -7307,6 +7307,13 @@
           "message": "Audit trail filter: Views and Downloads are now separate filter options",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:35:00.000Z"
+        },
+        {
+          "id": "p4r6s8t0-audit-filter-unselect-all-2026",
+          "patch": 14,
+          "message": "Audit trail filter: added Unselect all alongside Select all",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:40:00.000Z"
         }
       ],
       "publishedPatch": 13,

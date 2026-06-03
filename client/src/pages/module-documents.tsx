@@ -4160,17 +4160,25 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             {label}
                           </DropdownMenuCheckboxItem>
                         ))}
-                        {!allTypesSelected && (
-                          <>
-                            <DropdownMenuSeparator />
+                        <DropdownMenuSeparator />
+                        <div className="flex">
+                          {!allTypesSelected && (
                             <DropdownMenuItem
-                              className="text-xs text-muted-foreground justify-center"
+                              className="text-xs text-muted-foreground flex-1 justify-center"
                               onSelect={() => { setAuditTypeFilter(new Set(ALL_AUDIT_TYPES)); setShowAllAuditLogs(false); }}
                             >
                               Select all
                             </DropdownMenuItem>
-                          </>
-                        )}
+                          )}
+                          {auditTypeFilter.size > 0 && (
+                            <DropdownMenuItem
+                              className="text-xs text-muted-foreground flex-1 justify-center"
+                              onSelect={() => { setAuditTypeFilter(new Set()); setShowAllAuditLogs(false); }}
+                            >
+                              Unselect all
+                            </DropdownMenuItem>
+                          )}
+                        </div>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Button
