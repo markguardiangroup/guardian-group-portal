@@ -3946,6 +3946,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const approvalLog = auditLogs?.find(l => l.action === "document_approved");
             const hasAnyEntry = signOffLog || approvalLog || document.lastApprovedAt;
             if (!hasAnyEntry) return null;
+            // Reviewer comments: changes_requested entries with real feedback text
+            const reviewerComments = [...(auditLogs ?? [])]
+              .filter(l => l.action === "changes_requested" && l.details && l.details.toLowerCase() !== "changes requested")
+              .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             return (
               <Card className="border-2 border-green-400 dark:border-green-600 bg-green-50/80 dark:bg-green-900/20" data-testid="card-document-approved">
                 <CardHeader className="pb-3">
@@ -3997,6 +4001,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           {format(new Date(document.lastApprovedAt), "d MMM yyyy 'at' HH:mm")}
                         </p>
                       </div>
+                    </div>
+                  )}
+                  {isPrivilegedUser && reviewerComments.length > 0 && (
+                    <div className="border-t border-green-200 dark:border-green-800 pt-3 mt-1 space-y-2">
+                      <p className="text-xs font-medium text-green-800 dark:text-green-300">Reviewer Comments</p>
+                      {reviewerComments.map(log => (
+                        <div key={log.id} className="rounded-md bg-white/60 dark:bg-black/20 border border-green-200 dark:border-green-800 px-3 py-2 space-y-0.5">
+                          <p className="text-xs text-foreground break-words">"{log.details}"</p>
+                          <p className="text-xs text-muted-foreground">— {log.userName}, {format(new Date(log.createdAt), "d MMM yyyy 'at' HH:mm")}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </CardContent>
@@ -4158,6 +4173,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         const details = log.details ?? '';
                         const isExpanded = expandedLogIds.has(log.id);
 
+                        const toggleLog = () => setExpandedLogIds(prev => {
+                          const next = new Set(prev);
+                          isExpanded ? next.delete(log.id) : next.add(log.id);
+                          return next;
+                        });
+
                         return (
                           <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
@@ -4170,31 +4191,30 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
-                                  {isExpanded && details && (
-                                    <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
-                                      <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{style.label}</Badge>
-                                  {details && (
+                                  {details && !isExpanded && (
                                     <button
-                                      className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                                      onClick={() => setExpandedLogIds(prev => {
-                                        const next = new Set(prev);
-                                        isExpanded ? next.delete(log.id) : next.add(log.id);
-                                        return next;
-                                      })}
+                                      className="text-xs text-primary hover:underline mt-0.5"
+                                      onClick={toggleLog}
                                       data-testid={`button-expand-log-${log.id}`}
-                                      title={isExpanded ? 'Hide details' : 'Show details'}
                                     >
-                                      {isExpanded
-                                        ? <ChevronUp className="h-3.5 w-3.5" />
-                                        : <ChevronDown className="h-3.5 w-3.5" />}
+                                      Expand to see comment
                                     </button>
                                   )}
+                                  {isExpanded && details && (
+                                    <>
+                                      <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
+                                        <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
+                                      </div>
+                                      <button
+                                        className="text-xs text-primary hover:underline mt-1"
+                                        onClick={toggleLog}
+                                      >
+                                        Hide comment
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
+                                <Badge variant="secondary" className="text-xs whitespace-nowrap shrink-0">{style.label}</Badge>
                               </div>
                             </div>
                           </div>

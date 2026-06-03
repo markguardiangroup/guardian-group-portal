@@ -6971,6 +6971,20 @@
           "message": "Fixed: consultants now see an 'Awaiting Client Sign-Off' card on their own pending documents",
           "category": "bug",
           "createdAt": "2026-06-03T12:58:00.000Z"
+        },
+        {
+          "id": "d1f4a6b8-audit-log-expand-to-see-comment-2026",
+          "patch": 14,
+          "message": "Audit trail entries now show 'Expand to see comment' link when details are available",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T13:10:00.000Z"
+        },
+        {
+          "id": "e2a5b7c9-approved-card-reviewer-comments-2026",
+          "patch": 14,
+          "message": "Approved documents now show reviewer comments from the review cycle (visible to consultants)",
+          "category": "feature",
+          "createdAt": "2026-06-03T13:10:00.000Z"
         }
       ],
       "publishedPatch": 13,
