@@ -2951,13 +2951,17 @@ function IncidentDetailView({ id }: { id: string }) {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reportable</p>
-                        <p className={`text-sm font-medium ${incident.riddorReportable ? "text-red-600" : ""}`}>
-                          {incident.riddorReportable ? "Yes" : "No"}
-                        </p>
+                        {!incident.invCompletedAt && !incident.riddorReportable ? (
+                          <p className="text-sm font-medium text-muted-foreground italic">Not answered</p>
+                        ) : (
+                          <p className={`text-sm font-medium ${incident.riddorReportable ? "text-red-600" : ""}`}>
+                            {incident.riddorReportable ? "Yes" : "No"}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">Responsible Person</p>
-                        <p className="text-sm">{(incident.riddorResponsiblePerson && incident.riddorResponsiblePerson !== "[Redacted]") ? incident.riddorResponsiblePerson : <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</span>}</p>
+                        <p className="text-sm">{(incident.riddorResponsiblePerson && incident.riddorResponsiblePerson !== "[Redacted]") ? incident.riddorResponsiblePerson : <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : !incident.invCompletedAt ? "Not answered" : "N/A"}</span>}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reference</p>

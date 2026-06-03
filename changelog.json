@@ -7216,6 +7216,13 @@
           "message": "Submitting an incident no longer auto-saves an Original Incident Report document",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:10:00.000Z"
+        },
+        {
+          "id": "c1e3f5a7-riddor-not-answered-before-investigation-2026",
+          "patch": 14,
+          "message": "Fixed: RIDDOR Reportable now shows 'Not answered' until the investigation is completed",
+          "category": "bug",
+          "createdAt": "2026-06-03T19:15:00.000Z"
         }
       ],
       "publishedPatch": 13,
