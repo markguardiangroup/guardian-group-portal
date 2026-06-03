@@ -4055,7 +4055,166 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           })()}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+
+          {/* ── Approval Status (always-visible sticky widget) ─────────────── */}
+          {!document.isArchived && (() => {
+            const now = new Date();
+            const oneMonthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+            const expiryDate = document.expiryDate ? new Date(document.expiryDate) : null;
+            const renewalDate = (document as any).renewalDate ? new Date((document as any).renewalDate) : null;
+            const nearExpiry = expiryDate && expiryDate > now && expiryDate <= oneMonthFromNow;
+            const nearRenewal = renewalDate && renewalDate > now && renewalDate <= oneMonthFromNow;
+            const status = document.approvalStatus;
+            const sortedLogs = auditLogs ? [...auditLogs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : [];
+            const signOffEntry = sortedLogs.find(l => l.action === "document_signed_off");
+            const finalApprovalEntry = sortedLogs.find(l => l.action === "document_approved");
+            const clientHasApprovalPermission = isClientUser && (user?.clientPermissionRole === "full" || user?.isGroupPrimaryContact);
+
+            if (status === "pending") {
+              return (
+                <Card className="border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/10" data-testid="card-approval-status">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-sm">
+                      <Clock className="h-4 w-4" />
+                      Awaiting Client Sign-Off
+                    </CardTitle>
+                    <CardDescription className="text-amber-700/80 dark:text-amber-400/80 text-xs">
+                      {isClientUser ? "Please review this document and sign off to confirm receipt." : "Waiting for the client to sign off on this document."}
+                    </CardDescription>
+                  </CardHeader>
+                  {clientHasApprovalPermission && (
+                    <CardContent className="pt-0 space-y-2">
+                      <Button size="sm" className="w-full bg-amber-600 hover:bg-amber-700 text-white" onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }} data-testid="button-sign-off-sidebar">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Sign Off
+                      </Button>
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }} data-testid="button-request-changes-sidebar">
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Request Changes
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            }
+
+            if (status === "client_signed_off") {
+              return (
+                <Card className="border-blue-300 dark:border-blue-700 bg-blue-50/60 dark:bg-blue-900/10" data-testid="card-approval-status">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-300 text-sm">
+                      <CheckCircle className="h-4 w-4" />
+                      Signed Off by Client
+                    </CardTitle>
+                    <CardDescription className="text-blue-700/80 dark:text-blue-400/80 text-xs">
+                      {isPrivilegedUser ? "Client has signed off. Give final approval to complete." : "You have signed off. Awaiting final approval from your consultant."}
+                    </CardDescription>
+                  </CardHeader>
+                  {isPrivilegedUser && (
+                    <CardContent className="pt-0 space-y-2">
+                      <Button size="sm" className="w-full" onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }} data-testid="button-final-approve-sidebar">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Give Final Approval
+                      </Button>
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }} data-testid="button-request-changes-sidebar">
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Request Changes
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            }
+
+            if (status === "changes_requested") {
+              return (
+                <Card className="border-orange-300 dark:border-orange-700 bg-orange-50/60 dark:bg-orange-900/10" data-testid="card-approval-status">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300 text-sm">
+                      <AlertTriangle className="h-4 w-4" />
+                      Changes Required by Consultant
+                    </CardTitle>
+                    <CardDescription className="text-orange-700/80 dark:text-orange-400/80 text-xs">
+                      {isClientUser ? "You requested changes. Your consultant will upload a revised version." : "The client has requested changes. Upload a revised version to continue."}
+                    </CardDescription>
+                  </CardHeader>
+                  {isPrivilegedUser && (
+                    <CardContent className="pt-0">
+                      <Button size="sm" variant="outline" className="w-full border-orange-400 text-orange-800 hover:bg-orange-100 dark:border-orange-600 dark:text-orange-300 dark:hover:bg-orange-900/30" onClick={() => setShowUploadVersionDialog(true)} data-testid="button-upload-revised-sidebar">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Revised Version
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            }
+
+            if (status === "approved" && (nearExpiry || nearRenewal)) {
+              const dateLabel = nearExpiry ? "Expiry" : "Renewal due";
+              const actionDate = nearExpiry ? expiryDate : renewalDate;
+              return (
+                <Card className="border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-900/10" data-testid="card-approval-status">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300 text-sm">
+                      <AlertTriangle className="h-4 w-4" />
+                      Actions Needed by Consultant
+                    </CardTitle>
+                    <CardDescription className="text-amber-700/80 dark:text-amber-400/80 text-xs">
+                      {dateLabel} {format(actionDate!, "d MMM yyyy")} — a new version should be uploaded.
+                    </CardDescription>
+                  </CardHeader>
+                  {isPrivilegedUser && (
+                    <CardContent className="pt-0">
+                      <Button size="sm" variant="outline" className="w-full border-amber-400 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/30" onClick={() => setShowUploadVersionDialog(true)} data-testid="button-upload-renewal-sidebar">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload New Version
+                      </Button>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            }
+
+            if (status === "approved") {
+              return (
+                <Card className="border-emerald-300 dark:border-emerald-700 bg-emerald-50/60 dark:bg-emerald-900/10" data-testid="card-approval-status">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-sm">
+                      <CheckCircle className="h-4 w-4" />
+                      Document Approved
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0 space-y-3">
+                    {signOffEntry && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Client Sign-Off</p>
+                        <p className="text-sm font-medium">{signOffEntry.userName}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(signOffEntry.createdAt), "d MMM yyyy, HH:mm")}</p>
+                      </div>
+                    )}
+                    {finalApprovalEntry && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Final Approval</p>
+                        <p className="text-sm font-medium">{finalApprovalEntry.userName}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(finalApprovalEntry.createdAt), "d MMM yyyy, HH:mm")}</p>
+                      </div>
+                    )}
+                    {!signOffEntry && !finalApprovalEntry && document.lastApprovedAt && (
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Approved</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(document.lastApprovedAt), "d MMM yyyy, HH:mm")}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            }
+
+            return null;
+          })()}
+
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>

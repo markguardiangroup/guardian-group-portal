@@ -6798,6 +6798,27 @@
           "createdAt": "2026-06-02T23:50:00.000Z"
         },
         {
+          "id": "d7e8f9ab-cdef-0123-d7e8-f9abcdef0123",
+          "patch": 14,
+          "message": "Approval status panel now fixed in sidebar — always visible while scrolling",
+          "category": "feature",
+          "createdAt": "2026-06-03T06:30:00.000Z"
+        },
+        {
+          "id": "e8f9abcd-ef01-2345-e8f9-abcdef012345",
+          "patch": 14,
+          "message": "Approved docs show client sign-off and consultant approval with timestamps",
+          "category": "feature",
+          "createdAt": "2026-06-03T06:30:00.000Z"
+        },
+        {
+          "id": "f9abcdef-0123-4567-f9ab-cdef01234567",
+          "patch": 14,
+          "message": "Docs within 1 month of expiry or renewal show 'Actions Needed by Consultant' alert",
+          "category": "feature",
+          "createdAt": "2026-06-03T06:30:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",
