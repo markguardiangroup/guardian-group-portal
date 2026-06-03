@@ -7321,6 +7321,13 @@
           "message": "Audit trail: Client signed off now shows a green tick like Document approved",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:45:00.000Z"
+        },
+        {
+          "id": "r6t8u0v2-audit-email-detail-inline-2026",
+          "patch": 14,
+          "message": "Audit trail: email entries now show the email type and recipient inline",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:50:00.000Z"
         }
       ],
       "publishedPatch": 13,

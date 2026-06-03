@@ -4226,13 +4226,26 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           return next;
                         });
                         // Only surface an expand link for entries where the user typed a message manually.
-                        // Auto-generated detail strings (views, downloads, uploads, emails, approvals) don't need it.
+                        // Auto-generated detail strings (views, downloads, uploads, approvals) don't need it.
                         const AUTO_DETAIL_ACTIONS = new Set([
                           'document_viewed', 'document_downloaded', 'document_uploaded',
                           'document_approved', 'document_signed_off', 'document_rejected',
                           'email_sent', 'document_version_uploaded', 'version_uploaded',
                         ]);
                         const hasManualComment = !!details && !AUTO_DETAIL_ACTIONS.has(log.action);
+
+                        // For email entries, parse metadata for a friendly type label and show details inline
+                        const EMAIL_TYPE_LABELS: Record<string, string> = {
+                          approval_notification: 'Approval requested',
+                          sign_off_notification: 'Sign-off requested',
+                          document_approved_notification: 'Approval confirmed',
+                          invitation: 'User invited',
+                        };
+                        let emailMeta: { emailType?: string } = {};
+                        if (log.action === 'email_sent' && log.metadata) {
+                          try { emailMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
+                        }
+                        const emailTypeLabel = emailMeta.emailType ? EMAIL_TYPE_LABELS[emailMeta.emailType] ?? null : null;
 
                         return (
                           <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
@@ -4246,6 +4259,16 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
+                                  {log.action === 'email_sent' && (emailTypeLabel || details) && (
+                                    <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-0.5">
+                                      {emailTypeLabel && (
+                                        <p className="text-xs font-medium text-foreground">{emailTypeLabel}</p>
+                                      )}
+                                      {details && (
+                                        <p className="text-xs text-muted-foreground break-words">{details}</p>
+                                      )}
+                                    </div>
+                                  )}
                                   {isExpanded && hasManualComment && (
                                     <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
                                       <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
