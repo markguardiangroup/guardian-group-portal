@@ -87,6 +87,10 @@ export function useServerEvents() {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
           }
+          if (data.documentId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId] });
+            queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId, "audit"] });
+          }
         } catch { /* ignore */ }
         // Refresh all document, dashboard, compliance and calendar views for other users
         queryClient.invalidateQueries({ queryKey: ["/api/documents"] });

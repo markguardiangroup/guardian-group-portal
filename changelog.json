@@ -6840,6 +6840,27 @@
           "createdAt": "2026-06-03T06:40:00.000Z"
         },
         {
+          "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
+          "patch": 14,
+          "message": "Fixed: uploading a new document version now updates all users' views instantly",
+          "category": "bug",
+          "createdAt": "2026-06-03T06:50:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-e5f6-a7b8c9d01234",
+          "patch": 14,
+          "message": "Fixed: sending an approval notification now refreshes the audit trail for all viewers",
+          "category": "bug",
+          "createdAt": "2026-06-03T06:50:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-f6a7-b8c9d0e12345",
+          "patch": 14,
+          "message": "Fixed: new document uploads now instantly refresh the detail view for all users",
+          "category": "bug",
+          "createdAt": "2026-06-03T06:50:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",

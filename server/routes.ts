@@ -3560,7 +3560,22 @@ export async function registerRoutes(
           changeNote 
         }),
       });
-      
+
+      // Emit document-updated so all relevant users (including clients) see the new version in real time
+      try {
+        const versionPayload = {
+          documentId: document.id,
+          siteId: document.siteId,
+          entityId: document.entityId,
+          approvalStatus: updatedDocument?.approvalStatus,
+        };
+        const versionSite = await storage.getSite(document.siteId).catch(() => null);
+        if (versionSite) emitToCompany(versionSite.companyId, "document-updated", versionPayload);
+        emitToRole("admin", "document-updated", versionPayload);
+        emitToRole("consultant", "document-updated", versionPayload);
+        emitToAll("document-audit-updated", { documentId: document.id });
+      } catch { /* non-fatal */ }
+
       res.json(updatedDocument);
     } catch (error) {
       console.error("Upload document version error:", error);
@@ -4768,6 +4783,11 @@ export async function registerRoutes(
         details: `Approval notification email sent to ${targetUser.fullName} (${targetUser.email})`,
         metadata: JSON.stringify({ targetUserId: targetUser.id, emailType: "approval_notification" }),
       });
+
+      // Refresh audit trail for all users viewing this document
+      try {
+        emitToAll("document-audit-updated", { documentId });
+      } catch { /* non-fatal */ }
 
       res.json({ success: true, message: `Approval notification sent to ${targetUser.fullName}` });
     } catch (error) {
