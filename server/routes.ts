@@ -1564,6 +1564,7 @@ export async function registerRoutes(
 
     const client = { userId, role: user.role, companyId: user.companyId ?? null, res };
     addClient(client);
+    console.log(`[SSE] connected userId=${userId} role=${user.role} online=${getOnlineUserIds().length}`);
 
     // Record when the user connected and notify presence watchers
     storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
@@ -1581,6 +1582,7 @@ export async function registerRoutes(
     req.on("close", () => {
       clearInterval(heartbeat);
       removeClient(client);
+      console.log(`[SSE] disconnected userId=${userId}`);
       // Record when the user disconnected and notify presence watchers
       storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
       emitToRole("admin", "presence-changed", { userId, online: false });

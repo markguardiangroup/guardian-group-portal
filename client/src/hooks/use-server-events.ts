@@ -46,6 +46,7 @@ export function useServerEvents() {
       });
 
       es.addEventListener("document-updated", (e) => {
+        console.log("[SSE:client] document-updated received", e.data);
         try {
           const data = JSON.parse(e.data);
           if (data.siteId) {
