@@ -7468,6 +7468,13 @@
           "message": "Final Approval card now shows the client's sign-off comment when present",
           "category": "enhancement",
           "createdAt": "2026-06-03T23:20:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-signoff-expand-comment-audit-2026",
+          "patch": 14,
+          "message": "Audit trail now shows 'Expand to see comment' on client sign-off entries",
+          "category": "bug",
+          "createdAt": "2026-06-03T23:25:00.000Z"
         }
       ],
       "publishedPatch": 13,

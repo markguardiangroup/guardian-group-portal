@@ -4315,10 +4315,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         // Auto-generated detail strings (views, downloads, uploads, approvals) don't need it.
                         const AUTO_DETAIL_ACTIONS = new Set([
                           'document_viewed', 'document_downloaded', 'document_uploaded',
-                          'document_approved', 'document_signed_off', 'document_rejected',
+                          'document_approved', 'document_rejected',
                           'email_sent', 'document_version_uploaded', 'version_uploaded',
                         ]);
-                        const hasManualComment = !!details && !AUTO_DETAIL_ACTIONS.has(log.action);
+                        const GENERIC_SIGNED_OFF_TEXT = ['document approved', 'document signed off'];
+                        const hasManualComment = !!details && (
+                          !AUTO_DETAIL_ACTIONS.has(log.action) &&
+                          !(log.action === 'document_signed_off' && GENERIC_SIGNED_OFF_TEXT.includes(details.toLowerCase()))
+                        );
 
                         // For email entries, parse metadata for a friendly type label and show details inline
                         const EMAIL_TYPE_LABELS: Record<string, string> = {
