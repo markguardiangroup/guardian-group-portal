@@ -7118,6 +7118,13 @@
           "message": "Follow Up Investigation Export Report button moved to the card header, next to Hide Details",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:28:00.000Z"
+        },
+        {
+          "id": "a7c9e1fd-report-redaction-styled-2026",
+          "patch": 14,
+          "message": "Exported reports now show personal data as [Redacted] (styled) when consultant access toggle is off",
+          "category": "feature",
+          "createdAt": "2026-06-03T18:40:00.000Z"
         }
       ],
       "publishedPatch": 13,

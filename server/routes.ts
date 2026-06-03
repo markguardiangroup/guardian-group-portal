@@ -16037,9 +16037,12 @@ export async function registerRoutes(
       const boolVal = (v: boolean | null | undefined) =>
         v === null || v === undefined ? '<span class="empty">Not recorded</span>' : v ? "Yes" : "No";
       const textVal = (v: string | null | undefined) =>
+        v === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' :
         v && v.trim() ? v.replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
       const field = (label: string, value: string) =>
         `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`;
+      const nameCell = (n: string | null | undefined) =>
+        n === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' : (n || "—");
 
       let initialWitnesses: { name: string; jobRole: string; company: string }[] = [];
       try {
@@ -16070,7 +16073,7 @@ export async function registerRoutes(
               <th class="th">Name</th><th class="th">Job Role</th><th class="th">Company</th>
             </tr></thead>
             <tbody>${initialWitnesses.map(w => `<tr>
-              <td class="td">${w.name || "—"}</td>
+              <td class="td">${nameCell(w.name)}</td>
               <td class="td">${w.jobRole || "—"}</td>
               <td class="td">${w.company || "—"}</td>
             </tr>`).join("")}</tbody>
@@ -16100,6 +16103,7 @@ export async function registerRoutes(
   td.label{width:210px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
   td.value{color:#111827;line-height:1.5}
   .empty{color:#9ca3af;font-style:italic}
+  .redacted{color:#b91c1c;font-style:italic;background:#fef2f2;border-radius:3px;padding:0 5px;font-size:12px}
   .pill{display:inline-block;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:99px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0}
   .th{text-align:left;font-size:11px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;padding:6px 8px;background:#f9fafb}
   .td{padding:6px 8px;font-size:12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
@@ -16229,9 +16233,12 @@ export async function registerRoutes(
       const boolVal = (v: boolean | null | undefined) =>
         v === null || v === undefined ? '<span class="empty">Not recorded</span>' : v ? "Yes" : "No";
       const textVal = (v: string | null | undefined) =>
+        v === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' :
         v && v.trim() ? v.replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
       const field = (label: string, value: string) =>
         `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`;
+      const nameCell = (n: string | null | undefined) =>
+        n === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' : (n || "—");
 
       let invWitnesses: { name: string; jobRole: string; company: string; statementAttached?: boolean | null }[] = [];
       try { if (incident.invWitnesses) invWitnesses = JSON.parse(incident.invWitnesses); } catch {}
@@ -16259,7 +16266,7 @@ export async function registerRoutes(
               <th class="th">Name</th><th class="th">Job Role</th><th class="th">Company</th><th class="th">Statement</th>
             </tr></thead>
             <tbody>${invWitnesses.map(w => `<tr>
-              <td class="td">${w.name || "—"}</td>
+              <td class="td">${nameCell(w.name)}</td>
               <td class="td">${w.jobRole || "—"}</td>
               <td class="td">${w.company || "—"}</td>
               <td class="td">${w.statementAttached === null || w.statementAttached === undefined ? "—" : w.statementAttached ? "Yes" : "No"}</td>
@@ -16273,7 +16280,7 @@ export async function registerRoutes(
               <th class="th">Name</th><th class="th">Job Role</th><th class="th">Company</th>
             </tr></thead>
             <tbody>${initialWitnesses.map(w => `<tr>
-              <td class="td">${w.name || "—"}</td>
+              <td class="td">${nameCell(w.name)}</td>
               <td class="td">${w.jobRole || "—"}</td>
               <td class="td">${w.company || "—"}</td>
             </tr>`).join("")}</tbody>
@@ -16333,6 +16340,7 @@ export async function registerRoutes(
   td.label{width:210px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
   td.value{color:#111827;line-height:1.5}
   .empty{color:#9ca3af;font-style:italic}
+  .redacted{color:#b91c1c;font-style:italic;background:#fef2f2;border-radius:3px;padding:0 5px;font-size:12px}
   .pill{display:inline-block;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:99px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0}
   .th{text-align:left;font-size:11px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;padding:6px 8px;background:#f9fafb}
   .td{padding:6px 8px;font-size:12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
