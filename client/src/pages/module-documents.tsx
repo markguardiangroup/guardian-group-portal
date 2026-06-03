@@ -4259,7 +4259,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
-                                  {log.action === 'email_sent' && (emailTypeLabel || details) && (
+                                  {log.action === 'email_sent' && isExpanded && (emailTypeLabel || details) && (
                                     <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-0.5">
                                       {emailTypeLabel && (
                                         <p className="text-xs font-medium text-foreground">{emailTypeLabel}</p>
@@ -4284,6 +4284,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       data-testid={`button-expand-log-${log.id}`}
                                     >
                                       {isExpanded ? 'Hide comment' : 'Expand to see comment'}
+                                    </button>
+                                  )}
+                                  {log.action === 'email_sent' && (emailTypeLabel || details) && (
+                                    <button
+                                      className="text-xs text-primary hover:underline"
+                                      onClick={toggleLog}
+                                      data-testid={`button-expand-log-${log.id}`}
+                                    >
+                                      {isExpanded ? 'Hide details' : 'See more'}
                                     </button>
                                   )}
                                 </div>

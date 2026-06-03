@@ -7328,6 +7328,13 @@
           "message": "Audit trail: email entries now show the email type and recipient inline",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:50:00.000Z"
+        },
+        {
+          "id": "s7u9v1w3-audit-email-see-more-toggle-2026",
+          "patch": 14,
+          "message": "Audit trail: email entries have a 'See more' link to expand recipient details",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:55:00.000Z"
         }
       ],
       "publishedPatch": 13,
