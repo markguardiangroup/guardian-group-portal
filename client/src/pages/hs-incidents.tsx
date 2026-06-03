@@ -2047,6 +2047,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [expandedHistory, setExpandedHistory] = useState<Set<string>>(new Set());
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
+  const [confirmDeleteDocId, setConfirmDeleteDocId] = useState<string | null>(null);
   const [previewDoc, setPreviewDoc] = useState<any | null>(null);
   const [detailsMinimised, setDetailsMinimised] = useState(true);
 
@@ -3164,14 +3165,33 @@ function IncidentDetailView({ id }: { id: string }) {
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
-                            <button
-                              className="rounded-full bg-black/50 p-1.5 text-white hover:bg-red-600/80"
-                              onClick={(e) => { e.stopPropagation(); if (window.confirm("Delete this photo?")) deleteDocumentMutation.mutate(photo.id); }}
-                              title="Delete photo"
-                              data-testid={`button-delete-photo-${photo.id}`}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            {confirmDeleteDocId === photo.id ? (
+                              <>
+                                <button
+                                  className="rounded-full bg-red-600 px-2 py-1 text-white text-xs font-medium"
+                                  onClick={(e) => { e.stopPropagation(); deleteDocumentMutation.mutate(photo.id); setConfirmDeleteDocId(null); }}
+                                  data-testid={`button-confirm-delete-photo-${photo.id}`}
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  className="rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
+                                  onClick={(e) => { e.stopPropagation(); setConfirmDeleteDocId(null); }}
+                                  data-testid={`button-cancel-delete-photo-${photo.id}`}
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                className="rounded-full bg-black/50 p-1.5 text-white hover:bg-red-600/80"
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteDocId(photo.id); }}
+                                title="Delete photo"
+                                data-testid={`button-delete-photo-${photo.id}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
                           </div>
                         </div>
                         {/* Caption */}
@@ -3291,17 +3311,41 @@ function IncidentDetailView({ id }: { id: string }) {
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              onClick={() => { if (window.confirm("Delete this document?")) deleteDocumentMutation.mutate(doc.id); }}
-                              data-testid={`button-delete-doc-${doc.id}`}
-                              title="Delete document"
-                              disabled={deleteDocumentMutation.isPending}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {confirmDeleteDocId === doc.id ? (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={() => { deleteDocumentMutation.mutate(doc.id); setConfirmDeleteDocId(null); }}
+                                  data-testid={`button-confirm-delete-doc-${doc.id}`}
+                                  disabled={deleteDocumentMutation.isPending}
+                                >
+                                  Delete
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => setConfirmDeleteDocId(null)}
+                                  data-testid={`button-cancel-delete-doc-${doc.id}`}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                onClick={() => setConfirmDeleteDocId(doc.id)}
+                                data-testid={`button-delete-doc-${doc.id}`}
+                                title="Delete document"
+                                disabled={deleteDocumentMutation.isPending}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             {doc.fileUrl && (
                               <Button
                                 variant="ghost"

@@ -7202,6 +7202,13 @@
           "message": "Incidents register table now shows a RIDDOR badge column for reportable incidents",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:10:00.000Z"
+        },
+        {
+          "id": "a9c1e3f5-incident-doc-delete-inline-confirm-2026",
+          "patch": 14,
+          "message": "Fixed: deleting incident photos and documents now works with an inline confirm instead of browser dialog",
+          "category": "bug",
+          "createdAt": "2026-06-03T18:45:00.000Z"
         }
       ],
       "publishedPatch": 13,
