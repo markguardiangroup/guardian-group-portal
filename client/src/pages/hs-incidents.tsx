@@ -2394,19 +2394,24 @@ function IncidentDetailView({ id }: { id: string }) {
                     <ClipboardList className="h-4 w-4 text-module-accent" />
                     Incident Details
                   </CardTitle>
-                  <Button
-                    variant={detailsMinimised ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setDetailsMinimised(v => !v)}
-                    className={`gap-1.5 ${detailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
-                    data-testid="button-toggle-incident-details"
-                  >
-                    {detailsMinimised ? (
-                      <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
-                    ) : (
-                      <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => window.open(`/api/incidents/${incident.id}/initial-report`, "_blank")} data-testid="button-export-initial-report">
+                      <Download className="h-3 w-3" />Export Report
+                    </Button>
+                    <Button
+                      variant={detailsMinimised ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setDetailsMinimised(v => !v)}
+                      className={`gap-1.5 ${detailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
+                      data-testid="button-toggle-incident-details"
+                    >
+                      {detailsMinimised ? (
+                        <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
+                      ) : (
+                        <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-3 py-1.5 mt-2">
                   This incident report cannot be edited once submitted.

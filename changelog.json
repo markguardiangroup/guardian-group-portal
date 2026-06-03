@@ -7090,6 +7090,13 @@
           "message": "All users (including clients and consultants) can now add, complete, reopen and delete action items",
           "category": "feature",
           "createdAt": "2026-06-03T17:50:00.000Z"
+        },
+        {
+          "id": "c3e5a7b9-initial-report-export-button-2026",
+          "patch": 14,
+          "message": "Incident Details card now has an Export Report button for the initial incident report",
+          "category": "feature",
+          "createdAt": "2026-06-03T18:05:00.000Z"
         }
       ],
       "publishedPatch": 13,

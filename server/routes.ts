@@ -16014,6 +16014,201 @@ export async function registerRoutes(
   });
 
   // ─── Investigation Report Download ────────────────────────────────────────────
+  app.get("/api/incidents/:id/initial-report", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      let incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      if (user.role !== "client" && !incident.consultantFullAccess) {
+        incident = redactIncidentNamesForNonClient(incident);
+      }
+
+      const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
+      const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;
+      const siteName = site?.name ?? "—";
+      const companyName = company?.name ?? "—";
+
+      const fmt = (d: string | Date | null | undefined) =>
+        d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
+      const boolVal = (v: boolean | null | undefined) =>
+        v === null || v === undefined ? '<span class="empty">Not recorded</span>' : v ? "Yes" : "No";
+      const textVal = (v: string | null | undefined) =>
+        v && v.trim() ? v.replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
+      const field = (label: string, value: string) =>
+        `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`;
+
+      let initialWitnesses: { name: string; jobRole: string; company: string }[] = [];
+      try {
+        if (incident.witnesses) {
+          const parsed = JSON.parse(incident.witnesses);
+          if (Array.isArray(parsed)) initialWitnesses = parsed;
+          else initialWitnesses = [{ name: String(incident.witnesses), jobRole: "", company: "" }];
+        }
+      } catch { if (incident.witnesses) initialWitnesses = [{ name: String(incident.witnesses), jobRole: "", company: "" }]; }
+
+      let bodyZones: string[] = [];
+      try { if (incident.bodyDiagramMarkers) bodyZones = JSON.parse(incident.bodyDiagramMarkers); } catch {}
+
+      const causePills = Array.isArray(incident.incidentCause) && incident.incidentCause.length > 0
+        ? incident.incidentCause.map((c: string) => `<span class="pill">${c}</span>`).join("")
+        : '<span class="empty">None recorded</span>';
+      const effectPills = Array.isArray(incident.incidentEffect) && incident.incidentEffect.length > 0
+        ? incident.incidentEffect.map((e: string) => `<span class="pill">${e}</span>`).join("")
+        : '<span class="empty">None recorded</span>';
+
+      const immediateActionsHtml = incident.immediateActions?.trim()
+        ? incident.immediateActions.split("\n").filter(Boolean).map((line: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:3px;color:#111827">${line.trim()}</li>`).join("")
+        : null;
+
+      const initialWitnessRows = initialWitnesses.length > 0
+        ? `<table style="width:100%;border-collapse:collapse;margin-top:8px">
+            <thead><tr>
+              <th class="th">Name</th><th class="th">Job Role</th><th class="th">Company</th>
+            </tr></thead>
+            <tbody>${initialWitnesses.map(w => `<tr>
+              <td class="td">${w.name || "—"}</td>
+              <td class="td">${w.jobRole || "—"}</td>
+              <td class="td">${w.company || "—"}</td>
+            </tr>`).join("")}</tbody>
+          </table>`
+        : '<p class="empty" style="margin-top:6px">No witnesses recorded</p>';
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Report – ${incident.incidentReference}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;color:#111827;background:#f9fafb;padding:24px}
+  .page{max-width:820px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
+  .header{background:#1e293b;color:#fff;padding:28px 32px;display:flex;justify-content:space-between;align-items:flex-start}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .header .meta{text-align:right;font-size:12px;opacity:.85;line-height:1.6}
+  .ref-badge{display:inline-block;background:#fff;color:#1e293b;font-weight:700;font-size:13px;padding:4px 12px;border-radius:4px;margin-top:6px}
+  .accent-banner{padding:10px 32px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:#16a34a}
+  .body{padding:24px 32px}
+  section{margin-bottom:24px}
+  section h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}
+  td{padding:7px 0;vertical-align:top;border-bottom:1px solid #f3f4f6;font-size:13px}
+  td.label{width:210px;color:#6b7280;font-weight:500;padding-right:16px;white-space:nowrap}
+  td.value{color:#111827;line-height:1.5}
+  .empty{color:#9ca3af;font-style:italic}
+  .pill{display:inline-block;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:99px;padding:2px 10px;font-size:12px;margin:2px 3px 2px 0}
+  .th{text-align:left;font-size:11px;color:#6b7280;font-weight:600;border-bottom:1px solid #e5e7eb;padding:6px 8px;background:#f9fafb}
+  .td{padding:6px 8px;font-size:12px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+  .footer{border-top:1px solid #e5e7eb;padding:14px 32px;background:#f9fafb;font-size:11px;color:#9ca3af;display:flex;justify-content:space-between}
+  @media print{
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff;padding:0}
+    .page{border:none;border-radius:0;max-width:100%}
+    .header{background:#1e293b !important;color:#fff !important}
+    .accent-banner{background:#16a34a !important;color:#fff !important}
+  }
+</style>
+</head>
+<body>
+<script>
+  window.addEventListener('load', function() {
+    setTimeout(function() { window.print(); }, 400);
+  });
+</script>
+<div class="page">
+  <div class="header">
+    <div>
+      <div style="font-size:11px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Guardian Group</div>
+      <h1>Incident Report</h1>
+      <div class="ref-badge">${incident.incidentReference}</div>
+    </div>
+    <div class="meta">
+      <div>${companyName}</div>
+      <div>${siteName}</div>
+      <div>Reported: <strong>${fmt(incident.incidentDate)}</strong></div>
+      <div style="margin-top:4px;font-size:11px;opacity:.65">Generated ${new Date().toLocaleString("en-GB")}</div>
+    </div>
+  </div>
+  <div class="accent-banner">Initial Incident Report – ${incident.title}</div>
+  <div class="body">
+
+    <section>
+      <h2>Incident Overview</h2>
+      <table>
+        ${field("Incident Type", incident.incidentType || "—")}
+        ${incident.incidentNature ? field("Nature of Incident", incident.incidentNature) : ""}
+        ${field("Date of Incident", fmt(incident.incidentDate))}
+        ${incident.incidentTime ? field("Time of Incident", incident.incidentTime) : ""}
+        ${field("Location", textVal(incident.locationDetails))}
+      </table>
+    </section>
+
+    <section>
+      <h2>Description of Incident</h2>
+      <p style="font-size:13px;line-height:1.7;color:#111827">${incident.description ? incident.description.replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</p>
+    </section>
+
+    <section>
+      <h2>Cause, Effect &amp; Equipment</h2>
+      <table>
+        <tr><td class="label">Cause(s)</td><td class="value">${causePills}</td></tr>
+        <tr><td class="label">Effect / Affect</td><td class="value">${effectPills}</td></tr>
+        ${field("Machinery / Equipment", textVal(incident.machineryInvolved))}
+      </table>
+    </section>
+
+    <section>
+      <h2>Injured / Affected Person</h2>
+      <table>
+        ${field("Injuries Reported", boolVal(incident.injuriesReported))}
+        ${incident.injuryDetails ? field("Injury Details", textVal(incident.injuryDetails)) : ""}
+        ${bodyZones.length > 0 ? field("Body Areas Affected", bodyZones.join(", ")) : ""}
+        ${field("Name", textVal(incident.affectedPersonName))}
+        ${incident.affectedPersonJobTitle ? field(incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title", incident.affectedPersonJobTitle) : ""}
+        ${incident.affectedPersonAddress ? field("Address", textVal(incident.affectedPersonAddress)) : ""}
+      </table>
+    </section>
+
+    ${immediateActionsHtml ? `<section>
+      <h2>Immediate Actions Taken</h2>
+      <ul style="margin:0;padding-left:20px">${immediateActionsHtml}</ul>
+    </section>` : ""}
+
+    <section>
+      <h2>Witnesses</h2>
+      ${initialWitnessRows}
+    </section>
+
+    <section>
+      <h2>Reporting Person</h2>
+      <table>
+        ${field("Name", textVal(incident.reportingPersonName))}
+        ${incident.reportingPersonJobTitle ? field("Job Title", textVal(incident.reportingPersonJobTitle)) : ""}
+        ${incident.reportingPersonAddress ? field("Address", textVal(incident.reportingPersonAddress)) : ""}
+      </table>
+    </section>
+
+  </div>
+  <div class="footer">
+    <span>${incident.incidentReference} — Initial Incident Report</span>
+    <span>Generated ${new Date().toLocaleString("en-GB")}</span>
+  </div>
+</div>
+</body>
+</html>`;
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.send(html);
+    } catch (error) {
+      console.error("Error generating initial incident report:", error);
+      res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
   app.get("/api/incidents/:id/investigation-report", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
