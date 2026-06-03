@@ -4055,7 +4055,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 case 'document_approved':
                   return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400', label: 'Approval' };
                 case 'document_signed_off':
-                  return { icon: CheckCircle, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400', label: 'Approval' };
+                  return { icon: CheckCircle, bg: 'bg-green-100 dark:bg-green-900/40', color: 'text-green-600 dark:text-green-400', label: 'Approval' };
                 case 'document_rejected':
                   return { icon: XCircle, bg: 'bg-red-100 dark:bg-red-900/40', color: 'text-red-600 dark:text-red-400', label: 'Approval' };
                 case 'changes_requested':

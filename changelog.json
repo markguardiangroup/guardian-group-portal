@@ -7314,6 +7314,13 @@
           "message": "Audit trail filter: added Unselect all alongside Select all",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:40:00.000Z"
+        },
+        {
+          "id": "q5s7t9u1-audit-signed-off-green-2026",
+          "patch": 14,
+          "message": "Audit trail: Client signed off now shows a green tick like Document approved",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:45:00.000Z"
         }
       ],
       "publishedPatch": 13,
