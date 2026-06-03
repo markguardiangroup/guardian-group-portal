@@ -6985,6 +6985,13 @@
           "message": "Approved documents now show reviewer comments from the review cycle (visible to consultants)",
           "category": "feature",
           "createdAt": "2026-06-03T13:10:00.000Z"
+        },
+        {
+          "id": "f3b6c8d0-audit-log-compact-expand-link-2026",
+          "patch": 14,
+          "message": "Audit trail: 'Expand to see comment' moved to the top-right of each row; only shown for manual comments",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T13:20:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -4178,6 +4178,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           isExpanded ? next.delete(log.id) : next.add(log.id);
                           return next;
                         });
+                        // Only surface an expand link for entries where the user typed a message manually.
+                        // Auto-generated detail strings (views, downloads, uploads, emails, approvals) don't need it.
+                        const AUTO_DETAIL_ACTIONS = new Set([
+                          'document_viewed', 'document_downloaded', 'document_uploaded',
+                          'document_approved', 'document_signed_off', 'document_rejected',
+                          'email_sent', 'document_version_uploaded', 'version_uploaded',
+                        ]);
+                        const hasManualComment = !!details && !AUTO_DETAIL_ACTIONS.has(log.action);
 
                         return (
                           <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
@@ -4191,30 +4199,24 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
-                                  {details && !isExpanded && (
+                                  {isExpanded && hasManualComment && (
+                                    <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
+                                      <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {hasManualComment && (
                                     <button
-                                      className="text-xs text-primary hover:underline mt-0.5"
+                                      className="text-xs text-primary hover:underline"
                                       onClick={toggleLog}
                                       data-testid={`button-expand-log-${log.id}`}
                                     >
-                                      Expand to see comment
+                                      {isExpanded ? 'Hide comment' : 'Expand to see comment'}
                                     </button>
                                   )}
-                                  {isExpanded && details && (
-                                    <>
-                                      <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
-                                        <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
-                                      </div>
-                                      <button
-                                        className="text-xs text-primary hover:underline mt-1"
-                                        onClick={toggleLog}
-                                      >
-                                        Hide comment
-                                      </button>
-                                    </>
-                                  )}
+                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{style.label}</Badge>
                                 </div>
-                                <Badge variant="secondary" className="text-xs whitespace-nowrap shrink-0">{style.label}</Badge>
                               </div>
                             </div>
                           </div>
