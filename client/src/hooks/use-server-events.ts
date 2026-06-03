@@ -3,7 +3,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "./use-auth";
 
 let backoffMs = 1_000;
-const MAX_BACKOFF = 30_000;
+const MAX_BACKOFF = 5_000;
 
 export function useServerEvents() {
   const { isAuthenticated, logout } = useAuth();

@@ -7489,6 +7489,13 @@
           "message": "Fixed: folder view now live-updates via SSE when documents change",
           "category": "bug",
           "createdAt": "2026-06-03T23:35:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-sse-reconnect-backoff-fix-2026",
+          "patch": 14,
+          "message": "Fixed: SSE reconnects faster after server restarts (5s max vs 30s)",
+          "category": "bug",
+          "createdAt": "2026-06-03T23:40:00.000Z"
         }
       ],
       "publishedPatch": 13,
