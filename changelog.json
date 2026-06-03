@@ -7412,6 +7412,13 @@
           "message": "Fixed: idle timeout logout now correctly returns you to the login screen",
           "category": "bug",
           "createdAt": "2026-06-03T22:00:00.000Z"
+        },
+        {
+          "id": "e5a7b9c1-my-actions-changes-requested-tile-2026",
+          "patch": 14,
+          "message": "My Actions now shows a 'Changes Requested' tile for documents sent back by a client",
+          "category": "feature",
+          "createdAt": "2026-06-03T22:20:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -448,6 +448,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
 interface MyActionsData {
   assignedDocs: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
   pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
+  changesRequested: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
   myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
   myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
   canViewCases: boolean;
@@ -474,13 +475,14 @@ const MODULE_BADGE_CONFIG: Record<string, { label: string; cls: string }> = {
 };
 
 const ACTION_BADGE_CLS: Record<string, string> = {
-  overdue:          "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  "due soon":       "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  "pending approval": "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  open:             "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
-  in_progress:      "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  critical:         "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  high:             "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  overdue:             "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  "due soon":          "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "pending approval":  "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "changes requested": "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+  open:                "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  in_progress:         "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  critical:            "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  high:                "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
 };
 
 function docHref(module: string | null | undefined, docId?: string | null, siteId?: string | null): string {
@@ -543,6 +545,16 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         siteLabel: resolveSiteLabel(d.site_id, siteMap),
         subLabel: null,
         badge: "pending approval",
+        module: d.module ?? null,
+        href: docHref(d.module, d.id, d.site_id),
+      }));
+    case "changesRequested":
+      return (data.changesRequested?.items ?? []).map((d) => ({
+        id: d.id,
+        label: d.title,
+        siteLabel: resolveSiteLabel(d.site_id, siteMap),
+        subLabel: "Changes requested by client",
+        badge: "changes requested",
         module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
       }));
@@ -616,6 +628,18 @@ function MyActionsPanel({ role }: { role: string }) {
       border: "border-amber-200 dark:border-amber-800",
       href: "/documents",
       show: true,
+    },
+    {
+      key: "changesRequested",
+      label: "Changes Requested",
+      sublabel: "Client sent back for revision",
+      count: data?.changesRequested?.count ?? 0,
+      icon: FileText,
+      color: "text-rose-600 dark:text-rose-400",
+      bg: "bg-rose-50 dark:bg-rose-950/20",
+      border: "border-rose-200 dark:border-rose-800",
+      href: "/documents",
+      show: isPrivileged,
     },
     {
       key: "myIncidents",

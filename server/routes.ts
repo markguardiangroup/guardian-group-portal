@@ -19203,7 +19203,19 @@ export async function registerRoutes(
         }
       }
 
-      // 3. Open incidents assigned to this user
+      // 3. Documents where client requested changes from this user (uploaded_by = userId)
+      let changesRequestedRows: { id: string; title: string; site_id: string | null; module: string | null }[] = [];
+      if (user.role === "consultant" || user.role === "admin") {
+        const crRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null }>(
+          `SELECT id, title, site_id, module FROM documents
+           WHERE approval_status = 'changes_requested' AND uploaded_by = $1 AND is_archived = false
+           LIMIT 20`,
+          [userId]
+        );
+        changesRequestedRows = crRes.rows;
+      }
+
+      // 4. Open incidents assigned to this user
       const myIncidentsRes = await pool.query<{
         id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string;
       }>(
@@ -19241,6 +19253,7 @@ export async function registerRoutes(
       return res.json({
         assignedDocs: { count: assignedDocsRes.rows.length, items: assignedDocsRes.rows },
         pendingApprovals: { count: pendingApprovalsRows.length, items: pendingApprovalsRows },
+        changesRequested: { count: changesRequestedRows.length, items: changesRequestedRows },
         myIncidents: { count: myIncidentsRes.rows.length, items: myIncidentsRes.rows },
         myCases: { count: myCasesRows.length, items: myCasesRows },
         canViewCases,
