@@ -995,9 +995,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const showCompany = isPrivilegedUser && (!selectedSiteId || selectedSiteId === "all") && (!selectedCompany || selectedCompany === "all");
 
   // Build meta line for a document row: v1 · PDF · 2.4 MB [· Site] [· Company]
-  const docMetaLine = (doc: { fileName: string; version?: number; fileSize?: number | null; siteId?: string | null }) => {
+  const docMetaLine = (doc: { fileName: string; version?: number; approvedVersion?: number | null; approvalStatus?: string | null; fileSize?: number | null; siteId?: string | null }) => {
     const parts: string[] = [];
-    if (doc.version) parts.push(`v${doc.version}`);
+    // Show version label: v{approvedVersion} for approved docs; skip version for drafts in approval
+    const isApproved = doc.approvalStatus === "approved" || !doc.approvalStatus;
+    if (isApproved) {
+      const vNum = doc.approvedVersion ?? 0;
+      if (vNum > 0) parts.push(`v${vNum}`);
+      else if (doc.version) parts.push(`v${doc.version}`); // legacy fallback for records before this feature
+    }
     const ext = getFileExtension(doc.fileName);
     if (ext) parts.push(ext);
     const size = formatFileSize(doc.fileSize);
@@ -2812,7 +2818,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">{doc.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{doc.fileName} · v{doc.version}</p>
+                      <p className="text-xs text-muted-foreground truncate">{doc.fileName}{(doc as any).approvedVersion ? ` · v${(doc as any).approvedVersion}` : doc.version ? ` · v${doc.version}` : ""}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -3578,7 +3584,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             )}
           </div>
           <p className="text-muted-foreground">
-            Version {document.version} - {getFolderPath((document as any).folderId)}
+            {(() => {
+              const av = (document as any).approvedVersion ?? 0;
+              const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
+              const label = document.approvalStatus === "approved"
+                ? `v${av > 0 ? av : document.version}`
+                : `v${av}.${draftCount + 1}`;
+              return label;
+            })()} - {getFolderPath((document as any).folderId)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -3593,7 +3606,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <CardTitle>Document Details</CardTitle>
               <Badge variant="outline" className="text-sm font-semibold">
-                Current Version: {document.version}
+                {(() => {
+                  const av = (document as any).approvedVersion ?? 0;
+                  const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
+                  return document.approvalStatus === "approved"
+                    ? `v${av > 0 ? av : document.version}`
+                    : `Draft v${av}.${draftCount + 1}`;
+                })()}
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -3717,7 +3736,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   <CardDescription className={descColor}>{getDescription()}</CardDescription>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge variant="outline" className="font-semibold">
-                      Reviewing Version {document.version}
+                      {(() => {
+                        const av = (document as any).approvedVersion ?? 0;
+                        const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
+                        return document.approvalStatus === "approved"
+                          ? `v${av > 0 ? av : document.version}`
+                          : `Draft v${av}.${draftCount + 1}`;
+                      })()}
                     </Badge>
                     {isSignedOff && (
                       <Badge variant="secondary">
@@ -4069,7 +4094,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   }}
                 >
                   <Eye className="mr-2 h-4 w-4" />
-                  View Document (v{document.version})
+                  {(() => {
+                    const av = (document as any).approvedVersion ?? 0;
+                    const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
+                    const lbl = document.approvalStatus === "approved"
+                      ? `v${av > 0 ? av : document.version}`
+                      : `v${av}.${draftCount + 1}`;
+                    return `View Document (${lbl})`;
+                  })()}
                 </Button>
               )}
               <Button 
@@ -4085,7 +4117,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 }}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download Current (v{document.version})
+                  {(() => {
+                    const av = (document as any).approvedVersion ?? 0;
+                    const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
+                    const lbl = document.approvalStatus === "approved"
+                      ? `v${av > 0 ? av : document.version}`
+                      : `v${av}.${draftCount + 1}`;
+                    return `Download Current (${lbl})`;
+                  })()}
               </Button>
               {user?.role !== "client" && (
                 <Button 
@@ -4400,23 +4439,37 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {document.versions.map((version) => (
-                    <div key={version.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
-                      <div>
-                        <p className="text-sm font-medium">Version {version.version}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Archived {format(new Date(version.createdAt), "MMM d, yyyy")}
-                        </p>
+                  {document.versions.map((version) => {
+                    const displayLabel = (version as any).versionLabel
+                      ? `v${(version as any).versionLabel}`
+                      : `v${version.version}`;
+                    const isDraft = (version as any).isDraft === true;
+                    return (
+                      <div key={version.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
+                        <div>
+                          <p className="text-sm font-medium flex items-center gap-2">
+                            {displayLabel}
+                            {isDraft && (
+                              <span className="text-xs font-normal text-muted-foreground">(draft)</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Archived {format(new Date(version.createdAt), "MMM d, yyyy")}
+                          </p>
+                          {version.changeNote && (
+                            <p className="text-xs text-muted-foreground italic">{version.changeNote}</p>
+                          )}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => downloadDocument(id, version.fileName, version.version)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => downloadDocument(id, version.fileName, version.version)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

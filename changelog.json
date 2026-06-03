@@ -6887,6 +6887,13 @@
           "message": "Request Changes button hidden on final approval stage — not needed after client sign-off",
           "category": "enhancement",
           "createdAt": "2026-06-03T07:45:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
+          "patch": 14,
+          "message": "Versions now show as 0.1, 0.2… during approval; draft history cleared on final approval",
+          "category": "feature",
+          "createdAt": "2026-06-03T08:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

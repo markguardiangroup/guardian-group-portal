@@ -429,9 +429,14 @@ function DocumentsListView() {
   }, [sites]);
 
   // Build meta line: v1 · PDF · 2.4 MB [· Site] (site shown in flat list view only)
-  const docMetaLine = (doc: { fileName: string; version?: number; fileSize?: number | null; siteId?: string | null }, includeSite = false) => {
+  const docMetaLine = (doc: { fileName: string; version?: number; approvedVersion?: number | null; approvalStatus?: string | null; fileSize?: number | null; siteId?: string | null }, includeSite = false) => {
     const parts: string[] = [];
-    if (doc.version) parts.push(`v${doc.version}`);
+    const isApproved = doc.approvalStatus === "approved" || !doc.approvalStatus;
+    if (isApproved) {
+      const vNum = doc.approvedVersion ?? 0;
+      if (vNum > 0) parts.push(`v${vNum}`);
+      else if (doc.version) parts.push(`v${doc.version}`);
+    }
     const ext = getFileExtension(doc.fileName);
     if (ext) parts.push(ext);
     const size = formatFileSize(doc.fileSize);
@@ -1559,7 +1564,14 @@ function DocumentDetailView({ id }: { id: string }) {
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
               <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
               <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} expiryDate={document.expiryDate} />
-              <span className="text-sm text-muted-foreground">Version {document.version}</span>
+              <span className="text-sm text-muted-foreground">
+                {(() => {
+                  const av = (document as any).approvedVersion ?? 0;
+                  return document.approvalStatus === "approved"
+                    ? `v${av > 0 ? av : document.version}`
+                    : `Draft v${av}.?`;
+                })()}
+              </span>
             </div>
           </div>
         </div>
@@ -1707,7 +1719,7 @@ function DocumentDetailView({ id }: { id: string }) {
                     >
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                          v{version.version}
+                          {(version as any).versionLabel ?? `v${version.version}`}
                         </div>
                         <div>
                           <p className="text-sm font-medium">{version.fileName}</p>

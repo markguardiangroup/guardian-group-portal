@@ -213,6 +213,7 @@ export interface IStorage {
   // Document Versions
   getDocumentVersions(documentId: string): Promise<DocumentVersion[]>;
   createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion>;
+  deleteDocumentDraftVersions(documentId: string): Promise<void>;
   
   // Audit Logs
   getAuditLogs(documentId?: string, module?: ModuleType): Promise<AuditLog[]>;
@@ -2009,6 +2010,14 @@ export class MemStorage implements IStorage {
     };
     const result = await db.insert(documentVersionsTable).values(versionData).returning();
     return result[0];
+  }
+
+  async deleteDocumentDraftVersions(documentId: string): Promise<void> {
+    await db.delete(documentVersionsTable)
+      .where(and(
+        eq(documentVersionsTable.documentId, documentId),
+        eq(documentVersionsTable.isDraft, true)
+      ));
   }
 
   // Audit Logs

@@ -3536,10 +3536,23 @@ export async function registerRoutes(
       
       const newVersionNumber = document.version + 1;
       
+      // Determine the archive label for the version being replaced:
+      // – if the current document is already approved, archive it as its approved version number (not a draft)
+      // – otherwise archive it as the next decimal draft: {approvedVersion}.{draftCount + 1}
+      const existingVersionsForLabel = await storage.getDocumentVersions(document.id);
+      const existingDraftCount = existingVersionsForLabel.filter(v => v.isDraft).length;
+      const isCurrentlyApproved = document.approvalStatus === "approved";
+      const archiveVersionLabel = isCurrentlyApproved
+        ? `${document.approvedVersion ?? 0}`
+        : `${document.approvedVersion ?? 0}.${existingDraftCount + 1}`;
+      const archiveIsDraft = !isCurrentlyApproved;
+
       // Create version record for the current document state (archiving current version)
       await storage.createDocumentVersion({
         documentId: document.id,
         version: document.version,
+        versionLabel: archiveVersionLabel,
+        isDraft: archiveIsDraft,
         fileName: document.fileName,
         fileUrl: document.fileUrl,
         fileSize: document.fileSize,
@@ -4440,10 +4453,16 @@ export async function registerRoutes(
         status: documentStatus,
         ...(lastApprovedAt && { lastApprovedAt }),
         ...(renewalDate && { renewalDate }),
+        ...(isFinalApproval && { approvedVersion: (existingDoc.approvedVersion ?? 0) + 1 }),
       });
 
       if (!document) {
         return res.status(404).json({ error: "Document not found" });
+      }
+
+      // On final approval: purge all draft version history — only approved snapshots remain
+      if (isFinalApproval) {
+        await storage.deleteDocumentDraftVersions(documentId);
       }
 
       await storage.createAuditLog({
@@ -4689,11 +4708,14 @@ export async function registerRoutes(
         newRenewalDate.setMonth(newRenewalDate.getMonth() + effectiveRenewalPeriodMonths);
       }
 
-      // Create a new document version (copy of current file)
+      // Create a new document version (copy of current file) — archive current as its approved version label
       const newVersion = existingDoc.version + 1;
+      const newApprovedVersionOnReissue = (existingDoc.approvedVersion ?? 0) + 1;
       await storage.createDocumentVersion({
         documentId,
         version: newVersion,
+        versionLabel: `${existingDoc.approvedVersion ?? 0}`,
+        isDraft: false,
         fileName: existingDoc.fileName,
         fileUrl: existingDoc.fileUrl ?? undefined,
         fileSize: existingDoc.fileSize,
@@ -4707,6 +4729,7 @@ export async function registerRoutes(
         approvalStatus: "approved",
         status: "compliant",
         version: newVersion,
+        approvedVersion: newApprovedVersionOnReissue,
         lastApprovedAt: newLastApprovedAt,
         ...(hasRenewalOverride ? { renewalPeriodMonths: effectiveRenewalPeriodMonths } : {}),
         renewalDate: newRenewalDate ?? null,

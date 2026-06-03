@@ -772,6 +772,7 @@ export const documents = pgTable("documents", {
   // 'group' = group-level (visible to all companies in the group).
   // Company/group scoped docs have siteId = null.
   scope: text("scope").$type<DocumentScope>().notNull().default("site"),
+  approvedVersion: integer("approved_version").notNull().default(0), // Increments on each final approval (0 = never approved)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -813,6 +814,8 @@ export const documentVersions = pgTable("document_versions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   documentId: varchar("document_id").notNull(),
   version: integer("version").notNull(),
+  versionLabel: text("version_label"), // Display label e.g. "0.1", "0.2", "1", "2"
+  isDraft: boolean("is_draft").notNull().default(false), // true = pre-approval draft, deleted on final approval
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url"),
   fileSize: integer("file_size").notNull(),
