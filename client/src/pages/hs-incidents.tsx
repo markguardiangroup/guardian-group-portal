@@ -1469,31 +1469,28 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     if (!open || !incident) return;
     setInvRecentUploads([]);
 
-    // Strip API redaction placeholders so they are never accidentally persisted to the DB
-    const REDACTED = "[Redacted]";
-    const unredact = (v: string | null | undefined): string => (v === REDACTED ? "" : (v ?? ""));
-    const unredactWitness = (w: any): InvWitness => ({
-      name: unredact(w.name),
-      jobRole: w.jobRole ?? "",
-      company: w.company ?? "",
-      statementAttached: w.statementAttached ?? null,
-    });
-
     setAbsentFromWork(incident.invAbsentFromWork ?? null);
     setAbsentTimeframe(incident.invAbsentTimeframe ?? "");
 
-    // Witnesses: prefer saved investigation data, fall back to incident witnesses
+    // Witnesses: prefer saved investigation data, fall back to incident witnesses.
+    // Display "[Redacted]" as-is so redaction rules are respected; scrubbing
+    // happens at save time in handleSave so placeholders are never persisted.
     if (incident.invWitnesses) {
       try {
         const parsed = JSON.parse(incident.invWitnesses);
-        setInvWitnesses(Array.isArray(parsed) ? parsed.map(unredactWitness) : []);
+        setInvWitnesses(Array.isArray(parsed) ? parsed.map((w: any) => ({
+          name: w.name ?? "",
+          jobRole: w.jobRole ?? "",
+          company: w.company ?? "",
+          statementAttached: w.statementAttached ?? null,
+        })) : []);
       } catch { setInvWitnesses([]); }
       setWitnessesPresent(incident.invWitnessesPresent ?? null);
     } else if (incident.witnesses) {
       try {
         const parsed = JSON.parse(incident.witnesses);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setInvWitnesses(parsed.map(unredactWitness));
+          setInvWitnesses(parsed.map((w: any) => ({ name: w.name ?? "", jobRole: w.jobRole ?? "", company: w.company ?? "", statementAttached: null })));
           setWitnessesPresent(true);
         } else { setInvWitnesses([]); setWitnessesPresent(null); }
       } catch { setInvWitnesses([]); setWitnessesPresent(null); }
@@ -1542,7 +1539,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
     try { setInvRecommendations(incident.invRecommendations ? JSON.parse(incident.invRecommendations) : [""]); } catch { setInvRecommendations([""]); }
     setInvAmendments(incident.invAmendments ?? "");
     setInvRiddorReportable(incident.riddorReportable ?? false);
-    setInvRiddorResponsiblePerson(unredact(incident.riddorResponsiblePerson));
+    setInvRiddorResponsiblePerson(incident.riddorResponsiblePerson ?? "");
     setInvRiddorNotes(incident.riddorNotes ?? "");
     setInvRiddorReference(incident.riddorReference ?? "");
   }, [open, incident]);
@@ -1601,14 +1598,20 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
   });
 
   const handleSave = async () => {
+    const REDACTED = "[Redacted]";
+    const scrub = (v: string) => (v === REDACTED ? "" : v);
+    // Scrub redaction placeholders before persisting so they are never saved to DB.
+    // Witnesses whose name is still "[Redacted]" (not yet entered by consultant) are
+    // kept in the list but saved with an empty name rather than the placeholder.
+    const witnessesToSave = invWitnesses.map(w => ({ ...w, name: scrub(w.name) }));
     const filledEquipment = invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection);
-    const derivedWitnessesPresent = invWitnesses.length > 0 ? true : (witnessesPresent === false ? false : null);
+    const derivedWitnessesPresent = witnessesToSave.length > 0 ? true : (witnessesPresent === false ? false : null);
     try {
       await saveMutation.mutateAsync({
         invAbsentFromWork: absentFromWork,
         invAbsentTimeframe: absentTimeframe,
         invWitnessesPresent: derivedWitnessesPresent,
-        invWitnesses: invWitnesses.length > 0 ? JSON.stringify(invWitnesses) : "",
+        invWitnesses: witnessesToSave.length > 0 ? JSON.stringify(witnessesToSave) : "",
         invEquipmentInvolved: equipmentInvolved,
         invEquipment: filledEquipment.length > 0 ? JSON.stringify(filledEquipment) : "",
         invOperators: operators,
@@ -1625,7 +1628,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
         invAmendments: invAmendments,
         invCompletedAt: new Date().toISOString(),
         riddorReportable: invRiddorReportable,
-        riddorResponsiblePerson: invRiddorResponsiblePerson,
+        riddorResponsiblePerson: scrub(invRiddorResponsiblePerson),
         riddorNotes: invRiddorNotes,
         riddorReference: invRiddorReference,
       });

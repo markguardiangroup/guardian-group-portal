@@ -7146,6 +7146,13 @@
           "message": "All users (client, consultant, admin) can now upload, edit and delete incident photos and documents",
           "category": "feature",
           "createdAt": "2026-06-03T16:30:00.000Z"
+        },
+        {
+          "id": "e1a3c5d7-inv-witnesses-autopop-redaction-2026",
+          "patch": 14,
+          "message": "Fixed: witnesses from the initial report now correctly auto-fill into the investigation form, with redaction still applied where applicable",
+          "category": "bug",
+          "createdAt": "2026-06-03T16:40:00.000Z"
         }
       ],
       "publishedPatch": 13,
