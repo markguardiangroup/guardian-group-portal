@@ -3112,12 +3112,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     queryKey: ["/api/documents", id, "audit"],
   });
 
-  // Fire the view-log POST exactly once per document (keyed on the route id prop,
-  // which is stable across window-focus refetches and only changes on navigation).
-  useEffect(() => {
-    if (!id) return;
-    apiRequest("POST", `/api/documents/${id}/view`).catch(() => {});
-  }, [id]);
 
   // Fetch site folders so we can show folder/subfolder path instead of doc type
   const { data: detailSiteFolders } = useQuery<DocumentFolder[]>({
@@ -4386,6 +4380,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       onClick={() => {
                         setPreviewVersion(latestApprovedSnapshot ? latestApprovedSnapshot.version : null);
                         setShowPreviewDialog(true);
+                        apiRequest("POST", `/api/documents/${id}/view`).catch(() => {});
                       }}
                     >
                       <Eye className="mr-2 h-4 w-4" />
