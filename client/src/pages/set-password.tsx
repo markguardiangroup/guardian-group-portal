@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, CheckCircle, AlertCircle, Loader2, Eye, EyeOff, X, FileText } from "lucide-react";
+import { Shield, CheckCircle, AlertCircle, Eye, EyeOff, X, FileText } from "lucide-react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { PdfViewer } from "@/components/pdf-viewer";
@@ -226,7 +227,7 @@ export default function SetPassword() {
     return (
       <AuthShell>
         <div className="flex flex-col items-center gap-4 py-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <img src={logoIcon} alt="" className="h-8 w-8 rounded-full object-cover animate-spin shadow" style={{ animationDuration: "1.5s" }} />
           <p className="text-slate-500 text-sm">Validating your invitation...</p>
         </div>
       </AuthShell>
@@ -449,7 +450,7 @@ export default function SetPassword() {
               >
                 {acceptMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <img src={logoIcon} alt="" className="mr-2 h-4 w-4 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />
                     Setting Password...
                   </>
                 ) : (

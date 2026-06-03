@@ -50,7 +50,6 @@ import {
   Copy,
   Check,
   AlertCircle,
-  Loader2,
   RefreshCw,
   Clock,
   CalendarClock,
@@ -68,6 +67,7 @@ import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { format, parseISO } from "date-fns";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { UserRole, Company, AcceloSyncLog } from "@shared/schema";
@@ -1259,7 +1259,7 @@ export default function AdminReports() {
                 {acceloSyncLogsLoading && (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground" data-testid="text-accelo-sync-loading">
-                      <Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…
+                      <img src={logoIcon} alt="" className="h-4 w-4 inline mr-2 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />Loading…
                     </TableCell>
                   </TableRow>
                 )}
@@ -1354,7 +1354,7 @@ export default function AdminReports() {
               </div>
             ) : !scheduledTasksData ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />Loading…
+                <img src={logoIcon} alt="" className="h-4 w-4 mr-2 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />Loading…
               </div>
             ) : (
               <Table>

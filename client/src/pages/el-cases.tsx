@@ -58,6 +58,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { PdfViewer } from "@/components/pdf-viewer";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import {
   Briefcase,
   Search,
@@ -3276,7 +3277,7 @@ function CaseDetailView({ id }: { id: string }) {
               data-testid="button-save-bundle"
             >
               {(createBundleMutation.isPending || updateBundleMutation.isPending) && (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                <img src={logoIcon} alt="" className="h-4 w-4 mr-1.5 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />
               )}
               {editingBundle ? "Save Changes" : "Save Bundle"}
             </Button>

@@ -35,7 +35,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Copy, Check, Eye, EyeOff, Plus, Pencil, Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, Link2, Link2Off, RefreshCw, Copy, Check, Eye, EyeOff, Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { format } from "date-fns";
 
 interface AcceloIntegrationRow {
@@ -328,7 +329,7 @@ function IntegrationFormDialog({
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={isPending || (!isEdit && !form.sourceCode)} data-testid="button-save-integration">
-              {isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {isPending ? <img src={logoIcon} alt="" className="h-4 w-4 mr-2 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} /> : null}
               {isEdit ? "Save Changes" : "Add Integration"}
             </Button>
           </DialogFooter>
@@ -476,7 +477,7 @@ export default function AdminAcceloPage() {
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-muted-foreground text-sm py-8 justify-center">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <img src={logoIcon} alt="" className="h-5 w-5 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />
           Loading integrations…
         </div>
       ) : integrations.length === 0 ? (

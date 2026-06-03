@@ -5,6 +5,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -932,7 +933,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                               className="h-7 text-xs mt-1"
                             />
                           </div>
-                          {pf.status === "uploading" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+                          {pf.status === "uploading" && <img src={logoIcon} alt="" className="h-4 w-4 rounded-full object-cover animate-spin shrink-0" style={{ animationDuration: "1.5s" }} />}
                           {pf.status === "done" && <span className="text-xs text-emerald-600 shrink-0">Done</span>}
                           {pf.status === "error" && <span className="text-xs text-destructive shrink-0">Error</span>}
                           {pf.status === "pending" && (
@@ -1447,7 +1448,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                           data-testid={`input-file-description-${i}`}
                         />
                       </div>
-                      {pf.status === "uploading" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
+                      {pf.status === "uploading" && <img src={logoIcon} alt="" className="h-4 w-4 rounded-full object-cover animate-spin shrink-0" style={{ animationDuration: "1.5s" }} />}
                       {pf.status === "done" && <span className="text-xs text-emerald-600 shrink-0">Done</span>}
                       {pf.status === "error" && <span className="text-xs text-destructive shrink-0">Error</span>}
                       {pf.status === "pending" && (

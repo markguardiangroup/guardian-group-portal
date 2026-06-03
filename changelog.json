@@ -7370,6 +7370,13 @@
           "message": "Upload loading spinner replaced with spinning Guardian logo",
           "category": "enhancement",
           "createdAt": "2026-06-03T20:30:00.000Z"
+        },
+        {
+          "id": "y3a5c7d9-loader-guardian-logo-all-pages-2026",
+          "patch": 14,
+          "message": "Loading spinners across all pages replaced with spinning Guardian logo",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T21:00:00.000Z"
         }
       ],
       "publishedPatch": 13,

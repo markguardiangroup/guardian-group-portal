@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { Loader2, MessageSquare, Trash2, ThumbsUp, MessageCircle, Circle, CheckCircle2, Search, Pencil, X, Check } from "lucide-react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -211,7 +212,7 @@ export default function AdminFeedback() {
             disabled={!message.trim() || createMutation.isPending}
             data-testid="button-submit-feedback"
           >
-            {createMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {createMutation.isPending && <img src={logoIcon} alt="" className="mr-2 h-4 w-4 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />}
             Submit Feedback
           </Button>
         </CardContent>
@@ -418,7 +419,7 @@ export default function AdminFeedback() {
                                   onClick={() => addCommentMutation.mutate({ id: item.id, content: commentContent })}
                                   disabled={!commentContent.trim() || addCommentMutation.isPending}
                                 >
-                                  {addCommentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                  {addCommentMutation.isPending && <img src={logoIcon} alt="" className="mr-2 h-4 w-4 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />}
                                   Post Comment
                                 </Button>
                               </DialogFooter>

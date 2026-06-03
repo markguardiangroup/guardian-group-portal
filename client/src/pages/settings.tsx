@@ -84,6 +84,7 @@ import {
 } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import {
   clientPermissionCapabilities,
   consultantTierCapabilities,
@@ -1196,7 +1197,7 @@ function TaskListForm({
       <div className="flex justify-end gap-2 pt-2">
         <Button variant="outline" onClick={onCancel} data-testid="button-tasklist-cancel">Cancel</Button>
         <Button onClick={() => onSave({ title, description, module, tasks })} disabled={!title.trim() || saving} data-testid="button-tasklist-save">
-          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {saving && <img src={logoIcon} alt="" className="h-4 w-4 mr-2 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />}
           Save Task List
         </Button>
       </div>

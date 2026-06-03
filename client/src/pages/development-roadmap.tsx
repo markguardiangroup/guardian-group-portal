@@ -58,6 +58,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { format } from "date-fns";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 
 type UserType = { id: string; firstName: string; lastName: string; email: string; role: string };
 function userDisplayName(u: UserType) { return `${u.firstName} ${u.lastName}`.trim(); }
@@ -902,7 +903,7 @@ function RoadmapItemForm({
 
       <DialogFooter>
         <Button type="submit" disabled={isLoading || !title.trim()} data-testid="button-submit">
-          {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {isLoading && <img src={logoIcon} alt="" className="h-4 w-4 mr-2 rounded-full object-cover animate-spin" style={{ animationDuration: "1.5s" }} />}
           {item ? "Update" : "Add"} Item
         </Button>
       </DialogFooter>
