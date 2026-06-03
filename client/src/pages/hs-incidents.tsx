@@ -2991,6 +2991,33 @@ function IncidentDetailView({ id }: { id: string }) {
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>
 
+                  {/* ─ RIDDOR ─ */}
+                  <div className="py-5 space-y-3 border-t">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">RIDDOR</p>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reportable</p>
+                        <p className={`text-sm font-medium ${incident.riddorReportable ? "text-red-600" : ""}`}>
+                          {incident.riddorReportable ? "Yes" : "No"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">Responsible Person</p>
+                        <p className="text-sm">{incident.riddorResponsiblePerson || <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</span>}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reference</p>
+                        <p className="text-sm">{incident.riddorReference || <span className="text-muted-foreground italic">Not provided</span>}</p>
+                      </div>
+                    </div>
+                    {incident.riddorNotes && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Notes</p>
+                        <p className="text-sm leading-relaxed">{incident.riddorNotes}</p>
+                      </div>
+                    )}
+                  </div>
+
                   {/* ─ Amendments / Corrections ─ */}
                   <div className="py-5 space-y-3 border-t border-amber-200 dark:border-amber-800">
                     <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Amendments / Corrections to Initial Report</p>

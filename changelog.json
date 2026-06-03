@@ -7048,6 +7048,13 @@
           "message": "Investigation report now always shows all sections (Actions, Recommendations, Amendments, Conclusion) even when empty",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:05:00.000Z"
+        },
+        {
+          "id": "c5e7a9b1-inv-riddor-always-visible-2026",
+          "patch": 14,
+          "message": "RIDDOR section now always visible in the investigation report view (not only in edit mode)",
+          "category": "bug",
+          "createdAt": "2026-06-03T17:12:00.000Z"
         }
       ],
       "publishedPatch": 13,
