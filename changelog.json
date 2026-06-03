@@ -7265,6 +7265,20 @@
           "message": "Default close action now shows '(Default Action)' label and explains its purpose",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:35:00.000Z"
+        },
+        {
+          "id": "j8l0m2n4-version-history-collapsible-sorted-2026",
+          "patch": 14,
+          "message": "Version history is now collapsible (collapsed by default) and sorted newest first",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:05:00.000Z"
+        },
+        {
+          "id": "k9m1n3o5-version-history-timestamp-2026",
+          "patch": 14,
+          "message": "Version history entries now show full date, time, and relative age",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:05:00.000Z"
         }
       ],
       "publishedPatch": 13,

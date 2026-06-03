@@ -1702,47 +1702,57 @@ function DocumentDetailView({ id }: { id: string }) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-4 w-4" />
-                Version History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {versions && versions.length > 0 ? (
-                <div className="space-y-3">
-                  {versions.map((version) => (
-                    <div
-                      key={version.id}
-                      className="flex items-center justify-between gap-4 rounded-md border p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                          {(version as any).versionLabel ?? `v${version.version}`}
+          <Accordion type="single" collapsible>
+            <AccordionItem value="version-history" className="border rounded-lg">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <History className="h-4 w-4" />
+                  Version History
+                  {versions && versions.length > 0 && (
+                    <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">{versions.length}</span>
+                  )}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                {versions && versions.length > 0 ? (
+                  <div className="space-y-3 pt-1">
+                    {[...versions]
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((version) => (
+                        <div
+                          key={version.id}
+                          className="flex items-center justify-between gap-4 rounded-md border p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
+                              {(version as any).versionLabel ?? `v${version.version}`}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{version.fileName}</p>
+                              {version.changeNote && (
+                                <p className="text-sm text-muted-foreground">{version.changeNote}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-sm text-muted-foreground">
+                              {version.createdAt && format(new Date(version.createdAt), "dd MMM yyyy, HH:mm")}
+                            </p>
+                            <p className="text-xs text-muted-foreground/70">
+                              {version.createdAt && formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">{version.fileName}</p>
-                          {version.changeNote && (
-                            <p className="text-sm text-muted-foreground">{version.changeNote}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">
-                          {version.createdAt && formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No version history available
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No version history available
+                  </p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
         <div className="space-y-6">

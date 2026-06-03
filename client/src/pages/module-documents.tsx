@@ -96,7 +96,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   DndContext,
   DragOverlay,
@@ -4639,49 +4639,60 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
           {document.versions && document.versions.length > 0 &&
            (document.approvalStatus === "approved" || (document.versions as any[]).some((v: any) => !v.isDraft)) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Version History</CardTitle>
-                <CardDescription className="text-xs">
-                  All uploaded versions including drafts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {document.versions.map((version) => {
-                    const displayLabel = (version as any).versionLabel
-                      ? `v${(version as any).versionLabel}`
-                      : `v${version.version}`;
-                    const isDraft = (version as any).isDraft === true;
-                    return (
-                      <div key={version.id} className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0">
-                        <div>
-                          <p className="text-sm font-medium flex items-center gap-2">
-                            {displayLabel}
-                            {isDraft && (
-                              <span className="text-xs font-normal text-muted-foreground">(draft)</span>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Archived {format(new Date(version.createdAt), "MMM d, yyyy")}
-                          </p>
-                          {version.changeNote && (
-                            <p className="text-xs text-muted-foreground italic">{version.changeNote}</p>
-                          )}
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => downloadDocument(id, version.fileName, version.version)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="version-history" className="border rounded-lg">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <History className="h-4 w-4" />
+                    Version History
+                    <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-normal text-muted-foreground">
+                      {document.versions.length}
+                    </span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-3 pt-1">
+                    {[...(document.versions as any[])]
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((version) => {
+                        const displayLabel = version.versionLabel
+                          ? `v${version.versionLabel}`
+                          : `v${version.version}`;
+                        const isDraft = version.isDraft === true;
+                        return (
+                          <div key={version.id} className="flex items-center justify-between gap-3 border-b pb-3 last:border-0 last:pb-0">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium flex items-center gap-2">
+                                {displayLabel}
+                                {isDraft && (
+                                  <span className="text-xs font-normal text-muted-foreground">(draft)</span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {format(new Date(version.createdAt), "dd MMM yyyy, HH:mm")}
+                                <span className="ml-1.5 text-muted-foreground/60">
+                                  · {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
+                                </span>
+                              </p>
+                              {version.changeNote && (
+                                <p className="text-xs text-muted-foreground italic">{version.changeNote}</p>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="shrink-0"
+                              onClick={() => downloadDocument(id, version.fileName, version.version)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
         </div>
       </div>
