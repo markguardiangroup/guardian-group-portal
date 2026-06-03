@@ -2779,7 +2779,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">About the Injured Person</p>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+
                     </div>
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div>
@@ -2822,7 +2822,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+
                     </div>
                     {(() => {
                       // Prefer saved investigation witnesses; fall back to initial report witnesses
@@ -2855,7 +2855,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Equipment Involved</p>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+
                     </div>
                     {incident.invEquipmentInvolved === null ? (
                       incident.machineryInvolved ? (
@@ -2904,7 +2904,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Documents Used / Reviewed</p>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+
                     </div>
                     {incident.invDocumentsReviewed?.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
@@ -2923,7 +2923,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Investigation Findings</p>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Assessment of contributing factors and timeline</p>
@@ -2947,7 +2947,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       <div className="py-5 space-y-3 border-t">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions</p>
-                          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+    
                         </div>
                         <ol className="space-y-1.5 list-none">
                           {acts.map((a: string, i: number) => (
@@ -2969,7 +2969,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       <div className="py-5 space-y-3 border-t">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recommendations</p>
-                          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+    
                         </div>
                         <ol className="space-y-1.5 list-none">
                           {recs.map((r: string, i: number) => (
@@ -2987,7 +2987,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3 border-t">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
-                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
+
                     </div>
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>

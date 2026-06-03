@@ -7027,6 +7027,13 @@
           "message": "All users (including clients) can now edit the Follow Up Investigation report",
           "category": "feature",
           "createdAt": "2026-06-03T16:48:00.000Z"
+        },
+        {
+          "id": "f2b4d6e8-inv-section-edit-buttons-removed-2026",
+          "patch": 14,
+          "message": "Removed per-section Edit buttons from investigation report — Edit All is the single entry point",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T16:54:00.000Z"
         }
       ],
       "publishedPatch": 13,
