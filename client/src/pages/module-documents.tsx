@@ -3883,33 +3883,55 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             );
           })()}
 
-          {document.approvalStatus === "changes_requested" && !document.isArchived && (
-            <Card className="border-2 border-orange-400 dark:border-orange-600 bg-orange-100/80 dark:bg-orange-900/25" data-testid="card-changes-requested">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300">
-                  <AlertTriangle className="h-5 w-5" />
-                  {isClientUser ? "Changes Requested" : "New Version Required"}
-                </CardTitle>
-                <CardDescription className="text-orange-700/80 dark:text-orange-400/80">
-                  {isClientUser
-                    ? "You have requested changes to this document. Your consultant will review and upload a revised version."
-                    : "The client has requested changes to this document. Upload a revised version to continue the approval workflow."}
-                </CardDescription>
-              </CardHeader>
-              {isPrivilegedUser && (
-                <CardContent className="pt-0">
-                  <Button
-                    className="bg-orange-600 hover:bg-orange-700 text-white"
-                    onClick={() => setShowUploadVersionDialog(true)}
-                    data-testid="button-upload-version-changes"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Revised Version
-                  </Button>
+          {document.approvalStatus === "changes_requested" && !document.isArchived && (() => {
+            const changesLog = [...(auditLogs ?? [])]
+              .filter(l => l.action === "changes_requested")
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+            const feedback = changesLog?.details && changesLog.details.toLowerCase() !== "changes requested"
+              ? changesLog.details
+              : null;
+
+            return (
+              <Card className="border-2 border-orange-400 dark:border-orange-600 bg-orange-100/80 dark:bg-orange-900/25" data-testid="card-changes-requested">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-300">
+                    <AlertTriangle className="h-5 w-5" />
+                    {isClientUser ? "Changes Requested" : "New Version Required"}
+                  </CardTitle>
+                  <CardDescription className="text-orange-700/80 dark:text-orange-400/80">
+                    {isClientUser
+                      ? "You have requested changes to this document. Your consultant will review and upload a revised version."
+                      : "The client has requested changes to this document. Upload a revised version to continue the approval workflow."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {changesLog && (
+                    <div className="rounded-md border border-orange-300 dark:border-orange-700 bg-white/60 dark:bg-black/20 p-3 space-y-1">
+                      <p className="text-xs font-medium text-orange-800 dark:text-orange-300">
+                        Feedback from {changesLog.userName}
+                      </p>
+                      <p className="text-sm text-orange-900 dark:text-orange-100">
+                        {feedback ?? "No specific feedback provided."}
+                      </p>
+                      <p className="text-xs text-orange-700/60 dark:text-orange-400/60">
+                        {format(new Date(changesLog.createdAt), "d MMM yyyy 'at' HH:mm")}
+                      </p>
+                    </div>
+                  )}
+                  {isPrivilegedUser && (
+                    <Button
+                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      onClick={() => setShowUploadVersionDialog(true)}
+                      data-testid="button-upload-version-changes"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Revised Version
+                    </Button>
+                  )}
                 </CardContent>
-              )}
-            </Card>
-          )}
+              </Card>
+            );
+          })()}
 
           {/* ── Approved summary card ────────────────────────────────── */}
           {document.approvalStatus === "approved" && !document.isArchived && (() => {
@@ -4002,7 +4024,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
           {auditLogs && auditLogs.length > 0 && (() => {
             const INITIAL_DISPLAY_COUNT = 5;
-            const DETAIL_TRUNCATE = 140;
 
             const getActionStyle = (action: string) => {
               switch (action) {
@@ -4023,11 +4044,29 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 case 'document_downloaded':
                   return { icon: Download, bg: 'bg-purple-100 dark:bg-purple-900/40', color: 'text-purple-600 dark:text-purple-400', label: 'Download' };
                 case 'version_uploaded':
+                case 'document_version_uploaded':
                   return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400', label: 'Upload' };
                 case 'document_archived':
                   return { icon: FileText, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400', label: 'Archive' };
                 default:
                   return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground', label: 'Other' };
+              }
+            };
+
+            const getActionLabel = (action: string) => {
+              switch (action) {
+                case 'document_uploaded': return 'Document uploaded';
+                case 'document_version_uploaded':
+                case 'version_uploaded': return 'New version uploaded';
+                case 'document_approved': return 'Document approved';
+                case 'document_signed_off': return 'Client signed off';
+                case 'document_rejected': return 'Document rejected';
+                case 'changes_requested': return 'Changes requested';
+                case 'email_sent': return 'Email notification sent';
+                case 'document_viewed': return 'Document viewed';
+                case 'document_downloaded': return 'Document downloaded';
+                case 'document_archived': return 'Document archived';
+                default: return action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
               }
             };
 
@@ -4111,7 +4150,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         const style = getActionStyle(log.action);
                         const ActionIcon = style.icon;
                         const details = log.details ?? '';
-                        const isLong = details.length > DETAIL_TRUNCATE;
                         const isExpanded = expandedLogIds.has(log.id);
 
                         return (
@@ -4122,32 +4160,36 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium break-words">
-                                    {isLong && !isExpanded
-                                      ? details.slice(0, DETAIL_TRUNCATE) + '…'
-                                      : details}
+                                  <p className="text-sm font-medium">{getActionLabel(log.action)}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
-                                  {isLong && (
+                                  {isExpanded && details && (
+                                    <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
+                                      <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{style.label}</Badge>
+                                  {details && (
                                     <button
-                                      className="text-xs text-primary hover:underline mt-0.5"
+                                      className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                       onClick={() => setExpandedLogIds(prev => {
                                         const next = new Set(prev);
                                         isExpanded ? next.delete(log.id) : next.add(log.id);
                                         return next;
                                       })}
                                       data-testid={`button-expand-log-${log.id}`}
+                                      title={isExpanded ? 'Hide details' : 'Show details'}
                                     >
-                                      {isExpanded ? 'Show less' : 'Show more'}
+                                      {isExpanded
+                                        ? <ChevronUp className="h-3.5 w-3.5" />
+                                        : <ChevronDown className="h-3.5 w-3.5" />}
                                     </button>
                                   )}
                                 </div>
-                                <Badge variant="secondary" className="shrink-0 text-xs whitespace-nowrap">
-                                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                                </Badge>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {log.userName} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
-                              </p>
                             </div>
                           </div>
                         );

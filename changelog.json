@@ -6950,6 +6950,20 @@
           "message": "Version History hidden when document only has drafts and no approved baseline",
           "category": "enhancement",
           "createdAt": "2026-06-03T12:40:00.000Z"
+        },
+        {
+          "id": "a8c1e3f5-changes-requested-feedback-in-card-2026",
+          "patch": 14,
+          "message": "Changes-requested feedback now shown inside the orange card so it's immediately visible",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T12:50:00.000Z"
+        },
+        {
+          "id": "b9d2f4a6-audit-log-details-collapsible-2026",
+          "patch": 14,
+          "message": "Audit trail entries now show a clean summary by default — expand to see full details",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T12:50:00.000Z"
         }
       ],
       "publishedPatch": 13,
