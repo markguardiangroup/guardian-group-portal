@@ -3584,14 +3584,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             )}
           </div>
           <p className="text-muted-foreground">
-            {(() => {
-              const av = (document as any).approvedVersion ?? 0;
-              const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
-              const label = document.approvalStatus === "approved"
-                ? `v${av > 0 ? av : document.version}`
-                : `v${av}.${draftCount + 1}`;
-              return label;
-            })()} - {getFolderPath((document as any).folderId)}
+            {getFolderPath((document as any).folderId)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -3603,17 +3596,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4">
+            <CardHeader>
               <CardTitle>Document Details</CardTitle>
-              <Badge variant="outline" className="text-sm font-semibold">
-                {(() => {
-                  const av = (document as any).approvedVersion ?? 0;
-                  const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
-                  return document.approvalStatus === "approved"
-                    ? `v${av > 0 ? av : document.version}`
-                    : `Draft v${av}.${draftCount + 1}`;
-                })()}
-              </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">

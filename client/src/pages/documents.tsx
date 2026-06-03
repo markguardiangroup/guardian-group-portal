@@ -1564,14 +1564,6 @@ function DocumentDetailView({ id }: { id: string }) {
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
               <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />
               <DocumentStatusBadge status={document.status} approvalStatus={document.approvalStatus} expiryDate={document.expiryDate} />
-              <span className="text-sm text-muted-foreground">
-                {(() => {
-                  const av = (document as any).approvedVersion ?? 0;
-                  return document.approvalStatus === "approved"
-                    ? `v${av > 0 ? av : document.version}`
-                    : `Draft v${av}.?`;
-                })()}
-              </span>
             </div>
           </div>
         </div>

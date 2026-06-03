@@ -7426,6 +7426,13 @@
           "message": "Fixed: real-time updates now reach clients assigned to sites outside their own company",
           "category": "bug",
           "createdAt": "2026-06-03T22:40:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-remove-version-tags-doc-detail-2026",
+          "patch": 14,
+          "message": "Removed version number tags from document detail page",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T22:55:00.000Z"
         }
       ],
       "publishedPatch": 13,
