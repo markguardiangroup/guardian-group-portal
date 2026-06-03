@@ -3574,7 +3574,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only origin users can upload new versions of company or group scoped documents" });
       }
       
-      const { fileName, fileUrl, fileSize, mimeType, changeNote } = req.body;
+      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom } = req.body;
       
       if (!fileName || !fileUrl || !fileSize || !mimeType) {
         return res.status(400).json({ error: "Missing required file information" });
@@ -3634,6 +3634,7 @@ export async function registerRoutes(
         approvalStatus: newApprovalStatus,
         uploadedBy: user.id,
         updatedAt: new Date(),
+        ...(approvalRequestedFrom ? { approvalRequestedFrom } : { approvalRequestedFrom: null }),
       });
       
       // Log the version upload

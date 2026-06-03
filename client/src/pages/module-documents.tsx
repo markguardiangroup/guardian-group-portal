@@ -3093,6 +3093,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [reissueRenewalMonths, setReissueRenewalMonths] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
+  const [newVersionApprover, setNewVersionApprover] = useState("");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
   const [draftViewed, setDraftViewed] = useState(false);
@@ -3369,7 +3370,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   };
 
   const uploadVersionMutation = useMutation({
-    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string }) => {
+    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvalRequestedFrom?: string }) => {
       return apiRequest("POST", `/api/documents/${id}/versions`, data);
     },
     onSuccess: () => {
@@ -3385,6 +3386,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       setShowUploadVersionDialog(false);
       setNewVersionFile(null);
       setChangeNote("");
+      setNewVersionApprover("");
       toast({
         title: "Success",
         description: "New version uploaded successfully",
@@ -3407,6 +3409,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       fileSize: newVersionFile.fileSize,
       mimeType: newVersionFile.mimeType,
       changeNote: changeNote || undefined,
+      approvalRequestedFrom: newVersionApprover || undefined,
     });
   };
 
@@ -3986,7 +3989,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   {isPrivilegedUser && (
                     <Button
                       className="bg-orange-600 hover:bg-orange-700 text-white"
-                      onClick={() => setShowUploadVersionDialog(true)}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setShowUploadVersionDialog(true); }}
                       data-testid="button-upload-version-changes"
                     >
                       <Upload className="mr-2 h-4 w-4" />
@@ -4495,7 +4498,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       variant="outline"
                       className="w-full justify-start"
                       data-testid="button-upload-version"
-                      onClick={() => setShowUploadVersionDialog(true)}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setShowUploadVersionDialog(true); }}
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload New Version
@@ -4933,6 +4936,27 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               />
             )}
             <div className="space-y-2">
+              <label className="text-sm font-medium">Approver</label>
+              <Select value={newVersionApprover} onValueChange={setNewVersionApprover}>
+                <SelectTrigger data-testid="select-version-approver">
+                  <SelectValue placeholder="Select approver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {siteClientUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id} disabled={u.status !== "active"}>
+                      <span className="flex items-center gap-2">
+                        {u.fullName} ({u.email})
+                        {u.status !== "active" && <span className="text-xs text-muted-foreground">Not Active</span>}
+                      </span>
+                    </SelectItem>
+                  ))}
+                  {siteClientUsers.length === 0 && (
+                    <SelectItem value="__none" disabled>No client users found</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <label className="text-sm font-medium">Change Notes (optional)</label>
               <Textarea
                 placeholder="Describe what changed in this version..."
@@ -4949,6 +4973,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 setShowUploadVersionDialog(false);
                 setNewVersionFile(null);
                 setChangeNote("");
+                setNewVersionApprover("");
               }}
             >
               Cancel

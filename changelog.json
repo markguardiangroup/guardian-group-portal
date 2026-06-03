@@ -7454,6 +7454,13 @@
           "message": "Document Details card now has consistent padding below the last field",
           "category": "enhancement",
           "createdAt": "2026-06-03T23:10:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-upload-version-approver-prefill-2026",
+          "patch": 14,
+          "message": "Upload New Version now pre-selects the previous approver automatically",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T23:15:00.000Z"
         }
       ],
       "publishedPatch": 13,
