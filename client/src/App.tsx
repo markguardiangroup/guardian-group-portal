@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense, type ComponentType } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, Component, type ComponentType, type ReactNode, type ErrorInfo } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider, useQuery, useMutation } from "@tanstack/react-query";
@@ -83,6 +83,101 @@ const AdminServices = lazyPage(() => import("@/pages/admin-services"));
 const Dashboard2 = lazyPage(() => import("@/pages/dashboard2"));
 const AdminPortalMessages = lazyPage(() => import("@/pages/admin-portal-messages"));
 const AdminAccelo = lazyPage(() => import("@/pages/admin-accelo"));
+
+// ── Error Boundary ──────────────────────────────────────────────────────────
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode; label?: string }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode; label?: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error(`[ErrorBoundary${this.props.label ? ` — ${this.props.label}` : ""}]`, error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <ErrorFallback onReload={() => window.location.reload()} />;
+    }
+    return this.props.children;
+  }
+}
+
+function ErrorFallback({ onReload }: { onReload: () => void }) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f8fafc",
+        padding: "24px",
+        textAlign: "center",
+        gap: "24px",
+      }}
+    >
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 16,
+          background: "linear-gradient(135deg, #1d3057, #2d4a8a)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+      <div style={{ maxWidth: 380 }}>
+        <h1 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 700, color: "#111827" }}>
+          Something went wrong
+        </h1>
+        <p style={{ margin: "0 0 4px", fontSize: 14, color: "#6b7280", lineHeight: 1.6 }}>
+          An unexpected error occurred. Your data is safe — this is a display issue only.
+        </p>
+        <p style={{ margin: 0, fontSize: 14, color: "#9ca3af" }}>
+          Reloading the page will restore everything.
+        </p>
+      </div>
+      <button
+        onClick={onReload}
+        style={{
+          padding: "11px 28px",
+          borderRadius: 8,
+          border: "none",
+          background: "linear-gradient(135deg, #1d3057, #2d4a8a)",
+          color: "white",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+          letterSpacing: "0.01em",
+        }}
+      >
+        Reload page
+      </button>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -849,7 +944,9 @@ function AuthenticatedApp() {
                     <ThemeToggle />
                   </header>
                   <main id="main-content" className="flex-1 overflow-auto">
-                    <Router />
+                    <ErrorBoundary label="Router">
+                      <Router />
+                    </ErrorBoundary>
                   </main>
                 </SidebarInset>
               </div>
@@ -897,14 +994,16 @@ function App() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="light" storageKey="guardian-theme">
-        <TooltipProvider>
-          <AppRouter />
-          <Toaster />
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary label="App">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="light" storageKey="guardian-theme">
+          <TooltipProvider>
+            <AppRouter />
+            <Toaster />
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

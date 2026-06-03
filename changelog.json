@@ -6915,6 +6915,13 @@
           "message": "Cloudflare Turnstile bot protection added to the login page",
           "category": "feature",
           "createdAt": "2026-06-03T08:35:00.000Z"
+        },
+        {
+          "id": "b3c4d5e6-f7a8-9012-b3c4-d5e6f7a89012",
+          "patch": 14,
+          "message": "Fixed: white screens now show a 'Something went wrong' message with a reload button",
+          "category": "bug",
+          "createdAt": "2026-06-03T10:35:00.000Z"
         }
       ],
       "publishedPatch": 13,
