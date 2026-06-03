@@ -3569,18 +3569,21 @@ export async function registerRoutes(
           entityId: document.entityId,
           approvalStatus: updatedDocument?.approvalStatus,
         };
+        console.log("[SSE-version] payload:", JSON.stringify(versionPayload));
         // Company-scoped documents use entityId directly; site-scoped documents resolve via site
         if (document.entityId) {
+          console.log("[SSE-version] emitToCompany via entityId:", document.entityId);
           emitToCompany(document.entityId, "document-updated", versionPayload);
         }
         if (document.siteId) {
           const versionSite = await storage.getSite(document.siteId).catch(() => null);
+          console.log("[SSE-version] versionSite:", versionSite?.id, "companyId:", versionSite?.companyId);
           if (versionSite) emitToCompany(versionSite.companyId, "document-updated", versionPayload);
         }
         emitToRole("admin", "document-updated", versionPayload);
         emitToRole("consultant", "document-updated", versionPayload);
         emitToAll("document-audit-updated", { documentId: document.id });
-      } catch { /* non-fatal */ }
+      } catch (err) { console.error("[SSE-version] error:", err); }
 
       res.json(updatedDocument);
     } catch (error) {
