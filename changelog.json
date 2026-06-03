@@ -7055,6 +7055,13 @@
           "message": "RIDDOR section now always visible in the investigation report view (not only in edit mode)",
           "category": "bug",
           "createdAt": "2026-06-03T17:12:00.000Z"
+        },
+        {
+          "id": "d6f8b0c2-inv-view-edit-section-order-matched-2026",
+          "patch": 14,
+          "message": "Investigation report view and edit sections now appear in the same order",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T17:18:00.000Z"
         }
       ],
       "publishedPatch": 13,

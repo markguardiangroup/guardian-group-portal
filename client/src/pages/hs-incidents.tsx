@@ -2991,6 +2991,16 @@ function IncidentDetailView({ id }: { id: string }) {
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>
 
+                  {/* ─ Amendments / Corrections ─ */}
+                  <div className="py-5 space-y-3 border-t border-amber-200 dark:border-amber-800">
+                    <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Amendments / Corrections to Initial Report</p>
+                    {incident.invAmendments ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap" data-testid="text-inv-amendments">{incident.invAmendments}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">None recorded</p>
+                    )}
+                  </div>
+
                   {/* ─ RIDDOR ─ */}
                   <div className="py-5 space-y-3 border-t">
                     <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">RIDDOR</p>
@@ -3015,16 +3025,6 @@ function IncidentDetailView({ id }: { id: string }) {
                         <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Notes</p>
                         <p className="text-sm leading-relaxed">{incident.riddorNotes}</p>
                       </div>
-                    )}
-                  </div>
-
-                  {/* ─ Amendments / Corrections ─ */}
-                  <div className="py-5 space-y-3 border-t border-amber-200 dark:border-amber-800">
-                    <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Amendments / Corrections to Initial Report</p>
-                    {incident.invAmendments ? (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap" data-testid="text-inv-amendments">{incident.invAmendments}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">None recorded</p>
                     )}
                   </div>
 
