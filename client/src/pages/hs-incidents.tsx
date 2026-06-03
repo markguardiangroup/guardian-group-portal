@@ -2210,7 +2210,7 @@ function IncidentDetailView({ id }: { id: string }) {
     if (!editingDoc) return;
     setIsSavingEdit(true);
     try {
-      await apiRequest("PATCH", `/api/documents/${editingDoc.id}`, {
+      await apiRequest("PATCH", `/api/incidents/${id}/documents/${editingDoc.id}`, {
         title: editTitle.trim() || editingDoc.title,
         comments: editNotes,
       });
@@ -2226,6 +2226,15 @@ function IncidentDetailView({ id }: { id: string }) {
       setIsSavingEdit(false);
     }
   };
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (docId: string) => apiRequest("DELETE", `/api/incidents/${id}/documents/${docId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
+      toast({ title: "Deleted" });
+    },
+    onError: () => toast({ title: "Error", description: "Failed to delete file.", variant: "destructive" }),
+  });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3146,32 +3155,28 @@ function IncidentDetailView({ id }: { id: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{photos.length}</Badge>
-                  {isPrivileged && (
-                    <>
-                      <input
-                        ref={photoInputRef}
-                        type="file"
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                        accept="image/*"
-                        multiple
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => photoInputRef.current?.click()}
-                        disabled={isUploadingPhoto}
-                        data-testid="button-upload-photo"
-                      >
-                        {isUploadingPhoto ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Camera className="mr-2 h-4 w-4" />
-                        )}
-                        Add Photos
-                      </Button>
-                    </>
-                  )}
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                    accept="image/*"
+                    multiple
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    data-testid="button-upload-photo"
+                  >
+                    {isUploadingPhoto ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="mr-2 h-4 w-4" />
+                    )}
+                    Add Photos
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-5">
@@ -3181,18 +3186,16 @@ function IncidentDetailView({ id }: { id: string }) {
                       <Camera className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <p className="text-sm text-muted-foreground">No photos have been added yet.</p>
-                    {isPrivileged && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-3"
-                        onClick={() => photoInputRef.current?.click()}
-                        disabled={isUploadingPhoto}
-                      >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Upload Photos
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={isUploadingPhoto}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Upload Photos
+                    </Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -3214,16 +3217,24 @@ function IncidentDetailView({ id }: { id: string }) {
                               <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
                             </div>
                           </button>
-                          {isPrivileged && (
+                          <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                             <button
-                              className="absolute top-1.5 right-1.5 rounded-full bg-black/50 p-1.5 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-10"
+                              className="rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
                               onClick={(e) => { e.stopPropagation(); openEditDialog(photo); }}
                               title="Edit title & notes"
                               data-testid={`button-edit-photo-${photo.id}`}
                             >
                               <Pencil className="h-3 w-3" />
                             </button>
-                          )}
+                            <button
+                              className="rounded-full bg-black/50 p-1.5 text-white hover:bg-red-600/80"
+                              onClick={(e) => { e.stopPropagation(); if (window.confirm("Delete this photo?")) deleteDocumentMutation.mutate(photo.id); }}
+                              title="Delete photo"
+                              data-testid={`button-delete-photo-${photo.id}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         </div>
                         {/* Caption */}
                         <div className="px-3 pt-2 pb-1">
@@ -3276,45 +3287,43 @@ function IncidentDetailView({ id }: { id: string }) {
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{files.filter((f: any) => f.type !== "incident_report").length}</Badge>
                   {isPrivileged && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => regenerateReportMutation.mutate()}
-                        disabled={regenerateReportMutation.isPending}
-                        title="Regenerate the original incident report document with the latest incident details"
-                        data-testid="button-regenerate-report"
-                      >
-                        {regenerateReportMutation.isPending ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                        )}
-                        Regenerate Report
-                      </Button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                        data-testid="button-upload-document"
-                      >
-                        {isUploading ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="mr-2 h-4 w-4" />
-                        )}
-                        Upload
-                      </Button>
-                    </>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => regenerateReportMutation.mutate()}
+                      disabled={regenerateReportMutation.isPending}
+                      title="Regenerate the original incident report document with the latest incident details"
+                      data-testid="button-regenerate-report"
+                    >
+                      {regenerateReportMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                      )}
+                      Regenerate Report
+                    </Button>
                   )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    data-testid="button-upload-document"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    Upload
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="pt-5">
@@ -3363,18 +3372,27 @@ function IncidentDetailView({ id }: { id: string }) {
                             >
                               <History className="h-3.5 w-3.5" />
                             </Button>
-                            {isPrivileged && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                onClick={() => openEditDialog(doc)}
-                                data-testid={`button-edit-doc-${doc.id}`}
-                                title="Edit title & notes"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => openEditDialog(doc)}
+                              data-testid={`button-edit-doc-${doc.id}`}
+                              title="Edit title & notes"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              onClick={() => { if (window.confirm("Delete this document?")) deleteDocumentMutation.mutate(doc.id); }}
+                              data-testid={`button-delete-doc-${doc.id}`}
+                              title="Delete document"
+                              disabled={deleteDocumentMutation.isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                             {doc.fileUrl && (
                               <Button
                                 variant="ghost"

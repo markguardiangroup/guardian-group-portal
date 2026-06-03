@@ -7139,6 +7139,13 @@
           "message": "Fixed: investigation edit no longer overwrites real data with [Redacted] when consultant access toggle is off",
           "category": "bug",
           "createdAt": "2026-06-03T16:20:00.000Z"
+        },
+        {
+          "id": "d0f2a4c6-incident-docs-open-all-roles-2026",
+          "patch": 14,
+          "message": "All users (client, consultant, admin) can now upload, edit and delete incident photos and documents",
+          "category": "feature",
+          "createdAt": "2026-06-03T16:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

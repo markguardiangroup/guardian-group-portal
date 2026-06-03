@@ -16769,6 +16769,53 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Incident document PATCH & DELETE (all roles with site access) ───────────
+
+  app.patch("/api/incidents/:incidentId/documents/:docId", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.incidentId);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const doc = await storage.getDocument(req.params.docId);
+      if (!doc || doc.incidentId !== incident.id) return res.status(404).json({ error: "Document not found" });
+      const { title, comments } = req.body;
+      const updated = await storage.updateDocument(req.params.docId, { title, comments });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating incident document:", error);
+      res.status(500).json({ error: "Failed to update document" });
+    }
+  });
+
+  app.delete("/api/incidents/:incidentId/documents/:docId", requireAuth, async (req, res) => {
+    try {
+      const user = (req.session as any).user;
+      const incident = await storage.getIncident(req.params.incidentId);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const doc = await storage.getDocument(req.params.docId);
+      if (!doc || doc.incidentId !== incident.id) return res.status(404).json({ error: "Document not found" });
+      await storage.deleteDocument(req.params.docId);
+      await storage.createAuditLog({
+        action: "document_deleted",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: incident.entityId,
+        documentId: null,
+        module: "health_safety",
+        details: `"${doc.title}" deleted from ${incident.incidentReference}`,
+        incidentId: incident.id,
+      } as any);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting incident document:", error);
+      res.status(500).json({ error: "Failed to delete document" });
+    }
+  });
+
   // ─── Calendar Events ──────────────────────────────────────────────────────────
 
   app.get("/api/calendar/events", requireAuth, async (req, res) => {
