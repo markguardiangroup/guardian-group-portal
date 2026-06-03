@@ -7440,6 +7440,13 @@
           "message": "Improved Document Details layout — cleaner rows with dividers and labelled fields",
           "category": "enhancement",
           "createdAt": "2026-06-03T23:00:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-doc-details-padding-balance-2026",
+          "patch": 14,
+          "message": "Document Details fields tightened and balanced evenly across both columns",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T23:05:00.000Z"
         }
       ],
       "publishedPatch": 13,

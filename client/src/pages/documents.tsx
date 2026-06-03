@@ -1649,45 +1649,49 @@ function DocumentDetailView({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="p-0">
               <dl className="divide-y divide-border">
-                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File Name</dt>
-                    <dd className="mt-1 text-sm font-medium font-mono">{document.fileName}</dd>
+                    <dd className="mt-0.5 text-sm font-medium font-mono">{document.fileName}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File Size</dt>
-                    <dd className="mt-1 text-sm font-medium">{(document.fileSize / 1024).toFixed(1)} KB</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{(document.fileSize / 1024).toFixed(1)} KB</dd>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</dt>
-                    <dd className="mt-1 text-sm font-medium">{document.createdAt && format(new Date(document.createdAt), "MMM d, yyyy")}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{document.createdAt && format(new Date(document.createdAt), "MMM d, yyyy")}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Modified</dt>
-                    <dd className="mt-1 text-sm font-medium">{document.updatedAt && format(new Date(document.updatedAt), "MMM d, yyyy")}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{document.updatedAt && format(new Date(document.updatedAt), "MMM d, yyyy")}</dd>
                   </div>
                 </div>
-                {document.expiryDate && (
-                  <div className="px-6 py-3.5">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expiry Date</dt>
-                    <dd className="mt-1 text-sm font-medium">{format(new Date(document.expiryDate), "MMM d, yyyy")}</dd>
-                  </div>
-                )}
-                {document.templateId && (() => {
-                  const template = templates?.find((t: any) => t.id === document.templateId);
-                  return template ? (
-                    <div className="px-6 py-3.5">
-                      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template</dt>
-                      <dd className="mt-1 text-sm font-medium">{template.name}</dd>
+                {(document.expiryDate || document.templateId) && (() => {
+                  const template = document.templateId ? templates?.find((t: any) => t.id === document.templateId) : null;
+                  return (
+                    <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
+                      {document.expiryDate ? (
+                        <div>
+                          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expiry Date</dt>
+                          <dd className="mt-0.5 text-sm font-medium">{format(new Date(document.expiryDate), "MMM d, yyyy")}</dd>
+                        </div>
+                      ) : <div />}
+                      {template ? (
+                        <div>
+                          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template</dt>
+                          <dd className="mt-0.5 text-sm font-medium">{template.name}</dd>
+                        </div>
+                      ) : <div />}
                     </div>
-                  ) : null;
+                  );
                 })()}
                 {document.comments && (
-                  <div className="px-6 py-3.5">
+                  <div className="px-6 py-2.5">
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Comments</dt>
-                    <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">{document.comments}</dd>
+                    <dd className="mt-0.5 text-sm text-muted-foreground leading-relaxed">{document.comments}</dd>
                   </div>
                 )}
               </dl>

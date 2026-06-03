@@ -3601,53 +3601,55 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </CardHeader>
             <CardContent className="p-0">
               <dl className="divide-y divide-border">
-                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company</dt>
-                    <dd className="mt-1 text-sm font-medium">{document.companyName || "N/A"}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{document.companyName || "N/A"}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Site</dt>
-                    <dd className="mt-1 text-sm font-medium">{document.siteName || "All Sites"}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{document.siteName || "All Sites"}</dd>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File</dt>
-                    <dd className="mt-1 text-sm font-medium font-mono">{decodeURIComponent(document.fileName)}</dd>
+                    <dd className="mt-0.5 text-sm font-medium font-mono">{decodeURIComponent(document.fileName)}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File Size</dt>
-                    <dd className="mt-1 text-sm font-medium">{(document.fileSize / 1024).toFixed(1)} KB</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{(document.fileSize / 1024).toFixed(1)} KB</dd>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Updated</dt>
-                    <dd className="mt-1 text-sm font-medium">{document.updatedAt ? format(new Date(document.updatedAt), "MMM d, yyyy 'at' h:mm a") : "Unknown"}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{document.updatedAt ? format(new Date(document.updatedAt), "MMM d, yyyy 'at' h:mm a") : "Unknown"}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Uploaded By</dt>
-                    <dd className="mt-1 text-sm font-medium">{document.uploadedByName || "Unknown"}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{document.uploadedByName || "Unknown"}</dd>
                   </div>
                 </div>
-                <div className="px-6 py-3.5">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</dt>
-                  <dd className="mt-1 text-sm font-medium">{getFolderPath((document as any).folderId)}</dd>
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Location</dt>
+                    <dd className="mt-0.5 text-sm font-medium">{getFolderPath((document as any).folderId)}</dd>
+                  </div>
+                  {document.templateId && (() => {
+                    const template = templates?.find((t: any) => t.id === document.templateId);
+                    return template ? (
+                      <div>
+                        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template</dt>
+                        <dd className="mt-0.5 text-sm font-medium">{template.name}</dd>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
-                {document.templateId && (() => {
-                  const template = templates?.find((t: any) => t.id === document.templateId);
-                  return template ? (
-                    <div className="px-6 py-3.5">
-                      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template</dt>
-                      <dd className="mt-1 text-sm font-medium">{template.name}</dd>
-                    </div>
-                  ) : null;
-                })()}
                 {document.comments && (
-                  <div className="px-6 py-3.5">
+                  <div className="px-6 py-2.5">
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Comments</dt>
-                    <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">{document.comments}</dd>
+                    <dd className="mt-0.5 text-sm text-muted-foreground leading-relaxed">{document.comments}</dd>
                   </div>
                 )}
               </dl>
