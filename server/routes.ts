@@ -15700,6 +15700,8 @@ export async function registerRoutes(
       const fileName = decodeURIComponent(rawFileName);
       const rawTitle = req.headers["x-file-title"] as string | undefined;
       const title = rawTitle ? decodeURIComponent(rawTitle) : fileName.replace(/\.[^/.]+$/, "");
+      const rawComments = req.headers["x-file-comments"] as string | undefined;
+      const comments = rawComments ? decodeURIComponent(rawComments) : null;
       const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
 
       const chunks: Buffer[] = [];
@@ -15723,7 +15725,7 @@ export async function registerRoutes(
 
       const doc = await storage.createDocument({
         title,
-        comments: null,
+        comments,
         module: "health_safety",
         type: "incident_report",
         entityId: incident.entityId,

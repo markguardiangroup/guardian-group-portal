@@ -7181,6 +7181,13 @@
           "message": "Fixed: photo and document upload in incidents now works reliably for all user roles",
           "category": "bug",
           "createdAt": "2026-06-03T17:20:00.000Z"
+        },
+        {
+          "id": "d6f8b0c2-incident-upload-dialog-ux-2026",
+          "patch": 14,
+          "message": "Improved: uploading photos/docs on incidents now collects title and notes upfront in a single dialog",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T17:55:00.000Z"
         }
       ],
       "publishedPatch": 13,

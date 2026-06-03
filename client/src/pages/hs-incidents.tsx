@@ -2034,8 +2034,12 @@ function IncidentDetailView({ id }: { id: string }) {
   const [invDetailsMinimised, setInvDetailsMinimised] = useState(true);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<IncidentMilestone | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadDialogIsPhoto, setUploadDialogIsPhoto] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadNotes, setUploadNotes] = useState("");
+  const [isSubmittingUpload, setIsSubmittingUpload] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<any | null>(null);
   const [editingDoc, setEditingDoc] = useState<any | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -2064,8 +2068,6 @@ function IncidentDetailView({ id }: { id: string }) {
       return next;
     });
   };
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: incident, isLoading } = useQuery<Incident>({
     queryKey: ["/api/incidents", id],
@@ -2229,86 +2231,55 @@ function IncidentDetailView({ id }: { id: string }) {
     onError: () => toast({ title: "Error", description: "Failed to delete file.", variant: "destructive" }),
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const openUploadDialog = (isPhoto: boolean) => {
+    setUploadDialogIsPhoto(isPhoto);
+    setUploadFile(null);
+    setUploadTitle("");
+    setUploadNotes("");
+    setUploadDialogOpen(true);
+  };
 
-    setIsUploading(true);
+  const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setUploadFile(file);
+    if (file && !uploadTitle) {
+      setUploadTitle(file.name.replace(/\.[^/.]+$/, ""));
+    }
+  };
+
+  const submitUpload = async () => {
+    if (!uploadFile) return;
+    setIsSubmittingUpload(true);
     try {
-      const buffer = await file.arrayBuffer();
+      const buffer = await uploadFile.arrayBuffer();
       const uploadRes = await fetch(`/api/incidents/${id}/upload`, {
         method: "POST",
         headers: {
-          "Content-Type": file.type || "application/octet-stream",
-          "X-File-Name": encodeURIComponent(file.name),
-          "X-File-Title": encodeURIComponent(file.name.replace(/\.[^/.]+$/, "")),
+          "Content-Type": uploadFile.type || "application/octet-stream",
+          "X-File-Name": encodeURIComponent(uploadFile.name),
+          "X-File-Title": encodeURIComponent(uploadTitle.trim() || uploadFile.name.replace(/\.[^/.]+$/, "")),
+          ...(uploadNotes.trim() ? { "X-File-Comments": encodeURIComponent(uploadNotes.trim()) } : {}),
         },
         body: buffer,
         credentials: "include",
       });
 
       if (!uploadRes.ok) {
-        const err = await uploadRes.json().catch(() => ({}));
-        throw new Error(err.error || `Upload failed (${uploadRes.status})`);
+        const errBody = await uploadRes.json().catch(() => ({}));
+        throw new Error(errBody.error || `Upload failed (${uploadRes.status})`);
       }
 
-      const created = await uploadRes.json();
+      await uploadRes.json();
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
       invalidateAudit();
-      toast({ title: "Document uploaded" });
-      if (created?.id) openEditDialog(created);
+      toast({ title: uploadDialogIsPhoto ? "Photo uploaded" : "Document uploaded" });
+      setUploadDialogOpen(false);
     } catch (err) {
-      console.error("Document upload error:", err);
-      toast({ title: "Upload failed", description: (err as Error)?.message || "Could not upload the document.", variant: "destructive" });
+      console.error("Upload error:", err);
+      toast({ title: "Upload failed", description: (err as Error)?.message || "Could not upload the file.", variant: "destructive" });
     } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsSubmittingUpload(false);
     }
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    setIsUploadingPhoto(true);
-    let lastDoc: any = null;
-    let successCount = 0;
-    for (const file of files) {
-      try {
-        const buffer = await file.arrayBuffer();
-        const uploadRes = await fetch(`/api/incidents/${id}/upload`, {
-          method: "POST",
-          headers: {
-            "Content-Type": file.type || "image/jpeg",
-            "X-File-Name": encodeURIComponent(file.name),
-            "X-File-Title": encodeURIComponent(file.name.replace(/\.[^/.]+$/, "")),
-          },
-          body: buffer,
-          credentials: "include",
-        });
-
-        if (!uploadRes.ok) {
-          const errBody = await uploadRes.json().catch(() => ({}));
-          throw new Error(errBody.error || `Upload failed (${uploadRes.status})`);
-        }
-
-        lastDoc = await uploadRes.json();
-        successCount++;
-      } catch (err) {
-        console.error("Photo upload error:", err);
-        toast({ title: "Photo upload failed", description: `${(err as Error)?.message || "Could not upload"}: ${file.name}`, variant: "destructive" });
-      }
-    }
-    queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
-    if (successCount > 0) invalidateAudit();
-    if (successCount > 0) {
-      toast({ title: successCount === 1 ? "Photo uploaded" : `${successCount} photos uploaded`, description: "You can add a title and notes by clicking the edit button." });
-      if (successCount === 1 && lastDoc) {
-        openEditDialog({ ...lastDoc, comments: "" });
-      }
-    }
-    setIsUploadingPhoto(false);
-    if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
   if (isLoading) {
@@ -3136,27 +3107,14 @@ function IncidentDetailView({ id }: { id: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{photos.length}</Badge>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    className="hidden"
-                    onChange={handlePhotoUpload}
-                    accept="image/*"
-                    multiple
-                  />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => photoInputRef.current?.click()}
-                    disabled={isUploadingPhoto}
+                    onClick={() => openUploadDialog(true)}
                     data-testid="button-upload-photo"
                   >
-                    {isUploadingPhoto ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Camera className="mr-2 h-4 w-4" />
-                    )}
-                    Add Photos
+                    <Camera className="mr-2 h-4 w-4" />
+                    Add Photo
                   </Button>
                 </div>
               </CardHeader>
@@ -3171,11 +3129,10 @@ function IncidentDetailView({ id }: { id: string }) {
                       variant="outline"
                       size="sm"
                       className="mt-3"
-                      onClick={() => photoInputRef.current?.click()}
-                      disabled={isUploadingPhoto}
+                      onClick={() => openUploadDialog(true)}
                     >
                       <Camera className="mr-2 h-4 w-4" />
-                      Upload Photos
+                      Add Photo
                     </Button>
                   </div>
                 ) : (
@@ -3267,25 +3224,13 @@ function IncidentDetailView({ id }: { id: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{files.filter((f: any) => f.type !== "incident_report").length}</Badge>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
-                  />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
+                    onClick={() => openUploadDialog(false)}
                     data-testid="button-upload-document"
                   >
-                    {isUploading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="mr-2 h-4 w-4" />
-                    )}
+                    <Upload className="mr-2 h-4 w-4" />
                     Upload
                   </Button>
                 </div>
@@ -3710,7 +3655,77 @@ function IncidentDetailView({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Title & Notes Dialog */}
+      {/* Upload Dialog — collects file + title + notes before uploading */}
+      <Dialog open={uploadDialogOpen} onOpenChange={(open) => { if (!open) setUploadDialogOpen(false); }}>
+        <DialogContent className="theme-hs max-w-md" data-testid="dialog-upload-file">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {uploadDialogIsPhoto ? <><Camera className="h-4 w-4" /> Add Photo</> : <><Upload className="h-4 w-4" /> Upload Document</>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">File</label>
+              <label
+                className="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-muted-foreground/30 bg-muted/30 p-5 cursor-pointer hover:bg-muted/50 transition-colors"
+                data-testid="label-upload-file-picker"
+              >
+                <input
+                  type="file"
+                  className="hidden"
+                  accept={uploadDialogIsPhoto ? "image/*" : ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"}
+                  onChange={handleUploadFileChange}
+                  data-testid="input-upload-file"
+                />
+                {uploadFile ? (
+                  <span className="text-sm font-medium text-foreground text-center break-all">{uploadFile.name}</span>
+                ) : (
+                  <>
+                    {uploadDialogIsPhoto ? <Camera className="h-6 w-6 text-muted-foreground" /> : <Upload className="h-6 w-6 text-muted-foreground" />}
+                    <span className="text-sm text-muted-foreground">Click to select {uploadDialogIsPhoto ? "a photo" : "a document"}</span>
+                  </>
+                )}
+              </label>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                value={uploadTitle}
+                onChange={e => setUploadTitle(e.target.value)}
+                placeholder="Enter a descriptive title..."
+                data-testid="input-upload-title"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" />
+                Notes / Description <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Textarea
+                value={uploadNotes}
+                onChange={e => setUploadNotes(e.target.value)}
+                placeholder="Add context, observations, or notes..."
+                className="resize-none"
+                rows={3}
+                data-testid="textarea-upload-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)} disabled={isSubmittingUpload}>Cancel</Button>
+            <Button
+              onClick={submitUpload}
+              disabled={!uploadFile || isSubmittingUpload}
+              className="bg-module-accent hover:bg-module-accent/90"
+              data-testid="button-submit-upload"
+            >
+              {isSubmittingUpload ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editingDoc} onOpenChange={(open) => { if (!open) setEditingDoc(null); }}>
         <DialogContent className="theme-hs max-w-md" data-testid="dialog-edit-doc">
           <DialogHeader>
