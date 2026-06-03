@@ -6943,6 +6943,13 @@
           "message": "Previous Versions renamed to Version History — shows all versions including drafts",
           "category": "enhancement",
           "createdAt": "2026-06-03T12:32:00.000Z"
+        },
+        {
+          "id": "f7a8b9c0-d1e2-3456-f7a8-b9c0d1e23456",
+          "patch": 14,
+          "message": "Version History hidden when document only has drafts and no approved baseline",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T12:40:00.000Z"
         }
       ],
       "publishedPatch": 13,

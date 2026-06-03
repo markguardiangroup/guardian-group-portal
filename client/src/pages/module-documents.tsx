@@ -4567,7 +4567,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Card>
           )}
 
-          {document.versions && document.versions.length > 0 && (
+          {document.versions && document.versions.length > 0 &&
+           (document.approvalStatus === "approved" || (document.versions as any[]).some((v: any) => !v.isDraft)) && (
             <Card>
               <CardHeader>
                 <CardTitle>Version History</CardTitle>
