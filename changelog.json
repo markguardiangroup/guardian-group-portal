@@ -7034,6 +7034,13 @@
           "message": "Removed per-section Edit buttons from investigation report — Edit All is the single entry point",
           "category": "enhancement",
           "createdAt": "2026-06-03T16:54:00.000Z"
+        },
+        {
+          "id": "a3c5e7f9-inv-edit-all-renamed-2026",
+          "patch": 14,
+          "message": "Renamed 'Edit All' button to 'Edit' on the investigation report card",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T16:58:00.000Z"
         }
       ],
       "publishedPatch": 13,
