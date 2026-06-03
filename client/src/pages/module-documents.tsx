@@ -3079,7 +3079,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
-  const ALL_AUDIT_TYPES = ["uploads", "approvals", "views", "emails", "other"] as const;
+  const ALL_AUDIT_TYPES = ["uploads", "approvals", "views", "downloads", "emails", "other"] as const;
   const [auditTypeFilter, setAuditTypeFilter] = useState<Set<string>>(new Set(ALL_AUDIT_TYPES));
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
@@ -4097,7 +4097,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const filterMap: Record<string, string[]> = {
               uploads:   ['document_uploaded', 'version_uploaded'],
               approvals: ['document_approved', 'document_signed_off', 'document_rejected', 'changes_requested'],
-              views:     ['document_viewed', 'document_downloaded'],
+              views:     ['document_viewed'],
+              downloads: ['document_downloaded'],
               emails:    ['email_sent'],
               other:     ['document_archived'],
             };
@@ -4132,7 +4133,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           {allTypesSelected
                             ? "All types"
                             : auditTypeFilter.size === 1
-                              ? ({"uploads":"Uploads","approvals":"Approvals","views":"Views & Downloads","emails":"Emails","other":"Other"} as Record<string,string>)[
+                              ? ({"uploads":"Uploads","approvals":"Approvals","views":"Views","downloads":"Downloads","emails":"Emails","other":"Other"} as Record<string,string>)[
                                   [...auditTypeFilter][0]
                                 ] ?? "1 selected"
                               : auditTypeFilter.size === 0
@@ -4142,7 +4143,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-44">
-                        {([ ["uploads","Uploads"], ["approvals","Approvals"], ["views","Views & Downloads"], ["emails","Emails"], ["other","Other"] ] as [string,string][]).map(([key, label]) => (
+                        {([ ["uploads","Uploads"], ["approvals","Approvals"], ["views","Views"], ["downloads","Downloads"], ["emails","Emails"], ["other","Other"] ] as [string,string][]).map(([key, label]) => (
                           <DropdownMenuCheckboxItem
                             key={key}
                             checked={auditTypeFilter.has(key)}

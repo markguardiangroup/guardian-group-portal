@@ -7300,6 +7300,13 @@
           "message": "Audit trail filter opens with all types ticked by default",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:30:00.000Z"
+        },
+        {
+          "id": "o3q5r7s9-audit-filter-split-views-downloads-2026",
+          "patch": 14,
+          "message": "Audit trail filter: Views and Downloads are now separate filter options",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:35:00.000Z"
         }
       ],
       "publishedPatch": 13,
