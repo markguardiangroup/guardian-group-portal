@@ -7076,6 +7076,13 @@
           "message": "Incident Details card now shows a note that the report cannot be edited after submission",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:38:00.000Z"
+        },
+        {
+          "id": "a1c3e5f7-incident-readonly-note-simplified-2026",
+          "patch": 14,
+          "message": "Simplified the read-only notice on the Incident Details card to a single line",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T17:42:00.000Z"
         }
       ],
       "publishedPatch": 13,

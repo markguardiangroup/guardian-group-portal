@@ -2409,7 +2409,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   </Button>
                 </div>
                 <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-3 py-1.5 mt-2">
-                  This incident report cannot be edited once submitted. Use the Follow Up Investigation section to record additional findings or corrections.
+                  This incident report cannot be edited once submitted.
                 </p>
               </CardHeader>
               {!detailsMinimised && (
