@@ -15588,17 +15588,6 @@ export async function registerRoutes(
       <p style="font-size:13px;line-height:1.7">${val(incident.immediateActions)}</p>
     </section>
 
-    ${(incident.riddorReportable || incident.riddorNotes) ? `
-    <section>
-      <h2>RIDDOR</h2>
-      ${incident.riddorReportable ? `<div style="margin-bottom:8px"><span class="flag">⚠ RIDDOR Reportable</span></div>` : ""}
-      <table>
-        ${field("Reportable under RIDDOR", incident.riddorReportable ? "Yes" : "No")}
-        ${incident.riddorReportable ? field("Responsible Person", incident.riddorResponsiblePerson) : ""}
-        ${incident.riddorReportable ? field("RIDDOR Reference", incident.riddorReference) : ""}
-        ${field("RIDDOR Notes", incident.riddorNotes)}
-      </table>
-    </section>` : ""}
 
     ${imageUrls.length > 0 ? `
     <section>

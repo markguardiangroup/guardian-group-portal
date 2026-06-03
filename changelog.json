@@ -7125,6 +7125,13 @@
           "message": "Exported reports now show personal data as [Redacted] (styled) when consultant access toggle is off",
           "category": "feature",
           "createdAt": "2026-06-03T18:40:00.000Z"
+        },
+        {
+          "id": "b8d0f2ae-riddor-removed-from-incident-details-2026",
+          "patch": 14,
+          "message": "RIDDOR section removed from Incident Details card and initial report export — it now only appears in Follow Up Investigation",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T18:50:00.000Z"
         }
       ],
       "publishedPatch": 13,

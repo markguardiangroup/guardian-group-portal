@@ -2564,38 +2564,7 @@ function IncidentDetailView({ id }: { id: string }) {
                     : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                 </div>
 
-                {/* ── Section 7: RIDDOR ── */}
-                <div className="py-5 space-y-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">RIDDOR</p>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reportable</p>
-                      <p className={`text-sm font-medium ${incident.riddorReportable ? "text-red-600" : ""}`}>
-                        {incident.riddorReportable ? "Yes" : "No"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Responsible Person</p>
-                      {incident.riddorResponsiblePerson
-                        ? <p className="text-sm">{incident.riddorResponsiblePerson}</p>
-                        : <p className="text-sm text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : "N/A"}</p>}
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reference</p>
-                      {incident.riddorReference
-                        ? <p className="text-sm">{incident.riddorReference}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
-                    </div>
-                  </div>
-                  {incident.riddorNotes && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Notes</p>
-                      <p className="text-sm whitespace-pre-wrap">{incident.riddorNotes}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* ── Section 8: Witnesses ── */}
+                {/* ── Section 7: Witnesses ── */}
                 <div className="py-5 space-y-3">
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
                   {(() => {
