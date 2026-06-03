@@ -7391,6 +7391,13 @@
           "message": "Fixed: client users now receive real-time updates when a document is uploaded for their sign-off",
           "category": "bug",
           "createdAt": "2026-06-03T21:20:00.000Z"
+        },
+        {
+          "id": "b2d4f6a8-client-signoff-view-draft-gate-2026",
+          "patch": 14,
+          "message": "Client sign-off: View/Download Draft buttons added; Sign Off and Request Changes require draft to be viewed first",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T21:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

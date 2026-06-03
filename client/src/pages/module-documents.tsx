@@ -3095,6 +3095,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
+  const [draftViewed, setDraftViewed] = useState(false);
   const [editComplianceMode, setEditComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
   const [editRenewalPeriodMonths, setEditRenewalPeriodMonths] = useState<number | null>(null);
   const [editExpiryDate, setEditExpiryDate] = useState<string>("");
@@ -3188,6 +3189,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     if (!siteUsers) return [];
     return siteUsers.filter(u => u.role === "client");
   }, [siteUsers, allUsersForApproval, isDocumentScoped, documentEntityId]);
+
+  // Reset draft-viewed gate whenever the user navigates to a different document
+  useEffect(() => { setDraftViewed(false); }, [id]);
 
   useEffect(() => {
     if (document) {
@@ -3860,23 +3864,90 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
                   {(canClientAct || canConsultantAct) && (
                     <div className="flex flex-wrap gap-3">
-                      <Button
-                        className={isSignedOff ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}
-                        onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
-                        data-testid="button-approve"
-                      >
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        {getApproveLabel()}
-                      </Button>
+                      {canClientAct && (() => {
+                        const draftCanPreview =
+                          document.mimeType === "application/pdf" ||
+                          document.mimeType?.startsWith("image/") ||
+                          document.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                          document.mimeType === "application/msword";
+                        return (
+                          <>
+                            {draftCanPreview && document.fileUrl && (
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setPreviewVersion(null);
+                                  setShowPreviewDialog(true);
+                                  setDraftViewed(true);
+                                  apiRequest("POST", `/api/documents/${id}/view`).catch(() => {});
+                                }}
+                                data-testid="button-view-draft"
+                              >
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Draft
+                              </Button>
+                            )}
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                downloadDocument(id, document.fileName);
+                                setDraftViewed(true);
+                              }}
+                              data-testid="button-download-draft"
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Draft
+                            </Button>
+                          </>
+                        );
+                      })()}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button
+                                className={isSignedOff ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}
+                                disabled={canClientAct && !draftViewed}
+                                style={canClientAct && !draftViewed ? { pointerEvents: "none" } : undefined}
+                                onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
+                                data-testid="button-approve"
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                {getApproveLabel()}
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          {canClientAct && !draftViewed && (
+                            <TooltipContent>
+                              Please view or download the draft first
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
                       {!isSignedOff && (
-                        <Button
-                          variant="outline"
-                          onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
-                          data-testid="button-request-changes"
-                        >
-                          <AlertTriangle className="mr-2 h-4 w-4" />
-                          Request Changes
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  variant="outline"
+                                  disabled={canClientAct && !draftViewed}
+                                  style={canClientAct && !draftViewed ? { pointerEvents: "none" } : undefined}
+                                  onClick={() => { setApprovalAction("changes"); setShowApprovalDialog(true); }}
+                                  data-testid="button-request-changes"
+                                >
+                                  <AlertTriangle className="mr-2 h-4 w-4" />
+                                  Request Changes
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            {canClientAct && !draftViewed && (
+                              <TooltipContent>
+                                Please view or download the draft first
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   )}
