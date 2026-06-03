@@ -2943,62 +2943,63 @@ function IncidentDetailView({ id }: { id: string }) {
                   {(() => {
                     let acts: string[] = [];
                     try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
-                    return acts.length > 0 ? (
+                    return (
                       <div className="py-5 space-y-3 border-t">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions</p>
-    
-                        </div>
-                        <ol className="space-y-1.5 list-none">
-                          {acts.map((a: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm">
-                              <span className="text-module-accent font-semibold shrink-0">{i + 1}.</span>
-                              <span>{a}</span>
-                            </li>
-                          ))}
-                        </ol>
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions</p>
+                        {acts.length > 0 ? (
+                          <ol className="space-y-1.5 list-none">
+                            {acts.map((a: string, i: number) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <span className="text-module-accent font-semibold shrink-0">{i + 1}.</span>
+                                <span>{a}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">None recorded</p>
+                        )}
                       </div>
-                    ) : null;
+                    );
                   })()}
 
                   {/* ─ Recommendations ─ */}
                   {(() => {
                     let recs: string[] = [];
                     try { if (incident.invRecommendations) recs = JSON.parse(incident.invRecommendations); } catch {}
-                    return recs.length > 0 ? (
+                    return (
                       <div className="py-5 space-y-3 border-t">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recommendations</p>
-    
-                        </div>
-                        <ol className="space-y-1.5 list-none">
-                          {recs.map((r: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2 text-sm">
-                              <span className="text-module-accent font-semibold shrink-0">{i + 1}.</span>
-                              <span>{r}</span>
-                            </li>
-                          ))}
-                        </ol>
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recommendations</p>
+                        {recs.length > 0 ? (
+                          <ol className="space-y-1.5 list-none">
+                            {recs.map((r: string, i: number) => (
+                              <li key={i} className="flex items-start gap-2 text-sm">
+                                <span className="text-module-accent font-semibold shrink-0">{i + 1}.</span>
+                                <span>{r}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">None recorded</p>
+                        )}
                       </div>
-                    ) : null;
+                    );
                   })()}
 
                   {/* ─ Conclusion ─ */}
                   <div className="py-5 space-y-3 border-t">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
-
-                    </div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>
 
                   {/* ─ Amendments / Corrections ─ */}
-                  {incident.invAmendments && (
-                    <div className="py-5 space-y-3 border-t border-amber-200 dark:border-amber-800">
-                      <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Amendments / Corrections to Initial Report</p>
+                  <div className="py-5 space-y-3 border-t border-amber-200 dark:border-amber-800">
+                    <p className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400">Amendments / Corrections to Initial Report</p>
+                    {incident.invAmendments ? (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap" data-testid="text-inv-amendments">{incident.invAmendments}</p>
-                    </div>
-                  )}
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">None recorded</p>
+                    )}
+                  </div>
 
                 </CardContent>
               )}

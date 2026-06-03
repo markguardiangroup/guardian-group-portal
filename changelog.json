@@ -7041,6 +7041,13 @@
           "message": "Renamed 'Edit All' button to 'Edit' on the investigation report card",
           "category": "enhancement",
           "createdAt": "2026-06-03T16:58:00.000Z"
+        },
+        {
+          "id": "b4d6f8a0-inv-all-fields-always-visible-2026",
+          "patch": 14,
+          "message": "Investigation report now always shows all sections (Actions, Recommendations, Amendments, Conclusion) even when empty",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T17:05:00.000Z"
         }
       ],
       "publishedPatch": 13,
