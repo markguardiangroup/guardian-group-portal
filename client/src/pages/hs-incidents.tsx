@@ -2726,7 +2726,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       </Badge>
                     )}
                     {/* No data yet: show Complete button */}
-                    {isPrivileged && !incident.invCompletedAt && incident.invFirstAidGiven === null && !incident.invContributingFactors && !incident.invConclusion && (
+                    {!incident.invCompletedAt && incident.invFirstAidGiven === null && !incident.invContributingFactors && !incident.invConclusion && (
                       <Button size="sm" onClick={() => setShowFollowUpDialog(true)} className="bg-module-accent hover:bg-module-accent/90" data-testid="button-open-follow-up">
                         <Pencil className="mr-2 h-4 w-4" />
                         Complete Investigation
@@ -2766,11 +2766,9 @@ function IncidentDetailView({ id }: { id: string }) {
                         : <span className="italic">Investigation in progress</span>}
                     </p>
                     <div className="flex items-center gap-2">
-                      {isPrivileged && (
-                        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
-                          <Pencil className="h-3 w-3" />Edit All
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
+                        <Pencil className="h-3 w-3" />Edit All
+                      </Button>
                       <Button variant="outline" size="sm" className="h-7 gap-1.5 text-xs" onClick={() => window.open(`/api/incidents/${incident.id}/investigation-report`, "_blank")} data-testid="button-export-investigation">
                         <Download className="h-3 w-3" />Export Report
                       </Button>
@@ -2781,7 +2779,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">About the Injured Person</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div>
@@ -2824,7 +2822,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Witnesses</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                     </div>
                     {(() => {
                       // Prefer saved investigation witnesses; fall back to initial report witnesses
@@ -2857,7 +2855,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Equipment Involved</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                     </div>
                     {incident.invEquipmentInvolved === null ? (
                       incident.machineryInvolved ? (
@@ -2906,7 +2904,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Documents Used / Reviewed</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                     </div>
                     {incident.invDocumentsReviewed?.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
@@ -2925,7 +2923,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Investigation Findings</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Assessment of contributing factors and timeline</p>
@@ -2949,7 +2947,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       <div className="py-5 space-y-3 border-t">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Actions</p>
-                          {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                         </div>
                         <ol className="space-y-1.5 list-none">
                           {acts.map((a: string, i: number) => (
@@ -2971,7 +2969,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       <div className="py-5 space-y-3 border-t">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Recommendations</p>
-                          {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                          <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                         </div>
                         <ol className="space-y-1.5 list-none">
                           {recs.map((r: string, i: number) => (
@@ -2989,7 +2987,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-5 space-y-3 border-t">
                     <div className="flex items-center justify-between">
                       <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Conclusion</p>
-                      {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
+                      <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>
                     </div>
                     <p className="text-sm leading-relaxed">{incident.invConclusion || <span className="text-muted-foreground italic">Not recorded</span>}</p>
                   </div>

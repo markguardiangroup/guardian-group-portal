@@ -7020,6 +7020,13 @@
           "message": "Removed 3 incorrectly auto-generated action items from INC-00012",
           "category": "bug",
           "createdAt": "2026-06-03T16:38:00.000Z"
+        },
+        {
+          "id": "e1a3b5c7-follow-up-inv-all-users-edit-2026",
+          "patch": 14,
+          "message": "All users (including clients) can now edit the Follow Up Investigation report",
+          "category": "feature",
+          "createdAt": "2026-06-03T16:48:00.000Z"
         }
       ],
       "publishedPatch": 13,
