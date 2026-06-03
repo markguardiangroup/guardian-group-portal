@@ -15685,6 +15685,9 @@ export async function registerRoutes(
       const existing = await storage.getIncident(id);
       if (!existing) return res.status(404).json({ error: "Incident not found" });
 
+      const canAccess = await canUserAccessSite(user, existing.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
       if (updates.resolvedAt) updates.resolvedAt = new Date(updates.resolvedAt);
       if (updates.incidentDate) updates.incidentDate = new Date(updates.incidentDate);
       if (updates.invCompletedAt) updates.invCompletedAt = new Date(updates.invCompletedAt);

@@ -2344,16 +2344,14 @@ function IncidentDetailView({ id }: { id: string }) {
               <p className="text-sm text-muted-foreground truncate">{incident.title}</p>
             </div>
           </div>
-          {isPrivileged && (
-            <Button
-              onClick={() => setShowStatusDialog(true)}
-              data-testid="button-update-status"
-              className="bg-module-accent hover:bg-module-accent/90 gap-2 shrink-0"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Update Status
-            </Button>
-          )}
+          <Button
+            onClick={() => setShowStatusDialog(true)}
+            data-testid="button-update-status"
+            className="bg-module-accent hover:bg-module-accent/90 gap-2 shrink-0"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Update Status
+          </Button>
         </div>
       </div>
 

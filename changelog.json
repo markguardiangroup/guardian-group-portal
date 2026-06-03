@@ -7230,6 +7230,13 @@
           "message": "Redacted personal fields now show a clear 'Redacted' label in incident reports",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:14:00.000Z"
+        },
+        {
+          "id": "e3g5h7i9-all-users-can-update-incident-status-2026",
+          "patch": 14,
+          "message": "All users (including clients) can now update incident status",
+          "category": "feature",
+          "createdAt": "2026-06-03T18:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
