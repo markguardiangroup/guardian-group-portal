@@ -30,11 +30,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://challenges.cloudflare.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:"],
-      connectSrc: ["'self'", "https://www.guardiangroup.ai"],
+      connectSrc: ["'self'", "https://www.guardiangroup.ai", "https://challenges.cloudflare.com"],
+      frameSrc: ["https://challenges.cloudflare.com"],
     },
   },
   crossOriginEmbedderPolicy: false,
