@@ -7356,6 +7356,13 @@
           "message": "Fixed: document preview header no longer shows inflated version number",
           "category": "bug",
           "createdAt": "2026-06-03T20:20:00.000Z"
+        },
+        {
+          "id": "w1y3z5a7-approved-card-reviewer-comments-fix-2026",
+          "patch": 14,
+          "message": "Fixed: approved card no longer shows rejection comments from previous approval cycles",
+          "category": "bug",
+          "createdAt": "2026-06-03T20:25:00.000Z"
         }
       ],
       "publishedPatch": 13,

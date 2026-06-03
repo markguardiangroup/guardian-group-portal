@@ -3942,9 +3942,19 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const approvalLog = auditLogs?.find(l => l.action === "document_approved");
             const hasAnyEntry = signOffLog || approvalLog || document.lastApprovedAt;
             if (!hasAnyEntry) return null;
-            // Reviewer comments: changes_requested entries with real feedback text
+            // Reviewer comments: changes_requested entries with real feedback text,
+            // but only from the current approval cycle (after the most recent upload).
+            // Old rejection comments from previous cycles should not appear on an approved card.
+            const lastUploadLog = [...(auditLogs ?? [])]
+              .filter(l => l.action === "document_uploaded" || l.action === "version_uploaded" || l.action === "document_version_uploaded")
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
             const reviewerComments = [...(auditLogs ?? [])]
-              .filter(l => l.action === "changes_requested" && l.details && l.details.toLowerCase() !== "changes requested")
+              .filter(l =>
+                l.action === "changes_requested" &&
+                l.details &&
+                l.details.toLowerCase() !== "changes requested" &&
+                (!lastUploadLog || new Date(l.createdAt) > new Date(lastUploadLog.createdAt))
+              )
               .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
             return (
               <Card className="border-2 border-green-400 dark:border-green-600 bg-green-50/80 dark:bg-green-900/20" data-testid="card-document-approved">
