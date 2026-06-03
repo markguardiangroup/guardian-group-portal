@@ -273,19 +273,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       localStorage.removeItem("dev_user");
-      setDevUser(null);
-      queryClient.clear();
-      queryClient.setQueryData(["/api/auth/me"], null);
-      setIsSigningOut(false);
-      window.history.replaceState({}, "", "/");
+      window.location.replace("/");
     },
     onError: () => {
       localStorage.removeItem("dev_user");
-      setDevUser(null);
-      queryClient.clear();
-      queryClient.setQueryData(["/api/auth/me"], null);
-      setIsSigningOut(false);
-      window.history.replaceState({}, "", "/");
+      window.location.replace("/");
     },
   });
 
