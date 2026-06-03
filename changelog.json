@@ -7258,6 +7258,13 @@
           "message": "Completing 'Close the incident' action item now auto-sets status to Closed",
           "category": "feature",
           "createdAt": "2026-06-03T18:30:00.000Z"
+        },
+        {
+          "id": "i7k9l1m3-close-action-label-and-description-2026",
+          "patch": 14,
+          "message": "Default close action now shows '(Default Action)' label and explains its purpose",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T18:35:00.000Z"
         }
       ],
       "publishedPatch": 13,

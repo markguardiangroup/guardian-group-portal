@@ -15663,8 +15663,8 @@ export async function registerRoutes(
       // Create default "Close the incident" action item for every new incident
       await storage.createIncidentMilestone({
         incidentId: incident.id,
-        title: "Close the incident",
-        description: "Complete all actions and formally close this incident.",
+        title: "Close the incident (Default Action)",
+        description: "This is a default action item. Completing it will automatically update this incident's status to 'Closed'.",
         createdBy: user.id,
       });
 
@@ -16344,7 +16344,7 @@ export async function registerRoutes(
         const incident = await storage.getIncident(milestone.incidentId);
         if (incident) {
           // Auto-close the incident when the "Close the incident" action item is completed
-          const isClosingAction = milestone.title.trim().toLowerCase() === "close the incident";
+          const isClosingAction = milestone.title.trim().toLowerCase().startsWith("close the incident");
           if (isClosingAction && incident.status !== "closed") {
             await storage.updateIncident(incident.id, { status: "closed" });
             await storage.createAuditLog({
