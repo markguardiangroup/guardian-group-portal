@@ -4167,7 +4167,26 @@ export async function registerRoutes(
       // Emit document-uploaded so all relevant users see new documents in real time
       try {
         const uploadPayload = { documentId: document.id, siteId: document.siteId };
-        if (document.entityId) emitToCompany(document.entityId, "document-uploaded", uploadPayload);
+        const companiesEmittedUpload = new Set<string>();
+        if (document.entityId) {
+          emitToCompany(document.entityId, "document-uploaded", uploadPayload);
+          companiesEmittedUpload.add(document.entityId);
+        }
+        if (document.siteId) {
+          const uploadSite = await storage.getSite(document.siteId).catch(() => null);
+          if (uploadSite?.companyId && !companiesEmittedUpload.has(uploadSite.companyId)) {
+            emitToCompany(uploadSite.companyId, "document-uploaded", uploadPayload);
+            companiesEmittedUpload.add(uploadSite.companyId);
+          }
+          // Also notify group owner companies
+          for (const cId of Array.from(companiesEmittedUpload)) {
+            const uploadCompany = await storage.getCompany(cId).catch(() => null);
+            if (uploadCompany?.groupOwnerId && !companiesEmittedUpload.has(uploadCompany.groupOwnerId)) {
+              emitToCompany(uploadCompany.groupOwnerId, "document-uploaded", uploadPayload);
+              companiesEmittedUpload.add(uploadCompany.groupOwnerId);
+            }
+          }
+        }
         emitToRole("admin", "document-uploaded", uploadPayload);
         emitToRole("consultant", "document-uploaded", uploadPayload);
       } catch { /* non-fatal */ }

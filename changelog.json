@@ -7384,6 +7384,13 @@
           "message": "Fixed: My Actions on homepage now updates in real time when documents need approval",
           "category": "bug",
           "createdAt": "2026-06-03T21:10:00.000Z"
+        },
+        {
+          "id": "a1c3e5f7-doc-upload-sse-client-users-2026",
+          "patch": 14,
+          "message": "Fixed: client users now receive real-time updates when a document is uploaded for their sign-off",
+          "category": "bug",
+          "createdAt": "2026-06-03T21:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
