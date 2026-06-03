@@ -4960,7 +4960,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               <Eye className="h-4 w-4 text-muted-foreground" />
               <span className="truncate">
                 {document?.title}
-                {previewVersion ? ` (v${previewVersion})` : ` (v${document?.version})`}
+                {previewVersion
+                  ? ` (v${previewVersion})`
+                  : (document?.approvedVersion ?? 0) > 0
+                    ? ` (v${document!.approvedVersion})`
+                    : ""}
               </span>
             </DialogTitle>
           </DialogHeader>

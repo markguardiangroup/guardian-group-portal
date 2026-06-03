@@ -7349,6 +7349,13 @@
           "message": "Fixed: document folder list no longer shows inflated version numbers from old draft counting",
           "category": "bug",
           "createdAt": "2026-06-03T20:15:00.000Z"
+        },
+        {
+          "id": "v0x2y4z6-preview-header-version-fix-2026",
+          "patch": 14,
+          "message": "Fixed: document preview header no longer shows inflated version number",
+          "category": "bug",
+          "createdAt": "2026-06-03T20:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
