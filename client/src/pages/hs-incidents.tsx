@@ -2236,37 +2236,30 @@ function IncidentDetailView({ id }: { id: string }) {
     setIsUploading(true);
     try {
       const buffer = await file.arrayBuffer();
-      const uploadRes = await fetch("/api/uploads/file", {
+      const uploadRes = await fetch(`/api/incidents/${id}/upload`, {
         method: "POST",
         headers: {
           "Content-Type": file.type || "application/octet-stream",
           "X-File-Name": encodeURIComponent(file.name),
+          "X-File-Title": encodeURIComponent(file.name.replace(/\.[^/.]+$/, "")),
         },
         body: buffer,
+        credentials: "include",
       });
 
       if (!uploadRes.ok) {
-        if (uploadRes.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
-        throw new Error("Upload failed");
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed (${uploadRes.status})`);
       }
 
-      const { objectPath } = await uploadRes.json();
-
-      const res = await apiRequest("POST", `/api/incidents/${id}/documents`, {
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        fileName: file.name,
-        fileUrl: objectPath,
-        fileSize: file.size,
-        mimeType: file.type,
-      });
-      const created = await res.json();
-
+      const created = await uploadRes.json();
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
       invalidateAudit();
       toast({ title: "Document uploaded" });
       if (created?.id) openEditDialog(created);
-    } catch {
-      toast({ title: "Upload failed", description: "Could not upload the document.", variant: "destructive" });
+    } catch (err) {
+      console.error("Document upload error:", err);
+      toast({ title: "Upload failed", description: (err as Error)?.message || "Could not upload the document.", variant: "destructive" });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -2283,33 +2276,27 @@ function IncidentDetailView({ id }: { id: string }) {
     for (const file of files) {
       try {
         const buffer = await file.arrayBuffer();
-        const uploadRes = await fetch("/api/uploads/file", {
+        const uploadRes = await fetch(`/api/incidents/${id}/upload`, {
           method: "POST",
           headers: {
             "Content-Type": file.type || "image/jpeg",
             "X-File-Name": encodeURIComponent(file.name),
+            "X-File-Title": encodeURIComponent(file.name.replace(/\.[^/.]+$/, "")),
           },
           body: buffer,
+          credentials: "include",
         });
 
         if (!uploadRes.ok) {
-          if (uploadRes.status === 401) throw new Error("Your session has expired — please refresh the page and log back in.");
-          throw new Error("Upload failed");
+          const errBody = await uploadRes.json().catch(() => ({}));
+          throw new Error(errBody.error || `Upload failed (${uploadRes.status})`);
         }
 
-        const { objectPath } = await uploadRes.json();
-
-        const photoRes = await apiRequest("POST", `/api/incidents/${id}/documents`, {
-          title: file.name.replace(/\.[^/.]+$/, ""),
-          fileName: file.name,
-          fileUrl: objectPath,
-          fileSize: file.size,
-          mimeType: file.type,
-        });
-        lastDoc = await photoRes.json();
+        lastDoc = await uploadRes.json();
         successCount++;
-      } catch {
-        toast({ title: "Photo upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
+      } catch (err) {
+        console.error("Photo upload error:", err);
+        toast({ title: "Photo upload failed", description: `${(err as Error)?.message || "Could not upload"}: ${file.name}`, variant: "destructive" });
       }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });

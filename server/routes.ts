@@ -15687,7 +15687,8 @@ export async function registerRoutes(
   // Upload a file (photo or document) attached to an incident
   app.post("/api/incidents/:id/upload", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
 
@@ -15697,6 +15698,8 @@ export async function registerRoutes(
       const rawFileName = req.headers["x-file-name"] as string | undefined;
       if (!rawFileName) return res.status(400).json({ error: "Missing x-file-name header" });
       const fileName = decodeURIComponent(rawFileName);
+      const rawTitle = req.headers["x-file-title"] as string | undefined;
+      const title = rawTitle ? decodeURIComponent(rawTitle) : fileName.replace(/\.[^/.]+$/, "");
       const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
 
       const chunks: Buffer[] = [];
@@ -15719,8 +15722,8 @@ export async function registerRoutes(
       const objectPath = `/objects/uploads/${objectId}`;
 
       const doc = await storage.createDocument({
-        title: fileName,
-        comments: `Attachment for incident ${incident.incidentReference}`,
+        title,
+        comments: null,
         module: "health_safety",
         type: "incident_report",
         entityId: incident.entityId,
@@ -15737,7 +15740,18 @@ export async function registerRoutes(
         source: "upload",
       });
 
-      res.json({ objectPath, fileUrl: objectPath, documentId: doc.id });
+      await storage.createAuditLog({
+        action: "document_uploaded",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: incident.entityId,
+        documentId: doc.id,
+        module: "health_safety",
+        details: `"${title}" uploaded to ${incident.incidentReference}`,
+        incidentId: incident.id,
+      } as any);
+
+      res.json(doc);
     } catch (error) {
       console.error("Error uploading incident file:", error);
       res.status(500).json({ error: "Upload failed" });

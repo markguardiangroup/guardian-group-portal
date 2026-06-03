@@ -7174,6 +7174,13 @@
           "message": "Fixed: incident photo and document upload now correctly opens the edit dialog and saves details after upload",
           "category": "bug",
           "createdAt": "2026-06-03T17:10:00.000Z"
+        },
+        {
+          "id": "c5e7a9b1-incident-upload-consolidated-route-2026",
+          "patch": 14,
+          "message": "Fixed: photo and document upload in incidents now works reliably for all user roles",
+          "category": "bug",
+          "createdAt": "2026-06-03T17:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
