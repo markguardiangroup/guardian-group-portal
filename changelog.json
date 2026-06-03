@@ -7433,6 +7433,13 @@
           "message": "Removed version number tags from document detail page",
           "category": "enhancement",
           "createdAt": "2026-06-03T22:55:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-doc-details-layout-polish-2026",
+          "patch": 14,
+          "message": "Improved Document Details layout — cleaner rows with dividers and labelled fields",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T23:00:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -1647,50 +1647,50 @@ function DocumentDetailView({ id }: { id: string }) {
             <CardHeader>
               <CardTitle>Document Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {document.templateId && (() => {
-                const template = templates?.find((t: any) => t.id === document.templateId);
-                return template ? (
+            <CardContent className="p-0">
+              <dl className="divide-y divide-border">
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
                   <div>
-                    <h4 className="text-sm font-medium text-muted-foreground">Template</h4>
-                    <p className="mt-1">{template.name}</p>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File Name</dt>
+                    <dd className="mt-1 text-sm font-medium font-mono">{document.fileName}</dd>
                   </div>
-                ) : null;
-              })()}
-              {document.comments && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Comments</h4>
-                  <p className="mt-1">{document.comments}</p>
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File Size</dt>
+                    <dd className="mt-1 text-sm font-medium">{(document.fileSize / 1024).toFixed(1)} KB</dd>
+                  </div>
                 </div>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">File Name</h4>
-                  <p className="mt-1 font-mono text-sm">{document.fileName}</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">File Size</h4>
-                  <p className="mt-1">{(document.fileSize / 1024).toFixed(1)} KB</p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Created</h4>
-                  <p className="mt-1">
-                    {document.createdAt && format(new Date(document.createdAt), "PPP")}
-                  </p>
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground">Last Modified</h4>
-                  <p className="mt-1">
-                    {document.updatedAt && format(new Date(document.updatedAt), "PPP")}
-                  </p>
+                <div className="grid grid-cols-2 gap-x-6 px-6 py-3.5">
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</dt>
+                    <dd className="mt-1 text-sm font-medium">{document.createdAt && format(new Date(document.createdAt), "MMM d, yyyy")}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last Modified</dt>
+                    <dd className="mt-1 text-sm font-medium">{document.updatedAt && format(new Date(document.updatedAt), "MMM d, yyyy")}</dd>
+                  </div>
                 </div>
                 {document.expiryDate && (
-                  <div>
-                    <h4 className="text-sm font-medium text-muted-foreground">Expiry Date</h4>
-                    <p className="mt-1">{format(new Date(document.expiryDate), "PPP")}</p>
+                  <div className="px-6 py-3.5">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Expiry Date</dt>
+                    <dd className="mt-1 text-sm font-medium">{format(new Date(document.expiryDate), "MMM d, yyyy")}</dd>
                   </div>
                 )}
-              </div>
+                {document.templateId && (() => {
+                  const template = templates?.find((t: any) => t.id === document.templateId);
+                  return template ? (
+                    <div className="px-6 py-3.5">
+                      <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Template</dt>
+                      <dd className="mt-1 text-sm font-medium">{template.name}</dd>
+                    </div>
+                  ) : null;
+                })()}
+                {document.comments && (
+                  <div className="px-6 py-3.5">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Comments</dt>
+                    <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">{document.comments}</dd>
+                  </div>
+                )}
+              </dl>
             </CardContent>
           </Card>
 
