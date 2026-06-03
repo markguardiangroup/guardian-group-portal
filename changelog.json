@@ -7223,6 +7223,13 @@
           "message": "Fixed: RIDDOR Reportable now shows 'Not answered' until the investigation is completed",
           "category": "bug",
           "createdAt": "2026-06-03T19:15:00.000Z"
+        },
+        {
+          "id": "d2f4g6h8-redacted-fields-show-badge-incident-detail-2026",
+          "patch": 14,
+          "message": "Redacted personal fields now show a clear 'Redacted' label in incident reports",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T18:14:00.000Z"
         }
       ],
       "publishedPatch": 13,

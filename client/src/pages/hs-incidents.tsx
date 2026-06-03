@@ -2016,6 +2016,15 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
 
 // ─── Incident Detail View (Full Page) ────────────────────────────────────────
 
+function RedactedBadge() {
+  return (
+    <span className="inline-flex items-center text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded px-1.5 py-0.5">
+      Redacted
+    </span>
+  );
+}
+const R = "[Redacted]";
+
 function IncidentDetailView({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -2458,9 +2467,11 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
-                      {incident.affectedPersonName
-                        ? <p className="text-sm">{incident.affectedPersonName}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      {incident.affectedPersonName === R
+                        ? <RedactedBadge />
+                        : incident.affectedPersonName
+                          ? <p className="text-sm">{incident.affectedPersonName}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">{incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title"}</p>
@@ -2470,9 +2481,11 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Address</p>
-                      {incident.affectedPersonAddress
-                        ? <p className="text-sm">{incident.affectedPersonAddress}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      {incident.affectedPersonAddress === R
+                        ? <RedactedBadge />
+                        : incident.affectedPersonAddress
+                          ? <p className="text-sm">{incident.affectedPersonAddress}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                   </div>
                 </div>
@@ -2554,7 +2567,7 @@ function IncidentDetailView({ id }: { id: string }) {
                           <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-3 gap-3">
                             <div>
                               <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
-                              <p className="text-sm font-medium">{w.name || <span className="italic text-muted-foreground">—</span>}</p>
+                              <p className="text-sm font-medium">{w.name === R ? <RedactedBadge /> : w.name || <span className="italic text-muted-foreground">—</span>}</p>
                             </div>
                             <div>
                               <p className="text-xs text-muted-foreground mb-0.5">Job Role</p>
@@ -2577,9 +2590,11 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
-                      {incident.reportingPersonName
-                        ? <p className="text-sm">{incident.reportingPersonName}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      {incident.reportingPersonName === R
+                        ? <RedactedBadge />
+                        : incident.reportingPersonName
+                          ? <p className="text-sm">{incident.reportingPersonName}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Job Title</p>
@@ -2589,9 +2604,11 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                     <div className="sm:col-span-2">
                       <p className="text-xs text-muted-foreground mb-0.5">Address</p>
-                      {incident.reportingPersonAddress
-                        ? <p className="text-sm">{incident.reportingPersonAddress}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      {incident.reportingPersonAddress === R
+                        ? <RedactedBadge />
+                        : incident.reportingPersonAddress
+                          ? <p className="text-sm">{incident.reportingPersonAddress}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                   </div>
                 </div>
@@ -2602,9 +2619,11 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Full Name</p>
-                      {incident.declarationName
-                        ? <p className="text-sm">{incident.declarationName}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      {incident.declarationName === R
+                        ? <RedactedBadge />
+                        : incident.declarationName
+                          ? <p className="text-sm">{incident.declarationName}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Date</p>
@@ -2614,9 +2633,11 @@ function IncidentDetailView({ id }: { id: string }) {
                     </div>
                     <div className="sm:col-span-2">
                       <p className="text-xs text-muted-foreground mb-1">Signature</p>
-                      {incident.declarationSignature
-                        ? <p className="text-base italic font-medium border-b border-foreground/40 inline-block pb-0.5 min-w-[200px]">{incident.declarationSignature}</p>
-                        : <p className="text-sm text-muted-foreground italic">Not provided</p>}
+                      {incident.declarationSignature === R
+                        ? <RedactedBadge />
+                        : incident.declarationSignature
+                          ? <p className="text-base italic font-medium border-b border-foreground/40 inline-block pb-0.5 min-w-[200px]">{incident.declarationSignature}</p>
+                          : <p className="text-sm text-muted-foreground italic">Not provided</p>}
                     </div>
                   </div>
                 </div>
@@ -2711,7 +2732,7 @@ function IncidentDetailView({ id }: { id: string }) {
                   <div className="py-3 flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">
                       {incident.invCompletedAt
-                        ? <>Completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span>{incident.invCompletedBy && incident.invCompletedBy !== "[Redacted]" ? <> by <span className="font-medium text-foreground">{incident.invCompletedBy}</span></> : ""}</>
+                        ? <>Completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span>{incident.invCompletedBy ? <> by {incident.invCompletedBy === R ? <RedactedBadge /> : <span className="font-medium text-foreground">{incident.invCompletedBy}</span>}</> : ""}</>
                         : <span className="italic">Investigation in progress</span>}
                     </p>
                     <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
@@ -2784,7 +2805,7 @@ function IncidentDetailView({ id }: { id: string }) {
                         <div className="space-y-1.5">
                           {ws.map((w, i) => (
                             <div key={i} className="rounded-md border px-3 py-2 grid grid-cols-4 gap-3 text-sm">
-                              <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{(w.name && w.name !== "[Redacted]") ? w.name : "—"}</p></div>
+                              <div><p className="text-xs text-muted-foreground mb-0.5">Name</p><p className="font-medium">{w.name === R ? <RedactedBadge /> : w.name || "—"}</p></div>
                               <div><p className="text-xs text-muted-foreground mb-0.5">Job Role</p><p>{w.jobRole || "—"}</p></div>
                               <div><p className="text-xs text-muted-foreground mb-0.5">Company</p><p>{w.company || "—"}</p></div>
                               <div><p className="text-xs text-muted-foreground mb-0.5">Statement Attached</p><p>{w.statementAttached === null ? "—" : w.statementAttached ? "Yes" : "No"}</p></div>
@@ -2961,7 +2982,7 @@ function IncidentDetailView({ id }: { id: string }) {
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">Responsible Person</p>
-                        <p className="text-sm">{(incident.riddorResponsiblePerson && incident.riddorResponsiblePerson !== "[Redacted]") ? incident.riddorResponsiblePerson : <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : !incident.invCompletedAt ? "Not answered" : "N/A"}</span>}</p>
+                        <p className="text-sm">{incident.riddorResponsiblePerson === R ? <RedactedBadge /> : incident.riddorResponsiblePerson ? incident.riddorResponsiblePerson : <span className="text-muted-foreground italic">{incident.riddorReportable ? "Not provided" : !incident.invCompletedAt ? "Not answered" : "N/A"}</span>}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground mb-0.5">RIDDOR Reference</p>
