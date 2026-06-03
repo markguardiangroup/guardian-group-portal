@@ -7209,6 +7209,13 @@
           "message": "Fixed: deleting incident photos and documents now works with an inline confirm instead of browser dialog",
           "category": "bug",
           "createdAt": "2026-06-03T18:45:00.000Z"
+        },
+        {
+          "id": "b0d2f4a6-no-auto-generated-report-on-submit-2026",
+          "patch": 14,
+          "message": "Submitting an incident no longer auto-saves an Original Incident Report document",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

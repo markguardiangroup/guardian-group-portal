@@ -729,14 +729,6 @@ function ReportIncidentDialog({
       for (const doc of docFiles) {
         await uploadFileToIncident(doc, incidentId);
       }
-      if (imageUrls.length > 0) {
-        await fetch(`/api/incidents/${incidentId}/regenerate-report`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrls }),
-          credentials: "include",
-        });
-      }
       return incident;
     },
     onSuccess: (incident: any) => {
