@@ -69,6 +69,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
       });
 
       es.addEventListener("document-audit-updated", (e) => {
@@ -103,6 +104,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
       });
 
       es.addEventListener("support-request-created", () => {

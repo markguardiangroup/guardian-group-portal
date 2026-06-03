@@ -7377,6 +7377,13 @@
           "message": "Loading spinners across all pages replaced with spinning Guardian logo",
           "category": "enhancement",
           "createdAt": "2026-06-03T21:00:00.000Z"
+        },
+        {
+          "id": "z4b6d8e0-my-actions-sse-realtime-fix-2026",
+          "patch": 14,
+          "message": "Fixed: My Actions on homepage now updates in real time when documents need approval",
+          "category": "bug",
+          "createdAt": "2026-06-03T21:10:00.000Z"
         }
       ],
       "publishedPatch": 13,
