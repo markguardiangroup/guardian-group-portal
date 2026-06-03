@@ -16232,11 +16232,20 @@ export async function registerRoutes(
     ${incident.invCompletedAt ? `<p style="font-size:12px;color:#6b7280;margin-bottom:16px">Completed ${fmt(incident.invCompletedAt)}${incident.invCompletedBy ? ` by ${incident.invCompletedBy}` : ""}</p>` : ""}
 
     <section>
-      <h2>Post-Incident: Injured Person Status</h2>
+      <h2>About the Injured Person</h2>
       <table>
+        ${field("First Aid Given", boolVal(incident.invFirstAidGiven))}
+        ${field("Hospital Visit Required", boolVal(incident.invHospitalVisit))}
         ${field("Absent from Work", boolVal(incident.invAbsentFromWork))}
         ${incident.invAbsentFromWork ? field("Absence Timeframe", textVal(incident.invAbsentTimeframe)) : ""}
       </table>
+      ${(incident.incidentNature || incident.injuriesReported !== null || incident.injuryDetails) ? `
+      <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin:10px 0 4px">From Initial Report</p>
+      <table>
+        ${incident.incidentNature ? field("Nature of Incident", incident.incidentNature) : ""}
+        ${field("Injuries Reported", boolVal(incident.injuriesReported))}
+        ${incident.injuryDetails ? field("Injury Details", textVal(incident.injuryDetails)) : ""}
+      </table>` : ""}
     </section>
 
     <section>
@@ -16253,6 +16262,7 @@ export async function registerRoutes(
         ${field("Equipment Involved", boolVal(incident.invEquipmentInvolved))}
         ${incident.invEquipmentInvolved ? field("Operators", textVal(incident.invOperators)) : ""}
         ${incident.invEquipmentInvolved ? field("Operators Qualified", boolVal(incident.invOperatorsQualified)) : ""}
+        ${incident.invEquipmentInvolved === null && incident.machineryInvolved ? field("Equipment (from initial report)", incident.machineryInvolved) : ""}
       </table>
       ${incident.invEquipmentInvolved ? equipRows : ""}
     </section>
@@ -16275,39 +16285,49 @@ export async function registerRoutes(
       </table>
     </section>
 
-    ${(() => {
-      let acts: string[] = [];
-      try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
-      if (!acts.length) return "";
-      return `<section>
+    <section>
       <h2>Actions</h2>
-      <ol style="margin:0;padding-left:20px">${acts.map((a: string, i: number) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${a}</li>`).join("")}</ol>
-    </section>`;
-    })()}
+      ${(() => {
+        let acts: string[] = [];
+        try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
+        return acts.length > 0
+          ? `<ol style="margin:0;padding-left:20px">${acts.map((a: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${a}</li>`).join("")}</ol>`
+          : `<p style="font-size:13px;color:#9ca3af;font-style:italic">None recorded</p>`;
+      })()}
+    </section>
 
-    ${(() => {
-      let recs: string[] = [];
-      try { if (incident.invRecommendations) recs = JSON.parse(incident.invRecommendations); } catch {}
-      if (!recs.length) return "";
-      return `<section>
+    <section>
       <h2>Recommendations</h2>
-      <ol style="margin:0;padding-left:20px">${recs.map((r: string, i: number) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${r}</li>`).join("")}</ol>
-    </section>`;
-    })()}
+      ${(() => {
+        let recs: string[] = [];
+        try { if (incident.invRecommendations) recs = JSON.parse(incident.invRecommendations); } catch {}
+        return recs.length > 0
+          ? `<ol style="margin:0;padding-left:20px">${recs.map((r: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${r}</li>`).join("")}</ol>`
+          : `<p style="font-size:13px;color:#9ca3af;font-style:italic">None recorded</p>`;
+      })()}
+    </section>
 
     <section>
       <h2>Conclusion</h2>
       <p style="font-size:13px;line-height:1.7;color:#111827">${textVal(incident.invConclusion)}</p>
     </section>
 
-    ${incident.invAmendments ? `
     <section>
       <h2>Amendments / Corrections to Initial Report</h2>
+      ${incident.invAmendments
+        ? `<p style="font-size:13px;line-height:1.7;color:#111827;white-space:pre-wrap">${incident.invAmendments}</p>`
+        : `<p style="font-size:13px;color:#9ca3af;font-style:italic">None recorded</p>`}
+    </section>
+
+    <section>
+      <h2>RIDDOR</h2>
       <table>
-        ${field("Amendments / Corrections", textVal(incident.invAmendments))}
+        ${field("RIDDOR Reportable", incident.riddorReportable ? '<span style="color:#dc2626;font-weight:600">Yes</span>' : "No")}
+        ${field("Responsible Person", textVal(incident.riddorResponsiblePerson))}
+        ${field("RIDDOR Reference", textVal(incident.riddorReference))}
+        ${incident.riddorNotes ? field("RIDDOR Notes", textVal(incident.riddorNotes)) : ""}
       </table>
     </section>
-    ` : ""}
 
   </div>
   <div class="footer">

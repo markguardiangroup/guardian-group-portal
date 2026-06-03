@@ -7062,6 +7062,13 @@
           "message": "Investigation report view and edit sections now appear in the same order",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:18:00.000Z"
+        },
+        {
+          "id": "e7a9c1d3-inv-pdf-complete-fields-2026",
+          "patch": 14,
+          "message": "Export Report now includes all fields: first aid, hospital visit, RIDDOR, actions, recommendations, amendments — always shown",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T17:28:00.000Z"
         }
       ],
       "publishedPatch": 13,
