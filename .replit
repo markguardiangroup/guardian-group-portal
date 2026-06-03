@@ -58,6 +58,7 @@ timeoutMs = 60000
 [userenv.production]
 NODE_ENV = "production"
 VITE_TURNSTILE_SITE_KEY = "0x4AAAAAADeEkWu_MMfYe3J0"
+TURNSTILE_SECRET_KEY = "0x4AAAAAADeEkbcetAgl32cHEmswQmRSRqY"
 
 [userenv.shared]
 VITE_PROD_URL = "https://www.guardiangroup.ai"
