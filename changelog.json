@@ -7167,6 +7167,13 @@
           "message": "Removed the Regenerate Report button from the incident documents section",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:00:00.000Z"
+        },
+        {
+          "id": "b4d6f8a0-incident-upload-json-parse-fix-2026",
+          "patch": 14,
+          "message": "Fixed: incident photo and document upload now correctly opens the edit dialog and saves details after upload",
+          "category": "bug",
+          "createdAt": "2026-06-03T17:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

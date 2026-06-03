@@ -2252,18 +2252,19 @@ function IncidentDetailView({ id }: { id: string }) {
 
       const { objectPath } = await uploadRes.json();
 
-      const created = await apiRequest("POST", `/api/incidents/${id}/documents`, {
+      const res = await apiRequest("POST", `/api/incidents/${id}/documents`, {
         title: file.name.replace(/\.[^/.]+$/, ""),
         fileName: file.name,
         fileUrl: objectPath,
         fileSize: file.size,
         mimeType: file.type,
       });
+      const created = await res.json();
 
       queryClient.invalidateQueries({ queryKey: ["/api/incidents", id, "documents"] });
       invalidateAudit();
       toast({ title: "Document uploaded" });
-      if (created) openEditDialog({ ...created, comments: "" });
+      if (created?.id) openEditDialog(created);
     } catch {
       toast({ title: "Upload failed", description: "Could not upload the document.", variant: "destructive" });
     } finally {
@@ -2298,14 +2299,14 @@ function IncidentDetailView({ id }: { id: string }) {
 
         const { objectPath } = await uploadRes.json();
 
-        const created = await apiRequest("POST", `/api/incidents/${id}/documents`, {
+        const photoRes = await apiRequest("POST", `/api/incidents/${id}/documents`, {
           title: file.name.replace(/\.[^/.]+$/, ""),
           fileName: file.name,
           fileUrl: objectPath,
           fileSize: file.size,
           mimeType: file.type,
         });
-        lastDoc = created;
+        lastDoc = await photoRes.json();
         successCount++;
       } catch {
         toast({ title: "Photo upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
