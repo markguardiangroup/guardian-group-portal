@@ -6992,6 +6992,20 @@
           "message": "Audit trail: 'Expand to see comment' tucked below the badge at the bottom-right of each row",
           "category": "enhancement",
           "createdAt": "2026-06-03T13:25:00.000Z"
+        },
+        {
+          "id": "a7c9e1b3-inv-report-full-initial-data-2026",
+          "patch": 14,
+          "message": "Investigation report now includes the full initial incident data (description, cause, injury, witnesses, actions)",
+          "category": "feature",
+          "createdAt": "2026-06-03T16:10:00.000Z"
+        },
+        {
+          "id": "b8d0f2c4-inv-card-injury-equipment-2026",
+          "patch": 14,
+          "message": "Investigation card now shows injury details and falls back to initial machinery details when not yet investigated",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T16:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

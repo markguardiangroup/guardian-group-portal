@@ -2816,6 +2816,27 @@ function IncidentDetailView({ id }: { id: string }) {
                         <p className="text-sm font-medium">{incident.invAbsentFromWork === null ? <span className="text-muted-foreground italic">Not recorded</span> : incident.invAbsentFromWork ? `Yes${incident.invAbsentTimeframe ? ` — ${incident.invAbsentTimeframe}` : ""}` : "No"}</p>
                       </div>
                     </div>
+                    {/* Injury details from the initial report */}
+                    {(incident.injuriesReported || incident.injuryDetails || incident.incidentNature) && (
+                      <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-dashed">
+                        {incident.incidentNature && (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-0.5">Nature of Incident</p>
+                            <p className="text-sm">{incident.incidentNature}</p>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-0.5">Injuries Reported</p>
+                          <p className={`text-sm font-medium ${incident.injuriesReported ? "text-red-600" : ""}`}>{incident.injuriesReported ? "Yes" : "No"}</p>
+                        </div>
+                        {incident.injuryDetails && (
+                          <div className="sm:col-span-2">
+                            <p className="text-xs text-muted-foreground mb-0.5">Injury Details</p>
+                            <p className="text-sm">{incident.injuryDetails}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* ─ Witnesses ─ */}
@@ -2858,7 +2879,14 @@ function IncidentDetailView({ id }: { id: string }) {
                       {isPrivileged && <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)}><Pencil className="h-3 w-3" />Edit</Button>}
                     </div>
                     {incident.invEquipmentInvolved === null ? (
-                      <p className="text-sm text-muted-foreground italic">Not recorded</p>
+                      incident.machineryInvolved ? (
+                        <div className="space-y-1">
+                          <p className="text-sm">{incident.machineryInvolved}</p>
+                          <p className="text-xs text-muted-foreground italic">From initial report — full investigation detail not yet recorded</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">Not recorded</p>
+                      )
                     ) : (
                       <>
                         <p className="text-sm"><span className="text-muted-foreground">Equipment involved:</span> <span className="font-medium">{incident.invEquipmentInvolved ? "Yes" : "No"}</span></p>
