@@ -7279,6 +7279,13 @@
           "message": "Version history entries now show full date, time, and relative age",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:05:00.000Z"
+        },
+        {
+          "id": "l0n2o4p6-version-history-remove-change-note-2026",
+          "patch": 14,
+          "message": "Removed change note text from version history entries",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

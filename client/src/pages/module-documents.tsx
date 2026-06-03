@@ -4674,9 +4674,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   · {formatDistanceToNow(new Date(version.createdAt), { addSuffix: true })}
                                 </span>
                               </p>
-                              {version.changeNote && (
-                                <p className="text-xs text-muted-foreground italic">{version.changeNote}</p>
-                              )}
                             </div>
                             <Button
                               variant="ghost"

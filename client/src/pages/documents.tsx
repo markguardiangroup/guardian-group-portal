@@ -1729,9 +1729,6 @@ function DocumentDetailView({ id }: { id: string }) {
                             </div>
                             <div>
                               <p className="text-sm font-medium">{version.fileName}</p>
-                              {version.changeNote && (
-                                <p className="text-sm text-muted-foreground">{version.changeNote}</p>
-                              )}
                             </div>
                           </div>
                           <div className="text-right shrink-0">
