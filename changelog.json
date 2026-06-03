@@ -6908,6 +6908,13 @@
           "message": "Warning card shown when document renewal is due within 30 days",
           "category": "feature",
           "createdAt": "2026-06-03T08:20:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
+          "patch": 14,
+          "message": "Cloudflare Turnstile bot protection added to the login page",
+          "category": "feature",
+          "createdAt": "2026-06-03T08:35:00.000Z"
         }
       ],
       "publishedPatch": 13,

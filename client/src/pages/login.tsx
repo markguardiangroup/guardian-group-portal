@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -117,6 +117,46 @@ export default function Login() {
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>("");
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+  const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+
+  useEffect(() => {
+    if (!SITE_KEY || !turnstileRef.current) return;
+    const initWidget = () => {
+      const ts = (window as any).turnstile;
+      if (ts && turnstileRef.current && !turnstileWidgetId.current) {
+        turnstileWidgetId.current = ts.render(turnstileRef.current, {
+          sitekey: SITE_KEY,
+          callback: (token: string) => setTurnstileToken(token),
+          "expired-callback": () => setTurnstileToken(""),
+          "error-callback": () => setTurnstileToken(""),
+          theme: "light",
+        });
+      }
+    };
+    if ((window as any).turnstile) {
+      initWidget();
+    } else {
+      const existing = document.querySelector('script[src*="turnstile"]') as HTMLScriptElement | null;
+      const script = existing ?? document.createElement("script");
+      if (!existing) {
+        script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+      script.addEventListener("load", initWidget);
+      return () => script.removeEventListener("load", initWidget);
+    }
+    return () => {
+      if (turnstileWidgetId.current && (window as any).turnstile) {
+        (window as any).turnstile.remove(turnstileWidgetId.current);
+        turnstileWidgetId.current = null;
+      }
+    };
+  }, [SITE_KEY]);
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -153,9 +193,20 @@ export default function Login() {
     defaultValues: { username: "", password: "" },
   });
 
+  const resetTurnstile = () => {
+    const ts = (window as any).turnstile;
+    if (ts && turnstileWidgetId.current) {
+      ts.reset(turnstileWidgetId.current);
+    }
+    setTurnstileToken("");
+  };
+
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
-      const res = await apiRequest("POST", "/api/auth/login", data);
+      const res = await apiRequest("POST", "/api/auth/login", {
+        ...data,
+        ...(SITE_KEY && turnstileToken ? { turnstileToken } : {}),
+      });
       return res.json();
     },
     onSuccess: (userData) => {
@@ -186,6 +237,7 @@ export default function Login() {
       setIsSubmitting(false);
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
+      resetTurnstile();
       const msg = error.message || "";
       const statusCode = parseInt(msg.split(":")[0], 10);
       try {
@@ -488,12 +540,18 @@ export default function Login() {
                   )}
                 />
 
+                {SITE_KEY && (
+                  <div className="flex justify-center" data-testid="turnstile-widget">
+                    <div ref={turnstileRef} />
+                  </div>
+                )}
+
                 <div className="pt-1">
                   <Button
                     type="submit"
                     className="w-full h-11 font-semibold text-white border-0"
                     style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
-                    disabled={loginMutation.isPending}
+                    disabled={loginMutation.isPending || (!!SITE_KEY && !turnstileToken)}
                     data-testid="button-login"
                   >
                     {loginMutation.isPending ? (

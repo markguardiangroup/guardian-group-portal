@@ -471,6 +471,7 @@ const approvalSchema = z.object({
 const loginSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
+  turnstileToken: z.string().optional(),
 });
 
 const createDocumentTypeSchema = z.object({
@@ -540,9 +541,33 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid credentials format" });
       }
 
-      const { username: rawIdentifier, password } = parseResult.data;
+      const { username: rawIdentifier, password, turnstileToken } = parseResult.data;
       const loginIdentifier = rawIdentifier.toLowerCase().trim();
       const ipAddress = req.ip || req.socket.remoteAddress || "unknown";
+
+      // Verify Cloudflare Turnstile token when secret key is configured
+      const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+      if (turnstileSecret) {
+        if (!turnstileToken) {
+          return res.status(400).json({ error: "Security verification required. Please complete the challenge and try again." });
+        }
+        try {
+          const formData = new FormData();
+          formData.append("secret", turnstileSecret);
+          formData.append("response", turnstileToken);
+          formData.append("remoteip", ipAddress);
+          const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+            method: "POST",
+            body: formData,
+          });
+          const verifyData = await verifyRes.json() as { success: boolean };
+          if (!verifyData.success) {
+            return res.status(400).json({ error: "Security verification failed. Please refresh and try again." });
+          }
+        } catch {
+          return res.status(500).json({ error: "Could not verify security token. Please try again." });
+        }
+      }
       const userAgent = req.get("User-Agent") || "unknown";
 
       // Check if account is locked due to too many failed attempts

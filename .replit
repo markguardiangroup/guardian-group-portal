@@ -61,3 +61,4 @@ NODE_ENV = "production"
 [userenv.shared]
 VITE_PROD_URL = "https://www.guardiangroup.ai"
 ACCELO_WEBHOOK_SECRET = "5727b1df2c63ea71e8bb77a76575470c602bc3bb8462e2e64b384050a22dc3d8"
+VITE_TURNSTILE_SITE_KEY = "0x4AAAAAADeEkWu_MMfYe3J0"
