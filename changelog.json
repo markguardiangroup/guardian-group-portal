@@ -7286,6 +7286,13 @@
           "message": "Removed change note text from version history entries",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:10:00.000Z"
+        },
+        {
+          "id": "m1o3p5q7-audit-trail-checkbox-filter-2026",
+          "patch": 14,
+          "message": "Audit trail filter now uses checkboxes so multiple types can be combined",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:25:00.000Z"
         }
       ],
       "publishedPatch": 13,

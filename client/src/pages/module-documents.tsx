@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -3078,7 +3079,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
-  const [auditTypeFilter, setAuditTypeFilter] = useState<string>("all");
+  const [auditTypeFilter, setAuditTypeFilter] = useState<Set<string>>(new Set());
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
   const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
@@ -4104,9 +4105,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const sortedAll = [...auditLogs].sort(
               (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
-            const filteredLogs = auditTypeFilter === "all"
+            const filteredLogs = auditTypeFilter.size === 0
               ? sortedAll
-              : sortedAll.filter(log => (filterMap[auditTypeFilter] ?? []).includes(log.action));
+              : sortedAll.filter(log =>
+                  [...auditTypeFilter].some(key => (filterMap[key] ?? []).includes(log.action))
+                );
 
             const displayedLogs = showAllAuditLogs ? filteredLogs : filteredLogs.slice(0, INITIAL_DISPLAY_COUNT);
             const hasMoreLogs = filteredLogs.length > INITIAL_DISPLAY_COUNT;
@@ -4120,20 +4123,51 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     <Badge variant="secondary" className="text-xs">{auditLogs.length}</Badge>
                   </CardTitle>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Select value={auditTypeFilter} onValueChange={(v) => { setAuditTypeFilter(v); setShowAllAuditLogs(false); }}>
-                      <SelectTrigger className="h-8 w-36 text-xs" data-testid="select-audit-filter">
-                        <Filter className="h-3 w-3 mr-1 shrink-0" />
-                        <SelectValue placeholder="Filter type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All types</SelectItem>
-                        <SelectItem value="uploads">Uploads</SelectItem>
-                        <SelectItem value="approvals">Approvals</SelectItem>
-                        <SelectItem value="views">Views & Downloads</SelectItem>
-                        <SelectItem value="emails">Emails</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" data-testid="button-audit-filter">
+                          <Filter className="h-3 w-3 shrink-0" />
+                          {auditTypeFilter.size === 0
+                            ? "All types"
+                            : auditTypeFilter.size === 1
+                              ? ({"uploads":"Uploads","approvals":"Approvals","views":"Views & Downloads","emails":"Emails","other":"Other"} as Record<string,string>)[
+                                  [...auditTypeFilter][0]
+                                ] ?? "1 selected"
+                              : `${auditTypeFilter.size} selected`}
+                          <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {([ ["uploads","Uploads"], ["approvals","Approvals"], ["views","Views & Downloads"], ["emails","Emails"], ["other","Other"] ] as [string,string][]).map(([key, label]) => (
+                          <DropdownMenuCheckboxItem
+                            key={key}
+                            checked={auditTypeFilter.has(key)}
+                            onCheckedChange={(checked) => {
+                              setAuditTypeFilter(prev => {
+                                const next = new Set(prev);
+                                checked ? next.add(key) : next.delete(key);
+                                return next;
+                              });
+                              setShowAllAuditLogs(false);
+                            }}
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                            {label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
+                        {auditTypeFilter.size > 0 && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-xs text-muted-foreground justify-center"
+                              onSelect={() => { setAuditTypeFilter(new Set()); setShowAllAuditLogs(false); }}
+                            >
+                              Clear filters
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button
                       variant="outline"
                       size="sm"
