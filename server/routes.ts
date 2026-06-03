@@ -3569,8 +3569,14 @@ export async function registerRoutes(
           entityId: document.entityId,
           approvalStatus: updatedDocument?.approvalStatus,
         };
-        const versionSite = await storage.getSite(document.siteId).catch(() => null);
-        if (versionSite) emitToCompany(versionSite.companyId, "document-updated", versionPayload);
+        // Company-scoped documents use entityId directly; site-scoped documents resolve via site
+        if (document.entityId) {
+          emitToCompany(document.entityId, "document-updated", versionPayload);
+        }
+        if (document.siteId) {
+          const versionSite = await storage.getSite(document.siteId).catch(() => null);
+          if (versionSite) emitToCompany(versionSite.companyId, "document-updated", versionPayload);
+        }
         emitToRole("admin", "document-updated", versionPayload);
         emitToRole("consultant", "document-updated", versionPayload);
         emitToAll("document-audit-updated", { documentId: document.id });
@@ -4598,7 +4604,7 @@ export async function registerRoutes(
         }
       }
 
-      // Emit document-updated to the site's company, admins, and consultants only
+      // Emit document-updated to the document's company (via entityId or site), admins, and consultants
       try {
         const payload = {
           documentId: document.id,
@@ -4606,8 +4612,13 @@ export async function registerRoutes(
           entityId: document.entityId,
           approvalStatus: document.approvalStatus,
         };
-        const docSite = await storage.getSite(document.siteId).catch(() => null);
-        if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        if (document.entityId) {
+          emitToCompany(document.entityId, "document-updated", payload);
+        }
+        if (document.siteId) {
+          const docSite = await storage.getSite(document.siteId).catch(() => null);
+          if (docSite) emitToCompany(docSite.companyId, "document-updated", payload);
+        }
         emitToRole("admin", "document-updated", payload);
         emitToRole("consultant", "document-updated", payload);
       } catch { /* non-fatal */ }
