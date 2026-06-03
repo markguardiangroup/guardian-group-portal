@@ -1617,26 +1617,7 @@ function FollowUpInvestigationDialog({ incident, open, onClose, onSaved }: {
         riddorReference: invRiddorReference,
       });
 
-      // Auto-create Action Items for each action recorded in the investigation
-      const existingTitles = new Set(
-        (existingMilestones as any[]).map((m: any) => m.title?.trim().toLowerCase())
-      );
-      const newActions = invActions
-        .map(a => a.trim())
-        .filter(a => a && !existingTitles.has(a.toLowerCase()));
-
-      let addedCount = 0;
-      for (const action of newActions) {
-        try {
-          await apiRequest("POST", `/api/incidents/${incident.id}/milestones`, { title: action });
-          addedCount++;
-        } catch { /* non-fatal: action items panel will show existing ones */ }
-      }
-
-      const msg = addedCount > 0
-        ? `Follow Up Investigation saved. ${addedCount} action item${addedCount === 1 ? "" : "s"} added.`
-        : "Follow Up Investigation saved.";
-      toast({ title: msg });
+      toast({ title: "Follow Up Investigation saved." });
       onSaved();
       onClose();
     } catch { /* saveMutation already shows error toast */ }

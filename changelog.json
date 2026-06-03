@@ -7006,6 +7006,13 @@
           "message": "Investigation card now shows injury details and falls back to initial machinery details when not yet investigated",
           "category": "enhancement",
           "createdAt": "2026-06-03T16:10:00.000Z"
+        },
+        {
+          "id": "c9e1f3d5-action-items-decouple-investigation-2026",
+          "patch": 14,
+          "message": "Fixed: saving the investigation report no longer auto-creates items in the Action Items panel",
+          "category": "bug",
+          "createdAt": "2026-06-03T16:32:00.000Z"
         }
       ],
       "publishedPatch": 13,
