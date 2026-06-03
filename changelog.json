@@ -7398,6 +7398,13 @@
           "message": "Client sign-off: View/Download Draft buttons added; Sign Off and Request Changes require draft to be viewed first",
           "category": "enhancement",
           "createdAt": "2026-06-03T21:30:00.000Z"
+        },
+        {
+          "id": "c3e5f7a9-current-doc-version-approved-date-2026",
+          "patch": 14,
+          "message": "Current Document Version card now shows the date the version was approved",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T21:40:00.000Z"
         }
       ],
       "publishedPatch": 13,

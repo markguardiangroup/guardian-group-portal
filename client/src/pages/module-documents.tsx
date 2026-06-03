@@ -4451,6 +4451,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       Latest approved version — a new draft is pending
                     </CardDescription>
                   )}
+                  {!showingDraft && (() => {
+                    const approvedAt = isApproved
+                      ? document.lastApprovedAt
+                      : (latestApprovedSnapshot as any)?.createdAt ?? null;
+                    if (!approvedAt) return null;
+                    return (
+                      <CardDescription className="text-xs">
+                        Approved {format(new Date(approvedAt), "d MMM yyyy 'at' HH:mm")}
+                      </CardDescription>
+                    );
+                  })()}
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {canPreview && (document.fileUrl || latestApprovedSnapshot) && (
