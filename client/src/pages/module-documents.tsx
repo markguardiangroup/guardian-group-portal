@@ -4182,103 +4182,137 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {document.fileUrl && (document.mimeType === "application/pdf" || document.mimeType?.startsWith("image/") || document.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || document.mimeType === "application/msword") && (
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start" 
-                  data-testid="button-preview"
-                  onClick={() => {
-                    setPreviewVersion(null);
-                    setShowPreviewDialog(true);
-                  }}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  {(() => {
-                    const av = (document as any).approvedVersion ?? 0;
-                    const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
-                    const lbl = document.approvalStatus === "approved"
-                      ? `v${av > 0 ? av : document.version}`
-                      : `v${av}.${draftCount + 1}`;
-                    return `View Document (${lbl})`;
-                  })()}
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                className="w-full justify-start" 
-                data-testid="button-download"
-                onClick={() => {
-                  if (!document.fileUrl) {
-                    toast({ title: "File not available", description: "This document was uploaded before file storage was enabled. Please re-upload the document.", variant: "destructive" });
-                    return;
-                  }
-                  downloadDocument(id, document.fileName);
-                }}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                  {(() => {
-                    const av = (document as any).approvedVersion ?? 0;
-                    const draftCount = document.versions?.filter((v: any) => v.isDraft).length ?? 0;
-                    const lbl = document.approvalStatus === "approved"
-                      ? `v${av > 0 ? av : document.version}`
-                      : `v${av}.${draftCount + 1}`;
-                    return `Download Current (${lbl})`;
-                  })()}
-              </Button>
-              {user?.role !== "client" && (
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start" 
-                  data-testid="button-upload-version"
-                  onClick={() => setShowUploadVersionDialog(true)}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload New Version
-                </Button>
-              )}
-              {isPrivilegedUser && (
-                document.isArchived ? (
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start" 
-                    data-testid="button-restore-document"
-                    onClick={() => restoreMutation.mutate()}
-                    disabled={restoreMutation.isPending}
+          {(() => {
+            // Work out which file to surface as the "current" version.
+            // If the document is approved → current fileUrl IS the approved file.
+            // If not approved → use the most-recent non-draft snapshot from version history.
+            // If no approved snapshot exists at all → current file is a draft.
+            const isApproved = document.approvalStatus === "approved";
+            const av = (document as any).approvedVersion ?? 0;
+            const sortedSnapshots: any[] = (document.versions ?? []).slice();
+            const latestApprovedSnapshot = !isApproved
+              ? sortedSnapshots
+                  .filter((v: any) => !v.isDraft)
+                  .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null
+              : null;
+            const showingDraft = !isApproved && !latestApprovedSnapshot;
+            const currentVersionLabel = isApproved
+              ? `v${av > 0 ? av : document.version}`
+              : latestApprovedSnapshot
+                ? `v${(latestApprovedSnapshot as any).versionLabel ?? latestApprovedSnapshot.version}`
+                : "Draft";
+
+            const canPreview =
+              document.mimeType === "application/pdf" ||
+              document.mimeType?.startsWith("image/") ||
+              document.mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+              document.mimeType === "application/msword";
+
+            return (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    Current Document Version
+                    <Badge variant={showingDraft ? "secondary" : "default"} className="text-xs font-normal">
+                      {currentVersionLabel}
+                    </Badge>
+                  </CardTitle>
+                  {showingDraft && (
+                    <CardDescription className="text-xs">
+                      No approved version yet — this is the current draft
+                    </CardDescription>
+                  )}
+                  {latestApprovedSnapshot && (
+                    <CardDescription className="text-xs">
+                      Latest approved version — a new draft is pending
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {canPreview && (document.fileUrl || latestApprovedSnapshot) && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      data-testid="button-preview"
+                      onClick={() => {
+                        setPreviewVersion(latestApprovedSnapshot ? latestApprovedSnapshot.version : null);
+                        setShowPreviewDialog(true);
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Document ({currentVersionLabel})
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    data-testid="button-download"
+                    onClick={() => {
+                      if (!document.fileUrl && !latestApprovedSnapshot) {
+                        toast({ title: "File not available", description: "This document was uploaded before file storage was enabled. Please re-upload the document.", variant: "destructive" });
+                        return;
+                      }
+                      if (latestApprovedSnapshot) {
+                        downloadDocument(id, latestApprovedSnapshot.fileName, latestApprovedSnapshot.version);
+                      } else {
+                        downloadDocument(id, document.fileName);
+                      }
+                    }}
                   >
-                    <Archive className="mr-2 h-4 w-4" />
-                    {restoreMutation.isPending ? "Restoring..." : "Restore from Archive"}
+                    <Download className="mr-2 h-4 w-4" />
+                    Download ({currentVersionLabel})
                   </Button>
-                ) : (
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-destructive hover:text-destructive" 
-                    data-testid="button-archive-document"
-                    onClick={() => setShowArchiveDialog(true)}
-                  >
-                    <Archive className="mr-2 h-4 w-4" />
-                    Archive Document
-                  </Button>
-                )
-              )}
-              {user?.role === "admin" && (
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-destructive hover:text-destructive"
-                  data-testid="button-delete-document"
-                  onClick={() => setShowDeleteDialog(true)}
-                  disabled={deleteMutation.isPending}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Document
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+                  {user?.role !== "client" && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      data-testid="button-upload-version"
+                      onClick={() => setShowUploadVersionDialog(true)}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload New Version
+                    </Button>
+                  )}
+                  {isPrivilegedUser && (
+                    document.isArchived ? (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        data-testid="button-restore-document"
+                        onClick={() => restoreMutation.mutate()}
+                        disabled={restoreMutation.isPending}
+                      >
+                        <Archive className="mr-2 h-4 w-4" />
+                        {restoreMutation.isPending ? "Restoring..." : "Restore from Archive"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-destructive hover:text-destructive"
+                        data-testid="button-archive-document"
+                        onClick={() => setShowArchiveDialog(true)}
+                      >
+                        <Archive className="mr-2 h-4 w-4" />
+                        Archive Document
+                      </Button>
+                    )
+                  )}
+                  {user?.role === "admin" && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-destructive hover:text-destructive"
+                      data-testid="button-delete-document"
+                      onClick={() => setShowDeleteDialog(true)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Document
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
           {isPrivilegedUser && !document.isArchived && (document.scope === "company" || document.scope === "group") && document.entityId && (
             <DocumentSharingCard
@@ -4536,9 +4570,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           {document.versions && document.versions.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Previous Versions</CardTitle>
+                <CardTitle>Version History</CardTitle>
                 <CardDescription className="text-xs">
-                  Archived when new versions were uploaded
+                  All uploaded versions including drafts
                 </CardDescription>
               </CardHeader>
               <CardContent>

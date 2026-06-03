@@ -6929,6 +6929,20 @@
           "message": "Fixed: only the designated approver can sign off — others see a 'sent to a specific person' notice",
           "category": "bug",
           "createdAt": "2026-06-03T12:15:00.000Z"
+        },
+        {
+          "id": "d5e6f7a8-b9c0-1234-d5e6-f7a8b9c01234",
+          "patch": 14,
+          "message": "Quick Actions renamed to Current Document Version — always shows the latest approved file",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T12:32:00.000Z"
+        },
+        {
+          "id": "e6f7a8b9-c0d1-2345-e6f7-a8b9c0d12345",
+          "patch": 14,
+          "message": "Previous Versions renamed to Version History — shows all versions including drafts",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T12:32:00.000Z"
         }
       ],
       "publishedPatch": 13,
