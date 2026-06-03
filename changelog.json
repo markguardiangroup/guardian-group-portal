@@ -7447,6 +7447,13 @@
           "message": "Document Details fields tightened and balanced evenly across both columns",
           "category": "enhancement",
           "createdAt": "2026-06-03T23:05:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-doc-details-bottom-padding-2026",
+          "patch": 14,
+          "message": "Document Details card now has consistent padding below the last field",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T23:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

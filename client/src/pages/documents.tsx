@@ -1648,7 +1648,7 @@ function DocumentDetailView({ id }: { id: string }) {
               <CardTitle>Document Details</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <dl className="divide-y divide-border">
+              <dl className="divide-y divide-border pb-3">
                 <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">File Name</dt>
