@@ -15660,6 +15660,14 @@ export async function registerRoutes(
         });
       }
 
+      // Create default "Close the incident" action item for every new incident
+      await storage.createIncidentMilestone({
+        incidentId: incident.id,
+        title: "Close the incident",
+        description: "Complete all actions and formally close this incident.",
+        createdBy: user.id,
+      });
+
       // Emit incident-updated so relevant users see new incidents in real time
       try {
         const incPayload = { incidentId: incident.id, siteId: incident.siteId };
@@ -16335,6 +16343,20 @@ export async function registerRoutes(
       if (updates.isCompleted && milestone.incidentId) {
         const incident = await storage.getIncident(milestone.incidentId);
         if (incident) {
+          // Auto-close the incident when the "Close the incident" action item is completed
+          const isClosingAction = milestone.title.trim().toLowerCase() === "close the incident";
+          if (isClosingAction && incident.status !== "closed") {
+            await storage.updateIncident(incident.id, { status: "closed" });
+            await storage.createAuditLog({
+              action: "incident_status_changed",
+              userId: user.id,
+              userName: user.fullName,
+              entityId: incident.entityId,
+              module: "health_safety",
+              details: `Status changed from "${incident.status}" to "closed" on ${incident.incidentReference} (Close the incident action completed)`,
+              incidentId: incident.id,
+            } as any);
+          }
           await storage.createAuditLog({
             action: "milestone_completed",
             userId: user.id,

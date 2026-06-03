@@ -7244,6 +7244,20 @@
           "message": "Saving a follow-up investigation now auto-sets status to Under Review",
           "category": "feature",
           "createdAt": "2026-06-03T18:25:00.000Z"
+        },
+        {
+          "id": "g5i7j9k1-default-close-action-item-on-create-2026",
+          "patch": 14,
+          "message": "New incidents get a default 'Close the incident' action item automatically",
+          "category": "feature",
+          "createdAt": "2026-06-03T18:30:00.000Z"
+        },
+        {
+          "id": "h6j8k0l2-close-action-auto-closes-incident-2026",
+          "patch": 14,
+          "message": "Completing 'Close the incident' action item now auto-sets status to Closed",
+          "category": "feature",
+          "createdAt": "2026-06-03T18:30:00.000Z"
         }
       ],
       "publishedPatch": 13,
