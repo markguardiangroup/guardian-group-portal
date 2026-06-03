@@ -6819,6 +6819,20 @@
           "createdAt": "2026-06-03T06:30:00.000Z"
         },
         {
+          "id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890",
+          "patch": 14,
+          "message": "Removed duplicate approval card from main content — status panel now sidebar-only",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T06:32:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78901",
+          "patch": 14,
+          "message": "Approval status cards use stronger colour and bolder text when action is needed",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T06:32:00.000Z"
+        },
+        {
           "id": "e2f3a4b5-c6d7-89ab-e2f3-a4b5c6d789ab",
           "patch": 14,
           "message": "Audit trail updates in real time for all users via live connection",
