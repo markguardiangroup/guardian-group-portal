@@ -7013,6 +7013,13 @@
           "message": "Fixed: saving the investigation report no longer auto-creates items in the Action Items panel",
           "category": "bug",
           "createdAt": "2026-06-03T16:32:00.000Z"
+        },
+        {
+          "id": "d0f2a4e6-inc00012-stale-action-items-removed-2026",
+          "patch": 14,
+          "message": "Removed 3 incorrectly auto-generated action items from INC-00012",
+          "category": "bug",
+          "createdAt": "2026-06-03T16:38:00.000Z"
         }
       ],
       "publishedPatch": 13,
