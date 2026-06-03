@@ -3079,7 +3079,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
   const [feedback, setFeedback] = useState("");
   const [showAllAuditLogs, setShowAllAuditLogs] = useState(false);
-  const [auditTypeFilter, setAuditTypeFilter] = useState<Set<string>>(new Set());
+  const ALL_AUDIT_TYPES = ["uploads", "approvals", "views", "emails", "other"] as const;
+  const [auditTypeFilter, setAuditTypeFilter] = useState<Set<string>>(new Set(ALL_AUDIT_TYPES));
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
   const [showUploadVersionDialog, setShowUploadVersionDialog] = useState(false);
   const [newVersionFile, setNewVersionFile] = useState<{ objectPath: string; fileName: string; fileSize: number; mimeType: string } | null>(null);
@@ -4105,7 +4106,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const sortedAll = [...auditLogs].sort(
               (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
-            const filteredLogs = auditTypeFilter.size === 0
+            const allTypesSelected = ALL_AUDIT_TYPES.every(k => auditTypeFilter.has(k));
+            const filteredLogs = allTypesSelected
               ? sortedAll
               : sortedAll.filter(log =>
                   [...auditTypeFilter].some(key => (filterMap[key] ?? []).includes(log.action))
@@ -4127,13 +4129,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" data-testid="button-audit-filter">
                           <Filter className="h-3 w-3 shrink-0" />
-                          {auditTypeFilter.size === 0
+                          {allTypesSelected
                             ? "All types"
                             : auditTypeFilter.size === 1
                               ? ({"uploads":"Uploads","approvals":"Approvals","views":"Views & Downloads","emails":"Emails","other":"Other"} as Record<string,string>)[
                                   [...auditTypeFilter][0]
                                 ] ?? "1 selected"
-                              : `${auditTypeFilter.size} selected`}
+                              : auditTypeFilter.size === 0
+                                ? "None selected"
+                                : `${auditTypeFilter.size} selected`}
                           <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -4155,14 +4159,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             {label}
                           </DropdownMenuCheckboxItem>
                         ))}
-                        {auditTypeFilter.size > 0 && (
+                        {!allTypesSelected && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-xs text-muted-foreground justify-center"
-                              onSelect={() => { setAuditTypeFilter(new Set()); setShowAllAuditLogs(false); }}
+                              onSelect={() => { setAuditTypeFilter(new Set(ALL_AUDIT_TYPES)); setShowAllAuditLogs(false); }}
                             >
-                              Clear filters
+                              Select all
                             </DropdownMenuItem>
                           </>
                         )}

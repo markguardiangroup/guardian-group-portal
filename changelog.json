@@ -7293,6 +7293,13 @@
           "message": "Audit trail filter now uses checkboxes so multiple types can be combined",
           "category": "enhancement",
           "createdAt": "2026-06-03T19:25:00.000Z"
+        },
+        {
+          "id": "n2p4q6r8-audit-filter-all-ticked-default-2026",
+          "patch": 14,
+          "message": "Audit trail filter opens with all types ticked by default",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T19:30:00.000Z"
         }
       ],
       "publishedPatch": 13,
