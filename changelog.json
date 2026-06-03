@@ -7111,6 +7111,13 @@
           "message": "Original incident report is no longer shown in the Documents section",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:20:00.000Z"
+        },
+        {
+          "id": "f6b8d0ec-inv-export-to-header-2026",
+          "patch": 14,
+          "message": "Follow Up Investigation Export Report button moved to the card header, next to Hide Details",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T18:28:00.000Z"
         }
       ],
       "publishedPatch": 13,

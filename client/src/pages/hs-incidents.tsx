@@ -2740,19 +2740,24 @@ function IncidentDetailView({ id }: { id: string }) {
                         Complete Investigation
                       </Button>
                     )}
-                    {/* Data exists: show only the toggle */}
+                    {/* Data exists: show export + toggle */}
                     {(incident.invCompletedAt || incident.invFirstAidGiven !== null || incident.invContributingFactors || incident.invConclusion) && (
-                      <Button
-                        variant={invDetailsMinimised ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setInvDetailsMinimised(v => !v)}
-                        className={`gap-1.5 ${invDetailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
-                        data-testid="button-toggle-inv-details"
-                      >
-                        {invDetailsMinimised
-                          ? <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
-                          : <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>}
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => window.open(`/api/incidents/${incident.id}/investigation-report`, "_blank")} data-testid="button-export-investigation">
+                          <Download className="h-3 w-3" />Export Report
+                        </Button>
+                        <Button
+                          variant={invDetailsMinimised ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setInvDetailsMinimised(v => !v)}
+                          className={`gap-1.5 ${invDetailsMinimised ? "bg-module-accent hover:bg-module-accent/90" : ""}`}
+                          data-testid="button-toggle-inv-details"
+                        >
+                          {invDetailsMinimised
+                            ? <><ChevronDown className="h-4 w-4" /><span>Show Details</span></>
+                            : <><ChevronUp className="h-4 w-4" /><span>Hide Details</span></>}
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -2773,14 +2778,9 @@ function IncidentDetailView({ id }: { id: string }) {
                         ? <>Completed <span className="font-medium text-foreground">{format(new Date(incident.invCompletedAt), "dd MMM yyyy")}</span>{incident.invCompletedBy ? <> by <span className="font-medium text-foreground">{incident.invCompletedBy}</span></> : ""}</>
                         : <span className="italic">Investigation in progress</span>}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
-                        <Pencil className="h-3 w-3" />Edit
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => window.open(`/api/incidents/${incident.id}/investigation-report`, "_blank")} data-testid="button-export-investigation">
-                        <Download className="h-3 w-3" />Export Report
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground" onClick={() => setShowFollowUpDialog(true)} data-testid="button-edit-investigation-inline">
+                      <Pencil className="h-3 w-3" />Edit
+                    </Button>
                   </div>
 
                   {/* ─ About the Injured Person ─ */}
