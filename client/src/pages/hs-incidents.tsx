@@ -4709,6 +4709,7 @@ function IncidentsListView() {
                     <TableHead>Title</TableHead>
                     <TableHead>Site</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead className="w-[90px]">RIDDOR</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Updated</TableHead>
@@ -4745,6 +4746,13 @@ function IncidentsListView() {
                           <Badge variant="outline" className="text-xs whitespace-nowrap">
                             {incident.incidentType}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {incident.riddorReportable ? (
+                            <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800 whitespace-nowrap" variant="outline">
+                              RIDDOR
+                            </Badge>
+                          ) : null}
                         </TableCell>
                         <TableCell>
                           <Badge className={`text-xs ${sta.className}`}>

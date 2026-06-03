@@ -7195,6 +7195,13 @@
           "message": "Fixed: uploaded documents now appear correctly in the Documents list on incidents",
           "category": "bug",
           "createdAt": "2026-06-03T18:02:00.000Z"
+        },
+        {
+          "id": "f8b0d2e4-incident-register-riddor-column-2026",
+          "patch": 14,
+          "message": "Incidents register table now shows a RIDDOR badge column for reportable incidents",
+          "category": "enhancement",
+          "createdAt": "2026-06-03T18:10:00.000Z"
         }
       ],
       "publishedPatch": 13,
