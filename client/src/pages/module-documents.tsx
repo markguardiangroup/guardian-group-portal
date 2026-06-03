@@ -3896,6 +3896,95 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Card>
           )}
 
+          {/* ── Approved summary card ────────────────────────────────── */}
+          {document.approvalStatus === "approved" && !document.isArchived && (() => {
+            // Pull the most-recent sign-off and approval entries from audit log
+            const signOffLog = auditLogs?.find(l => l.action === "document_signed_off");
+            const approvalLog = auditLogs?.find(l => l.action === "document_approved");
+            const hasAnyEntry = signOffLog || approvalLog || document.lastApprovedAt;
+            if (!hasAnyEntry) return null;
+            return (
+              <Card className="border-2 border-green-400 dark:border-green-600 bg-green-50/80 dark:bg-green-900/20" data-testid="card-document-approved">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-300">
+                    <CheckCircle className="h-5 w-5" />
+                    Document Approved
+                  </CardTitle>
+                  <CardDescription className="text-green-700/80 dark:text-green-400/80">
+                    This document has completed the approval workflow and is compliant.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-3">
+                  {signOffLog && (
+                    <div className="flex items-start gap-3 text-sm">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
+                        <CheckCircle className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">Client Sign-Off</p>
+                        <p className="text-sm text-muted-foreground">{signOffLog.userName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(signOffLog.createdAt), "d MMM yyyy 'at' HH:mm")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {approvalLog && (
+                    <div className="flex items-start gap-3 text-sm">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">Final Approval</p>
+                        <p className="text-sm text-muted-foreground">{approvalLog.userName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(approvalLog.createdAt), "d MMM yyyy 'at' HH:mm")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!signOffLog && !approvalLog && document.lastApprovedAt && (
+                    <div className="flex items-start gap-3 text-sm">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground">Approved</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(document.lastApprovedAt), "d MMM yyyy 'at' HH:mm")}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
+
+          {/* ── Renewal due soon warning ──────────────────────────────── */}
+          {document.approvalStatus === "approved" && document.renewalDate && !document.isArchived && (() => {
+            const renewal = new Date(document.renewalDate);
+            const now = new Date();
+            const daysLeft = Math.ceil((renewal.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 0 || daysLeft > 30) return null;
+            return (
+              <Card className="border-2 border-amber-400 dark:border-amber-600 bg-amber-50/80 dark:bg-amber-900/20" data-testid="card-renewal-due-soon">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                    <Clock className="h-5 w-5" />
+                    Review Due Soon
+                  </CardTitle>
+                  <CardDescription className="text-amber-700/80 dark:text-amber-400/80">
+                    This document is due for review in <strong>{daysLeft} day{daysLeft !== 1 ? "s" : ""}</strong> ({format(renewal, "d MMM yyyy")}).{" "}
+                    {isClientUser
+                      ? "Your consultant will be in touch shortly to arrange a review."
+                      : "Please arrange a review with the client and upload an updated version or re-issue as appropriate."}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })()}
+
           {auditLogs && auditLogs.length > 0 && (() => {
             const INITIAL_DISPLAY_COUNT = 5;
             const DETAIL_TRUNCATE = 140;
