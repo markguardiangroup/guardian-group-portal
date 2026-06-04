@@ -75,6 +75,7 @@ import {
   Layers,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { DocScopeContextBanner } from "@/components/doc-scope-context-banner";
 import type { Site, DocumentTypeRecord, ModuleType, DocumentTemplate as BaseDocumentTemplate } from "@shared/schema";
 
 interface DocumentTemplate extends BaseDocumentTemplate {
@@ -1240,6 +1241,13 @@ export default function CreateFromTemplate() {
 
   const renderPlaceholdersStep = () => (
     <div className="space-y-6">
+      <DocScopeContextBanner
+        docScope={docScope}
+        entityName={allCompanies.find(c => c.id === selectedEntityId)?.name ?? selectedSite?.companyName}
+        siteObjects={selectedSiteObjects}
+        companySites={companySites ?? []}
+        groupMemberCompanies={groupMemberCompanies ?? []}
+      />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>

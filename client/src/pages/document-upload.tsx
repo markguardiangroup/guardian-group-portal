@@ -49,6 +49,7 @@ import {
   Info,
   Building2,
 } from "lucide-react";
+import { DocScopeContextBanner } from "@/components/doc-scope-context-banner";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { Site, ModuleType, DocumentTypeRecord } from "@shared/schema";
@@ -1029,7 +1030,15 @@ export default function DocumentUpload() {
       )}
 
       {hasUrlContext && uploadStep === "upload" && (
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-4">
+          <DocScopeContextBanner
+            docScope={docScope}
+            entityName={allCompanies?.find(c => c.id === selectedEntityId)?.name}
+            siteObjects={selectedSiteObjects}
+            companySites={companySites ?? []}
+            groupMemberCompanies={groupMemberCompanies ?? []}
+          />
+          <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
@@ -1582,6 +1591,7 @@ export default function DocumentUpload() {
               </CardContent>
             </Card>
           </div>
+        </div>
         </div>
       )}
 

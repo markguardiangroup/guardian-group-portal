@@ -7608,6 +7608,13 @@
           "message": "Removed 'Create Another Document' button from document creation success screen",
           "category": "enhancement",
           "createdAt": "2026-06-04T17:55:00.000Z"
+        },
+        {
+          "id": "h8j0l2n4-upload-scope-context-banner-2026",
+          "patch": 14,
+          "message": "Upload forms now show company, site, and scope context at the top of the page",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T18:08:00.000Z"
         }
       ],
       "publishedPatch": 13,
