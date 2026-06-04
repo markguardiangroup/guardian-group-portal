@@ -7678,6 +7678,13 @@
           "message": "Group scope banner now lists each member company's sites below it",
           "category": "enhancement",
           "createdAt": "2026-06-04T18:35:00.000Z"
+        },
+        {
+          "id": "0e296899-779a-42c5-9f73-b4ac76480cee",
+          "patch": 14,
+          "message": "Fixed: site cards & dashboard document counts now match the Documents page",
+          "category": "bug",
+          "createdAt": "2026-06-04T19:37:55.710Z"
         }
       ],
       "publishedPatch": 13,

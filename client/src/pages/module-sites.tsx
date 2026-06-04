@@ -884,6 +884,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         (
                           // Native company-scoped doc owned by this company
                           (d.scope === "company" && d.entityId === company.id) ||
+                          // Own group-scoped doc owned by this company (counted once here)
+                          (d.scope === "group" && d.entityId === company.id) ||
                           // Group/company doc explicitly shared with this company
                           (d.sharedWithCompanyIds?.includes(company.id) ?? false)
                         )
@@ -1108,16 +1110,30 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 (d.scope === "group" && d.entityId === s.companyId &&
                   ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0);
 
+              const filteredCompanyIds = new Set(filteredSites.map((s) => s.companyId));
+              // An unshared company/group doc owned by a company in view has no per-site
+              // coverage — count it once at the company level, never per site.
+              const isCompanyLevelOnly = (d: Parameters<typeof docAppliesToSite>[0]) =>
+                d.siteId === null &&
+                (d.scope === "company" || d.scope === "group") &&
+                d.entityId != null &&
+                filteredCompanyIds.has(d.entityId) &&
+                !filteredSites.some((s) => docAppliesToSite(d, s));
+
               const allDocs = (documents ?? []).filter(
                 (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" && (
                   filteredSites.some((s) => s.id === d.siteId) ||
-                  (d.siteId === null && filteredSites.some((s) => docAppliesToSite(d, s)))
+                  (d.siteId === null && filteredSites.some((s) => docAppliesToSite(d, s))) ||
+                  isCompanyLevelOnly(d)
                 )
               );
               // All counts expand shared docs once per covered site so that a shared
               // document registers as a separate entry for each site it applies to.
+              // Unshared company/group docs are counted once at the company level.
               const coveredSites = (d: typeof allDocs[0]) =>
-                d.siteId !== null ? 1 : filteredSites.filter((s) => docAppliesToSite(d, s)).length;
+                d.siteId !== null ? 1
+                  : isCompanyLevelOnly(d) ? 1
+                  : filteredSites.filter((s) => docAppliesToSite(d, s)).length;
               const _asNow = new Date();
               const isAsOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _asNow) || !!(d.renewalDate && new Date(d.renewalDate) < _asNow);
               const isAsApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
