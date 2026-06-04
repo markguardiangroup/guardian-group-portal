@@ -30,8 +30,14 @@ import {
   Megaphone,
   Plug,
   PackageOpen,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
 import type { UserRole, ModuleType } from "@shared/schema";
@@ -330,23 +336,28 @@ function NavItemWithFlyout({
     return (
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              data-testid={testId}
-              data-slot="sidebar-menu-button"
-              data-sidebar="menu-button"
-              data-active={isModuleActive}
-              className={cn(
-                "peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
-                !noColor && item.themeClass,
-                !noColor && "nav-module-btn",
-                isModuleActive && (!noColor ? "nav-module-active" : "bg-sidebar-accent font-medium")
-              )}
-            >
-              <item.icon className={cn("h-4 w-4 shrink-0", noColor ? "text-muted-foreground" : "text-module-accent")} />
-            </button>
-          </DropdownMenuTrigger>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  data-testid={testId}
+                  data-slot="sidebar-menu-button"
+                  data-sidebar="menu-button"
+                  data-active={isModuleActive}
+                  className={cn(
+                    "peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+                    !noColor && item.themeClass,
+                    !noColor && "nav-module-btn",
+                    isModuleActive && (!noColor ? "nav-module-active" : "bg-sidebar-accent font-medium")
+                  )}
+                >
+                  <item.icon className={cn("h-4 w-4 shrink-0", noColor ? "text-muted-foreground" : "text-module-accent")} />
+                </button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right">{item.title}</TooltipContent>
+          </Tooltip>
           <DropdownMenuContent side="right" align="start" sideOffset={4} className="w-48">
             <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-1">
               {item.title}
@@ -503,6 +514,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  tooltip="Home"
                   isActive={location === "/" || location === "/home"}
                   className={cn(
                     "transition-colors",
@@ -520,6 +532,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  tooltip="Dashboard"
                   isActive={location === "/dashboard"}
                   className={cn(
                     "transition-colors",
@@ -537,6 +550,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  tooltip="Calendar"
                   isActive={location === "/calendar" || location.startsWith("/calendar/")}
                   className={cn(
                     "transition-colors",
@@ -555,6 +569,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 {(!import.meta.env.PROD && (moduleAccessLoading || hasActiveAccess("support"))) ? (
                   <SidebarMenuButton
                     asChild
+                    tooltip="Support"
                     isActive={location === "/support" || location.startsWith("/support/")}
                     className={cn(
                       "transition-colors",
@@ -580,6 +595,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   </SidebarMenuButton>
                 ) : (
                   <SidebarMenuButton
+                    tooltip="Support"
                     className="cursor-default opacity-60"
                     data-testid="nav-support"
                   >
@@ -713,47 +729,91 @@ export function AppSidebar({ user }: AppSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {isPrivilegedUser && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {user?.role === "admin" ? "Admin" : "Tools"}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {(user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro)
-                  .filter((item) => !((item as any).devOnly && import.meta.env.PROD))
-                  .filter((item) => {
-                    const perm = (item as any).permission as keyof NonNullable<AuthUser["consultantPermissions"]> | undefined;
-                    if (user?.role === "consultant" && perm) {
-                      return user.consultantPermissions?.[perm] === true;
-                    }
-                    return true;
-                  })
-                  .map((item) => {
-                  const isActive = location === item.url || 
-                    (item.url !== "/" && location.startsWith(item.url));
-                  return (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={isActive}
-                        className={cn(
-                          "transition-colors",
-                          isActive && "bg-sidebar-accent font-medium"
-                        )}
-                      >
-                        <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
-                          <item.icon className="h-4 w-4" />
-                          <span className="flex-1">{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
+        {isPrivilegedUser && (() => {
+          const filteredAdminItems = (user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro)
+            .filter((item) => !((item as any).devOnly && import.meta.env.PROD))
+            .filter((item) => {
+              const perm = (item as any).permission as keyof NonNullable<AuthUser["consultantPermissions"]> | undefined;
+              if (user?.role === "consultant" && perm) {
+                return user.consultantPermissions?.[perm] === true;
+              }
+              return true;
+            });
+          const groupLabel = user?.role === "admin" ? "Admin" : "Tools";
+          const GroupIcon = user?.role === "admin" ? ShieldAlert : Wrench;
+          return (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {groupLabel}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {sidebarState === "collapsed" ? (
+                    <SidebarMenuItem>
+                      <DropdownMenu>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                data-slot="sidebar-menu-button"
+                                data-sidebar="menu-button"
+                                data-testid="nav-admin-tools-collapsed"
+                                className="peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
+                              >
+                                <GroupIcon className="h-4 w-4 shrink-0" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">{groupLabel}</TooltipContent>
+                        </Tooltip>
+                        <DropdownMenuContent side="right" align="start" sideOffset={4} className="w-52">
+                          <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide pb-1">
+                            {groupLabel}
+                          </DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {filteredAdminItems.map((item) => {
+                            const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
+                            return (
+                              <DropdownMenuItem
+                                key={item.title}
+                                asChild
+                                className={cn("cursor-pointer gap-2", isActive && "bg-sidebar-accent font-medium")}
+                              >
+                                <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                                  <item.icon className="h-4 w-4" />
+                                  <span>{item.title}</span>
+                                </Link>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+                  ) : (
+                    filteredAdminItems.map((item) => {
+                      const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
+                      return (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            className={cn("transition-colors", isActive && "bg-sidebar-accent font-medium")}
+                          >
+                            <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                              <item.icon className="h-4 w-4" />
+                              <span className="flex-1">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })
+                  )}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })()}
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
@@ -764,6 +824,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
+                      tooltip={item.title}
                       isActive={isActive}
                       className={cn(
                         "transition-colors",
