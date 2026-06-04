@@ -1859,6 +1859,19 @@ export async function registerRoutes(
     // All scoped (non-site) docs for in-memory shared-doc computation.
     const allScopedDocs = documents.filter(d => !d.siteId && (d.scope === "company" || d.scope === "group"));
 
+    // Determine which scoped-doc folders have a folder-template link.
+    // Matched shared docs (folderTemplateId != null) are expanded per-site in the
+    // Document Progress counts — mirroring the folder-view's sharedExpansionDeltas logic.
+    // Unmatched shared docs are counted once globally (same as hierarchy.summary.totalDocuments).
+    const _scopedFolderIds = Array.from(new Set(allScopedDocs.map(d => (d as any).folderId).filter((v): v is string => !!v)));
+    const folderHasTemplate = new Set<string>(); // folderIds whose folder has a folderTemplateId
+    if (_scopedFolderIds.length > 0) {
+      const _folderRows = await Promise.all(_scopedFolderIds.map(fid => storage.getDocumentFolder(fid)));
+      for (const f of _folderRows) {
+        if (f && (f as any).templateId) folderHasTemplate.add(f.id);
+      }
+    }
+
     // In-memory equivalent of getSharedDocumentsForSite — no extra DB calls.
     function computeSharedDocsForSite(site: typeof sites[0]) {
       const company = companyMap.get(site.companyId);
@@ -1938,15 +1951,7 @@ export async function registerRoutes(
     let expandedApprovalReq = 0;
     let expandedOverdue = 0;
     const _expNow = new Date();
-    const _countDoc = (d: any) => {
-      expandedDocTotal++;
-      const dateOverdue = !!(d.expiryDate && new Date(d.expiryDate) < _expNow) ||
-        !!(d.renewalDate && new Date(d.renewalDate) < _expNow);
-      const approvalPending = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-      if (dateOverdue) expandedOverdue++;
-      else if (approvalPending) expandedApprovalReq++;
-      else if (d.status === "compliant") expandedCompliant++;
-    };
+    const _seenUnmatchedSharedIds = new Set<string>(); // dedup for unmatched shared docs
 
     for (const site of accessibleSites) {
       filteredSiteIds.add(site.id);
@@ -1996,33 +2001,40 @@ export async function registerRoutes(
         }
       }
 
-      // Expanded document progress counts — site-scoped docs only here (counted once
-      // each). Scoped (company/group) docs are counted after this loop using their
-      // explicit-share coverage, so unshared company/group docs count once at the
-      // company level rather than per site.
+      // Expanded document progress counts.
+      // Site-scoped docs: count once each (they only belong to this one site).
+      // Shared docs: matched (folder has a folderTemplateId) → count per-site, same as
+      //   the folder-view's sharedExpansionDeltas; unmatched → count once globally
+      //   (same as hierarchy.summary.totalDocuments, which also counts them once).
       const progressSiteDocs = siteDocs.filter(d => module ? d.module === module : complianceModules.includes(d.module as ModuleType));
-      for (const d of progressSiteDocs) _countDoc(d);
-    }
+      const progressSharedDocs = validShared.filter(d => module ? (d as any).module === module : complianceModules.includes((d as any).module as ModuleType));
 
-    // Scoped (company/group) document progress counts: count each scoped doc once per
-    // covered accessible site (explicit site/company share, or an own group doc with at
-    // least one share). Scoped docs with no coverage are counted once at the company
-    // level — never broken out per site — so these "Document Progress" totals match the
-    // Documents page coveredSites expansion.
-    for (const doc of allScopedDocs) {
-      if (doc.isArchived || (doc as any).caseId || (doc as any).incidentId || (doc as any).source === "external") continue;
-      if (module ? doc.module !== module : !complianceModules.includes(doc.module as ModuleType)) continue;
-      const shares = sharesByDocId.get(doc.id) ?? [];
-      const covered = accessibleSites.filter(s => {
-        const sharedToSite = shares.some(sh => sh.entityType === "site" && sh.entityId === s.id);
-        const sharedToCompany = shares.some(sh => sh.entityType === "company" && sh.entityId === s.companyId);
-        const ownGroupAtOwnSite = doc.scope === "group" && doc.entityId === s.companyId && shares.length > 0;
-        return sharedToSite || sharedToCompany || ownGroupAtOwnSite;
-      });
-      const times = covered.length > 0
-        ? covered.length
-        : (accessibleSites.some(s => s.companyId === doc.entityId) ? 1 : 0);
-      for (let i = 0; i < times; i++) _countDoc(doc);
+      const _countDoc = (d: any) => {
+        expandedDocTotal++;
+        const dateOverdue = !!(d.expiryDate && new Date(d.expiryDate) < _expNow) ||
+          !!(d.renewalDate && new Date(d.renewalDate) < _expNow);
+        const approvalPending = d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
+        if (dateOverdue) expandedOverdue++;
+        else if (approvalPending) expandedApprovalReq++;
+        else if (d.status === "compliant") expandedCompliant++;
+      };
+
+      for (const d of progressSiteDocs) _countDoc(d);
+
+      for (const d of progressSharedDocs) {
+        const folderId = (d as any).folderId;
+        const isMatched = !!folderId && folderHasTemplate.has(folderId);
+        if (isMatched) {
+          // Matched: expand per-site (mirrors sharedExpansionDeltas in the folder view)
+          _countDoc(d);
+        } else {
+          // Unmatched: count once globally across all sites
+          if (!_seenUnmatchedSharedIds.has(d.id)) {
+            _seenUnmatchedSharedIds.add(d.id);
+            _countDoc(d);
+          }
+        }
+      }
     }
 
     // Manually-required docs not already consumed by a template slot.
