@@ -7699,6 +7699,13 @@
           "message": "New Document Count Audit report lets admins check counts match across pages",
           "category": "feature",
           "createdAt": "2026-06-04T21:36:16.426Z"
+        },
+        {
+          "id": "c0d5c728-ea4d-4862-a4a0-30d21f2d3481",
+          "patch": 14,
+          "message": "Document Count Audit now lists groups and companies with subtotals and a grand total",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T21:57:24.820Z"
         }
       ],
       "publishedPatch": 13,

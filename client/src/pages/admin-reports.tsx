@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { statusCounts, nonCompliantCount, isCountableDoc } from "@/lib/doc-stats";
+import { statusCounts, nonCompliantCount, isCountableDoc, type StatusCounts } from "@/lib/doc-stats";
 import {
   Dialog,
   DialogContent,
@@ -727,6 +727,16 @@ export default function AdminReports() {
       refetchOnMount: "always" as const,
     })),
   });
+  // Company-level missing (no per-site exclusions) — drives the Company rows,
+  // exactly like the company cards on the module sites page.
+  const auditCompanyMissingResults = useQueries({
+    queries: auditModules.map((m) => ({
+      queryKey: [`/api/missing-required-templates/by-company?module=${m.key}`],
+      enabled: showCountAudit,
+      staleTime: 0,
+      refetchOnMount: "always" as const,
+    })),
+  });
   const { data: auditSites = [], isLoading: auditSitesLoading, isError: auditSitesError } = useQuery<
     {
       id: string;
@@ -745,12 +755,14 @@ export default function AdminReports() {
   const auditLoading =
     auditSitesLoading ||
     auditDocResults.some((r) => r.isLoading) ||
-    auditMissingResults.some((r) => r.isLoading);
+    auditMissingResults.some((r) => r.isLoading) ||
+    auditCompanyMissingResults.some((r) => r.isLoading);
 
   const auditError =
     auditSitesError ||
     auditDocResults.some((r) => r.isError) ||
-    auditMissingResults.some((r) => r.isError);
+    auditMissingResults.some((r) => r.isError) ||
+    auditCompanyMissingResults.some((r) => r.isError);
 
   type AuditDoc = {
     id?: string;
@@ -765,37 +777,46 @@ export default function AdminReports() {
     incidentId?: string | null;
     source?: string | null;
   };
-  type AuditMissing = { siteId: string; companyId?: string };
+  type AuditMissing = { siteId?: string; companyId?: string; templateId?: string; module?: string };
+
+  // Aggregation helpers — each document is counted wherever it appears (a doc
+  // shared to several sites is counted under each, mirroring the cards), so the
+  // section subtotals and grand total reflect every place a document is used.
+  type Agg = { total: number; compliant: number; approvalRequired: number; overdue: number; missing: number };
+  const emptyAgg = (): Agg => ({ total: 0, compliant: 0, approvalRequired: 0, overdue: 0, missing: 0 });
+  const addRow = (a: Agg, counts: StatusCounts, miss: number): Agg => ({
+    total: a.total + counts.total,
+    compliant: a.compliant + counts.compliant,
+    approvalRequired: a.approvalRequired + counts.approvalRequired,
+    overdue: a.overdue + counts.overdue,
+    missing: a.missing + miss,
+  });
+  const combineAgg = (a: Agg, b: Agg): Agg => ({
+    total: a.total + b.total,
+    compliant: a.compliant + b.compliant,
+    approvalRequired: a.approvalRequired + b.approvalRequired,
+    overdue: a.overdue + b.overdue,
+    missing: a.missing + b.missing,
+  });
+
+  // A company is a Group Owner when at least one other company references it.
+  const groupOwnerIds = new Set<string>();
+  companies.forEach((c) => {
+    if (c.groupOwnerId) groupOwnerIds.add(c.groupOwnerId);
+  });
 
   const auditData = auditModules.map((m, i) => {
     const docs = (auditDocResults[i]?.data as AuditDoc[] | undefined) ?? [];
     const missing = (auditMissingResults[i]?.data as AuditMissing[] | undefined) ?? [];
+    const companyMissing = (auditCompanyMissingResults[i]?.data as AuditMissing[] | undefined) ?? [];
 
     // Mirror module-sites.tsx exactly: only sites that have this module
-    // active/visible are shown, and the scope companies are derived from those
-    // sites (not the whole company list). This keeps the audit in lock-step
-    // with the cards admins actually see.
+    // active/visible are shown. This keeps the audit in lock-step with the
+    // cards admins actually see.
     const moduleActiveSites = auditSites.filter((s) => {
       const access = s.moduleAccess?.[m.key];
       return access === "active" || access === "visible";
     });
-    const activeSiteIds = new Set(moduleActiveSites.map((s) => s.id));
-    const scopeCompanyIds = new Set(moduleActiveSites.map((s) => s.companyId));
-
-    // ── Module total (mirrors the "All sites" card's allDocs) ────────────
-    // Counted once: site-assigned docs in scope, company/group docs owned by an
-    // in-scope company, or docs shared into the scope.
-    const moduleDocs = docs.filter(
-      (d) =>
-        isCountableDoc(d) &&
-        ((d.siteId != null && activeSiteIds.has(d.siteId)) ||
-          (d.siteId == null &&
-            ((!!d.entityId && scopeCompanyIds.has(d.entityId)) ||
-              (d.sharedWithSiteIds?.some((id) => activeSiteIds.has(id)) ?? false) ||
-              (d.sharedWithCompanyIds?.some((id) => scopeCompanyIds.has(id)) ?? false)))),
-    );
-    const moduleCounts = statusCounts(moduleDocs);
-    const moduleMissing = missing.filter((mm) => activeSiteIds.has(mm.siteId)).length;
 
     // ── Per-site rows (one per module-active site, incl. empty ones) ─────
     // Each site's own docs plus group/company-scoped docs shared to or
@@ -818,22 +839,79 @@ export default function AdminReports() {
         const counts = statusCounts(siteDocs);
         const miss = missing.filter((mm) => mm.siteId === sid).length;
         return {
-          siteId: sid,
-          siteName: site.name ?? "(unknown site)",
+          id: sid,
+          name: site.name ?? "(unknown site)",
           companyName: site.companyName ?? "",
           counts,
           missing: miss,
         };
       })
       .sort((a, b) =>
-        a.companyName.localeCompare(b.companyName) || a.siteName.localeCompare(b.siteName),
+        a.companyName.localeCompare(b.companyName) || a.name.localeCompare(b.name),
       );
+
+    // ── Group rows (mirror each Group card) ──────────────────────────────
+    // Native group-scoped documents owned by each Group Owner company.
+    const groupRows = Array.from(groupOwnerIds)
+      .map((gid) => {
+        const owner = companies.find((c) => c.id === gid);
+        const groupDocs = docs.filter(
+          (d) => isCountableDoc(d) && d.scope === "group" && d.entityId === gid,
+        );
+        const templateIds = new Set<string>();
+        missing.forEach((mm) => {
+          if (mm.companyId === gid && mm.templateId) templateIds.add(mm.templateId);
+        });
+        return {
+          id: gid,
+          name: owner?.name ?? "(unknown group)",
+          counts: statusCounts(groupDocs),
+          missing: templateIds.size,
+        };
+      })
+      .filter((r) => r.counts.total > 0 || r.missing > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // ── Company rows (mirror each Company card) ──────────────────────────
+    // Native company-scoped docs plus group/company docs shared to the company.
+    const companyRows = companies
+      .map((c) => {
+        const companyDocs = docs.filter(
+          (d) =>
+            isCountableDoc(d) &&
+            ((d.scope === "company" && d.entityId === c.id) ||
+              (d.sharedWithCompanyIds?.includes(c.id) ?? false)),
+        );
+        const templateIds = new Set<string>();
+        companyMissing.forEach((mm) => {
+          if (mm.companyId === c.id && mm.templateId) templateIds.add(mm.templateId);
+        });
+        return {
+          id: c.id,
+          name: c.name,
+          counts: statusCounts(companyDocs),
+          missing: templateIds.size,
+        };
+      })
+      .filter((r) => r.counts.total > 0 || r.missing > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    // ── Subtotals & grand total ──────────────────────────────────────────
+    let sitesSubtotal = emptyAgg();
+    siteRows.forEach((r) => { sitesSubtotal = addRow(sitesSubtotal, r.counts, r.missing); });
+    let geSubtotal = emptyAgg();
+    groupRows.forEach((r) => { geSubtotal = addRow(geSubtotal, r.counts, r.missing); });
+    companyRows.forEach((r) => { geSubtotal = addRow(geSubtotal, r.counts, r.missing); });
+    const grandTotal = combineAgg(sitesSubtotal, geSubtotal);
 
     return {
       ...m,
-      moduleCounts,
-      moduleMissing,
       siteRows,
+      sitesSubtotal,
+      groupRows,
+      companyRows,
+      geSubtotal,
+      grandTotal,
     };
   });
 
@@ -896,21 +974,40 @@ export default function AdminReports() {
   const downloadCountAuditCSV = () => {
     const headers = ["Module", "Scope", "Company", "Total", "Compliant", "Approval Required", "Overdue", "Missing", "Non-Compliant"];
     const rows: string[][] = [];
+    const aggRow = (label: string, scope: string, company: string, a: { total: number; compliant: number; approvalRequired: number; overdue: number; missing: number }) => [
+      label, scope, company,
+      String(a.total), String(a.compliant), String(a.approvalRequired),
+      String(a.overdue), String(a.missing),
+      String(a.approvalRequired + a.overdue + a.missing),
+    ];
     auditData.forEach((m) => {
-      rows.push([
-        m.label, "MODULE TOTAL (all sites)", "",
-        String(m.moduleCounts.total), String(m.moduleCounts.compliant),
-        String(m.moduleCounts.approvalRequired), String(m.moduleCounts.overdue),
-        String(m.moduleMissing), String(nonCompliantCount(m.moduleCounts, m.moduleMissing)),
-      ]);
       m.siteRows.forEach((r) => {
         rows.push([
-          m.label, r.siteName, r.companyName,
+          m.label, `Site: ${r.name}`, r.companyName,
           String(r.counts.total), String(r.counts.compliant),
           String(r.counts.approvalRequired), String(r.counts.overdue),
           String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
         ]);
       });
+      rows.push(aggRow(m.label, "SITES SUBTOTAL", "", m.sitesSubtotal));
+      m.groupRows.forEach((r) => {
+        rows.push([
+          m.label, `Group: ${r.name}`, "",
+          String(r.counts.total), String(r.counts.compliant),
+          String(r.counts.approvalRequired), String(r.counts.overdue),
+          String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
+        ]);
+      });
+      m.companyRows.forEach((r) => {
+        rows.push([
+          m.label, `Company: ${r.name}`, "",
+          String(r.counts.total), String(r.counts.compliant),
+          String(r.counts.approvalRequired), String(r.counts.overdue),
+          String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
+        ]);
+      });
+      rows.push(aggRow(m.label, "GROUPS & COMPANIES SUBTOTAL", "", m.geSubtotal));
+      rows.push(aggRow(m.label, "GRAND TOTAL", "", m.grandTotal));
     });
     const csvContent = [
       headers.join(","),
@@ -1180,10 +1277,9 @@ export default function AdminReports() {
 
           <div className="mt-2 flex items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">
-              The "Module total (all sites)" row matches the dashboard and the All Sites card (each
-              document counted once). Per-site rows match each site's own card and documents page; a
-              document shared with several sites is shown under each site, so the site rows can add up to
-              more than the module total.
+              Each row matches the matching card across the portal (a site, a group, or a company). A
+              document shared to several places is counted in each place it appears, just like the cards,
+              so the Sites, Groups and Companies subtotals add up to the Grand total.
             </p>
             <Button variant="outline" size="sm" onClick={downloadCountAuditCSV} disabled={auditLoading || auditError} data-testid="button-download-count-audit-csv">
               <Download className="mr-2 h-4 w-4" />
@@ -1206,7 +1302,7 @@ export default function AdminReports() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Site</TableHead>
+                        <TableHead>Site / Group / Company</TableHead>
                         <TableHead>Company</TableHead>
                         <TableHead className="text-right">Total</TableHead>
                         <TableHead className="text-right">Compliant</TableHead>
@@ -1217,19 +1313,12 @@ export default function AdminReports() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow className="border-b-2 font-semibold bg-muted/40" data-testid={`audit-total-${m.key}`}>
-                        <TableCell>Module total (all sites)</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell className="text-right">{m.moduleCounts.total}</TableCell>
-                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{m.moduleCounts.compliant}</TableCell>
-                        <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.moduleCounts.approvalRequired}</TableCell>
-                        <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.moduleCounts.overdue}</TableCell>
-                        <TableCell className="text-right text-red-600 dark:text-red-400">{m.moduleMissing}</TableCell>
-                        <TableCell className="text-right">{nonCompliantCount(m.moduleCounts, m.moduleMissing)}</TableCell>
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={8} className="py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sites</TableCell>
                       </TableRow>
                       {m.siteRows.map((r) => (
-                        <TableRow key={r.siteId} data-testid={`audit-row-${m.key}-${r.siteId}`}>
-                          <TableCell className="font-medium">{r.siteName}</TableCell>
+                        <TableRow key={`site-${r.id}`} data-testid={`audit-row-${m.key}-${r.id}`}>
+                          <TableCell className="font-medium">{r.name}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r.companyName || "-"}</TableCell>
                           <TableCell className="text-right">{r.counts.total}</TableCell>
                           <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
@@ -1239,11 +1328,73 @@ export default function AdminReports() {
                           <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
                         </TableRow>
                       ))}
+                      {m.siteRows.length === 0 && (
+                        <TableRow><TableCell colSpan={8} className="py-2 text-sm text-muted-foreground">No sites for this module.</TableCell></TableRow>
+                      )}
+                      <TableRow className="border-y-2 font-semibold bg-muted/40" data-testid={`audit-subtotal-sites-${m.key}`}>
+                        <TableCell>Sites subtotal</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-right">{m.sitesSubtotal.total}</TableCell>
+                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{m.sitesSubtotal.compliant}</TableCell>
+                        <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.sitesSubtotal.approvalRequired}</TableCell>
+                        <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.sitesSubtotal.overdue}</TableCell>
+                        <TableCell className="text-right text-red-600 dark:text-red-400">{m.sitesSubtotal.missing}</TableCell>
+                        <TableCell className="text-right">{m.sitesSubtotal.approvalRequired + m.sitesSubtotal.overdue + m.sitesSubtotal.missing}</TableCell>
+                      </TableRow>
+
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={8} className="py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Groups &amp; Companies</TableCell>
+                      </TableRow>
+                      {m.groupRows.map((r) => (
+                        <TableRow key={`group-${r.id}`} data-testid={`audit-grouprow-${m.key}-${r.id}`}>
+                          <TableCell className="font-medium">{r.name}</TableCell>
+                          <TableCell className="text-xs"><span className="rounded bg-violet-100 px-1.5 py-0.5 font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">Group</span></TableCell>
+                          <TableCell className="text-right">{r.counts.total}</TableCell>
+                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
+                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.counts.approvalRequired}</TableCell>
+                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.counts.overdue}</TableCell>
+                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.missing}</TableCell>
+                          <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {m.companyRows.map((r) => (
+                        <TableRow key={`company-${r.id}`} data-testid={`audit-companyrow-${m.key}-${r.id}`}>
+                          <TableCell className="font-medium">{r.name}</TableCell>
+                          <TableCell className="text-xs"><span className="rounded bg-orange-100 px-1.5 py-0.5 font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">Company</span></TableCell>
+                          <TableCell className="text-right">{r.counts.total}</TableCell>
+                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
+                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.counts.approvalRequired}</TableCell>
+                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.counts.overdue}</TableCell>
+                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.missing}</TableCell>
+                          <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
+                        </TableRow>
+                      ))}
+                      {m.groupRows.length === 0 && m.companyRows.length === 0 && (
+                        <TableRow><TableCell colSpan={8} className="py-2 text-sm text-muted-foreground">No group or company documents for this module.</TableCell></TableRow>
+                      )}
+                      <TableRow className="border-y-2 font-semibold bg-muted/40" data-testid={`audit-subtotal-ge-${m.key}`}>
+                        <TableCell>Groups &amp; companies subtotal</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-right">{m.geSubtotal.total}</TableCell>
+                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{m.geSubtotal.compliant}</TableCell>
+                        <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.geSubtotal.approvalRequired}</TableCell>
+                        <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.geSubtotal.overdue}</TableCell>
+                        <TableCell className="text-right text-red-600 dark:text-red-400">{m.geSubtotal.missing}</TableCell>
+                        <TableCell className="text-right">{m.geSubtotal.approvalRequired + m.geSubtotal.overdue + m.geSubtotal.missing}</TableCell>
+                      </TableRow>
+
+                      <TableRow className="border-t-2 border-foreground/30 font-bold bg-muted/60" data-testid={`audit-grandtotal-${m.key}`}>
+                        <TableCell>GRAND TOTAL</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-right">{m.grandTotal.total}</TableCell>
+                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{m.grandTotal.compliant}</TableCell>
+                        <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.grandTotal.approvalRequired}</TableCell>
+                        <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.grandTotal.overdue}</TableCell>
+                        <TableCell className="text-right text-red-600 dark:text-red-400">{m.grandTotal.missing}</TableCell>
+                        <TableCell className="text-right">{m.grandTotal.approvalRequired + m.grandTotal.overdue + m.grandTotal.missing}</TableCell>
+                      </TableRow>
                     </TableBody>
                   </Table>
-                  {m.siteRows.length === 0 && m.moduleCounts.total === 0 && m.moduleMissing === 0 && (
-                    <p className="py-3 text-sm text-muted-foreground">No documents for this module.</p>
-                  )}
                 </div>
               ))}
             </div>
