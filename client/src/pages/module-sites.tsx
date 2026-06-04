@@ -854,7 +854,20 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </TooltipProvider>
                     </CardContent>
-                    <div className="border-t flex">
+                    <div className="border-t flex divide-x">
+                      <button
+                        onClick={() => {
+                          setSelectedGroup(selectedGroup);
+                          setSelectedSiteId("all");
+                          handleCompanyChange(null);
+                          navigate(basePath);
+                        }}
+                        className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold text-white transition-colors ${moduleAccentBg[module]}`}
+                        data-testid={`link-dashboard-group-${selectedGroup}`}
+                      >
+                        <LayoutDashboard className="h-3.5 w-3.5" />
+                        Dashboard
+                      </button>
                       <button
                         onClick={() => {
                           setSelectedSiteId("all");
@@ -1073,7 +1086,19 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           </TooltipProvider>
                         </CardContent>
-                        <div className="border-t flex">
+                        <div className="border-t flex divide-x">
+                          <button
+                            onClick={() => {
+                              handleCompanyChange(company.id);
+                              setSelectedGroup("all");
+                              navigate(basePath);
+                            }}
+                            className={`flex-1 py-2.5 flex items-center justify-center gap-1.5 text-xs font-semibold text-white transition-colors ${moduleAccentBg[module]}`}
+                            data-testid={`link-dashboard-company-${company.id}`}
+                          >
+                            <LayoutDashboard className="h-3.5 w-3.5" />
+                            Dashboard
+                          </button>
                           <button
                             onClick={() => {
                               setSelectedSiteId("all");

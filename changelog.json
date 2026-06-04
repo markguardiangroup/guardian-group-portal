@@ -7624,6 +7624,20 @@
           "createdAt": "2026-06-04T18:20:00.000Z"
         },
         {
+          "id": "q7s9u1w3-group-company-dashboard-buttons-2026",
+          "patch": 14,
+          "message": "Group and company cards now have a Dashboard button alongside Documents",
+          "category": "feature",
+          "createdAt": "2026-06-04T20:10:00.000Z"
+        },
+        {
+          "id": "r8t0v2x4-dashboard-scope-fix-from-docs-2026",
+          "patch": 14,
+          "message": "Fixed: View Dashboard from a group/company document view now scopes correctly",
+          "category": "bug",
+          "createdAt": "2026-06-04T20:10:00.000Z"
+        },
+        {
           "id": "p6r8t0v2-compliance-card-days-countdown-2026",
           "patch": 14,
           "message": "Compliance Tracking card now shows days until renewal/expiry with colour coding",

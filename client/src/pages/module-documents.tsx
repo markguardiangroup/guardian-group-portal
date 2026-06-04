@@ -336,7 +336,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [folderFilter, setFolderFilter] = useState<string>("all");
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
-  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, setSelectedGroup, handleCompanyChange, resetFilters } = useSiteFilter();
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
@@ -1420,11 +1420,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-                <Link href={basePath} data-testid="link-dashboard-from-documents">
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  View Dashboard
-                </Link>
+              <Button
+                className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground"
+                data-testid="link-dashboard-from-documents"
+                onClick={() => {
+                  if (urlScope === "group" && urlEntityId) {
+                    setSelectedGroup(urlEntityId);
+                    setSelectedSiteId("all");
+                    handleCompanyChange(null);
+                  } else if (urlScope === "company" && urlEntityId) {
+                    handleCompanyChange(urlEntityId);
+                    setSelectedGroup("all");
+                  }
+                  navigate(basePath);
+                }}
+              >
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                View Dashboard
               </Button>
               {isPrivilegedUser && (
                 <TooltipProvider>
