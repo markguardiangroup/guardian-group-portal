@@ -7496,6 +7496,13 @@
           "message": "Fixed: SSE reconnects faster after server restarts (5s max vs 30s)",
           "category": "bug",
           "createdAt": "2026-06-03T23:40:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-sse-hierarchy-all-sites-fix-2026",
+          "patch": 14,
+          "message": "Fixed: folder view now updates live when viewing all sites via SSE",
+          "category": "bug",
+          "createdAt": "2026-06-04T08:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

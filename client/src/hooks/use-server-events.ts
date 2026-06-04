@@ -46,20 +46,20 @@ export function useServerEvents() {
       });
 
       es.addEventListener("document-updated", (e) => {
-        console.log("[SSE:client] document-updated received", e.data);
         try {
           const data = JSON.parse(e.data);
           if (data.siteId) {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
-            // The folder/hierarchy view uses a string query key — invalidate by prefix
-            queryClient.invalidateQueries({
-              predicate: (query) => {
-                const key = query.queryKey[0];
-                return typeof key === "string" && key.startsWith(`/api/sites/${data.siteId}/modules/`);
-              },
-            });
           }
+          // Invalidate ALL hierarchy queries — they use a full URL string key and may
+          // show "all" sites (not a specific siteId), so match by URL fragment instead.
+          queryClient.invalidateQueries({
+            predicate: (query) => {
+              const key = query.queryKey[0];
+              return typeof key === "string" && key.includes("documents-hierarchy");
+            },
+          });
           // Refresh the specific document detail and its audit trail
           if (data.documentId) {
             queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId] });
@@ -95,13 +95,13 @@ export function useServerEvents() {
           if (data.siteId) {
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "documents"] });
             queryClient.invalidateQueries({ queryKey: ["/api/sites", data.siteId, "compliance"] });
-            queryClient.invalidateQueries({
-              predicate: (query) => {
-                const key = query.queryKey[0];
-                return typeof key === "string" && key.startsWith(`/api/sites/${data.siteId}/modules/`);
-              },
-            });
           }
+          queryClient.invalidateQueries({
+            predicate: (query) => {
+              const key = query.queryKey[0];
+              return typeof key === "string" && key.includes("documents-hierarchy");
+            },
+          });
           if (data.documentId) {
             queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId] });
             queryClient.invalidateQueries({ queryKey: ["/api/documents", data.documentId, "audit"] });
