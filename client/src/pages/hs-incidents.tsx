@@ -4118,6 +4118,10 @@ function IncidentsListView() {
   const [incidentDeleteConfirmText, setIncidentDeleteConfirmText] = useState("");
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
+  // Reset company/site filter on mount so incidents always start clean — it
+  // has its own filter section and should not inherit state from other pages.
+  useEffect(() => { resetFilters(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const activeConfig = registerTypeConfig[registerType];
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";

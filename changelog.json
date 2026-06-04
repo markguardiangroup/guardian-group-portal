@@ -7741,6 +7741,13 @@
           "message": "Fixed: table view filters no longer change what the folder view shows",
           "category": "bug",
           "createdAt": "2026-06-04T22:44:13.970Z"
+        },
+        {
+          "id": "98984de3-ab72-48ac-b14e-bbb7fa8694c7",
+          "patch": 14,
+          "message": "Fixed: Calendar, Incidents and Cases no longer inherit company filter from other pages",
+          "category": "bug",
+          "createdAt": "2026-06-04T22:51:28.877Z"
         }
       ],
       "publishedPatch": 13,

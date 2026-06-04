@@ -498,7 +498,11 @@ export default function CalendarPage() {
   const [moduleFilter, setModuleFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [metricDialog, setMetricDialog] = useState<null | "total" | "overdue" | "upcoming">(null);
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange, resetFilters } = useSiteFilter();
+
+  // Reset company/site filter on mount so the calendar always starts clean —
+  // it has its own filter section and should not inherit state from other pages.
+  useEffect(() => { resetFilters(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();

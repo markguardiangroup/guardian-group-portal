@@ -192,6 +192,11 @@ function CasesList() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
+
+  // Reset company/site filter on mount so cases always start clean — it has
+  // its own filter section and should not inherit state from other pages.
+  useEffect(() => { resetFilters(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);
