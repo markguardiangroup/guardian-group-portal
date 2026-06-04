@@ -7580,6 +7580,13 @@
           "message": "Fixed: company-level document uploads now update group primary contact's views in real time",
           "category": "bug",
           "createdAt": "2026-06-04T16:15:00.000Z"
+        },
+        {
+          "id": "d4f6h8j0-company-scope-no-share-record-required-2026",
+          "patch": 14,
+          "message": "Fixed: company-level docs now appear in folder and table views without needing explicit share records",
+          "category": "bug",
+          "createdAt": "2026-06-04T16:30:00.000Z"
         }
       ],
       "publishedPatch": 13,
