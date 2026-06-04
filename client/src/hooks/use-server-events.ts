@@ -78,6 +78,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
       });
 
       es.addEventListener("document-audit-updated", (e) => {
@@ -119,6 +120,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
       });
 
       es.addEventListener("support-request-created", () => {
@@ -211,13 +213,23 @@ export function useServerEvents() {
       });
 
       es.addEventListener("user-updated", () => {
+        // Prefix match on ["/api/users"] covers ["/api/users", ...] keys such as
+        // /api/users/:id/site-assignments, but NOT ["/api/users/online"] which is
+        // a different first element — invalidate that one explicitly.
         queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       });
 
       es.addEventListener("case-updated", () => {
+        // Prefix match covers /api/cases and nested keys
+        // (/api/cases/:id, .../notes, .../documents, .../bundles)
         queryClient.invalidateQueries({ queryKey: ["/api/cases"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       });
 
       es.addEventListener("incident-updated", (e) => {
@@ -227,8 +239,13 @@ export function useServerEvents() {
             queryClient.invalidateQueries({ queryKey: ["/api/incidents", data.siteId] });
           }
         } catch { /* ignore */ }
+        // Prefix match covers /api/incidents and nested keys
+        // (/api/incidents/:id, .../documents, .../milestones)
         queryClient.invalidateQueries({ queryKey: ["/api/incidents"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       });
 
       es.addEventListener("cloud-share-updated", (e) => {

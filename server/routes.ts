@@ -1509,6 +1509,77 @@ export async function registerRoutes(
     emitToRole("consultant", "document-updated", payload);
   };
 
+  // ── SSE STANDARD (read before adding a new mutating route) ──────────────────
+  // Every route that CREATES, UPDATES, ARCHIVES, or DELETES a persistent entity
+  // MUST emit its SSE event before returning, using one of the helpers below so
+  // targeting stays consistent across the app:
+  //   • emitCompanyScoped  — company-level changes (company profile, services…)
+  //   • emitSiteScoped     — anything tied to a site (cases, incidents, site
+  //                          docs, assignments). Also reaches cross-company
+  //                          clients assigned to the site and group-owner clients.
+  //   • emitUserUpdated    — user create/edit/delete and assignment changes.
+  // This keeps the UI "free flowing": lists, detail pages, dashboards, calendars
+  // and summaries all refresh in real time for every user who can see the data.
+
+  // Emit to all admins + consultants, the owning company, and its group owner.
+  const emitCompanyScoped = async (
+    event: string,
+    companyId: string | null | undefined,
+    payload: object = {},
+  ): Promise<void> => {
+    emitToRole("admin", event, payload);
+    emitToRole("consultant", event, payload);
+    if (companyId) {
+      emitToCompany(companyId, event, payload);
+      const company = await storage.getCompany(companyId).catch(() => null);
+      if (company?.groupOwnerId) emitToCompany(company.groupOwnerId, event, payload);
+    }
+  };
+
+  // Emit to all admins + consultants, the site's company, that company's group
+  // owner, and every cross-company client directly assigned to the site.
+  const emitSiteScoped = async (
+    event: string,
+    siteId: string | null | undefined,
+    companyId: string | null | undefined,
+    payload: object = {},
+  ): Promise<void> => {
+    emitToRole("admin", event, payload);
+    emitToRole("consultant", event, payload);
+    const emitted = new Set<string>();
+    let resolvedCompanyId = companyId ?? null;
+    if (!resolvedCompanyId && siteId) {
+      const site = await storage.getSite(siteId).catch(() => null);
+      resolvedCompanyId = site?.companyId ?? null;
+    }
+    if (resolvedCompanyId) {
+      emitToCompany(resolvedCompanyId, event, payload);
+      emitted.add(resolvedCompanyId);
+      const company = await storage.getCompany(resolvedCompanyId).catch(() => null);
+      if (company?.groupOwnerId && !emitted.has(company.groupOwnerId)) {
+        emitToCompany(company.groupOwnerId, event, payload);
+        emitted.add(company.groupOwnerId);
+      }
+    }
+    if (siteId) {
+      try {
+        const assigned = await pool.query<{ client_id: string }>(
+          `SELECT client_id FROM client_site_assignments WHERE site_id = $1`,
+          [siteId],
+        );
+        for (const row of assigned.rows) emitToUser(row.client_id, event, payload);
+      } catch { /* non-fatal */ }
+    }
+  };
+
+  // Emit a user-updated event to admins, consultants, and the user themselves.
+  const emitUserUpdated = (userId: string, extra: object = {}): void => {
+    const payload = { userId, ...extra };
+    emitToRole("admin", "user-updated", payload);
+    emitToRole("consultant", "user-updated", payload);
+    emitToUser(userId, "user-updated", payload);
+  };
+
   const canUserAccessFolder = async (
     user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
     folder: { id: string; siteId: string; allocatedClientId: string | null }
@@ -1674,7 +1745,9 @@ export async function registerRoutes(
           : `Invitation link generated for ${targetUser.fullName} (${targetUser.email}) — email delivery failed`,
         metadata: JSON.stringify({ targetUserId: targetUser.id, emailType: "invitation" }),
       });
-      
+
+      emitUserUpdated(targetUser.id);
+
       res.json({ 
         success: true, 
         inviteUrl,
@@ -8311,6 +8384,9 @@ export async function registerRoutes(
         }
       }
 
+      await emitCompanyScoped("company-updated", req.params.companyId, { companyId: req.params.companyId });
+      if (groupOwnerId) await emitCompanyScoped("company-updated", groupOwnerId, { companyId: groupOwnerId });
+
       res.json(updated);
     } catch (error) {
       console.error("Set group owner error:", error);
@@ -8699,6 +8775,8 @@ export async function registerRoutes(
         });
       }
       
+      await emitCompanyScoped("company-updated", req.params.id, { companyId: req.params.id });
+
       res.json(company);
     } catch (error) {
       console.error("Update company status error:", error);
@@ -8769,6 +8847,13 @@ export async function registerRoutes(
         await client.query("DELETE FROM companies WHERE id = $1", [companyId]);
 
         await client.query("COMMIT");
+
+        await emitCompanyScoped("company-updated", companyId, { companyId, deleted: true });
+        // The company row is now gone, so the helper can't resolve its group
+        // owner — notify the captured group owner's clients explicitly.
+        if (company.groupOwnerId) {
+          emitToCompany(company.groupOwnerId, "company-updated", { companyId, deleted: true });
+        }
 
         await storage.createAuditLog({
           userId: user.id,
@@ -11083,11 +11168,9 @@ export async function registerRoutes(
         details: `Case ${caseData.caseReference} created for ${caseData.employeeName}`,
       });
 
-      // Emit case-updated so admins/consultants see new cases in real time
-      try {
-        emitToRole("admin", "case-updated", { caseId: caseData.id });
-        emitToRole("consultant", "case-updated", { caseId: caseData.id });
-      } catch { /* non-fatal */ }
+      // Emit case-updated to admins/consultants AND the owning client company
+      // (and any cross-company clients assigned to the site) in real time
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
 
       res.status(201).json(caseData);
     } catch (error) {
@@ -11163,11 +11246,8 @@ export async function registerRoutes(
         });
       }
 
-      // Emit case-updated so admins/consultants see case changes in real time
-      try {
-        emitToRole("admin", "case-updated", { caseId: req.params.id });
-        emitToRole("consultant", "case-updated", { caseId: req.params.id });
-      } catch { /* non-fatal */ }
+      // Emit case-updated to admins/consultants AND the owning client company
+      await emitSiteScoped("case-updated", existingCase.siteId, existingCase.entityId, { caseId: req.params.id });
 
       res.json(updatedCase);
     } catch (error) {
@@ -11206,6 +11286,8 @@ export async function registerRoutes(
         details: `Case ${existingCase.caseReference} archived`,
       });
 
+      await emitSiteScoped("case-updated", existingCase.siteId, existingCase.entityId, { caseId: existingCase.id });
+
       res.json(archivedCase);
     } catch (error) {
       console.error("Archive case error:", error);
@@ -11242,6 +11324,8 @@ export async function registerRoutes(
         module: "employment_law",
         details: `Case ${existingCase.caseReference} restored from archive`,
       });
+
+      await emitSiteScoped("case-updated", existingCase.siteId, existingCase.entityId, { caseId: existingCase.id });
 
       res.json(unarchivedCase);
     } catch (error) {
@@ -11287,6 +11371,8 @@ export async function registerRoutes(
         module: "employment_law",
         details: `Case ${existingCase.caseReference} (${existingCase.employeeName}) permanently deleted by ${user.fullName}`,
       });
+
+      await emitSiteScoped("case-updated", existingCase.siteId, existingCase.entityId, { caseId: existingCase.id, deleted: true });
 
       res.status(204).end();
     } catch (error) {
@@ -11399,6 +11485,9 @@ export async function registerRoutes(
         details: `Document "${title}" uploaded to case ${caseData.caseReference}`,
       });
 
+      await emitDocumentUpdated(document, { documentId: document.id, caseId: caseData.id });
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
+
       res.status(201).json(document);
     } catch (error) {
       console.error("Upload case document error:", error);
@@ -11441,6 +11530,9 @@ export async function registerRoutes(
         module: "employment_law",
         details: `Document "${document.title}" deleted from case ${caseData.caseReference}`,
       });
+
+      await emitDocumentUpdated(document, { documentId: document.id, caseId: caseData.id, deleted: true });
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
 
       res.json({ success: true });
     } catch (error) {
@@ -11513,6 +11605,8 @@ export async function registerRoutes(
         module: "employment_law",
         details: `Milestone "${milestone.title}" added to case ${caseData.caseReference}`,
       });
+
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
 
       res.status(201).json(milestone);
     } catch (error) {
@@ -11590,6 +11684,8 @@ export async function registerRoutes(
         });
       }
 
+      if (caseData) await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
+
       res.json(milestone);
     } catch (error) {
       console.error("Update milestone error:", error);
@@ -11635,6 +11731,8 @@ export async function registerRoutes(
           details: `Milestone "${milestone.title}" deleted from case ${caseData.caseReference}`,
         });
       }
+
+      if (caseData) await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
 
       res.json({ success: true });
     } catch (error) {
@@ -11714,6 +11812,8 @@ export async function registerRoutes(
         details: `Document checklist item "${item.title}" added to case ${caseData.caseReference}`,
       });
 
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
+
       res.status(201).json(finalItem);
     } catch (error) {
       console.error("Create checklist item error:", error);
@@ -11777,6 +11877,9 @@ export async function registerRoutes(
         });
       }
 
+      const caseForEmit = await storage.getCase(existing.caseId);
+      if (caseForEmit) await emitSiteScoped("case-updated", caseForEmit.siteId, caseForEmit.entityId, { caseId: caseForEmit.id });
+
       res.json(item);
     } catch (error) {
       console.error("Update checklist item error:", error);
@@ -11811,6 +11914,8 @@ export async function registerRoutes(
           details: `Document checklist item "${existing.title}" deleted from case ${caseData.caseReference}`,
         });
       }
+
+      if (caseData) await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
 
       res.json({ success: true });
     } catch (error) {
@@ -11863,6 +11968,7 @@ export async function registerRoutes(
         checklistItemIds,
         createdBy: user.id,
       });
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
       res.status(201).json(bundle);
     } catch (error) {
       console.error("Create bundle error:", error);
@@ -11899,6 +12005,7 @@ export async function registerRoutes(
       updates.cachedAt = null;
 
       const updated = await storage.updateCaseBundle(req.params.bundleId, updates);
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
       res.json(updated);
     } catch (error) {
       console.error("Update bundle error:", error);
@@ -11927,6 +12034,7 @@ export async function registerRoutes(
       }
 
       await storage.deleteCaseBundle(req.params.bundleId);
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
       res.json({ success: true });
     } catch (error) {
       console.error("Delete bundle error:", error);
@@ -12092,6 +12200,8 @@ export async function registerRoutes(
         content: content.trim(),
         createdBy: user.id,
       });
+      const noteCase = await storage.getCase(req.params.id).catch(() => null);
+      if (noteCase) await emitSiteScoped("case-updated", noteCase.siteId, noteCase.entityId, { caseId: req.params.id });
       res.json(note);
     } catch (error) {
       console.error("Create case note error:", error);
@@ -12575,6 +12685,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "templateId and action ('include'|'exclude') are required" });
       }
       const result = await storage.setSiteTemplateOverride(siteId, templateId, action, user.id);
+      await emitSiteScoped("site-updated", siteId, null, { siteId });
       res.json(result);
     } catch (error) {
       console.error("Set site template override error:", error);
@@ -12591,6 +12702,7 @@ export async function registerRoutes(
       const { siteId, templateId } = req.params;
       const removed = await storage.removeSiteTemplateOverride(siteId, templateId);
       if (!removed) return res.status(404).json({ error: "Override not found" });
+      await emitSiteScoped("site-updated", siteId, null, { siteId });
       res.json({ success: true });
     } catch (error) {
       console.error("Remove site template override error:", error);
@@ -13671,6 +13783,9 @@ export async function registerRoutes(
       const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
       const inviteUrl = `${baseUrl}/set-password?token=${token}`;
       
+      emitUserUpdated(newUser.id);
+      await emitSiteScoped("site-updated", req.params.siteId, targetSite.companyId, { siteId: req.params.siteId });
+
       const { password: _, ...safeUser } = newUser;
       res.status(201).json({ 
         ...safeUser, 
@@ -14098,7 +14213,13 @@ export async function registerRoutes(
       if (client.status === "site_required") {
         await storage.updateUser(clientId, { status: "invite_required" });
       }
-      
+
+      // Real-time: the assigned client sees the new site immediately, and
+      // admins/consultants/company see the updated assignment list.
+      emitToUser(clientId, "site-updated", { siteId: req.params.siteId });
+      emitUserUpdated(clientId);
+      await emitSiteScoped("site-updated", req.params.siteId, site.companyId, { siteId: req.params.siteId });
+
       res.status(201).json({
         ...assignment,
         clientName: client.fullName,
@@ -14146,7 +14267,12 @@ export async function registerRoutes(
       if (!removed) {
         return res.status(404).json({ error: "Assignment not found" });
       }
-      
+
+      // Real-time: the unassigned client refreshes their accessible sites.
+      emitToUser(req.params.clientId, "site-updated", { siteId: req.params.siteId });
+      emitUserUpdated(req.params.clientId);
+      await emitSiteScoped("site-updated", req.params.siteId, null, { siteId: req.params.siteId });
+
       res.json({ success: true });
     } catch (error) {
       console.error("Remove client site assignment error:", error);
@@ -14318,7 +14444,11 @@ export async function registerRoutes(
           details: `Assigned consultant ${targetUser.fullName} to site ${site.name}`,
           metadata: { consultantId: targetUser.id, siteId: site.id },
         });
-        
+
+        emitToUser(targetUser.id, "site-updated", { siteId: site.id });
+        emitUserUpdated(targetUser.id);
+        await emitSiteScoped("site-updated", site.id, site.companyId, { siteId: site.id });
+
         res.json(assignment);
       } else if (targetUser.role === "client") {
         // Validate client belongs to the site's company
@@ -14349,7 +14479,11 @@ export async function registerRoutes(
           details: `Assigned client ${targetUser.fullName} to site ${site.name}`,
           metadata: { clientId: targetUser.id, siteId: site.id },
         });
-        
+
+        emitToUser(targetUser.id, "site-updated", { siteId: site.id });
+        emitUserUpdated(targetUser.id);
+        await emitSiteScoped("site-updated", site.id, site.companyId, { siteId: site.id });
+
         res.json(assignment);
       } else {
         res.status(400).json({ error: "Admins do not need site assignments" });
@@ -14392,6 +14526,8 @@ export async function registerRoutes(
           details: `Removed all site assignments from client ${targetUser.fullName}`,
           metadata: { clientId: targetUser.id },
         });
+        emitToUser(targetUser.id, "site-updated", {});
+        emitUserUpdated(targetUser.id);
       }
       res.json({ success: true });
     } catch (error) {
@@ -14483,7 +14619,11 @@ export async function registerRoutes(
       if (!removed) {
         return res.status(404).json({ error: "Assignment not found" });
       }
-      
+
+      emitToUser(targetUser.id, "site-updated", { siteId: site.id });
+      emitUserUpdated(targetUser.id);
+      await emitSiteScoped("site-updated", site.id, site.companyId, { siteId: site.id });
+
       res.json({ success: true });
     } catch (error) {
       console.error("Remove site assignment error:", error);
@@ -14562,6 +14702,9 @@ export async function registerRoutes(
           deletedUserRef: targetUser.referenceNumber,
         },
       });
+
+      emitUserUpdated(targetUser.id, { deleted: true });
+      if (targetUser.companyId) await emitCompanyScoped("company-updated", targetUser.companyId, { companyId: targetUser.companyId });
 
       res.json({ success: true });
     } catch (error) {
@@ -15528,6 +15671,9 @@ export async function registerRoutes(
         incidentId: incident.id,
       } as any);
 
+      await emitDocumentUpdated(doc, { documentId: doc.id, incidentId: incident.id });
+      await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id });
+
       res.json(doc);
     } catch (error) {
       console.error("Error uploading incident file:", error);
@@ -15611,6 +15757,7 @@ export async function registerRoutes(
         details: `Consultant full access ${consultantFullAccess ? "granted" : "revoked"} on ${existing.incidentReference}`,
         incidentId: existing.id,
       } as any);
+      await emitSiteScoped("incident-updated", existing.siteId, existing.entityId, { incidentId: existing.id });
       res.json(updated);
     } catch (error) {
       console.error("Error toggling consultant access:", error);
@@ -16355,6 +16502,7 @@ export async function registerRoutes(
           details: `Action item "${title}" added to ${incident.incidentReference}`,
           incidentId: incident.id,
         } as any);
+        await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id });
       }
 
       res.status(201).json(milestone);
@@ -16408,6 +16556,10 @@ export async function registerRoutes(
         }
       }
 
+      // Emit after all downstream mutations (incl. any auto-close status change)
+      // so listeners refetch the final incident state.
+      await emitSiteScoped("incident-updated", parentIncident.siteId, parentIncident.entityId, { incidentId: parentIncident.id });
+
       res.json(milestone);
     } catch (error) {
       console.error("Error updating milestone:", error);
@@ -16417,7 +16569,12 @@ export async function registerRoutes(
 
   app.delete("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
+      const existingMilestone = await storage.getIncidentMilestone(req.params.id);
       await storage.deleteIncidentMilestone(req.params.id);
+      if (existingMilestone?.incidentId) {
+        const parentIncident = await storage.getIncident(existingMilestone.incidentId).catch(() => null);
+        if (parentIncident) await emitSiteScoped("incident-updated", parentIncident.siteId, parentIncident.entityId, { incidentId: parentIncident.id });
+      }
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting milestone:", error);
@@ -16460,6 +16617,8 @@ export async function registerRoutes(
         module: "health_safety",
         details: `Incident ${incident.incidentReference} ("${incident.title}") permanently deleted by ${user.fullName}`,
       });
+
+      await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id, deleted: true });
 
       res.status(204).end();
     } catch (error) {
@@ -16551,6 +16710,9 @@ export async function registerRoutes(
         incidentId: incident.id,
       } as any);
 
+      await emitDocumentUpdated(document, { documentId: document.id, incidentId: incident.id });
+      await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id });
+
       res.status(201).json(document);
     } catch (error) {
       console.error("Error uploading incident document:", error);
@@ -16572,6 +16734,8 @@ export async function registerRoutes(
       if (!doc || doc.incidentId !== incident.id) return res.status(404).json({ error: "Document not found" });
       const { title, comments } = req.body;
       const updated = await storage.updateDocument(req.params.docId, { title, comments });
+      await emitDocumentUpdated(doc, { documentId: doc.id, incidentId: incident.id });
+      await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id });
       res.json(updated);
     } catch (error) {
       console.error("Error updating incident document:", error);
@@ -16600,6 +16764,8 @@ export async function registerRoutes(
         details: `"${doc.title}" deleted from ${incident.incidentReference}`,
         incidentId: incident.id,
       } as any);
+      await emitDocumentUpdated(doc, { documentId: doc.id, incidentId: incident.id, deleted: true });
+      await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id });
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting incident document:", error);
@@ -17953,6 +18119,7 @@ export async function registerRoutes(
       }
 
       const row = await storage.addCompanyService(req.params.id, parsed.data.serviceId, user.fullName ?? user.username);
+      await emitCompanyScoped("company-updated", req.params.id, { companyId: req.params.id });
       res.status(201).json(row);
     } catch (error: any) {
       if (error?.code === "23505") return res.status(409).json({ error: "Service already assigned" });
@@ -17968,6 +18135,7 @@ export async function registerRoutes(
       if (!user || (user.role !== "admin" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const removed = await storage.removeCompanyService(req.params.id, req.params.serviceId);
       if (!removed) return res.status(404).json({ error: "Assignment not found" });
+      await emitCompanyScoped("company-updated", req.params.id, { companyId: req.params.id });
       res.status(204).end();
     } catch (error) {
       console.error("Error removing company service:", error);

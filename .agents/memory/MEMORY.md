@@ -1,1 +1,2 @@
 - [Changelog patch discipline](changelog-patch-discipline.md) — always read the live `patch` from the active version in changelog.json; never trust a cached/scratchpad value.
+- [SSE real-time gotchas](sse-realtime-gotchas.md) — TanStack prefix-match excludes sibling `/foo/online` keys; company-scoped emits must run before row delete; emit after all downstream mutations.

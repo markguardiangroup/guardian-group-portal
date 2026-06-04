@@ -7503,6 +7503,13 @@
           "message": "Fixed: folder view now updates live when viewing all sites via SSE",
           "category": "bug",
           "createdAt": "2026-06-04T08:10:00.000Z"
+        },
+        {
+          "id": "fad16b27-6392-4d7a-b815-54d6572d2900",
+          "patch": 14,
+          "message": "Live updates now cover user invites, site access changes and incident files",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T09:20:11.686Z"
         }
       ],
       "publishedPatch": 13,
