@@ -2063,7 +2063,7 @@ export default function HomePage() {
           <div className="flex items-center gap-2 mb-4">
             <Zap className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold uppercase tracking-wide">
-              From Guardian Group
+              From the Guardian Group
             </h2>
           </div>
           <PortalMessagesPanel messages={data.portalMessages} />
@@ -2072,29 +2072,41 @@ export default function HomePage() {
 
       {/* Scroll hint — bobbing arrow */}
       {showScrollHint && data?.portalMessages && data.portalMessages.length > 0 && (
-        <button
-          type="button"
-          onClick={() => {
-            setShowScrollHint(false);
-            messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-          className="fixed bottom-8 z-40 flex flex-col items-center gap-1.5 group"
+        <div
+          className="fixed bottom-8 z-40 flex flex-col items-center gap-1.5"
           data-testid="button-scroll-hint"
           style={{
             left: sidebarState === "collapsed"
               ? "calc(1.5rem + 50vw)"
               : "calc(8rem + 50vw)",
             animation: "fadeInUp 0.4s ease both",
+            transform: "translateX(-50%)",
           }}
         >
-          <span className="rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 px-5 py-2.5 text-sm font-semibold group-hover:bg-primary/90 transition-colors whitespace-nowrap tracking-tight">
-            See what's new from Guardian Group
-          </span>
+          <div className="flex items-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="px-5 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors whitespace-nowrap tracking-tight"
+              data-testid="button-scroll-hint-scroll"
+            >
+              See what's new from the Guardian Group
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowScrollHint(false)}
+              className="px-3 py-2.5 hover:bg-white/20 transition-colors border-l border-white/20"
+              aria-label="Dismiss"
+              data-testid="button-scroll-hint-dismiss"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <ChevronDown
             className="h-6 w-6 text-primary drop-shadow-md"
             style={{ animation: "scrollBob 1s ease-in-out infinite" }}
           />
-        </button>
+        </div>
       )}
 
       {/* Arrange Cover Dialog */}

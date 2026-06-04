@@ -7776,6 +7776,13 @@
           "message": "Collapsed sidebar: all icons now show tooltip labels; Admin/Tools items grouped into one expandable icon",
           "category": "enhancement",
           "createdAt": "2026-06-04T23:15:00.000Z"
+        },
+        {
+          "id": "b1c2d3e4-f5a6-7890-bcde-f01234567890",
+          "patch": 14,
+          "message": "Home: 'See what's new' hint stays visible — click to scroll, × to close; updated to 'the Guardian Group'",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T23:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
