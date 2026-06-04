@@ -8,12 +8,19 @@ interface ScopeItem {
   name: string;
 }
 
+interface GroupSiteItem {
+  id: string;
+  name: string;
+  companyId: string;
+}
+
 interface DocScopeContextBannerProps {
   docScope: "site" | "company" | "group";
   entityName?: string;
   siteObjects?: ScopeItem[];
   companySites?: ScopeItem[];
   groupMemberCompanies?: ScopeItem[];
+  groupMemberSites?: GroupSiteItem[];
 }
 
 const COLLAPSE_THRESHOLD = 4;
@@ -24,6 +31,7 @@ export function DocScopeContextBanner({
   siteObjects = [],
   companySites = [],
   groupMemberCompanies = [],
+  groupMemberSites = [],
 }: DocScopeContextBannerProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -134,8 +142,12 @@ export function DocScopeContextBanner({
   }
 
   if (docScope === "group") {
+    const totalSites = groupMemberSites.length;
     const needsExpand = groupMemberCompanies.length > COLLAPSE_THRESHOLD;
-    const visible = needsExpand && !expanded ? groupMemberCompanies.slice(0, COLLAPSE_THRESHOLD) : groupMemberCompanies;
+    const visibleCompanies = needsExpand && !expanded
+      ? groupMemberCompanies.slice(0, COLLAPSE_THRESHOLD)
+      : groupMemberCompanies;
+
     return (
       <div className="rounded-lg border bg-muted/40 px-4 py-3 text-sm space-y-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -151,14 +163,27 @@ export function DocScopeContextBanner({
         {groupMemberCompanies.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">
-              Applies to {groupMemberCompanies.length} {groupMemberCompanies.length === 1 ? "company" : "companies"}:
+              Applies to {groupMemberCompanies.length}{" "}
+              {groupMemberCompanies.length === 1 ? "company" : "companies"}
+              {totalSites > 0 && `, ${totalSites} ${totalSites === 1 ? "site" : "sites"}`}:
             </p>
-            {visible.map(c => (
-              <div key={c.id} className="flex items-center gap-1.5 text-muted-foreground pl-1">
-                <Building2 className="h-3 w-3 shrink-0" />
-                {c.name}
-              </div>
-            ))}
+            {visibleCompanies.map(c => {
+              const sitesForCompany = groupMemberSites.filter(s => s.companyId === c.id);
+              return (
+                <div key={c.id} className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-muted-foreground pl-1">
+                    <Building2 className="h-3 w-3 shrink-0" />
+                    <span className="font-medium text-foreground">{c.name}</span>
+                  </div>
+                  {sitesForCompany.map(s => (
+                    <div key={s.id} className="flex items-center gap-1.5 text-muted-foreground pl-5">
+                      <MapPin className="h-3 w-3 shrink-0" />
+                      {s.name}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
             {needsExpand && (
               <Button
                 type="button"

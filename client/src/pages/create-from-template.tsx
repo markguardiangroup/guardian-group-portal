@@ -1247,6 +1247,7 @@ export default function CreateFromTemplate() {
         siteObjects={selectedSiteObjects}
         companySites={companySites ?? []}
         groupMemberCompanies={groupMemberCompanies ?? []}
+        groupMemberSites={sites.filter(s => groupMemberCompanies?.some(c => c.id === s.companyId))}
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

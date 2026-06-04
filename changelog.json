@@ -7622,6 +7622,13 @@
           "message": "Group and company folder views now show document totals in the header",
           "category": "enhancement",
           "createdAt": "2026-06-04T18:20:00.000Z"
+        },
+        {
+          "id": "j0l2n4p6-group-banner-includes-sites-2026",
+          "patch": 14,
+          "message": "Group scope banner now lists each member company's sites below it",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T18:35:00.000Z"
         }
       ],
       "publishedPatch": 13,

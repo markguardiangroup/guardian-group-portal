@@ -1037,6 +1037,7 @@ export default function DocumentUpload() {
             siteObjects={selectedSiteObjects}
             companySites={companySites ?? []}
             groupMemberCompanies={groupMemberCompanies ?? []}
+            groupMemberSites={(sites ?? []).filter(s => groupMemberCompanies?.some(c => c.id === s.companyId))}
           />
           <div className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
