@@ -940,6 +940,7 @@ export default function CreateFromTemplate() {
 
   const goToStep = (step: Step) => {
     setCurrentStep(step);
+    document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const renderStepIndicator = () => {

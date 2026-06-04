@@ -7624,6 +7624,13 @@
           "createdAt": "2026-06-04T18:20:00.000Z"
         },
         {
+          "id": "l2n4p6r8-step-scroll-to-top-2026",
+          "patch": 14,
+          "message": "Page now scrolls to top when moving between steps while creating a document",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T18:55:00.000Z"
+        },
+        {
           "id": "k1m3o5q7-scoped-folder-header-module-name-2026",
           "patch": 14,
           "message": "Group/company folder header now shows module name instead of company name",

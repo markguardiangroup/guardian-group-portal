@@ -157,6 +157,10 @@ export default function DocumentUpload() {
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
   const [uploadStep, setUploadStep] = useState<"choice" | "scope-decision" | "upload" | "complete">("choice");
+  const goToUploadStep = (step: "choice" | "scope-decision" | "upload" | "complete") => {
+    setUploadStep(step);
+    document.getElementById("main-content")?.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
@@ -295,9 +299,9 @@ export default function DocumentUpload() {
     if (hasRelevantTemplates) {
       setShowTemplatePrompt(true);
     } else if (docScope === "company" || docScope === "group") {
-      setUploadStep("scope-decision");
+      goToUploadStep("scope-decision");
     } else {
-      setUploadStep("upload");
+      goToUploadStep("upload");
     }
   };
 
@@ -721,7 +725,7 @@ export default function DocumentUpload() {
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
       setUploadedDocId(data[0]?.id ?? null);
-      setUploadStep("complete");
+      goToUploadStep("complete");
     },
     onError: () => {
       toast({
@@ -845,9 +849,9 @@ export default function DocumentUpload() {
           data-testid="button-back"
           onClick={() => {
             if (!hasUrlContext || uploadStep === "choice") navigate(buildReturnUrl(selectedModule));
-            else if (uploadStep === "scope-decision") setUploadStep("choice");
-            else if (uploadStep === "upload" && (docScope === "company" || docScope === "group")) setUploadStep("scope-decision");
-            else if (uploadStep === "upload") setUploadStep("choice");
+            else if (uploadStep === "scope-decision") goToUploadStep("choice");
+            else if (uploadStep === "upload" && (docScope === "company" || docScope === "group")) goToUploadStep("scope-decision");
+            else if (uploadStep === "upload") goToUploadStep("choice");
             else navigate(buildReturnUrl(selectedModule));
           }}
         >
@@ -870,7 +874,7 @@ export default function DocumentUpload() {
               <div key={step.key} className="flex items-center gap-2">
                 {idx > 0 && <div className={`h-px w-8 ${isComplete || isActive ? "bg-primary" : "bg-border"}`} />}
                 <button
-                  onClick={() => { if (isComplete) setUploadStep(step.key); }}
+                  onClick={() => { if (isComplete) goToUploadStep(step.key); }}
                   disabled={!isComplete && !isActive}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     isActive
@@ -969,7 +973,7 @@ export default function DocumentUpload() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Card
               className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
-              onClick={() => { setShareToAll(false); setShareDestinations([]); setUploadStep("upload"); }}
+              onClick={() => { setShareToAll(false); setShareDestinations([]); goToUploadStep("upload"); }}
               data-testid="button-scope-this-level-only"
             >
               <CardContent className="py-6 flex flex-col gap-4">
@@ -991,7 +995,7 @@ export default function DocumentUpload() {
 
             <Card
               className="cursor-pointer border-2 hover:border-primary/50 hover:bg-primary/5 transition-all"
-              onClick={() => { setShareToAll(true); setUploadStep("upload"); }}
+              onClick={() => { setShareToAll(true); goToUploadStep("upload"); }}
               data-testid="button-scope-share-all"
             >
               <CardContent className="py-6 flex flex-col gap-4">
@@ -1428,7 +1432,7 @@ export default function DocumentUpload() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => (docScope === "company" || docScope === "group") ? setUploadStep("scope-decision") : setUploadStep("choice")}
+                        onClick={() => (docScope === "company" || docScope === "group") ? goToUploadStep("scope-decision") : goToUploadStep("choice")}
                       >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
@@ -1616,7 +1620,7 @@ export default function DocumentUpload() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setUploadStep("choice");
+                  goToUploadStep("choice");
                   setSelectedSiteIds([]);
                   setSelectedFile(null);
                   setSelectedApproverId("");
@@ -1729,9 +1733,9 @@ export default function DocumentUpload() {
               onClick={() => {
                 setShowTemplatePrompt(false);
                 if (docScope === "company" || docScope === "group") {
-                  setUploadStep("scope-decision");
+                  goToUploadStep("scope-decision");
                 } else {
-                  setUploadStep("upload");
+                  goToUploadStep("upload");
                 }
               }}
               data-testid="button-prompt-continue"
