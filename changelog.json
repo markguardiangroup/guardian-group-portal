@@ -7587,6 +7587,13 @@
           "message": "Fixed: company-level docs now appear in folder and table views without needing explicit share records",
           "category": "bug",
           "createdAt": "2026-06-04T16:30:00.000Z"
+        },
+        {
+          "id": "e5g7i9k1-doc-details-company-location-scoped-2026",
+          "patch": 14,
+          "message": "Fixed: Document Details panel now shows correct Company and Location for company/group-scope docs",
+          "category": "bug",
+          "createdAt": "2026-06-04T17:42:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -3130,19 +3130,34 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     enabled: !!document?.siteId,
   });
 
+  // For company/group-scope docs (no siteId), fetch scoped folders by scope+entityId
+  const isDetailScoped = !!document && !document.siteId && (document.scope === "company" || document.scope === "group");
+  const { data: detailScopedFolders } = useQuery<DocumentFolder[]>({
+    queryKey: ["/api/folders", document?.scope, document?.entityId, module],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/folders?scope=${document!.scope}&entityId=${document!.entityId}&module=${module}`,
+        { credentials: "include" }
+      );
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isDetailScoped && !!document?.entityId,
+  });
+
   const detailFolderPathMap = useMemo(() => {
     const map = new Map<string, string>();
-    if (!detailSiteFolders) return map;
-    for (const folder of detailSiteFolders) {
+    const folders = isDetailScoped ? (detailScopedFolders ?? []) : (detailSiteFolders ?? []);
+    for (const folder of folders) {
       if (folder.parentId) {
-        const parent = detailSiteFolders.find(f => f.id === folder.parentId);
+        const parent = folders.find(f => f.id === folder.parentId);
         map.set(folder.id, parent ? `${parent.name} / ${folder.name}` : folder.name);
       } else {
         map.set(folder.id, folder.name);
       }
     }
     return map;
-  }, [detailSiteFolders]);
+  }, [detailSiteFolders, detailScopedFolders, isDetailScoped]);
 
   const getFolderPath = (folderId?: string | null) => {
     if (!folderId) return "—";
@@ -3611,7 +3626,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <div className="grid grid-cols-2 gap-x-6 px-6 py-2.5">
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Company</dt>
-                    <dd className="mt-0.5 text-sm font-medium">{document.companyName || "N/A"}</dd>
+                    <dd className="mt-0.5 text-sm font-medium">{(document as any).companyName || document.companyName || "N/A"}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Site</dt>

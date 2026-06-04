@@ -3526,9 +3526,11 @@ export async function registerRoutes(
       // Add shared-link metadata for destination users
       const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !(await isDocumentOriginUser(user, document));
       let sharedFromEntityName: string | null = null;
-      if (isSharedLink && document.entityId) {
+      let companyName: string | null = null;
+      if (!document.siteId && document.entityId && (document.scope === "company" || document.scope === "group")) {
         const entityCompany = await storage.getCompany(document.entityId);
-        sharedFromEntityName = entityCompany?.name ?? null;
+        companyName = entityCompany?.name ?? null;
+        if (isSharedLink) sharedFromEntityName = companyName;
       }
       
       // Add uploaderRole so the frontend can gate approval buttons correctly
@@ -3544,6 +3546,7 @@ export async function registerRoutes(
         isSharedLink,
         sharedScope: isSharedLink ? document.scope : undefined,
         sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
+        companyName: companyName ?? (document as any).companyName ?? null,
       });
     } catch (error) {
       console.error("Document error:", error);
