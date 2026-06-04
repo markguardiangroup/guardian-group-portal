@@ -50,6 +50,7 @@ const uploadSchema = z.object({
   comments: z.string().optional(),
   folderId: z.string().min(1, "Please select a folder"),
   requiresApproval: z.boolean().default(true),
+  autoFinalApproval: z.boolean().default(true),
   isMandatory: z.boolean().default(false),
   expiryDate: z.string().optional(),
   complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
@@ -119,6 +120,7 @@ export function UploadDocumentDialog({
       comments: "",
       folderId: initialFolderId || "",
       requiresApproval: true,
+      autoFinalApproval: true,
       isMandatory: false,
       expiryDate: "",
       complianceMode: "none",
@@ -127,6 +129,7 @@ export function UploadDocumentDialog({
   });
 
   const requiresApproval = form.watch("requiresApproval");
+  const autoFinalApproval = form.watch("autoFinalApproval");
   const complianceMode = form.watch("complianceMode");
   const renewalPeriodMonths = form.watch("renewalPeriodMonths");
 
@@ -137,6 +140,7 @@ export function UploadDocumentDialog({
         comments: "",
         folderId: initialFolderId || "",
         requiresApproval: true,
+        autoFinalApproval: true,
         isMandatory: false,
         expiryDate: "",
         complianceMode: "none",
@@ -241,6 +245,7 @@ export function UploadDocumentDialog({
         siteId,
         folderId: data.folderId || undefined,
         requiresApproval: data.requiresApproval,
+        autoFinalApproval: data.requiresApproval ? data.autoFinalApproval : false,
         isMandatory: data.isMandatory,
         expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
         renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
@@ -454,6 +459,35 @@ export function UploadDocumentDialog({
                 </FormItem>
               )}
             />
+
+            {/* Auto Final Approval toggle — only visible when Client Approval is on */}
+            {requiresApproval && (
+              <FormField
+                control={form.control}
+                name="autoFinalApproval"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="ml-1 flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm font-medium">Auto Final Approval</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          {field.value
+                            ? "This document will be approved automatically once the client approves it"
+                            : "A consultant will need to provide final sign-off after the client approves."}
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          data-testid="toggle-upload-dialog-auto-final-approval"
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Client approver */}
             {requiresApproval && siteId && (

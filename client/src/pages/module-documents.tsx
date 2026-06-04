@@ -3739,9 +3739,29 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             const isDesignatedApprover = !(document as any).approvalRequestedFrom || (document as any).approvalRequestedFrom === user?.id;
             const canClientAct = isClient && clientHasApprovalPermission && isPending && isDesignatedApprover;
             // Consultants/admins can act on client_signed_off docs (final approval) or pending client-uploaded docs
-            const canConsultantAct = isConsultantOrAdmin && (isSignedOff || (isPending && (document as any).uploaderRole === "client"));
+            // But NOT on auto-final-approval docs that are already in client_signed_off — those complete themselves.
+            const isAutoFinalApproval = (document as any).autoFinalApproval === true;
+            const canConsultantAct = isConsultantOrAdmin && ((isSignedOff && !isAutoFinalApproval) || (isPending && (document as any).uploaderRole === "client"));
 
             if (!canClientAct && !canConsultantAct) {
+              if (isConsultantOrAdmin && isSignedOff && isAutoFinalApproval) {
+                return (
+                  <Card className="border-2 border-emerald-400 dark:border-emerald-600 bg-emerald-50/80 dark:bg-emerald-900/25" data-testid="card-auto-final-approval">
+                    <CardHeader>
+                      <CardTitle className="text-emerald-800 dark:text-emerald-300">No Action Required</CardTitle>
+                      <CardDescription className="text-emerald-700/80 dark:text-emerald-400/80">
+                        This document is set to auto-approve on client sign-off. No consultant final approval step is needed.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Badge variant="secondary" className="w-fit">
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        Auto-approved on client sign-off
+                      </Badge>
+                    </CardContent>
+                  </Card>
+                );
+              }
               if (isClient && isSignedOff) {
                 return (
                   <Card className="border-2 border-blue-400 dark:border-blue-600 bg-blue-100/80 dark:bg-blue-900/25" data-testid="card-awaiting-final-approval">

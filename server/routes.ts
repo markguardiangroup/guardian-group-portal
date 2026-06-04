@@ -390,6 +390,7 @@ const createDocumentSchema = z.object({
   trainingCourseCode: z.string().optional(),
   trainingDate: z.string().optional(),
   requiresApproval: z.boolean().optional(),
+  autoFinalApproval: z.boolean().optional(),
   isMandatory: z.boolean().optional(),
   notifyUserIds: z.array(z.string()).optional(),
   renewalPeriodMonths: z.number().nullable().optional(),
@@ -4177,6 +4178,7 @@ export async function registerRoutes(
         trainingDate: body.trainingDate ? new Date(body.trainingDate) : null,
         renewalDate: computedRenewalDate,
         renewalPeriodMonths,
+        autoFinalApproval: body.autoFinalApproval ?? false,
       });
 
       await storage.createAuditLog({
@@ -4553,19 +4555,23 @@ export async function registerRoutes(
       let documentStatus: "compliant" | "approval_required" | "overdue" | "approved";
       let auditAction: "document_approved" | "changes_requested" | "document_signed_off";
 
+      // When autoFinalApproval is enabled and the client is signing off,
+      // treat it as an immediate final approval — bypass the consultant step.
+      const isAutoFinalApproval = isClientSignOff && existingDoc.autoFinalApproval === true;
+
       switch (action) {
         case "approve":
-          if (isClientSignOff) {
+          if (isClientSignOff && !isAutoFinalApproval) {
             // Client sign-off: move to awaiting consultant final approval
             approvalStatus = "client_signed_off";
             documentStatus = "approval_required"; // Still needs final approval
             auditAction = "document_signed_off";
           } else {
-            // Consultant final approval or direct approval of client doc
+            // Consultant final approval, direct approval of client doc, or auto-final on client sign-off
             // Required docs → compliant; non-required docs → approved
             approvalStatus = "approved";
             documentStatus = existingDoc.isMandatory ? "compliant" : "approved";
-            auditAction = "document_approved";
+            auditAction = isAutoFinalApproval ? "document_signed_off" : "document_approved";
           }
           break;
         case "changes":
@@ -4577,11 +4583,11 @@ export async function registerRoutes(
           return res.status(400).json({ error: "Invalid action" });
       }
 
-      // Calculate renewal date ONLY when consultant gives final approval
+      // Calculate renewal date for final approvals (consultant or auto-final on client sign-off)
       let lastApprovedAt: Date | undefined;
       let renewalDate: Date | undefined;
       
-      const isFinalApproval = action === "approve" && (isConsultantFinalApproval || isConsultantApprovalOfClientDoc);
+      const isFinalApproval = action === "approve" && (isConsultantFinalApproval || isConsultantApprovalOfClientDoc || isAutoFinalApproval);
       if (isFinalApproval) {
         lastApprovedAt = new Date();
         

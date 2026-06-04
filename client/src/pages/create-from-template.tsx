@@ -226,6 +226,7 @@ export default function CreateFromTemplate() {
   const [documentTitle, setDocumentTitle] = useState<string>("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
+  const [autoFinalApproval, setAutoFinalApproval] = useState<boolean>(true);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
@@ -753,6 +754,7 @@ export default function CreateFromTemplate() {
           templateVersion: selectedTemplate.version,
           isMandatory: isRequiredForCompliance,
           requiresApproval,
+          autoFinalApproval: requiresApproval ? autoFinalApproval : false,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
@@ -813,6 +815,7 @@ export default function CreateFromTemplate() {
           templateVersion: selectedTemplate.version,
           isMandatory: isRequiredForCompliance,
           requiresApproval,
+          autoFinalApproval: requiresApproval ? autoFinalApproval : false,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
@@ -1385,6 +1388,24 @@ export default function CreateFromTemplate() {
                   </span>
                 </button>
               </div>
+
+              {requiresApproval && (
+                <div className="mt-3 ml-1 flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Auto Final Approval</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {autoFinalApproval
+                        ? "This document will be approved automatically once the client approves it"
+                        : "A consultant will need to provide final sign-off after the client approves."}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={autoFinalApproval}
+                    onCheckedChange={setAutoFinalApproval}
+                    data-testid="toggle-auto-final-approval"
+                  />
+                </div>
+              )}
 
               {requiresApproval && (
                 <div className="mt-3">

@@ -774,6 +774,7 @@ export const documents = pgTable("documents", {
   // Company/group scoped docs have siteId = null.
   scope: text("scope").$type<DocumentScope>().notNull().default("site"),
   approvedVersion: integer("approved_version").notNull().default(0), // Increments on each final approval (0 = never approved)
+  autoFinalApproval: boolean("auto_final_approval").notNull().default(false), // When true, document auto-approves on client sign-off
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -7783,6 +7783,13 @@
           "message": "Home: 'See what's new' hint stays visible — click to scroll, × to close; updated to 'the Guardian Group'",
           "category": "enhancement",
           "createdAt": "2026-06-04T23:20:00.000Z"
+        },
+        {
+          "id": "57eaf9f6-a21f-4bba-88ab-9726fe3171b2",
+          "patch": 14,
+          "message": "Documents can now auto-approve when the client signs off, skipping the consultant final-approval step",
+          "category": "feature",
+          "createdAt": "2026-06-04T23:00:09.505Z"
         }
       ],
       "publishedPatch": 13,
