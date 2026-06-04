@@ -7626,9 +7626,9 @@
         {
           "id": "q7s9u1w3-group-company-card-name-height-2026",
           "patch": 14,
-          "message": "Group and Company cards now align with Site cards — compliance bar at same height",
+          "message": "Fixed: Group and Company cards now align with Site cards — compliance bar at the same height",
           "category": "bug",
-          "createdAt": "2026-06-04T20:05:00.000Z"
+          "createdAt": "2026-06-04T20:10:00.000Z"
         },
         {
           "id": "p6r8t0v2-compliance-card-days-countdown-2026",

@@ -727,7 +727,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
                             <Layers className={`h-4 w-4 ${moduleColors[module]}`} />
                           </div>
-                          <div className="min-w-0 min-h-[54px]">
+                          <div className="min-w-0">
                             <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/40 px-1.5 py-0.5 rounded mb-1">Group</span>
                             {isPrivilegedUser ? (
                               <Link
@@ -743,6 +743,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 {selectedGroupOwnerName}
                               </span>
                             )}
+                            <p className="text-xs invisible" aria-hidden="true">_</p>
                           </div>
                         </div>
                         {groupHasIssues ? (
@@ -943,7 +944,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               <div className={`p-2 rounded-lg shrink-0 ${moduleBgColors[module]}`}>
                                 <Building2 className={`h-4 w-4 ${moduleColors[module]}`} />
                               </div>
-                              <div className="min-w-0 min-h-[54px]">
+                              <div className="min-w-0">
                                 <span className="inline-block text-[10px] font-semibold uppercase tracking-widest text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/40 px-1.5 py-0.5 rounded mb-1">Company</span>
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                   {isPrivilegedUser ? (
@@ -962,6 +963,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                   )}
                                   <CompanyStatusBadge status={company.status} />
                                 </div>
+                                <p className="text-xs invisible" aria-hidden="true">_</p>
                               </div>
                             </div>
                             {cHasIssues ? (
