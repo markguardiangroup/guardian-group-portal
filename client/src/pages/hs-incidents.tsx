@@ -4266,39 +4266,6 @@ function IncidentsListView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {isPrivileged && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2">
-                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetFilters}
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters-incidents"
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-                <div className="flex flex-row items-center gap-2">
-                  <CompanyCombobox
-                    sites={sites}
-                    value={selectedCompany}
-                    onValueChange={handleCompanyChange}
-                    className="w-[200px]"
-                    testId="select-company-incidents"
-                  />
-                  <SiteCombobox
-                    sites={filteredSitesForCombobox}
-                    value={selectedSiteId}
-                    onValueChange={handleSiteChange}
-                    className="w-[200px]"
-                    testId="select-site-incidents"
-                    disabled={!selectedCompany || selectedCompany === "all"}
-                  />
-                </div>
-              </div>
-            )}
             {hasCoverage && (
               <Select
                 value={coverageFilter}
@@ -4737,20 +4704,52 @@ function IncidentsListView() {
                     <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select
-                  value={selectedSiteId ?? "all"}
-                  onValueChange={(v) => handleSiteChange(v === "all" ? null : v)}
-                >
-                  <SelectTrigger className="w-[170px]" data-testid="select-site-filter">
-                    <SelectValue placeholder="All Sites" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sites</SelectItem>
-                    {sites.map((s: any) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isPrivileged && sites && sites.length > 0 ? (
+                  <>
+                    <CompanyCombobox
+                      sites={sites}
+                      value={selectedCompany}
+                      onValueChange={handleCompanyChange}
+                      className="w-[180px]"
+                      testId="select-company-incidents"
+                    />
+                    <SiteCombobox
+                      sites={filteredSitesForCombobox}
+                      value={selectedSiteId}
+                      onValueChange={handleSiteChange}
+                      className="w-[180px]"
+                      testId="select-site-incidents"
+                      disabled={!selectedCompany || selectedCompany === "all"}
+                    />
+                    {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={resetFilters}
+                        className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                        data-testid="button-clear-filters-incidents"
+                        title="Clear selection"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Select
+                    value={selectedSiteId ?? "all"}
+                    onValueChange={(v) => handleSiteChange(v === "all" ? null : v)}
+                  >
+                    <SelectTrigger className="w-[170px]" data-testid="select-site-filter">
+                      <SelectValue placeholder="All Sites" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sites</SelectItem>
+                      {sites.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <Button
                   type="button"
                   variant={riddorFilter ? "default" : "outline"}
