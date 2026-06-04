@@ -1226,7 +1226,7 @@ export default function CreateFromTemplate() {
         </TooltipProvider>
       )}
 
-      <div className="flex justify-end pt-4">
+      <div className="sticky bottom-0 z-10 flex justify-end pt-3 pb-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t mt-2">
         <Button
           onClick={() => goToStep("placeholders")}
           disabled={!selectedTemplateId}
