@@ -679,6 +679,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupApprovalRequired = _gCounts.approvalRequired;
               const groupOverdue = _gCounts.overdue;
               const groupPending = _gCounts.approvalRequired;
+              // Non-Compliant is mandatory-based (canonical) — matches the site
+              // cards, dashboard and Document Count Audit: mandatory docs whose
+              // status is overdue or awaiting approval, plus missing required.
+              const _gMandatory = groupDocs.filter((d: any) => d.isMandatory);
+              const groupReqOverdue = _gMandatory.filter((d: any) => d.status === "overdue").length;
+              const groupReqApproval = _gMandatory.filter((d: any) => d.status === "approval_required").length;
               // Slot-based compliance score — kept separate from the status tiles so
               // the % stays slot-based: required docs bucketed by expiry/renewal date,
               // plus missing required slots (same methodology as the per-site card).
@@ -700,6 +706,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 }
               }
               const groupMissing = groupMissingTemplateIds.size;
+              const groupNonCompliant = groupReqOverdue + groupReqApproval + groupMissing;
               const groupExpired = groupDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               const groupRenewalRequired = groupDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               const groupClientApproval = groupDocs.filter((d: any) => d.approvalStatus === "pending").length;
@@ -707,7 +714,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupCompliantAll = groupDocs.filter((d: any) => d.status === "compliant").length;
               const groupDenom = gScoreCompliant + gScoreApprovalRequired + gScoreOverdue + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((gScoreCompliant / groupDenom) * 100) : null;
-              const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupApprovalRequired > 0;
+              const groupHasIssues = groupNonCompliant > 0;
 
               return (
                 <>
@@ -810,15 +817,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupApprovalRequired + groupOverdue + groupMissing}</p>}
-                                <p className={`text-[10px] ${!isLoadingDocs && (groupApprovalRequired + groupOverdue + groupMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupNonCompliant}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && groupNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs space-y-0.5">
-                              <p className="font-semibold">Required — not compliant</p>
-                              <p className="text-muted-foreground">{groupOverdue} overdue</p>
-                              <p className="text-muted-foreground">{groupApprovalRequired} awaiting approval</p>
+                              <p className="font-semibold">Not compliant (mandatory)</p>
+                              <p className="text-muted-foreground">{groupReqOverdue} overdue</p>
+                              <p className="text-muted-foreground">{groupReqApproval} awaiting approval</p>
                               <p className="text-muted-foreground">{groupMissing} missing</p>
                             </TooltipContent>
                           </Tooltip>
@@ -903,6 +910,11 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     const cOverdue = _cCounts.overdue;
                     const cOverdueAll = _cCounts.overdue;
                     const cPending = _cCounts.approvalRequired;
+                    // Non-Compliant is mandatory-based (canonical) — matches the
+                    // site cards, dashboard and Document Count Audit.
+                    const _cMandatory = companyDocs.filter((d: any) => d.isMandatory);
+                    const cReqOverdue = _cMandatory.filter((d: any) => d.status === "overdue").length;
+                    const cReqApproval = _cMandatory.filter((d: any) => d.status === "approval_required").length;
                     // Slot-based compliance score — UNCHANGED: required-only docs
                     // bucketed by expiry/renewal date, plus missing required slots.
                     // Kept separate from the status tiles so the % is not altered.
@@ -926,6 +938,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       }
                     }
                     const cMissing = cMissingTemplateIds.size;
+                    const cNonCompliant = cReqOverdue + cReqApproval + cMissing;
                     const cExpired = companyDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     const cRenewalRequired = companyDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     const cClientApproval = companyDocs.filter((d: any) => d.approvalStatus === "pending").length;
@@ -1037,15 +1050,15 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cApprovalRequired + cOverdue + cMissing}</p>}
-                                    <p className={`text-[10px] ${!isLoadingDocs && (cApprovalRequired + cOverdue + cMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cNonCompliant}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && cNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-xs space-y-0.5">
-                                  <p className="font-semibold">Required — not compliant</p>
-                                  <p className="text-muted-foreground">{cOverdue} overdue</p>
-                                  <p className="text-muted-foreground">{cApprovalRequired} awaiting approval</p>
+                                  <p className="font-semibold">Not compliant (mandatory)</p>
+                                  <p className="text-muted-foreground">{cReqOverdue} overdue</p>
+                                  <p className="text-muted-foreground">{cReqApproval} awaiting approval</p>
                                   <p className="text-muted-foreground">{cMissing} missing</p>
                                 </TooltipContent>
                               </Tooltip>

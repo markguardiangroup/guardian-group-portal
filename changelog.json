@@ -7713,6 +7713,20 @@
           "message": "Fixed: document compliance counts now match across site cards, dashboard and lists",
           "category": "bug",
           "createdAt": "2026-06-04T22:15:49.870Z"
+        },
+        {
+          "id": "0c4f8159-15c8-4bac-82fa-73e5a57882af",
+          "patch": 14,
+          "message": "Fixed: Document Count Audit now matches the site and dashboard counts",
+          "category": "bug",
+          "createdAt": "2026-06-04T22:26:20.710Z"
+        },
+        {
+          "id": "6c1d99cd-211d-4e0c-91d8-d2360b6dedf5",
+          "patch": 14,
+          "message": "Fixed: Group and Company cards now count Non-Compliant the same way everywhere",
+          "category": "bug",
+          "createdAt": "2026-06-04T22:31:11.734Z"
         }
       ],
       "publishedPatch": 13,

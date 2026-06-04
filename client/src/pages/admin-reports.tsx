@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { statusCounts, nonCompliantCount, isCountableDoc, type StatusCounts } from "@/lib/doc-stats";
+import { statusCounts, isCountableDoc } from "@/lib/doc-stats";
 import {
   Dialog,
   DialogContent,
@@ -776,28 +776,42 @@ export default function AdminReports() {
     caseId?: string | null;
     incidentId?: string | null;
     source?: string | null;
+    isMandatory?: boolean | null;
   };
   type AuditMissing = { siteId?: string; companyId?: string; templateId?: string; module?: string };
 
-  // Aggregation helpers — each document is counted wherever it appears (a doc
-  // shared to several sites is counted under each, mirroring the cards), so the
-  // section subtotals and grand total reflect every place a document is used.
-  type Agg = { total: number; compliant: number; approvalRequired: number; overdue: number; missing: number };
-  const emptyAgg = (): Agg => ({ total: 0, compliant: 0, approvalRequired: 0, overdue: 0, missing: 0 });
-  const addRow = (a: Agg, counts: StatusCounts, miss: number): Agg => ({
-    total: a.total + counts.total,
-    compliant: a.compliant + counts.compliant,
-    approvalRequired: a.approvalRequired + counts.approvalRequired,
-    overdue: a.overdue + counts.overdue,
-    missing: a.missing + miss,
-  });
-  const combineAgg = (a: Agg, b: Agg): Agg => ({
+  // Per-row metrics — mirror the site cards / dashboard exactly so the audit
+  // reconciles with them. Total / Approval Req. / Overdue count every countable
+  // document by its `status`; Compliant counts only MANDATORY approved docs;
+  // Non-Compliant = mandatory docs not approved (overdue + awaiting approval)
+  // plus missing required slots. A doc shared to several places is counted under
+  // each (mirroring the cards), so subtotals reflect every place it is used.
+  type RowMetrics = { total: number; compliant: number; approvalRequired: number; overdue: number; missing: number; nonCompliant: number };
+  const emptyAgg = (): RowMetrics => ({ total: 0, compliant: 0, approvalRequired: 0, overdue: 0, missing: 0, nonCompliant: 0 });
+  const addAgg = (a: RowMetrics, b: RowMetrics): RowMetrics => ({
     total: a.total + b.total,
     compliant: a.compliant + b.compliant,
     approvalRequired: a.approvalRequired + b.approvalRequired,
     overdue: a.overdue + b.overdue,
     missing: a.missing + b.missing,
+    nonCompliant: a.nonCompliant + b.nonCompliant,
   });
+  // Compute the displayed metrics for an already-scoped, already-countable list.
+  const rowMetrics = (docs: AuditDoc[], miss: number): RowMetrics => {
+    const counts = statusCounts(docs);
+    const mandatory = docs.filter((d) => d.isMandatory);
+    const mCompliant = mandatory.filter((d) => d.status === "compliant").length;
+    const mOverdue = mandatory.filter((d) => d.status === "overdue").length;
+    const mApprovalReq = mandatory.filter((d) => d.status === "approval_required").length;
+    return {
+      total: counts.total,
+      compliant: mCompliant,
+      approvalRequired: counts.approvalRequired,
+      overdue: counts.overdue,
+      missing: miss,
+      nonCompliant: mOverdue + mApprovalReq + miss,
+    };
+  };
 
   // A company is a Group Owner when at least one other company references it.
   const groupOwnerIds = new Set<string>();
@@ -828,22 +842,22 @@ export default function AdminReports() {
         const siteDocs = docs.filter(
           (d) =>
             isCountableDoc(d) &&
+            // Canonical site predicate (matches module-sites + dashboard): a
+            // scoped doc counts for the site when shared to it, shared to its
+            // company, or owned by its company. Owned-by-company was previously
+            // gated behind a share-count check, which undercounted the site.
             (d.siteId === sid ||
               (d.siteId == null &&
                 ((d.sharedWithSiteIds?.includes(sid) ?? false) ||
                   (d.sharedWithCompanyIds?.includes(siteCompanyId) ?? false) ||
-                  (d.scope === "group" &&
-                    d.entityId === siteCompanyId &&
-                    ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)))),
+                  d.entityId === siteCompanyId))),
         );
-        const counts = statusCounts(siteDocs);
         const miss = missing.filter((mm) => mm.siteId === sid).length;
         return {
           id: sid,
           name: site.name ?? "(unknown site)",
           companyName: site.companyName ?? "",
-          counts,
-          missing: miss,
+          metrics: rowMetrics(siteDocs, miss),
         };
       })
       .sort((a, b) =>
@@ -865,11 +879,10 @@ export default function AdminReports() {
         return {
           id: gid,
           name: owner?.name ?? "(unknown group)",
-          counts: statusCounts(groupDocs),
-          missing: templateIds.size,
+          metrics: rowMetrics(groupDocs, templateIds.size),
         };
       })
-      .filter((r) => r.counts.total > 0 || r.missing > 0)
+      .filter((r) => r.metrics.total > 0 || r.metrics.missing > 0)
       .sort((a, b) => a.name.localeCompare(b.name));
 
     // ── Company rows (mirror each Company card) ──────────────────────────
@@ -889,20 +902,19 @@ export default function AdminReports() {
         return {
           id: c.id,
           name: c.name,
-          counts: statusCounts(companyDocs),
-          missing: templateIds.size,
+          metrics: rowMetrics(companyDocs, templateIds.size),
         };
       })
-      .filter((r) => r.counts.total > 0 || r.missing > 0)
+      .filter((r) => r.metrics.total > 0 || r.metrics.missing > 0)
       .sort((a, b) => a.name.localeCompare(b.name));
 
     // ── Subtotals & grand total ──────────────────────────────────────────
     let sitesSubtotal = emptyAgg();
-    siteRows.forEach((r) => { sitesSubtotal = addRow(sitesSubtotal, r.counts, r.missing); });
+    siteRows.forEach((r) => { sitesSubtotal = addAgg(sitesSubtotal, r.metrics); });
     let geSubtotal = emptyAgg();
-    groupRows.forEach((r) => { geSubtotal = addRow(geSubtotal, r.counts, r.missing); });
-    companyRows.forEach((r) => { geSubtotal = addRow(geSubtotal, r.counts, r.missing); });
-    const grandTotal = combineAgg(sitesSubtotal, geSubtotal);
+    groupRows.forEach((r) => { geSubtotal = addAgg(geSubtotal, r.metrics); });
+    companyRows.forEach((r) => { geSubtotal = addAgg(geSubtotal, r.metrics); });
+    const grandTotal = addAgg(sitesSubtotal, geSubtotal);
 
     return {
       ...m,
@@ -974,36 +986,36 @@ export default function AdminReports() {
   const downloadCountAuditCSV = () => {
     const headers = ["Module", "Scope", "Company", "Total", "Compliant", "Approval Required", "Overdue", "Missing", "Non-Compliant"];
     const rows: string[][] = [];
-    const aggRow = (label: string, scope: string, company: string, a: { total: number; compliant: number; approvalRequired: number; overdue: number; missing: number }) => [
+    const aggRow = (label: string, scope: string, company: string, a: { total: number; compliant: number; approvalRequired: number; overdue: number; missing: number; nonCompliant: number }) => [
       label, scope, company,
       String(a.total), String(a.compliant), String(a.approvalRequired),
       String(a.overdue), String(a.missing),
-      String(a.approvalRequired + a.overdue + a.missing),
+      String(a.nonCompliant),
     ];
     auditData.forEach((m) => {
       m.siteRows.forEach((r) => {
         rows.push([
           m.label, `Site: ${r.name}`, r.companyName,
-          String(r.counts.total), String(r.counts.compliant),
-          String(r.counts.approvalRequired), String(r.counts.overdue),
-          String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
+          String(r.metrics.total), String(r.metrics.compliant),
+          String(r.metrics.approvalRequired), String(r.metrics.overdue),
+          String(r.metrics.missing), String(r.metrics.nonCompliant),
         ]);
       });
       rows.push(aggRow(m.label, "SITES SUBTOTAL", "", m.sitesSubtotal));
       m.groupRows.forEach((r) => {
         rows.push([
           m.label, `Group: ${r.name}`, "",
-          String(r.counts.total), String(r.counts.compliant),
-          String(r.counts.approvalRequired), String(r.counts.overdue),
-          String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
+          String(r.metrics.total), String(r.metrics.compliant),
+          String(r.metrics.approvalRequired), String(r.metrics.overdue),
+          String(r.metrics.missing), String(r.metrics.nonCompliant),
         ]);
       });
       m.companyRows.forEach((r) => {
         rows.push([
           m.label, `Company: ${r.name}`, "",
-          String(r.counts.total), String(r.counts.compliant),
-          String(r.counts.approvalRequired), String(r.counts.overdue),
-          String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
+          String(r.metrics.total), String(r.metrics.compliant),
+          String(r.metrics.approvalRequired), String(r.metrics.overdue),
+          String(r.metrics.missing), String(r.metrics.nonCompliant),
         ]);
       });
       rows.push(aggRow(m.label, "GROUPS & COMPANIES SUBTOTAL", "", m.geSubtotal));
@@ -1320,12 +1332,12 @@ export default function AdminReports() {
                         <TableRow key={`site-${r.id}`} data-testid={`audit-row-${m.key}-${r.id}`}>
                           <TableCell className="font-medium">{r.name}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{r.companyName || "-"}</TableCell>
-                          <TableCell className="text-right">{r.counts.total}</TableCell>
-                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
-                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.counts.approvalRequired}</TableCell>
-                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.counts.overdue}</TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.missing}</TableCell>
-                          <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
+                          <TableCell className="text-right">{r.metrics.total}</TableCell>
+                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.metrics.compliant}</TableCell>
+                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.metrics.approvalRequired}</TableCell>
+                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.metrics.overdue}</TableCell>
+                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.metrics.missing}</TableCell>
+                          <TableCell className="text-right font-medium">{r.metrics.nonCompliant}</TableCell>
                         </TableRow>
                       ))}
                       {m.siteRows.length === 0 && (
@@ -1339,7 +1351,7 @@ export default function AdminReports() {
                         <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.sitesSubtotal.approvalRequired}</TableCell>
                         <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.sitesSubtotal.overdue}</TableCell>
                         <TableCell className="text-right text-red-600 dark:text-red-400">{m.sitesSubtotal.missing}</TableCell>
-                        <TableCell className="text-right">{m.sitesSubtotal.approvalRequired + m.sitesSubtotal.overdue + m.sitesSubtotal.missing}</TableCell>
+                        <TableCell className="text-right">{m.sitesSubtotal.nonCompliant}</TableCell>
                       </TableRow>
 
                       <TableRow className="bg-muted/30">
@@ -1349,24 +1361,24 @@ export default function AdminReports() {
                         <TableRow key={`group-${r.id}`} data-testid={`audit-grouprow-${m.key}-${r.id}`}>
                           <TableCell className="font-medium">{r.name}</TableCell>
                           <TableCell className="text-xs"><span className="rounded bg-violet-100 px-1.5 py-0.5 font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">Group</span></TableCell>
-                          <TableCell className="text-right">{r.counts.total}</TableCell>
-                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
-                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.counts.approvalRequired}</TableCell>
-                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.counts.overdue}</TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.missing}</TableCell>
-                          <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
+                          <TableCell className="text-right">{r.metrics.total}</TableCell>
+                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.metrics.compliant}</TableCell>
+                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.metrics.approvalRequired}</TableCell>
+                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.metrics.overdue}</TableCell>
+                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.metrics.missing}</TableCell>
+                          <TableCell className="text-right font-medium">{r.metrics.nonCompliant}</TableCell>
                         </TableRow>
                       ))}
                       {m.companyRows.map((r) => (
                         <TableRow key={`company-${r.id}`} data-testid={`audit-companyrow-${m.key}-${r.id}`}>
                           <TableCell className="font-medium">{r.name}</TableCell>
                           <TableCell className="text-xs"><span className="rounded bg-orange-100 px-1.5 py-0.5 font-semibold text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">Company</span></TableCell>
-                          <TableCell className="text-right">{r.counts.total}</TableCell>
-                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
-                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.counts.approvalRequired}</TableCell>
-                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.counts.overdue}</TableCell>
-                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.missing}</TableCell>
-                          <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
+                          <TableCell className="text-right">{r.metrics.total}</TableCell>
+                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.metrics.compliant}</TableCell>
+                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.metrics.approvalRequired}</TableCell>
+                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.metrics.overdue}</TableCell>
+                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.metrics.missing}</TableCell>
+                          <TableCell className="text-right font-medium">{r.metrics.nonCompliant}</TableCell>
                         </TableRow>
                       ))}
                       {m.groupRows.length === 0 && m.companyRows.length === 0 && (
@@ -1380,7 +1392,7 @@ export default function AdminReports() {
                         <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.geSubtotal.approvalRequired}</TableCell>
                         <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.geSubtotal.overdue}</TableCell>
                         <TableCell className="text-right text-red-600 dark:text-red-400">{m.geSubtotal.missing}</TableCell>
-                        <TableCell className="text-right">{m.geSubtotal.approvalRequired + m.geSubtotal.overdue + m.geSubtotal.missing}</TableCell>
+                        <TableCell className="text-right">{m.geSubtotal.nonCompliant}</TableCell>
                       </TableRow>
 
                       <TableRow className="border-t-2 border-foreground/30 font-bold bg-muted/60" data-testid={`audit-grandtotal-${m.key}`}>
@@ -1391,7 +1403,7 @@ export default function AdminReports() {
                         <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.grandTotal.approvalRequired}</TableCell>
                         <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.grandTotal.overdue}</TableCell>
                         <TableCell className="text-right text-red-600 dark:text-red-400">{m.grandTotal.missing}</TableCell>
-                        <TableCell className="text-right">{m.grandTotal.approvalRequired + m.grandTotal.overdue + m.grandTotal.missing}</TableCell>
+                        <TableCell className="text-right">{m.grandTotal.nonCompliant}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
