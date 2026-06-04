@@ -1575,8 +1575,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-3">
                     <FolderOpen className={`h-5 w-5 ${moduleColors[module]}`} />
                     <CardTitle className={`text-lg ${moduleColors[module]}`}>
-                      {urlEntityName || (urlScope === "group" ? "Group" : "Company")}
-                      {" "}— {urlScope === "group" ? "Group Documents" : "Company Documents"}
+                      {config.name} Documents
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-4 text-sm flex-wrap">
