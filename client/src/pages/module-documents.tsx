@@ -4861,6 +4861,73 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Card>
           )}
 
+          {isClientUser && !document.isMandatory && !isRequiredTemplate && !document.isArchived && (
+            (() => {
+              const now = new Date();
+              const renewal = (document as any).renewalDate ? new Date((document as any).renewalDate) : null;
+              const expiry = document.expiryDate ? new Date(document.expiryDate) : null;
+              const daysUntilRenewal = renewal ? Math.ceil((renewal.getTime() - now.getTime()) / 86400000) : null;
+              const daysUntilExpiry = expiry ? Math.ceil((expiry.getTime() - now.getTime()) / 86400000) : null;
+
+              const DateRow = ({ icon: Icon, label, date, days, testId }: {
+                icon: React.ElementType; label: string; date: Date; days: number; testId: string;
+              }) => {
+                const isOverdue = days < 0;
+                const isWarning = !isOverdue && days <= 30;
+                const color = isOverdue
+                  ? "text-red-600 dark:text-red-400"
+                  : isWarning ? "text-amber-600 dark:text-amber-400"
+                  : "text-emerald-600 dark:text-emerald-400";
+                const bg = isOverdue
+                  ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
+                  : isWarning ? "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800"
+                  : "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800";
+                return (
+                  <div className={`rounded-md border px-3 py-2.5 space-y-1 ${bg}`} data-testid={testId}>
+                    <div className="flex items-center justify-between">
+                      <span className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${color}`}>
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                      </span>
+                      <span className={`text-xs font-medium ${color}`}>
+                        {isOverdue
+                          ? `${Math.abs(days)} ${Math.abs(days) === 1 ? "day" : "days"} overdue`
+                          : days === 0 ? "Due today"
+                          : `${days} ${days === 1 ? "day" : "days"} away`}
+                      </span>
+                    </div>
+                    <p className="text-sm font-medium">{format(date, "d MMM yyyy")}</p>
+                  </div>
+                );
+              };
+
+              return (
+                <Card data-testid="card-renewal-expiry-tracking">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Renewal & Expiry Tracking
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {!renewal && !expiry && (
+                      <div className="flex flex-col items-center gap-1 py-2.5 px-3 rounded-md border-2 border-dashed border-gray-200 bg-gray-50 dark:bg-gray-900/20 dark:border-gray-700 text-center" data-testid="renewal-expiry-none">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">No renewal or expiry date set</span>
+                      </div>
+                    )}
+                    {renewal && daysUntilRenewal !== null && (
+                      <DateRow icon={RefreshCw} label="Renewal Date" date={renewal} days={daysUntilRenewal} testId="renewal-expiry-renewal-row" />
+                    )}
+                    {expiry && daysUntilExpiry !== null && (
+                      <DateRow icon={Calendar} label="Expiry Date" date={expiry} days={daysUntilExpiry} testId="renewal-expiry-expiry-row" />
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()
+          )}
+
           {document.versions && document.versions.length > 0 &&
            (document.approvalStatus === "approved" || (document.versions as any[]).some((v: any) => !v.isDraft)) && (
             <Accordion type="single" collapsible>

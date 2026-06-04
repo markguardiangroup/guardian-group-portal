@@ -7624,6 +7624,13 @@
           "createdAt": "2026-06-04T18:20:00.000Z"
         },
         {
+          "id": "o5q7s9u1-renewal-expiry-tracking-card-2026",
+          "patch": 14,
+          "message": "Clients now see a Renewal & Expiry Tracking card on non-mandatory documents",
+          "category": "feature",
+          "createdAt": "2026-06-04T19:35:00.000Z"
+        },
+        {
           "id": "n4p6r8t0-template-sticky-footer-jump-fix-2026",
           "patch": 14,
           "message": "Fixed: Continue button on template picker no longer causes layout shift",
