@@ -12921,10 +12921,25 @@ export async function registerRoutes(
         return doc.isMandatory || docTmpl?.isMandatory || isRequiredViaCompanyTemplate;
       };
 
-      // Flat set of all required template IDs across any target company (for templateInfo slots)
+      // Flat set of required template IDs that count as mandatory slots for the
+      // CURRENT scope. Mandatory documents only filter DOWN the hierarchy
+      // (Group > Company > Site), never up or sideways:
+      //  - Group view: only the group OWNER's own required templates. Member
+      //    companies' requirements must NOT bubble up to the group level.
+      //  - Company view: only that company's own required templates (which already
+      //    include any group-level requirements cascaded down to it).
+      //  - All-companies (admin) view: union across every company.
       const allCompanyRequiredTemplateIds = new Set<string>();
-      for (const reqSet of companyReqCacheHierarchy.values()) {
-        for (const id of reqSet) allCompanyRequiredTemplateIds.add(id);
+      if (requestedGroupOwnerId) {
+        const ownerReqs = companyReqCacheHierarchy.get(requestedGroupOwnerId);
+        if (ownerReqs) for (const id of ownerReqs) allCompanyRequiredTemplateIds.add(id);
+      } else if (requestedCompanyId) {
+        const companyReqs = companyReqCacheHierarchy.get(requestedCompanyId);
+        if (companyReqs) for (const id of companyReqs) allCompanyRequiredTemplateIds.add(id);
+      } else {
+        for (const reqSet of companyReqCacheHierarchy.values()) {
+          for (const id of reqSet) allCompanyRequiredTemplateIds.add(id);
+        }
       }
 
       // For a single-site view, pre-compute the effective required set that
