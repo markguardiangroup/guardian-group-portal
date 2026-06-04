@@ -7510,6 +7510,13 @@
           "message": "Live updates now cover user invites, site access changes and incident files",
           "category": "enhancement",
           "createdAt": "2026-06-04T09:20:11.686Z"
+        },
+        {
+          "id": "434a1c8a-c25d-4dd4-b6f9-975d2e32b7b0",
+          "patch": 14,
+          "message": "Live updates now refresh company compliance scores on document changes",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T09:44:45.218Z"
         }
       ],
       "publishedPatch": 13,

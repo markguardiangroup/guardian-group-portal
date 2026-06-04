@@ -76,6 +76,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
@@ -118,6 +119,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"] });
         queryClient.invalidateQueries({ queryKey: ["/api/folders"] });
         queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
