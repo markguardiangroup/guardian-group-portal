@@ -114,6 +114,7 @@ import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleTy
 import { moduleConfig } from "@shared/schema";
 import { statusCounts } from "@/lib/doc-stats";
 import { useAuth } from "@/hooks/use-auth";
+import { setLastSection } from "@/lib/navigation-tracker";
 
 // Enriched document with server-computed shared-link metadata
 type EnrichedDocument = Document & {
@@ -339,6 +340,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [renewalFilter, setRenewalFilter] = useState<string>(urlRenewal || "all");
   const { selectedCompany, selectedSiteId, selectedGroup, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
+  // Mark this page as a module page so that calendar/incidents/cases can
+  // carry the selected company over when the user navigates from here.
+  useEffect(() => { setLastSection("module"); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);
     if (urlSiteId) setSelectedSiteId(urlSiteId);

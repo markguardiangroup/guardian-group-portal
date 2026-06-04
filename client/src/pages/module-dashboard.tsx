@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import { Link, useLocation } from "wouter";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { setLastSection } from "@/lib/navigation-tracker";
 import type { ComplianceSummary, Document, ModuleType } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
 import { statusCounts, isCountableDoc } from "@/lib/doc-stats";
@@ -164,6 +165,9 @@ interface ModuleDashboardProps {
 export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { selectedCompany, selectedSiteId, selectedGroup } = useSiteFilter();
+  // Mark this page as a module page so that calendar/incidents/cases carry
+  // the selected company over when the user navigates from here.
+  useEffect(() => { setLastSection("module"); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [, navigate] = useLocation();
 
   const config = moduleConfig[module];

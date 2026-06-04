@@ -36,6 +36,7 @@ import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { getLastSection, setLastSection } from "@/lib/navigation-tracker";
 import { useAuth } from "@/hooks/use-auth";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isToday } from "date-fns";
 
@@ -502,7 +503,11 @@ export default function CalendarPage() {
 
   // Reset company/site filter on mount so the calendar always starts clean —
   // it has its own filter section and should not inherit state from other pages.
-  useEffect(() => { resetFilters(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
+    const prev = getLastSection();
+    setLastSection("calendar");
+    if (prev !== "module") resetFilters();
+  }, []);
 
   const isPrivileged = user?.role === "admin" || user?.role === "consultant";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();

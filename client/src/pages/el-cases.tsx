@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { CountUp } from "@/components/ui/count-up";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { getLastSection, setLastSection } from "@/lib/navigation-tracker";
 import { useQuery, useMutation, keepPreviousData } from "@tanstack/react-query";
 import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -195,7 +196,11 @@ function CasesList() {
 
   // Reset company/site filter on mount so cases always start clean — it has
   // its own filter section and should not inherit state from other pages.
-  useEffect(() => { resetFilters(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
+    const prev = getLastSection();
+    setLastSection("cases");
+    if (prev !== "module") resetFilters();
+  }, []);
 
   useEffect(() => {
     if (urlCompany) handleCompanyChange(urlCompany);

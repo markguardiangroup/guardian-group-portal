@@ -108,6 +108,7 @@ import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { getLastSection, setLastSection } from "@/lib/navigation-tracker";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -4120,7 +4121,11 @@ function IncidentsListView() {
 
   // Reset company/site filter on mount so incidents always start clean — it
   // has its own filter section and should not inherit state from other pages.
-  useEffect(() => { resetFilters(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
+    const prev = getLastSection();
+    setLastSection("incidents");
+    if (prev !== "module") resetFilters();
+  }, []);
 
   const activeConfig = registerTypeConfig[registerType];
 

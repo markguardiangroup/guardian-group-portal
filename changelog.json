@@ -7748,6 +7748,13 @@
           "message": "Fixed: Calendar, Incidents and Cases no longer inherit company filter from other pages",
           "category": "bug",
           "createdAt": "2026-06-04T22:51:28.877Z"
+        },
+        {
+          "id": "faf0547e-09e1-4d97-b1b3-811f4ebf6c24",
+          "patch": 14,
+          "message": "Calendar, Incidents, Cases inherit company filter when navigating from module docs/dashboard, but reset between each other",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T23:04:23.597Z"
         }
       ],
       "publishedPatch": 13,
