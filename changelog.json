@@ -7615,6 +7615,13 @@
           "message": "Upload forms now show company, site, and scope context at the top of the page",
           "category": "enhancement",
           "createdAt": "2026-06-04T18:08:00.000Z"
+        },
+        {
+          "id": "i9k1m3o5-scoped-folder-stats-bar-2026",
+          "patch": 14,
+          "message": "Group and company folder views now show document totals in the header",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T18:20:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -1579,9 +1579,34 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       {" "}— {urlScope === "group" ? "Group Documents" : "Company Documents"}
                     </CardTitle>
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    {sortedDocuments.length} document{sortedDocuments.length !== 1 ? "s" : ""}
-                  </span>
+                  <div className="flex items-center gap-4 text-sm flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Files className="h-4 w-4 text-muted-foreground" />
+                      <span>{sortedDocuments.length} Total</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileCheck className="h-4 w-4 text-green-600" />
+                      <span>{sortedDocuments.filter(d => d.status === "compliant").length} Compliant</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileCheck className="h-4 w-4 text-emerald-500" />
+                      <span>{sortedDocuments.filter(d => d.status === "approved").length} Approved</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileClock className="h-4 w-4 text-yellow-600" />
+                      <span>{sortedDocuments.filter(d => d.status === "approval_required").length} Approval Required</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileWarning className="h-4 w-4 text-red-600" />
+                      <span>{sortedDocuments.filter(d => d.status === "overdue").length} Overdue</span>
+                    </div>
+                    {missingSlots.length > 0 && (
+                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                        <span>{missingSlots.length} Missing</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
