@@ -7566,6 +7566,13 @@
           "message": "Fixed: group primary contact now appears as approver on the Create from Template flow too",
           "category": "bug",
           "createdAt": "2026-06-04T15:45:00.000Z"
+        },
+        {
+          "id": "b2d4f6a8-view-doc-button-response-parse-2026",
+          "patch": 14,
+          "message": "Fixed: View Document button now appears correctly on the upload success screen",
+          "category": "bug",
+          "createdAt": "2026-06-04T16:00:00.000Z"
         }
       ],
       "publishedPatch": 13,

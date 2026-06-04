@@ -756,7 +756,7 @@ export default function CreateFromTemplate() {
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
-        const result = await apiRequest("POST", "/api/documents", formData);
+        const result = await (await apiRequest("POST", "/api/documents", formData)).json();
         return [result];
       }
 
@@ -817,7 +817,7 @@ export default function CreateFromTemplate() {
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
 
-        const result = await apiRequest("POST", "/api/documents", formData);
+        const result = await (await apiRequest("POST", "/api/documents", formData)).json();
         results.push(result);
       }
 

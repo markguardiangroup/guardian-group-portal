@@ -656,7 +656,7 @@ export default function DocumentUpload() {
           notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           templateId: selectedTemplateId || undefined,
         };
-        const result = await apiRequest("POST", "/api/documents", formData);
+        const result = await (await apiRequest("POST", "/api/documents", formData)).json();
         return [result];
       }
 
@@ -707,7 +707,7 @@ export default function DocumentUpload() {
           mimeType: selectedFile.type || "application/pdf",
           notifyUserIds: data.requiresApproval && selectedApproverId && isFirstSite ? [selectedApproverId] : [],
         };
-        const result = await apiRequest("POST", "/api/documents", formData);
+        const result = await (await apiRequest("POST", "/api/documents", formData)).json();
         results.push(result);
       }
       return results;
