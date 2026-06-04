@@ -19372,6 +19372,51 @@ export async function registerRoutes(
 
       // 2. Documents awaiting this user's approval
       let pendingApprovalsRows: { id: string; title: string; site_id: string | null; module: string | null }[] = [];
+
+      // Group/company-scoped docs have site_id = NULL, so site-id-based filters can
+      // never match them. This helper pulls scoped pending docs for the given
+      // approval_status and gates each one through the unified document access
+      // check, so legitimately-accessible scoped docs appear in My actions.
+      // Access is enforced per-row (not via the LIMIT), so the cap only bounds cost.
+      const accessibleScopedPending = async (
+        approvalStatus: string,
+        applyClientFilters: boolean,
+      ): Promise<{ id: string; title: string; site_id: string | null; module: string | null }[]> => {
+        const params: unknown[] = [approvalStatus];
+        let extra = "";
+        if (applyClientFilters) {
+          params.push(userId);
+          extra = `AND uploaded_by != $2 AND (approval_requested_from IS NULL OR approval_requested_from = $2)`;
+        }
+        const r = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; scope: string | null; entity_id: string | null }>(
+          `SELECT id, title, site_id, module, scope, entity_id FROM documents
+           WHERE approval_status = $1
+             AND site_id IS NULL AND scope IN ('company','group') AND is_archived = false
+             AND case_id IS NULL AND incident_id IS NULL
+             ${extra}
+           ORDER BY created_at DESC, id DESC LIMIT 200`,
+          params
+        );
+        const access = await Promise.all(
+          r.rows.map((d) =>
+            canUserAccessDocument(user, { id: d.id, siteId: d.site_id, scope: d.scope, entityId: d.entity_id })
+          )
+        );
+        return r.rows
+          .filter((_, i) => access[i])
+          .map((d) => ({ id: d.id, title: d.title, site_id: d.site_id, module: d.module }));
+      };
+
+      const mergePending = (extra: { id: string; title: string; site_id: string | null; module: string | null }[]) => {
+        const seen = new Set(pendingApprovalsRows.map((r) => r.id));
+        for (const row of extra) {
+          if (!seen.has(row.id)) {
+            pendingApprovalsRows.push(row);
+            seen.add(row.id);
+          }
+        }
+      };
+
       if (user.role === "consultant" || user.role === "admin") {
         // Consultant/admin: docs where client has signed off, awaiting their final approval
         let sitesFilter = "";
@@ -19389,6 +19434,13 @@ export async function registerRoutes(
           params
         );
         pendingApprovalsRows = res2.rows;
+
+        // The admin query above has no site filter so it already includes scoped
+        // docs. Consultants are site-filtered, so add scoped client_signed_off docs
+        // they can access (gated by canUserAccessDocument).
+        if (user.role === "consultant") {
+          mergePending(await accessibleScopedPending("client_signed_off", false));
+        }
       } else if (user.role === "client") {
         // Client: docs with approval_status = "pending" uploaded by someone else on their assigned site(s) only
         const clientSites = await storage.getClientSites(userId);
@@ -19404,6 +19456,9 @@ export async function registerRoutes(
           );
           pendingApprovalsRows = res2.rows;
         }
+
+        // Add group/company-scoped pending docs awaiting this client's approval.
+        mergePending(await accessibleScopedPending("pending", true));
       }
 
       // 3. Documents where client requested changes from this user (uploaded_by = userId)

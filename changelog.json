@@ -7531,6 +7531,13 @@
           "message": "Fixed: group documents view no longer lists member companies' missing mandatory docs",
           "category": "bug",
           "createdAt": "2026-06-04T10:48:11.158Z"
+        },
+        {
+          "id": "c023daa2-5298-47aa-b860-3aa4f91a882d",
+          "patch": 14,
+          "message": "Fixed: group/company documents sent for approval now show in My actions",
+          "category": "bug",
+          "createdAt": "2026-06-04T13:28:28.402Z"
         }
       ],
       "publishedPatch": 13,
