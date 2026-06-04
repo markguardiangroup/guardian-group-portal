@@ -217,6 +217,7 @@ export default function CreateFromTemplate() {
     return "template";
   })();
   const [currentStep, setCurrentStep] = useState<Step>(initialStep);
+  const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>(preselectedTemplateId || "");
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>(preselectedSiteId ? [preselectedSiteId] : []);
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
@@ -815,7 +816,7 @@ export default function CreateFromTemplate() {
 
       return results;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/documents/module"], refetchType: "all" });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
@@ -830,6 +831,7 @@ export default function CreateFromTemplate() {
           ? `Documents have been created from the template and uploaded to ${count} sites.`
           : "Document has been created from the template and uploaded to the site.",
       });
+      setUploadedDocId(data[0]?.id ?? null);
       setCurrentStep("complete");
     },
     onError: (error: Error) => {
@@ -1765,7 +1767,7 @@ export default function CreateFromTemplate() {
             <>The document has been created from the template and uploaded to{" "}<span className="font-medium">{selectedSite?.name}</span>.</>
           )}
         </p>
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap justify-center">
           <Button
             variant="outline"
             onClick={() => {
@@ -1777,11 +1779,26 @@ export default function CreateFromTemplate() {
               setDocumentTitle("");
               setSelectedFile(null);
               setSubmitAttempted(false);
+              setUploadedDocId(null);
             }}
             data-testid="button-create-another"
           >
             Create Another Document
           </Button>
+          {uploadedDocId && selectedSiteIds.length <= 1 && (() => {
+            const slugs: Record<string, string> = { health_safety: "health-safety", human_resources: "human-resources", employment_law: "employment-law" };
+            const slug = slugs[selectedTemplate?.module || ""];
+            const docUrl = slug ? `/${slug}/documents/${uploadedDocId}` : `/documents/${uploadedDocId}`;
+            return (
+              <Button
+                variant="outline"
+                onClick={() => navigate(docUrl)}
+                data-testid="button-view-document"
+              >
+                View Document
+              </Button>
+            );
+          })()}
           <Button
             onClick={() => navigate(returnTo !== "/template-library" ? returnTo : (modulePaths[selectedTemplate?.module || "health_safety"] || "/documents"))}
             data-testid="button-view-documents"

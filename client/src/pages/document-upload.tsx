@@ -156,6 +156,7 @@ export default function DocumentUpload() {
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
   const [uploadStep, setUploadStep] = useState<"choice" | "scope-decision" | "upload" | "complete">("choice");
+  const [uploadedDocId, setUploadedDocId] = useState<string | null>(null);
   const [showTemplatePrompt, setShowTemplatePrompt] = useState(false);
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
   const [shareToAll, setShareToAll] = useState(false);
@@ -695,13 +696,14 @@ export default function DocumentUpload() {
       }
       return results;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/documents/module"], refetchType: "all" });
       queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
       queryClient.removeQueries({ queryKey: ["/api/dashboard"] });
       queryClient.removeQueries({ queryKey: ["/api/modules/summary"] });
       queryClient.removeQueries({ queryKey: ["/api/missing-required-templates"] });
+      setUploadedDocId(data[0]?.id ?? null);
       setUploadStep("complete");
     },
     onError: () => {
@@ -1583,7 +1585,7 @@ export default function DocumentUpload() {
                 <>The document has been uploaded to <span className="font-medium">{selectedSiteObjects[0]?.name}</span>.</>
               )}
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap justify-center">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1591,12 +1593,27 @@ export default function DocumentUpload() {
                   setSelectedSiteIds([]);
                   setSelectedFile(null);
                   setSelectedApproverId("");
+                  setUploadedDocId(null);
                   form.reset();
                 }}
                 data-testid="button-upload-another"
               >
                 Upload Another
               </Button>
+              {uploadedDocId && selectedSiteIds.length <= 1 && (() => {
+                const slugs: Record<string, string> = { health_safety: "health-safety", human_resources: "human-resources", employment_law: "employment-law" };
+                const slug = slugs[selectedModule];
+                const docUrl = slug ? `/${slug}/documents/${uploadedDocId}` : `/documents/${uploadedDocId}`;
+                return (
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate(docUrl)}
+                    data-testid="button-view-document"
+                  >
+                    View Document
+                  </Button>
+                );
+              })()}
               <Button
                 onClick={() => navigate(buildReturnUrl(selectedModule))}
                 data-testid="button-view-documents"

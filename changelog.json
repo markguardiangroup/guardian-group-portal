@@ -7545,6 +7545,13 @@
           "message": "Fixed: renewal period now saves correctly when creating from a template",
           "category": "bug",
           "createdAt": "2026-06-04T14:05:00.000Z"
+        },
+        {
+          "id": "e2b4c6d8-f091-4a23-b857-3c9e1f7a2d04",
+          "patch": 14,
+          "message": "View Document button appears on upload success screen to go straight to the doc",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T15:15:00.000Z"
         }
       ],
       "publishedPatch": 13,
