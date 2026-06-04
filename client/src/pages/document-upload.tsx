@@ -1279,8 +1279,8 @@ export default function DocumentUpload() {
                         </label>
                         <p className="text-xs text-muted-foreground mb-2">
                           {docScope === "company"
-                            ? "Only client users belonging to the origin company can approve company-level documents."
-                            : "Only client users belonging to the group owner company can approve group-level documents."}
+                            ? "Client users from the company or its group owner can approve company-level documents."
+                            : "Client users from the group owner company can approve group-level documents."}
                         </p>
                         {entityClientUsers.length > 0 ? (
                           <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>

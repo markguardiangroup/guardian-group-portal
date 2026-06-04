@@ -7559,6 +7559,13 @@
           "message": "Group primary contact can now be selected as approver for member company/site uploads; profile card shows Group Primary Contact badge and lists group companies with their sites",
           "category": "enhancement",
           "createdAt": "2026-06-04T15:30:00.000Z"
+        },
+        {
+          "id": "a1c3e5f7-group-approver-create-template-fix-2026",
+          "patch": 14,
+          "message": "Fixed: group primary contact now appears as approver on the Create from Template flow too",
+          "category": "bug",
+          "createdAt": "2026-06-04T15:45:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -328,7 +328,7 @@ export default function CreateFromTemplate() {
     queryKey: ["/api/document-types"],
   });
 
-  const { data: allCompaniesData } = useQuery<{ companies: { id: string; name: string; isGroupOwner?: boolean }[] }>({
+  const { data: allCompaniesData } = useQuery<{ companies: { id: string; name: string; isGroupOwner?: boolean; groupOwnerId?: string | null }[] }>({
     queryKey: ["/api/companies", { limit: 1000 }],
     queryFn: async () => {
       const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
@@ -464,7 +464,7 @@ export default function CreateFromTemplate() {
     }).catch(() => {});
   }, [tplScopedScope, selectedEntityId, tplScopedModule]);
 
-  const { data: allUsers = [] } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; siteAssignments?: { siteId: string }[] }>>({
+  const { data: allUsers = [] } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string | null; siteAssignments?: { siteId: string }[] }>>({
     queryKey: ["/api/users"],
   });
 
@@ -476,11 +476,18 @@ export default function CreateFromTemplate() {
     );
   }, [allUsers, selectedSiteIds]);
 
-  // For company/group scope: only clients from the origin (entity) company can approve
+  // For company/group scope: clients from the entity company, plus any group-owner company clients
   const entityClientUsers = useMemo(() => {
     if (!selectedEntityId || docScope === "site") return [];
-    return allUsers.filter(u => u.role === "client" && u.companyId === selectedEntityId);
-  }, [allUsers, selectedEntityId, docScope]);
+    const targetCompany = allCompanies.find(c => c.id === selectedEntityId);
+    const groupOwnerId = targetCompany?.groupOwnerId ?? null;
+    return allUsers.filter(u =>
+      u.role === "client" && (
+        u.companyId === selectedEntityId ||
+        (groupOwnerId && u.companyId === groupOwnerId)
+      )
+    );
+  }, [allUsers, allCompanies, selectedEntityId, docScope]);
 
   const selectedSitesWithNoClients = useMemo(() => {
     if (!allUsers || selectedSiteIds.length === 0 || !sites) return [];
@@ -1380,8 +1387,8 @@ export default function CreateFromTemplate() {
                         ? `Select a client user with access to all ${selectedSiteIds.length} selected sites`
                         : "Select the client user who will review and approve this document"
                       : docScope === "company"
-                      ? "Only client users belonging to the origin company can approve company-level documents."
-                      : "Only client users belonging to the group owner company can approve group-level documents."}
+                      ? "Client users from the company or its group owner can approve company-level documents."
+                      : "Client users from the group owner company can approve group-level documents."}
                   </p>
                   {(() => {
                     const approverList = docScope === "site" ? siteClientUsers : entityClientUsers;
