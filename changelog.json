@@ -7755,6 +7755,13 @@
           "message": "Calendar, Incidents, Cases inherit company filter when navigating from module docs/dashboard, but reset between each other",
           "category": "enhancement",
           "createdAt": "2026-06-04T23:04:23.597Z"
+        },
+        {
+          "id": "069d6885-2cc2-44a1-a82b-a6b148545f27",
+          "patch": 14,
+          "message": "Site cards now show a Changes Requested count alongside Overdue and Approval",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T23:07:58.372Z"
         }
       ],
       "publishedPatch": 13,

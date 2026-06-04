@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { CountUp } from "@/components/ui/count-up";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery } from "@tanstack/react-query";

@@ -711,6 +711,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupRenewalRequired = groupDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               const groupClientApproval = groupDocs.filter((d: any) => d.approvalStatus === "pending").length;
               const groupConsultantApproval = groupDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+              const groupChangesRequested = groupDocs.filter((d: any) => d.approvalStatus === "changes_requested").length;
               const groupCompliantAll = groupDocs.filter((d: any) => d.status === "compliant").length;
               const groupDenom = gScoreCompliant + gScoreApprovalRequired + gScoreOverdue + groupMissing;
               const groupPct = groupDenom > 0 ? Math.round((gScoreCompliant / groupDenom) * 100) : null;
@@ -801,7 +802,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       )}
 
                       <TooltipProvider delayDuration={300}>
-                        <div className="grid grid-cols-4 gap-1.5 text-center">
+                        <div className="grid grid-cols-5 gap-1.5 text-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -853,6 +854,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               <p className="font-semibold">Awaiting approval / sign-off</p>
                               <p className="text-muted-foreground">{groupClientApproval} client approval</p>
                               <p className="text-muted-foreground">{groupConsultantApproval} consultant approval</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupChangesRequested > 0 ? "bg-rose-50 dark:bg-rose-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupChangesRequested > 0 ? "text-rose-700 dark:text-rose-400" : "text-muted-foreground"}`}>{groupChangesRequested}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && groupChangesRequested > 0 ? "text-rose-600/70 dark:text-rose-400/70" : "text-muted-foreground/70"}`}>Changes</p>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                              <p className="font-semibold">Changes requested</p>
+                              <p className="text-muted-foreground">Documents awaiting an updated version</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -943,6 +956,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     const cRenewalRequired = companyDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     const cClientApproval = companyDocs.filter((d: any) => d.approvalStatus === "pending").length;
                     const cConsultantApproval = companyDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+                    const cChangesRequested = companyDocs.filter((d: any) => d.approvalStatus === "changes_requested").length;
                     const cCompliantAll = companyDocs.filter((d: any) => d.status === "compliant").length;
                     const cDenom = cScoreCompliant + cScoreApprovalRequired + cScoreOverdue + cMissing;
                     const cPct = cDenom > 0 ? Math.round((cScoreCompliant / cDenom) * 100) : null;
@@ -1034,7 +1048,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           )}
 
                           <TooltipProvider delayDuration={300}>
-                            <div className="grid grid-cols-4 gap-1.5 text-center">
+                            <div className="grid grid-cols-5 gap-1.5 text-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1086,6 +1100,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                   <p className="font-semibold">Awaiting approval / sign-off</p>
                                   <p className="text-muted-foreground">{cClientApproval} client approval</p>
                                   <p className="text-muted-foreground">{cConsultantApproval} consultant approval</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cChangesRequested > 0 ? "bg-rose-50 dark:bg-rose-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cChangesRequested > 0 ? "text-rose-700 dark:text-rose-400" : "text-muted-foreground"}`}>{cChangesRequested}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && cChangesRequested > 0 ? "text-rose-600/70 dark:text-rose-400/70" : "text-muted-foreground/70"}`}>Changes</p>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                                  <p className="font-semibold">Changes requested</p>
+                                  <p className="text-muted-foreground">Documents awaiting an updated version</p>
                                 </TooltipContent>
                               </Tooltip>
                             </div>
@@ -1155,6 +1181,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const allRenewalRequired = allDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _asNow) && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
               const allClientApproval = allDocs.filter((d: any) => d.approvalStatus === "pending").length;
               const allConsultantApproval = allDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+              const allChangesRequested = allDocs.filter((d: any) => d.approvalStatus === "changes_requested").length;
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
               ).length;
@@ -1246,7 +1273,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     )}
 
                     <TooltipProvider delayDuration={300}>
-                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                      <div className="grid grid-cols-5 gap-1.5 text-center">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1298,6 +1325,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <p className="font-semibold">Awaiting approval / sign-off</p>
                             <p className="text-muted-foreground">{allClientApproval} client approval</p>
                             <p className="text-muted-foreground">{allConsultantApproval} consultant approval</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allChangesRequested > 0 ? "bg-rose-50 dark:bg-rose-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allChangesRequested > 0 ? "text-rose-700 dark:text-rose-400" : "text-muted-foreground"}`}>{allChangesRequested}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && allChangesRequested > 0 ? "text-rose-600/70 dark:text-rose-400/70" : "text-muted-foreground/70"}`}>Changes</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Changes requested</p>
+                            <p className="text-muted-foreground">Documents awaiting an updated version</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -1370,6 +1409,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const sRenewalRequired = siteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const sClientApproval = siteDocs.filter((d: any) => d.approvalStatus === "pending").length;
               const sConsultantApproval = siteDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
+              const sChangesRequested = siteDocs.filter((d: any) => d.approvalStatus === "changes_requested").length;
               const sCompliantAll = siteDocs.filter((d: any) => d.status === "compliant").length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
@@ -1496,7 +1536,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     {/* Stats row */}
                     <TooltipProvider delayDuration={300}>
-                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                      <div className="grid grid-cols-5 gap-1.5 text-center">
                         {/* Total */}
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1555,6 +1595,18 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <p className="font-semibold">Awaiting approval / sign-off</p>
                             <p className="text-muted-foreground">{sClientApproval} client approval</p>
                             <p className="text-muted-foreground">{sConsultantApproval} consultant approval</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && sChangesRequested > 0 ? "bg-rose-50 dark:bg-rose-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${sChangesRequested > 0 ? "text-rose-700 dark:text-rose-400" : "text-muted-foreground"}`}>{sChangesRequested}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && sChangesRequested > 0 ? "text-rose-600/70 dark:text-rose-400/70" : "text-muted-foreground/70"}`}>Changes</p>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs space-y-0.5">
+                            <p className="font-semibold">Changes requested</p>
+                            <p className="text-muted-foreground">Documents awaiting an updated version</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
