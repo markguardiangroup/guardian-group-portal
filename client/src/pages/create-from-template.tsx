@@ -1062,7 +1062,7 @@ export default function CreateFromTemplate() {
   );
 
   const renderTemplateStep = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-20">
       <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
         <div className="space-y-0.5 text-blue-800 dark:text-blue-300">
