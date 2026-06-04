@@ -4744,25 +4744,34 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewal & Expiry</p>
                   {isClientUser ? (
-                    <div className="flex items-center justify-between px-1 py-1" data-testid="compliance-renewal-readonly">
-                      <span className="text-sm text-muted-foreground">
-                        {document.renewalPeriodMonths
-                          ? "Renewal period"
-                          : document.expiryDate
-                          ? "Expiry date"
-                          : "No expiry or renewal"}
-                      </span>
-                      {document.renewalPeriodMonths ? (
-                        <span className="text-sm font-medium">
-                          {document.renewalPeriodMonths} {document.renewalPeriodMonths === 1 ? "month" : "months"}
-                          {document.renewalDate && (
-                            <span className="block text-right text-xs text-muted-foreground">Due {format(new Date(document.renewalDate), "d MMM yyyy")}</span>
-                          )}
-                        </span>
-                      ) : document.expiryDate ? (
-                        <span className="text-sm font-medium">{format(new Date(document.expiryDate), "d MMM yyyy")}</span>
-                      ) : null}
-                    </div>
+                    (() => {
+                      const _now = new Date();
+                      const _renewal = (document as any).renewalDate ? new Date((document as any).renewalDate) : null;
+                      const _expiry = document.expiryDate ? new Date(document.expiryDate) : null;
+                      const _dR = _renewal ? Math.ceil((_renewal.getTime() - _now.getTime()) / 86400000) : null;
+                      const _dE = _expiry ? Math.ceil((_expiry.getTime() - _now.getTime()) / 86400000) : null;
+                      const DaysPill = ({ icon: Icon, label, date, days }: { icon: React.ElementType; label: string; date: Date; days: number }) => {
+                        const over = days < 0, warn = !over && days <= 30;
+                        const col = over ? "text-red-600 dark:text-red-400" : warn ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+                        const bg = over ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800" : warn ? "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800" : "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800";
+                        return (
+                          <div className={`rounded-md border px-3 py-2 space-y-0.5 ${bg}`}>
+                            <div className="flex items-center justify-between">
+                              <span className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${col}`}><Icon className="h-3 w-3" />{label}</span>
+                              <span className={`text-xs font-medium ${col}`}>{over ? `${Math.abs(days)} ${Math.abs(days)===1?"day":"days"} overdue` : days===0 ? "Due today" : `${days} ${days===1?"day":"days"} away`}</span>
+                            </div>
+                            <p className="text-sm font-medium">{format(date, "d MMM yyyy")}</p>
+                          </div>
+                        );
+                      };
+                      if (!_renewal && !_expiry) return <div className="flex items-center justify-between px-1 py-1 text-sm text-muted-foreground" data-testid="compliance-renewal-readonly">No expiry or renewal set</div>;
+                      return (
+                        <div className="space-y-1.5" data-testid="compliance-renewal-readonly">
+                          {_renewal && _dR !== null && <DaysPill icon={RefreshCw} label="Renewal" date={_renewal} days={_dR} />}
+                          {_expiry && _dE !== null && <DaysPill icon={Calendar} label="Expiry" date={_expiry} days={_dE} />}
+                        </div>
+                      );
+                    })()
                   ) : (
                     <>
                       <label className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer transition-colors ${editComplianceMode === "none" ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"}`} data-testid="radio-edit-compliance-none">
@@ -4838,6 +4847,34 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           )}
                         </div>
                       </label>
+                      {(() => {
+                        const _now = new Date();
+                        const _renewal = (document as any).renewalDate ? new Date((document as any).renewalDate) : null;
+                        const _expiry = document.expiryDate ? new Date(document.expiryDate) : null;
+                        if (!_renewal && !_expiry) return null;
+                        const rows = [
+                          _renewal ? { icon: RefreshCw, label: "Renewal", date: _renewal, days: Math.ceil((_renewal.getTime() - _now.getTime()) / 86400000) } : null,
+                          _expiry  ? { icon: Calendar,  label: "Expiry",  date: _expiry,  days: Math.ceil((_expiry.getTime()  - _now.getTime()) / 86400000) } : null,
+                        ].filter(Boolean) as { icon: React.ElementType; label: string; date: Date; days: number }[];
+                        return (
+                          <div className="space-y-1.5 mt-1" data-testid="compliance-renewal-days-admin">
+                            {rows.map(({ icon: Icon, label, date, days }) => {
+                              const over = days < 0, warn = !over && days <= 30;
+                              const col = over ? "text-red-600 dark:text-red-400" : warn ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400";
+                              const bg = over ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800" : warn ? "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800" : "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800";
+                              return (
+                                <div key={label} className={`rounded-md border px-3 py-2 space-y-0.5 ${bg}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide ${col}`}><Icon className="h-3 w-3" />{label}</span>
+                                    <span className={`text-xs font-medium ${col}`}>{over ? `${Math.abs(days)} ${Math.abs(days)===1?"day":"days"} overdue` : days===0 ? "Due today" : `${days} ${days===1?"day":"days"} away`}</span>
+                                  </div>
+                                  <p className="text-sm font-medium">{format(date, "d MMM yyyy")}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                       {complianceDirty && (
                         <Button
                           className="w-full mt-2"

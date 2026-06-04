@@ -7624,6 +7624,13 @@
           "createdAt": "2026-06-04T18:20:00.000Z"
         },
         {
+          "id": "p6r8t0v2-compliance-card-days-countdown-2026",
+          "patch": 14,
+          "message": "Compliance Tracking card now shows days until renewal/expiry with colour coding",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T19:50:00.000Z"
+        },
+        {
           "id": "o5q7s9u1-renewal-expiry-tracking-card-2026",
           "patch": 14,
           "message": "Clients now see a Renewal & Expiry Tracking card on non-mandatory documents",
