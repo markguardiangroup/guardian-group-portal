@@ -7524,6 +7524,13 @@
           "message": "Fixed: group view no longer shows member companies' mandatory documents",
           "category": "bug",
           "createdAt": "2026-06-04T10:30:28.031Z"
+        },
+        {
+          "id": "c33a9725-0d87-48e8-9ec9-3650a7c6850c",
+          "patch": 14,
+          "message": "Fixed: group documents view no longer lists member companies' missing mandatory docs",
+          "category": "bug",
+          "createdAt": "2026-06-04T10:48:11.158Z"
         }
       ],
       "publishedPatch": 13,

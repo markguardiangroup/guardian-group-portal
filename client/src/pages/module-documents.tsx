@@ -670,9 +670,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
   // Required-but-missing slots for the current module + selected scope.
   //
-  // Requirements cascade DOWNWARDS (Group → member Companies → Sites), so:
-  // - Group scope: show missing slots for the group owner's own sites AND for
-  //   all member-company sites whose groupOwnerId matches the group entity.
+  // Mandatory documents only filter DOWN the hierarchy (Group > Company > Site),
+  // never up, so:
+  // - Group scope: show missing slots for the group OWNER's own requirements
+  //   only. Member companies' requirements must NOT bubble up to the group view.
+  //   (A group-level requirement is cascaded down to members at write time, so it
+  //   still appears against each member company at the company/site level.)
   // - Company scope: uses a company-level query (no per-site exclusions) so
   //   all required templates appear even if excluded at some sites.
   // - Site scope: filtered by siteId below.
@@ -686,8 +689,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return allMissingTemplates.filter(m => {
       if (m.module !== module) return false;
       if (urlScope === "group" && urlEntityId) {
-        // Include slots from the group's own sites and all member companies' sites.
-        if (m.companyId !== urlEntityId && m.groupOwnerId !== urlEntityId) return false;
+        // Only the group owner's own required slots — member requirements stay at
+        // the member level and do not filter up to the group.
+        if (m.companyId !== urlEntityId) return false;
       }
       if (selectedSiteId && selectedSiteId !== "all") return m.siteId === selectedSiteId;
       // No specific site selected — restrict to the currently visible (company-filtered) sites.
