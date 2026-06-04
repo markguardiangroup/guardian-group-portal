@@ -7601,6 +7601,13 @@
           "message": "Improved: 'Back to Mandatory Documents' button on success screen now just says 'Back'",
           "category": "enhancement",
           "createdAt": "2026-06-04T17:50:00.000Z"
+        },
+        {
+          "id": "g7i9k1m3-create-doc-remove-create-another-2026",
+          "patch": 14,
+          "message": "Removed 'Create Another Document' button from document creation success screen",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T17:55:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -1775,23 +1775,6 @@ export default function CreateFromTemplate() {
           )}
         </p>
         <div className="flex gap-4 flex-wrap justify-center">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setCurrentStep("template");
-              setSelectedTemplateId("");
-              setSelectedSiteIds([]);
-              setSelectedFolderId("");
-              setPlaceholderValues({});
-              setDocumentTitle("");
-              setSelectedFile(null);
-              setSubmitAttempted(false);
-              setUploadedDocId(null);
-            }}
-            data-testid="button-create-another"
-          >
-            Create Another Document
-          </Button>
           {uploadedDocId && selectedSiteIds.length <= 1 && (() => {
             const slugs: Record<string, string> = { health_safety: "health-safety", human_resources: "human-resources", employment_law: "employment-law" };
             const slug = slugs[selectedTemplate?.module || ""];
