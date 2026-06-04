@@ -312,21 +312,6 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     staleTime: 0,
   });
 
-  // Effective required template IDs per site (after site-level overrides),
-  // used to constrain the Site tile's Compliant/Review/Overdue counts so they
-  // only credit docs whose template is actually required at that site. Without
-  // this, a group/company-shared compliant doc whose template is not required
-  // at the site (e.g. cascade missed propagating it down) inflates Compliant
-  // beyond the site's effective required count.
-  const { data: effectiveRequiredBySite = {} } = useQuery<Record<string, string[]>>({
-    queryKey: ["/api/effective-required-template-ids-by-site", module],
-    queryFn: async () => {
-      const res = await fetch(`/api/effective-required-template-ids-by-site?module=${module}`, { credentials: "include" });
-      return res.json();
-    },
-    staleTime: 0,
-  });
-
   const isLoading = isLoadingSites || isLoadingDocs;
 
   // Sites that have this module active/visible — used as the base for the
@@ -1339,61 +1324,31 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (
                     // Native site doc
                     d.siteId === site.id ||
-                    // Scoped (group/company) doc visible to this site
+                    // Scoped (group/company) doc visible to this site. Matches the
+                    // documents page / dashboard rule exactly: a scoped doc counts
+                    // for the site if it's shared to the site, shared to the site's
+                    // company, or owned by the site's company (company or group
+                    // scope). Without the owned-by-company clause, company-scoped
+                    // docs were missed here (site card showed fewer docs than the
+                    // documents page for the same site).
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
                       (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
-                      // Own group-scoped doc that has been explicitly shared to at least one destination
-                      (d.scope === "group" && d.entityId === site.companyId &&
-                        ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)
+                      d.entityId === site.companyId
                     ))
                   )
               );
               const total = siteDocs.length;
-              // Compliant / Review / Overdue at the site reflect the site's
-              // effective required slots — i.e. for each template required at
-              // this site (after site-level overrides), look at the best
-              // covering doc visible to the site (own / shared / group-cascaded)
-              // and bucket by status. This keeps the tile internally consistent:
-              // Compliant + Review + Overdue + Missing always equals the site's
-              // effective required count. Crucially, group/company-shared docs
-              // whose template is NOT in the site's required set do not count
-              // toward Compliant — without this guard, a stray cascaded doc can
-              // inflate Compliant beyond the actual number of required slots.
-              const siteEffectiveRequired = new Set(effectiveRequiredBySite[site.id] ?? []);
-              // Count each required doc individually (raw count, no slot-dedup).
-              // Pass 1: docs whose template is in the effective required set.
-              // This means both a compliant AND an approval_required copy of the
-              // same template are each counted — so the card reflects every doc
-              // that needs attention without hiding the compliant ones.
+              // Compliance is mandatory-only and uses each document's own `status`
+              // field — NOT date math and NOT approvalStatus — so the card matches
+              // the documents page and the dashboard exactly. Compliant = mandatory
+              // docs that are approved (status "compliant"). Non-compliant present =
+              // mandatory docs that are not approved (overdue or awaiting approval).
               const _sNow = new Date();
-              const isSOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _sNow) || !!(d.renewalDate && new Date(d.renewalDate) < _sNow);
-              const isSApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-              let compliant = 0;
-              let approvalRequiredRequired = 0;
-              let overdueRequired = 0;
-              const countedDocIds = new Set<string>();
-              for (const d of siteDocs) {
-                if (!d.isMandatory || !d.templateId) continue;
-                if (!siteEffectiveRequired.has(d.templateId)) continue;
-                countedDocIds.add(d.id);
-                if (isSOverdue(d)) overdueRequired++;
-                else if (isSApproval(d)) approvalRequiredRequired++;
-                else if (d.status === "compliant") compliant++;
-              }
-              // Pass 2: manually-required docs not covered above (no templateId,
-              // or template excluded at site level but doc is still marked required).
-              const seenManualDocIds = new Set<string>();
-              for (const d of siteDocs) {
-                if (!d.isMandatory) continue;
-                if (countedDocIds.has(d.id)) continue;
-                if (d.templateId && siteEffectiveRequired.has(d.templateId)) continue;
-                if (seenManualDocIds.has(d.id)) continue;
-                seenManualDocIds.add(d.id);
-                if (isSOverdue(d)) overdueRequired++;
-                else if (isSApproval(d)) approvalRequiredRequired++;
-                else if (d.status === "compliant") compliant++;
-              }
+              const mandatorySiteDocs = siteDocs.filter((d) => d.isMandatory);
+              const compliant = mandatorySiteDocs.filter((d) => d.status === "compliant").length;
+              const overdueRequired = mandatorySiteDocs.filter((d) => d.status === "overdue").length;
+              const approvalRequiredRequired = mandatorySiteDocs.filter((d) => d.status === "approval_required").length;
               // Tile numbers mirror the site's document list: status-based, each doc once.
               const siteCounts = statusCounts(siteDocs);
               const overdueAll = siteCounts.overdue;
@@ -1406,7 +1361,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;
-              const nonCompliant = pendingAll + overdueAll + missingCount;
+              const nonCompliant = approvalRequiredRequired + overdueRequired + missingCount;
               const scoreDenominator = compliant + approvalRequiredRequired + overdueRequired + missingCount;
               const pct =
                 scoreDenominator > 0
@@ -1553,9 +1508,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
-                            <p className="font-semibold">Not compliant</p>
-                            <p className="text-muted-foreground">{overdueAll} overdue</p>
-                            <p className="text-muted-foreground">{pendingAll} awaiting approval</p>
+                            <p className="font-semibold">Not compliant (mandatory)</p>
+                            <p className="text-muted-foreground">{overdueRequired} overdue</p>
+                            <p className="text-muted-foreground">{approvalRequiredRequired} awaiting approval</p>
                             <p className="text-muted-foreground">{missingCount} missing</p>
                           </TooltipContent>
                         </Tooltip>

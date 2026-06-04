@@ -7706,6 +7706,13 @@
           "message": "Document Count Audit now lists groups and companies with subtotals and a grand total",
           "category": "enhancement",
           "createdAt": "2026-06-04T21:57:24.820Z"
+        },
+        {
+          "id": "8a5c1ea4-9f0e-43ec-8a50-e8324aa24da0",
+          "patch": 14,
+          "message": "Fixed: document compliance counts now match across site cards, dashboard and lists",
+          "category": "bug",
+          "createdAt": "2026-06-04T22:15:49.870Z"
         }
       ],
       "publishedPatch": 13,

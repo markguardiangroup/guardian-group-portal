@@ -403,17 +403,26 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       }
       if (companySiteIds && companySiteIds.length > 0) {
         if (companySiteIds.includes(doc.siteId)) return true;
-        // Also include scoped docs shared with (or owned by) any of these companies
+        // Also include scoped docs shared with (or owned by) ANY of the companies
+        // in scope. The selection can span multiple companies (e.g. a group
+        // owner viewing all member companies), so we match against the full set
+        // of in-scope company IDs — not a single one — otherwise company-owned
+        // docs for the other in-scope companies would be wrongly dropped.
         if (doc.siteId === null) {
           const companySiteIdSet = new Set(companySiteIds);
-          const companyId = sites?.find(s => companySiteIds.includes(s.id))?.companyId;
+          const companyIdSet = new Set(
+            (sites ?? [])
+              .filter(s => companySiteIdSet.has(s.id))
+              .map(s => s.companyId)
+          );
           const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
           const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+          const entityId = (doc as any).entityId as string | undefined;
           return (
             (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
-            !!(companyId && sharedWithCompanyIds?.includes(companyId)) ||
-            // Doc owned by this company (no share record needed for origin)
-            !!(companyId && (doc as any).entityId === companyId)
+            (sharedWithCompanyIds?.some(cid => companyIdSet.has(cid)) ?? false) ||
+            // Doc owned by any in-scope company (no share record needed for origin)
+            !!(entityId && companyIdSet.has(entityId))
           );
         }
         return false;
@@ -425,9 +434,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   const docsDialogDocs = useMemo((): Document[] => {
     if (!docsDialogFilter) return [];
     switch (docsDialogFilter) {
-      case "req_compliant": return filteredModuleDocs.filter(d => d.isMandatory && d.status === "compliant");
-      case "req_non_compliant": return filteredModuleDocs.filter(d => d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
-      case "req_overdue": return filteredModuleDocs.filter(d => d.isMandatory && d.status === "overdue");
+      case "req_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "compliant");
+      case "req_non_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
+      case "req_overdue": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "overdue");
       case "total": return filteredModuleDocs.filter(isCountableDoc);
       case "all_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "compliant");
       case "all_review": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "approval_required");
@@ -466,6 +475,24 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     () => statusCounts(filteredModuleDocs, true),
     [filteredModuleDocs],
   );
+
+  // Mandatory-document compliance — doc-based and using each document's own
+  // `status` field, so these headline numbers always equal the rows shown when
+  // the user clicks through to the dialog. Compliant = mandatory docs that are
+  // approved (status "compliant"). Non-compliant = mandatory docs that are
+  // missing OR not approved (overdue / awaiting approval). Cloud uploads, case,
+  // incident and archived docs are always excluded via isCountableDoc.
+  const reqCompliantCount = useMemo(
+    () => filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "compliant").length,
+    [filteredModuleDocs],
+  );
+  const reqNonCompliantPresent = useMemo(
+    () => filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required")).length,
+    [filteredModuleDocs],
+  );
+  const reqNonCompliantCount = reqNonCompliantPresent + missingRequiredDetails.length;
+  const complianceDenom = reqCompliantCount + reqNonCompliantCount;
+  const complianceScore = complianceDenom > 0 ? Math.round((reqCompliantCount / complianceDenom) * 100) : 0;
 
   // One row per document (no per-site expansion) so the dialog row count always
   // matches the tile number. Site docs show their site; scoped (group/company)
@@ -539,9 +566,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
         {/* Compliance Section */}
         {(() => {
-          const scoreColor = summary.complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : summary.complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
-          const scoreBg = summary.complianceScore >= 90 ? "bg-emerald-500" : summary.complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
-          const nonCompliantCount = summary.overdueDocuments + (summary.approvalRequired || 0) + (summary.missingRequiredDocuments || 0);
+          const scoreColor = complianceScore >= 90 ? "text-emerald-600 dark:text-emerald-400" : complianceScore >= 70 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400";
+          const scoreBg = complianceScore >= 90 ? "bg-emerald-500" : complianceScore >= 70 ? "bg-amber-500" : "bg-red-500";
+          const nonCompliantCount = reqNonCompliantCount;
           return (
             <Card className="border-t-4 border-t-module-accent bg-muted/40" data-testid="card-compliance-summary">
               <CardHeader className="pb-2">
@@ -555,7 +582,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     {/* Score */}
                     <div>
                       <span className={`text-6xl font-bold ${scoreColor}`} data-testid="card-module-score">
-                        {summary.complianceScore}%
+                        {complianceScore}%
                       </span>
                     </div>
 
@@ -563,23 +590,23 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                     <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className={`h-full transition-all duration-500 ${scoreBg}`}
-                        style={{ width: `${summary.complianceScore}%` }}
+                        style={{ width: `${complianceScore}%` }}
                       />
                     </div>
 
                     {/* Compliance stats: required docs only */}
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={() => summary.compliantDocuments > 0 && setDocsDialogFilter("req_compliant")}
-                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${summary.compliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        onClick={() => reqCompliantCount > 0 && setDocsDialogFilter("req_compliant")}
+                        className={`rounded-md border p-3 text-center w-full transition-colors bg-background ${reqCompliantCount > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                         data-testid="card-module-compliant"
                       >
                         <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                           <CheckCircle className="h-4 w-4" />
-                          <span className="text-2xl font-semibold">{summary.compliantDocuments}</span>
+                          <span className="text-2xl font-semibold">{reqCompliantCount}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">Compliant</p>
-                        {summary.compliantDocuments > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
+                        {reqCompliantCount > 0 && <p className="text-xs text-emerald-500/70 mt-0.5">Click to view</p>}
                       </button>
                       <button
                         onClick={() => nonCompliantCount > 0 && setDocsDialogFilter("req_non_compliant")}
