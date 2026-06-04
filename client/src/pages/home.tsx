@@ -1940,10 +1940,6 @@ export default function HomePage() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const wasLoadingRef = useRef(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setShowScrollHint(false), 5000);
-    return () => clearTimeout(t);
-  }, []);
 
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],

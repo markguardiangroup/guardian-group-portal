@@ -7790,6 +7790,13 @@
           "message": "Documents can now auto-approve when the client signs off, skipping the consultant final-approval step",
           "category": "feature",
           "createdAt": "2026-06-04T23:00:09.505Z"
+        },
+        {
+          "id": "c2d3e4f5-a6b7-8901-cdef-012345678901",
+          "patch": 14,
+          "message": "Fixed: 'See what's new' hint no longer auto-hides after 5 seconds",
+          "category": "bug",
+          "createdAt": "2026-06-04T23:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
