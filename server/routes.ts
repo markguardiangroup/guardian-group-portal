@@ -4256,6 +4256,12 @@ export async function registerRoutes(
         if (document.entityId) {
           emitToCompany(document.entityId, "document-uploaded", uploadPayload);
           companiesEmittedUpload.add(document.entityId);
+          // Also notify group owner if this company is a member (company-scope docs skip the siteId block)
+          const entityCompany = await storage.getCompany(document.entityId).catch(() => null);
+          if (entityCompany?.groupOwnerId && !companiesEmittedUpload.has(entityCompany.groupOwnerId)) {
+            emitToCompany(entityCompany.groupOwnerId, "document-uploaded", uploadPayload);
+            companiesEmittedUpload.add(entityCompany.groupOwnerId);
+          }
         }
         if (document.siteId) {
           const uploadSite = await storage.getSite(document.siteId).catch(() => null);

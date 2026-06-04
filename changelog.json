@@ -7573,6 +7573,13 @@
           "message": "Fixed: View Document button now appears correctly on the upload success screen",
           "category": "bug",
           "createdAt": "2026-06-04T16:00:00.000Z"
+        },
+        {
+          "id": "c3e5g7b9-company-scope-sse-group-owner-2026",
+          "patch": 14,
+          "message": "Fixed: company-level document uploads now update group primary contact's views in real time",
+          "category": "bug",
+          "createdAt": "2026-06-04T16:15:00.000Z"
         }
       ],
       "publishedPatch": 13,
