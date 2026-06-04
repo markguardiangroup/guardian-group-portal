@@ -112,6 +112,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { Document, DocumentWithDetails, DocumentVersion, AuditLog, ModuleType, DocumentTypeRecord, DocumentStatus, ApprovalStatus, DocumentFolder } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
+import { statusCounts } from "@/lib/doc-stats";
 import { useAuth } from "@/hooks/use-auth";
 
 // Enriched document with server-computed shared-link metadata
@@ -1049,16 +1050,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!urlScope && doc.siteId !== null && groupCompanyIds) {
       if (!filteredSites.some(s => s.id === doc.siteId)) return false;
     }
-    // When a group is selected, also filter scoped (siteId=null) docs so the table
-    // view matches the folder view:
-    // - Group-scoped docs belong to the group tier, not individual sites — exclude them.
-    // - Company-scoped docs from companies outside the group are irrelevant — exclude them.
+    // When a group is selected, filter scoped (siteId=null) docs so the table
+    // includes everything owned by the group (group-owned + member-company-owned),
+    // each counted once, and excludes company-scoped docs from outside the group.
     if (!urlScope && doc.siteId === null && groupCompanyIds) {
-      if ((doc as any).scope === "group") return false;
-      if ((doc as any).scope === "company") {
-        const entityId = (doc as any).entityId as string | null | undefined;
-        if (!entityId || !groupCompanyIds.has(entityId)) return false;
-      }
+      // Scoped (group/company) docs OWNED by the selected group are included and
+      // counted once: group-scoped owned by the group owner, or company-scoped
+      // owned by a member company. groupCompanyIds contains both the group owner
+      // and its member companies, so one entityId membership check covers both.
+      const entityId = (doc as any).entityId as string | null | undefined;
+      if (!entityId || !groupCompanyIds.has(entityId)) return false;
     }
     // "All Companies - All Sites" view: gate scoped (siteId=null) docs via
     // sharedDocIdSet so the table matches the folder view exactly. The hierarchy
@@ -1074,7 +1075,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       (!selectedCompany || selectedCompany === "all") &&
       sharedDocIdSet.size > 0
     ) {
-      if (!sharedDocIdSet.has(doc.id)) return false;
+      // Owned group/company-scoped docs are always included (counted once), even
+      // without an explicit share record. Other scoped docs still require the
+      // hierarchy to confirm a share so the table matches the folder view.
+      const scope = (doc as any).scope;
+      const isOwnedScoped = (scope === "company" || scope === "group") && !!(doc as any).entityId;
+      if (!isOwnedScoped && !sharedDocIdSet.has(doc.id)) return false;
     }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1211,6 +1217,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       return 0;
     });
   }, [filteredDocuments, sortBy, sortDir]);
+
+  // Canonical count for the document-list headers: count-once, status-based,
+  // over the same scoped list the page shows. Both the table and folder headers
+  // use this so they always agree with each other and with the dashboard tiles.
+  const docStats = useMemo(() => statusCounts(sortedDocuments), [sortedDocuments]);
 
   // In "All Sites" view, expand company-scoped docs (siteId=null) per covered site,
   // mirroring the folder view expansion so both views show the same document count.
@@ -1581,23 +1592,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
-                      <span>{sortedDocuments.length} Total</span>
+                      <span>{docStats.total} Total</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{sortedDocuments.filter(d => d.status === "compliant").length} Compliant</span>
+                      <span>{docStats.compliant} Compliant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-emerald-500" />
-                      <span>{sortedDocuments.filter(d => d.status === "approved").length} Approved</span>
+                      <span>{docStats.approved} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{sortedDocuments.filter(d => d.status === "approval_required").length} Approval Required</span>
+                      <span>{docStats.approvalRequired} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{sortedDocuments.filter(d => d.status === "overdue").length} Overdue</span>
+                      <span>{docStats.overdue} Overdue</span>
                     </div>
                     {missingSlots.length > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -2001,23 +2012,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
-                      <span>{((hierarchy.summary.totalDocuments ?? 0) + (sharedExpansionDeltas.summary.totalDocuments ?? 0))} Total</span>
+                      <span>{docStats.total} Total</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{((hierarchy.summary as any).compliant ?? 0) + (sharedExpansionDeltas.summary.compliant ?? 0)} Compliant</span>
+                      <span>{docStats.compliant} Compliant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-emerald-500" />
-                      <span>{((hierarchy.summary as any).approved ?? 0) + (sharedExpansionDeltas.summary.approved ?? 0)} Approved</span>
+                      <span>{docStats.approved} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{((hierarchy.summary.approvalRequired ?? 0) + (sharedExpansionDeltas.summary.approvalRequired ?? 0))} Approval Required</span>
+                      <span>{docStats.approvalRequired} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{((hierarchy.summary.overdue ?? 0) + (sharedExpansionDeltas.summary.overdue ?? 0))} Overdue</span>
+                      <span>{docStats.overdue} Overdue</span>
                     </div>
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">

@@ -29,6 +29,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import type { ComplianceSummary, Document, ModuleType } from "@shared/schema";
 import { moduleConfig } from "@shared/schema";
+import { statusCounts, isCountableDoc } from "@/lib/doc-stats";
 
 interface SiteWithCompany {
   id: string;
@@ -427,10 +428,10 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       case "req_compliant": return filteredModuleDocs.filter(d => d.isMandatory && d.status === "compliant");
       case "req_non_compliant": return filteredModuleDocs.filter(d => d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => d.isMandatory && d.status === "overdue");
-      case "total": return filteredModuleDocs;
-      case "all_compliant": return filteredModuleDocs.filter(d => d.status === "compliant");
-      case "all_review": return filteredModuleDocs.filter(d => d.status === "approval_required");
-      case "all_overdue": return filteredModuleDocs.filter(d => d.status === "overdue");
+      case "total": return filteredModuleDocs.filter(isCountableDoc);
+      case "all_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "compliant");
+      case "all_review": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "approval_required");
+      case "all_overdue": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "overdue");
       default: return [];
     }
   }, [docsDialogFilter, filteredModuleDocs]);
@@ -458,70 +459,27 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return map;
   }, [sites]);
 
-  // Sites currently in scope for the dashboard view — used to expand shared
-  // (siteId=null) docs into one dialog row per site they cover.
-  const currentFilterSites = useMemo(() => {
-    if (!sites) return [];
-    if (siteId) return sites.filter(s => s.id === siteId);
-    if (companySiteIds?.length) return sites.filter(s => companySiteIds.includes(s.id));
-    return sites;
-  }, [sites, siteId, companySiteIds]);
+  // Document Progress tiles — single source of truth = the in-scope document
+  // list. Status-based buckets, each document counted exactly once (no per-site
+  // expansion), so the tiles always equal the matching dialog's row count.
+  const allDocStats = useMemo(
+    () => statusCounts(filteredModuleDocs, true),
+    [filteredModuleDocs],
+  );
 
-  // Helper: count how many rows a doc contributes when expanded (1 for site-scoped,
-  // N for scoped docs — one per covered site in the current view).
-  const scopedDocMultiplier = (doc: any): number => {
-    if (doc.siteId) return 1;
-    const sharedWithSiteIds = doc.sharedWithSiteIds as string[] | undefined;
-    const sharedWithCompanyIds = doc.sharedWithCompanyIds as string[] | undefined;
-    const entityId = doc.entityId as string | undefined;
-    const count = currentFilterSites.filter(s =>
-      (sharedWithSiteIds?.includes(s.id) ?? false) ||
-      (sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-      entityId === s.companyId
-    ).length;
-    return Math.max(count, 1);
-  };
-
-  // Expanded counts used on the card buttons — matches the row count in the dialog.
-  // Shared/scoped docs (siteId=null) count once per site they cover in the current view.
-  const expandedDocStats = useMemo(() => {
-    let total = 0, compliant = 0, review = 0, overdue = 0;
-    for (const doc of filteredModuleDocs) {
-      const m = scopedDocMultiplier(doc);
-      total += m;
-      if (doc.status === "compliant") compliant += m;
-      else if (doc.status === "approval_required") review += m;
-      else if (doc.status === "overdue") overdue += m;
-    }
-    return { total, compliant, review, overdue };
-  }, [filteredModuleDocs, currentFilterSites]);
-
-  // Expand dialog docs so that shared docs (siteId=null) appear once per site
-  // they are visible to within the current view, each labelled with that site.
+  // One row per document (no per-site expansion) so the dialog row count always
+  // matches the tile number. Site docs show their site; scoped (group/company)
+  // docs show their owning company so the user still sees where they live.
   const expandedDocsDialogRows = useMemo(() => {
-    return docsDialogDocs.flatMap(doc => {
+    return docsDialogDocs.map(doc => {
       if (doc.siteId) {
-        return [{ doc, key: doc.id, siteName: siteNameMap[doc.siteId] ?? null }];
+        return { doc, key: doc.id, siteName: siteNameMap[doc.siteId] ?? null };
       }
-      // Scoped/shared doc — find every site in current view that sees it
-      const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
-      const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
       const entityId = (doc as any).entityId as string | undefined;
-      const visibleSites = currentFilterSites.filter(s =>
-        (sharedWithSiteIds?.includes(s.id) ?? false) ||
-        (sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-        entityId === s.companyId
-      );
-      if (visibleSites.length === 0) {
-        return [{ doc, key: doc.id, siteName: null }];
-      }
-      return visibleSites.map(s => ({
-        doc,
-        key: `${doc.id}-${s.id}`,
-        siteName: `${s.name}${s.companyName ? ` — ${s.companyName}` : ""}`,
-      }));
+      const ownerCompany = entityId ? sites?.find(s => s.companyId === entityId)?.companyName ?? null : null;
+      return { doc, key: doc.id, siteName: ownerCompany };
     });
-  }, [docsDialogDocs, currentFilterSites, siteNameMap]);
+  }, [docsDialogDocs, siteNameMap, sites]);
 
   const getDocTypeLabel = (type: string) => {
     const docType = config.documentTypes.find(dt => dt.value === type);
@@ -653,46 +611,46 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           <CardContent className={`transition-opacity duration-300 ${isFetching ? "opacity-50" : "opacity-100"}`}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <button
-                  onClick={() => summary.allDocuments > 0 && setDocsDialogFilter("total")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => allDocStats.total > 0 && setDocsDialogFilter("total")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${allDocStats.total > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-total"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-2xl font-semibold">{summary.allDocuments}</span>
+                    <span className="text-2xl font-semibold">{allDocStats.total}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Total</p>
                 </button>
                 <button
-                  onClick={() => summary.allCompliantDocuments > 0 && setDocsDialogFilter("all_compliant")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allCompliantDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => allDocStats.compliant > 0 && setDocsDialogFilter("all_compliant")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${allDocStats.compliant > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-compliant"
                 >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allCompliantDocuments}</span>
+                    <span className="text-2xl font-semibold">{allDocStats.compliant}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Complete</p>
                 </button>
                 <button
-                  onClick={() => summary.allApprovalRequired > 0 && setDocsDialogFilter("all_review")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allApprovalRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => allDocStats.approvalRequired > 0 && setDocsDialogFilter("all_review")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${allDocStats.approvalRequired > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-review"
                 >
                   <div className="flex items-center justify-center gap-1 text-amber-600 dark:text-amber-400">
                     <Clock className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allApprovalRequired}</span>
+                    <span className="text-2xl font-semibold">{allDocStats.approvalRequired}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Approval Required</p>
                 </button>
                 <button
-                  onClick={() => summary.allOverdueDocuments > 0 && setDocsDialogFilter("all_overdue")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${summary.allOverdueDocuments > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => allDocStats.overdue > 0 && setDocsDialogFilter("all_overdue")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${allDocStats.overdue > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-overdue"
                 >
                   <div className="flex items-center justify-center gap-1 text-red-600 dark:text-red-400">
                     <AlertTriangle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{summary.allOverdueDocuments}</span>
+                    <span className="text-2xl font-semibold">{allDocStats.overdue}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Overdue</p>
                 </button>

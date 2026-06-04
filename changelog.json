@@ -7678,6 +7678,20 @@
           "message": "Group scope banner now lists each member company's sites below it",
           "category": "enhancement",
           "createdAt": "2026-06-04T18:35:00.000Z"
+        },
+        {
+          "id": "92b05cb1-ee9e-43eb-af9a-9e16f16d0dee",
+          "patch": 14,
+          "message": "Fixed: document counts now match across tiles, lists and folders",
+          "category": "bug",
+          "createdAt": "2026-06-04T21:07:51.028Z"
+        },
+        {
+          "id": "76a18c7b-edc0-47ec-9177-b7ddcb401677",
+          "patch": 14,
+          "message": "Fixed: group and company compliance % stays accurate after the counts update",
+          "category": "bug",
+          "createdAt": "2026-06-04T21:18:50.693Z"
         }
       ],
       "publishedPatch": 13,

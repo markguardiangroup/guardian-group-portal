@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { CompanyCombobox } from "@/components/company-combobox";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
+import { isCountableDoc, statusCounts, nonCompliantCount } from "@/lib/doc-stats";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Select,
@@ -686,17 +687,27 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               //     fulfil the slot. Deduped by templateId so a template required across
               //     multiple sites only counts once.
               const _gNow = new Date();
+              // Status-based buckets — drive the count tiles (match the group's
+              // document list, each doc counted once).
+              const _gCounts = statusCounts(groupDocs);
+              const groupCompliant = _gCounts.compliant;
+              const groupApprovalRequired = _gCounts.approvalRequired;
+              const groupOverdue = _gCounts.overdue;
+              const groupPending = _gCounts.approvalRequired;
+              // Slot-based compliance score — kept separate from the status tiles so
+              // the % stays slot-based: required docs bucketed by expiry/renewal date,
+              // plus missing required slots (same methodology as the per-site card).
               const isGOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _gNow) || !!(d.renewalDate && new Date(d.renewalDate) < _gNow);
               const isGApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-              let groupCompliant = 0;
-              let groupApprovalRequired = 0;
-              let groupOverdue = 0;
+              let gScoreCompliant = 0;
+              let gScoreApprovalRequired = 0;
+              let gScoreOverdue = 0;
               for (const d of groupDocs) {
-                if (isGOverdue(d)) groupOverdue++;
-                else if (isGApproval(d)) groupApprovalRequired++;
-                else if (d.status === "compliant") groupCompliant++;
+                if (!d.isMandatory) continue;
+                if (isGOverdue(d)) gScoreOverdue++;
+                else if (isGApproval(d)) gScoreApprovalRequired++;
+                else if (d.status === "compliant") gScoreCompliant++;
               }
-              const groupPending = groupDocs.filter(isGApproval).length;
               const groupMissingTemplateIds = new Set<string>();
               for (const m of missingRequiredDetails) {
                 if (m.companyId === selectedGroup && m.module === module) {
@@ -709,8 +720,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupClientApproval = groupDocs.filter((d: any) => d.approvalStatus === "pending").length;
               const groupConsultantApproval = groupDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
               const groupCompliantAll = groupDocs.filter((d: any) => d.status === "compliant").length;
-              const groupDenom = groupCompliant + groupApprovalRequired + groupOverdue + groupMissing;
-              const groupPct = groupDenom > 0 ? Math.round((groupCompliant / groupDenom) * 100) : null;
+              const groupDenom = gScoreCompliant + gScoreApprovalRequired + gScoreOverdue + groupMissing;
+              const groupPct = groupDenom > 0 ? Math.round((gScoreCompliant / groupDenom) * 100) : null;
               const groupHasIssues = groupMissing > 0 || groupOverdue > 0 || groupApprovalRequired > 0;
 
               return (
@@ -899,21 +910,28 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     //     /api/missing-required-templates/by-company endpoint).
                     // Required-only counts — used for Non Compliant tile and compliance score.
                     const _cNow = new Date();
+                    // Status-based buckets — drive the count tiles (match the company's
+                    // document list, each doc counted once).
+                    const _cCounts = statusCounts(companyDocs);
+                    const cCompliant = _cCounts.compliant;
+                    const cApprovalRequired = _cCounts.approvalRequired;
+                    const cOverdue = _cCounts.overdue;
+                    const cOverdueAll = _cCounts.overdue;
+                    const cPending = _cCounts.approvalRequired;
+                    // Slot-based compliance score — UNCHANGED: required-only docs
+                    // bucketed by expiry/renewal date, plus missing required slots.
+                    // Kept separate from the status tiles so the % is not altered.
                     const isCOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _cNow) || !!(d.renewalDate && new Date(d.renewalDate) < _cNow);
                     const isCApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-                    let cCompliant = 0;
-                    let cApprovalRequired = 0;
-                    let cOverdue = 0;
-                    // All-docs overdue — used for Overdue tile (spec: all docs, not just required).
-                    let cOverdueAll = 0;
+                    let cScoreCompliant = 0;
+                    let cScoreApprovalRequired = 0;
+                    let cScoreOverdue = 0;
                     for (const d of companyDocs) {
-                      if (isCOverdue(d)) cOverdueAll++;
                       if (!d.isMandatory) continue;
-                      if (isCOverdue(d)) cOverdue++;
-                      else if (isCApproval(d)) cApprovalRequired++;
-                      else if (d.status === "compliant") cCompliant++;
+                      if (isCOverdue(d)) cScoreOverdue++;
+                      else if (isCApproval(d)) cScoreApprovalRequired++;
+                      else if (d.status === "compliant") cScoreCompliant++;
                     }
-                    const cPending = companyDocs.filter(isCApproval).length;
                     // Use company-level missing slots (no per-site exclusions) so the
                     // tile count matches the company Documents page.
                     const cMissingTemplateIds = new Set<string>();
@@ -928,8 +946,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     const cClientApproval = companyDocs.filter((d: any) => d.approvalStatus === "pending").length;
                     const cConsultantApproval = companyDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
                     const cCompliantAll = companyDocs.filter((d: any) => d.status === "compliant").length;
-                    const cDenom = cCompliant + cApprovalRequired + cOverdue + cMissing;
-                    const cPct = cDenom > 0 ? Math.round((cCompliant / cDenom) * 100) : null;
+                    const cDenom = cScoreCompliant + cScoreApprovalRequired + cScoreOverdue + cMissing;
+                    const cPct = cDenom > 0 ? Math.round((cScoreCompliant / cDenom) * 100) : null;
                     const cHasIssues = cMissing > 0 || cOverdue > 0 || cApprovalRequired > 0;
 
                     return (
@@ -1100,54 +1118,45 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {/* All Sites aggregate tile — only shown when there are 2+ sites */}
             {(() => {
               if (filteredSites.length <= 1) return null;
-              // Helper: does a scoped doc apply to a given filtered site?
-              const docAppliesToSite = (d: typeof documents extends undefined ? never : NonNullable<typeof documents>[0], s: typeof filteredSites[0]) =>
-                (d.sharedWithSiteIds?.includes(s.id) ?? false) ||
-                (d.sharedWithCompanyIds?.includes(s.companyId) ?? false) ||
-                // Own group-scoped doc shared to at least one destination
-                (d.scope === "group" && d.entityId === s.companyId &&
-                  ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0);
-
+              // Companies whose own company/group-scoped documents belong to this
+              // scope. When a group is selected we use every member company so the
+              // count matches the group's document list (which shows all group-owned
+              // docs, shared or not). Otherwise we use the companies of the sites in
+              // view.
+              const scopeCompanyIds = new Set<string>(filteredSites.map((s) => s.companyId));
+              if (selectedGroup !== "all" && (!selectedCompany || selectedCompany === "all")) {
+                selectedGroupCompanies.forEach((c) => scopeCompanyIds.add(c.id));
+              }
+              // Canonical scope: a document belongs here if it is site-assigned to a
+              // filtered site, OR it is a company/group-scoped doc owned by an
+              // in-scope company, OR it has been shared into the scope. Each doc is
+              // counted ONCE — no per-site expansion.
               const allDocs = (documents ?? []).filter(
-                (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external" && (
-                  filteredSites.some((s) => s.id === d.siteId) ||
-                  (d.siteId === null && filteredSites.some((s) => docAppliesToSite(d, s)))
+                (d) => isCountableDoc(d) && (
+                  (d.siteId !== null && filteredSites.some((s) => s.id === d.siteId)) ||
+                  (d.siteId === null && (
+                    (!!d.entityId && scopeCompanyIds.has(d.entityId)) ||
+                    (d.sharedWithSiteIds?.some((id) => filteredSites.some((s) => s.id === id)) ?? false) ||
+                    (d.sharedWithCompanyIds?.some((id) => scopeCompanyIds.has(id)) ?? false)
+                  ))
                 )
               );
-              // All counts expand shared docs once per covered site so that a shared
-              // document registers as a separate entry for each site it applies to.
-              const coveredSites = (d: typeof allDocs[0]) =>
-                d.siteId !== null ? 1 : filteredSites.filter((s) => docAppliesToSite(d, s)).length;
+              // Status-based buckets, each document counted once.
+              const allCounts = statusCounts(allDocs);
+              const allTotal = allCounts.total;
+              const allCompliant = allCounts.compliant;
+              const allApprovalRequired = allCounts.approvalRequired;
+              const allOverdue = allCounts.overdue;
+              // Tile mirrors the document list exactly.
+              const allCompliantAll = allCounts.compliant;
+              const allOverdueAll = allCounts.overdue;
+              const allPending = allCounts.approvalRequired;
+              // Supplementary tooltip detail (informational only).
               const _asNow = new Date();
-              const isAsOverdue = (d: any): boolean => !!(d.expiryDate && new Date(d.expiryDate) < _asNow) || !!(d.renewalDate && new Date(d.renewalDate) < _asNow);
-              const isAsApproval = (d: any): boolean => d.approvalStatus === "pending" || d.approvalStatus === "client_signed_off";
-              let allTotal = 0;
-              let allCompliant = 0;
-              let allCompliantAll = 0;
-              let allOverdue = 0;
-              let allApprovalRequired = 0;
-              let allOverdueAll = 0;
-              let allPending = 0;
-              let allExpired = 0;
-              let allRenewalRequired = 0;
-              let allClientApproval = 0;
-              let allConsultantApproval = 0;
-              for (const d of allDocs) {
-                const n = coveredSites(d);
-                allTotal += n;
-                if (d.isMandatory) {
-                  if (isAsOverdue(d)) allOverdue += n;
-                  else if (isAsApproval(d)) allApprovalRequired += n;
-                  else if (d.status === "compliant") allCompliant += n;
-                }
-                if (isAsOverdue(d)) allOverdueAll += n;
-                if (isAsApproval(d)) allPending += n;
-                if ((d as any).expiryDate && new Date((d as any).expiryDate) < _asNow) allExpired += n;
-                else if ((d as any).renewalDate && new Date((d as any).renewalDate) < _asNow) allRenewalRequired += n;
-                if ((d as any).approvalStatus === "pending") allClientApproval += n;
-                if ((d as any).approvalStatus === "client_signed_off") allConsultantApproval += n;
-                if ((d as any).status === "compliant") allCompliantAll += n;
-              }
+              const allExpired = allDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allRenewalRequired = allDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _asNow) && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allClientApproval = allDocs.filter((d: any) => d.approvalStatus === "pending").length;
+              const allConsultantApproval = allDocs.filter((d: any) => d.approvalStatus === "client_signed_off").length;
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
               ).length;
@@ -1385,8 +1394,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 else if (isSApproval(d)) approvalRequiredRequired++;
                 else if (d.status === "compliant") compliant++;
               }
-              const overdueAll = siteDocs.filter(isSOverdue).length;
-              const pendingAll = siteDocs.filter(isSApproval).length;
+              // Tile numbers mirror the site's document list: status-based, each doc once.
+              const siteCounts = statusCounts(siteDocs);
+              const overdueAll = siteCounts.overdue;
+              const pendingAll = siteCounts.approvalRequired;
               const sExpired = siteDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const sRenewalRequired = siteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const sClientApproval = siteDocs.filter((d: any) => d.approvalStatus === "pending").length;
@@ -1395,7 +1406,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;
-              const nonCompliant = approvalRequiredRequired + overdueRequired + missingCount;
+              const nonCompliant = pendingAll + overdueAll + missingCount;
               const scoreDenominator = compliant + approvalRequiredRequired + overdueRequired + missingCount;
               const pct =
                 scoreDenominator > 0
@@ -1542,9 +1553,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
-                            <p className="font-semibold">Required — not compliant</p>
-                            <p className="text-muted-foreground">{overdueRequired} overdue</p>
-                            <p className="text-muted-foreground">{approvalRequiredRequired} awaiting approval</p>
+                            <p className="font-semibold">Not compliant</p>
+                            <p className="text-muted-foreground">{overdueAll} overdue</p>
+                            <p className="text-muted-foreground">{pendingAll} awaiting approval</p>
                             <p className="text-muted-foreground">{missingCount} missing</p>
                           </TooltipContent>
                         </Tooltip>
