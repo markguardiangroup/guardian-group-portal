@@ -7734,6 +7734,13 @@
           "message": "Fixed: Complete tile now includes approved documents so progress totals add up",
           "category": "bug",
           "createdAt": "2026-06-04T22:40:50.247Z"
+        },
+        {
+          "id": "1e2e535b-bfd6-4cc3-8cd6-fe7fdae00dc9",
+          "patch": 14,
+          "message": "Fixed: table view filters no longer change what the folder view shows",
+          "category": "bug",
+          "createdAt": "2026-06-04T22:44:13.970Z"
         }
       ],
       "publishedPatch": 13,

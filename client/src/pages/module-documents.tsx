@@ -1168,7 +1168,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       }
     }
     
-    return matchesSearch && matchesStatus && matchesFolder && matchesSite && matchesCompany && matchesRenewal && !doc.isArchived;
+    // Search, status, folder and renewal are table-view-only filters. They must
+    // not change what the folder view shows — so only apply them when the table
+    // view is active. Scope/site/company/archived filters still apply to both.
+    const passesTableFilters =
+      viewMode !== "table" ||
+      (matchesSearch && matchesStatus && matchesFolder && matchesRenewal);
+
+    return passesTableFilters && matchesSite && matchesCompany && !doc.isArchived;
   });
 
   const handleSort = (field: string) => {
