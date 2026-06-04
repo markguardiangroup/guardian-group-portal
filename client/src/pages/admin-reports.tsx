@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { ArrangeCoverDialog } from "@/pages/home";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { statusCounts, nonCompliantCount, isCountableDoc } from "@/lib/doc-stats";
 import {
   Dialog,
   DialogContent,
@@ -571,6 +572,7 @@ function EmailDeliveryLogDialog({
 export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
+  const [showCountAudit, setShowCountAudit] = useState(false);
   const [showEmailLog, setShowEmailLog] = useState(false);
   const [showAcceloSyncLog, setShowAcceloSyncLog] = useState(false);
   const { data: acceloSyncLogs = [], isLoading: acceloSyncLogsLoading, refetch: refetchAcceloSyncLogs } = useQuery<AcceloSyncLog[]>({
@@ -696,6 +698,145 @@ export default function AdminReports() {
     enabled: showUsersReport,
   });
 
+  // ── Document Count Audit ────────────────────────────────────────────────
+  // Reconciliation report: shows the canonical status-based document counts
+  // (the single source of truth in @/lib/doc-stats) for every module, broken
+  // down by site, so admins can confirm the dashboards, sites and documents
+  // pages all agree on the numbers.
+  const auditModules = [
+    { key: "health_safety", label: "Health & Safety" },
+    { key: "human_resources", label: "Human Resources" },
+    { key: "employment_law", label: "Employment Law" },
+  ] as const;
+
+  // Always fetch fresh ground-truth when the dialog opens, so the audit can
+  // never show stale numbers while the live pages have already refreshed.
+  const auditDocResults = useQueries({
+    queries: auditModules.map((m) => ({
+      queryKey: [`/api/documents/module/${m.key}`],
+      enabled: showCountAudit,
+      staleTime: 0,
+      refetchOnMount: "always" as const,
+    })),
+  });
+  const auditMissingResults = useQueries({
+    queries: auditModules.map((m) => ({
+      queryKey: [`/api/missing-required-templates?module=${m.key}`],
+      enabled: showCountAudit,
+      staleTime: 0,
+      refetchOnMount: "always" as const,
+    })),
+  });
+  const { data: auditSites = [], isLoading: auditSitesLoading, isError: auditSitesError } = useQuery<
+    {
+      id: string;
+      name: string;
+      companyId: string;
+      companyName?: string | null;
+      moduleAccess?: Partial<Record<string, string>> | null;
+    }[]
+  >({
+    queryKey: ["/api/sites"],
+    enabled: showCountAudit,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  const auditLoading =
+    auditSitesLoading ||
+    auditDocResults.some((r) => r.isLoading) ||
+    auditMissingResults.some((r) => r.isLoading);
+
+  const auditError =
+    auditSitesError ||
+    auditDocResults.some((r) => r.isError) ||
+    auditMissingResults.some((r) => r.isError);
+
+  type AuditDoc = {
+    id?: string;
+    status?: string | null;
+    siteId?: string | null;
+    entityId?: string | null;
+    scope?: string | null;
+    sharedWithSiteIds?: string[] | null;
+    sharedWithCompanyIds?: string[] | null;
+    isArchived?: boolean | null;
+    caseId?: string | null;
+    incidentId?: string | null;
+    source?: string | null;
+  };
+  type AuditMissing = { siteId: string; companyId?: string };
+
+  const auditData = auditModules.map((m, i) => {
+    const docs = (auditDocResults[i]?.data as AuditDoc[] | undefined) ?? [];
+    const missing = (auditMissingResults[i]?.data as AuditMissing[] | undefined) ?? [];
+
+    // Mirror module-sites.tsx exactly: only sites that have this module
+    // active/visible are shown, and the scope companies are derived from those
+    // sites (not the whole company list). This keeps the audit in lock-step
+    // with the cards admins actually see.
+    const moduleActiveSites = auditSites.filter((s) => {
+      const access = s.moduleAccess?.[m.key];
+      return access === "active" || access === "visible";
+    });
+    const activeSiteIds = new Set(moduleActiveSites.map((s) => s.id));
+    const scopeCompanyIds = new Set(moduleActiveSites.map((s) => s.companyId));
+
+    // ── Module total (mirrors the "All sites" card's allDocs) ────────────
+    // Counted once: site-assigned docs in scope, company/group docs owned by an
+    // in-scope company, or docs shared into the scope.
+    const moduleDocs = docs.filter(
+      (d) =>
+        isCountableDoc(d) &&
+        ((d.siteId != null && activeSiteIds.has(d.siteId)) ||
+          (d.siteId == null &&
+            ((!!d.entityId && scopeCompanyIds.has(d.entityId)) ||
+              (d.sharedWithSiteIds?.some((id) => activeSiteIds.has(id)) ?? false) ||
+              (d.sharedWithCompanyIds?.some((id) => scopeCompanyIds.has(id)) ?? false)))),
+    );
+    const moduleCounts = statusCounts(moduleDocs);
+    const moduleMissing = missing.filter((mm) => activeSiteIds.has(mm.siteId)).length;
+
+    // ── Per-site rows (one per module-active site, incl. empty ones) ─────
+    // Each site's own docs plus group/company-scoped docs shared to or
+    // cascaded into the site — the exact predicate the site tiles use.
+    const siteRows = moduleActiveSites
+      .map((site) => {
+        const sid = site.id;
+        const siteCompanyId = site.companyId;
+        const siteDocs = docs.filter(
+          (d) =>
+            isCountableDoc(d) &&
+            (d.siteId === sid ||
+              (d.siteId == null &&
+                ((d.sharedWithSiteIds?.includes(sid) ?? false) ||
+                  (d.sharedWithCompanyIds?.includes(siteCompanyId) ?? false) ||
+                  (d.scope === "group" &&
+                    d.entityId === siteCompanyId &&
+                    ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)))),
+        );
+        const counts = statusCounts(siteDocs);
+        const miss = missing.filter((mm) => mm.siteId === sid).length;
+        return {
+          siteId: sid,
+          siteName: site.name ?? "(unknown site)",
+          companyName: site.companyName ?? "",
+          counts,
+          missing: miss,
+        };
+      })
+      .sort((a, b) =>
+        a.companyName.localeCompare(b.companyName) || a.siteName.localeCompare(b.siteName),
+      );
+
+    return {
+      ...m,
+      moduleCounts,
+      moduleMissing,
+      siteRows,
+    };
+  });
+
   const roleLabels: Record<UserRole, string> = {
     admin: "Administrator",
     consultant: "Consultant",
@@ -747,6 +888,39 @@ export default function AdminReports() {
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", `users_report_${format(new Date(), "yyyy-MM-dd")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadCountAuditCSV = () => {
+    const headers = ["Module", "Scope", "Company", "Total", "Compliant", "Approval Required", "Overdue", "Missing", "Non-Compliant"];
+    const rows: string[][] = [];
+    auditData.forEach((m) => {
+      rows.push([
+        m.label, "MODULE TOTAL (all sites)", "",
+        String(m.moduleCounts.total), String(m.moduleCounts.compliant),
+        String(m.moduleCounts.approvalRequired), String(m.moduleCounts.overdue),
+        String(m.moduleMissing), String(nonCompliantCount(m.moduleCounts, m.moduleMissing)),
+      ]);
+      m.siteRows.forEach((r) => {
+        rows.push([
+          m.label, r.siteName, r.companyName,
+          String(r.counts.total), String(r.counts.compliant),
+          String(r.counts.approvalRequired), String(r.counts.overdue),
+          String(r.missing), String(nonCompliantCount(r.counts, r.missing)),
+        ]);
+      });
+    });
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `document_count_audit_${format(new Date(), "yyyy-MM-dd")}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -814,6 +988,24 @@ export default function AdminReports() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Document Count Audit — reconcile counts across dashboards, sites & documents */}
+            <div
+              className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
+              onClick={() => setShowCountAudit(true)}
+              data-testid="report-count-audit"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-emerald-500/10">
+                  <ClipboardList className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-medium">Document Count Audit</p>
+                  <p className="text-sm text-muted-foreground">Compare document counts across dashboards, sites &amp; documents</p>
+                </div>
+              </div>
+              <Badge variant="secondary">View</Badge>
+            </div>
+
             {/* Users Report — visible to admins and consultants */}
             <div
               className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
@@ -970,6 +1162,94 @@ export default function AdminReports() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Document Count Audit Dialog */}
+      <Dialog open={showCountAudit} onOpenChange={setShowCountAudit}>
+        <DialogContent className="max-w-6xl max-h-[85vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
+              Document Count Audit
+            </DialogTitle>
+            <DialogDescription>
+              The live document counts used across the portal. The dashboards, sites cards and documents
+              pages all use these same figures, so the numbers here should match what you see on those
+              pages. Generated on {format(new Date(), "MMMM d, yyyy 'at' h:mm a")}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2 flex items-center justify-between gap-4">
+            <p className="text-xs text-muted-foreground">
+              The "Module total (all sites)" row matches the dashboard and the All Sites card (each
+              document counted once). Per-site rows match each site's own card and documents page; a
+              document shared with several sites is shown under each site, so the site rows can add up to
+              more than the module total.
+            </p>
+            <Button variant="outline" size="sm" onClick={downloadCountAuditCSV} disabled={auditLoading || auditError} data-testid="button-download-count-audit-csv">
+              <Download className="mr-2 h-4 w-4" />
+              Download CSV
+            </Button>
+          </div>
+
+          {auditLoading ? (
+            <FetchingOverlay />
+          ) : auditError ? (
+            <div className="mt-6 flex items-center gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-sm" data-testid="audit-error">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <span>Couldn't load the counts. Please close this and try again.</span>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-8">
+              {auditData.map((m) => (
+                <div key={m.key} data-testid={`audit-module-${m.key}`}>
+                  <h4 className="mb-2 font-semibold">{m.label}</h4>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Site</TableHead>
+                        <TableHead>Company</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead className="text-right">Compliant</TableHead>
+                        <TableHead className="text-right">Approval Req.</TableHead>
+                        <TableHead className="text-right">Overdue</TableHead>
+                        <TableHead className="text-right">Missing</TableHead>
+                        <TableHead className="text-right">Non-Compliant</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow className="border-b-2 font-semibold bg-muted/40" data-testid={`audit-total-${m.key}`}>
+                        <TableCell>Module total (all sites)</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-right">{m.moduleCounts.total}</TableCell>
+                        <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{m.moduleCounts.compliant}</TableCell>
+                        <TableCell className="text-right text-amber-600 dark:text-amber-400">{m.moduleCounts.approvalRequired}</TableCell>
+                        <TableCell className="text-right text-orange-600 dark:text-orange-400">{m.moduleCounts.overdue}</TableCell>
+                        <TableCell className="text-right text-red-600 dark:text-red-400">{m.moduleMissing}</TableCell>
+                        <TableCell className="text-right">{nonCompliantCount(m.moduleCounts, m.moduleMissing)}</TableCell>
+                      </TableRow>
+                      {m.siteRows.map((r) => (
+                        <TableRow key={r.siteId} data-testid={`audit-row-${m.key}-${r.siteId}`}>
+                          <TableCell className="font-medium">{r.siteName}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{r.companyName || "-"}</TableCell>
+                          <TableCell className="text-right">{r.counts.total}</TableCell>
+                          <TableCell className="text-right text-emerald-600 dark:text-emerald-400">{r.counts.compliant}</TableCell>
+                          <TableCell className="text-right text-amber-600 dark:text-amber-400">{r.counts.approvalRequired}</TableCell>
+                          <TableCell className="text-right text-orange-600 dark:text-orange-400">{r.counts.overdue}</TableCell>
+                          <TableCell className="text-right text-red-600 dark:text-red-400">{r.missing}</TableCell>
+                          <TableCell className="text-right font-medium">{nonCompliantCount(r.counts, r.missing)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {m.siteRows.length === 0 && m.moduleCounts.total === 0 && m.moduleMissing === 0 && (
+                    <p className="py-3 text-sm text-muted-foreground">No documents for this module.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Users Report Dialog */}
       <Dialog open={showUsersReport} onOpenChange={setShowUsersReport}>

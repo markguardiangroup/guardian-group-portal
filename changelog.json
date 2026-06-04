@@ -7692,6 +7692,13 @@
           "message": "Fixed: group and company compliance % stays accurate after the counts update",
           "category": "bug",
           "createdAt": "2026-06-04T21:18:50.693Z"
+        },
+        {
+          "id": "d217efb4-97e5-47a9-abf5-5c83268bdbfa",
+          "patch": 14,
+          "message": "New Document Count Audit report lets admins check counts match across pages",
+          "category": "feature",
+          "createdAt": "2026-06-04T21:36:16.426Z"
         }
       ],
       "publishedPatch": 13,
