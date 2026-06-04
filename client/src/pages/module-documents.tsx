@@ -3204,10 +3204,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         setEditComplianceMode("expiry");
         setEditExpiryDate(format(new Date(document.expiryDate), "yyyy-MM-dd"));
         setEditRenewalPeriodMonths(null);
-      } else if (document.renewalDate) {
+      } else if (document.renewalPeriodMonths) {
         setEditComplianceMode("renewal");
         setEditExpiryDate("");
-        setEditRenewalPeriodMonths(document.renewalPeriodMonths ?? null);
+        setEditRenewalPeriodMonths(document.renewalPeriodMonths);
       } else {
         setEditComplianceMode("none");
         setEditExpiryDate("");

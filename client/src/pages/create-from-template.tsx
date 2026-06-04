@@ -746,9 +746,7 @@ export default function CreateFromTemplate() {
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
-          renewalDate: complianceMode === "renewal" && renewalPeriodMonths
-            ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
-            : undefined,
+          renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
         const result = await apiRequest("POST", "/api/documents", formData);
         return [result];
@@ -808,9 +806,7 @@ export default function CreateFromTemplate() {
           requiresApproval,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
-          renewalDate: complianceMode === "renewal" && renewalPeriodMonths
-            ? new Date(new Date().setMonth(new Date().getMonth() + renewalPeriodMonths)).toISOString()
-            : undefined,
+          renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
 
         const result = await apiRequest("POST", "/api/documents", formData);

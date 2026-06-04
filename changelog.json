@@ -7538,6 +7538,13 @@
           "message": "Fixed: group/company documents sent for approval now show in My actions",
           "category": "bug",
           "createdAt": "2026-06-04T13:28:28.402Z"
+        },
+        {
+          "id": "d9f1a3b5-c762-4e88-9f14-2a7c8e3b5d91",
+          "patch": 14,
+          "message": "Fixed: renewal period now saves correctly when creating from a template",
+          "category": "bug",
+          "createdAt": "2026-06-04T14:05:00.000Z"
         }
       ],
       "publishedPatch": 13,
