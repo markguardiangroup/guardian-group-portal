@@ -2082,7 +2082,7 @@ export default function HomePage() {
           <div className="flex items-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 overflow-hidden">
             <button
               type="button"
-              onClick={() => messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              onClick={() => { setShowScrollHint(false); messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
               className="px-5 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors whitespace-nowrap tracking-tight"
               data-testid="button-scroll-hint-scroll"
             >

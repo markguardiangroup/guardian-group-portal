@@ -7804,6 +7804,13 @@
           "message": "Auto-approved documents now trigger an email to the consultant confirming the approval",
           "category": "feature",
           "createdAt": "2026-06-04T23:30:00.000Z"
+        },
+        {
+          "id": "e4f5a6b7-c8d9-0123-efab-123456789013",
+          "patch": 14,
+          "message": "Fixed: clicking 'See what's new' hint now scrolls and dismisses it",
+          "category": "bug",
+          "createdAt": "2026-06-04T23:35:00.000Z"
         }
       ],
       "publishedPatch": 13,
