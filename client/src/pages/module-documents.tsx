@@ -1442,12 +1442,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
-                <Link href={basePath} data-testid="link-dashboard-from-documents">
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  View Dashboard
-                </Link>
-              </Button>
+              {urlScope !== "company" && urlScope !== "group" && (
+                <Button className="bg-module-accent hover:bg-module-accent/90 text-module-accent-foreground" asChild>
+                  <Link href={basePath} data-testid="link-dashboard-from-documents">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    View Dashboard
+                  </Link>
+                </Button>
+              )}
               {isPrivilegedUser && (
                 <TooltipProvider>
                   <Tooltip>

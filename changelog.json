@@ -7762,6 +7762,13 @@
           "message": "Site cards now show a Changes Requested count alongside Overdue and Approval",
           "category": "enhancement",
           "createdAt": "2026-06-04T23:07:58.372Z"
+        },
+        {
+          "id": "3cb32397-3aae-40fd-8aed-f521fc2f8171",
+          "patch": 14,
+          "message": "Removed View Dashboard button when viewing company or group level documents",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T23:08:54.878Z"
         }
       ],
       "publishedPatch": 13,
