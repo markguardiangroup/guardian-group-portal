@@ -7552,6 +7552,13 @@
           "message": "View Document button appears on upload success screen to go straight to the doc",
           "category": "enhancement",
           "createdAt": "2026-06-04T15:15:00.000Z"
+        },
+        {
+          "id": "f3a5c7e9-group-approver-and-profile-2026",
+          "patch": 14,
+          "message": "Group primary contact can now be selected as approver for member company/site uploads; profile card shows Group Primary Contact badge and lists group companies with their sites",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T15:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

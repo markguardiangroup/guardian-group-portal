@@ -226,7 +226,7 @@ export default function DocumentUpload() {
     queryKey: ["/api/sites"],
   });
 
-  const { data: allCompaniesData } = useQuery<{ companies: { id: string; name: string; isGroupOwner?: boolean }[] }>({
+  const { data: allCompaniesData } = useQuery<{ companies: { id: string; name: string; isGroupOwner?: boolean; groupOwnerId?: string | null }[] }>({
     queryKey: ["/api/companies", { limit: 1000 }],
     queryFn: async () => {
       const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
@@ -438,6 +438,7 @@ export default function DocumentUpload() {
     status: string;
     companyId?: string | null;
     siteAssignments?: { siteId: string; siteName: string }[];
+    isGroupOwnerCompany?: boolean;
   }
 
   const { data: allUsers } = useQuery<UserWithAssignments[]>({
@@ -460,23 +461,38 @@ export default function DocumentUpload() {
     );
   }, [selectedSiteIds, selectedSiteObjects, sites]);
 
-  // Client approver options — only users with access to ALL selected sites
+  // Client approver options — users with access to ALL selected sites, plus any group-owner
+  // company clients whose company is the GO of the sites' company
   const siteClientUsers = useMemo(() => {
     if (!allUsers || selectedSiteIds.length === 0) return [];
-    return allUsers.filter(
-      u => u.role === "client" &&
-        selectedSiteIds.every(siteId => u.siteAssignments?.some(a => a.siteId === siteId))
+    // Collect group-owner IDs for the companies of the selected sites
+    const goIds = new Set<string>();
+    for (const site of selectedSiteObjects) {
+      if (!site.companyId) continue;
+      const co = allCompanies.find(c => c.id === site.companyId);
+      if (co?.groupOwnerId) goIds.add(co.groupOwnerId);
+    }
+    return allUsers.filter(u =>
+      u.role === "client" && (
+        selectedSiteIds.every(siteId => u.siteAssignments?.some(a => a.siteId === siteId)) ||
+        (goIds.size > 0 && u.companyId != null && goIds.has(u.companyId))
+      )
     );
-  }, [allUsers, selectedSiteIds]);
+  }, [allUsers, selectedSiteIds, selectedSiteObjects, allCompanies]);
 
-  // Client approver options for company/group scope
-  // For both company and group scope, the approver must be from the ORIGIN (entity) company —
-  // only those users have write/approval access. Member-company clients are destination-only.
+  // Client approver options for company/group scope — includes the entity's own clients
+  // plus any group-owner company clients (GO users can approve on behalf of member companies)
   const entityClientUsers = useMemo(() => {
     if (!allUsers || !selectedEntityId) return [];
-    // Both company-scope and group-scope: entity (owner) company clients are the eligible approvers
-    return allUsers.filter(u => u.role === "client" && u.companyId === selectedEntityId);
-  }, [allUsers, docScope, selectedEntityId]);
+    const targetCompany = allCompanies.find(c => c.id === selectedEntityId);
+    const groupOwnerId = targetCompany?.groupOwnerId ?? null;
+    return allUsers.filter(u =>
+      u.role === "client" && (
+        u.companyId === selectedEntityId ||
+        (groupOwnerId && u.companyId === groupOwnerId)
+      )
+    );
+  }, [allUsers, allCompanies, docScope, selectedEntityId]);
 
   // Provision folders mutation
   const provisionFoldersMutation = useMutation({

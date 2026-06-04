@@ -139,6 +139,7 @@ interface UserWithAssignments {
   notes?: string | null;
   // Presence
   lastSeenAt?: string | null;
+  isGroupOwnerCompany?: boolean;
 }
 
 interface SiteBasic {
@@ -431,7 +432,7 @@ export default function UserManagement() {
     enabled: isAdmin || isConsultant,
   });
 
-  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; website?: string | null; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null }[] }>({
+  const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; website?: string | null; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null; groupOwnerId?: string | null }[] }>({
     queryKey: ["/api/companies?limit=1000"],
     enabled: isAdmin || isConsultant,
   });
@@ -2411,6 +2412,16 @@ export default function UserManagement() {
                         Case Advocate
                       </Badge>
                     )}
+                    {viewingUser.role === "client" && viewingUser.isGroupOwnerCompany && (() => {
+                      const vc = companies.find(c => c.id === viewingUser.companyId);
+                      const isContact = vc && (vc.contactUserId === viewingUser.id || (vc.contactEmail && viewingUser.email && vc.contactEmail.toLowerCase() === viewingUser.email.toLowerCase()));
+                      if (!isContact) return null;
+                      return (
+                        <Badge variant="outline" className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700" data-testid="badge-group-primary-contact">
+                          Group Primary Contact
+                        </Badge>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -2469,6 +2480,43 @@ export default function UserManagement() {
                   </div>
                 </div>
               )}
+
+              {/* Group Companies — shown for GO primary contacts */}
+              {viewingUser.role === "client" && viewingUser.isGroupOwnerCompany && (() => {
+                const memberCompanies = companies.filter(c => c.groupOwnerId === viewingUser.companyId);
+                if (memberCompanies.length === 0) return null;
+                return (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">
+                      Group Companies
+                      <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-muted px-1.5 text-xs font-normal text-muted-foreground">{memberCompanies.length}</span>
+                    </h4>
+                    <div className="space-y-2">
+                      {memberCompanies.map(mc => {
+                        const companySites = sites.filter(s => s.companyId === mc.id);
+                        return (
+                          <div key={mc.id}>
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                              <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                              <span>{mc.name}</span>
+                            </div>
+                            {companySites.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-1.5 ml-6">
+                                {companySites.map(s => (
+                                  <Badge key={s.id} variant="outline" className="text-xs">
+                                    <MapPin className="h-3 w-3 mr-1" />
+                                    {s.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Site Assignments */}
               {viewingUser.siteAssignments && viewingUser.siteAssignments.length > 0 && (

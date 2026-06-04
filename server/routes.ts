@@ -13496,7 +13496,8 @@ export async function registerRoutes(
             const company = site ? allCompanies.find(c => c.id === site.companyId) : null;
             return { siteId: a.siteId, siteName: site?.name || "Unknown", companyName: company?.name || "Unknown", isPrimary: false };
           });
-          return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites };
+          const isGroupOwnerCompany = u.companyId != null && allCompanies.some(c => c.groupOwnerId === u.companyId);
+          return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites, isGroupOwnerCompany };
         }
         
         return { ...safeUser, keyContactCompanies, keyContactSites };
