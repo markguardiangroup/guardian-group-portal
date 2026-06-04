@@ -438,7 +438,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       case "req_non_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
       case "req_overdue": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "overdue");
       case "total": return filteredModuleDocs.filter(isCountableDoc);
-      case "all_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "compliant");
+      case "all_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && (d.status === "compliant" || d.status === "approved"));
       case "all_review": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "approval_required");
       case "all_overdue": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "overdue");
       default: return [];
@@ -450,7 +450,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     req_non_compliant: { title: "Non Compliant (Mandatory Documents)" },
     req_overdue: { title: "Overdue (Mandatory Documents)" },
     total: { title: "All Documents" },
-    all_compliant: { title: "All Compliant Documents" },
+    all_compliant: { title: "Complete Documents" },
     all_review: { title: "Approval Required" },
     all_overdue: { title: "All Overdue Documents" },
   };
@@ -649,13 +649,13 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
                   <p className="text-xs text-muted-foreground">Total</p>
                 </button>
                 <button
-                  onClick={() => allDocStats.compliant > 0 && setDocsDialogFilter("all_compliant")}
-                  className={`text-center rounded-md border p-3 transition-colors bg-background ${allDocStats.compliant > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                  onClick={() => (allDocStats.compliant + allDocStats.approved) > 0 && setDocsDialogFilter("all_compliant")}
+                  className={`text-center rounded-md border p-3 transition-colors bg-background ${(allDocStats.compliant + allDocStats.approved) > 0 ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
                   data-testid="progress-compliant"
                 >
                   <div className="flex items-center justify-center gap-1 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle className="h-4 w-4" />
-                    <span className="text-2xl font-semibold">{allDocStats.compliant}</span>
+                    <span className="text-2xl font-semibold">{allDocStats.compliant + allDocStats.approved}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Complete</p>
                 </button>
@@ -807,9 +807,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
             ) : (
               <>
                 {expandedDocsDialogRows.map(({ doc, key, siteName }) => {
-                  const isNonRequired = !doc.isMandatory && doc.status === "compliant";
-                  const statusKey = isNonRequired ? "complete" : doc.status;
-                  const statusLabel = doc.status === "approval_required" ? "Approval Required" : doc.status === "overdue" ? "Overdue" : isNonRequired ? "Complete" : "Compliant";
+                  const isComplete = doc.status === "approved" || (!doc.isMandatory && doc.status === "compliant");
+                  const statusKey = isComplete ? "complete" : doc.status;
+                  const statusLabel = doc.status === "approval_required" ? "Approval Required" : doc.status === "overdue" ? "Overdue" : isComplete ? "Complete" : "Compliant";
                   return (
                     <div
                       key={key}

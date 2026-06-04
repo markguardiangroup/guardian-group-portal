@@ -7727,6 +7727,13 @@
           "message": "Fixed: Group and Company cards now count Non-Compliant the same way everywhere",
           "category": "bug",
           "createdAt": "2026-06-04T22:31:11.734Z"
+        },
+        {
+          "id": "6616cf7b-e06d-4e56-a750-f8c06ae7b02c",
+          "patch": 14,
+          "message": "Fixed: Complete tile now includes approved documents so progress totals add up",
+          "category": "bug",
+          "createdAt": "2026-06-04T22:40:50.247Z"
         }
       ],
       "publishedPatch": 13,
