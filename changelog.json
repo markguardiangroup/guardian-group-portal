@@ -7626,9 +7626,9 @@
         {
           "id": "n4p6r8t0-template-sticky-footer-jump-fix-2026",
           "patch": 14,
-          "message": "Fixed: template picker footer no longer jumps when scrolled to the bottom",
+          "message": "Fixed: Continue button on template picker no longer causes layout shift",
           "category": "bug",
-          "createdAt": "2026-06-04T19:15:00.000Z"
+          "createdAt": "2026-06-04T19:22:00.000Z"
         },
         {
           "id": "m3o5q7s9-template-continue-sticky-2026",

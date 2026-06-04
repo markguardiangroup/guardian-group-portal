@@ -1062,7 +1062,7 @@ export default function CreateFromTemplate() {
   );
 
   const renderTemplateStep = () => (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-24">
       <div className="flex items-start gap-2.5 rounded-md border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3.5 py-3 text-sm">
         <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
         <div className="space-y-0.5 text-blue-800 dark:text-blue-300">
@@ -1226,11 +1226,12 @@ export default function CreateFromTemplate() {
         </TooltipProvider>
       )}
 
-      <div className="sticky bottom-0 z-10 flex justify-end pt-3 pb-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t mt-2">
+      <div className="fixed bottom-6 right-8 z-50">
         <Button
           onClick={() => goToStep("placeholders")}
           disabled={!selectedTemplateId}
           data-testid="button-next-placeholders"
+          className="shadow-lg"
         >
           Continue
           <ArrowRight className="ml-2 h-4 w-4" />
