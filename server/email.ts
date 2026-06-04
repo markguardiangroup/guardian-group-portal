@@ -488,6 +488,104 @@ export async function sendClientSignOffEmail({
 }
 
 // ---------------------------------------------------------------------------
+// Auto-Approved Notification (sent to consultant/admin when a document
+// is automatically approved on client sign-off)
+// ---------------------------------------------------------------------------
+export async function sendAutoApprovedNotificationEmail({
+  to,
+  fullName,
+  documentTitle,
+  siteName,
+  clientName,
+  documentUrl,
+  role,
+}: {
+  to: string;
+  fullName: string;
+  documentTitle: string;
+  siteName: string;
+  clientName: string;
+  documentUrl: string;
+  role?: string;
+}) {
+  const recipient = resolveRecipient(to, role || "consultant");
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `Document Auto-Approved — ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health &amp; Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <div style="background-color: #f0fdf4; border-left: 4px solid #22c55e; border-radius: 4px; padding: 12px 16px; margin-bottom: 24px;">
+            <p style="color: #166534; font-size: 14px; font-weight: 600; margin: 0;">No action required — this document has been automatically approved.</p>
+          </div>
+
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Document Auto-Approved</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName}, a document has been automatically approved after the client signed off. This document was configured to skip the manual consultant final-approval step.
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 130px;">Document:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Approved by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${clientName} (client sign-off)</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
+                <td style="padding: 6px 0; color: #16a34a; font-size: 14px; font-weight: 600;">Approved</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${documentUrl}"
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px;
+                      text-decoration: none; border-radius: 6px; font-size: 16px;
+                      font-weight: 600; display: inline-block;">
+              View Document
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            You can view this document in the portal at any time. No further action is needed from you.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send auto-approved notification email:", error);
+    throw new Error(`Failed to send auto-approved notification email: ${error.message}`);
+  }
+
+  console.log(`Auto-approved notification email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
+  return data;
+}
+
+// ---------------------------------------------------------------------------
 // Resend Email Log helpers (used by Admin Reports)
 // ---------------------------------------------------------------------------
 
