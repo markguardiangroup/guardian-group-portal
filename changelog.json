@@ -7594,6 +7594,13 @@
           "message": "Fixed: Document Details panel now shows correct Company and Location for company/group-scope docs",
           "category": "bug",
           "createdAt": "2026-06-04T17:42:00.000Z"
+        },
+        {
+          "id": "f6h8j0l2-create-doc-back-button-label-2026",
+          "patch": 14,
+          "message": "Improved: 'Back to Mandatory Documents' button on success screen now just says 'Back'",
+          "category": "enhancement",
+          "createdAt": "2026-06-04T17:50:00.000Z"
         }
       ],
       "publishedPatch": 13,

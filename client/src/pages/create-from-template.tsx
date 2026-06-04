@@ -1810,7 +1810,7 @@ export default function CreateFromTemplate() {
             onClick={() => navigate(returnTo !== "/template-library" ? returnTo : (modulePaths[selectedTemplate?.module || "health_safety"] || "/documents"))}
             data-testid="button-view-documents"
           >
-            {returnTo !== "/template-library" ? "Back to Mandatory Documents" : "View Documents"}
+            {"Back"}
           </Button>
         </div>
       </CardContent>
