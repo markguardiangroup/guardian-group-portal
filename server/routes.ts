@@ -4807,21 +4807,29 @@ export async function registerRoutes(
         }
       }
 
-      // Send approval confirmation email to all clients assigned to the site
+      // Send approval confirmation email to the client who signed off
       // Skip for auto-final approval — the client triggered it themselves; consultant is already notified separately
       if (isFinalApproval && !isAutoFinalApproval && document.siteId) {
         try {
           const site = await storage.getSite(document.siteId);
-          const siteUsers = await storage.getUsersBySite(document.siteId);
           const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
           const modulePath = existingDoc.module === "health_safety" ? "health-safety"
             : existingDoc.module === "human_resources" ? "human-resources"
             : existingDoc.module === "employment_law" ? "employment-law"
             : "documents";
           const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
-          const clientUsers = siteUsers.filter(u => u.role === "client" && u.email && u.status === "active");
 
-          for (const client of clientUsers) {
+          // Find the client who signed off via the audit log
+          const docLogs = await storage.getAuditLogs(document.id);
+          const signOffEntry = docLogs.find(l => l.action === "document_signed_off" && l.userId);
+          const signOffClient = signOffEntry?.userId ? await storage.getUser(signOffEntry.userId) : null;
+
+          // Resolve recipients: the signing-off client, or fall back to all active clients
+          const approvedRecipients = (signOffClient && signOffClient.email && signOffClient.status === "active")
+            ? [signOffClient]
+            : (await storage.getUsersBySite(document.siteId)).filter(u => u.role === "client" && u.email && u.status === "active");
+
+          for (const client of approvedRecipients) {
             try {
               await sendDocumentApprovedEmail({
                 to: client.email!,
@@ -4867,10 +4875,15 @@ export async function registerRoutes(
           const changesNotifiedIds = new Set<string>();
 
           if (user.role === "consultant" || user.role === "admin") {
-            // Notify all active client users on the site
-            const siteUsers = await storage.getUsersBySite(document.siteId);
-            const clientUsers = siteUsers.filter(u => u.role === "client" && u.email && u.status === "active");
-            for (const client of clientUsers) {
+            // Notify the client who signed off — look up from audit log, fall back to all active clients
+            const docLogsForChanges = await storage.getAuditLogs(document.id);
+            const signOffEntryForChanges = docLogsForChanges.find(l => l.action === "document_signed_off" && l.userId);
+            const signOffClientForChanges = signOffEntryForChanges?.userId ? await storage.getUser(signOffEntryForChanges.userId) : null;
+            const changesRecipients = (signOffClientForChanges && signOffClientForChanges.email && signOffClientForChanges.status === "active")
+              ? [signOffClientForChanges]
+              : (await storage.getUsersBySite(document.siteId)).filter(u => u.role === "client" && u.email && u.status === "active");
+
+            for (const client of changesRecipients) {
               try {
                 await sendChangesRequestedEmail({
                   to: client.email!,

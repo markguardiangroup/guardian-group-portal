@@ -7881,6 +7881,13 @@
           "message": "Tidied approval logic: removed unreachable client-upload code paths",
           "category": "other",
           "createdAt": "2026-06-05T07:30:00.000Z"
+        },
+        {
+          "id": "d5e6f7a8-b9c0-1234-defa-234567890124",
+          "patch": 14,
+          "message": "Approval emails now sent only to the client who signed off, not all site clients",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T07:35:00.000Z"
         }
       ],
       "publishedPatch": 13,
