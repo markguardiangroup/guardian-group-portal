@@ -4172,10 +4172,16 @@ function IncidentsListView() {
   });
   const companies = companiesData?.companies ?? [];
 
+  const sitesWithIncidents = useMemo(() => {
+    const siteIds = new Set(incidents.map((i: any) => i.siteId).filter(Boolean));
+    return sites.filter((s: any) => siteIds.has(s.id));
+  }, [incidents, sites]);
+
   const filteredSitesForCombobox = useMemo(() => {
-    if (!sites || !selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter((s: any) => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
+    const base = sitesWithIncidents;
+    if (!selectedCompany || selectedCompany === "all") return base;
+    return base.filter((s: any) => s.companyName === selectedCompany);
+  }, [sitesWithIncidents, selectedCompany]);
 
   const selectedSiteObj = useMemo(() =>
     sites.find((s: any) => s.id === selectedSiteId), [sites, selectedSiteId]);
@@ -4707,7 +4713,7 @@ function IncidentsListView() {
                 {isPrivileged ? (
                   <>
                     <CompanyCombobox
-                      sites={sites}
+                      sites={sitesWithIncidents}
                       value={selectedCompany}
                       onValueChange={handleCompanyChange}
                       className="w-[180px]"

@@ -7832,6 +7832,13 @@
           "message": "Fixed: missing database column causing errors on several pages",
           "category": "bug",
           "createdAt": "2026-06-05T06:30:00.000Z"
+        },
+        {
+          "id": "c8d9e0f1-a2b3-4567-cdef-567890123457",
+          "patch": 14,
+          "message": "Incidents: company and site filters only list entries that have incidents",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T06:45:00.000Z"
         }
       ],
       "publishedPatch": 13,
