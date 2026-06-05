@@ -3735,6 +3735,59 @@ export async function registerRoutes(
         }),
       });
 
+      // If the new version requires approval, notify the designated approver (or
+      // fall back to the client who previously signed off / requested changes).
+      if (newApprovalStatus === "pending" && document.siteId) {
+        try {
+          const site = await storage.getSite(document.siteId);
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+          const modulePath = document.module === "health_safety" ? "health-safety"
+            : document.module === "human_resources" ? "human-resources"
+            : document.module === "employment_law" ? "employment-law"
+            : "documents";
+          const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
+
+          // Determine who to notify:
+          // 1. Explicitly designated approver (approvalRequestedFrom in request body)
+          // 2. The client who last signed off / requested changes (from audit log)
+          let notifyUserId: string | null = approvalRequestedFrom || null;
+          if (!notifyUserId) {
+            const docLogs = await storage.getAuditLogs(document.id);
+            const lastSignOff = docLogs.find(l => (l.action === "document_signed_off" || l.action === "changes_requested") && l.userId);
+            notifyUserId = lastSignOff?.userId || null;
+          }
+
+          if (notifyUserId) {
+            const notifyUser = await storage.getUser(notifyUserId);
+            if (notifyUser && notifyUser.email && notifyUser.role === "client" && notifyUser.status === "active") {
+              await sendDocumentApprovalEmail({
+                to: notifyUser.email,
+                fullName: notifyUser.fullName,
+                documentTitle: document.title,
+                siteName: site?.name || "Unknown Site",
+                uploadedBy: user.fullName,
+                portalUrl: baseUrl,
+                documentUrl,
+                role: "client",
+              });
+              await storage.createAuditLog({
+                action: "email_sent",
+                userId: user.id,
+                userName: user.fullName,
+                entityId: document.siteId,
+                documentId: document.id,
+                supportRequestId: null,
+                module: document.module,
+                details: `New version approval notification sent to ${notifyUser.fullName} (${notifyUser.email})`,
+                metadata: JSON.stringify({ targetUserId: notifyUser.id, emailType: "approval_notification" }),
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error("Failed to send version-upload approval notification:", emailErr);
+        }
+      }
+
       // Emit document-updated so all relevant users (including clients) see the new version in real time
       try {
         const versionPayload = {
@@ -4642,7 +4695,11 @@ export async function registerRoutes(
         metadata: null,
       });
 
-      if (isClientSignOff && document.siteId) {
+      // Only send sign-off / auto-approval emails when the client actually
+      // signed off (action === "approve"). When the client requests changes
+      // (action === "changes") the changes-requested block below handles
+      // notification — sending a sign-off email would be incorrect.
+      if (isClientSignOff && document.siteId && action === "approve") {
         try {
           const site = await storage.getSite(document.siteId);
           const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
@@ -4894,7 +4951,7 @@ export async function registerRoutes(
           const changesNotifiedIds = new Set<string>();
 
           if (user.role === "consultant" || user.role === "admin") {
-            // Notify the client who signed off — look up from audit log only
+            // Consultant/admin requested changes → notify the client who signed off
             const docLogsForChanges = await storage.getAuditLogs(document.id);
             const signOffEntryForChanges = docLogsForChanges.find(l => l.action === "document_signed_off" && l.userId);
             const signOffClientForChanges = signOffEntryForChanges?.userId ? await storage.getUser(signOffEntryForChanges.userId) : null;
@@ -4929,6 +4986,74 @@ export async function registerRoutes(
                 });
               } catch (emailError) {
                 console.error(`Failed to send changes-requested notification to client ${client.id}:`, emailError);
+              }
+            }
+          } else if (user.role === "client") {
+            // Client requested changes → notify the consultant responsible for this document.
+            // Use the same fallback chain as the sign-off notification:
+            //   1. Uploading consultant
+            //   2. Assigned pro consultant for the site
+            //   3. Admin fallback
+            const sendChangesNotifToConsultant = async (target: { id: string; email: string | null; fullName: string; role: string | null }, label: string) => {
+              if (!target.email) return false;
+              if (changesNotifiedIds.has(target.id)) return true;
+              try {
+                await sendChangesRequestedEmail({
+                  to: target.email,
+                  fullName: target.fullName,
+                  documentTitle: existingDoc.title,
+                  siteName: site?.name || "Unknown Site",
+                  requestedBy: user.fullName,
+                  comments: feedback || null,
+                  documentUrl,
+                  role: target.role || "consultant",
+                });
+                changesNotifiedIds.add(target.id);
+                await storage.createAuditLog({
+                  action: "email_sent",
+                  userId: user.id,
+                  userName: user.fullName,
+                  entityId: document.siteId,
+                  documentId: document.id,
+                  supportRequestId: null,
+                  module: existingDoc.module,
+                  details: `Changes-requested notification email sent to ${label} ${target.fullName} (${target.email})`,
+                  metadata: JSON.stringify({ targetUserId: target.id, emailType: "changes_requested_notification" }),
+                });
+                return true;
+              } catch (emailError) {
+                console.error(`Failed to send changes-requested notification to ${label} ${target.id}:`, emailError);
+                return false;
+              }
+            };
+
+            // Step 1: uploader
+            const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
+            if (uploaderForChanges && uploaderForChanges.role === "consultant") {
+              await sendChangesNotifToConsultant(uploaderForChanges, "consultant (uploader)");
+            }
+            // Step 2: assigned pro consultant
+            if (changesNotifiedIds.size === 0) {
+              try {
+                const assignments = await storage.getConsultantAssignments(document.siteId!);
+                const assignedConsultants = await Promise.all(assignments.map(a => storage.getUser(a.consultantId)));
+                const proConsultants = assignedConsultants.filter(
+                  (u): u is NonNullable<typeof u> =>
+                    !!u && u.role === "consultant" && u.consultantTier === "pro" && !!u.email && u.status === "active"
+                );
+                for (const pc of proConsultants) {
+                  await sendChangesNotifToConsultant(pc, "assigned pro consultant");
+                }
+              } catch (err) {
+                console.error("Failed to look up consultants for client changes notification:", err);
+              }
+            }
+            // Step 3: admin fallback
+            if (changesNotifiedIds.size === 0) {
+              const allUsers = await storage.getAllUsers();
+              const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
+              for (const admin of admins) {
+                await sendChangesNotifToConsultant(admin, "admin");
               }
             }
           }

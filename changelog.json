@@ -8084,6 +8084,20 @@
           "message": "Fixed: auto-approval email no longer fires when client requests changes instead of signing off",
           "category": "bug",
           "createdAt": "2026-06-05T20:45:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89013",
+          "patch": 14,
+          "message": "Fixed: requesting changes now correctly notifies the consultant (not sends a sign-off email)",
+          "category": "bug",
+          "createdAt": "2026-06-05T21:00:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90124",
+          "patch": 14,
+          "message": "Fixed: client now receives an email when consultant uploads a revised document version",
+          "category": "bug",
+          "createdAt": "2026-06-05T21:00:00.000Z"
         }
       ],
       "publishedPatch": 14,
