@@ -7996,126 +7996,126 @@
         },
         {
           "id": "b2c3d4e5-f6a7-8901-bc23-890123456710",
-          "patch": 14,
+          "patch": 15,
           "message": "Security: user-provided text in emails and print templates is now HTML-escaped",
           "category": "enhancement",
           "createdAt": "2026-06-05T15:12:00.000Z"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-cd34-901234567821",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: Group Owner primary contacts can now see Cloud Share folders for member company sites",
           "category": "bug",
           "createdAt": "2026-06-05T17:32:00.000Z"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-de45-012345678922",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: Group Owner clients can now navigate to and upload into member company sites on Cloud Share",
           "category": "bug",
           "createdAt": "2026-06-05T17:50:00.000Z"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-ef56-123456789023",
-          "patch": 14,
+          "patch": 15,
           "message": "Cloud Share folder and file changes now appear instantly without needing a page refresh",
           "category": "enhancement",
           "createdAt": "2026-06-05T18:05:00.000Z"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-f067-234567890124",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: dashboard Open Actions count now matches the Incident Register",
           "category": "bug",
           "createdAt": "2026-06-05T18:20:00.000Z"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-0178-345678901235",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: clicking an incident row no longer causes a white screen / slow reload",
           "category": "bug",
           "createdAt": "2026-06-05T18:35:00.000Z"
         },
         {
           "id": "b8c9d0e1-f2a3-4567-1289-456789012346",
-          "patch": 14,
+          "patch": 15,
           "message": "Upload New Version dialog now shows Auto Final Approval toggle, pre-filled from the document's current setting",
           "category": "enhancement",
           "createdAt": "2026-06-05T18:50:00.000Z"
         },
         {
           "id": "c9d0e1f2-a3b4-5678-2390-567890123457",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: Upload New Version approver list now shows client users even when document is already approved",
           "category": "bug",
           "createdAt": "2026-06-05T19:05:00.000Z"
         },
         {
           "id": "d0e1f2a3-b4c5-6789-3401-678901234568",
-          "patch": 14,
+          "patch": 15,
           "message": "Improved: Auto Final Approval setting is now reliably saved when uploading a new document version",
           "category": "bug",
           "createdAt": "2026-06-05T19:20:00.000Z"
         },
         {
           "id": "e1f2a3b4-c5d6-7890-e1f2-a3b4c5d67890",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: unshared group-level documents no longer counted in site document totals",
           "category": "bug",
           "createdAt": "2026-06-05T20:00:00.000Z"
         },
         {
           "id": "f2a3b4c5-d6e7-8901-f2a3-b4c5d6e78902",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: site cards, Document Count Audit, and HR dashboard now show correct document totals",
           "category": "bug",
           "createdAt": "2026-06-05T20:15:00.000Z"
         },
         {
           "id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67891",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: Approval count on site/group/company cards no longer double-counts documents",
           "category": "bug",
           "createdAt": "2026-06-05T20:30:00.000Z"
         },
         {
           "id": "b2c3d4e5-f6a7-8901-b2c3-d4e5f6a78902",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: auto-approval email no longer fires when client requests changes instead of signing off",
           "category": "bug",
           "createdAt": "2026-06-05T20:45:00.000Z"
         },
         {
           "id": "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89013",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: requesting changes now correctly notifies the consultant (not sends a sign-off email)",
           "category": "bug",
           "createdAt": "2026-06-05T21:00:00.000Z"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90124",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: client now receives an email when consultant uploads a revised document version",
           "category": "bug",
           "createdAt": "2026-06-05T21:00:00.000Z"
         },
         {
           "id": "e5f6a7b8-c9d0-1234-e5f6-a7b8c9d01235",
-          "patch": 14,
+          "patch": 15,
           "message": "Approver is now required when uploading a new document version",
           "category": "enhancement",
           "createdAt": "2026-06-05T21:10:00.000Z"
         },
         {
           "id": "f6a7b8c9-d0e1-2345-f6a7-b8c9d0e12346",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: approval request email now reliably sends to the selected client on new doc upload",
           "category": "bug",
           "createdAt": "2026-06-05T21:20:00.000Z"
         },
         {
           "id": "a7b8c9d0-e1f2-3456-a7b8-c9d0e1f23457",
-          "patch": 14,
+          "patch": 15,
           "message": "Fixed: changes-required notification no longer sent twice when multiple admins exist",
           "category": "bug",
           "createdAt": "2026-06-05T21:30:00.000Z"
