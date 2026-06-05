@@ -8042,6 +8042,13 @@
           "message": "Upload New Version dialog now shows Auto Final Approval toggle, pre-filled from the document's current setting",
           "category": "enhancement",
           "createdAt": "2026-06-05T18:50:00.000Z"
+        },
+        {
+          "id": "c9d0e1f2-a3b4-5678-2390-567890123457",
+          "patch": 14,
+          "message": "Fixed: Upload New Version approver list now shows client users even when document is already approved",
+          "category": "bug",
+          "createdAt": "2026-06-05T19:05:00.000Z"
         }
       ],
       "publishedPatch": 14,

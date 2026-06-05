@@ -3243,12 +3243,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
-    enabled: !!document?.siteId && isPrivilegedUser && approvalInProgress,
+    enabled: !!document?.siteId && isPrivilegedUser && (approvalInProgress || showUploadVersionDialog),
   });
 
   const { data: allUsersForApproval } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/users"],
-    enabled: isDocumentScoped && isPrivilegedUser && approvalInProgress,
+    enabled: isDocumentScoped && isPrivilegedUser && (approvalInProgress || showUploadVersionDialog),
   });
 
   const siteClientUsers = useMemo(() => {
