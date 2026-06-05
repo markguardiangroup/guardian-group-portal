@@ -340,6 +340,10 @@ function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: A
     queryKey: ["/api/incidents"],
   });
 
+  const { data: openActionsData } = useQuery<{ count: number }>({
+    queryKey: ["/api/incidents/overdue-actions-count"],
+  });
+
   const filteredIncidents = useMemo(() => {
     if (siteId) return incidents.filter(i => i.siteId === siteId);
     if (selectedCompany && selectedCompany !== "all") {
@@ -354,7 +358,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: A
 
   const activeCount = filteredIncidents.filter(i => i.status === "reported" || i.status === "under_review").length;
   const riddorCount = filteredIncidents.filter(i => i.riddorReportable).length;
-  const openActionsCount = activeCount - riddorCount;
+  const openActionsCount = openActionsData?.count ?? 0;
   const totalCount = filteredIncidents.length;
 
   return (

@@ -8021,6 +8021,13 @@
           "message": "Cloud Share folder and file changes now appear instantly without needing a page refresh",
           "category": "enhancement",
           "createdAt": "2026-06-05T18:05:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-f067-234567890124",
+          "patch": 14,
+          "message": "Fixed: dashboard Open Actions count now matches the Incident Register",
+          "category": "bug",
+          "createdAt": "2026-06-05T18:20:00.000Z"
         }
       ],
       "publishedPatch": 14,
