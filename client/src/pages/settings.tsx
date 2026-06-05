@@ -1226,6 +1226,16 @@ function TaskListForm({
   );
 }
 
+function escHtml(s: string | null | undefined): string {
+  if (!s) return "";
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function printTaskList(list: TestingTaskList) {
   const moduleLabel = MODULE_FULL_LABELS[list.module] ?? list.module;
   const dateStr = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
@@ -1233,8 +1243,8 @@ function printTaskList(list: TestingTaskList) {
     <div class="task">
       <div class="checkbox"></div>
       <div class="task-body">
-        <div class="task-label">${i + 1}. ${task.label}</div>
-        ${task.description ? `<div class="task-desc">${task.description}</div>` : ""}
+        <div class="task-label">${i + 1}. ${escHtml(task.label)}</div>
+        ${task.description ? `<div class="task-desc">${escHtml(task.description)}</div>` : ""}
       </div>
     </div>
   `).join("");
@@ -1243,7 +1253,7 @@ function printTaskList(list: TestingTaskList) {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${list.title} — Task List</title>
+  <title>${escHtml(list.title)} — Task List</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; background: #fff; padding: 32px 40px; font-size: 13px; }
@@ -1267,13 +1277,13 @@ function printTaskList(list: TestingTaskList) {
 <body>
   <div class="header">
     <div class="platform">Testing Checklist</div>
-    <div class="title">${list.title}</div>
+    <div class="title">${escHtml(list.title)}</div>
     <div class="meta">
-      <span class="badge">${moduleLabel}</span>
+      <span class="badge">${escHtml(moduleLabel)}</span>
       <span class="count">${list.tasks.length} task${list.tasks.length !== 1 ? "s" : ""}</span>
     </div>
   </div>
-  ${list.description ? `<div class="description">${list.description}</div>` : ""}
+  ${list.description ? `<div class="description">${escHtml(list.description)}</div>` : ""}
   <div class="tasks">${taskRows}</div>
   <div class="footer">
     <span>Printed: ${dateStr}</span>

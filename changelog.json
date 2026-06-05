@@ -7993,6 +7993,13 @@
           "message": "Clients can now delete their own Cloud Share folders",
           "category": "feature",
           "createdAt": "2026-06-05T09:45:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-f6a7-8901-bc23-890123456710",
+          "patch": 14,
+          "message": "Security: user-provided text in emails and print templates is now HTML-escaped",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T15:12:00.000Z"
         }
       ],
       "publishedPatch": 14,

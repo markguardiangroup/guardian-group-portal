@@ -13,6 +13,16 @@ const FROM_NAME = "Guardian Group";
 const DEV_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
 const CLIENT_FORWARD_EMAIL = "mark@guardiangroup.co.uk";
 
+function escHtml(s: string | null | undefined): string {
+  if (!s) return "";
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function resolveRecipient(to: string, role?: string): string {
   if (!IS_PRODUCTION) {
     console.log(`[DEV MODE] Redirecting email from ${to} to ${DEV_EMAIL_OVERRIDE}`);
@@ -65,7 +75,7 @@ export async function sendInvitationEmail({
         </div>
         
         <div style="padding: 30px 0;">
-          <h2 style="color: #1e293b; font-size: 20px;">Welcome, ${fullName}!</h2>
+          <h2 style="color: #1e293b; font-size: 20px;">Welcome, ${escHtml(fullName)}!</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
             You have been invited to join the Guardian Group Compliance Portal. 
             Please click the button below to set up your password and activate your account.
@@ -138,7 +148,7 @@ export async function sendPasswordResetEmail({
         <div style="padding: 30px 0;">
           <h2 style="color: #1e293b; font-size: 20px;">Password Reset Request</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, we received a request to reset your password. 
+            Hello ${escHtml(fullName)}, we received a request to reset your password. 
             Click the button below to choose a new password.
           </p>
           
@@ -220,22 +230,22 @@ export async function sendDocumentApprovalEmail({
         <div style="padding: 30px 0;">
           <h2 style="color: #1e293b; font-size: 20px;">Document Approval Required</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, a new document has been uploaded that requires your review and approval.
+            Hello ${escHtml(fullName)}, a new document has been uploaded that requires your review and approval.
           </p>
           
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Document:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(documentTitle)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Uploaded by:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${uploadedBy}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(uploadedBy)}</td>
               </tr>
             </table>
           </div>
@@ -305,8 +315,8 @@ export async function sendDocumentApprovedEmail({
     : "Your Document Has Been Approved";
 
   const bodyText = isMandatory
-    ? `Great news! <strong>${documentTitle}</strong> has been approved and your compliance requirement for this document has been fulfilled. Your site is one step closer to full compliance.`
-    : `Great news! <strong>${documentTitle}</strong> has been reviewed and approved by your consultant. No further action is needed for this document at this time.`;
+    ? `Great news! <strong>${escHtml(documentTitle)}</strong> has been approved and your compliance requirement for this document has been fulfilled. Your site is one step closer to full compliance.`
+    : `Great news! <strong>${escHtml(documentTitle)}</strong> has been reviewed and approved by your consultant. No further action is needed for this document at this time.`;
 
   const statusLabel = isMandatory ? "Compliant" : "Approved";
   const statusColour = "#16a34a";
@@ -329,7 +339,7 @@ export async function sendDocumentApprovedEmail({
 
           <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">${headingText}</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName},
+            Hello ${escHtml(fullName)},
           </p>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
             ${bodyText}
@@ -338,22 +348,22 @@ export async function sendDocumentApprovedEmail({
           ${comments ? `
           <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
             <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Consultant comment:</p>
-            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${escHtml(comments)}</p>
           </div>` : ''}
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Document:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(documentTitle)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Approved by:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${approvedBy}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(approvedBy)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
@@ -440,27 +450,27 @@ export async function sendClientSignOffEmail({
         <div style="padding: 30px 0;">
           <h2 style="color: #1e293b; font-size: 20px;">Client Sign-Off Complete</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, a document has been signed off by the client and is now awaiting final approval.
+            Hello ${escHtml(fullName)}, a document has been signed off by the client and is now awaiting final approval.
           </p>
           ${noConsultantWarning}
           ${comments ? `
           <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
             <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Client comment:</p>
-            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${escHtml(comments)}</p>
           </div>` : ''}
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Document:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(documentTitle)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Signed off by:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${clientName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(clientName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
@@ -545,28 +555,28 @@ export async function sendAutoApprovedNotificationEmail({
 
           <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Document Auto-Approved</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, a document has been automatically approved after the client signed off. This document was configured to skip the manual consultant final-approval step.
+            Hello ${escHtml(fullName)}, a document has been automatically approved after the client signed off. This document was configured to skip the manual consultant final-approval step.
           </p>
 
           ${comments ? `
           <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
             <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Client comment:</p>
-            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${escHtml(comments)}</p>
           </div>` : ''}
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 130px;">Document:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(documentTitle)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Approved by:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${clientName} (client sign-off)</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(clientName)} (client sign-off)</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
@@ -646,10 +656,10 @@ export async function sendCloudUploadNotificationEmail({
       : "A new file has been uploaded to your shared folder";
 
   const body = isNewFolder
-    ? `<strong>${uploaderName}</strong> has created a new shared folder <strong>${folderName}</strong> for you. Please log in to view it and upload any requested documents.`
+    ? `<strong>${escHtml(uploaderName)}</strong> has created a new shared folder <strong>${escHtml(folderName)}</strong> for you. Please log in to view it and upload any requested documents.`
     : isClientUploader
-      ? `<strong>${uploaderName}</strong> (client) has uploaded a file to the folder <strong>${folderName}</strong>. Please log in to review it.`
-      : `<strong>${uploaderName}</strong> has uploaded a new file to the folder <strong>${folderName}</strong>. Please log in to view it.`;
+      ? `<strong>${escHtml(uploaderName)}</strong> (client) has uploaded a file to the folder <strong>${escHtml(folderName)}</strong>. Please log in to review it.`
+      : `<strong>${escHtml(uploaderName)}</strong> has uploaded a new file to the folder <strong>${escHtml(folderName)}</strong>. Please log in to view it.`;
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -665,7 +675,7 @@ export async function sendCloudUploadNotificationEmail({
         <div style="padding: 30px 0;">
           <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">${heading}</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName},
+            Hello ${escHtml(fullName)},
           </p>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
             ${body}
@@ -676,19 +686,19 @@ export async function sendCloudUploadNotificationEmail({
               ${!isNewFolder && fileName ? `
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">File:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${fileName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(fileName)}</td>
               </tr>` : ""}
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Folder:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${folderName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(folderName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">${isNewFolder ? "Created by:" : "Uploaded by:"}</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${uploaderName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(uploaderName)}</td>
               </tr>
             </table>
           </div>
@@ -768,28 +778,28 @@ export async function sendChangesRequestedEmail({
 
           <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Changes Requested</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, changes have been requested on the following document. Please review the feedback and update accordingly.
+            Hello ${escHtml(fullName)}, changes have been requested on the following document. Please review the feedback and update accordingly.
           </p>
 
           ${comments ? `
           <div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
-            <p style="color: #9a3412; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Feedback from ${requestedBy}:</p>
-            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+            <p style="color: #9a3412; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Feedback from ${escHtml(requestedBy)}:</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${escHtml(comments)}</p>
           </div>` : ''}
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 130px;">Document:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(documentTitle)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Requested by:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${requestedBy}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(requestedBy)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
@@ -1051,26 +1061,26 @@ export async function sendIncidentNotificationEmail({
 
           <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">New Incident Reported</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-            Hello ${fullName}, one of your clients has just submitted an incident report. You may wish to get in touch to offer support and advice.
+            Hello ${escHtml(fullName)}, one of your clients has just submitted an incident report. You may wish to get in touch to offer support and advice.
           </p>
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 130px;">Reference:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${incidentReference}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(incidentReference)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Company:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${companyName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(companyName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Type:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${incidentType}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(incidentType)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Date:</td>
@@ -1152,28 +1162,28 @@ export async function sendBookingEnquiryEmail({
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 140px;">Course:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${courseName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(courseName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Course Code:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${courseCode}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(courseCode)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Company:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${companyName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(companyName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
               </tr>
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Requested by:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${requestedByName} (${requestedByEmail})</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(requestedByName)} (${escHtml(requestedByEmail)})</td>
               </tr>
               ${message ? `
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; vertical-align: top;">Requirements:</td>
-                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${message}</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(message)}</td>
               </tr>` : ""}
             </table>
           </div>
