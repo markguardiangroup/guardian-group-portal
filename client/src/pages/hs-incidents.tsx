@@ -4108,6 +4108,7 @@ const registerTypeConfig = {
 
 function IncidentsListView() {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [view, setView] = useState<"dashboard" | "register">("dashboard");
   const [registerType, setRegisterType] = useState<RegisterType>("incident");
   const [searchQuery, setSearchQuery] = useState("");
@@ -4798,7 +4799,7 @@ function IncidentsListView() {
                         key={incident.id}
                         className="cursor-pointer"
                         data-testid={`row-incident-${incident.id}`}
-                        onClick={() => window.location.href = `/health-safety/incidents/${incident.id}`}
+                        onClick={() => navigate(`/health-safety/incidents/${incident.id}`)}
                       >
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-1.5">

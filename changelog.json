@@ -8028,6 +8028,13 @@
           "message": "Fixed: dashboard Open Actions count now matches the Incident Register",
           "category": "bug",
           "createdAt": "2026-06-05T18:20:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-0178-345678901235",
+          "patch": 14,
+          "message": "Fixed: clicking an incident row no longer causes a white screen / slow reload",
+          "category": "bug",
+          "createdAt": "2026-06-05T18:35:00.000Z"
         }
       ],
       "publishedPatch": 14,
