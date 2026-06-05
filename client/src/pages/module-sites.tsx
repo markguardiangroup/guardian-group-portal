@@ -1353,7 +1353,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
                       (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
-                      d.entityId === site.companyId
+                      // Company-scoped docs owned by this company always count.
+                      // Group-scoped docs owned by this company only count if at
+                      // least one share record exists (recipient doesn't matter).
+                      (d.entityId === site.companyId &&
+                        (d.scope !== "group" ||
+                          ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0))
                     ))
                   )
               );

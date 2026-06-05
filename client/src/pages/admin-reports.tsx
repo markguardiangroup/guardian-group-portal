@@ -842,15 +842,17 @@ export default function AdminReports() {
         const siteDocs = docs.filter(
           (d) =>
             isCountableDoc(d) &&
-            // Canonical site predicate (matches module-sites + dashboard): a
-            // scoped doc counts for the site when shared to it, shared to its
-            // company, or owned by its company. Owned-by-company was previously
-            // gated behind a share-count check, which undercounted the site.
+            // A scoped doc counts for this site when shared to it, shared to its
+            // company, or owned by its company. Group-scoped docs owned by this
+            // company only count if at least one share record exists — unshared
+            // group docs must not inflate the site total.
             (d.siteId === sid ||
               (d.siteId == null &&
                 ((d.sharedWithSiteIds?.includes(sid) ?? false) ||
                   (d.sharedWithCompanyIds?.includes(siteCompanyId) ?? false) ||
-                  d.entityId === siteCompanyId))),
+                  (d.entityId === siteCompanyId &&
+                    (d.scope !== "group" ||
+                      ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0))))),
         );
         const miss = missing.filter((mm) => mm.siteId === sid).length;
         return {

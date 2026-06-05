@@ -396,13 +396,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const siteCompanyId = sites?.find(s => s.id === siteId)?.companyId;
           const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
           const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+          const anyShareExists = ((sharedWithSiteIds?.length ?? 0) + (sharedWithCompanyIds?.length ?? 0)) > 0;
           return (
             (sharedWithSiteIds?.includes(siteId) ?? false) ||
             !!(siteCompanyId && sharedWithCompanyIds?.includes(siteCompanyId)) ||
             // Company-scoped docs owned by the same company always appear at its sites.
-            // Group-scoped docs require an explicit share — if there are none, the
-            // doc was not shared and should not count here.
-            !!(siteCompanyId && (doc as any).entityId === siteCompanyId && (doc as any).scope !== "group")
+            // Group-scoped docs owned by the same company appear only if at least one
+            // share record exists (meaning the uploader chose to share it) — the
+            // share recipient does not have to be this specific site or company.
+            !!(siteCompanyId && (doc as any).entityId === siteCompanyId &&
+              ((doc as any).scope !== "group" || anyShareExists))
           );
         }
         return false;
@@ -424,12 +427,15 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
           const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
           const entityId = (doc as any).entityId as string | undefined;
+          const anyShareExistsM = ((sharedWithSiteIds?.length ?? 0) + (sharedWithCompanyIds?.length ?? 0)) > 0;
           return (
             (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
             (sharedWithCompanyIds?.some(cid => companyIdSet.has(cid)) ?? false) ||
             // Company-scoped docs owned by any in-scope company always appear.
-            // Group-scoped docs require an explicit share record.
-            !!(entityId && companyIdSet.has(entityId) && (doc as any).scope !== "group")
+            // Group-scoped docs owned by an in-scope company appear only if at
+            // least one share record exists (recipient doesn't matter).
+            !!(entityId && companyIdSet.has(entityId) &&
+              ((doc as any).scope !== "group" || anyShareExistsM))
           );
         }
         return false;
