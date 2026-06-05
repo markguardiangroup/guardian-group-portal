@@ -7923,6 +7923,13 @@
           "message": "Cloud share: drag and drop files onto the page to upload or create a new folder",
           "category": "feature",
           "createdAt": "2026-06-05T08:20:00.000Z"
+        },
+        {
+          "id": "d1e2f3a4-b5c6-7890-defa-890123456780",
+          "patch": 14,
+          "message": "Fixed: clients now receive an email when a consultant creates a shared folder for them",
+          "category": "bug",
+          "createdAt": "2026-06-05T08:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

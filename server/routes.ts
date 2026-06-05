@@ -17183,6 +17183,61 @@ export async function registerRoutes(
         siteId,
       });
 
+      // Notify client(s) when a consultant/admin creates a folder — per-site cooldown
+      if (user.role !== "client") {
+        try {
+          const lastNotified = cloudUploadNotifiedAt.get(siteId);
+          const cooldownExpired = !lastNotified || (Date.now() - lastNotified.getTime()) > CLOUD_UPLOAD_NOTIFY_COOLDOWN_MS;
+          if (cooldownExpired) {
+            const site = await storage.getSite(siteId);
+            const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+            const modulePath = module === "health_safety" ? "health-safety"
+              : module === "human_resources" ? "human-resources"
+              : module === "employment_law" ? "employment-law"
+              : "cloud-share";
+            const portalUrl = `${baseUrl}/${modulePath}/cloud-share`;
+
+            const recipients: { id: string; email: string; fullName: string; role: string | null }[] = [];
+            if (effectiveAllocatedClientId) {
+              const allocatedClient = await storage.getUser(effectiveAllocatedClientId);
+              if (allocatedClient && allocatedClient.email && allocatedClient.status === "active") {
+                recipients.push({ id: allocatedClient.id, email: allocatedClient.email, fullName: allocatedClient.fullName, role: allocatedClient.role });
+              }
+            } else {
+              const siteUsers = await storage.getUsersBySite(siteId);
+              for (const u of siteUsers.filter(u => u.role === "client" && u.email && u.status === "active")) {
+                recipients.push({ id: u.id, email: u.email!, fullName: u.fullName, role: u.role });
+              }
+            }
+
+            for (const recipient of recipients) {
+              try {
+                await sendCloudUploadNotificationEmail({
+                  to: recipient.email,
+                  fullName: recipient.fullName,
+                  uploaderName: user.fullName,
+                  folderName: name,
+                  siteName: site?.name || "Unknown Site",
+                  portalUrl,
+                  role: "client",
+                  isNewFolder: true,
+                });
+                await storage.createAuditLog({
+                  action: "email_sent", userId: user.id, userName: user.fullName,
+                  entityId: siteId, module,
+                  details: `Cloud share folder creation notification sent to ${recipient.fullName} (${recipient.email})`,
+                  metadata: JSON.stringify({ targetUserId: recipient.id, emailType: "cloud_upload_folder_notification" }),
+                });
+              } catch (e) { console.error(`Failed to send folder creation notification to ${recipient.id}:`, e); }
+            }
+
+            if (recipients.length > 0) cloudUploadNotifiedAt.set(siteId, new Date());
+          }
+        } catch (err) {
+          console.error("Failed to send folder creation notifications:", err);
+        }
+      }
+
       res.status(201).json(folder);
     } catch (error) {
       console.error("Error creating client upload folder:", error);

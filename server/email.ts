@@ -620,29 +620,41 @@ export async function sendCloudUploadNotificationEmail({
   fileName,
   portalUrl,
   role,
+  isNewFolder = false,
 }: {
   to: string;
   fullName: string;
   uploaderName: string;
   folderName: string;
   siteName: string;
-  fileName: string;
+  fileName?: string;
   portalUrl: string;
   role?: string;
+  isNewFolder?: boolean;
 }) {
   const recipient = resolveRecipient(to, role);
   const isClientUploader = role === "consultant" || role === "admin";
-  const heading = isClientUploader
-    ? "A client has uploaded a file to your shared folder"
-    : "A new file has been uploaded to your shared folder";
-  const body = isClientUploader
-    ? `<strong>${uploaderName}</strong> (client) has uploaded a file to the folder <strong>${folderName}</strong>. Please log in to review it.`
-    : `<strong>${uploaderName}</strong> has uploaded a new file to the folder <strong>${folderName}</strong>. Please log in to view it.`;
+
+  const subject = isNewFolder
+    ? `New Shared Folder — ${folderName}`
+    : `New File Uploaded — ${folderName}`;
+
+  const heading = isNewFolder
+    ? "A new shared folder has been created for you"
+    : isClientUploader
+      ? "A client has uploaded a file to your shared folder"
+      : "A new file has been uploaded to your shared folder";
+
+  const body = isNewFolder
+    ? `<strong>${uploaderName}</strong> has created a new shared folder <strong>${folderName}</strong> for you. Please log in to view it and upload any requested documents.`
+    : isClientUploader
+      ? `<strong>${uploaderName}</strong> (client) has uploaded a file to the folder <strong>${folderName}</strong>. Please log in to review it.`
+      : `<strong>${uploaderName}</strong> has uploaded a new file to the folder <strong>${folderName}</strong>. Please log in to view it.`;
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
     to: [recipient],
-    subject: `New File Uploaded — ${folderName}`,
+    subject,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
@@ -651,7 +663,7 @@ export async function sendCloudUploadNotificationEmail({
         </div>
 
         <div style="padding: 30px 0;">
-          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">New File Uploaded</h2>
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">${heading}</h2>
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
             Hello ${fullName},
           </p>
@@ -661,12 +673,13 @@ export async function sendCloudUploadNotificationEmail({
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
+              ${!isNewFolder && fileName ? `
               <tr>
                 <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">File:</td>
                 <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${fileName}</td>
-              </tr>
+              </tr>` : ""}
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Folder:</td>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">Folder:</td>
                 <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${folderName}</td>
               </tr>
               <tr>
@@ -674,7 +687,7 @@ export async function sendCloudUploadNotificationEmail({
                 <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Uploaded by:</td>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">${isNewFolder ? "Created by:" : "Uploaded by:"}</td>
                 <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${uploaderName}</td>
               </tr>
             </table>
