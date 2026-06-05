@@ -685,6 +685,7 @@ function MyActionsPanel({ role }: { role: string }) {
   const { data: homeSummary } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
     staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   const siteMap = useMemo<SiteMap>(() => {
@@ -1944,6 +1945,7 @@ export default function HomePage() {
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
     staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) wasLoadingRef.current = true;

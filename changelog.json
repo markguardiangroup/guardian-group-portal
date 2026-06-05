@@ -7965,6 +7965,13 @@
           "message": "Improved: clearer error when saving Manage Sites with no sites assigned",
           "category": "enhancement",
           "createdAt": "2026-06-05T09:05:00.000Z"
+        },
+        {
+          "id": "d8e9f0a1-b2c3-4567-def0-456789012306",
+          "patch": 14,
+          "message": "Fixed: client home page now refreshes when returning to the browser tab",
+          "category": "bug",
+          "createdAt": "2026-06-05T09:15:00.000Z"
         }
       ],
       "publishedPatch": 13,
