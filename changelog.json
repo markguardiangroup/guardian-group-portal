@@ -7930,6 +7930,13 @@
           "message": "Fixed: clients now receive an email when a consultant creates a shared folder for them",
           "category": "bug",
           "createdAt": "2026-06-05T08:30:00.000Z"
+        },
+        {
+          "id": "e2f3a4b5-c6d7-8901-efab-901234567891",
+          "patch": 14,
+          "message": "Cloud share: drag onto an existing folder row to upload directly into it",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T08:35:00.000Z"
         }
       ],
       "publishedPatch": 13,

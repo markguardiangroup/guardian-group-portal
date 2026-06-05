@@ -235,8 +235,10 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
 
   const [folderListDragActive, setFolderListDragActive] = useState(false);
   const [folderViewDragActive, setFolderViewDragActive] = useState(false);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const folderListDragCount = useRef(0);
   const folderViewDragCount = useRef(0);
+  const folderRowDragCounts = useRef<Record<string, number>>({});
 
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
@@ -654,11 +656,48 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     e.preventDefault();
     folderListDragCount.current = 0;
     setFolderListDragActive(false);
+    setDragOverFolderId(null);
     const dropped = Array.from(e.dataTransfer.files);
     if (!dropped.length) return;
     setPendingFiles(dropped.map((f) => ({ file: f, description: "", progress: 0, status: "pending" as const })));
     setCreateStep(1);
     setCreateDialogOpen(true);
+  }
+
+  function makeFolderRowHandlers(folder: ClientUploadFolderWithMeta) {
+    return {
+      onDragEnter(e: React.DragEvent) {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        folderRowDragCounts.current[folder.id] = (folderRowDragCounts.current[folder.id] ?? 0) + 1;
+        setDragOverFolderId(folder.id);
+      },
+      onDragLeave() {
+        folderRowDragCounts.current[folder.id] = (folderRowDragCounts.current[folder.id] ?? 1) - 1;
+        if ((folderRowDragCounts.current[folder.id] ?? 0) <= 0) {
+          folderRowDragCounts.current[folder.id] = 0;
+          setDragOverFolderId((prev) => (prev === folder.id ? null : prev));
+        }
+      },
+      onDragOver(e: React.DragEvent) {
+        if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+      },
+      onDrop(e: React.DragEvent) {
+        e.preventDefault();
+        e.stopPropagation(); // prevent parent "create folder" handler
+        folderRowDragCounts.current[folder.id] = 0;
+        folderListDragCount.current = 0;
+        setDragOverFolderId(null);
+        setFolderListDragActive(false);
+        const dropped = Array.from(e.dataTransfer.files);
+        if (!dropped.length) return;
+        setSelectedFolder(folder);
+        setCheckedFileIds(new Set());
+        setMoreFiles(dropped.map((f) => ({ file: f, description: "", progress: 0, status: "pending" as const })));
+        setUploadMoreWarningShown(false);
+        setUploadMoreOpen(true);
+      },
+    };
   }
 
   function handleFolderViewDragEnter(e: React.DragEvent) {
@@ -1204,11 +1243,11 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         onDragOver={handleFolderListDragOver}
         onDrop={handleFolderListDrop}
       >
-        {folderListDragActive && (
+        {folderListDragActive && !dragOverFolderId && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-module-accent rounded-lg pointer-events-none">
             <FolderPlus className="h-12 w-12 text-module-accent mb-3" />
             <p className="text-lg font-semibold text-module-accent">Drop to create a new folder</p>
-            <p className="text-sm text-muted-foreground mt-1">You'll be asked to name the folder first</p>
+            <p className="text-sm text-muted-foreground mt-1">Or drag onto an existing folder to upload into it</p>
           </div>
         )}
 
@@ -1296,8 +1335,13 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
           {filteredFolders.map((folder) => (
             <div
               key={folder.id}
-              className="flex items-center gap-4 px-4 py-3 hover:bg-muted/40 transition-colors"
+              className={`flex items-center gap-4 px-4 py-3 transition-colors ${
+                dragOverFolderId === folder.id
+                  ? "bg-module-accent/10 ring-2 ring-inset ring-module-accent"
+                  : "hover:bg-muted/40"
+              }`}
               data-testid={`card-folder-${folder.id}`}
+              {...makeFolderRowHandlers(folder)}
             >
               <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
