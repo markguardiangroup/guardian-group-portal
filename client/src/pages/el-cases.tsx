@@ -257,12 +257,19 @@ function CasesList() {
     }
   }, [sites, setSelectedSiteId, setSelectedCompany]);
 
-  // Filter sites by selected company
-  const filteredSites = useMemo(() => {
+  // Only show sites that have at least one case
+  const sitesWithCases = useMemo(() => {
     if (!sites) return [];
-    if (!selectedCompany || selectedCompany === "all") return sites;
-    return sites.filter(s => s.companyName === selectedCompany);
-  }, [sites, selectedCompany]);
+    const siteIds = new Set((cases ?? []).map((c: any) => c.siteId).filter(Boolean));
+    return sites.filter(s => siteIds.has(s.id));
+  }, [sites, cases]);
+
+  // Filter sites by selected company (from cases-only list)
+  const filteredSites = useMemo(() => {
+    const base = sitesWithCases;
+    if (!selectedCompany || selectedCompany === "all") return base;
+    return base.filter(s => s.companyName === selectedCompany);
+  }, [sitesWithCases, selectedCompany]);
   
   // Get site IDs for the selected company
   const companySiteIds = useMemo(() => {
@@ -492,41 +499,6 @@ function CasesList() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {(isPrivilegedUser || clientHasSites) && sites && sites.length > 0 && (
-              <div className="flex items-center gap-2">
-                {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetFilters}
-                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    data-testid="button-clear-filters-cases"
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-                <div className="flex flex-row items-center gap-2">
-                  {isPrivilegedUser && (
-                    <CompanyCombobox
-                      sites={sites}
-                      value={selectedCompany}
-                      onValueChange={handleCompanyChange}
-                      className="w-[200px]"
-                      testId="select-company-cases"
-                    />
-                  )}
-                  <SiteCombobox
-                    sites={isPrivilegedUser ? filteredSites : sites}
-                    value={selectedSiteId}
-                    onValueChange={handleSiteChange}
-                    className="w-[200px]"
-                    testId="select-site-cases"
-                    disabled={isPrivilegedUser && (!selectedCompany || selectedCompany === "all")}
-                  />
-                </div>
-              </div>
-            )}
             {hasCoverage && (
               <Select
                 value={coverageFilter}
@@ -787,17 +759,58 @@ function CasesList() {
                   <SelectItem value="acas_conciliation">ACAS Conciliation</SelectItem>
                 </SelectContent>
               </Select>
-              {isPrivilegedUser && (
-                <Button
-                  variant={showArchived ? "secondary" : "outline"}
-                  size="sm"
-                  onClick={() => setShowArchived(!showArchived)}
-                  data-testid="button-toggle-archived"
-                  className="gap-2"
-                >
-                  <Archive className="h-4 w-4" />
-                  {showArchived ? "Hide Archived" : "Show Archived"}
-                </Button>
+              {isPrivilegedUser ? (
+                <>
+                  <CompanyCombobox
+                    sites={sitesWithCases}
+                    value={selectedCompany}
+                    onValueChange={handleCompanyChange}
+                    className="w-[180px]"
+                    testId="select-company-cases"
+                  />
+                  <SiteCombobox
+                    sites={filteredSites}
+                    value={selectedSiteId}
+                    onValueChange={handleSiteChange}
+                    className="w-[180px]"
+                    testId="select-site-cases"
+                    disabled={!selectedCompany || selectedCompany === "all"}
+                  />
+                  {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={resetFilters}
+                      className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                      data-testid="button-clear-filters-cases"
+                      title="Clear selection"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant={showArchived ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowArchived(!showArchived)}
+                    data-testid="button-toggle-archived"
+                    className="gap-2"
+                  >
+                    <Archive className="h-4 w-4" />
+                    {showArchived ? "Hide Archived" : "Show Archived"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {clientHasSites && (
+                    <SiteCombobox
+                      sites={sites ?? []}
+                      value={selectedSiteId}
+                      onValueChange={handleSiteChange}
+                      className="w-[180px]"
+                      testId="select-site-cases"
+                    />
+                  )}
+                </>
               )}
               {/* View toggle */}
               <div className="flex items-center rounded-md border bg-muted/40 p-0.5 gap-0.5">

@@ -7839,6 +7839,13 @@
           "message": "Incidents: company and site filters only list entries that have incidents",
           "category": "enhancement",
           "createdAt": "2026-06-05T06:45:00.000Z"
+        },
+        {
+          "id": "d9e0f1a2-b3c4-5678-defa-678901234568",
+          "patch": 14,
+          "message": "Cases: company and site filters moved into the filter bar, scoped to cases only",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T06:55:00.000Z"
         }
       ],
       "publishedPatch": 13,
