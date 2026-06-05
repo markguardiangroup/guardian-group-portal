@@ -233,6 +233,11 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const fileInputRef = useRef<HTMLInputElement>(null);
   const moreFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [folderListDragActive, setFolderListDragActive] = useState(false);
+  const [folderViewDragActive, setFolderViewDragActive] = useState(false);
+  const folderListDragCount = useRef(0);
+  const folderViewDragCount = useRef(0);
+
   const isAdmin = user?.role === "admin";
   const isConsultant = user?.role === "consultant";
   const isClient = user?.role === "client";
@@ -627,6 +632,64 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
     }
   }
 
+  // ── Drag and drop ────────────────────────────────────────────────────────
+
+  function handleFolderListDragEnter(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    folderListDragCount.current++;
+    setFolderListDragActive(true);
+  }
+  function handleFolderListDragLeave() {
+    folderListDragCount.current--;
+    if (folderListDragCount.current <= 0) {
+      folderListDragCount.current = 0;
+      setFolderListDragActive(false);
+    }
+  }
+  function handleFolderListDragOver(e: React.DragEvent) {
+    if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+  }
+  function handleFolderListDrop(e: React.DragEvent) {
+    e.preventDefault();
+    folderListDragCount.current = 0;
+    setFolderListDragActive(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    if (!dropped.length) return;
+    setPendingFiles(dropped.map((f) => ({ file: f, description: "", progress: 0, status: "pending" as const })));
+    setCreateStep(1);
+    setCreateDialogOpen(true);
+  }
+
+  function handleFolderViewDragEnter(e: React.DragEvent) {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    folderViewDragCount.current++;
+    setFolderViewDragActive(true);
+  }
+  function handleFolderViewDragLeave() {
+    folderViewDragCount.current--;
+    if (folderViewDragCount.current <= 0) {
+      folderViewDragCount.current = 0;
+      setFolderViewDragActive(false);
+    }
+  }
+  function handleFolderViewDragOver(e: React.DragEvent) {
+    if (e.dataTransfer.types.includes("Files")) e.preventDefault();
+  }
+  function handleFolderViewDrop(e: React.DragEvent) {
+    e.preventDefault();
+    folderViewDragCount.current = 0;
+    setFolderViewDragActive(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    if (!dropped.length) return;
+    setMoreFiles(dropped.map((f) => ({ file: f, description: "", progress: 0, status: "pending" as const })));
+    setUploadMoreWarningShown(false);
+    setUploadMoreOpen(true);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   function toggleFileCheck(id: string) {
     setCheckedFileIds((prev) => {
       const next = new Set(prev);
@@ -670,7 +733,21 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
           </div>
         </div>
 
-        <div id="page-content" className="flex-1 overflow-auto p-6 space-y-4 dash-animate">
+        <div
+          id="page-content"
+          className="flex-1 overflow-auto p-6 space-y-4 dash-animate relative"
+          onDragEnter={handleFolderViewDragEnter}
+          onDragLeave={handleFolderViewDragLeave}
+          onDragOver={handleFolderViewDragOver}
+          onDrop={handleFolderViewDrop}
+        >
+          {folderViewDragActive && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-module-accent rounded-lg pointer-events-none">
+              <Upload className="h-12 w-12 text-module-accent mb-3" />
+              <p className="text-lg font-semibold text-module-accent">Drop files to upload</p>
+              <p className="text-sm text-muted-foreground mt-1">Files will be added to <strong>{selectedFolder?.name}</strong></p>
+            </div>
+          )}
 
         <div className="flex flex-wrap items-center gap-3 p-4 rounded-lg border bg-muted/30">
           <div className="flex-1 min-w-0">
@@ -1119,7 +1196,21 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
         </div>
       </div>
 
-      <div id="page-content" className="flex-1 overflow-auto p-6 space-y-5 dash-animate">
+      <div
+        id="page-content"
+        className="flex-1 overflow-auto p-6 space-y-5 dash-animate relative"
+        onDragEnter={handleFolderListDragEnter}
+        onDragLeave={handleFolderListDragLeave}
+        onDragOver={handleFolderListDragOver}
+        onDrop={handleFolderListDrop}
+      >
+        {folderListDragActive && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-module-accent rounded-lg pointer-events-none">
+            <FolderPlus className="h-12 w-12 text-module-accent mb-3" />
+            <p className="text-lg font-semibold text-module-accent">Drop to create a new folder</p>
+            <p className="text-sm text-muted-foreground mt-1">You'll be asked to name the folder first</p>
+          </div>
+        )}
 
       {isClient ? (
         <div className="rounded-lg border bg-card overflow-hidden" data-testid="client-help-card">

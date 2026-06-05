@@ -7916,6 +7916,13 @@
           "message": "Cloud share: warning shown when no client is allocated (all site clients will be notified)",
           "category": "enhancement",
           "createdAt": "2026-06-05T08:17:00.000Z"
+        },
+        {
+          "id": "c0d1e2f3-a4b5-6789-cdef-789012345679",
+          "patch": 14,
+          "message": "Cloud share: drag and drop files onto the page to upload or create a new folder",
+          "category": "feature",
+          "createdAt": "2026-06-05T08:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
