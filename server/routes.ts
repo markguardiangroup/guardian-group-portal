@@ -31,7 +31,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
@@ -4666,6 +4666,7 @@ export async function registerRoutes(
                   siteName: site?.name || "Unknown Site",
                   clientName: user.fullName,
                   documentUrl,
+                  comments: feedback || null,
                   role: target.role || "consultant",
                 });
                 notifiedUserIds.add(target.id);
@@ -4733,6 +4734,7 @@ export async function registerRoutes(
                   siteName: site?.name || "Unknown Site",
                   clientName: user.fullName,
                   documentUrl,
+                  comments: feedback || null,
                   role: target.role || "consultant",
                 });
                 notifiedUserIds.add(target.id);
@@ -4792,6 +4794,7 @@ export async function registerRoutes(
                     clientName: user.fullName,
                     documentUrl,
                     noConsultantAssigned: true,
+                    comments: feedback || null,
                     role: "admin",
                   });
                   await storage.createAuditLog({
@@ -4839,6 +4842,7 @@ export async function registerRoutes(
                 isMandatory: !!existingDoc.isMandatory,
                 documentUrl,
                 approvedBy: user.fullName,
+                comments: feedback || null,
                 role: "client",
               });
               await storage.createAuditLog({
@@ -4858,6 +4862,117 @@ export async function registerRoutes(
           }
         } catch (err) {
           console.error("Failed to send document approved notifications:", err);
+        }
+      }
+
+      // Send changes-requested notification
+      if (action === "changes" && document.siteId) {
+        try {
+          const site = await storage.getSite(document.siteId);
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+          const modulePath = existingDoc.module === "health_safety" ? "health-safety"
+            : existingDoc.module === "human_resources" ? "human-resources"
+            : existingDoc.module === "employment_law" ? "employment-law"
+            : "documents";
+          const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
+          const changesNotifiedIds = new Set<string>();
+
+          if (user.role === "consultant" || user.role === "admin") {
+            // Notify all active client users on the site
+            const siteUsers = await storage.getUsersBySite(document.siteId);
+            const clientUsers = siteUsers.filter(u => u.role === "client" && u.email && u.status === "active");
+            for (const client of clientUsers) {
+              try {
+                await sendChangesRequestedEmail({
+                  to: client.email!,
+                  fullName: client.fullName,
+                  documentTitle: existingDoc.title,
+                  siteName: site?.name || "Unknown Site",
+                  requestedBy: user.fullName,
+                  comments: feedback || null,
+                  documentUrl,
+                  role: "client",
+                });
+                changesNotifiedIds.add(client.id);
+                await storage.createAuditLog({
+                  action: "email_sent",
+                  userId: user.id,
+                  userName: user.fullName,
+                  entityId: document.siteId,
+                  documentId: document.id,
+                  supportRequestId: null,
+                  module: existingDoc.module,
+                  details: `Changes-requested notification email sent to client ${client.fullName} (${client.email})`,
+                  metadata: JSON.stringify({ targetUserId: client.id, emailType: "changes_requested_notification" }),
+                });
+              } catch (emailError) {
+                console.error(`Failed to send changes-requested notification to client ${client.id}:`, emailError);
+              }
+            }
+          } else if (user.role === "client") {
+            // Notify the consultant — uploader first, then assigned pro consultants, then admins
+            const sendChangesTo = async (target: { id: string; email: string | null; fullName: string; role: string | null }, label: string) => {
+              if (!target.email) return false;
+              if (changesNotifiedIds.has(target.id)) return true;
+              try {
+                await sendChangesRequestedEmail({
+                  to: target.email,
+                  fullName: target.fullName,
+                  documentTitle: existingDoc.title,
+                  siteName: site?.name || "Unknown Site",
+                  requestedBy: user.fullName,
+                  comments: feedback || null,
+                  documentUrl,
+                  role: target.role || "consultant",
+                });
+                changesNotifiedIds.add(target.id);
+                await storage.createAuditLog({
+                  action: "email_sent",
+                  userId: user.id,
+                  userName: user.fullName,
+                  entityId: document.siteId,
+                  documentId: document.id,
+                  supportRequestId: null,
+                  module: existingDoc.module,
+                  details: `Changes-requested notification email sent to ${label} ${target.fullName} (${target.email})`,
+                  metadata: JSON.stringify({ targetUserId: target.id, emailType: "changes_requested_notification" }),
+                });
+                return true;
+              } catch (emailError) {
+                console.error(`Failed to send changes-requested notification to ${label} ${target.id}:`, emailError);
+                return false;
+              }
+            };
+
+            const uploader = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
+            if (uploader && uploader.email && uploader.role === "consultant") {
+              await sendChangesTo(uploader, "consultant (uploader)");
+            }
+            if (changesNotifiedIds.size === 0) {
+              try {
+                const assignments = await storage.getConsultantAssignments(document.siteId);
+                const assignedConsultants = await Promise.all(assignments.map(a => storage.getUser(a.consultantId)));
+                const proConsultants = assignedConsultants.filter(
+                  (u): u is NonNullable<typeof u> =>
+                    !!u && u.role === "consultant" && u.consultantTier === "pro" && !!u.email && u.status === "active"
+                );
+                for (const pc of proConsultants) {
+                  await sendChangesTo(pc, "assigned pro consultant");
+                }
+              } catch (err) {
+                console.error("Failed to look up assigned consultants for changes-requested notification:", err);
+              }
+            }
+            if (changesNotifiedIds.size === 0) {
+              const allUsers = await storage.getAllUsers();
+              const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
+              for (const admin of admins) {
+                await sendChangesTo(admin, "admin");
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to send changes-requested notifications:", err);
         }
       }
 

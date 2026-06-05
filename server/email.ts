@@ -281,6 +281,7 @@ export async function sendDocumentApprovedEmail({
   isMandatory,
   documentUrl,
   approvedBy,
+  comments,
   role,
 }: {
   to: string;
@@ -290,6 +291,7 @@ export async function sendDocumentApprovedEmail({
   isMandatory: boolean;
   documentUrl: string;
   approvedBy: string;
+  comments?: string | null;
   role?: string;
 }) {
   const recipient = resolveRecipient(to, role);
@@ -332,6 +334,12 @@ export async function sendDocumentApprovedEmail({
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
             ${bodyText}
           </p>
+
+          ${comments ? `
+          <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
+            <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Consultant comment:</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+          </div>` : ''}
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -391,6 +399,7 @@ export async function sendClientSignOffEmail({
   clientName,
   documentUrl,
   noConsultantAssigned,
+  comments,
   role,
 }: {
   to: string;
@@ -400,6 +409,7 @@ export async function sendClientSignOffEmail({
   clientName: string;
   documentUrl: string;
   noConsultantAssigned?: boolean;
+  comments?: string | null;
   role?: string;
 }) {
   const recipient = resolveRecipient(to, role);
@@ -433,6 +443,11 @@ export async function sendClientSignOffEmail({
             Hello ${fullName}, a document has been signed off by the client and is now awaiting final approval.
           </p>
           ${noConsultantWarning}
+          ${comments ? `
+          <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
+            <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Client comment:</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+          </div>` : ''}
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
@@ -498,6 +513,7 @@ export async function sendAutoApprovedNotificationEmail({
   siteName,
   clientName,
   documentUrl,
+  comments,
   role,
 }: {
   to: string;
@@ -506,6 +522,7 @@ export async function sendAutoApprovedNotificationEmail({
   siteName: string;
   clientName: string;
   documentUrl: string;
+  comments?: string | null;
   role?: string;
 }) {
   const recipient = resolveRecipient(to, role || "consultant");
@@ -530,6 +547,12 @@ export async function sendAutoApprovedNotificationEmail({
           <p style="color: #475569; font-size: 15px; line-height: 1.6;">
             Hello ${fullName}, a document has been automatically approved after the client signed off. This document was configured to skip the manual consultant final-approval step.
           </p>
+
+          ${comments ? `
+          <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
+            <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Client comment:</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+          </div>` : ''}
 
           <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
@@ -582,6 +605,111 @@ export async function sendAutoApprovedNotificationEmail({
   }
 
   console.log(`Auto-approved notification email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Changes Requested Notification
+// ---------------------------------------------------------------------------
+export async function sendChangesRequestedEmail({
+  to,
+  fullName,
+  documentTitle,
+  siteName,
+  requestedBy,
+  comments,
+  documentUrl,
+  role,
+}: {
+  to: string;
+  fullName: string;
+  documentTitle: string;
+  siteName: string;
+  requestedBy: string;
+  comments?: string | null;
+  documentUrl: string;
+  role?: string;
+}) {
+  const recipient = resolveRecipient(to, role);
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `Changes Required — ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health &amp; Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 12px 16px; margin-bottom: 24px;">
+            <p style="color: #9a3412; font-size: 14px; font-weight: 600; margin: 0;">Action required — changes have been requested on this document.</p>
+          </div>
+
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">Changes Requested</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName}, changes have been requested on the following document. Please review the feedback and update accordingly.
+          </p>
+
+          ${comments ? `
+          <div style="background-color: #fff7ed; border-left: 4px solid #f97316; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
+            <p style="color: #9a3412; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Feedback from ${requestedBy}:</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${comments}</p>
+          </div>` : ''}
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 130px;">Document:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${documentTitle}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Requested by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${requestedBy}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
+                <td style="padding: 6px 0; color: #ea580c; font-size: 14px; font-weight: 600;">Changes Required</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${documentUrl}"
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px;
+                      text-decoration: none; border-radius: 6px; font-size: 16px;
+                      font-weight: 600; display: inline-block;">
+              View Document
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            Please log in to the portal to review the feedback and make the necessary changes.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send changes-requested email:", error);
+    throw new Error(`Failed to send changes-requested email: ${error.message}`);
+  }
+
+  console.log(`Changes-requested email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
   return data;
 }
 

@@ -7860,6 +7860,13 @@
           "message": "Fixed: site card stat tiles restored to correct layout after Changes tile removed",
           "category": "bug",
           "createdAt": "2026-06-05T07:10:00.000Z"
+        },
+        {
+          "id": "a2b3c4d5-e6f7-8901-abcd-901234567891",
+          "patch": 14,
+          "message": "Approval emails now include comments; consultants notified when changes are requested",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T07:20:00.000Z"
         }
       ],
       "publishedPatch": 13,
