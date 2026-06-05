@@ -7846,6 +7846,13 @@
           "message": "Cases: company and site filters moved into the filter bar, scoped to cases only",
           "category": "enhancement",
           "createdAt": "2026-06-05T06:55:00.000Z"
+        },
+        {
+          "id": "e0f1a2b3-c4d5-6789-efab-789012345679",
+          "patch": 14,
+          "message": "Site cards: Changes Requested count merged into the Approval stat and tooltip",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T07:05:00.000Z"
         }
       ],
       "publishedPatch": 13,
