@@ -7818,6 +7818,20 @@
           "message": "Incidents: company and site filters moved from header into the filter bar",
           "category": "enhancement",
           "createdAt": "2026-06-04T23:40:00.000Z"
+        },
+        {
+          "id": "a6b7c8d9-e0f1-2345-abcd-345678901235",
+          "patch": 14,
+          "message": "Fixed: incident company/site filters now appear correctly for admins and consultants",
+          "category": "bug",
+          "createdAt": "2026-06-05T06:30:00.000Z"
+        },
+        {
+          "id": "b7c8d9e0-f1a2-3456-bcde-456789012346",
+          "patch": 14,
+          "message": "Fixed: missing database column causing errors on several pages",
+          "category": "bug",
+          "createdAt": "2026-06-05T06:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

@@ -4704,7 +4704,7 @@ function IncidentsListView() {
                     <SelectItem value="closed">Closed</SelectItem>
                   </SelectContent>
                 </Select>
-                {isPrivileged && sites && sites.length > 0 ? (
+                {isPrivileged ? (
                   <>
                     <CompanyCombobox
                       sites={sites}
