@@ -1270,29 +1270,61 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
             <div className="overflow-hidden">
               <div className="px-5 pb-5 pt-4 space-y-4 border-t">
                 <p className="text-sm text-muted-foreground">
-                  If you need to share files with your advisor — such as policies, certificates, or any other documents — you can upload them here and your advisor will be able to access them straight away.
+                  Share files with your advisor quickly and securely — such as policies, certificates, or any other documents. There are two ways to upload:
                 </p>
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">How it works</p>
-                  <ol className="space-y-2.5">
-                    <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">1</span>
-                      <span>Click <strong className="text-foreground">Upload Documents</strong> in the top right corner to start a new upload.</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">2</span>
-                      <span>Give your upload a clear name so your advisor knows what it contains — for example, <em>"March Risk Assessments"</em> or <em>"Updated Policies"</em>.</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">3</span>
-                      <span>Choose the files you want to share — you can <strong className="text-foreground">drag and drop</strong> files directly into the upload area, or click to browse. You can upload multiple files at once.</span>
-                    </li>
-                    <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">4</span>
-                      <span>That's it — your advisor will have immediate access to everything you've uploaded.</span>
-                    </li>
-                  </ol>
+
+                {/* Two-route side-by-side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Route A — Drag & Drop */}
+                  <div className="rounded-lg border-2 border-module-accent/40 bg-module-accent/5 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-module-accent/20">
+                        <CloudUpload className="h-4 w-4 text-module-accent" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">Drag &amp; Drop</span>
+                      <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-module-accent text-module-accent-foreground">Quickest</span>
+                    </div>
+                    <ol className="space-y-2">
+                      <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-[10px] font-semibold mt-0.5">1</span>
+                        <span>Drag your files from your computer and <strong className="text-foreground">drop them anywhere on this page</strong>.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-[10px] font-semibold mt-0.5">2</span>
+                        <span>Give the upload a clear name — e.g. <em>"March Risk Assessments"</em>.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-[10px] font-semibold mt-0.5">3</span>
+                        <span>Click <strong className="text-foreground">Upload</strong> — done. Multiple files are supported.</span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  {/* Route B — Button */}
+                  <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+                        <Upload className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">Upload Button</span>
+                    </div>
+                    <ol className="space-y-2">
+                      <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20 text-foreground text-[10px] font-semibold mt-0.5">1</span>
+                        <span>Click <strong className="text-foreground">Upload Documents</strong> in the top right corner.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20 text-foreground text-[10px] font-semibold mt-0.5">2</span>
+                        <span>Give the upload a clear name — e.g. <em>"Updated Policies"</em>.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-muted-foreground/20 text-foreground text-[10px] font-semibold mt-0.5">3</span>
+                        <span>Browse and select your files, then click <strong className="text-foreground">Upload</strong>.</span>
+                      </li>
+                    </ol>
+                  </div>
                 </div>
+
                 <div className="flex items-start gap-2 pt-1 border-t text-xs text-amber-700 dark:text-amber-400">
                   <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                   <span>Uploaded files are automatically and permanently deleted <strong>30 days</strong> after upload. If you need them available longer, upload them again closer to when they are needed.</span>

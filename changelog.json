@@ -7983,9 +7983,9 @@
         {
           "id": "f0a1b2c3-d4e5-6789-f012-678901234508",
           "patch": 14,
-          "message": "Updated: upload help now mentions drag and drop as a way to add files",
+          "message": "Improved: upload help redesigned with drag & drop and button routes side by side",
           "category": "enhancement",
-          "createdAt": "2026-06-05T09:30:00.000Z"
+          "createdAt": "2026-06-05T09:35:00.000Z"
         }
       ],
       "publishedPatch": 13,
