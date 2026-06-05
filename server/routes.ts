@@ -18954,17 +18954,19 @@ export async function registerRoutes(
 
       // Determine site scope for this user (documents + privileged incident filtering)
       let userSiteIds: string[] | null = null;
+      // directClientSiteIds — only the sites explicitly assigned to this client (used for portfolio display)
+      let directClientSiteIds: string[] = [];
       if (user.role === "client") {
         const clientSites = await storage.getClientSites(user.id);
-        const directSiteIds = clientSites.map((a) => a.siteId);
+        directClientSiteIds = clientSites.map((a) => a.siteId);
         if (user.companyId) {
           const companySitesRes = await pool.query<{ id: string }>(
             "SELECT id FROM sites WHERE entity_id = $1",
             [user.companyId]
           );
-          userSiteIds = [...new Set([...directSiteIds, ...companySitesRes.rows.map((r) => r.id)])];
+          userSiteIds = [...new Set([...directClientSiteIds, ...companySitesRes.rows.map((r) => r.id)])];
         } else {
-          userSiteIds = directSiteIds;
+          userSiteIds = directClientSiteIds;
         }
       } else if (user.role === "consultant") {
         const consultantSites = await storage.getConsultantSites(user.id);
@@ -19138,14 +19140,16 @@ export async function registerRoutes(
             siteInfo = { id: companyRes.rows[0].id, name: companyRes.rows[0].name };
           }
         }
-        // Fetch all sites accessible to this client (direct assignments + company sites)
+        // Fetch only directly-assigned sites for portfolio display
+        // (userSiteIds also includes all company sites for doc/incident scoping, but the
+        //  portfolio should reflect the admin-managed site assignments so SSE updates are visible)
         let clientSitesList: { id: string; name: string; companyName: string | null }[] = [];
         let clientCompaniesList: { name: string; siteCount: number }[] = [];
-        if (userSiteIds && userSiteIds.length > 0) {
-          const sPlaceholders = userSiteIds.map((_, i) => `$${i + 1}`).join(",");
+        if (directClientSiteIds.length > 0) {
+          const sPlaceholders = directClientSiteIds.map((_, i) => `$${i + 1}`).join(",");
           const sitesRes = await pool.query<{ id: string; name: string; company_name: string | null }>(
             `SELECT s.id, s.name, c.name as company_name FROM sites s LEFT JOIN companies c ON s.entity_id = c.id WHERE s.id IN (${sPlaceholders}) ORDER BY c.name, s.name`,
-            userSiteIds
+            directClientSiteIds
           );
           clientSitesList = sitesRes.rows.map((r) => ({ id: r.id, name: r.name, companyName: r.company_name }));
           // Build grouped company list

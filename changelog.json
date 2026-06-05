@@ -7944,6 +7944,13 @@
           "message": "Fixed: Manage Sites dialog was wiping existing site assignments when opened by a consultant",
           "category": "bug",
           "createdAt": "2026-06-05T08:45:00.000Z"
+        },
+        {
+          "id": "a5b6c7d8-e9f0-1234-abcd-123456789003",
+          "patch": 14,
+          "message": "Fixed: client home page portfolio now reflects actual site assignments via SSE",
+          "category": "bug",
+          "createdAt": "2026-06-05T08:55:00.000Z"
         }
       ],
       "publishedPatch": 13,
