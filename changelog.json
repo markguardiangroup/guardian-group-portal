@@ -8035,6 +8035,13 @@
           "message": "Fixed: clicking an incident row no longer causes a white screen / slow reload",
           "category": "bug",
           "createdAt": "2026-06-05T18:35:00.000Z"
+        },
+        {
+          "id": "b8c9d0e1-f2a3-4567-1289-456789012346",
+          "patch": 14,
+          "message": "Upload New Version dialog now shows Auto Final Approval toggle, pre-filled from the document's current setting",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T18:50:00.000Z"
         }
       ],
       "publishedPatch": 14,
