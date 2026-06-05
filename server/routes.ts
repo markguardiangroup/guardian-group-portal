@@ -4956,6 +4956,7 @@ export async function registerRoutes(
 
       // Send changes-requested notification
       if (action === "changes" && document.siteId) {
+        console.log(`[changes-trace] doc=${documentId} user=${user.id} role=${user.role} — entering changes notification block`);
         try {
           const site = await storage.getSite(document.siteId);
           const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
@@ -5045,9 +5046,11 @@ export async function registerRoutes(
 
             // Step 1: uploader (consultant or admin — whoever is responsible for the doc)
             const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
+            console.log(`[changes-trace] uploader=${uploaderForChanges?.id} uploaderRole=${uploaderForChanges?.role}`);
             if (uploaderForChanges && (uploaderForChanges.role === "consultant" || uploaderForChanges.role === "admin")) {
               await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "admin" ? "admin (uploader)" : "consultant (uploader)");
             }
+            console.log(`[changes-trace] after step1 notifiedSize=${changesNotifiedIds.size}`);
             // Step 2: first assigned pro consultant (only if step 1 didn't fire)
             if (changesNotifiedIds.size === 0) {
               try {
