@@ -4820,7 +4820,8 @@ export async function registerRoutes(
       }
 
       // Send approval confirmation email to all clients assigned to the site
-      if (isFinalApproval && document.siteId) {
+      // Skip for auto-final approval — the client triggered it themselves; consultant is already notified separately
+      if (isFinalApproval && !isAutoFinalApproval && document.siteId) {
         try {
           const site = await storage.getSite(document.siteId);
           const siteUsers = await storage.getUsersBySite(document.siteId);

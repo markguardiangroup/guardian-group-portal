@@ -7867,6 +7867,13 @@
           "message": "Approval emails now include comments; consultants notified when changes are requested",
           "category": "enhancement",
           "createdAt": "2026-06-05T07:20:00.000Z"
+        },
+        {
+          "id": "b3c4d5e6-f7a8-9012-bcde-012345678902",
+          "patch": 14,
+          "message": "Fixed: auto-approved documents no longer send redundant email to the client who approved",
+          "category": "bug",
+          "createdAt": "2026-06-05T07:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
