@@ -4824,10 +4824,10 @@ export async function registerRoutes(
           const signOffEntry = docLogs.find(l => l.action === "document_signed_off" && l.userId);
           const signOffClient = signOffEntry?.userId ? await storage.getUser(signOffEntry.userId) : null;
 
-          // Resolve recipients: the signing-off client, or fall back to all active clients
+          // Only notify the client who signed off — no blast to all site clients
           const approvedRecipients = (signOffClient && signOffClient.email && signOffClient.status === "active")
             ? [signOffClient]
-            : (await storage.getUsersBySite(document.siteId)).filter(u => u.role === "client" && u.email && u.status === "active");
+            : [];
 
           for (const client of approvedRecipients) {
             try {
@@ -4875,13 +4875,14 @@ export async function registerRoutes(
           const changesNotifiedIds = new Set<string>();
 
           if (user.role === "consultant" || user.role === "admin") {
-            // Notify the client who signed off — look up from audit log, fall back to all active clients
+            // Notify the client who signed off — look up from audit log only
             const docLogsForChanges = await storage.getAuditLogs(document.id);
             const signOffEntryForChanges = docLogsForChanges.find(l => l.action === "document_signed_off" && l.userId);
             const signOffClientForChanges = signOffEntryForChanges?.userId ? await storage.getUser(signOffEntryForChanges.userId) : null;
+            // Only notify the client who signed off — no blast to all site clients
             const changesRecipients = (signOffClientForChanges && signOffClientForChanges.email && signOffClientForChanges.status === "active")
               ? [signOffClientForChanges]
-              : (await storage.getUsersBySite(document.siteId)).filter(u => u.role === "client" && u.email && u.status === "active");
+              : [];
 
             for (const client of changesRecipients) {
               try {

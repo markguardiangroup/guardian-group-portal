@@ -7888,6 +7888,13 @@
           "message": "Approval emails now sent only to the client who signed off, not all site clients",
           "category": "enhancement",
           "createdAt": "2026-06-05T07:35:00.000Z"
+        },
+        {
+          "id": "e6f7a8b9-c0d1-2345-efab-345678901235",
+          "patch": 14,
+          "message": "Removed fallback to all site clients on approval emails — only the approving client is notified",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T07:40:00.000Z"
         }
       ],
       "publishedPatch": 13,
