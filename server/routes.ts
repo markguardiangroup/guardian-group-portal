@@ -3657,6 +3657,23 @@ export async function registerRoutes(
       if (!fileName || !fileUrl || !fileSize || !mimeType) {
         return res.status(400).json({ error: "Missing required file information" });
       }
+
+      // Determine approval status BEFORE any DB writes so we can validate early.
+      let newStatus: "approval_required" | "compliant" | "approved" = "approval_required";
+      let newApprovalStatus: "pending" | null = "pending";
+
+      if (document.templateId) {
+        const template = await storage.getDocumentTemplate(document.templateId);
+        if (template && template.requiresApproval === false) {
+          newStatus = document.isMandatory ? "compliant" : "approved";
+          newApprovalStatus = null;
+        }
+      }
+
+      // Approver is mandatory when the new version will require client approval.
+      if (newApprovalStatus === "pending" && !approvalRequestedFrom) {
+        return res.status(400).json({ error: "An approver must be selected when uploading a new version that requires approval" });
+      }
       
       const newVersionNumber = document.version + 1;
       
@@ -3684,19 +3701,6 @@ export async function registerRoutes(
         uploadedBy: document.uploadedBy,
         changeNote: changeNote || `Replaced by version ${newVersionNumber}`,
       });
-      
-      // Check if template requires approval
-      let newStatus: "approval_required" | "compliant" | "approved" = "approval_required";
-      let newApprovalStatus: "pending" | null = "pending";
-      
-      if (document.templateId) {
-        const template = await storage.getDocumentTemplate(document.templateId);
-        if (template && template.requiresApproval === false) {
-          // Template doesn't require approval — required docs → compliant, non-required → approved
-          newStatus = document.isMandatory ? "compliant" : "approved";
-          newApprovalStatus = null;
-        }
-      }
       
       // Update the main document with new file info. Reassign uploadedBy to
       // the user who uploaded this new version so that any subsequent client

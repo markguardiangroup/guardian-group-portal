@@ -3471,6 +3471,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const handleUploadVersion = () => {
     if (!newVersionFile) return;
+    if (!newVersionApprover) return;
     uploadVersionMutation.mutate({
       fileName: newVersionFile.fileName,
       fileUrl: newVersionFile.objectPath,
@@ -5149,7 +5150,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               />
             )}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Approver</label>
+              <label className="text-sm font-medium">Approver <span className="text-destructive">*</span></label>
               <Select value={newVersionApprover} onValueChange={setNewVersionApprover}>
                 <SelectTrigger data-testid="select-version-approver">
                   <SelectValue placeholder="Select approver..." />
@@ -5208,7 +5209,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Button>
             <Button
               onClick={handleUploadVersion}
-              disabled={!newVersionFile || uploadVersionMutation.isPending}
+              disabled={!newVersionFile || !newVersionApprover || uploadVersionMutation.isPending}
             >
               {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
             </Button>
