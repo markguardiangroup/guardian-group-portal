@@ -4559,9 +4559,12 @@ export async function registerRoutes(
       let documentStatus: "compliant" | "approval_required" | "overdue" | "approved";
       let auditAction: "document_approved" | "changes_requested" | "document_signed_off";
 
-      // When autoFinalApproval is enabled and the client is signing off,
-      // treat it as an immediate final approval — bypass the consultant step.
-      const isAutoFinalApproval = isClientSignOff && existingDoc.autoFinalApproval === true;
+      // When autoFinalApproval is enabled and the client is signing off with
+      // approval (not requesting changes), treat it as an immediate final
+      // approval — bypass the consultant step. Must gate on action === "approve"
+      // so that a changes_requested submission never triggers the auto-approval
+      // email path even if the doc has autoFinalApproval enabled.
+      const isAutoFinalApproval = isClientSignOff && existingDoc.autoFinalApproval === true && action === "approve";
 
       switch (action) {
         case "approve":
