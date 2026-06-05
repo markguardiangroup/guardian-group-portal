@@ -8000,6 +8000,13 @@
           "message": "Security: user-provided text in emails and print templates is now HTML-escaped",
           "category": "enhancement",
           "createdAt": "2026-06-05T15:12:00.000Z"
+        },
+        {
+          "id": "c3d4e5f6-a7b8-9012-cd34-901234567821",
+          "patch": 14,
+          "message": "Fixed: Group Owner primary contacts can now see Cloud Share folders for member company sites",
+          "category": "bug",
+          "createdAt": "2026-06-05T17:32:00.000Z"
         }
       ],
       "publishedPatch": 14,

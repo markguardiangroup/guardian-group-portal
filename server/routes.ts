@@ -17129,12 +17129,17 @@ export async function registerRoutes(
 
       await storage.cleanupExpiredFolders();
 
+      const effectiveCompanyIds = user.role === "client" && user.companyId
+        ? [...(await getEffectiveCompanyIds(user.companyId))]
+        : undefined;
+
       const folders = await storage.getClientUploadFolders({
         module,
         siteId,
         userId: user.id,
         userRole: user.role,
         userCompanyId: user.companyId,
+        effectiveCompanyIds,
       });
       res.json(folders);
     } catch (error) {

@@ -500,7 +500,7 @@ export interface IStorage {
 
   // Client Upload Folders
   // Extended types used by client upload methods
-  getClientUploadFolders(params: { module: string; siteId?: string; userId: string; userRole: string; userCompanyId: string | null }): Promise<ClientUploadFolderWithMeta[]>;
+  getClientUploadFolders(params: { module: string; siteId?: string; userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<ClientUploadFolderWithMeta[]>;
   getClientUploadFolder(id: string): Promise<ClientUploadFolder | undefined>;
   createClientUploadFolder(data: InsertClientUploadFolder): Promise<ClientUploadFolder>;
   deleteClientUploadFolder(id: string): Promise<boolean>;
@@ -4939,8 +4939,8 @@ export class MemStorage implements IStorage {
   }
 
   // Client Upload Folders
-  async getClientUploadFolders(params: { module: string; siteId?: string; userId: string; userRole: string; userCompanyId: string | null }): Promise<ClientUploadFolderWithMeta[]> {
-    const { module, siteId, userId, userRole, userCompanyId } = params;
+  async getClientUploadFolders(params: { module: string; siteId?: string; userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<ClientUploadFolderWithMeta[]> {
+    const { module, siteId, userId, userRole, userCompanyId, effectiveCompanyIds } = params;
     const now = new Date();
 
     const allFolders = await db
@@ -4967,10 +4967,13 @@ export class MemStorage implements IStorage {
       visibleFolders = allFolders.filter((f) => assignedSiteIds.has(f.siteId));
     } else if (userRole === "client") {
       if (!userCompanyId) return [];
+      const effectiveIds = effectiveCompanyIds && effectiveCompanyIds.length > 0
+        ? effectiveCompanyIds
+        : [userCompanyId];
       const companySites = await db
         .select()
         .from(sitesTable)
-        .where(eq(sitesTable.companyId, userCompanyId));
+        .where(inArray(sitesTable.companyId, effectiveIds));
       const companySiteIds = new Set(companySites.map((s) => s.id));
 
       const accessGrants = await db
