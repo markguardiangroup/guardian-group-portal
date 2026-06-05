@@ -1286,8 +1286,10 @@ export async function registerRoutes(
       // Site must be in the client's effective company set (own company + GO members)
       const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
       if (!effectiveCompanyIds.has(site.companyId)) return false;
-      
-      // Client can only access sites they are explicitly assigned to
+
+      // For member-company sites (GO access): effective-company membership is sufficient.
+      // For own-company sites: require an explicit site assignment.
+      if (site.companyId !== user.companyId) return true;
       const clientSites = await storage.getClientSites(user.id);
       return clientSites.some(a => a.siteId === siteId);
     }
@@ -14444,6 +14446,21 @@ export async function registerRoutes(
           };
         })
       );
+
+      // For Group Owner clients, also include sites from member companies that
+      // they aren't explicitly assigned to (GO primary contacts have group-wide visibility)
+      const assignedSiteIds = new Set(enhancedAssignments.map((a) => a.siteId));
+      const effectiveIds = targetClient.companyId
+        ? await getEffectiveCompanyIds(targetClient.companyId)
+        : new Set<string>();
+      const memberCompanyIds = [...effectiveIds].filter((id) => id !== targetClient.companyId);
+      if (memberCompanyIds.length > 0) {
+        const allSites = await storage.getSites();
+        const memberSites = allSites
+          .filter((s) => memberCompanyIds.includes(s.companyId) && !assignedSiteIds.has(s.id))
+          .map((s) => ({ siteId: s.id, siteName: s.name }));
+        enhancedAssignments.push(...memberSites as any[]);
+      }
       
       res.json(enhancedAssignments);
     } catch (error) {

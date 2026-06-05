@@ -8007,6 +8007,13 @@
           "message": "Fixed: Group Owner primary contacts can now see Cloud Share folders for member company sites",
           "category": "bug",
           "createdAt": "2026-06-05T17:32:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-b8c9-0123-de45-012345678922",
+          "patch": 14,
+          "message": "Fixed: Group Owner clients can now navigate to and upload into member company sites on Cloud Share",
+          "category": "bug",
+          "createdAt": "2026-06-05T17:50:00.000Z"
         }
       ],
       "publishedPatch": 14,
