@@ -745,6 +745,7 @@ export default function UserManagement() {
       }
       setPendingRemoveSiteIds(prev => [...prev, siteId]);
     }
+    setCompanyWideInfoName(null);
   };
 
   const manageSitesAddAllFromCompany = (companyId: string) => {

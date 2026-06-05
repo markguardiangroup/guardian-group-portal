@@ -7972,6 +7972,13 @@
           "message": "Fixed: client home page now refreshes when returning to the browser tab",
           "category": "bug",
           "createdAt": "2026-06-05T09:15:00.000Z"
+        },
+        {
+          "id": "e9f0a1b2-c3d4-5678-ef01-567890123407",
+          "patch": 14,
+          "message": "Fixed: company-wide notice clears when a site is removed in Manage Sites",
+          "category": "bug",
+          "createdAt": "2026-06-05T09:25:00.000Z"
         }
       ],
       "publishedPatch": 13,
