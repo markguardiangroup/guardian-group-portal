@@ -257,20 +257,6 @@ function CasesList() {
     }
   }, [sites, setSelectedSiteId, setSelectedCompany]);
 
-  // Only show sites that have at least one case
-  const sitesWithCases = useMemo(() => {
-    if (!sites) return [];
-    const siteIds = new Set((cases ?? []).map((c: any) => c.siteId).filter(Boolean));
-    return sites.filter(s => siteIds.has(s.id));
-  }, [sites, cases]);
-
-  // Filter sites by selected company (from cases-only list)
-  const filteredSites = useMemo(() => {
-    const base = sitesWithCases;
-    if (!selectedCompany || selectedCompany === "all") return base;
-    return base.filter(s => s.companyName === selectedCompany);
-  }, [sitesWithCases, selectedCompany]);
-  
   // Get site IDs for the selected company
   const companySiteIds = useMemo(() => {
     if (!sites || !selectedCompany || selectedCompany === "all") return null;
@@ -310,6 +296,20 @@ function CasesList() {
     },
   });
   if (isLoading) casesWasLoadingRef.current = true;
+
+  // Only show sites that have at least one case
+  const sitesWithCases = useMemo(() => {
+    if (!sites) return [];
+    const siteIds = new Set((cases ?? []).map((c: any) => c.siteId).filter(Boolean));
+    return sites.filter(s => siteIds.has(s.id));
+  }, [sites, cases]);
+
+  // Filter sites by selected company (from cases-only list)
+  const filteredSites = useMemo(() => {
+    const base = sitesWithCases;
+    if (!selectedCompany || selectedCompany === "all") return base;
+    return base.filter(s => s.companyName === selectedCompany);
+  }, [sitesWithCases, selectedCompany]);
 
   // Archive mutation
   const archiveCaseMutation = useMutation({
