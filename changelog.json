@@ -7853,6 +7853,13 @@
           "message": "Site cards: Changes Requested count merged into the Approval stat and tooltip",
           "category": "enhancement",
           "createdAt": "2026-06-05T07:05:00.000Z"
+        },
+        {
+          "id": "f1a2b3c4-d5e6-7890-fabc-890123456780",
+          "patch": 14,
+          "message": "Fixed: site card stat tiles restored to correct layout after Changes tile removed",
+          "category": "bug",
+          "createdAt": "2026-06-05T07:10:00.000Z"
         }
       ],
       "publishedPatch": 13,

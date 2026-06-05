@@ -802,7 +802,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       )}
 
                       <TooltipProvider delayDuration={300}>
-                        <div className="grid grid-cols-5 gap-1.5 text-center">
+                        <div className="grid grid-cols-4 gap-1.5 text-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1037,7 +1037,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           )}
 
                           <TooltipProvider delayDuration={300}>
-                            <div className="grid grid-cols-5 gap-1.5 text-center">
+                            <div className="grid grid-cols-4 gap-1.5 text-center">
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1251,7 +1251,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     )}
 
                     <TooltipProvider delayDuration={300}>
-                      <div className="grid grid-cols-5 gap-1.5 text-center">
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1503,7 +1503,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     {/* Stats row */}
                     <TooltipProvider delayDuration={300}>
-                      <div className="grid grid-cols-5 gap-1.5 text-center">
+                      <div className="grid grid-cols-4 gap-1.5 text-center">
                         {/* Total */}
                         <Tooltip>
                           <TooltipTrigger asChild>
