@@ -399,8 +399,10 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           return (
             (sharedWithSiteIds?.includes(siteId) ?? false) ||
             !!(siteCompanyId && sharedWithCompanyIds?.includes(siteCompanyId)) ||
-            // Doc owned by the same company as the site (no share record on origin docs)
-            !!(siteCompanyId && (doc as any).entityId === siteCompanyId)
+            // Company-scoped docs owned by the same company always appear at its sites.
+            // Group-scoped docs require an explicit share — if there are none, the
+            // doc was not shared and should not count here.
+            !!(siteCompanyId && (doc as any).entityId === siteCompanyId && (doc as any).scope !== "group")
           );
         }
         return false;
@@ -425,8 +427,9 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
           return (
             (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
             (sharedWithCompanyIds?.some(cid => companyIdSet.has(cid)) ?? false) ||
-            // Doc owned by any in-scope company (no share record needed for origin)
-            !!(entityId && companyIdSet.has(entityId))
+            // Company-scoped docs owned by any in-scope company always appear.
+            // Group-scoped docs require an explicit share record.
+            !!(entityId && companyIdSet.has(entityId) && (doc as any).scope !== "group")
           );
         }
         return false;

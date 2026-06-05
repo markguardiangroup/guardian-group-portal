@@ -8056,6 +8056,13 @@
           "message": "Improved: Auto Final Approval setting is now reliably saved when uploading a new document version",
           "category": "bug",
           "createdAt": "2026-06-05T19:20:00.000Z"
+        },
+        {
+          "id": "e1f2a3b4-c5d6-7890-e1f2-a3b4c5d67890",
+          "patch": 14,
+          "message": "Fixed: unshared group-level documents no longer counted in site document totals",
+          "category": "bug",
+          "createdAt": "2026-06-05T20:00:00.000Z"
         }
       ],
       "publishedPatch": 14,

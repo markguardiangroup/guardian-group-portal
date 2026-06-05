@@ -3169,7 +3169,13 @@ export async function registerRoutes(
           if (sharedWithSiteIds.has(sid)) return true;
           const companyId = siteToCompanySummary.get(sid);
           if (companyId && sharedWithCompanyIds.has(companyId)) return true;
-          if (companyId && doc.entityId === companyId) return true;
+          // Company-scoped docs owned by this company always count for its sites.
+          // Group-scoped docs owned by this company only count if at least one
+          // share record exists (i.e. the uploader chose to share it).
+          if (companyId && doc.entityId === companyId) {
+            if (doc.scope === "group") return shareRecords.length > 0;
+            return true;
+          }
           return false;
         }).length;
 
