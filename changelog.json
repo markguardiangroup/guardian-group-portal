@@ -7937,6 +7937,13 @@
           "message": "Cloud share: drag onto an existing folder row to upload directly into it",
           "category": "enhancement",
           "createdAt": "2026-06-05T08:35:00.000Z"
+        },
+        {
+          "id": "f3a4b5c6-d7e8-9012-fabc-012345678902",
+          "patch": 14,
+          "message": "Fixed: Manage Sites dialog was wiping existing site assignments when opened by a consultant",
+          "category": "bug",
+          "createdAt": "2026-06-05T08:45:00.000Z"
         }
       ],
       "publishedPatch": 13,

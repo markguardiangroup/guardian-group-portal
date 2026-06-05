@@ -14460,9 +14460,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin can view user assignments
-      if (currentUser.role !== "admin") {
-        return res.status(403).json({ error: "Only admins can view user site assignments" });
+      // Admin or consultant can view user site assignments
+      if (currentUser.role !== "admin" && currentUser.role !== "consultant") {
+        return res.status(403).json({ error: "Access denied" });
       }
       
       const targetUser = await storage.getUser(req.params.userId);

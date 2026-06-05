@@ -838,8 +838,8 @@ export default function UserManagement() {
       const data = await response.json();
       setUserSiteAssignments(data || []);
     } catch (error) {
+      // Do NOT wipe state on error — keep whatever was pre-populated from the user object
       console.error("Failed to fetch user site assignments:", error);
-      setUserSiteAssignments([]);
     }
   };
 
