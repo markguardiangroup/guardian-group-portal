@@ -8070,6 +8070,13 @@
           "message": "Fixed: site cards, Document Count Audit, and HR dashboard now show correct document totals",
           "category": "bug",
           "createdAt": "2026-06-05T20:15:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67891",
+          "patch": 14,
+          "message": "Fixed: Approval count on site/group/company cards no longer double-counts documents",
+          "category": "bug",
+          "createdAt": "2026-06-05T20:30:00.000Z"
         }
       ],
       "publishedPatch": 14,

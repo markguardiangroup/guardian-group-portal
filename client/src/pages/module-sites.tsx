@@ -845,9 +845,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (groupPending + groupChangesRequested) > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(groupPending + groupChangesRequested) > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupPending + groupChangesRequested}</p>}
-                                <p className={`text-[10px] ${!isLoadingDocs && (groupPending + groupChangesRequested) > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                              <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                                {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{groupPending}</p>}
+                                <p className={`text-[10px] ${!isLoadingDocs && groupPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs space-y-0.5">
@@ -1080,9 +1080,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (cPending + cChangesRequested) > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(cPending + cChangesRequested) > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending + cChangesRequested}</p>}
-                                    <p className={`text-[10px] ${!isLoadingDocs && (cPending + cChangesRequested) > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                                  <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cPending > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                                    {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cPending > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`} data-testid={`text-company-missing-${company.id}`}>{cPending}</p>}
+                                    <p className={`text-[10px] ${!isLoadingDocs && cPending > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-xs space-y-0.5">
@@ -1558,9 +1558,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         {/* Approval */}
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (pendingAll + sChangesRequested) > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(pendingAll + sChangesRequested) > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{pendingAll + sChangesRequested}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && (pendingAll + sChangesRequested) > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && pendingAll > 0 ? "bg-amber-50 dark:bg-amber-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${pendingAll > 0 ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>{pendingAll}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && pendingAll > 0 ? "text-amber-600/70 dark:text-amber-400/70" : "text-muted-foreground/70"}`}>Approval</p>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
