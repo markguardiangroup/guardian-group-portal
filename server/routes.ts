@@ -4493,10 +4493,7 @@ export async function registerRoutes(
           );
         
         if (!isScopedOriginClient) {
-          // Legacy behavior: clients can only sign off on documents uploaded by consultants/admins
-          if (uploaderRole === "client") {
-            return res.status(403).json({ error: "Client-uploaded documents must be approved by a consultant or admin" });
-          }
+          // Clients can only sign off on consultant/admin-uploaded documents
         }
         
         // Document must be pending for client sign-off or direct approval
@@ -4528,26 +4525,17 @@ export async function registerRoutes(
           isClientSignOff = true;
         }
       } else {
-        // Consultants/admins
-        if (uploaderRole === "client") {
-          // Approving a client-uploaded document (direct approval)
-          if (currentApprovalStatus !== "pending") {
-            return res.status(400).json({ error: "This document is not awaiting approval" });
-          }
-          isConsultantApprovalOfClientDoc = true;
+        // Consultants/admins — documents are always uploaded by consultants/admins
+        // Check if it's awaiting final approval (client already signed off)
+        if (currentApprovalStatus === "client_signed_off") {
+          isConsultantFinalApproval = true;
+        } else if (currentApprovalStatus === "pending") {
+          return res.status(400).json({ 
+            error: "Cannot approve yet - client sign-off required",
+            message: "This document was uploaded by a consultant and requires client sign-off before final approval. The client must review and sign off on the document first, then you can give final approval."
+          });
         } else {
-          // This is a consultant/admin-uploaded document
-          // Check if it's awaiting final approval (client already signed off)
-          if (currentApprovalStatus === "client_signed_off") {
-            isConsultantFinalApproval = true;
-          } else if (currentApprovalStatus === "pending") {
-            return res.status(400).json({ 
-              error: "Cannot approve yet - client sign-off required",
-              message: "This document was uploaded by a consultant and requires client sign-off before final approval. The client must review and sign off on the document first, then you can give final approval."
-            });
-          } else {
-            return res.status(400).json({ error: "This document is not awaiting approval" });
-          }
+          return res.status(400).json({ error: "This document is not awaiting approval" });
         }
       }
 
@@ -4908,67 +4896,6 @@ export async function registerRoutes(
                 });
               } catch (emailError) {
                 console.error(`Failed to send changes-requested notification to client ${client.id}:`, emailError);
-              }
-            }
-          } else if (user.role === "client") {
-            // Notify the consultant — uploader first, then assigned pro consultants, then admins
-            const sendChangesTo = async (target: { id: string; email: string | null; fullName: string; role: string | null }, label: string) => {
-              if (!target.email) return false;
-              if (changesNotifiedIds.has(target.id)) return true;
-              try {
-                await sendChangesRequestedEmail({
-                  to: target.email,
-                  fullName: target.fullName,
-                  documentTitle: existingDoc.title,
-                  siteName: site?.name || "Unknown Site",
-                  requestedBy: user.fullName,
-                  comments: feedback || null,
-                  documentUrl,
-                  role: target.role || "consultant",
-                });
-                changesNotifiedIds.add(target.id);
-                await storage.createAuditLog({
-                  action: "email_sent",
-                  userId: user.id,
-                  userName: user.fullName,
-                  entityId: document.siteId,
-                  documentId: document.id,
-                  supportRequestId: null,
-                  module: existingDoc.module,
-                  details: `Changes-requested notification email sent to ${label} ${target.fullName} (${target.email})`,
-                  metadata: JSON.stringify({ targetUserId: target.id, emailType: "changes_requested_notification" }),
-                });
-                return true;
-              } catch (emailError) {
-                console.error(`Failed to send changes-requested notification to ${label} ${target.id}:`, emailError);
-                return false;
-              }
-            };
-
-            const uploader = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
-            if (uploader && uploader.email && uploader.role === "consultant") {
-              await sendChangesTo(uploader, "consultant (uploader)");
-            }
-            if (changesNotifiedIds.size === 0) {
-              try {
-                const assignments = await storage.getConsultantAssignments(document.siteId);
-                const assignedConsultants = await Promise.all(assignments.map(a => storage.getUser(a.consultantId)));
-                const proConsultants = assignedConsultants.filter(
-                  (u): u is NonNullable<typeof u> =>
-                    !!u && u.role === "consultant" && u.consultantTier === "pro" && !!u.email && u.status === "active"
-                );
-                for (const pc of proConsultants) {
-                  await sendChangesTo(pc, "assigned pro consultant");
-                }
-              } catch (err) {
-                console.error("Failed to look up assigned consultants for changes-requested notification:", err);
-              }
-            }
-            if (changesNotifiedIds.size === 0) {
-              const allUsers = await storage.getAllUsers();
-              const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
-              for (const admin of admins) {
-                await sendChangesTo(admin, "admin");
               }
             }
           }

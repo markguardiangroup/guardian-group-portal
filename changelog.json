@@ -7874,6 +7874,13 @@
           "message": "Fixed: auto-approved documents no longer send redundant email to the client who approved",
           "category": "bug",
           "createdAt": "2026-06-05T07:25:00.000Z"
+        },
+        {
+          "id": "c4d5e6f7-a8b9-0123-cdef-123456789013",
+          "patch": 14,
+          "message": "Tidied approval logic: removed unreachable client-upload code paths",
+          "category": "other",
+          "createdAt": "2026-06-05T07:30:00.000Z"
         }
       ],
       "publishedPatch": 13,
