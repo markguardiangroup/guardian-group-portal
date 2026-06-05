@@ -7979,6 +7979,13 @@
           "message": "Fixed: company-wide notice clears when a site is removed in Manage Sites",
           "category": "bug",
           "createdAt": "2026-06-05T09:25:00.000Z"
+        },
+        {
+          "id": "f0a1b2c3-d4e5-6789-f012-678901234508",
+          "patch": 14,
+          "message": "Updated: upload help now mentions drag and drop as a way to add files",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T09:30:00.000Z"
         }
       ],
       "publishedPatch": 13,

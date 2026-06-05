@@ -1285,7 +1285,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                     </li>
                     <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">3</span>
-                      <span>Choose the files you want to share — you can upload multiple files at once.</span>
+                      <span>Choose the files you want to share — you can <strong className="text-foreground">drag and drop</strong> files directly into the upload area, or click to browse. You can upload multiple files at once.</span>
                     </li>
                     <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-module-accent text-module-accent-foreground text-xs font-semibold">4</span>
