@@ -17260,6 +17260,16 @@ export async function registerRoutes(
         }
       }
 
+      // Notify relevant users in real time so the folder list updates without a refresh
+      try {
+        const csPayload = { folderId: folder.id };
+        if (folder.allocatedClientId) {
+          emitToUser(folder.allocatedClientId, "cloud-share-updated", csPayload);
+        }
+        emitToRole("admin", "cloud-share-updated", csPayload);
+        emitToRole("consultant", "cloud-share-updated", csPayload);
+      } catch { /* non-fatal */ }
+
       res.status(201).json(folder);
     } catch (error) {
       console.error("Error creating client upload folder:", error);
@@ -17292,6 +17302,9 @@ export async function registerRoutes(
         } catch {}
       }
 
+      // Capture access grants before deletion so we can still notify those users
+      const folderAccessGrants = await storage.getClientUploadFolderAccess(folder.id);
+
       await storage.deleteClientUploadFolder(folder.id);
 
       await storage.createAuditLog({
@@ -17303,6 +17316,18 @@ export async function registerRoutes(
         details: `Deleted upload folder "${folder.name}" and ${files.length} file(s)`,
         siteId: folder.siteId,
       });
+
+      try {
+        const csPayload = { folderId: folder.id };
+        for (const access of folderAccessGrants) {
+          emitToUser(access.userId, "cloud-share-updated", csPayload);
+        }
+        if (folder.allocatedClientId) {
+          emitToUser(folder.allocatedClientId, "cloud-share-updated", csPayload);
+        }
+        emitToRole("admin", "cloud-share-updated", csPayload);
+        emitToRole("consultant", "cloud-share-updated", csPayload);
+      } catch { /* non-fatal */ }
 
       res.json({ success: true });
     } catch (error) {
@@ -17668,6 +17693,19 @@ export async function registerRoutes(
         details: `Deleted file "${upload.fileName}" from folder "${folder.name}"`,
         siteId: folder.siteId,
       });
+
+      try {
+        const csPayload = { folderId: folder.id };
+        const folderAccess = await storage.getClientUploadFolderAccess(folder.id);
+        for (const access of folderAccess) {
+          emitToUser(access.userId, "cloud-share-updated", csPayload);
+        }
+        if (folder.allocatedClientId) {
+          emitToUser(folder.allocatedClientId, "cloud-share-updated", csPayload);
+        }
+        emitToRole("admin", "cloud-share-updated", csPayload);
+        emitToRole("consultant", "cloud-share-updated", csPayload);
+      } catch { /* non-fatal */ }
 
       res.json({ success: true });
     } catch (error) {

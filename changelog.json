@@ -8014,6 +8014,13 @@
           "message": "Fixed: Group Owner clients can now navigate to and upload into member company sites on Cloud Share",
           "category": "bug",
           "createdAt": "2026-06-05T17:50:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-c9d0-1234-ef56-123456789023",
+          "patch": 14,
+          "message": "Cloud Share folder and file changes now appear instantly without needing a page refresh",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T18:05:00.000Z"
         }
       ],
       "publishedPatch": 14,
