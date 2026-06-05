@@ -3696,6 +3696,9 @@ export async function registerRoutes(
       // the user who uploaded this new version so that any subsequent client
       // sign-off notification goes to them (the consultant currently driving
       // the approval cycle), not the original uploader.
+      const resolvedAutoFinalApproval = typeof autoFinalApproval === "boolean" ? autoFinalApproval : document.autoFinalApproval;
+      console.log(`[version-upload] doc=${document.id} autoFinalApproval received=${autoFinalApproval} (${typeof autoFinalApproval}) → saving=${resolvedAutoFinalApproval}`);
+
       const updatedDocument = await storage.updateDocument(document.id, {
         fileName,
         fileUrl,
@@ -3707,7 +3710,7 @@ export async function registerRoutes(
         uploadedBy: user.id,
         updatedAt: new Date(),
         ...(approvalRequestedFrom ? { approvalRequestedFrom } : { approvalRequestedFrom: null }),
-        ...(typeof autoFinalApproval === "boolean" ? { autoFinalApproval } : {}),
+        autoFinalApproval: resolvedAutoFinalApproval,
       });
       
       // Log the version upload

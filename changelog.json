@@ -8049,6 +8049,13 @@
           "message": "Fixed: Upload New Version approver list now shows client users even when document is already approved",
           "category": "bug",
           "createdAt": "2026-06-05T19:05:00.000Z"
+        },
+        {
+          "id": "d0e1f2a3-b4c5-6789-3401-678901234568",
+          "patch": 14,
+          "message": "Improved: Auto Final Approval setting is now reliably saved when uploading a new document version",
+          "category": "bug",
+          "createdAt": "2026-06-05T19:20:00.000Z"
         }
       ],
       "publishedPatch": 14,
