@@ -31,7 +31,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
@@ -219,6 +219,10 @@ const DOCX_PREVIEW_MIME_TYPES = new Set([
 // In-memory cache stores the PDF buffer directly so repeat views skip GCS entirely.
 const docxPreviewCache = new Map<string, { buffer: Buffer; gcsPath: string; cachedAt: number }>();
 const DOCX_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Per-site cooldown for cloud upload notifications — one email per site per hour maximum.
+const cloudUploadNotifiedAt = new Map<string, Date>();
+const CLOUD_UPLOAD_NOTIFY_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 // Periodic cleanup: evict expired entries and delete their backing GCS objects.
 setInterval(async () => {
@@ -17395,17 +17399,119 @@ export async function registerRoutes(
       try {
         const folderAccess = await storage.getClientUploadFolderAccess(folderId);
         const csPayload = { folderId, uploadId: upload.id };
-        // Emit to explicitly granted users
         for (const access of folderAccess) {
           emitToUser(access.userId, "cloud-share-updated", csPayload);
         }
-        // Also emit to the allocatedClientId who has implicit access without a grant row
         if (folder.allocatedClientId) {
           emitToUser(folder.allocatedClientId, "cloud-share-updated", csPayload);
         }
         emitToRole("admin", "cloud-share-updated", csPayload);
         emitToRole("consultant", "cloud-share-updated", csPayload);
       } catch { /* non-fatal */ }
+
+      // Send cloud upload notification email — one per site per hour
+      try {
+        const siteId = folder.siteId;
+        const lastNotified = cloudUploadNotifiedAt.get(siteId);
+        const cooldownExpired = !lastNotified || (Date.now() - lastNotified.getTime()) > CLOUD_UPLOAD_NOTIFY_COOLDOWN_MS;
+
+        if (cooldownExpired) {
+          const site = await storage.getSite(siteId);
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+          const modulePath = folder.module === "health_safety" ? "health-safety"
+            : folder.module === "human_resources" ? "human-resources"
+            : folder.module === "employment_law" ? "employment-law"
+            : "cloud-share";
+          const portalUrl = `${baseUrl}/${modulePath}/cloud-share`;
+
+          if (user.role === "client") {
+            // Client uploaded → notify consultant (uploader → assigned pro → admin fallback)
+            const notifiedIds = new Set<string>();
+            const sendToConsultant = async (target: { id: string; email: string | null; fullName: string; role: string | null }) => {
+              if (!target.email || notifiedIds.has(target.id)) return false;
+              try {
+                await sendCloudUploadNotificationEmail({
+                  to: target.email,
+                  fullName: target.fullName,
+                  uploaderName: user.fullName,
+                  folderName: folder.name,
+                  siteName: site?.name || "Unknown Site",
+                  fileName,
+                  portalUrl,
+                  role: target.role || "consultant",
+                });
+                notifiedIds.add(target.id);
+                await storage.createAuditLog({
+                  action: "email_sent", userId: user.id, userName: user.fullName,
+                  entityId: siteId, documentId: null, supportRequestId: null,
+                  module: folder.module,
+                  details: `Cloud upload notification sent to ${target.fullName} (${target.email})`,
+                  metadata: JSON.stringify({ targetUserId: target.id, emailType: "cloud_upload_notification" }),
+                });
+                return true;
+              } catch (e) { console.error("Failed to send cloud upload notification:", e); return false; }
+            };
+
+            // Step 1: assigned pro consultants
+            try {
+              const assignments = await storage.getConsultantAssignments(siteId);
+              const assignedUsers = await Promise.all(assignments.map(a => storage.getUser(a.consultantId)));
+              const proConsultants = assignedUsers.filter(
+                (u): u is NonNullable<typeof u> =>
+                  !!u && u.role === "consultant" && u.consultantTier === "pro" && !!u.email && u.status === "active"
+              );
+              for (const pc of proConsultants) await sendToConsultant(pc);
+            } catch (e) { console.error("Failed to look up consultants for cloud upload notification:", e); }
+
+            // Step 2: admin fallback
+            if (notifiedIds.size === 0) {
+              const allUsers = await storage.getAllUsers();
+              for (const admin of allUsers.filter(u => u.role === "admin" && u.email && u.status === "active")) {
+                await sendToConsultant(admin);
+              }
+            }
+          } else {
+            // Consultant/admin uploaded → notify allocated client, or all active clients on site
+            const recipients: { id: string; email: string; fullName: string; role: string | null }[] = [];
+            if (folder.allocatedClientId) {
+              const allocatedClient = await storage.getUser(folder.allocatedClientId);
+              if (allocatedClient && allocatedClient.email && allocatedClient.status === "active") {
+                recipients.push({ id: allocatedClient.id, email: allocatedClient.email, fullName: allocatedClient.fullName, role: allocatedClient.role });
+              }
+            } else {
+              const siteUsers = await storage.getUsersBySite(siteId);
+              for (const u of siteUsers.filter(u => u.role === "client" && u.email && u.status === "active")) {
+                recipients.push({ id: u.id, email: u.email!, fullName: u.fullName, role: u.role });
+              }
+            }
+            for (const recipient of recipients) {
+              try {
+                await sendCloudUploadNotificationEmail({
+                  to: recipient.email,
+                  fullName: recipient.fullName,
+                  uploaderName: user.fullName,
+                  folderName: folder.name,
+                  siteName: site?.name || "Unknown Site",
+                  fileName,
+                  portalUrl,
+                  role: "client",
+                });
+                await storage.createAuditLog({
+                  action: "email_sent", userId: user.id, userName: user.fullName,
+                  entityId: siteId, documentId: null, supportRequestId: null,
+                  module: folder.module,
+                  details: `Cloud upload notification sent to client ${recipient.fullName} (${recipient.email})`,
+                  metadata: JSON.stringify({ targetUserId: recipient.id, emailType: "cloud_upload_notification" }),
+                });
+              } catch (e) { console.error(`Failed to send cloud upload notification to client ${recipient.id}:`, e); }
+            }
+          }
+
+          cloudUploadNotifiedAt.set(siteId, new Date());
+        }
+      } catch (err) {
+        console.error("Failed to send cloud upload notifications:", err);
+      }
 
       res.status(201).json(upload);
     } catch (error) {

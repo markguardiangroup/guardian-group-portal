@@ -7895,6 +7895,27 @@
           "message": "Removed fallback to all site clients on approval emails — only the approving client is notified",
           "category": "enhancement",
           "createdAt": "2026-06-05T07:40:00.000Z"
+        },
+        {
+          "id": "f7a8b9c0-d1e2-3456-fabc-456789012346",
+          "patch": 14,
+          "message": "Cloud share: email notifications sent when files are uploaded (consultant ↔ client)",
+          "category": "feature",
+          "createdAt": "2026-06-05T08:15:00.000Z"
+        },
+        {
+          "id": "a8b9c0d1-e2f3-4567-abcd-567890123457",
+          "patch": 14,
+          "message": "Cloud share: max one upload notification email per site per hour to prevent inbox flooding",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T08:16:00.000Z"
+        },
+        {
+          "id": "b9c0d1e2-f3a4-5678-bcde-678901234568",
+          "patch": 14,
+          "message": "Cloud share: warning shown when no client is allocated (all site clients will be notified)",
+          "category": "enhancement",
+          "createdAt": "2026-06-05T08:17:00.000Z"
         }
       ],
       "publishedPatch": 13,

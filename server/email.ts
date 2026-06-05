@@ -609,6 +609,111 @@ export async function sendAutoApprovedNotificationEmail({
 }
 
 // ---------------------------------------------------------------------------
+// Cloud Upload Notification (sent when a file is uploaded to a shared folder)
+// ---------------------------------------------------------------------------
+export async function sendCloudUploadNotificationEmail({
+  to,
+  fullName,
+  uploaderName,
+  folderName,
+  siteName,
+  fileName,
+  portalUrl,
+  role,
+}: {
+  to: string;
+  fullName: string;
+  uploaderName: string;
+  folderName: string;
+  siteName: string;
+  fileName: string;
+  portalUrl: string;
+  role?: string;
+}) {
+  const recipient = resolveRecipient(to, role);
+  const isClientUploader = role === "consultant" || role === "admin";
+  const heading = isClientUploader
+    ? "A client has uploaded a file to your shared folder"
+    : "A new file has been uploaded to your shared folder";
+  const body = isClientUploader
+    ? `<strong>${uploaderName}</strong> (client) has uploaded a file to the folder <strong>${folderName}</strong>. Please log in to review it.`
+    : `<strong>${uploaderName}</strong> has uploaded a new file to the folder <strong>${folderName}</strong>. Please log in to view it.`;
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `New File Uploaded — ${folderName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health &amp; Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <h2 style="color: #1e293b; font-size: 20px; margin-top: 0;">New File Uploaded</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${fullName},
+          </p>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            ${body}
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 120px;">File:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${fileName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Folder:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${folderName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${siteName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Uploaded by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${uploaderName}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${portalUrl}"
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px;
+                      text-decoration: none; border-radius: 6px; font-size: 16px;
+                      font-weight: 600; display: inline-block;">
+              View Shared Folder
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            Note: to avoid excessive notifications, you will only receive one email per site per hour for cloud share uploads.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send cloud upload notification email:", error);
+    throw new Error(`Failed to send cloud upload notification email: ${error.message}`);
+  }
+
+  console.log(`Cloud upload notification email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
+  return data;
+}
+
+// ---------------------------------------------------------------------------
 // Changes Requested Notification
 // ---------------------------------------------------------------------------
 export async function sendChangesRequestedEmail({

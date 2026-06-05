@@ -1390,6 +1390,9 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">
+                      If no client is selected, all clients on the site will be notified by email when files are uploaded.
+                    </p>
                   </div>
                 </>
               )}
