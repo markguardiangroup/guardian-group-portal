@@ -752,10 +752,17 @@ export default function UserManagement() {
     const group = availableGroups.find(g => g.company.id === companyId);
     if (!group) return;
     const toAdd = group.sites.map(s => s.id);
-    const notAlreadyPending = toAdd.filter(id => !pendingAddSiteIds.includes(id));
-    setPendingAddSiteIds(prev => [...prev, ...notAlreadyPending]);
-    const stillRemoved = pendingRemoveSiteIds.filter(id => !toAdd.includes(id));
-    setPendingRemoveSiteIds(stillRemoved);
+    // Sites pending removal just need the removal cancelled — they're already assigned
+    const toUnremove = toAdd.filter(id => pendingRemoveSiteIds.includes(id));
+    // Sites not currently assigned and not already pending → genuinely new adds
+    const currentAssignedIds = new Set(userSiteAssignments.map(a => a.siteId));
+    const genuinelyNew = toAdd.filter(id =>
+      !currentAssignedIds.has(id) &&
+      !pendingAddSiteIds.includes(id) &&
+      !pendingRemoveSiteIds.includes(id)
+    );
+    if (toUnremove.length > 0) setPendingRemoveSiteIds(prev => prev.filter(id => !toUnremove.includes(id)));
+    if (genuinelyNew.length > 0) setPendingAddSiteIds(prev => [...prev, ...genuinelyNew]);
     // Show a notice when assigning a client to all sites of their own company
     if (manageSitesUser?.role === "client" && manageSitesUser?.companyId === companyId) {
       setCompanyWideInfoName(group.company.name);
@@ -781,8 +788,12 @@ export default function UserManagement() {
       if (removeCount > 0) parts.push(`${removeCount} site${removeCount !== 1 ? "s" : ""} removed`);
       toast({ title: "Site assignments saved", description: parts.join(", ") });
       closeManageSites();
-    } catch {
-      toast({ title: "Failed to save site assignments", variant: "destructive" });
+    } catch (error: any) {
+      const msg: string = error?.message ?? "";
+      const description = msg.includes("last site assignment") || msg.includes("Cannot remove the last")
+        ? "A client must have at least one site assigned."
+        : undefined;
+      toast({ title: "Failed to save site assignments", description, variant: "destructive" });
     } finally {
       setIsSavingManageSites(false);
       setShowManageSitesSaveConfirm(false);
