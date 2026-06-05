@@ -4632,8 +4632,6 @@ export async function registerRoutes(
       // email path even if the doc has autoFinalApproval enabled.
       const isAutoFinalApproval = isClientSignOff && existingDoc.autoFinalApproval === true && action === "approve";
 
-      console.log(`[approval-debug] doc=${documentId} action=${action} isClientSignOff=${isClientSignOff} isConsultantFinalApproval=${isConsultantFinalApproval} isAutoFinalApproval=${isAutoFinalApproval} userRole=${user.role}`);
-
       switch (action) {
         case "approve":
           if (isClientSignOff && !isAutoFinalApproval) {
@@ -4791,12 +4789,13 @@ export async function registerRoutes(
               }
             }
 
-            // Step 3: fall back to admins.
+            // Step 3: fall back to first admin only.
             if (notifiedUserIds.size === 0) {
               const allUsers = await storage.getAllUsers();
               const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
               for (const admin of admins) {
-                await sendAutoNotifTo(admin, "admin");
+                const sent = await sendAutoNotifTo(admin, "admin");
+                if (sent) break; // notify exactly one
               }
             }
           } else {
@@ -4852,14 +4851,15 @@ export async function registerRoutes(
                     !!u && u.role === "consultant" && u.consultantTier === "pro" && !!u.email && u.status === "active"
                 );
                 for (const pc of proConsultants) {
-                  await sendSignOffTo(pc, "assigned pro consultant");
+                  const sent = await sendSignOffTo(pc, "assigned pro consultant");
+                  if (sent) break; // notify exactly one
                 }
               } catch (err) {
                 console.error("Failed to look up assigned pro consultants for sign-off notification:", err);
               }
             }
 
-            // Step 3: only escalate to admins if no consultant was notified.
+            // Step 3: only escalate to first admin if no consultant was notified.
             if (notifiedUserIds.size === 0) {
               const allUsers = await storage.getAllUsers();
               const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
@@ -4887,6 +4887,7 @@ export async function registerRoutes(
                     details: `Client sign-off notification email sent to admin ${admin.fullName} (${admin.email}) - no consultant assigned to site`,
                     metadata: JSON.stringify({ targetUserId: admin.id, emailType: "sign_off_notification" }),
                   });
+                  break; // notify exactly one
                 } catch (emailError) {
                   console.error(`Failed to send sign-off notification to admin ${admin.id}:`, emailError);
                 }
@@ -5042,12 +5043,12 @@ export async function registerRoutes(
               }
             };
 
-            // Step 1: uploader
+            // Step 1: uploader (consultant or admin — whoever is responsible for the doc)
             const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
-            if (uploaderForChanges && uploaderForChanges.role === "consultant") {
-              await sendChangesNotifToConsultant(uploaderForChanges, "consultant (uploader)");
+            if (uploaderForChanges && (uploaderForChanges.role === "consultant" || uploaderForChanges.role === "admin")) {
+              await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "admin" ? "admin (uploader)" : "consultant (uploader)");
             }
-            // Step 2: assigned pro consultant
+            // Step 2: first assigned pro consultant (only if step 1 didn't fire)
             if (changesNotifiedIds.size === 0) {
               try {
                 const assignments = await storage.getConsultantAssignments(document.siteId!);
@@ -5057,18 +5058,20 @@ export async function registerRoutes(
                     !!u && u.role === "consultant" && u.consultantTier === "pro" && !!u.email && u.status === "active"
                 );
                 for (const pc of proConsultants) {
-                  await sendChangesNotifToConsultant(pc, "assigned pro consultant");
+                  const sent = await sendChangesNotifToConsultant(pc, "assigned pro consultant");
+                  if (sent) break; // notify exactly one
                 }
               } catch (err) {
                 console.error("Failed to look up consultants for client changes notification:", err);
               }
             }
-            // Step 3: admin fallback
+            // Step 3: first admin fallback (only if steps 1 & 2 didn't fire)
             if (changesNotifiedIds.size === 0) {
               const allUsers = await storage.getAllUsers();
               const admins = allUsers.filter(u => u.role === "admin" && u.email && u.status === "active");
               for (const admin of admins) {
-                await sendChangesNotifToConsultant(admin, "admin");
+                const sent = await sendChangesNotifToConsultant(admin, "admin");
+                if (sent) break; // notify exactly one
               }
             }
           }

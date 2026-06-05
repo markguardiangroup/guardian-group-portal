@@ -8112,6 +8112,13 @@
           "message": "Fixed: approval request email now reliably sends to the selected client on new doc upload",
           "category": "bug",
           "createdAt": "2026-06-05T21:20:00.000Z"
+        },
+        {
+          "id": "a7b8c9d0-e1f2-3456-a7b8-c9d0e1f23457",
+          "patch": 14,
+          "message": "Fixed: changes-required notification no longer sent twice when multiple admins exist",
+          "category": "bug",
+          "createdAt": "2026-06-05T21:30:00.000Z"
         }
       ],
       "publishedPatch": 14,
