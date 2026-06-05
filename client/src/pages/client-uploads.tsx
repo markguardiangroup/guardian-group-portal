@@ -1431,22 +1431,20 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                   </TooltipTrigger>
                   <TooltipContent>Manage Access</TooltipContent>
                 </Tooltip>
-                {!isClient && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteFolder(folder)}
-                        data-testid={`button-delete-folder-${folder.id}`}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete Folder</TooltipContent>
-                  </Tooltip>
-                )}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteFolder(folder)}
+                      data-testid={`button-delete-folder-${folder.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete Folder</TooltipContent>
+                </Tooltip>
               </div>
             </div>
           ))}

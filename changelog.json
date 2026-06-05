@@ -7986,6 +7986,13 @@
           "message": "Improved: upload help redesigned with drag & drop and button routes side by side",
           "category": "enhancement",
           "createdAt": "2026-06-05T09:35:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-e5f6-7890-ab12-789012345609",
+          "patch": 14,
+          "message": "Clients can now delete their own Cloud Share folders",
+          "category": "feature",
+          "createdAt": "2026-06-05T09:45:00.000Z"
         }
       ],
       "publishedPatch": 13,

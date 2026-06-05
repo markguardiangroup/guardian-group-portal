@@ -17253,10 +17253,14 @@ export async function registerRoutes(
       if (!folder) return res.status(404).json({ error: "Folder not found" });
 
       if (user.role === "client") {
-        return res.status(403).json({ error: "Clients cannot delete folders" });
+        // Clients may only delete folders they own (allocated to them)
+        if (folder.allocatedClientId !== user.id) {
+          return res.status(403).json({ error: "You can only delete folders that belong to you" });
+        }
+      } else {
+        const canAccess = await canUserAccessFolder(user, folder);
+        if (!canAccess) return res.status(403).json({ error: "Access denied" });
       }
-      const canAccess = await canUserAccessFolder(user, folder);
-      if (!canAccess) return res.status(403).json({ error: "Access denied" });
 
       const files = await storage.getClientUploads(folder.id);
       const objectStorageService = new ObjectStorageService();
