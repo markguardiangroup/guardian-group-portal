@@ -4632,6 +4632,8 @@ export async function registerRoutes(
       // email path even if the doc has autoFinalApproval enabled.
       const isAutoFinalApproval = isClientSignOff && existingDoc.autoFinalApproval === true && action === "approve";
 
+      console.log(`[approval-debug] doc=${documentId} action=${action} isClientSignOff=${isClientSignOff} isConsultantFinalApproval=${isConsultantFinalApproval} isAutoFinalApproval=${isAutoFinalApproval} userRole=${user.role}`);
+
       switch (action) {
         case "approve":
           if (isClientSignOff && !isAutoFinalApproval) {
