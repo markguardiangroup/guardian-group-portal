@@ -658,6 +658,7 @@ export default function DocumentUpload() {
           fileUrl,
           fileSize: selectedFile.size,
           mimeType: selectedFile.type || "application/pdf",
+          approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           templateId: selectedTemplateId || undefined,
         };
@@ -710,6 +711,7 @@ export default function DocumentUpload() {
           fileUrl,
           fileSize: selectedFile.size,
           mimeType: selectedFile.type || "application/pdf",
+          approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: data.requiresApproval && selectedApproverId && isFirstSite ? [selectedApproverId] : [],
         };
         const result = await (await apiRequest("POST", "/api/documents", formData)).json();

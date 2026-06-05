@@ -396,6 +396,7 @@ const createDocumentSchema = z.object({
   requiresApproval: z.boolean().optional(),
   autoFinalApproval: z.boolean().optional(),
   isMandatory: z.boolean().optional(),
+  approvalRequestedFrom: z.string().optional(),
   notifyUserIds: z.array(z.string()).optional(),
   renewalPeriodMonths: z.number().nullable().optional(),
   shareDestinations: z.array(z.string()).optional(),
@@ -4237,6 +4238,7 @@ export async function registerRoutes(
         version: 1,
         status: documentStatus,
         approvalStatus: documentApprovalStatus,
+        approvalRequestedFrom: body.approvalRequestedFrom ?? body.notifyUserIds?.[0] ?? null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
         lastApprovedAt: autoApprovalTime,
         uploadedBy: user.id,
@@ -4274,12 +4276,19 @@ export async function registerRoutes(
         ));
       }
 
-      // Send approval notification emails if document requires approval
-      if (documentStatus === "approval_required" && body.notifyUserIds && body.notifyUserIds.length > 0) {
+      // Send approval notification emails if document requires approval.
+      // Use notifyUserIds if provided; fall back to approvalRequestedFrom so that
+      // the email fires even if the frontend only sent one of the two fields.
+      const effectiveNotifyIds: string[] = body.notifyUserIds?.length
+        ? body.notifyUserIds
+        : body.approvalRequestedFrom
+          ? [body.approvalRequestedFrom]
+          : [];
+      if (documentStatus === "approval_required" && effectiveNotifyIds.length > 0) {
         const site = body.siteId ? await storage.getSite(body.siteId) : null;
         const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
         
-        for (const notifyUserId of body.notifyUserIds) {
+        for (const notifyUserId of effectiveNotifyIds) {
           try {
             const notifyUser = await storage.getUser(notifyUserId);
             if (notifyUser && notifyUser.email) {

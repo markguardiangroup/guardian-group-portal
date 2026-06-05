@@ -8105,6 +8105,13 @@
           "message": "Approver is now required when uploading a new document version",
           "category": "enhancement",
           "createdAt": "2026-06-05T21:10:00.000Z"
+        },
+        {
+          "id": "f6a7b8c9-d0e1-2345-f6a7-b8c9d0e12346",
+          "patch": 14,
+          "message": "Fixed: approval request email now reliably sends to the selected client on new doc upload",
+          "category": "bug",
+          "createdAt": "2026-06-05T21:20:00.000Z"
         }
       ],
       "publishedPatch": 14,

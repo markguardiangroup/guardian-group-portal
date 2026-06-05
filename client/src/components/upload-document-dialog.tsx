@@ -254,6 +254,7 @@ export function UploadDocumentDialog({
         fileUrl,
         fileSize: selectedFile.size,
         mimeType: selectedFile.type || "application/pdf",
+        approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
         notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
       });
     },
