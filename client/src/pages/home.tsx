@@ -2110,7 +2110,7 @@ export default function HomePage() {
           <div className="flex items-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 overflow-hidden">
             <button
               type="button"
-              onClick={() => { setShowScrollHint(false); messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+              onClick={() => { setScrollHintFading(true); setTimeout(() => setShowScrollHint(false), 400); messagesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
               className="px-5 py-2.5 text-sm font-semibold hover:bg-primary/90 transition-colors whitespace-nowrap tracking-tight"
               data-testid="button-scroll-hint-scroll"
             >
@@ -2118,7 +2118,7 @@ export default function HomePage() {
             </button>
             <button
               type="button"
-              onClick={() => setShowScrollHint(false)}
+              onClick={() => { setScrollHintFading(true); setTimeout(() => setShowScrollHint(false), 400); }}
               className="px-3 py-2.5 hover:bg-white/20 transition-colors border-l border-white/20"
               aria-label="Dismiss"
               data-testid="button-scroll-hint-dismiss"

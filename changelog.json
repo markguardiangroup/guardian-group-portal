@@ -8238,6 +8238,13 @@
           "message": "Fixed: \"See what's new\" bubble now fades out correctly when scrolled halfway",
           "category": "bug",
           "createdAt": "2026-06-08T19:10:25.954Z"
+        },
+        {
+          "id": "80a54ca9-8c0a-494a-b7fc-07abc586fc10",
+          "patch": 15,
+          "message": "Improved: \"See what's new\" bubble fades out when dismissed or clicked",
+          "category": "enhancement",
+          "createdAt": "2026-06-08T19:14:05.835Z"
         }
       ],
       "publishedPatch": 14,
