@@ -13,7 +13,7 @@ const routeLabels: Record<string, string> = {
   "companies": "Companies",
   "sites": "Sites",
   "reports": "Reports",
-  "developer-reports": "Developer Reports",
+  "admin-reports": "Admin Reports",
   "support": "Support",
   "settings": "Settings",
   "users": "User Management",

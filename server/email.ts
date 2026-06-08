@@ -842,7 +842,7 @@ export async function sendChangesRequestedEmail({
 }
 
 // ---------------------------------------------------------------------------
-// Resend Email Log helpers (used by Developer Reports)
+// Resend Email Log helpers (used by Admin Reports)
 // ---------------------------------------------------------------------------
 
 export interface ResendEmailSummary {
