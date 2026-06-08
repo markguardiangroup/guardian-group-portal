@@ -270,6 +270,7 @@ export default function HelpGuide() {
   if (user.role === "client") return <Redirect to="/help/client" />;
   const isProConsultant =
     user.role === "developer" ||
+    user.role === "administrator" ||
     user.consultantPermissions?.templateLibrary === true ||
     user.consultantPermissions?.trainingLibrary === true;
   if (isProConsultant) return <Redirect to="/help/pro-consultant" />;

@@ -7,7 +7,12 @@ import { z } from "zod";
 export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "training" | "toolkit" | "support" | "reports";
 
 // User roles (top-level)
-export type UserRole = "developer" | "consultant" | "client";
+// NOTE: "administrator" (displayed as "Admin") is a staff role that behaves almost
+// like a Pro Consultant for visibility/create/manage, but is never an eligible document
+// approver, takes no part in manager allocation, and needs no client-list assignment.
+// The internal value MUST NOT be "admin" — server/index.ts rewrites role='admin' to
+// 'developer' on every boot.
+export type UserRole = "developer" | "consultant" | "client" | "administrator";
 
 // Consultant tiers (for consultant users)
 export type ConsultantTier = "pro" | "standard";
@@ -753,12 +758,16 @@ export const documents = pgTable("documents", {
   version: integer("version").notNull().default(1),
   status: text("status").$type<DocumentStatus>().notNull().default("approval_required"),
   approvalStatus: text("approval_status").$type<ApprovalStatus>().notNull().default("pending"),
-  approvalRequestedFrom: varchar("approval_requested_from").references(() => usersTable.id),
+  approvalRequestedFrom: varchar("approval_requested_from").references(() => users.id),
   expiryDate: timestamp("expiry_date"),
   lastApprovedAt: timestamp("last_approved_at"), // When document was last approved
   renewalDate: timestamp("renewal_date"), // Calculated: lastApprovedAt + renewalPeriodMonths
   renewalPeriodMonths: integer("renewal_period_months"), // Stored when admin manually sets renewal tracking
   uploadedBy: varchar("uploaded_by").notNull(),
+  // When an Admin uploads a document "on behalf of" a consultant, uploadedBy holds the
+  // on-behalf-of consultant (the approval owner who completes sign-off) and this field
+  // records the Admin who actually initiated/uploaded — used for dual email + audit.
+  initiatedByUserId: varchar("initiated_by_user_id").references(() => users.id),
   isArchived: boolean("is_archived").notNull().default(false),
   isMandatory: boolean("is_mandatory").notNull().default(false), // Marked as required for compliance
   // Template lineage tracking

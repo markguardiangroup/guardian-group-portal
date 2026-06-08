@@ -135,6 +135,8 @@ interface DocumentUploadPayload {
   renewalPeriodMonths?: number | null;
   notifyUserIds: string[];
   templateId?: string | null;
+  // Admin "approval on behalf of" consultant who owns sign-off
+  onBehalfOfUserId?: string;
   // Site-scoped fields
   siteId?: string;
   folderId?: string;
@@ -151,9 +153,11 @@ export default function DocumentUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
+  const [selectedOnBehalfId, setSelectedOnBehalfId] = useState<string>("");
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
 
-  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
+  const isAdministrator = user?.role === "administrator";
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isDeveloperOrConsultant || isFullPermissionClient;
   const [uploadStep, setUploadStep] = useState<"choice" | "scope-decision" | "upload" | "complete">("choice");
@@ -485,6 +489,13 @@ export default function DocumentUpload() {
     );
   }, [allUsers, selectedSiteIds, selectedSiteObjects, allCompanies]);
 
+  // "Approval on behalf of" options — consultants who can own sign-off (Admins are
+  // excluded because they can never personally sign off).
+  const onBehalfConsultants = useMemo(() => {
+    if (!allUsers) return [];
+    return allUsers.filter(u => u.role === "consultant");
+  }, [allUsers]);
+
   // Client approver options for company/group scope — includes the entity's own clients
   // plus any group-owner company clients (GO users can approve on behalf of member companies)
   const entityClientUsers = useMemo(() => {
@@ -660,6 +671,7 @@ export default function DocumentUpload() {
           mimeType: selectedFile.type || "application/pdf",
           approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+          onBehalfOfUserId: isAdministrator && data.requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
           templateId: selectedTemplateId || undefined,
         };
         const result = await (await apiRequest("POST", "/api/documents", formData)).json();
@@ -713,6 +725,7 @@ export default function DocumentUpload() {
           mimeType: selectedFile.type || "application/pdf",
           approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: data.requiresApproval && selectedApproverId && isFirstSite ? [selectedApproverId] : [],
+          onBehalfOfUserId: isAdministrator && data.requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
         };
         const result = await (await apiRequest("POST", "/api/documents", formData)).json();
         results.push(result);
@@ -826,6 +839,14 @@ export default function DocumentUpload() {
       toast({
         title: "Client Approver Required",
         description: "Please select a client approver for this document.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isAdministrator && data.requiresApproval && !selectedOnBehalfId) {
+      toast({
+        title: "Approval On Behalf Of Required",
+        description: "As an Admin, select the consultant who will own sign-off for this document.",
         variant: "destructive",
       });
       return;
@@ -1330,6 +1351,50 @@ export default function DocumentUpload() {
                             {docScope === "company"
                               ? "No client users found for this company. Assign users in User Management first."
                               : "No client users found for the group owner company. Assign users in User Management first."}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {isAdministrator && requiresApproval && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium flex items-center gap-1">
+                          Approval On Behalf Of
+                          <span className="text-destructive">*</span>
+                        </label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          As an Admin you cannot personally sign off. Select the consultant who will own sign-off for this document.
+                        </p>
+                        {onBehalfConsultants.length > 0 ? (
+                          <Select value={selectedOnBehalfId} onValueChange={setSelectedOnBehalfId}>
+                            <SelectTrigger
+                              className={!selectedOnBehalfId ? "border-destructive" : ""}
+                              data-testid="select-on-behalf-consultant"
+                            >
+                              <SelectValue placeholder="Select a consultant…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {onBehalfConsultants.map((u) => (
+                                <SelectItem
+                                  key={u.id}
+                                  value={u.id}
+                                  disabled={u.status !== "active"}
+                                  data-testid={`option-on-behalf-${u.id}`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    {u.fullName}
+                                    {u.status !== "active" && (
+                                      <span className="text-xs text-muted-foreground">(not active)</span>
+                                    )}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4 shrink-0" />
+                            No consultants are available to own sign-off. Create a consultant in User Management first.
                           </div>
                         )}
                       </div>

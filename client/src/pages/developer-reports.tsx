@@ -932,12 +932,14 @@ export default function AdminReports() {
   const roleLabels: Record<UserRole, string> = {
     developer: "Developer",
     consultant: "Consultant",
+    administrator: "Admin",
     client: "Client",
   };
 
   const roleColors: Record<UserRole, string> = {
     developer: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800",
     consultant: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
+    administrator: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800",
     client: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
   };
 

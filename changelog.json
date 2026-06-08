@@ -8140,6 +8140,13 @@
           "message": "Updated staff-facing wording from 'Admin' to 'Developer' for consistency",
           "category": "enhancement",
           "createdAt": "2026-06-08T12:22:37.178Z"
+        },
+        {
+          "id": "73a113b4-a46f-4eb7-bf08-647b2f754536",
+          "patch": 15,
+          "message": "New Admin staff role: full consultant-style access with approval handled on behalf of a consultant",
+          "category": "feature",
+          "createdAt": "2026-06-08T15:07:36.391992Z"
         }
       ],
       "publishedPatch": 14,

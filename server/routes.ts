@@ -359,7 +359,7 @@ function hashToken(token: string): string {
 function canManageTemplateLibrary(user: { role?: string | null; consultantPermissions?: unknown } | null | undefined): boolean {
   if (!user) return false;
   if (user.role === "developer") return true;
-  if (user.role === "consultant") {
+  if (user.role === "consultant" || user.role === "administrator") {
     const perms = user.consultantPermissions as { templateLibrary?: boolean } | null;
     return perms?.templateLibrary === true;
   }
@@ -400,6 +400,10 @@ const createDocumentSchema = z.object({
   notifyUserIds: z.array(z.string()).optional(),
   renewalPeriodMonths: z.number().nullable().optional(),
   shareDestinations: z.array(z.string()).optional(),
+  // When an Admin (administrator) uploads a document that requires approval, they must
+  // nominate a consultant to own the sign-off. The document is stored as owned by that
+  // consultant (uploadedBy), with the admin recorded as the initiator (initiatedByUserId).
+  onBehalfOfUserId: z.string().optional(),
 });
 
 const createCaseSchema = z.object({
@@ -1222,9 +1226,9 @@ export async function registerRoutes(
     // Admins have unrestricted access to all sites
     if (user.role === "developer") return true;
     
-    // Pro consultants can access sites whose parent company shares at least one source,
+    // Pro consultants (and Admins) can access sites whose parent company shares at least one source,
     // OR sites in member companies of a GO whose effective sources (own + members' union) overlap
-    if (isProConsultant(user)) {
+    if (hasProPrivileges(user)) {
       const site = await storage.getSite(siteId);
       if (!site) return false;
       const company = await storage.getCompany(site.companyId);
@@ -1320,8 +1324,8 @@ export async function registerRoutes(
 
     // Origin check helper: user is on the owning side of this document
     const isOriginConsultant = async () => {
-      // Pro consultants: direct source overlap with entity company
-      if (isProConsultant(user)) {
+      // Pro consultants / Admins: direct source overlap with entity company
+      if (hasProPrivileges(user)) {
         const company = await storage.getCompany(entityId);
         return !!company && sourcesOverlap(user.sources ?? [], company.sources ?? []);
       }
@@ -1369,8 +1373,8 @@ export async function registerRoutes(
         const siteShares = shares.filter(s => s.entityType === "site");
         return siteShares.some(s => assignedSiteIds.has(s.entityId));
       }
-      // Pro consultants: source overlap with entity company + must be in a share-destination site
-      if (isProConsultant(user)) {
+      // Pro consultants / Admins: source overlap with entity company + must be in a share-destination site
+      if (hasProPrivileges(user)) {
         const company = await storage.getCompany(entityId);
         if (!company) return false;
         if (!sourcesOverlap(user.sources ?? [], company.sources ?? [])) return false;
@@ -1418,8 +1422,8 @@ export async function registerRoutes(
         }
         return false;
       }
-      // Pro consultants: source overlap with GO effective sources + assignment to share destination
-      if (isProConsultant(user)) {
+      // Pro consultants / Admins: source overlap with GO effective sources + assignment to share destination
+      if (hasProPrivileges(user)) {
         const goEffectiveSources = await getEffectiveGoSources(entityId);
         if (!sourcesOverlap(user.sources ?? [], goEffectiveSources)) return false;
         const companyShares = shares.filter(s => s.entityType === "company");
@@ -1445,7 +1449,7 @@ export async function registerRoutes(
     if (user.role === "developer") return true;
     if (doc.siteId) return true;
     if (!doc.entityId) return false;
-    if (isProConsultant(user)) {
+    if (hasProPrivileges(user)) {
       const entityCompany = await storage.getCompany(doc.entityId);
       return !!entityCompany && sourcesOverlap(user.sources ?? [], entityCompany.sources ?? []);
     }
@@ -1670,7 +1674,7 @@ export async function registerRoutes(
   // GET /api/users/online — returns IDs of users with an active SSE connection
   app.get("/api/users/online", requireAuth, async (req: any, res) => {
     const caller = await storage.getUser(req.session?.userId);
-    if (!caller || (caller.role !== "developer" && caller.role !== "consultant")) {
+    if (!caller || (caller.role !== "developer" && caller.role !== "consultant" && caller.role !== "administrator")) {
       return res.status(403).json({ error: "Forbidden" });
     }
     res.json({ userIds: getOnlineUserIds() });
@@ -1682,7 +1686,7 @@ export async function registerRoutes(
   app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant")) {
+      if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Only developers and consultants can send invitations" });
       }
       
@@ -1803,7 +1807,7 @@ export async function registerRoutes(
   app.get("/api/users/:id/activity", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant")) {
+      if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Insufficient permissions" });
       }
       const logs = await storage.getUserActivityLogs(req.params.id);
@@ -3084,7 +3088,7 @@ export async function registerRoutes(
         } else if (siteId) {
           accessibleSiteIds = [siteId];
         }
-      } else if (user.role === "consultant") {
+      } else if (user.role === "consultant" || user.role === "administrator") {
         if (requestedCompanyId) {
           const companySites = await storage.getSitesByCompanyId(requestedCompanyId);
           const accessibleSites = await Promise.all(
@@ -3113,7 +3117,7 @@ export async function registerRoutes(
             return res.status(403).json({ error: "Access denied to this site" });
           }
           accessibleSiteIds = [siteId];
-        } else if (!isProConsultant(user)) {
+        } else if (!hasProPrivileges(user)) {
           const assignments = await storage.getConsultantSites(user.id);
           if (assignments.length === 0) return res.json([]);
           accessibleSiteIds = assignments.map(a => a.siteId);
@@ -3633,7 +3637,7 @@ export async function registerRoutes(
       }
       
       // Only developers and consultants can upload new versions
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can upload new document versions" });
       }
       
@@ -4102,16 +4106,16 @@ export async function registerRoutes(
               return res.status(403).json({ error: "You can only upload company-scope documents for your own company" });
             }
           }
-        } else if (user.role !== "developer" && user.role !== "consultant") {
+        } else if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
           return res.status(403).json({ error: "Only developers, consultants, and full-permission company users can upload company or group level documents" });
         }
-        // Validate consultant has source overlap with the target company/group (not blanket access)
-        if (user.role === "consultant") {
+        // Validate consultant/admin has source overlap with the target company/group (not blanket access)
+        if (user.role === "consultant" || user.role === "administrator") {
           const targetCompany = await storage.getCompany(body.entityId);
           if (!targetCompany) {
             return res.status(400).json({ error: "Target company/group not found" });
           }
-          if (isProConsultant(user)) {
+          if (hasProPrivileges(user)) {
             // For group-scope upload, pro-consultants must have DIRECT source overlap with the
             // group-owner company itself (not via effective/member sources). Origin-side only.
             const requiredSources = docScope === "group"
@@ -4219,7 +4223,28 @@ export async function registerRoutes(
         computedRenewalDate = new Date(autoApprovalTime);
         computedRenewalDate.setMonth(computedRenewalDate.getMonth() + renewalPeriodMonths);
       }
-      
+
+      // Admin "approval on behalf of" resolution:
+      // When an Admin uploads a document that needs approval, they cannot personally own the
+      // sign-off. They must nominate a consultant who becomes the document owner (uploadedBy),
+      // so the standard consultant-uploaded approval workflow (client sign-off → consultant final
+      // approval) applies unchanged. The admin is recorded as the initiator for dual notification
+      // and audit. Auto-approved uploads (training / requiresApproval=false) keep the admin owner.
+      let resolvedUploadedBy = user.id;
+      let resolvedInitiatedBy: string | null = null;
+      let onBehalfConsultant: Awaited<ReturnType<typeof storage.getUser>> | null = null;
+      if (user.role === "administrator" && documentStatus === "approval_required") {
+        if (!body.onBehalfOfUserId) {
+          return res.status(400).json({ error: "An 'approval on behalf of' consultant is required when an Admin uploads a document that needs approval." });
+        }
+        onBehalfConsultant = await storage.getUser(body.onBehalfOfUserId);
+        if (!onBehalfConsultant || onBehalfConsultant.role !== "consultant") {
+          return res.status(400).json({ error: "The selected 'approval on behalf of' user must be a consultant." });
+        }
+        resolvedUploadedBy = onBehalfConsultant.id;
+        resolvedInitiatedBy = user.id;
+      }
+
       const document = await storage.createDocument({
         title: body.title,
         comments: body.comments || null,
@@ -4241,7 +4266,8 @@ export async function registerRoutes(
         approvalRequestedFrom: body.approvalRequestedFrom ?? body.notifyUserIds?.[0] ?? null,
         expiryDate: body.expiryDate ? new Date(body.expiryDate) : null,
         lastApprovedAt: autoApprovalTime,
-        uploadedBy: user.id,
+        uploadedBy: resolvedUploadedBy,
+        initiatedByUserId: resolvedInitiatedBy,
         isArchived: false,
         isMandatory: body.isMandatory || false,
         source: body.source || "upload",
@@ -4264,8 +4290,13 @@ export async function registerRoutes(
         documentId: document.id,
         supportRequestId: null,
         module: body.module,
-        details: `Uploaded ${body.title}${docScope !== "site" ? ` (${docScope}-level document)` : ""}`,
-        metadata: docScope !== "site" ? JSON.stringify({ scope: docScope, entityId: resolvedEntityId }) : null,
+        details: `Uploaded ${body.title}${docScope !== "site" ? ` (${docScope}-level document)` : ""}${onBehalfConsultant ? ` on behalf of ${onBehalfConsultant.fullName}` : ""}`,
+        metadata: docScope !== "site" || resolvedInitiatedBy
+          ? JSON.stringify({
+              ...(docScope !== "site" ? { scope: docScope, entityId: resolvedEntityId } : {}),
+              ...(resolvedInitiatedBy ? { initiatedByUserId: resolvedInitiatedBy, onBehalfOfUserId: resolvedUploadedBy } : {}),
+            })
+          : null,
       });
 
       // Create explicit share records for company/group scoped documents
@@ -4607,7 +4638,12 @@ export async function registerRoutes(
           isClientSignOff = true;
         }
       } else {
-        // Consultants/admins — documents are always uploaded by consultants/admins
+        // Administrators are never eligible approvers and can never personally sign off.
+        // The consultant who owns the document (uploadedBy) must perform the final approval.
+        if (user.role === "administrator") {
+          return res.status(403).json({ error: "Admins cannot approve or sign off documents. The consultant who owns this document must sign it off." });
+        }
+        // Consultants — documents are always uploaded by consultants/admins
         // Check if it's awaiting final approval (client already signed off)
         if (currentApprovalStatus === "client_signed_off") {
           isConsultantFinalApproval = true;
@@ -4770,6 +4806,14 @@ export async function registerRoutes(
               await sendAutoNotifTo(uploader, "consultant (uploader)");
             }
 
+            // Step 1b: if an Admin initiated this upload on the consultant's behalf, notify them too.
+            if (existingDoc.initiatedByUserId) {
+              const initiator = await storage.getUser(existingDoc.initiatedByUserId);
+              if (initiator && initiator.email) {
+                await sendAutoNotifTo(initiator, "admin (initiator)");
+              }
+            }
+
             // Step 2: assigned pro consultants if uploader wasn't reached.
             if (notifiedUserIds.size === 0) {
               try {
@@ -4837,6 +4881,14 @@ export async function registerRoutes(
             // Step 1: notify the uploading consultant (if applicable).
             if (uploader && uploader.email && uploader.role === "consultant") {
               await sendSignOffTo(uploader, "consultant (uploader)");
+            }
+
+            // Step 1b: if an Admin initiated this upload on the consultant's behalf, notify them too.
+            if (existingDoc.initiatedByUserId) {
+              const initiator = await storage.getUser(existingDoc.initiatedByUserId);
+              if (initiator && initiator.email) {
+                await sendSignOffTo(initiator, "admin (initiator)");
+              }
             }
 
             // Step 2: notify any Pro consultant assigned to the site.
@@ -5106,7 +5158,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can re-issue documents" });
       }
 
@@ -5211,7 +5263,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can manage approval notifications" });
       }
 
@@ -5286,7 +5338,7 @@ export async function registerRoutes(
   app.patch("/api/documents/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
@@ -5503,7 +5555,7 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
 
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can delete documents" });
       }
 
@@ -5511,8 +5563,8 @@ export async function registerRoutes(
       const existingDoc = await storage.getDocument(documentId);
       if (!existingDoc) return res.status(404).json({ error: "Document not found" });
 
-      // Pro consultants must have access to the document's site
-      if (isProConsultant(user)) {
+      // Pro consultants / Admins must have access to the document's site
+      if (hasProPrivileges(user)) {
         const canAccess = await canUserAccessDocument(user, existingDoc);
         if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       }
@@ -5569,7 +5621,7 @@ export async function registerRoutes(
         }
         // Privileged users (admin/consultant), clients of that entity, and Group Owner
         // clients whose company is the groupOwnerId of the entity may view.
-        if (user.role !== "developer" && user.role !== "consultant" && user.companyId !== entityId) {
+        if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator" && user.companyId !== entityId) {
           const entityCompany = await storage.getCompany(entityId);
           if (!entityCompany || entityCompany.groupOwnerId !== user.companyId) {
             return res.status(403).json({ error: "Access denied to this scope" });
@@ -5646,7 +5698,7 @@ export async function registerRoutes(
         if (!entityId) {
           return res.status(400).json({ error: "entityId is required for scoped folders" });
         }
-        if (user.role !== "developer" && user.role !== "consultant" && user.companyId !== entityId) {
+        if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator" && user.companyId !== entityId) {
           return res.status(403).json({ error: "Access denied to this scope" });
         }
         const folder = await storage.createDocumentFolder({
@@ -5713,7 +5765,7 @@ export async function registerRoutes(
           return res.status(403).json({ error: "Access denied" });
         }
       } else if (folder.scope === "company" || folder.scope === "group") {
-        if (user.role !== "developer" && user.role !== "consultant" && user.companyId !== folder.entityId) {
+        if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator" && user.companyId !== folder.entityId) {
           return res.status(403).json({ error: "Access denied to this scope" });
         }
       }
@@ -5756,7 +5808,7 @@ export async function registerRoutes(
           return res.status(403).json({ error: "Access denied" });
         }
       } else if (folder.scope === "company" || folder.scope === "group") {
-        if (user.role !== "developer" && user.role !== "consultant" && user.companyId !== folder.entityId) {
+        if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator" && user.companyId !== folder.entityId) {
           return res.status(403).json({ error: "Access denied to this scope" });
         }
       }
@@ -5788,7 +5840,7 @@ export async function registerRoutes(
         if (!entityId) {
           return res.status(400).json({ error: "entityId is required for scoped provisioning" });
         }
-        if (user.role !== "developer" && user.role !== "consultant" && user.companyId !== entityId) {
+        if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator" && user.companyId !== entityId) {
           const entityCompany = await storage.getCompany(entityId);
           if (!entityCompany || entityCompany.groupOwnerId !== user.companyId) {
             return res.status(403).json({ error: "Access denied to this scope" });
@@ -7917,6 +7969,14 @@ export async function registerRoutes(
     return user.role === "consultant" && user.consultantTier === "pro";
   };
 
+  // "Has Pro-Consultant-style privileges" = a real Pro Consultant OR an Admin (administrator).
+  // Use this for source-scoped visibility / create / manage gates where Admin should behave
+  // like a Pro Consultant. Do NOT use it for approver-eligibility, final document sign-off,
+  // or manager allocation — those stay strict (isProConsultant) so Admin is excluded.
+  const hasProPrivileges = (user: { role: string; consultantTier?: string | null }): boolean => {
+    return isProConsultant(user) || user.role === "administrator";
+  };
+
   const sourcesOverlap = (a: string[] | null | undefined, b: string[] | null | undefined): boolean => {
     if (!a || a.length === 0 || !b || b.length === 0) return false;
     return a.some(s => b.includes(s));
@@ -8041,9 +8101,9 @@ export async function registerRoutes(
       
       // Role-based filtering
       const myAssigned = req.query.myAssigned === "true";
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const mySources = user.sources ?? [];
-        if (isProConsultant(user) && !myAssigned) {
+        if (hasProPrivileges(user) && !myAssigned) {
           // Pro consultants see companies whose sources overlap with their own,
           // PLUS GO companies whose effective sources (own + members') overlap,
           // PLUS member companies of any visible GO
@@ -8115,7 +8175,7 @@ export async function registerRoutes(
 
       // Admin/Pro: staffId filter — narrow to companies where a specific consultant is assigned
       const staffId = req.query.staffId as string | undefined;
-      if (staffId && (user.role === "developer" || isProConsultant(user))) {
+      if (staffId && (user.role === "developer" || hasProPrivileges(user))) {
         const staffAssignments = await storage.getConsultantSites(staffId);
         const staffCompanyIds = new Set<string>();
         for (const a of staffAssignments) {
@@ -8189,9 +8249,9 @@ export async function registerRoutes(
       }
       
       // Check access
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const mySources = user.sources ?? [];
-        if (isProConsultant(user)) {
+        if (hasProPrivileges(user)) {
           // Pro consultants can access companies that share at least one source,
           // OR are member companies of any GO whose effective sources (own + members' union) overlap
           const directAccess = sourcesOverlap(mySources, company.sources ?? []);
@@ -8271,9 +8331,9 @@ export async function registerRoutes(
       const company = await storage.getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
 
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const mySources = user.sources ?? [];
-        if (isProConsultant(user)) {
+        if (hasProPrivileges(user)) {
           // Pro consultants can access stats for companies that share at least one source,
           // OR are GO members of a GO whose effective sources overlap
           const directAccess = sourcesOverlap(mySources, company.sources ?? []);
@@ -8356,8 +8416,8 @@ export async function registerRoutes(
       // Access check (mirrors company detail rules)
       if (user.role !== "developer") {
         const mySources = user.sources ?? [];
-        if (user.role === "consultant") {
-          if (isProConsultant(user)) {
+        if (user.role === "consultant" || user.role === "administrator") {
+          if (hasProPrivileges(user)) {
             if (!sourcesOverlap(mySources, company.sources ?? [])) {
               return res.status(403).json({ error: "Access denied" });
             }
@@ -8394,13 +8454,13 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
-      if (user.role !== "developer" && user.role !== "consultant") return res.status(403).json({ error: "Forbidden" });
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") return res.status(403).json({ error: "Forbidden" });
 
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const company = await storage.getCompany(req.params.companyId);
         if (!company) return res.status(404).json({ error: "Company not found" });
         const mySources = user.sources ?? [];
-        if (isProConsultant(user)) {
+        if (hasProPrivileges(user)) {
           const directAccess = sourcesOverlap(mySources, company.sources ?? []);
           if (!directAccess) {
             if (company.groupOwnerId) {
@@ -8440,7 +8500,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
-      if (user.role !== "developer" && !isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
+      if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Forbidden" });
       const { sourceCode, acceloId, acceloStanding, acceloType, acceloColor } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null };
       if (!sourceCode || !acceloId) return res.status(400).json({ error: "Missing sourceCode or acceloId" });
       await storage.upsertAcceloLink(req.params.companyId, String(sourceCode).toUpperCase(), String(acceloId), acceloStanding ?? null, acceloType ?? null, acceloColor ?? null);
@@ -8468,7 +8528,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
-      if (user.role !== "developer" && !isProConsultant(user)) return res.status(403).json({ error: "Forbidden" });
+      if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Forbidden" });
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
       if (links.length === 0) return res.json({ updated: 0 });
       const company = await storage.getCompany(req.params.companyId);
@@ -8599,13 +8659,13 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer" && !isProConsultant(user)) return res.status(403).json({ error: "Developers and Pro consultants only" });
+      if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Developers and Pro consultants only" });
 
       const company = await storage.getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
 
-      // Pro consultants may only manage companies within their own source access
-      if (isProConsultant(user)) {
+      // Pro consultants / Admins may only manage companies within their own source access
+      if (hasProPrivileges(user)) {
         const mySources = Array.isArray(user.sources) ? user.sources : [];
         const companySources = Array.isArray(company.sources) ? company.sources : [];
         if (!sourcesOverlap(mySources, companySources)) {
@@ -8685,7 +8745,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can create companies" });
       }
       
@@ -8707,8 +8767,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "At least one source is required for a company" });
       }
 
-      // Pro consultants may only assign sources that are within their own source list
-      if (isProConsultant(user) && user.role !== "developer") {
+      // Pro consultants / Admins may only assign sources that are within their own source list
+      if (hasProPrivileges(user) && user.role !== "developer") {
         const allowedSources = Array.isArray(user.sources) ? user.sources : [];
         const forbidden = sources.filter((s: string) => !allowedSources.includes(s));
         if (forbidden.length > 0) {
@@ -8798,7 +8858,7 @@ export async function registerRoutes(
       }
       
       const isStandardConsultantUser = user.role === "consultant" && !isProConsultant(user);
-      if (user.role !== "developer" && !isProConsultant(user) && !isStandardConsultantUser) {
+      if (user.role !== "developer" && !hasProPrivileges(user) && !isStandardConsultantUser) {
         return res.status(403).json({ error: "Only developers and consultants can update companies" });
       }
 
@@ -9008,7 +9068,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can update company status" });
       }
       
@@ -9073,7 +9133,7 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can delete companies" });
       }
 
@@ -9394,10 +9454,10 @@ export async function registerRoutes(
       }
       
       // Consultant site visibility
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const myAssigned = req.query.myAssigned === "true";
         const mySources = user.sources ?? [];
-        if (isProConsultant(user) && !myAssigned) {
+        if (hasProPrivileges(user) && !myAssigned) {
           // Pro consultants see sites whose parent company shares at least one source,
           // PLUS all sites in member companies of any GO company they can see
           const visibleCompanyIds = new Set(
@@ -9481,7 +9541,7 @@ export async function registerRoutes(
       }
       
       // Only admin or pro consultant can create sites
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can create sites" });
       }
       
@@ -9637,7 +9697,7 @@ export async function registerRoutes(
       }
       
       // Only admin or pro consultant can update sites
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can update sites" });
       }
       
@@ -9883,8 +9943,8 @@ export async function registerRoutes(
           const siteIds = companySites.filter(s => s.companyId === companyId).map(s => s.id);
           requests = requests.filter(r => siteIds.includes(r.siteId));
         }
-      } else if (user.role === "consultant") {
-        if (isProConsultant(user)) {
+      } else if (user.role === "consultant" || user.role === "administrator") {
+        if (hasProPrivileges(user)) {
           // Pro consultants see all requests, optionally filter by site
           if (siteId) requests = requests.filter(r => r.siteId === siteId);
         } else {
@@ -9962,7 +10022,7 @@ export async function registerRoutes(
       
       let relevantRequests: typeof allRequests = [];
       
-      if (user.role === "developer" || isProConsultant(user)) {
+      if (user.role === "developer" || hasProPrivileges(user)) {
         relevantRequests = allRequests;
       } else if (user.role === "consultant") {
         const assignments = await storage.getConsultantSites(user.id);
@@ -10250,7 +10310,7 @@ export async function registerRoutes(
       });
 
       // Update request status to in_progress if it's open and a consultant/admin responds
-      if (request.status === "open" && (user.role === "developer" || user.role === "consultant")) {
+      if (request.status === "open" && (user.role === "developer" || user.role === "consultant" || user.role === "administrator")) {
         await storage.updateSupportRequest(req.params.id, { 
           status: "in_progress",
           updatedAt: new Date(),
@@ -10429,7 +10489,7 @@ export async function registerRoutes(
   // ─── Report helpers ───────────────────────────────────────────────────────
   async function getAllowedSiteIds(user: any): Promise<Set<string>> {
     const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-    if (user.role === "developer" || isProConsultant) {
+    if (user.role === "developer" || user.role === "administrator" || isProConsultant) {
       const sites = await storage.getSites();
       return new Set(sites.map((s: any) => s.id));
     }
@@ -10451,7 +10511,7 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
       const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-      if (user.role !== "developer" && !isProConsultant) {
+      if (user.role !== "developer" && !isProConsultant && user.role !== "administrator") {
         return res.status(403).json({ error: "Not authorised" });
       }
 
@@ -10912,7 +10972,7 @@ export async function registerRoutes(
 
       const isDeveloper = user.role === "developer";
       const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
-      const isAdvocate = user.role === "consultant" && perms?.caseAdvocate === true;
+      const isAdvocate = (user.role === "consultant" || user.role === "administrator") && perms?.caseAdvocate === true;
       if (!isDeveloper && !isAdvocate) {
         return res.status(403).json({ error: "Not authorised" });
       }
@@ -11220,8 +11280,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Consultants must have the Case Advocate permission to access cases
-      if (user.role === "consultant") {
+      // Consultants/Admins must have the Case Advocate permission to access cases
+      if (user.role === "consultant" || user.role === "administrator") {
         const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
         if (!perms?.caseAdvocate) {
           return res.json([]);
@@ -11245,7 +11305,7 @@ export async function registerRoutes(
       const filters: { siteId?: string; entityId?: string; status?: any; includeArchived?: boolean } = {};
       
       // Only developers and consultants can view archived cases
-      if (includeArchived && (user.role === "developer" || user.role === "consultant")) {
+      if (includeArchived && (user.role === "developer" || user.role === "consultant" || user.role === "administrator")) {
         filters.includeArchived = true;
       }
       
@@ -11271,10 +11331,10 @@ export async function registerRoutes(
       // sources overlap with the consultant's own sources. Standard consultants must
       // additionally be assigned to the case's site.
       let sourceScopedCases = cases;
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const mySources = user.sources ?? [];
         let assignedSiteIds: Set<string> | null = null;
-        if (!isProConsultant(user) && user.id) {
+        if (!hasProPrivileges(user) && user.id) {
           const assignments = await storage.getConsultantSites(user.id);
           assignedSiteIds = new Set(assignments.map(a => a.entityId));
         }
@@ -11298,7 +11358,7 @@ export async function registerRoutes(
       const filteredCases = sourceScopedCases.filter(c => {
         if (!c.isConfidential) return true;
         if (user.role === "developer") return true;
-        if (user.role === "consultant") return true; // Consultants can see all confidential cases at their assigned sites
+        if (user.role === "consultant" || user.role === "administrator") return true; // Consultants/Admins can see all confidential cases at their assigned sites
         if (c.createdBy === user.id) return true;
         if (c.assignedConsultant === user.id) return true;
         if (c.restrictedToUsers && c.restrictedToUsers.includes(user.id)) return true;
@@ -11346,8 +11406,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Consultants must have the Case Advocate permission to access any case
-      if (user.role === "consultant") {
+      // Consultants/Admins must have the Case Advocate permission to access any case
+      if (user.role === "consultant" || user.role === "administrator") {
         const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
         if (!perms?.caseAdvocate) {
           return res.status(403).json({ error: "Case Advocate permission required to view cases" });
@@ -11368,7 +11428,7 @@ export async function registerRoutes(
       // Check confidentiality - consultants with site access can see all confidential cases
       if (caseData.isConfidential) {
         const canAccess = user.role === "developer" || 
-          user.role === "consultant" || // Consultants can see all confidential cases at their assigned sites
+          user.role === "consultant" || user.role === "administrator" || // Consultants/Admins can see all confidential cases at their assigned sites
           caseData.createdBy === user.id || 
           caseData.assignedConsultant === user.id ||
           (caseData.restrictedToUsers && caseData.restrictedToUsers.includes(user.id));
@@ -11398,8 +11458,8 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Clients cannot create employment law cases" });
       }
 
-      // Consultants must have the Case Advocate permission to create cases
-      if (user.role === "consultant") {
+      // Consultants/Admins must have the Case Advocate permission to create cases
+      if (user.role === "consultant" || user.role === "administrator") {
         const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
         if (!perms?.caseAdvocate) {
           return res.status(403).json({ error: "Case Advocate permission required to create cases" });
@@ -11423,7 +11483,7 @@ export async function registerRoutes(
         hearingDate: parseResult.data.hearingDate ? new Date(parseResult.data.hearingDate) : undefined,
         responseDeadline: parseResult.data.responseDeadline ? new Date(parseResult.data.responseDeadline) : undefined,
         createdBy: user.id,
-        assignedConsultant: user.role === "consultant" ? user.id : undefined,
+        assignedConsultant: (user.role === "consultant" || user.role === "administrator") ? user.id : undefined,
         restrictedToUsers: restrictedToUsers ? JSON.stringify(restrictedToUsers) : null,
       });
 
@@ -11669,7 +11729,7 @@ export async function registerRoutes(
   const canAccessConfidentialCase = (caseData: any, user: any): boolean => {
     if (!caseData.isConfidential) return true;
     if (user.role === "developer") return true;
-    if (user.role === "consultant") return true; // Consultants can access all confidential cases at their assigned sites
+    if (user.role === "consultant" || user.role === "administrator") return true; // Consultants/Admins can access all confidential cases at their assigned sites
     if (caseData.createdBy === user.id) return true;
     if (caseData.assignedConsultant === user.id) return true;
     if (caseData.restrictedToUsers) {
@@ -11722,7 +11782,7 @@ export async function registerRoutes(
       }
 
       // Only admin/consultant can upload case documents
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can upload case documents" });
       }
 
@@ -11787,7 +11847,7 @@ export async function registerRoutes(
       }
 
       // Only admin/consultant can delete case documents
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can delete case documents" });
       }
 
@@ -12575,7 +12635,7 @@ export async function registerRoutes(
       }
       
       // Admin/consultants have active access to all modules
-      if (user.role === "developer" || user.role === "consultant") {
+      if (user.role === "developer" || user.role === "consultant" || user.role === "administrator") {
         return res.json({
           health_safety: "active",
           human_resources: "active",
@@ -12825,7 +12885,7 @@ export async function registerRoutes(
   app.get("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { companyId } = req.params;
@@ -12853,7 +12913,7 @@ export async function registerRoutes(
   app.put("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { companyId } = req.params;
@@ -12892,7 +12952,7 @@ export async function registerRoutes(
   app.post("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { companyId } = req.params;
@@ -12919,7 +12979,7 @@ export async function registerRoutes(
   app.delete("/api/companies/:companyId/required-templates/:templateId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { companyId, templateId } = req.params;
@@ -12944,7 +13004,7 @@ export async function registerRoutes(
   app.get("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { siteId } = req.params;
@@ -12959,7 +13019,7 @@ export async function registerRoutes(
   app.post("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { siteId } = req.params;
@@ -12979,7 +13039,7 @@ export async function registerRoutes(
   app.delete("/api/sites/:siteId/template-overrides/:templateId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
       const { siteId, templateId } = req.params;
@@ -13636,7 +13696,7 @@ export async function registerRoutes(
       }
       
       // Only admin and consultant can access user management
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -13861,12 +13921,12 @@ export async function registerRoutes(
       // Pro consultants cannot set sources even if they somehow submit a sources payload.
       const userRoleForValidation = role || "client";
       const sourcesForCreate: string[] | null | undefined =
-        (currentUser.role !== "developer" && (userRoleForValidation === "consultant" || userRoleForValidation === "developer"))
+        (currentUser.role !== "developer" && (userRoleForValidation === "consultant" || userRoleForValidation === "developer" || userRoleForValidation === "administrator"))
           ? undefined  // strip — admin must assign sources separately
           : sources;
 
-      // Consultants and admins must have at least one source (admin-created only)
-      if (currentUser.role === "developer" && (userRoleForValidation === "consultant" || userRoleForValidation === "developer") && (!Array.isArray(sourcesForCreate) || sourcesForCreate.length === 0)) {
+      // Consultants, admins (staff) and developers must have at least one source (developer-created only)
+      if (currentUser.role === "developer" && (userRoleForValidation === "consultant" || userRoleForValidation === "developer" || userRoleForValidation === "administrator") && (!Array.isArray(sourcesForCreate) || sourcesForCreate.length === 0)) {
         return res.status(400).json({ error: "At least one source is required for consultant and developer users" });
       }
       
@@ -13899,7 +13959,7 @@ export async function registerRoutes(
         companyId: companyId || null,
         status: userRole === "client" ? "site_required" : "invited",
         consultantTier: consultantTier || null,
-        consultantPermissions: (userRole === "consultant" && consultantPermissions && typeof consultantPermissions === "object") ? consultantPermissions : null,
+        consultantPermissions: ((userRole === "consultant" || userRole === "administrator") && consultantPermissions && typeof consultantPermissions === "object") ? consultantPermissions : null,
         clientPermissionRole: "full",
         title: title || null,
         firstName: firstName || null,
@@ -14124,7 +14184,7 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Access denied" });
       }
       const users = await storage.getUsersByCompany(req.params.companyId);
@@ -14424,7 +14484,7 @@ export async function registerRoutes(
       }
       
       // Only admin and consultants can view client assignments
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -14472,7 +14532,7 @@ export async function registerRoutes(
       }
       
       // Only admin and consultants can assign clients to sites
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can assign clients to sites" });
       }
       
@@ -14535,7 +14595,7 @@ export async function registerRoutes(
       }
       
       // Only admin and consultants can remove client site assignments
-      if (user.role !== "developer" && user.role !== "consultant") {
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can remove client site assignments" });
       }
       
@@ -14637,7 +14697,7 @@ export async function registerRoutes(
       }
       
       // Admin or consultant can view user site assignments
-      if (currentUser.role !== "developer" && currentUser.role !== "consultant") {
+      if (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator") {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -15094,7 +15154,7 @@ export async function registerRoutes(
       // Use the effective target role (post-update) so that a role change from client
       // to consultant/admin is also covered.
       const effectiveTargetRole = (role ?? targetUser.role) as string;
-      const targetIsConsultantOrAdmin = effectiveTargetRole === "consultant" || effectiveTargetRole === "developer";
+      const targetIsConsultantOrAdmin = effectiveTargetRole === "consultant" || effectiveTargetRole === "developer" || effectiveTargetRole === "administrator";
       const sourcesPayload: string[] | undefined =
         (currentUser.role !== "developer" && targetIsConsultantOrAdmin)
           ? undefined  // strip sources from update; preserve existing value
@@ -15120,7 +15180,7 @@ export async function registerRoutes(
         ...(allowFullFieldEdit && companyId !== undefined && { companyId }),
         ...(allowFullFieldEdit && consultantTier !== undefined && { consultantTier }),
         ...(allowFullFieldEdit && sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
-        ...((currentUser.role === "developer" || (currentUser.role === "consultant" && currentUser.consultantTier === "pro")) && managerId !== undefined && { managerId: managerId || null }),
+        ...((currentUser.role === "developer" || (currentUser.role === "consultant" && currentUser.consultantTier === "pro")) && effectiveTargetRole !== "administrator" && managerId !== undefined && { managerId: managerId || null }),
         // Fields everyone can update on their own profile
         ...(title !== undefined && { title }),
         ...(jobTitle !== undefined && { jobTitle }),
@@ -15167,8 +15227,8 @@ export async function registerRoutes(
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
-      if (targetUser.role !== "consultant") {
-        return res.status(400).json({ error: "Permissions can only be set for consultant users" });
+      if (targetUser.role !== "consultant" && targetUser.role !== "administrator") {
+        return res.status(400).json({ error: "Permissions can only be set for consultant or admin users" });
       }
       const permissionsSchema = z.object({
         caseAdvocate: z.boolean(),
@@ -15622,7 +15682,7 @@ export async function registerRoutes(
   // All feedback endpoints are for admin/consultant only
   const requirePrivileged = (req: any, res: any, next: any) => {
     const user = (req.session as any)?.user;
-    if (user?.role !== "developer" && user?.role !== "consultant") {
+    if (user?.role !== "developer" && user?.role !== "consultant" && user?.role !== "administrator") {
       return res.status(403).json({ error: "Access denied" });
     }
     next();
@@ -15994,7 +16054,7 @@ export async function registerRoutes(
   app.get("/api/incidents/overdue-actions-count", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      const isPrivileged = user?.role === "developer" || user?.role === "consultant";
+      const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
       const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
       let openCount = 0;
       for (const incident of allIncidents) {
@@ -16011,7 +16071,7 @@ export async function registerRoutes(
   app.get("/api/incidents/open-actions-breakdown", requireAuth, async (req, res) => {
     try {
       const user = (req.session as any).user;
-      const isPrivileged = user?.role === "developer" || user?.role === "consultant";
+      const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
       const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
       const breakdown: { incidentId: string; incidentReference: string; title: string; openCount: number }[] = [];
       for (const incident of allIncidents) {
@@ -16086,7 +16146,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      if (user.role === "consultant") {
+      if (user.role === "consultant" || user.role === "administrator") {
         const perms = user.consultantPermissions as { reportIncident?: boolean } | null;
         if (!perms?.reportIncident) return res.status(403).json({ error: "You do not have permission to report incidents" });
       }
@@ -17175,7 +17235,7 @@ export async function registerRoutes(
       const canSeeELCases =
         user.role === "developer" ||
         user.role === "client" ||
-        (user.role === "consultant" &&
+        ((user.role === "consultant" || user.role === "administrator") &&
           !!(user.consultantPermissions as { caseAdvocate?: boolean } | null)?.caseAdvocate);
 
       if (canSeeELCases && (!moduleFilter || moduleFilter === "employment_law")) {
@@ -18156,7 +18216,7 @@ export async function registerRoutes(
   app.get("/api/testing-task-lists", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Access denied" });
       }
       const includeArchived = req.query.includeArchived === "true";
@@ -18228,7 +18288,7 @@ export async function registerRoutes(
   app.get("/api/testing-task-assignments/my", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Access denied" });
       }
       const assignments = await storage.getMyTestingTaskAssignments(user.id);
@@ -18281,7 +18341,7 @@ export async function registerRoutes(
   app.patch("/api/testing-task-assignments/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || (user.role !== "developer" && user.role !== "consultant")) {
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Access denied" });
       }
       const existing = await storage.getTestingTaskAssignment(req.params.id);
@@ -18490,7 +18550,7 @@ export async function registerRoutes(
   app.post("/api/services", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = createServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -18506,7 +18566,7 @@ export async function registerRoutes(
   app.patch("/api/services/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = updateServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -18523,7 +18583,7 @@ export async function registerRoutes(
   app.delete("/api/services/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const deleted = await storage.deleteService(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Service not found" });
@@ -18549,7 +18609,7 @@ export async function registerRoutes(
   app.post("/api/services/:id/components", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = z.object({ componentServiceId: z.string().min(1) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
@@ -18572,7 +18632,7 @@ export async function registerRoutes(
   app.delete("/api/services/:id/components/:componentId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const removed = await storage.removeServiceComponent(req.params.id, req.params.componentId);
       if (!removed) return res.status(404).json({ error: "Component link not found" });
@@ -18598,7 +18658,7 @@ export async function registerRoutes(
   app.post("/api/companies/:id/services", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = z.object({ serviceId: z.string().min(1) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
@@ -18645,7 +18705,7 @@ export async function registerRoutes(
   app.delete("/api/companies/:id/services/:serviceId", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+      const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const removed = await storage.removeCompanyService(req.params.id, req.params.serviceId);
       if (!removed) return res.status(404).json({ error: "Assignment not found" });
@@ -19170,7 +19230,7 @@ export async function registerRoutes(
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
-      const isPrivileged = user.role === "developer" || user.role === "consultant";
+      const isPrivileged = user.role === "developer" || user.role === "consultant" || user.role === "administrator";
 
       // Get all documents visible to this user
       const allDocs = await storage.getDocuments();
@@ -19462,7 +19522,7 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const type = (req.query.type as string) ?? "";
-      const isPrivileged = user.role === "developer" || user.role === "consultant";
+      const isPrivileged = user.role === "developer" || user.role === "consultant" || user.role === "administrator";
 
       // Determine site scope
       let userSiteIds: string[] | null = null;
@@ -19989,7 +20049,7 @@ export async function registerRoutes(
 
       // 4. Open cases assigned to this user — only for admins or consultants with caseAdvocate permission
       const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
-      const canViewCases = user.role === "developer" || (user.role === "consultant" && perms?.caseAdvocate === true);
+      const canViewCases = user.role === "developer" || ((user.role === "consultant" || user.role === "administrator") && perms?.caseAdvocate === true);
 
       let myCasesRows: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] = [];
       if (canViewCases) {

@@ -313,9 +313,9 @@ function CloudShareSkeleton({ module }: { module: "health_safety" | "human_resou
 type GuardUser = { role: string; consultantPermissions?: { templateLibrary?: boolean; trainingLibrary?: boolean } | null } | null | undefined;
 
 const ADMIN_ONLY     = (u: GuardUser) => u?.role === "developer";
-const NOT_CLIENT     = (u: GuardUser) => u?.role === "developer" || u?.role === "consultant";
-const TEMPLATE_LIB   = (u: GuardUser) => u?.role === "developer" || (u?.role === "consultant" && u?.consultantPermissions?.templateLibrary === true);
-const TRAINING_LIB   = (u: GuardUser) => u?.role === "developer" || (u?.role === "consultant" && u?.consultantPermissions?.trainingLibrary === true);
+const NOT_CLIENT     = (u: GuardUser) => u?.role === "developer" || u?.role === "consultant" || u?.role === "administrator";
+const TEMPLATE_LIB   = (u: GuardUser) => u?.role === "developer" || ((u?.role === "consultant" || u?.role === "administrator") && u?.consultantPermissions?.templateLibrary === true);
+const TRAINING_LIB   = (u: GuardUser) => u?.role === "developer" || ((u?.role === "consultant" || u?.role === "administrator") && u?.consultantPermissions?.trainingLibrary === true);
 
 function AccessGuard({ component: Component, allow }: { component: ComponentType<any>; allow: (u: GuardUser) => boolean }) {
   const { user } = useAuth();
@@ -502,12 +502,13 @@ function RoutePrefetcher({
 
     const isDeveloper = role === "developer";
     const isConsultant = role === "consultant";
-    const isPrivileged = isDeveloper || isConsultant;
+    const isAdministrator = role === "administrator";
+    const isPrivileged = isDeveloper || isConsultant || isAdministrator;
     const canAccess = (m: ModuleType) => hasVisibleAccess(m);
     const hasConsultantPerm = (key: "caseAdvocate" | "trainingLibrary" | "templateLibrary") =>
       consultantPermissions?.[key] === true;
-    const canSeeTemplateLibrary = isDeveloper || (isConsultant && hasConsultantPerm("templateLibrary"));
-    const canSeeTrainingLibrary = isDeveloper || (isConsultant && hasConsultantPerm("trainingLibrary"));
+    const canSeeTemplateLibrary = isDeveloper || ((isConsultant || isAdministrator) && hasConsultantPerm("templateLibrary"));
+    const canSeeTrainingLibrary = isDeveloper || ((isConsultant || isAdministrator) && hasConsultantPerm("trainingLibrary"));
 
     // Wait until the browser is idle so prefetches don't compete with the dashboard's first paint.
     const schedule = (cb: () => void) => {
@@ -526,7 +527,7 @@ function RoutePrefetcher({
       Dashboard2.preload();
       HelpGuide.preload();
       if (role === "client") HelpGuideClient.preload();
-      else if (isDeveloper || (isConsultant && hasConsultantPerm("templateLibrary")) || (isConsultant && hasConsultantPerm("trainingLibrary"))) HelpGuidePro.preload();
+      else if (isDeveloper || isAdministrator || (isConsultant && hasConsultantPerm("templateLibrary")) || (isConsultant && hasConsultantPerm("trainingLibrary"))) HelpGuidePro.preload();
       else HelpGuideConsultant.preload();
 
       // Module-gated pages — only fetch chunks for modules the user can access.

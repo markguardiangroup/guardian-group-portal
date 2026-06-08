@@ -326,7 +326,7 @@ function NavItemWithFlyout({
 
   const filteredSubItems = item.subItems.filter((subItem) => {
     if (subItem.adminOnly && user?.role === "client") return false;
-    if (subItem.clientOnly && (user?.role === "developer" || user?.role === "consultant")) return false;
+    if (subItem.clientOnly && (user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator")) return false;
     return true;
   });
 
@@ -449,6 +449,7 @@ interface AppSidebarProps {
 const roleLabels: Record<UserRole, string> = {
   developer: "Developer",
   consultant: "Consultant",
+  administrator: "Admin",
   client: "Client",
 };
 
@@ -457,7 +458,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { state: sidebarState } = useSidebar();
   const { logout, isLoggingOut } = useAuth();
   const { hasActiveAccess, hasVisibleAccess, isHidden, isLoading: moduleAccessLoading } = useModuleAccess();
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   // Fetch support request counts for notification badge
   // Badge is kept fresh via SSE 'support-request-created' / 'support-request-updated' events
@@ -734,7 +735,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             .filter((item) => !((item as any).devOnly && import.meta.env.PROD))
             .filter((item) => {
               const perm = (item as any).permission as keyof NonNullable<AuthUser["consultantPermissions"]> | undefined;
-              if (user?.role === "consultant" && perm) {
+              if ((user?.role === "consultant" || user?.role === "administrator") && perm) {
                 return user.consultantPermissions?.[perm] === true;
               }
               return true;

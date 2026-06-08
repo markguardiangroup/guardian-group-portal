@@ -153,12 +153,14 @@ const DEFAULT_PAGE_SIZE = 20;
 const roleColors: Record<UserRole, string> = {
   developer: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
   consultant: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  administrator: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20",
   client: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
 };
 
 const roleLabels: Record<UserRole, string> = {
   developer: "Developer",
   consultant: "Consultant",
+  administrator: "Admin",
   client: "Client",
 };
 
@@ -237,7 +239,7 @@ export default function UserManagement() {
     mobile: string;
     preferredContactMethod: "email" | "phone" | "mobile" | "any";
     notes: string;
-    role: "developer" | "consultant" | "client";
+    role: "developer" | "consultant" | "client" | "administrator";
     companyId: string;
     consultantTier: string;
     managerId: string;
@@ -266,7 +268,7 @@ export default function UserManagement() {
     mobile: "",
     preferredContactMethod: "email" as "email" | "phone" | "mobile" | "any",
     notes: "",
-    role: "client" as "developer" | "consultant" | "client",
+    role: "client" as "developer" | "consultant" | "client" | "administrator",
     companyId: "",
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "full" as "full",
@@ -540,13 +542,13 @@ export default function UserManagement() {
 
   const getVisibleUsers = () => {
     if (isDeveloper) return usersWithSiteInfo;
-    if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "client");
+    if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "administrator" || u.role === "client");
     // Standard consultants: backend already filtered — safety net to ensure no consultants/admins slip through
     if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
     return [];
   };
 
-  const roleOrder: Record<string, number> = { admin: 0, consultant: 1, client: 2 };
+  const roleOrder: Record<string, number> = { admin: 0, administrator: 1, consultant: 2, client: 3 };
 
   const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastSeen">("username");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -557,7 +559,7 @@ export default function UserManagement() {
 
   const filteredUsers = getVisibleUsers().filter((u) => {
     const matchesTab =
-      userTypeTab === "client" ? u.role === "client" : u.role === "developer" || u.role === "consultant";
+      userTypeTab === "client" ? u.role === "client" : u.role === "developer" || u.role === "consultant" || u.role === "administrator";
     const matchesSearch = 
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -582,9 +584,10 @@ export default function UserManagement() {
     if (sortBy === "role") {
       const getRoleRank = (u: any) => {
         if (u.role === "developer") return 0;
-        if (u.role === "consultant" && u.consultantTier === "pro") return 1;
-        if (u.role === "consultant") return 2;
-        return 3;
+        if (u.role === "administrator") return 1;
+        if (u.role === "consultant" && u.consultantTier === "pro") return 2;
+        if (u.role === "consultant") return 3;
+        return 4;
       };
       const rankA = getRoleRank(a);
       const rankB = getRoleRank(b);
@@ -836,7 +839,7 @@ export default function UserManagement() {
   const handleSaveEdit = () => {
     if (!editingUser || !editFormData) return;
     // Only admins can assign sources; enforce the "at least one" validation only for admins
-    if (isDeveloper && (editFormData.role === "consultant" || editFormData.role === "developer") && editFormData.sources.length === 0) {
+    if (isDeveloper && (editFormData.role === "consultant" || editFormData.role === "developer" || editFormData.role === "administrator") && editFormData.sources.length === 0) {
       toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
       return;
     }
@@ -1181,8 +1184,8 @@ export default function UserManagement() {
       return;
     }
     // Consultants must have at least one source (admin users always get all sources automatically)
-    if (isDeveloper && newUser.role === "consultant" && newUser.sources.length === 0) {
-      toast({ title: "At least one source is required for consultant users", variant: "destructive" });
+    if (isDeveloper && (newUser.role === "consultant" || newUser.role === "administrator") && newUser.sources.length === 0) {
+      toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
       return;
     }
     // Auto-generate fullName from firstName and lastName if not provided
@@ -1190,7 +1193,7 @@ export default function UserManagement() {
       `${newUser.firstName} ${newUser.lastName}`.trim() || 
       newUser.username;
     // For consultant/admin — ask whether to send the welcome email now
-    if (newUser.role === "consultant" || newUser.role === "developer") {
+    if (newUser.role === "consultant" || newUser.role === "developer" || newUser.role === "administrator") {
       setPendingEmailUser({ ...newUser, fullName });
       setIsAddUserOpen(false);
       return;
@@ -1204,7 +1207,7 @@ export default function UserManagement() {
   };
 
   const pendingBulkUsers = useMemo(
-    () => allUsers.filter(u => (u.role === "consultant" || u.role === "developer") && u.status === "invite_required"),
+    () => allUsers.filter(u => (u.role === "consultant" || u.role === "developer" || u.role === "administrator") && u.status === "invite_required"),
     [allUsers]
   );
 
@@ -1747,7 +1750,7 @@ export default function UserManagement() {
                   </TableCell>
                   {userTypeTab === "staff" && (
                     <TableCell className="hidden md:table-cell">
-                      {(u.role === "developer" || u.role === "consultant") ? (() => {
+                      {(u.role === "developer" || u.role === "consultant" || u.role === "administrator") ? (() => {
                         const activeCodes = availableSources.filter(s => s.isActive).map(s => s.code);
                         const userSources = u.sources ?? [];
                         if (userSources.length === 0) {
@@ -1795,7 +1798,7 @@ export default function UserManagement() {
                   )}
                   {userTypeTab === "staff" && (
                     <TableCell className="hidden md:table-cell">
-                      {u.role === "consultant" ? (() => {
+                      {(u.role === "consultant" || u.role === "administrator") ? (() => {
                         const PERMS = [
                           { key: "caseAdvocate", label: "Case Advocate", className: "bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-700" },
                           { key: "trainingLibrary", label: "Training Lib", className: "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700" },
@@ -1906,7 +1909,7 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                           </>
                         )}
-                        {isDeveloper && u.role === "consultant" && (
+                        {isDeveloper && (u.role === "consultant" || u.role === "administrator") && (
                           <DropdownMenuItem
                             onClick={() => {
                               setPermissionsUser(u);
@@ -2227,13 +2230,14 @@ export default function UserManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="edit-role">Role</Label>
-                      <Select value={editFormData.role} onValueChange={(v: "developer" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.id === user?.id}>
+                      <Select value={editFormData.role} onValueChange={(v: "developer" | "consultant" | "administrator" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.id === user?.id}>
                         <SelectTrigger id="edit-role" data-testid="select-edit-role" disabled={editingUser.id === user?.id}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {isDeveloper && <SelectItem value="developer">Developer</SelectItem>}
                           <SelectItem value="consultant">Consultant</SelectItem>
+                          {isDeveloper && <SelectItem value="administrator">Admin</SelectItem>}
                           <SelectItem value="client">Client</SelectItem>
                         </SelectContent>
                       </Select>
@@ -2302,7 +2306,7 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              {(editFormData.role === "developer" || editFormData.role === "consultant") && availableSources.length > 0 && (
+              {(editFormData.role === "developer" || editFormData.role === "consultant" || editFormData.role === "administrator") && availableSources.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-3">
                     Sources Access {isDeveloper && <span className="text-destructive">*</span>}
@@ -2760,7 +2764,7 @@ export default function UserManagement() {
                     ) : (
                       <Select
                         value={newUser.role}
-                        onValueChange={(value: "developer" | "consultant" | "client") => {
+                        onValueChange={(value: "developer" | "consultant" | "administrator" | "client") => {
                           const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
                           setNewUser({ ...newUser, role: value, sources: value === "developer" ? allSourceCodes : newUser.sources });
                         }}
@@ -2771,6 +2775,7 @@ export default function UserManagement() {
                         <SelectContent>
                           {isDeveloper && <SelectItem value="developer">Developer</SelectItem>}
                           {isDeveloper && <SelectItem value="consultant">Consultant</SelectItem>}
+                          {isDeveloper && <SelectItem value="administrator">Admin</SelectItem>}
                           <SelectItem value="client">Client</SelectItem>
                         </SelectContent>
                       </Select>
@@ -3145,10 +3150,10 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {isDeveloper && newUser.role === "consultant" && (
+            {isDeveloper && (newUser.role === "consultant" || newUser.role === "administrator") && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Permissions</h4>
-                <p className="text-xs text-muted-foreground mb-3">Control which features this consultant can access.</p>
+                <p className="text-xs text-muted-foreground mb-3">Control which features this user can access.</p>
                 <div className="space-y-1">
                   <div className="flex items-start justify-between gap-4 rounded-lg border p-4">
                     <div className="space-y-1">
@@ -3229,7 +3234,7 @@ export default function UserManagement() {
               </div>
             )}
 
-            {isDeveloper && newUser.role === "consultant" && availableSources.length > 0 && (
+            {isDeveloper && (newUser.role === "consultant" || newUser.role === "administrator") && availableSources.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
                 <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
