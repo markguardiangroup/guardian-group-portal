@@ -225,8 +225,8 @@ const adminNavItems = [
     icon: Plug,
   },
   {
-    title: "Admin Reports",
-    url: "/admin-reports",
+    title: "Developer Reports",
+    url: "/developer-reports",
     icon: ShieldAlert,
   },
   {

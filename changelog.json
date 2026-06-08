@@ -8119,6 +8119,13 @@
           "message": "Fixed: changes-required notification no longer sent twice when multiple admins exist",
           "category": "bug",
           "createdAt": "2026-06-05T21:30:00.000Z"
+        },
+        {
+          "id": "73a7bf85-7080-41ba-99ea-d76085d4a580",
+          "patch": 15,
+          "message": "Renamed: Admin Reports page is now Developer Reports",
+          "category": "other",
+          "createdAt": "2026-06-08T10:25:59.076Z"
         }
       ],
       "publishedPatch": 14,
