@@ -8189,6 +8189,13 @@
           "message": "Fixed: Case Advocate badge now shows correctly for admin users in user detail panel",
           "category": "bug",
           "createdAt": "2026-06-08T16:30:29.722Z"
+        },
+        {
+          "id": "3e2c0c44-7d1a-4064-80e4-9ed84ba1f7d7",
+          "patch": 15,
+          "message": "Fixed: Admin portfolio now shows all companies and sites, not just explicitly assigned ones",
+          "category": "bug",
+          "createdAt": "2026-06-08T16:42:10.133Z"
         }
       ],
       "publishedPatch": 14,

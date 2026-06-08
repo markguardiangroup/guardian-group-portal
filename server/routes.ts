@@ -19411,7 +19411,7 @@ export async function registerRoutes(
       let portfolio: Portfolio = null;
       if (isPrivileged) {
         const consultantAssignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds: string[] | null = user.role === "developer" ? null : consultantAssignments.map((a) => a.entityId);
+        const assignedSiteIds: string[] | null = (user.role === "developer" || user.role === "administrator") ? null : consultantAssignments.map((a) => a.entityId);
 
         type SiteRow = { id: string; name: string; company_name: string | null };
         let sitesData: { id: string; name: string; companyName: string | null; isPrimary: boolean }[] = [];
@@ -19452,7 +19452,7 @@ export async function registerRoutes(
             assignedSiteIds
           );
           casesData = casesRes.rows;
-        } else if (user.role === "developer") {
+        } else if (user.role === "developer" || user.role === "administrator") {
           const casesRes = await pool.query<CaseRow>(
             "SELECT ca.id, ca.case_reference, ca.employee_name, c.name as company_name, ca.status FROM cases ca LEFT JOIN sites s ON ca.site_id = s.id LEFT JOIN companies c ON s.entity_id = c.id WHERE ca.status NOT IN ('closed','withdrawn') AND ca.is_archived = false ORDER BY ca.created_at DESC LIMIT 50"
           );
@@ -19564,7 +19564,7 @@ export async function registerRoutes(
         const siteIds2 = user.role === "consultant" && portfolio2
           ? (portfolio2.assignedSites ?? []).map((s) => s.id)
           : null;
-        if (user.role === "developer") {
+        if (user.role === "developer" || user.role === "administrator") {
           const r = await pool.query<{ count: string }>(
             "SELECT COUNT(*) as count FROM cases WHERE status NOT IN ('closed','withdrawn') AND is_archived = false"
           );
