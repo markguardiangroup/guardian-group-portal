@@ -569,7 +569,7 @@ function EmailDeliveryLogDialog({
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
-export default function AdminReports() {
+export default function DeveloperReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
   const [showCountAudit, setShowCountAudit] = useState(false);
@@ -1064,10 +1064,10 @@ export default function AdminReports() {
         <div>
           <h1 className="text-3xl font-semibold flex items-center gap-2">
             <ShieldAlert className="h-8 w-8" />
-            Admin Reports
+            Developer Reports
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Confidential reports for administrators only
+            Confidential reports for developers only
           </p>
         </div>
       </div>
@@ -1093,7 +1093,7 @@ export default function AdminReports() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Available Admin Reports
+            Available Developer Reports
           </CardTitle>
           <CardDescription>Generate and download confidential reports</CardDescription>
         </CardHeader>
@@ -1136,7 +1136,7 @@ export default function AdminReports() {
             </div>
 
             {/* Changelog / Release Notes */}
-            <Link href="/admin-reports/changelog">
+            <Link href="/developer-reports/changelog">
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 data-testid="report-changelog"
