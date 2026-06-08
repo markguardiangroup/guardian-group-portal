@@ -318,6 +318,29 @@ process.on("uncaughtException", (err) => {
     console.error("Startup document-status migration warning (non-fatal):", err);
   }
 
+  // One-time data migration: rename legacy user role "admin" → "developer".
+  // Idempotent — safe to run on every startup. Uses raw SQL to avoid TypeScript
+  // enum constraints on a role value that no longer exists in the schema type.
+  // Also rewrites portal_messages.target_roles arrays that reference 'admin'.
+  try {
+    const roleResult = await pool.query(
+      `UPDATE users SET role = 'developer' WHERE role = 'admin'`
+    );
+    const roleCount = roleResult.rowCount ?? 0;
+    if (roleCount > 0) {
+      console.log(`[migration] Renamed ${roleCount} user role(s) from 'admin' to 'developer'.`);
+    }
+    const targetResult = await pool.query(
+      `UPDATE portal_messages SET target_roles = array_replace(target_roles, 'admin', 'developer') WHERE 'admin' = ANY(target_roles)`
+    );
+    const targetCount = targetResult.rowCount ?? 0;
+    if (targetCount > 0) {
+      console.log(`[migration] Updated ${targetCount} portal message target_roles from 'admin' to 'developer'.`);
+    }
+  } catch (err) {
+    console.error("Startup role-rename migration warning (non-fatal):", err);
+  }
+
   // One-time data migration: non-required documents that are compliant should
   // have status "approved" not "compliant". Excludes documents whose template is
   // in company_required_templates for their company (they are effectively required).

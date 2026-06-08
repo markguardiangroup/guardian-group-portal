@@ -13,7 +13,7 @@ The top-level user role `admin` was renamed to `developer` (UserRole in `shared/
 - Role badge/label/dropdown text and `roleLabels`/`roleColors` map keys → `developer` / "Developer".
 
 ## Preserve (do NOT rename)
-- Seed user identity: username `admin`, email, password `admin123`, id `user-admin`.
+- Seed user identity: username `admin`, plus its email, password, and id (`user-admin`) — see `server/storage.ts` seed.
 - `ADM` reference-number prefix (`getUserReferencePrefix`).
 - `/admin/*` page routes (pathways/sources/services/portal-messages/integrations) and component/identifier names (AdminReports, AdminSources, `ADMIN_ONLY`, `adminOnly`, `adminNavItems`, `adminUsers`).
 - `ADMIN` roadmap module KEY in `development-roadmap.tsx` (content category, not the role).
