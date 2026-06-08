@@ -2103,9 +2103,7 @@ export default function HomePage() {
               ? "calc(1.5rem + 50vw)"
               : "calc(8rem + 50vw)",
             transform: "translateX(-50%)",
-            animation: scrollHintFading ? undefined : "fadeInUp 0.4s ease both",
-            opacity: scrollHintFading ? 0 : 1,
-            transition: scrollHintFading ? "opacity 0.4s ease" : undefined,
+            animation: scrollHintFading ? "fadeOut 0.4s ease forwards" : "fadeInUp 0.4s ease both",
             pointerEvents: scrollHintFading ? "none" : undefined,
           }}
         >

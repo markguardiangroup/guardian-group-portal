@@ -8231,6 +8231,13 @@
           "message": "Added \"Admin\" role: filter in staff list, on-behalf-of consultant in document upload dialogs",
           "category": "feature",
           "createdAt": "2026-06-08T19:02:58.513Z"
+        },
+        {
+          "id": "81863f51-6bd9-4ff4-9a40-f70fe878ccd2",
+          "patch": 15,
+          "message": "Fixed: \"See what's new\" bubble now fades out correctly when scrolled halfway",
+          "category": "bug",
+          "createdAt": "2026-06-08T19:10:25.954Z"
         }
       ],
       "publishedPatch": 14,
