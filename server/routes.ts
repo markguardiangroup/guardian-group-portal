@@ -13833,17 +13833,18 @@ export async function registerRoutes(
 
       // Apply filters:
       // - Standard consultant: only their assigned clients from source-overlapping companies (no admins, no other consultants)
-      // - Pro consultant:     consultants + clients that share at least one source (no admins)
+      // - Pro consultant / Admin (hasProPrivileges): staff (consultants + admins) + clients that
+      //                       share at least one source (never developers)
       //                       + GO expansion: clients from member companies of any GO they can see
-      // - Admin:              everyone
+      // - Developer:          everyone
       let visibleUsers: typeof allUsers;
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
-      } else if (isProConsultant(user)) {
+      } else if (hasProPrivileges(user)) {
         visibleUsers = allUsers.filter(u => {
           if (u.role === "developer") return false;
-          if (u.role === "consultant") {
-            // See other consultants that share at least one source
+          if (u.role === "consultant" || u.role === "administrator") {
+            // See other staff (consultants / admins) that share at least one source
             return sourcesOverlap(mySources, u.sources ?? []);
           }
           if (u.role === "client") {
