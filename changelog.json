@@ -8203,6 +8203,13 @@
           "message": "Improved: Admin home page portfolio header now reads \"All Companies\" with correct description",
           "category": "enhancement",
           "createdAt": "2026-06-08T18:42:04.195Z"
+        },
+        {
+          "id": "12b9bb52-1849-49bd-adb5-dff7bcbf42d0",
+          "patch": 15,
+          "message": "Fixed: \"See what's new\" bubble now disappears as soon as you scroll down",
+          "category": "enhancement",
+          "createdAt": "2026-06-08T18:46:04.813Z"
         }
       ],
       "publishedPatch": 14,

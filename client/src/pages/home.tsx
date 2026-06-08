@@ -1943,6 +1943,13 @@ export default function HomePage() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const wasLoadingRef = useRef(false);
 
+  useEffect(() => {
+    if (!showScrollHint) return;
+    const handleScroll = () => setShowScrollHint(false);
+    document.addEventListener("scroll", handleScroll, true);
+    return () => document.removeEventListener("scroll", handleScroll, true);
+  }, [showScrollHint]);
+
 
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
