@@ -112,6 +112,7 @@ export function UploadDocumentDialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
+  const [selectedOnBehalfId, setSelectedOnBehalfId] = useState<string>("");
 
   const form = useForm<UploadForm>({
     resolver: zodResolver(uploadSchema),
@@ -148,11 +149,13 @@ export function UploadDocumentDialog({
       });
       setSelectedFile(null);
       setSelectedApproverId("");
+      setSelectedOnBehalfId("");
     }
   }, [open, initialFolderId]);
 
   useEffect(() => {
     setSelectedApproverId("");
+    setSelectedOnBehalfId("");
   }, [siteId]);
 
   const provisionFoldersMutation = useMutation({
@@ -217,6 +220,12 @@ export function UploadDocumentDialog({
     );
   })();
 
+  const isAdmin = user?.role === "administrator";
+  // For admin on-behalf-of: show all active consultants; server validates eligibility.
+  const eligibleOnBehalfConsultants = isAdmin
+    ? (allUsers ?? []).filter(u => u.role === "consultant" && u.status === "active")
+    : [];
+
   const mutation = useMutation({
     mutationFn: async (data: UploadForm) => {
       if (!selectedFile) throw new Error("No file selected");
@@ -256,6 +265,7 @@ export function UploadDocumentDialog({
         mimeType: selectedFile.type || "application/pdf",
         approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
         notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+        onBehalfOfUserId: isAdmin && data.requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
       });
     },
     onSuccess: () => {
@@ -276,6 +286,10 @@ export function UploadDocumentDialog({
   const onSubmit = (data: UploadForm) => {
     if (!selectedFile) {
       toast({ title: "No File Selected", description: "Please select a file to upload.", variant: "destructive" });
+      return;
+    }
+    if (isAdmin && data.requiresApproval && !selectedOnBehalfId) {
+      toast({ title: "Consultant Required", description: "Please select a consultant to act on behalf of for this document.", variant: "destructive" });
       return;
     }
     if (data.requiresApproval && siteId && !selectedApproverId) {
@@ -488,6 +502,33 @@ export function UploadDocumentDialog({
                   </FormItem>
                 )}
               />
+            )}
+
+            {/* Admin: Approval on behalf of consultant */}
+            {requiresApproval && isAdmin && (
+              <div className="space-y-1">
+                <label className="text-sm font-medium flex items-center gap-1">
+                  Approval on behalf of <span className="text-destructive">*</span>
+                </label>
+                <p className="text-xs text-muted-foreground">Select the consultant who will own and sign off this document.</p>
+                {eligibleOnBehalfConsultants.length > 0 ? (
+                  <Select value={selectedOnBehalfId} onValueChange={setSelectedOnBehalfId}>
+                    <SelectTrigger className={!selectedOnBehalfId ? "border-destructive" : ""} data-testid="select-upload-dialog-on-behalf">
+                      <SelectValue placeholder="Select a consultant…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eligibleOnBehalfConsultants.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4 shrink-0" />
+                    No active consultants available.
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Client approver */}

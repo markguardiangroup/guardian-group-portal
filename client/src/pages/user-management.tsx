@@ -1544,6 +1544,7 @@ export default function UserManagement() {
               {isDeveloper && <SelectItem value="developer">Developers</SelectItem>}
               <SelectItem value="consultant">Consultants</SelectItem>
               <SelectItem value="pro_consultant">Pro Consultants</SelectItem>
+              {isDeveloper && <SelectItem value="administrator">Admins</SelectItem>}
             </SelectContent>
           </Select>
         )}

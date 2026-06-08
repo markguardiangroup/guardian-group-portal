@@ -3146,6 +3146,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [newVersionApprover, setNewVersionApprover] = useState("");
+  const [newVersionOnBehalfId, setNewVersionOnBehalfId] = useState("");
   const [newVersionAutoApproval, setNewVersionAutoApproval] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
@@ -3258,6 +3259,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     if (!siteUsers) return [];
     return siteUsers.filter(u => u.role === "client");
   }, [siteUsers, allUsersForApproval, isDocumentScoped, documentEntityId]);
+
+  const siteConsultants = useMemo(() => {
+    if (isDocumentScoped) {
+      return (allUsersForApproval ?? []).filter(u => u.role === "consultant" && u.status === "active");
+    }
+    if (!siteUsers) return [];
+    return siteUsers.filter(u => u.role === "consultant" && u.status === "active");
+  }, [siteUsers, allUsersForApproval, isDocumentScoped]);
 
   // Reset draft-viewed gate whenever the user navigates to a different document
   useEffect(() => { setDraftViewed(false); }, [id]);
@@ -3438,7 +3447,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   };
 
   const uploadVersionMutation = useMutation({
-    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvalRequestedFrom?: string; autoFinalApproval?: boolean }) => {
+    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvalRequestedFrom?: string; autoFinalApproval?: boolean; onBehalfOfUserId?: string }) => {
       return apiRequest("POST", `/api/documents/${id}/versions`, data);
     },
     onSuccess: () => {
@@ -3455,6 +3464,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       setNewVersionFile(null);
       setChangeNote("");
       setNewVersionApprover("");
+      setNewVersionOnBehalfId("");
       toast({
         title: "Success",
         description: "New version uploaded successfully",
@@ -3472,6 +3482,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const handleUploadVersion = () => {
     if (!newVersionFile) return;
     if (!newVersionApprover) return;
+    if (user?.role === "administrator" && !newVersionOnBehalfId) return;
     uploadVersionMutation.mutate({
       fileName: newVersionFile.fileName,
       fileUrl: newVersionFile.objectPath,
@@ -3480,6 +3491,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       changeNote: changeNote || undefined,
       approvalRequestedFrom: newVersionApprover || undefined,
       autoFinalApproval: newVersionAutoApproval,
+      onBehalfOfUserId: user?.role === "administrator" && newVersionOnBehalfId ? newVersionOnBehalfId : undefined,
     });
   };
 
@@ -5149,6 +5161,25 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 onUploadComplete={(result) => setNewVersionFile(result)}
               />
             )}
+            {user?.role === "administrator" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Approval on behalf of <span className="text-destructive">*</span></label>
+                <p className="text-xs text-muted-foreground">Select the consultant who will own and sign off this version.</p>
+                <Select value={newVersionOnBehalfId} onValueChange={setNewVersionOnBehalfId}>
+                  <SelectTrigger data-testid="select-version-on-behalf">
+                    <SelectValue placeholder="Select consultant..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {siteConsultants.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>{u.fullName}</SelectItem>
+                    ))}
+                    {siteConsultants.length === 0 && (
+                      <SelectItem value="__none" disabled>No consultants found for this site</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Approver <span className="text-destructive">*</span></label>
               <Select value={newVersionApprover} onValueChange={setNewVersionApprover}>
@@ -5203,13 +5234,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 setNewVersionFile(null);
                 setChangeNote("");
                 setNewVersionApprover("");
+                setNewVersionOnBehalfId("");
               }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleUploadVersion}
-              disabled={!newVersionFile || !newVersionApprover || uploadVersionMutation.isPending}
+              disabled={!newVersionFile || !newVersionApprover || (user?.role === "administrator" && !newVersionOnBehalfId) || uploadVersionMutation.isPending}
             >
               {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
             </Button>

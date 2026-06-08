@@ -8224,6 +8224,13 @@
           "message": "Fixed: \"See what's new\" bubble fade-out now works correctly on scroll",
           "category": "bug",
           "createdAt": "2026-06-08T18:51:38.173Z"
+        },
+        {
+          "id": "d6c8123b-567e-457c-8289-15908b1604b4",
+          "patch": 15,
+          "message": "Added \"Admin\" role: filter in staff list, on-behalf-of consultant in document upload dialogs",
+          "category": "feature",
+          "createdAt": "2026-06-08T19:02:58.513Z"
         }
       ],
       "publishedPatch": 14,
