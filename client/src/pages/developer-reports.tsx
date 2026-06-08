@@ -1037,7 +1037,7 @@ export default function AdminReports() {
     document.body.removeChild(link);
   };
 
-  // Only administrators can access this page
+  // Only developers can access this page
   if (!user || user.role !== "developer") {
     return (
       <div className="flex h-[50vh] items-center justify-center">

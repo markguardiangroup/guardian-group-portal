@@ -280,7 +280,7 @@ export default function SiteModuleAccess() {
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              Only administrators and consultants can manage site module access.
+              Only developers and consultants can manage site module access.
             </CardDescription>
           </CardHeader>
         </Card>

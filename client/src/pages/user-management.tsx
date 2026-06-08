@@ -530,7 +530,7 @@ export default function UserManagement() {
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              Only administrators and consultants can access user management.
+              Only developers and consultants can access user management.
             </CardDescription>
           </CardHeader>
         </Card>

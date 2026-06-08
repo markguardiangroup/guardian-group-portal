@@ -8133,6 +8133,13 @@
           "message": "Fixed: changelog version check no longer triggers a 404 request",
           "category": "bug",
           "createdAt": "2026-06-08T12:06:11.116Z"
+        },
+        {
+          "id": "ddb3d592-3c87-479d-8769-13cafeddc14a",
+          "patch": 15,
+          "message": "Updated staff-facing wording from 'Admin' to 'Developer' for consistency",
+          "category": "enhancement",
+          "createdAt": "2026-06-08T12:22:37.178Z"
         }
       ],
       "publishedPatch": 14,

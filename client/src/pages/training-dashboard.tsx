@@ -322,7 +322,7 @@ export default function TrainingDashboard() {
             <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">Training Dashboard</h2>
             <p className="text-muted-foreground">
-              This dashboard is only available to consultants and administrators.
+              This dashboard is only available to consultants and developers.
             </p>
             <Link href="/training/my-training">
               <Button className="mt-4" data-testid="link-my-training">

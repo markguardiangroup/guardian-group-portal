@@ -43,7 +43,7 @@ const sections: GuideSection[] = [
         <p className="text-muted-foreground">
           As a Pro Consultant you have all of the Standard Consultant capabilities, plus elevated
           access to portal-wide content management — including the Template Library and/or Training
-          Library — depending on the permissions granted by your administrator.
+          Library — depending on the permissions granted by a developer.
         </p>
 
         <div>
@@ -84,15 +84,15 @@ const sections: GuideSection[] = [
             <p className="text-sm text-muted-foreground">
               Manages documents, training, and cases for assigned client sites. Additionally has
               access to create and manage portal-wide document templates and/or training courses,
-              depending on the permissions enabled by your administrator.
+              depending on the permissions enabled by a developer.
             </p>
           </div>
         </div>
 
         <TipBox type="info">
           Pro permissions (Template Library, Training Library) are individually enabled per
-          consultant by an administrator. If you expect access to one of these areas but can't see
-          it in the sidebar, contact your admin team.
+          consultant by a developer. If you expect access to one of these areas but can't see
+          it in the sidebar, contact a developer.
         </TipBox>
       </div>
     ),
@@ -152,8 +152,8 @@ const sections: GuideSection[] = [
                   assigned sites and check their status.
                 </p>
                 <TipBox type="info">
-                  Creating new users and sending invitations is handled by administrators. If a
-                  client needs an account, raise the request with your admin team.
+                  Creating new users and sending invitations is handled by developers. If a
+                  client needs an account, raise the request with a developer.
                 </TipBox>
               </div>
             </AccordionContent>
@@ -656,7 +656,7 @@ const sections: GuideSection[] = [
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          Your account is created by an administrator. You set your own password using the
+          Your account is created by a developer. You set your own password using the
           invitation link sent to your email.
         </p>
 
@@ -676,7 +676,7 @@ const sections: GuideSection[] = [
           />
           <div className="mt-4">
             <TipBox type="warning">
-              Invitation links expire after 48 hours. Contact an administrator if your link has
+              Invitation links expire after 48 hours. Contact a developer if your link has
               expired.
             </TipBox>
           </div>

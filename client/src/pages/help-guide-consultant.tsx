@@ -98,7 +98,7 @@ const sections: GuideSection[] = [
         </div>
 
         <TipBox type="info">
-          You only see the sites and companies you've been assigned to. Contact an administrator if
+          You only see the sites and companies you've been assigned to. Contact a developer if
           you need access to additional sites.
         </TipBox>
       </div>
@@ -166,8 +166,8 @@ const sections: GuideSection[] = [
                   assigned sites and check their status.
                 </p>
                 <TipBox type="info">
-                  Creating new users and sending invitations is handled by administrators. If a
-                  client needs an account, raise the request with your admin team.
+                  Creating new users and sending invitations is handled by developers. If a
+                  client needs an account, raise the request with a developer.
                 </TipBox>
               </div>
             </AccordionContent>
@@ -663,7 +663,7 @@ const sections: GuideSection[] = [
     content: (
       <div className="space-y-6">
         <p className="text-muted-foreground">
-          Your account is created by an administrator. You set your own password using the
+          Your account is created by a developer. You set your own password using the
           invitation link sent to your email.
         </p>
 
@@ -683,7 +683,7 @@ const sections: GuideSection[] = [
           />
           <div className="mt-4">
             <TipBox type="warning">
-              Invitation links expire after 48 hours. Contact an administrator if your link has
+              Invitation links expire after 48 hours. Contact a developer if your link has
               expired.
             </TipBox>
           </div>

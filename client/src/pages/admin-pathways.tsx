@@ -789,7 +789,7 @@ export default function AdminPathways() {
     return (
       <div className="p-6 text-center text-muted-foreground">
         <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        <p>Admin access required.</p>
+        <p>Developer access required.</p>
       </div>
     );
   }

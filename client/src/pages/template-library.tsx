@@ -3337,7 +3337,7 @@ export default function TemplateLibraryPage() {
                 <li>Remove the template from active use</li>
                 <li>Preserve all version history</li>
                 <li>Create an audit record with your reason</li>
-                <li>Allow recovery by administrators if needed</li>
+                <li>Allow recovery by developers if needed</li>
               </ul>
             </div>
           </div>
@@ -3881,7 +3881,7 @@ export default function TemplateLibraryPage() {
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  This action is restricted to administrators only and will be logged in the audit trail.
+                  This action is restricted to developers only and will be logged in the audit trail.
                 </p>
               </div>
             </AlertDialogDescription>

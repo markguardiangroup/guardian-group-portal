@@ -1683,7 +1683,7 @@ export async function registerRoutes(
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
       if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant")) {
-        return res.status(403).json({ error: "Only admins and consultants can send invitations" });
+        return res.status(403).json({ error: "Only developers and consultants can send invitations" });
       }
       
       const targetUser = await storage.getUser(req.params.userId);
@@ -1776,7 +1776,7 @@ export async function registerRoutes(
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
       if (!currentUser || currentUser.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can view invitation status" });
+        return res.status(403).json({ error: "Only developers can view invitation status" });
       }
       
       const invitations = await storage.getUserInvitationsByUser(req.params.userId);
@@ -3632,9 +3632,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admins and consultants can upload new versions
+      // Only developers and consultants can upload new versions
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can upload new document versions" });
+        return res.status(403).json({ error: "Only developers and consultants can upload new document versions" });
       }
       
       const document = await storage.getDocument(req.params.id);
@@ -4103,7 +4103,7 @@ export async function registerRoutes(
             }
           }
         } else if (user.role !== "developer" && user.role !== "consultant") {
-          return res.status(403).json({ error: "Only admins, consultants, and full-permission company users can upload company or group level documents" });
+          return res.status(403).json({ error: "Only developers, consultants, and full-permission company users can upload company or group level documents" });
         }
         // Validate consultant has source overlap with the target company/group (not blanket access)
         if (user.role === "consultant") {
@@ -5048,7 +5048,7 @@ export async function registerRoutes(
             const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
             console.log(`[changes-trace] uploader=${uploaderForChanges?.id} uploaderRole=${uploaderForChanges?.role}`);
             if (uploaderForChanges && (uploaderForChanges.role === "consultant" || uploaderForChanges.role === "developer")) {
-              await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "admin (uploader)" : "consultant (uploader)");
+              await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "developer (uploader)" : "consultant (uploader)");
             }
             console.log(`[changes-trace] after step1 notifiedSize=${changesNotifiedIds.size}`);
             // Step 2: first assigned pro consultant (only if step 1 didn't fire)
@@ -5107,7 +5107,7 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can re-issue documents" });
+        return res.status(403).json({ error: "Only developers and consultants can re-issue documents" });
       }
 
       const { id: documentId } = req.params;
@@ -5212,7 +5212,7 @@ export async function registerRoutes(
       }
 
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can manage approval notifications" });
+        return res.status(403).json({ error: "Only developers and consultants can manage approval notifications" });
       }
 
       const documentId = req.params.id;
@@ -5393,7 +5393,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this document" });
       }
 
-      // Only admins and consultants can archive documents
+      // Only developers and consultants can archive documents
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot archive documents" });
       }
@@ -5456,7 +5456,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Access denied to this document" });
       }
 
-      // Only admins and consultants can restore documents
+      // Only developers and consultants can restore documents
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot restore documents" });
       }
@@ -5504,7 +5504,7 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
 
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can delete documents" });
+        return res.status(403).json({ error: "Only developers and pro consultants can delete documents" });
       }
 
       const documentId = req.params.id;
@@ -6714,7 +6714,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only admins can create toolkit folders" });
+      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can create toolkit folders" });
 
       const schema = z.object({
         name: z.string().min(1).max(100),
@@ -6769,7 +6769,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only admins can update toolkit folders" });
+      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can update toolkit folders" });
 
       const schema = z.object({
         name: z.string().min(1).max(100).optional(),
@@ -6802,7 +6802,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only admins or template library managers can delete toolkit folders" });
+      if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can delete toolkit folders" });
 
       // Soft-delete all active templates inside this toolkit folder
       const templatesInFolder = await storage.getDocumentTemplatesByToolkitFolderId(req.params.id);
@@ -7162,7 +7162,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can create training modules" });
+        return res.status(403).json({ error: "Only developers can create training modules" });
       }
       
       const schema = z.object({
@@ -7215,7 +7215,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can update training modules" });
+        return res.status(403).json({ error: "Only developers can update training modules" });
       }
       
       const trainingModule = await storage.getTrainingModule(req.params.id);
@@ -7270,7 +7270,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can delete training modules" });
+        return res.status(403).json({ error: "Only developers can delete training modules" });
       }
       
       const trainingModule = await storage.getTrainingModule(req.params.id);
@@ -7332,7 +7332,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can create training folders" });
+        return res.status(403).json({ error: "Only developers can create training folders" });
       }
       
       const schema = z.object({
@@ -7363,7 +7363,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can update training folders" });
+        return res.status(403).json({ error: "Only developers can update training folders" });
       }
       
       const folder = await storage.getTrainingFolder(req.params.id);
@@ -7395,7 +7395,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can delete training folders" });
+        return res.status(403).json({ error: "Only developers can delete training folders" });
       }
       
       await storage.deleteTrainingFolder(req.params.id);
@@ -7440,7 +7440,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can create training courses" });
+        return res.status(403).json({ error: "Only developers can create training courses" });
       }
       
       const faqSchema = z.object({
@@ -7500,7 +7500,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can update training courses" });
+        return res.status(403).json({ error: "Only developers can update training courses" });
       }
       
       const course = await storage.getTrainingCourse(req.params.id);
@@ -7567,7 +7567,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can delete training courses" });
+        return res.status(403).json({ error: "Only developers can delete training courses" });
       }
       
       await storage.deleteTrainingCourse(req.params.id);
@@ -7891,9 +7891,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admins can delete bookings
+      // Only developers can delete bookings
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can delete training bookings" });
+        return res.status(403).json({ error: "Only developers can delete training bookings" });
       }
       
       const bookingToDelete = await storage.getTrainingBooking(req.params.id).catch(() => null);
@@ -8599,7 +8599,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer" && !isProConsultant(user)) return res.status(403).json({ error: "Admins and Pro consultants only" });
+      if (user.role !== "developer" && !isProConsultant(user)) return res.status(403).json({ error: "Developers and Pro consultants only" });
 
       const company = await storage.getCompany(req.params.companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
@@ -8686,7 +8686,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can create companies" });
+        return res.status(403).json({ error: "Only developers and pro consultants can create companies" });
       }
       
       const { name, companyNumber, internalCompanyNumber, website, address, contactEmail, contactPhone, site, addressLine1, addressLine2, city, county, postalCode, country, employeeRange, industry, sources } = req.body;
@@ -8799,7 +8799,7 @@ export async function registerRoutes(
       
       const isStandardConsultantUser = user.role === "consultant" && !isProConsultant(user);
       if (user.role !== "developer" && !isProConsultant(user) && !isStandardConsultantUser) {
-        return res.status(403).json({ error: "Only admins and consultants can update companies" });
+        return res.status(403).json({ error: "Only developers and consultants can update companies" });
       }
 
       // Standard consultants may only set the primary contact (contactUserId) for companies they are assigned to
@@ -9009,7 +9009,7 @@ export async function registerRoutes(
       }
       
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can update company status" });
+        return res.status(403).json({ error: "Only developers and pro consultants can update company status" });
       }
       
       const { status } = req.body;
@@ -9074,7 +9074,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can delete companies" });
+        return res.status(403).json({ error: "Only developers and pro consultants can delete companies" });
       }
 
       const companyId = req.params.id;
@@ -9342,7 +9342,7 @@ export async function registerRoutes(
   app.get("/api/consultant-coverage/all-consultants", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const consultants = await storage.getConsultants();
       res.json(consultants.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
     } catch (error) {
@@ -9482,7 +9482,7 @@ export async function registerRoutes(
       
       // Only admin or pro consultant can create sites
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can create sites" });
+        return res.status(403).json({ error: "Only developers and pro consultants can create sites" });
       }
       
       const { name, companyId, address, contactPhone, addressLine1, addressLine2, city, county, postalCode, country, contactName, contactPosition, contactEmail } = req.body;
@@ -9638,7 +9638,7 @@ export async function registerRoutes(
       
       // Only admin or pro consultant can update sites
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can update sites" });
+        return res.status(403).json({ error: "Only developers and pro consultants can update sites" });
       }
       
       const { name, companyNumber, address, contactEmail, contactPhone, website, addressLine1, addressLine2, city, county, postalCode, country, contactName, contactPosition, contactUserId } = req.body;
@@ -9684,7 +9684,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only admins can delete sites" });
+      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can delete sites" });
 
       const siteId = req.params.siteId;
       const site = await storage.getSite(siteId);
@@ -10048,9 +10048,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Only admins and consultants can update requests
+      // Only developers and consultants can update requests
       if (user.role === "client") {
-        return res.status(403).json({ error: "Only consultants and admins can respond to requests" });
+        return res.status(403).json({ error: "Only consultants and developers can respond to requests" });
       }
 
       const parseResult = updateSupportRequestSchema.safeParse(req.body);
@@ -10157,7 +10157,7 @@ export async function registerRoutes(
       }
 
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can clear all support requests" });
+        return res.status(403).json({ error: "Only developers can clear all support requests" });
       }
 
       await storage.clearSupportRequests();
@@ -10306,7 +10306,7 @@ export async function registerRoutes(
       }
       const user = await storage.getUser(userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
 
       const parseResult = createDocumentTypeSchema.safeParse(req.body);
@@ -10343,7 +10343,7 @@ export async function registerRoutes(
       }
       const user = await storage.getUser(userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
 
       const parseResult = updateDocumentTypeSchema.safeParse(req.body);
@@ -10372,7 +10372,7 @@ export async function registerRoutes(
       }
       const user = await storage.getUser(userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
 
       const deleted = await storage.deleteDocumentType(req.params.id);
@@ -11166,10 +11166,10 @@ export async function registerRoutes(
 
   app.post("/api/entity-access", requireAuth, async (req, res) => {
     try {
-      // Only admins can grant access
+      // Only developers can grant access
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Only administrators can grant document type access" });
+        return res.status(403).json({ error: "Only developers can grant document type access" });
       }
       
       const { siteId, documentTypeId, module, grantedBy } = req.body;
@@ -11191,10 +11191,10 @@ export async function registerRoutes(
 
   app.delete("/api/entity-access/:siteId/:documentTypeId", requireAuth, async (req, res) => {
     try {
-      // Only admins can revoke access
+      // Only developers can revoke access
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Only administrators can revoke document type access" });
+        return res.status(403).json({ error: "Only developers can revoke document type access" });
       }
       
       const { siteId, documentTypeId } = req.params;
@@ -11244,7 +11244,7 @@ export async function registerRoutes(
       // Build filters based on user role and query params
       const filters: { siteId?: string; entityId?: string; status?: any; includeArchived?: boolean } = {};
       
-      // Only admins and consultants can view archived cases
+      // Only developers and consultants can view archived cases
       if (includeArchived && (user.role === "developer" || user.role === "consultant")) {
         filters.includeArchived = true;
       }
@@ -11393,7 +11393,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Only admins and consultants can create cases
+      // Only developers and consultants can create cases
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot create employment law cases" });
       }
@@ -11547,7 +11547,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Only admins and consultants can archive cases
+      // Only developers and consultants can archive cases
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot archive cases" });
       }
@@ -11586,7 +11586,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Only admins and consultants can unarchive cases
+      // Only developers and consultants can unarchive cases
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot unarchive cases" });
       }
@@ -11622,7 +11622,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only admins can delete cases" });
+      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can delete cases" });
 
       const existingCase = await storage.getCase(req.params.id);
       if (!existingCase) return res.status(404).json({ error: "Case not found" });
@@ -11723,7 +11723,7 @@ export async function registerRoutes(
 
       // Only admin/consultant can upload case documents
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can upload case documents" });
+        return res.status(403).json({ error: "Only developers and consultants can upload case documents" });
       }
 
       const caseData = await storage.getCase(req.params.id);
@@ -11788,7 +11788,7 @@ export async function registerRoutes(
 
       // Only admin/consultant can delete case documents
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can delete case documents" });
+        return res.status(403).json({ error: "Only developers and consultants can delete case documents" });
       }
 
       const caseData = await storage.getCase(req.params.caseId);
@@ -11984,7 +11984,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Only admins and consultants can delete milestones
+      // Only developers and consultants can delete milestones
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot delete milestones" });
       }
@@ -12666,7 +12666,7 @@ export async function registerRoutes(
       
       // Only admin and pro consultants can set module access
       if (user.role !== "developer" && !(user.role === "consultant" && user.consultantTier === "pro")) {
-        return res.status(403).json({ error: "Only admins and pro consultants can manage module access" });
+        return res.status(403).json({ error: "Only developers and pro consultants can manage module access" });
       }
       
       // Pro consultants need to be assigned to this site
@@ -12759,7 +12759,7 @@ export async function registerRoutes(
       
       // Only admin and pro consultants can set company module access
       if (user.role !== "developer" && !(user.role === "consultant" && user.consultantTier === "pro")) {
-        return res.status(403).json({ error: "Only admins and pro consultants can manage company module access" });
+        return res.status(403).json({ error: "Only developers and pro consultants can manage company module access" });
       }
       
       const { healthSafety, humanResources, employmentLaw, training, toolkit, support, reports } = req.body;
@@ -13820,7 +13820,7 @@ export async function registerRoutes(
       const isStandardConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
 
       if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStandardConsultant) {
-        return res.status(403).json({ error: "Only admins and consultants can create users" });
+        return res.status(403).json({ error: "Only developers and consultants can create users" });
       }
       
       const { 
@@ -13867,7 +13867,7 @@ export async function registerRoutes(
 
       // Consultants and admins must have at least one source (admin-created only)
       if (currentUser.role === "developer" && (userRoleForValidation === "consultant" || userRoleForValidation === "developer") && (!Array.isArray(sourcesForCreate) || sourcesForCreate.length === 0)) {
-        return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
+        return res.status(400).json({ error: "At least one source is required for consultant and developer users" });
       }
       
       // Check if username or email already exists
@@ -14003,7 +14003,7 @@ export async function registerRoutes(
       
       // Only admin can create users
       if (currentUser.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can create users" });
+        return res.status(403).json({ error: "Only developers can create users" });
       }
       
       const { 
@@ -14208,7 +14208,7 @@ export async function registerRoutes(
       
       // Only admin can create consultants
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can create consultants" });
+        return res.status(403).json({ error: "Only developers can create consultants" });
       }
       
       const { username, email, fullName, password, consultantTier } = req.body;
@@ -14290,7 +14290,7 @@ export async function registerRoutes(
       
       // Only admin or pro consultant can assign consultants
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can assign consultants" });
+        return res.status(403).json({ error: "Only developers and pro consultants can assign consultants" });
       }
       
       const { consultantId, isPrimary } = req.body;
@@ -14341,7 +14341,7 @@ export async function registerRoutes(
       
       // Only admin or pro consultant can remove consultant assignments
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can remove consultant assignments" });
+        return res.status(403).json({ error: "Only developers and pro consultants can remove consultant assignments" });
       }
       
       const removed = await storage.removeConsultantAssignment(
@@ -14378,7 +14378,7 @@ export async function registerRoutes(
       
       // Only admin or pro consultant can update consultant assignments
       if (user.role !== "developer" && !isProConsultant(user)) {
-        return res.status(403).json({ error: "Only admins and pro consultants can update consultant assignments" });
+        return res.status(403).json({ error: "Only developers and pro consultants can update consultant assignments" });
       }
       
       const { isPrimary, canManageModules } = req.body;
@@ -14473,7 +14473,7 @@ export async function registerRoutes(
       
       // Only admin and consultants can assign clients to sites
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can assign clients to sites" });
+        return res.status(403).json({ error: "Only developers and consultants can assign clients to sites" });
       }
       
       const { clientId } = req.body;
@@ -14536,7 +14536,7 @@ export async function registerRoutes(
       
       // Only admin and consultants can remove client site assignments
       if (user.role !== "developer" && user.role !== "consultant") {
-        return res.status(403).json({ error: "Only admins and consultants can remove client site assignments" });
+        return res.status(403).json({ error: "Only developers and consultants can remove client site assignments" });
       }
       
       const clientUser = await storage.getUser(req.params.clientId);
@@ -14706,7 +14706,7 @@ export async function registerRoutes(
       
       const isStdCon = currentUser.role === "consultant" && !isProConsultant(currentUser);
       if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStdCon) {
-        return res.status(403).json({ error: "Only admins and consultants can manage site assignments" });
+        return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
 
       const targetUser = await storage.getUser(req.params.userId);
@@ -14796,7 +14796,7 @@ export async function registerRoutes(
 
         res.json(assignment);
       } else {
-        res.status(400).json({ error: "Admins do not need site assignments" });
+        res.status(400).json({ error: "Developers do not need site assignments" });
       }
     } catch (error) {
       console.error("Add site assignment error:", error);
@@ -14811,7 +14811,7 @@ export async function registerRoutes(
       if (!currentUser) return res.status(401).json({ error: "Unauthorized" });
       const isStdConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
       if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStdConsultant) {
-        return res.status(403).json({ error: "Only admins and consultants can manage site assignments" });
+        return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
       const targetUser = await storage.getUser(req.params.userId);
       // Standard consultants may only clear assignments for users in companies they are assigned to
@@ -14855,7 +14855,7 @@ export async function registerRoutes(
       
       const isStdCon = currentUser.role === "consultant" && !isProConsultant(currentUser);
       if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStdCon) {
-        return res.status(403).json({ error: "Only admins and consultants can manage site assignments" });
+        return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
 
       const targetUser = await storage.getUser(req.params.userId);
@@ -14946,7 +14946,7 @@ export async function registerRoutes(
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
       if (!currentUser || (currentUser.role !== "developer" && !isProConsultant(currentUser))) {
-        return res.status(403).json({ error: "Only admins and pro consultants can delete users" });
+        return res.status(403).json({ error: "Only developers and pro consultants can delete users" });
       }
 
       const targetUser = await storage.getUser(req.params.id);
@@ -14959,7 +14959,7 @@ export async function registerRoutes(
       }
 
       if (targetUser.role === "developer") {
-        return res.status(400).json({ error: "Admin users cannot be deleted" });
+        return res.status(400).json({ error: "Developer users cannot be deleted" });
       }
       
       // Pro consultants cannot delete other consultants or admins
@@ -15061,7 +15061,7 @@ export async function registerRoutes(
             return res.status(403).json({ error: "Access denied" });
           }
         } else {
-          return res.status(403).json({ error: "Only admins and pro consultants can update users" });
+          return res.status(403).json({ error: "Only developers and pro consultants can update users" });
         }
       }
       
@@ -15103,7 +15103,7 @@ export async function registerRoutes(
       // Validate sources for consultant/admin roles — only when sources will actually be written
       if (targetIsConsultantOrAdmin && sourcesPayload !== undefined) {
         if (!Array.isArray(sourcesPayload) || sourcesPayload.length === 0) {
-          return res.status(400).json({ error: "At least one source is required for consultant and admin users" });
+          return res.status(400).json({ error: "At least one source is required for consultant and developer users" });
         }
       }
 
@@ -15161,7 +15161,7 @@ export async function registerRoutes(
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
       if (!currentUser || currentUser.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
       const targetUser = await storage.getUser(req.params.id);
       if (!targetUser) {
@@ -15231,7 +15231,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
       
       const items = await storage.getRoadmapItems();
@@ -15247,7 +15247,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
       
       const parsed = createRoadmapItemSchema.safeParse(req.body);
@@ -15279,7 +15279,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
       
       const parsed = updateRoadmapItemSchema.safeParse(req.body);
@@ -15325,7 +15325,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
       
       const deleted = await storage.deleteRoadmapItem(req.params.id);
@@ -15423,7 +15423,7 @@ export async function registerRoutes(
       }
       const currentUser = await storage.getUser(sessionUserId);
       if (!currentUser || currentUser.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can manage legal documents" });
+        return res.status(403).json({ error: "Only developers can manage legal documents" });
       }
 
       const docType = req.params.type;
@@ -15702,7 +15702,7 @@ export async function registerRoutes(
 
       // Status changes are admin-only
       if (parseResult.data.status !== undefined && !isDeveloper) {
-        return res.status(403).json({ error: "Only admins can change feedback status" });
+        return res.status(403).json({ error: "Only developers can change feedback status" });
       }
 
       // Message edits are owner-only and only when no engagement yet
@@ -15818,7 +15818,7 @@ export async function registerRoutes(
     try {
       const user = (req.session as any).user;
       if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only admins can delete feedback" });
+        return res.status(403).json({ error: "Only developers can delete feedback" });
       }
 
       const success = await storage.deleteFeedback(req.params.id);
@@ -16897,7 +16897,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only admins can delete incidents" });
+      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can delete incidents" });
 
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
@@ -18032,7 +18032,7 @@ export async function registerRoutes(
   app.post("/api/toolkit/pathways", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       if (!title || !tree) return res.status(400).json({ error: "title and tree are required" });
       const pathway = await storage.createDocumentPathway({ title, description: description ?? null, module: module ?? null, tree, isActive: isActive !== false, sortOrder: sortOrder ?? 0, createdBy: user.id });
@@ -18046,7 +18046,7 @@ export async function registerRoutes(
   app.patch("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       // Whitelist only mutable fields to prevent unintended overwrites
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       const updates: Record<string, unknown> = {};
@@ -18068,7 +18068,7 @@ export async function registerRoutes(
   app.delete("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteDocumentPathway(req.params.id);
       if (!ok) return res.status(404).json({ error: "Pathway not found" });
       res.json({ success: true });
@@ -18094,7 +18094,7 @@ export async function registerRoutes(
   app.post("/api/training/pathways", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       if (!title || !tree) return res.status(400).json({ error: "title and tree are required" });
       const pathway = await storage.createTrainingPathway({ title, description: description ?? null, module: module ?? null, tree, isActive: isActive !== false, sortOrder: sortOrder ?? 0, createdBy: user.id });
@@ -18108,7 +18108,7 @@ export async function registerRoutes(
   app.patch("/api/training/pathways/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       const updates: Record<string, unknown> = {};
       if (title !== undefined) updates.title = title;
@@ -18129,7 +18129,7 @@ export async function registerRoutes(
   app.delete("/api/training/pathways/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteTrainingPathway(req.params.id);
       if (!ok) return res.status(404).json({ error: "Pathway not found" });
       res.json({ success: true });
@@ -18171,7 +18171,7 @@ export async function registerRoutes(
   app.post("/api/testing-task-lists", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = taskListSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const list = await storage.createTestingTaskList({
@@ -18191,7 +18191,7 @@ export async function registerRoutes(
   app.patch("/api/testing-task-lists/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = taskListSchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const { title, description, module, tasks, isArchived } = parsed.data;
@@ -18213,7 +18213,7 @@ export async function registerRoutes(
   app.delete("/api/testing-task-lists/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteTestingTaskList(req.params.id);
       if (!ok) return res.status(404).json({ error: "Task list not found" });
       res.json({ success: true });
@@ -18242,7 +18242,7 @@ export async function registerRoutes(
   app.get("/api/testing-task-assignments", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const taskListId = typeof req.query.taskListId === "string" ? req.query.taskListId : undefined;
       const assignments = await storage.getTestingTaskAssignments(taskListId);
       res.json(assignments);
@@ -18255,7 +18255,7 @@ export async function registerRoutes(
   app.post("/api/testing-task-assignments", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ taskListId: z.string(), assignedTo: z.string() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const { taskListId, assignedTo } = parsed.data;
@@ -18263,7 +18263,7 @@ export async function registerRoutes(
       if (!taskList) return res.status(404).json({ error: "Task list not found" });
       const assignee = await storage.getUser(assignedTo);
       if (!assignee || (assignee.role !== "consultant" && assignee.role !== "developer")) {
-        return res.status(400).json({ error: "Assignee must be a consultant or admin" });
+        return res.status(400).json({ error: "Assignee must be a consultant or developer" });
       }
       const assignment = await storage.createTestingTaskAssignment({
         taskListId,
@@ -18304,7 +18304,7 @@ export async function registerRoutes(
   app.delete("/api/testing-task-assignments/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteTestingTaskAssignment(req.params.id);
       if (!ok) return res.status(404).json({ error: "Assignment not found" });
       res.json({ success: true });
@@ -18337,7 +18337,7 @@ export async function registerRoutes(
   app.post("/api/sources", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = createSourceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const source = await storage.createSource({
@@ -18377,7 +18377,7 @@ export async function registerRoutes(
   app.patch("/api/sources/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ isActive: z.boolean() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const source = await storage.updateSource(req.params.id, { isActive: parsed.data.isActive });
@@ -18407,7 +18407,7 @@ export async function registerRoutes(
   app.post("/api/badge-types", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ label: z.string().min(1), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const bt = await storage.createBadgeType({ label: parsed.data.label, sortOrder: parsed.data.sortOrder ?? 0, isActive: parsed.data.isActive ?? true });
@@ -18422,7 +18422,7 @@ export async function registerRoutes(
   app.patch("/api/badge-types/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ label: z.string().min(1).optional(), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
       const bt = await storage.updateBadgeType(req.params.id, parsed.data);
@@ -18438,7 +18438,7 @@ export async function registerRoutes(
   app.delete("/api/badge-types/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const deleted = await storage.deleteBadgeType(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Badge type not found" });
       res.status(204).end();
@@ -18662,7 +18662,7 @@ export async function registerRoutes(
   const changelogAdminGuard = async (req: any, res: any) => {
     const user = await storage.getUser((req.session as any)?.userId);
     if (!user || user.role !== "developer") {
-      res.status(403).json({ error: "Admin only" });
+      res.status(403).json({ error: "Developer only" });
       return null;
     }
     return user;
@@ -19060,7 +19060,7 @@ export async function registerRoutes(
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
 
       const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10));
@@ -19145,7 +19145,7 @@ export async function registerRoutes(
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
       if (!user || user.role !== "developer") {
-        return res.status(403).json({ error: "Admin access required" });
+        return res.status(403).json({ error: "Developer access required" });
       }
 
       const { data, error } = await getResendEmail(req.params.id);
@@ -19663,7 +19663,7 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const isDeveloper = user.role === "developer";
       const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-      if (!isDeveloper && !isProConsultant) return res.status(403).json({ error: "Admin or Pro Consultant access required" });
+      if (!isDeveloper && !isProConsultant) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
 
       const schema = z.object({
         userId: z.string().min(1),
@@ -19742,7 +19742,7 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const isDeveloper = user.role === "developer";
       const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-      if (!isDeveloper && !isProConsultant) return res.status(403).json({ error: "Admin or Pro Consultant access required" });
+      if (!isDeveloper && !isProConsultant) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
 
       const { userId, entityType, entityId } = req.params;
       if (entityType !== "company" && entityType !== "site") {
@@ -19807,7 +19807,7 @@ export async function registerRoutes(
   app.post("/api/portal-messages", async (req, res) => {
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin access required" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer access required" });
 
       const { insertPortalMessageSchema } = await import("@shared/schema");
       // Coerce ISO string timestamps to Date objects (frontend sends strings)
@@ -19831,7 +19831,7 @@ export async function registerRoutes(
   app.patch("/api/portal-messages/:id", async (req, res) => {
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin access required" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer access required" });
 
       const existing = await storage.getPortalMessage(req.params.id);
       if (!existing) return res.status(404).json({ error: "Message not found" });
@@ -20029,7 +20029,7 @@ export async function registerRoutes(
   app.delete("/api/portal-messages/:id", async (req, res) => {
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin access required" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer access required" });
 
       const ok = await storage.deletePortalMessage(req.params.id);
       if (!ok) return res.status(404).json({ error: "Message not found" });
@@ -20094,7 +20094,7 @@ export async function registerRoutes(
   app.get("/api/integrations/accelo/connect", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       const integration = await getIntegration(sourceCode);
       if (!integration) return res.status(404).json({ error: `No Accelo integration configured for source: ${sourceCode}` });
@@ -20137,7 +20137,7 @@ export async function registerRoutes(
   app.get("/api/integrations/accelo/webhook-secret", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       // Per-source secret env var (ACCELO_WEBHOOK_SECRET_GS) or fallback to generic
       const secret = process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode}`]
@@ -20153,7 +20153,7 @@ export async function registerRoutes(
   app.delete("/api/integrations/accelo/disconnect", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       await clearTokens(sourceCode);
       res.json({ ok: true });
@@ -20635,7 +20635,7 @@ export async function registerRoutes(
   app.get("/api/developer/accelo-integrations", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const [integrations, sourceLabelMap] = await Promise.all([listIntegrations(), getSourceLabels()]);
       res.json(integrations.map(i => ({
         id: i.id,
@@ -20658,7 +20658,7 @@ export async function registerRoutes(
   app.post("/api/developer/accelo-integrations", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const schema = z.object({
         sourceCode: z.string().min(1).max(8).toUpperCase(),
         deployment: z.string().min(1),
@@ -20682,7 +20682,7 @@ export async function registerRoutes(
   app.patch("/api/developer/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { sourceCode } = req.params;
       const schema = z.object({
         deployment: z.string().min(1).optional(),
@@ -20706,7 +20706,7 @@ export async function registerRoutes(
   app.delete("/api/developer/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
-      if (!user || user.role !== "developer") return res.status(403).json({ error: "Admin only" });
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const code = req.params.sourceCode.toUpperCase();
       const integration = await getIntegration(code);
       if (!integration) return res.status(404).json({ error: "Integration not found" });

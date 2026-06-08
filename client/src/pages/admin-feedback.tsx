@@ -167,7 +167,7 @@ export default function AdminFeedback() {
         <Card>
           <CardHeader>
             <CardTitle>Access Denied</CardTitle>
-            <CardDescription>Only administrators and consultants can access this page.</CardDescription>
+            <CardDescription>Only developers and consultants can access this page.</CardDescription>
           </CardHeader>
         </Card>
       </div>

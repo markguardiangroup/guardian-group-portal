@@ -934,7 +934,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                 <p className="font-medium">No available users</p>
                 <p className="text-sm mt-1">All company users are already assigned to this site, or no users exist yet.</p>
                 <p className="text-sm mt-4 text-primary">
-                  To add a new user, go to the Users section under Admin.
+                  To add a new user, go to the Users section under Developer.
                 </p>
               </div>
             ) : (
@@ -977,7 +977,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Need to add someone new? Create them first in the Users section under Admin.
+                  Need to add someone new? Create them first in the Users section under Developer.
                 </p>
               </>
             )}

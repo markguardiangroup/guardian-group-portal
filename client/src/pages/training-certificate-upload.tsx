@@ -90,7 +90,7 @@ export default function TrainingCertificateUpload() {
             <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
             <p className="text-muted-foreground mb-6">
-              Only consultants and administrators can upload training certificates.
+              Only consultants and developers can upload training certificates.
             </p>
             <Link href="/training/my-training">
               <Button className="bg-purple-600 text-white" data-testid="button-go-to-my-training">

@@ -440,7 +440,7 @@ function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; grou
         })}
         {!isDeveloper && (
           <p className="text-xs text-muted-foreground pt-1">
-            Only administrators can modify module access.
+            Only developers can modify module access.
           </p>
         )}
       </CardContent>

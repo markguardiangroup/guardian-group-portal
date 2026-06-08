@@ -425,7 +425,7 @@ export default function ModuleAccessRequests() {
           <CardContent className="pt-6">
             <h3 className="text-lg font-medium">Access Denied</h3>
             <p className="text-muted-foreground mt-1">
-              Only administrators and consultants can manage access requests.
+              Only developers and consultants can manage access requests.
             </p>
           </CardContent>
         </Card>

@@ -21,7 +21,7 @@ The top-level user role `admin` was renamed to `developer` (UserRole in `shared/
 
 **Why:** Generic client-facing prose like "contact your administrator" was intentionally left as "administrator" — telling a client to "contact your developer" is confusing. "Developer" is an internal role label only.
 
-**How to apply:** For any future role-naming work, change role-name *displays* and *role logic*, but keep generic "administrator" English prose and the preserved identifiers/routes above.
+**How to apply:** For any future role-naming work, change role-name *displays* and *role logic*, but keep generic "administrator" English prose and the preserved identifiers/routes above. Split rule (confirmed): staff/consultant-facing role text DOES get "developer" — server 403 messages ("Only admins…" → "Only developers…", "Admin only" → "Developer only", "Admin access required" → "Developer access required"), privileged-page access gates, and the Pro/Standard consultant help guides. Client-facing empty-states/help (e.g. "contact your administrator" in client help guide, settings, training, toolkit, dashboard, set-password, el-cases) STAY "administrator". Leave console.error/log strings and `/admin/*` URL paths alone.
 
 ## Data migration gotcha
 Role values live in `users.role` and `portal_messages.target_roles` (text[]). A code-level role rename must be paired with a DB data migration (`UPDATE users SET role='developer' WHERE role='admin'`; `array_replace` on target_roles). The dev DB migration does NOT touch production — prod must be migrated separately at publish time or existing admin users lose access.
