@@ -15249,7 +15249,15 @@ export async function registerRoutes(
         ...(allowFullFieldEdit && companyId !== undefined && { companyId }),
         ...(allowFullFieldEdit && consultantTier !== undefined && { consultantTier }),
         ...(allowFullFieldEdit && sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
-        ...((currentUser.role === "developer" || (currentUser.role === "consultant" && currentUser.consultantTier === "pro")) && effectiveTargetRole !== "administrator" && managerId !== undefined && { managerId: managerId || null }),
+        // Manager allocation: only privileged users (developer / pro consultant) may set it.
+        // Administrators never have a manager, so when the (effective) role is administrator we
+        // force-clear any existing managerId on update — this also covers converting an existing
+        // consultant into an administrator.
+        ...((currentUser.role === "developer" || (currentUser.role === "consultant" && currentUser.consultantTier === "pro")) && (
+          effectiveTargetRole === "administrator"
+            ? { managerId: null }
+            : (managerId !== undefined ? { managerId: managerId || null } : false)
+        )),
         // Fields everyone can update on their own profile
         ...(title !== undefined && { title }),
         ...(jobTitle !== undefined && { jobTitle }),
