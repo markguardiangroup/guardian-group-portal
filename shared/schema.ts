@@ -177,6 +177,21 @@ export const insertUserInvitationSchema = createInsertSchema(userInvitations).om
 export type InsertUserInvitation = z.infer<typeof insertUserInvitationSchema>;
 export type UserInvitation = typeof userInvitations.$inferSelect;
 
+// Per-user, per-surface "last seen" markers that drive the sidebar alert-count badges.
+// surface is one of: "home", "calendar", or "cloudshare:<module>" (e.g. "cloudshare:health_safety").
+export const alertSeen = pgTable("alert_seen", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  surface: text("surface").notNull(),
+  seenAt: timestamp("seen_at").notNull().defaultNow(),
+}, (table) => ({
+  userSurfaceUnique: uniqueIndex("alert_seen_user_surface_idx").on(table.userId, table.surface),
+}));
+
+export const insertAlertSeenSchema = createInsertSchema(alertSeen).omit({ id: true, seenAt: true });
+export type InsertAlertSeen = z.infer<typeof insertAlertSeenSchema>;
+export type AlertSeen = typeof alertSeen.$inferSelect;
+
 // Sites (Client locations - belong to a company)
 export const sites = pgTable("sites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

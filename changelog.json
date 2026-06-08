@@ -8245,6 +8245,13 @@
           "message": "Improved: \"See what's new\" bubble fades out when dismissed or clicked",
           "category": "enhancement",
           "createdAt": "2026-06-08T19:14:05.835Z"
+        },
+        {
+          "id": "0539f8b0-da70-4bae-951b-2ffd350ac363",
+          "patch": 15,
+          "message": "Sidebar now shows live alert badges for new actions, calendar items and cloud shares",
+          "category": "feature",
+          "createdAt": "2026-06-08T20:15:59.681Z"
         }
       ],
       "publishedPatch": 14,

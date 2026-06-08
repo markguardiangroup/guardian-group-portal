@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { useModuleAccess } from "@/hooks/use-module-access";
+import { useAlertCounts } from "@/hooks/use-alert-counts";
 import type { UserRole, ModuleType } from "@shared/schema";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import {
@@ -314,6 +315,7 @@ function NavItemWithFlyout({
   sidebarState,
   isModuleActive,
   openSupportCount = 0,
+  cloudShareCount = 0,
   noColor,
 }: {
   item: ModuleNavItem;
@@ -321,6 +323,7 @@ function NavItemWithFlyout({
   sidebarState: "expanded" | "collapsed";
   isModuleActive: boolean;
   openSupportCount?: number;
+  cloudShareCount?: number;
   noColor?: boolean;
 }) {
   const [location] = useLocation();
@@ -347,13 +350,19 @@ function NavItemWithFlyout({
                   data-sidebar="menu-button"
                   data-active={isModuleActive}
                   className={cn(
-                    "peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+                    "relative peer/menu-button flex w-8 h-8 items-center justify-center rounded-md p-2 outline-hidden ring-sidebar-ring transition-colors duration-150 ease-in-out hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
                     !noColor && item.themeClass,
                     !noColor && "nav-module-btn",
                     isModuleActive && (!noColor ? "nav-module-active" : "bg-sidebar-accent font-medium")
                   )}
                 >
                   <item.icon className={cn("h-4 w-4 shrink-0", noColor ? "text-muted-foreground" : "text-module-accent")} />
+                  {cloudShareCount > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-sidebar"
+                      data-testid={`badge-cloudshare-${item.module}`}
+                    />
+                  )}
                 </button>
               </DropdownMenuTrigger>
             </TooltipTrigger>
@@ -377,7 +386,12 @@ function NavItemWithFlyout({
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
                   >
                     {subItem.icon && <subItem.icon className="h-4 w-4" />}
-                    <span>{subItem.title}</span>
+                    <span className="flex-1">{subItem.title}</span>
+                    {subItem.url.endsWith("/cloud-share") && cloudShareCount > 0 && (
+                      <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs font-medium">
+                        {cloudShareCount}
+                      </Badge>
+                    )}
                   </Link>
                 </DropdownMenuItem>
               );
@@ -411,6 +425,11 @@ function NavItemWithFlyout({
                 {openSupportCount}
               </Badge>
             )}
+            {cloudShareCount > 0 && (
+              <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs font-medium" data-testid={`badge-cloudshare-${item.module}`}>
+                {cloudShareCount}
+              </Badge>
+            )}
             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180", !noColor && "text-module-accent opacity-70")} />
           </SidebarMenuButton>
         </CollapsibleTrigger>
@@ -430,7 +449,12 @@ function NavItemWithFlyout({
                       data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}-${subItem.title.toLowerCase().replace(/\s+/g, "-")}`}
                     >
                       {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
-                      <span>{subItem.title}</span>
+                      <span className="flex-1">{subItem.title}</span>
+                      {subItem.url.endsWith("/cloud-share") && cloudShareCount > 0 && (
+                        <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs font-medium" data-testid={`badge-cloudshare-sub-${item.module}`}>
+                          {cloudShareCount}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
@@ -468,6 +492,17 @@ export function AppSidebar({ user }: AppSidebarProps) {
     staleTime: 30000,
   });
   const openSupportCount = supportCounts?.openCount || 0;
+
+  // Unseen alert counts for sidebar badges (kept fresh via SSE invalidation)
+  const { data: alertCounts } = useAlertCounts(!!user);
+  const homeAlertCount = alertCounts?.home || 0;
+  const calendarAlertCount = alertCounts?.calendar || 0;
+  const cloudShareCountFor = (module: ModuleType): number => {
+    if (module === "health_safety") return alertCounts?.cloudshare.health_safety || 0;
+    if (module === "human_resources") return alertCounts?.cloudshare.human_resources || 0;
+    if (module === "employment_law") return alertCounts?.cloudshare.employment_law || 0;
+    return 0;
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -527,7 +562,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 >
                   <Link href="/home" data-testid="nav-home">
                     <Home className="h-4 w-4" />
-                    <span>Home</span>
+                    <span className="flex-1">Home</span>
+                    {homeAlertCount > 0 && (
+                      <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs font-medium" data-testid="badge-home-alerts">
+                        {homeAlertCount}
+                      </Badge>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -563,7 +603,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 >
                   <Link href="/calendar" data-testid="nav-calendar">
                     <CalendarDays className="h-4 w-4" />
-                    <span>Calendar</span>
+                    <span className="flex-1">Calendar</span>
+                    {calendarAlertCount > 0 && (
+                      <Badge variant="destructive" className="h-5 min-w-5 px-1.5 text-xs font-medium" data-testid="badge-calendar-alerts">
+                        {calendarAlertCount}
+                      </Badge>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -654,6 +699,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     sidebarState={sidebarState}
                     isModuleActive={isModuleActive}
                     openSupportCount={openSupportCount}
+                    cloudShareCount={cloudShareCountFor(item.module)}
                   />
                 );
               })}

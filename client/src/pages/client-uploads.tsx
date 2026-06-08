@@ -3,6 +3,7 @@ import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { markAlertSurfaceSeen } from "@/hooks/use-alert-counts";
 import { useToast } from "@/hooks/use-toast";
 import { format, formatDistanceToNow, differenceInDays } from "date-fns";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
@@ -199,6 +200,11 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
 export default function ClientUploads({ module }: { module: ClientUploadModule }) {
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Opening a module's Cloud Share clears its unseen-alert badge.
+  useEffect(() => {
+    markAlertSurfaceSeen(`cloudshare:${module}`);
+  }, [module]);
 
   const { selectedSiteId, setSelectedSiteId, selectedCompany, setSelectedCompany } = useSiteFilter();
   const [selectedFolder, setSelectedFolder] = useState<ClientUploadFolderWithMeta | null>(null);

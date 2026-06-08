@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { markAlertSurfaceSeen } from "@/hooks/use-alert-counts";
 import { format } from "date-fns";
 import {
   AlertTriangle,
@@ -596,11 +597,30 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
 function MyActionsPanel({ role }: { role: string }) {
   const [, navigate] = useLocation();
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useQuery<MyActionsData>({
     queryKey: ["/api/my-actions"],
     staleTime: 0,
   });
+
+  // Clear the Home unseen-alert badge only once the user actually scrolls the
+  // "My Actions" box into view (not merely by landing on the Home page).
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          markAlertSurfaceSeen("home");
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.25 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const isPrivileged = role === "developer" || role === "consultant" || role === "administrator";
 
@@ -705,7 +725,7 @@ function MyActionsPanel({ role }: { role: string }) {
 
   return (
     <>
-      <Card data-testid="card-my-actions" className="border-t-4 border-t-amber-500">
+      <Card ref={cardRef} data-testid="card-my-actions" className="border-t-4 border-t-amber-500">
         <CardHeader className="pb-3 bg-gradient-to-br from-amber-50/60 to-transparent dark:from-amber-950/10">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-semibold flex items-center gap-2">

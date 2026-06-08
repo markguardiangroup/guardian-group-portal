@@ -59,6 +59,7 @@ import {
   clientUploadFolders as clientUploadFoldersTable,
   clientUploadFolderAccess as clientUploadFolderAccessTable,
   clientUploads as clientUploadsTable,
+  alertSeen as alertSeenTable,
   userInvitations as userInvitationsTable,
   type DocumentPathway, type InsertDocumentPathway, type PathwayNode,
   documentPathways as documentPathwaysTable,
@@ -515,6 +516,12 @@ export interface IStorage {
   cleanupExpiredFolders(): Promise<number>;
   markExpiredDocumentsOverdue(): Promise<number>;
   correctMisclassifiedDocuments(): Promise<number>;
+  // Cloud-share activity used by alert-count badges (folders/files created per module)
+  getCloudShareActivityForUser(params: { userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<{ folders: { module: string; createdAt: Date }[]; files: { module: string; createdAt: Date }[] }>;
+
+  // Alert-count "last seen" markers (sidebar badges)
+  getAlertSeen(userId: string): Promise<Record<string, Date>>;
+  markAlertSeen(userId: string, surface: string): Promise<void>;
 
   // Testing Task Lists
   getTestingTaskLists(includeArchived?: boolean): Promise<TestingTaskList[]>;
@@ -5192,6 +5199,87 @@ export class MemStorage implements IStorage {
       .where(eq(clientUploadsTable.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async getCloudShareActivityForUser(params: { userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<{ folders: { module: string; createdAt: Date }[]; files: { module: string; createdAt: Date }[] }> {
+    const { userId, userRole, userCompanyId, effectiveCompanyIds } = params;
+    const now = new Date();
+
+    // Non-expired folders across the three cloud-share modules
+    const allFolders = await db
+      .select()
+      .from(clientUploadFoldersTable)
+      .where(gt(clientUploadFoldersTable.expiresAt, now));
+
+    let visibleFolders = allFolders;
+
+    if (userRole === "consultant") {
+      const assignments = await db
+        .select()
+        .from(consultantAssignmentsTable)
+        .where(eq(consultantAssignmentsTable.consultantId, userId));
+      const assignedSiteIds = new Set(assignments.map((a) => a.siteId));
+      visibleFolders = allFolders.filter((f) => assignedSiteIds.has(f.siteId));
+    } else if (userRole === "client") {
+      if (!userCompanyId) return { folders: [], files: [] };
+      const effectiveIds = effectiveCompanyIds && effectiveCompanyIds.length > 0
+        ? effectiveCompanyIds
+        : [userCompanyId];
+      const companySites = await db
+        .select()
+        .from(sitesTable)
+        .where(inArray(sitesTable.companyId, effectiveIds));
+      const companySiteIds = new Set(companySites.map((s) => s.id));
+
+      const accessGrants = await db
+        .select()
+        .from(clientUploadFolderAccessTable)
+        .where(eq(clientUploadFolderAccessTable.userId, userId));
+      const accessFolderIds = new Set(accessGrants.map((g) => g.folderId));
+
+      visibleFolders = allFolders.filter(
+        (f) =>
+          companySiteIds.has(f.siteId) &&
+          (f.allocatedClientId === userId || accessFolderIds.has(f.id))
+      );
+    }
+    // developer / administrator: see all folders
+
+    const folders = visibleFolders.map((f) => ({ module: f.module as string, createdAt: f.createdAt }));
+
+    const folderIds = visibleFolders.map((f) => f.id);
+    let files: { module: string; createdAt: Date }[] = [];
+    if (folderIds.length > 0) {
+      const rows = await db
+        .select({ module: clientUploadsTable.module, createdAt: clientUploadsTable.createdAt })
+        .from(clientUploadsTable)
+        .where(inArray(clientUploadsTable.folderId, folderIds));
+      files = rows.map((r) => ({ module: r.module as string, createdAt: r.createdAt }));
+    }
+
+    return { folders, files };
+  }
+
+  async getAlertSeen(userId: string): Promise<Record<string, Date>> {
+    const rows = await db
+      .select()
+      .from(alertSeenTable)
+      .where(eq(alertSeenTable.userId, userId));
+    const result: Record<string, Date> = {};
+    for (const row of rows) {
+      result[row.surface] = row.seenAt;
+    }
+    return result;
+  }
+
+  async markAlertSeen(userId: string, surface: string): Promise<void> {
+    await db
+      .insert(alertSeenTable)
+      .values({ userId, surface })
+      .onConflictDoUpdate({
+        target: [alertSeenTable.userId, alertSeenTable.surface],
+        set: { seenAt: new Date() },
+      });
   }
 
   async cleanupExpiredFolders(): Promise<number> {

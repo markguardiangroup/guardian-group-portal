@@ -39,6 +39,7 @@ export function useServerEvents() {
 
       es.addEventListener("module-access-changed", () => {
         queryClient.invalidateQueries({ queryKey: ["/api/user/module-access"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("presence-changed", () => {
@@ -84,6 +85,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("document-audit-updated", (e) => {
@@ -127,6 +129,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("support-request-created", () => {
@@ -170,6 +173,7 @@ export function useServerEvents() {
         } catch { /* ignore */ }
         queryClient.invalidateQueries({ queryKey: ["/api/training-bookings"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("training-request-updated", (e) => {
@@ -181,6 +185,7 @@ export function useServerEvents() {
         } catch { /* ignore */ }
         queryClient.invalidateQueries({ queryKey: ["/api/training-requests"] });
         queryClient.invalidateQueries({ queryKey: ["/api/calendar/events"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("document-template-updated", () => {
@@ -236,6 +241,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("incident-updated", (e) => {
@@ -252,6 +258,7 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/my-actions"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.addEventListener("cloud-share-updated", (e) => {
@@ -262,6 +269,7 @@ export function useServerEvents() {
           }
         } catch { /* ignore */ }
         queryClient.invalidateQueries({ queryKey: ["/api/client-upload-folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
       es.onerror = () => {

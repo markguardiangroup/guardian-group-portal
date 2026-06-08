@@ -17584,6 +17584,7 @@ export async function registerRoutes(
         }
         emitToRole("developer", "cloud-share-updated", csPayload);
         emitToRole("consultant", "cloud-share-updated", csPayload);
+        emitToRole("administrator", "cloud-share-updated", csPayload);
       } catch { /* non-fatal */ }
 
       res.status(201).json(folder);
@@ -17643,6 +17644,7 @@ export async function registerRoutes(
         }
         emitToRole("developer", "cloud-share-updated", csPayload);
         emitToRole("consultant", "cloud-share-updated", csPayload);
+        emitToRole("administrator", "cloud-share-updated", csPayload);
       } catch { /* non-fatal */ }
 
       res.json({ success: true });
@@ -17829,6 +17831,7 @@ export async function registerRoutes(
         }
         emitToRole("developer", "cloud-share-updated", csPayload);
         emitToRole("consultant", "cloud-share-updated", csPayload);
+        emitToRole("administrator", "cloud-share-updated", csPayload);
       } catch { /* non-fatal */ }
 
       // Send cloud upload notification email — one per site per hour
@@ -18021,6 +18024,7 @@ export async function registerRoutes(
         }
         emitToRole("developer", "cloud-share-updated", csPayload);
         emitToRole("consultant", "cloud-share-updated", csPayload);
+        emitToRole("administrator", "cloud-share-updated", csPayload);
       } catch { /* non-fatal */ }
 
       res.json({ success: true });
@@ -19609,6 +19613,269 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Home summary error:", err);
       res.status(500).json({ error: "Failed to fetch home summary" });
+    }
+  });
+
+  // ── Sidebar alert-count badges ───────────────────────────────────────────────
+  // Returns unseen counts per surface (home, calendar, cloud-share-per-module),
+  // computed as items whose "became actionable" time is after the user's last-seen
+  // marker for that surface. Surfaces with no marker yet are lazily initialised to
+  // "now" so a brand-new user starts at 0 and only future items are counted.
+  const CLOUD_SHARE_MODULES = ["health_safety", "human_resources", "employment_law"] as const;
+
+  app.get("/api/alert-counts", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const isPrivileged = user.role === "developer" || user.role === "consultant" || user.role === "administrator";
+      const isAdminLike = user.role === "developer" || user.role === "administrator";
+      const now = new Date();
+
+      // Load existing markers and lazily initialise any missing surface to "now".
+      const surfaces = ["home", "calendar", ...CLOUD_SHARE_MODULES.map((m) => `cloudshare:${m}`)];
+      const seen = await storage.getAlertSeen(user.id);
+      for (const s of surfaces) {
+        if (!seen[s]) {
+          await storage.markAlertSeen(user.id, s);
+          seen[s] = now;
+        }
+      }
+      const seenHome = seen["home"];
+      const seenCal = seen["calendar"];
+
+      // ── Site scope for HOME (mirrors /api/home-summary) ──────────────────────
+      let userSiteIds: string[] | null = null; // null = all (admin/developer)
+      if (user.role === "client") {
+        const clientSites = await storage.getClientSites(user.id);
+        const directIds = clientSites.map((a) => a.siteId);
+        if (user.companyId) {
+          const companySitesRes = await pool.query<{ id: string }>(
+            "SELECT id FROM sites WHERE entity_id = $1",
+            [user.companyId]
+          );
+          userSiteIds = [...new Set([...directIds, ...companySitesRes.rows.map((r) => r.id)])];
+        } else {
+          userSiteIds = directIds;
+        }
+      } else if (user.role === "consultant") {
+        const consultantSites = await storage.getConsultantSites(user.id);
+        userSiteIds = consultantSites.map((a) => a.entityId);
+      }
+
+      // ===== HOME =====
+      const allDocs = await storage.getDocuments();
+      const filteredDocs = allDocs.filter(
+        (d) => !d.isArchived && !d.caseId && !d.incidentId && d.source !== "external"
+      );
+      const countableDocs = userSiteIds
+        ? filteredDocs.filter((d) => d.siteId && userSiteIds!.includes(d.siteId))
+        : filteredDocs;
+
+      const afterHome = (t: Date | string | null | undefined): boolean =>
+        !!t && new Date(t).getTime() > seenHome.getTime();
+
+      // For a doc that became overdue when a date passed, "became actionable" is the
+      // due/expiry date it crossed (floored at creation), not its creation time.
+      const overdueBecameActionable = (d: any): Date => {
+        const created = new Date(d.createdAt);
+        const candidates = [d.expiryDate, d.renewalDate]
+          .filter(Boolean)
+          .map((x: any) => new Date(x))
+          .filter((x: Date) => x.getTime() <= now.getTime());
+        let t = candidates.length
+          ? new Date(Math.max(...candidates.map((x) => x.getTime())))
+          : new Date(d.updatedAt ?? d.createdAt);
+        if (t.getTime() < created.getTime()) t = created;
+        return t;
+      };
+
+      let homeCount = 0;
+      for (const d of countableDocs) {
+        if (d.status === "overdue") {
+          if (afterHome(overdueBecameActionable(d))) homeCount++;
+        } else if (d.status === "approval_required") {
+          if (afterHome(d.updatedAt ?? d.createdAt)) homeCount++;
+        }
+        // Pending approvals (privileged) / pending sign-offs (client) — mirror the
+        // role gating used by the Urgent Actions panel.
+        if (d.approvalStatus === "pending") {
+          if (isPrivileged) {
+            if (afterHome(d.updatedAt ?? d.createdAt)) homeCount++;
+          } else if (user.role === "client") {
+            if (
+              d.uploadedBy !== user.id &&
+              (!d.approvalRequestedFrom || d.approvalRequestedFrom === user.id) &&
+              afterHome(d.updatedAt ?? d.createdAt)
+            ) {
+              homeCount++;
+            }
+          }
+        }
+      }
+
+      // Open incidents (all roles) — clients see only incidents they reported.
+      if (user.role === "client") {
+        const r = await pool.query<{ count: string }>(
+          "SELECT COUNT(*) as count FROM incidents WHERE reported_by = $1 AND status IN ('reported','under_review') AND is_archived = false AND created_at > $2",
+          [user.id, seenHome]
+        );
+        homeCount += parseInt(r.rows[0].count ?? "0", 10);
+      } else {
+        const r = await pool.query<{ count: string }>(
+          userSiteIds
+            ? "SELECT COUNT(*) as count FROM incidents WHERE site_id = ANY($1::varchar[]) AND status IN ('reported','under_review') AND is_archived = false AND created_at > $2"
+            : "SELECT COUNT(*) as count FROM incidents WHERE status IN ('reported','under_review') AND is_archived = false AND created_at > $1",
+          userSiteIds ? [userSiteIds, seenHome] : [seenHome]
+        );
+        homeCount += parseInt(r.rows[0].count ?? "0", 10);
+      }
+
+      // Open cases (privileged only).
+      if (isPrivileged) {
+        if (isAdminLike) {
+          const r = await pool.query<{ count: string }>(
+            "SELECT COUNT(*) as count FROM cases WHERE status NOT IN ('closed','withdrawn') AND is_archived = false AND created_at > $1",
+            [seenHome]
+          );
+          homeCount += parseInt(r.rows[0].count ?? "0", 10);
+        } else if (userSiteIds && userSiteIds.length > 0) {
+          const r = await pool.query<{ count: string }>(
+            "SELECT COUNT(*) as count FROM cases WHERE site_id = ANY($1::varchar[]) AND status NOT IN ('closed','withdrawn') AND is_archived = false AND created_at > $2",
+            [userSiteIds, seenHome]
+          );
+          homeCount += parseInt(r.rows[0].count ?? "0", 10);
+        }
+      }
+
+      // Pending module access requests (developer only).
+      if (user.role === "developer") {
+        const r = await pool.query<{ count: string }>(
+          "SELECT COUNT(*) as count FROM module_access_requests WHERE status = 'pending' AND created_at > $1",
+          [seenHome]
+        );
+        homeCount += parseInt(r.rows[0].count ?? "0", 10);
+      }
+
+      // ===== CALENDAR ===== (mirrors /api/calendar/events scoping)
+      let calSiteIds: string[] | null = null; // null = all
+      if (user.role === "client") {
+        const clientSites = await storage.getClientSites(user.id);
+        calSiteIds = clientSites.map((a) => a.siteId);
+      } else if (user.role === "consultant" && user.consultantTier !== "pro") {
+        const consultantSites = await storage.getConsultantSites(user.id);
+        calSiteIds = consultantSites.map((a) => a.entityId);
+      }
+      const calScoped = calSiteIds !== null;
+      const calArr = calSiteIds ?? [];
+      const num = (r: any) => parseInt(r.rows[0]?.cnt ?? "0", 10);
+
+      let calendarCount = 0;
+
+      // Documents (expiry + renewal events).
+      {
+        const sql = `SELECT COUNT(*) FILTER (WHERE expiry_date IS NOT NULL) + COUNT(*) FILTER (WHERE renewal_date IS NOT NULL) AS cnt
+          FROM documents
+          WHERE is_archived = false AND created_at > $1 AND (expiry_date IS NOT NULL OR renewal_date IS NOT NULL)
+          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
+        calendarCount += num(await pool.query(sql, calScoped ? [seenCal, calArr] : [seenCal]));
+      }
+
+      // EL cases — consultants/admins need caseAdvocate; clients & developer always.
+      const canSeeELCases =
+        user.role === "developer" ||
+        user.role === "client" ||
+        ((user.role === "consultant" || user.role === "administrator") &&
+          !!(user.consultantPermissions as { caseAdvocate?: boolean } | null)?.caseAdvocate);
+
+      if (canSeeELCases) {
+        const caseSql = `SELECT COUNT(*) FILTER (WHERE response_deadline IS NOT NULL) + COUNT(*) FILTER (WHERE hearing_date IS NOT NULL) AS cnt
+          FROM cases
+          WHERE is_archived = false AND created_at > $1
+          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
+        calendarCount += num(await pool.query(caseSql, calScoped ? [seenCal, calArr] : [seenCal]));
+
+        const caseMsSql = `SELECT COUNT(*) AS cnt
+          FROM case_milestones m JOIN cases c ON c.id = m.case_id
+          WHERE m.created_at > $1 AND m.due_date IS NOT NULL AND m.is_completed = false AND c.is_archived = false
+          ${calScoped ? "AND c.site_id = ANY($2::varchar[])" : ""}`;
+        calendarCount += num(await pool.query(caseMsSql, calScoped ? [seenCal, calArr] : [seenCal]));
+      }
+
+      // Incident action milestones.
+      {
+        const incMsSql = `SELECT COUNT(*) AS cnt
+          FROM incident_milestones m JOIN incidents i ON i.id = m.incident_id
+          WHERE m.created_at > $1 AND m.due_date IS NOT NULL AND m.is_completed = false
+          ${calScoped ? "AND i.site_id = ANY($2::varchar[])" : ""}`;
+        calendarCount += num(await pool.query(incMsSql, calScoped ? [seenCal, calArr] : [seenCal]));
+      }
+
+      // Training bookings + legacy requests.
+      {
+        const bookSql = `SELECT COUNT(*) AS cnt FROM training_bookings
+          WHERE status = 'booked' AND scheduled_date IS NOT NULL AND created_at > $1
+          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
+        calendarCount += num(await pool.query(bookSql, calScoped ? [seenCal, calArr] : [seenCal]));
+
+        const reqSql = `SELECT COUNT(*) FILTER (WHERE status = 'booked' AND scheduled_date IS NOT NULL) + COUNT(*) FILTER (WHERE renewal_date IS NOT NULL) AS cnt
+          FROM training_requests
+          WHERE created_at > $1
+          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
+        calendarCount += num(await pool.query(reqSql, calScoped ? [seenCal, calArr] : [seenCal]));
+      }
+
+      // ===== CLOUD SHARE (per module) =====
+      const cloudshare: Record<string, number> = {
+        health_safety: 0,
+        human_resources: 0,
+        employment_law: 0,
+      };
+      let effectiveCompanyIds: string[] | undefined;
+      if (user.role === "client" && user.companyId) {
+        effectiveCompanyIds = Array.from(await getEffectiveCompanyIds(user.companyId));
+      }
+      const activity = await storage.getCloudShareActivityForUser({
+        userId: user.id,
+        userRole: user.role,
+        userCompanyId: user.companyId ?? null,
+        effectiveCompanyIds,
+      });
+      for (const m of CLOUD_SHARE_MODULES) {
+        const sinceTs = seen[`cloudshare:${m}`].getTime();
+        let c = 0;
+        for (const f of activity.folders) {
+          if (f.module === m && f.createdAt.getTime() > sinceTs) c++;
+        }
+        for (const f of activity.files) {
+          if (f.module === m && f.createdAt.getTime() > sinceTs) c++;
+        }
+        cloudshare[m] = c;
+      }
+
+      res.json({ home: homeCount, calendar: calendarCount, cloudshare });
+    } catch (err) {
+      console.error("Alert counts error:", err);
+      res.status(500).json({ error: "Failed to fetch alert counts" });
+    }
+  });
+
+  // Mark a surface as seen ("now"), called when the user opens/views that surface.
+  app.post("/api/alert-counts/seen", async (req, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const surface = (req.body?.surface ?? "").toString();
+      const valid =
+        surface === "home" ||
+        surface === "calendar" ||
+        CLOUD_SHARE_MODULES.some((m) => surface === `cloudshare:${m}`);
+      if (!valid) return res.status(400).json({ error: "Invalid surface" });
+      await storage.markAlertSeen(user.id, surface);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Mark alert seen error:", err);
+      res.status(500).json({ error: "Failed to mark surface seen" });
     }
   });
 
