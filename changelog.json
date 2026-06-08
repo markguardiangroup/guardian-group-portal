@@ -8126,6 +8126,13 @@
           "message": "Renamed: the Admin role is now called Developer throughout the portal",
           "category": "other",
           "createdAt": "2026-06-08T10:48:04.820Z"
+        },
+        {
+          "id": "59c05b52-3c59-49ee-9ca7-e94a2771c044",
+          "patch": 15,
+          "message": "Fixed: changelog version check no longer triggers a 404 request",
+          "category": "bug",
+          "createdAt": "2026-06-08T12:06:11.116Z"
         }
       ],
       "publishedPatch": 14,

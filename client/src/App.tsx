@@ -448,7 +448,7 @@ function ProdPublishWatcher() {
       if (!res.ok) throw new Error("prod fetch failed");
       const data = await res.json() as { major: number; minor: number; patch: number };
       // Fetch current dev changelog to compare
-      const clRes = await fetch("/api/changelog");
+      const clRes = await fetch("/api/changelog/versions");
       if (!clRes.ok) return data;
       const cl = await clRes.json() as { activeVersionId: string; versions: Array<{ id: string; major: number; minor: number; patch: number; publishedPatch?: number }> };
       const active = cl.versions.find((v: any) => v.id === cl.activeVersionId);
