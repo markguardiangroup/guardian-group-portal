@@ -569,7 +569,7 @@ function EmailDeliveryLogDialog({
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
-export default function DeveloperReports() {
+export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
   const [showCountAudit, setShowCountAudit] = useState(false);
@@ -1136,7 +1136,7 @@ export default function DeveloperReports() {
             </div>
 
             {/* Changelog / Release Notes */}
-            <Link href="/developer-reports/changelog">
+            <Link href="/admin-reports/changelog">
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 data-testid="report-changelog"

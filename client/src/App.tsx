@@ -53,7 +53,7 @@ const SiteDetail = lazyPage(() => import("@/pages/site-detail"));
 const Companies = lazyPage(() => import("@/pages/companies"));
 const CompanyDetail = lazyPage(() => import("@/pages/company-detail"));
 const Reports = lazyPage(() => import("@/pages/reports"));
-const DeveloperReports = lazyPage(() => import("@/pages/developer-reports"));
+const AdminReports = lazyPage(() => import("@/pages/admin-reports"));
 const AdminChangelog = lazyPage(() => import("@/pages/admin-changelog"));
 const Support = lazyPage(() => import("@/pages/support"));
 const Settings = lazyPage(() => import("@/pages/settings"));
@@ -388,8 +388,8 @@ function Router() {
       <Route path="/sites">{() => <AccessGuard component={Sites} allow={NOT_CLIENT} />}</Route>
       <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={NOT_CLIENT} />}</Route>
       <Route path="/reports">{() => <ModuleGuard module="reports"><Reports /></ModuleGuard>}</Route>
-      <Route path="/developer-reports">{() => <AccessGuard component={DeveloperReports} allow={ADMIN_ONLY} />}</Route>
-      <Route path="/developer-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/admin-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
       <Route path="/support">{() => <ModuleGuard module="support"><Support /></ModuleGuard>}</Route>
       <Route path="/settings" component={Settings} />
       <Route path="/users">{() => <AccessGuard component={UserManagement} allow={NOT_CLIENT} />}</Route>

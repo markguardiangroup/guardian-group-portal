@@ -30,10 +30,10 @@ export default function AdminChangelog() {
     <div className="flex flex-col h-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
         <div className="flex items-center gap-4">
-          <Link href="/developer-reports">
-            <Button variant="outline" size="sm" data-testid="button-back-developer-reports">
+          <Link href="/admin-reports">
+            <Button variant="outline" size="sm" data-testid="button-back-admin-reports">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Developer Reports
+              Back to Admin Reports
             </Button>
           </Link>
           <div>
