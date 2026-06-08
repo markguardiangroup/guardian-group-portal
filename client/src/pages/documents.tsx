@@ -243,7 +243,7 @@ const moduleIcons: Record<string, typeof HardHat> = {
 
 function DocumentsListView() {
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -406,7 +406,7 @@ function DocumentsListView() {
     });
   };
 
-  const canManageFolders = user?.role === "admin" || user?.role === "consultant";
+  const canManageFolders = user?.role === "developer" || user?.role === "consultant";
 
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1227,7 +1227,7 @@ function DocumentDetailView({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   // Full-permission clients whose company IS the document entity can also manage shares (origin-side)
   const isFullPermClientOrigin = (doc?: { scope?: string | null; entityId?: string | null }) =>
     user?.role === "client" && user?.clientPermissionRole === "full" && !!doc?.entityId && user?.companyId === doc.entityId;

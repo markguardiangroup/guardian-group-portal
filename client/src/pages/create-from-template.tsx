@@ -247,9 +247,9 @@ export default function CreateFromTemplate() {
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
 
   const { user } = useAuth();
-  const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
-  const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
+  const canUploadCompanyGroupScope = isDeveloperOrConsultant || isFullPermissionClient;
   const [docScope, setDocScope] = useState<"site" | "company" | "group">(
     preselectedScope ? preselectedScope : (isFullPermissionClient ? "company" : "site")
   );
@@ -351,7 +351,7 @@ export default function CreateFromTemplate() {
     },
     enabled: isFullPermissionClient && !!user?.companyId,
   });
-  const canUseGroupScope = isAdminOrConsultant || (isFullPermissionClient && !!userCompany?.isGroupOwner);
+  const canUseGroupScope = isDeveloperOrConsultant || (isFullPermissionClient && !!userCompany?.isGroupOwner);
 
   const { data: companySites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites", { companyId: selectedEntityId }],

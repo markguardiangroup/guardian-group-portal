@@ -79,10 +79,10 @@ export default function TrainingCertificateUpload() {
   const preselectedCourseId = urlParams.get("courseId");
   const preselectedSiteId = urlParams.get("siteId");
 
-  const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
 
   // Only admin/consultant can upload certificates
-  if (!isAdminOrConsultant) {
+  if (!isDeveloperOrConsultant) {
     return (
       <div className="container max-w-2xl py-8">
         <Card>
@@ -498,7 +498,7 @@ export default function TrainingCertificateUpload() {
                 </div>
               )}
 
-              {isAdminOrConsultant && !bookingId && (
+              {isDeveloperOrConsultant && !bookingId && (
                 <div className="space-y-4">
                   <FormItem>
                     <FormLabel>Filter by Company</FormLabel>
@@ -542,7 +542,7 @@ export default function TrainingCertificateUpload() {
                         {filteredSites.map((site) => (
                           <SelectItem key={site.id} value={site.id}>
                             {site.name}
-                            {isAdminOrConsultant && site.companyName && (
+                            {isDeveloperOrConsultant && site.companyName && (
                               <span className="text-muted-foreground ml-2">
                                 ({site.companyName})
                               </span>

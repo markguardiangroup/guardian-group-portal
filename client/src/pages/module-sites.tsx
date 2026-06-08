@@ -178,7 +178,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   const [, navigate] = useLocation();
   const { selectedCompany, handleCompanyChange, setSelectedSiteId, selectedGroup, setSelectedGroup, proStaffFilter: staffFilter, setProStaffFilter: setStaffFilter } = useSiteFilter();
 
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
   const basePath =

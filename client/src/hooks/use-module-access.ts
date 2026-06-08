@@ -29,7 +29,7 @@ export function useModuleAccess(): UseModuleAccessResult {
   });
   
   const isLoading = authLoading || accessLoading;
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
 
   const getAccessStatus = (module: ModuleType): "active" | "visible" | "hidden" | undefined => {
     // Admin/consultants always have active access to all modules

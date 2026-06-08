@@ -264,13 +264,13 @@ function CompanyCard({
   onEdit, 
   onView,
   onDelete,
-  isAdmin,
+  isDeveloper,
 }: { 
   company: CompanyWithSiteCount; 
   onEdit: (company: CompanyWithSiteCount) => void;
   onView: (companyId: string) => void;
   onDelete: (company: CompanyWithSiteCount) => void;
-  isAdmin: boolean;
+  isDeveloper: boolean;
 }) {
   const [, navigate] = useLocation();
 
@@ -376,7 +376,7 @@ function CompanyCard({
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
-                    {isAdmin && (
+                    {isDeveloper && (
                       <DropdownMenuItem 
                         onClick={(e) => { e.stopPropagation(); onDelete(company); }} 
                         className="text-destructive"
@@ -814,7 +814,7 @@ export default function Companies() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: user?.role === "admin" || isProConsultant,
+    enabled: user?.role === "developer" || isProConsultant,
     staleTime: 5 * 60 * 1000,
   });
   const connectedAcceloIntegrations = (acceloIntegrations ?? []).filter(i => i.connected && i.isActive);
@@ -1278,8 +1278,8 @@ export default function Companies() {
     setIsAddOpen(true);
   };
 
-  const isAdmin = user?.role === "admin";
-  const canCreateCompany = isAdmin || isProConsultant;
+  const isDeveloper = user?.role === "developer";
+  const canCreateCompany = isDeveloper || isProConsultant;
   const companiesRaw = data?.companies || [];
   const companies = [...companiesRaw].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
@@ -1320,7 +1320,7 @@ export default function Companies() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {(isAdmin || isProConsultant) && connectedAcceloIntegrations.map(integration => (
+          {(isDeveloper || isProConsultant) && connectedAcceloIntegrations.map(integration => (
             <Button
               key={integration.sourceCode}
               size="sm"
@@ -1603,7 +1603,7 @@ export default function Companies() {
                           <Edit className="mr-2 h-4 w-4" />
                           Edit
                         </DropdownMenuItem>
-                        {isAdmin && (
+                        {isDeveloper && (
                           <DropdownMenuItem
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(company); setDeleteConfirmText(""); }}
                             className="text-destructive"

@@ -220,8 +220,8 @@ function UrgentActionsPanel({
   animate: boolean;
   onActionClick: (type: string) => void;
 }) {
-  const isAdmin = role === "admin";
-  const isPrivileged = role === "admin" || role === "consultant";
+  const isDeveloper = role === "developer";
+  const isPrivileged = role === "developer" || role === "consultant";
 
   const items = [
     {
@@ -280,7 +280,7 @@ function UrgentActionsPanel({
       severity: "medium",
     },
     {
-      show: isAdmin,
+      show: isDeveloper,
       count: actions.pendingAccessRequests ?? 0,
       type: "access_requests",
       label: "Access Requests",
@@ -602,7 +602,7 @@ function MyActionsPanel({ role }: { role: string }) {
     staleTime: 0,
   });
 
-  const isPrivileged = role === "admin" || role === "consultant";
+  const isPrivileged = role === "developer" || role === "consultant";
 
   const tiles = [
     {
@@ -879,12 +879,12 @@ interface ManagedConsultant {
 export function ArrangeCoverDialog({
   open,
   onOpenChange,
-  isAdmin = false,
+  isDeveloper = false,
   currentUserId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  isAdmin?: boolean;
+  isDeveloper?: boolean;
   currentUserId: string;
 }) {
   const { toast } = useToast();
@@ -895,14 +895,14 @@ export function ArrangeCoverDialog({
   // For pro consultants: fetch managed consultants so they can arrange cover on behalf of someone
   const { data: managedConsultants = [] } = useQuery<ManagedConsultant[]>({
     queryKey: ["/api/users?role=consultant&myManaged=true"],
-    enabled: open && (isProConsultant || isAdmin),
+    enabled: open && (isProConsultant || isDeveloper),
     select: (data: any) => {
       if (Array.isArray(data)) {
-        if (isAdmin) return data.filter((u: any) => u.role === "consultant");
+        if (isDeveloper) return data.filter((u: any) => u.role === "consultant");
         return data.filter((u: any) => u.role === "consultant" && u.managerId === currentUserId);
       }
       if (data?.users) {
-        if (isAdmin) return data.users.filter((u: any) => u.role === "consultant");
+        if (isDeveloper) return data.users.filter((u: any) => u.role === "consultant");
         return data.users.filter((u: any) => u.role === "consultant" && u.managerId === currentUserId);
       }
       return [];
@@ -917,17 +917,17 @@ export function ArrangeCoverDialog({
       if (!res.ok) throw new Error("Failed to fetch consultants");
       return res.json();
     },
-    enabled: open && isAdmin,
+    enabled: open && isDeveloper,
   });
 
   const today = new Date().toISOString().split("T")[0];
-  const [absentConsultantId, setAbsentConsultantId] = useState(isAdmin ? "" : currentUserId);
+  const [absentConsultantId, setAbsentConsultantId] = useState(isDeveloper ? "" : currentUserId);
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
   const [selectedCoveringIds, setSelectedCoveringIds] = useState<Set<string>>(new Set());
 
   // Determine the effective absent consultant ID for fetching eligible coverers
-  const effectiveAbsentId = isAdmin ? absentConsultantId : (isProConsultant && absentConsultantId !== currentUserId ? absentConsultantId : currentUserId);
+  const effectiveAbsentId = isDeveloper ? absentConsultantId : (isProConsultant && absentConsultantId !== currentUserId ? absentConsultantId : currentUserId);
 
   const { data: eligibleConsultants = [], isLoading: eligibleLoading } = useQuery<EligibleConsultant[]>({
     queryKey: ["/api/consultant-coverage/eligible-consultants", effectiveAbsentId],
@@ -958,7 +958,7 @@ export function ArrangeCoverDialog({
     onSuccess: () => {
       toast({ title: "Cover arranged", description: "The selected consultants will cover during the specified period." });
       queryClient.invalidateQueries({ queryKey: ["/api/consultant-coverage/my-active"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/consultant-coverage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/consultant-coverage"] });
       onOpenChange(false);
       setSelectedCoveringIds(new Set());
     },
@@ -967,7 +967,7 @@ export function ArrangeCoverDialog({
     },
   });
 
-  const canSubmit = selectedCoveringIds.size > 0 && startDate && endDate && endDate >= startDate && (!isAdmin || !!effectiveAbsentId);
+  const canSubmit = selectedCoveringIds.size > 0 && startDate && endDate && endDate >= startDate && (!isDeveloper || !!effectiveAbsentId);
 
   // Reset state when dialog closes
   const handleOpenChange = (v: boolean) => {
@@ -975,7 +975,7 @@ export function ArrangeCoverDialog({
       setSelectedCoveringIds(new Set());
       setStartDate(today);
       setEndDate(today);
-      if (isAdmin) setAbsentConsultantId("");
+      if (isDeveloper) setAbsentConsultantId("");
       else setAbsentConsultantId(currentUserId);
     }
     onOpenChange(v);
@@ -996,7 +996,7 @@ export function ArrangeCoverDialog({
 
         <div className="space-y-4 py-2">
           {/* Admin: absent consultant picker */}
-          {isAdmin && (
+          {isDeveloper && (
             <div className="space-y-1.5">
               <Label htmlFor="absent-consultant">Absent Consultant</Label>
               <Select value={absentConsultantId} onValueChange={setAbsentConsultantId}>
@@ -1013,7 +1013,7 @@ export function ArrangeCoverDialog({
           )}
 
           {/* Pro consultant: pick who they're arranging cover for */}
-          {isProConsultant && !isAdmin && managedConsultants.length > 0 && (
+          {isProConsultant && !isDeveloper && managedConsultants.length > 0 && (
             <div className="space-y-1.5">
               <Label htmlFor="absent-consultant-pro">Arranging cover for</Label>
               <Select value={absentConsultantId} onValueChange={setAbsentConsultantId}>
@@ -1063,7 +1063,7 @@ export function ArrangeCoverDialog({
           <div className="space-y-1.5">
             <Label>Covering Consultants</Label>
             <div className="h-48 rounded-md border overflow-hidden flex flex-col">
-              {isAdmin && !effectiveAbsentId ? (
+              {isDeveloper && !effectiveAbsentId ? (
                 <div className="flex-1 flex items-center justify-center">
                   <p className="text-sm text-muted-foreground">Select an absent consultant above first.</p>
                 </div>
@@ -1128,7 +1128,7 @@ export function ArrangeCoverDialog({
 const PORTFOLIO_INITIAL_ROWS = 4;
 
 function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["portfolio"]; role: string; animate: boolean }) {
-  const isPrivileged = role === "admin" || role === "consultant";
+  const isPrivileged = role === "developer" || role === "consultant";
   const [expanded, setExpanded] = useState(false);
 
   if (!portfolio) return null;
@@ -1783,7 +1783,7 @@ function UrgentActionsModal({
 function ConsultantCoveragePanel({ userId, role }: { userId: string; role: string }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
-  const isAdmin = role === "admin";
+  const isDeveloper = role === "developer";
 
   const { data, isLoading } = useQuery<MyCoverageResponse>({
     queryKey: ["/api/consultant-coverage/my-active"],
@@ -1802,9 +1802,9 @@ function ConsultantCoveragePanel({ userId, role }: { userId: string; role: strin
   const coveringFor = data?.coveringFor ?? [];
   const beingCoveredBy = data?.beingCoveredBy ?? [];
   const allActive = data?.allActive ?? [];
-  const hasAny = isAdmin ? allActive.length > 0 : (coveringFor.length > 0 || beingCoveredBy.length > 0);
+  const hasAny = isDeveloper ? allActive.length > 0 : (coveringFor.length > 0 || beingCoveredBy.length > 0);
 
-  if (isAdmin) return null;
+  if (isDeveloper) return null;
   if (!hasAny) return null;
 
   return (
@@ -1824,11 +1824,11 @@ function ConsultantCoveragePanel({ userId, role }: { userId: string; role: strin
             <FetchingOverlay />
           ) : !hasAny ? (
             <p className="text-sm text-muted-foreground">
-              {isAdmin
+              {isDeveloper
                 ? "No active cover arrangements across the team."
                 : <>No active cover arrangements. Use <strong>Arrange Cover</strong> to delegate your clients while you're away.</>}
             </p>
-          ) : isAdmin ? (
+          ) : isDeveloper ? (
             <div className="space-y-1.5">
               {allActive.map(e => (
                 <div key={e.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2" data-testid={`coverage-admin-${e.id}`}>
@@ -1917,7 +1917,7 @@ function ConsultantCoveragePanel({ userId, role }: { userId: string; role: strin
           )}
         </CardContent>
       </Card>
-      <ArrangeCoverDialog open={dialogOpen} onOpenChange={setDialogOpen} currentUserId={userId} isAdmin={isAdmin} />
+      <ArrangeCoverDialog open={dialogOpen} onOpenChange={setDialogOpen} currentUserId={userId} isDeveloper={isDeveloper} />
     </>
   );
 }
@@ -1976,7 +1976,7 @@ export default function HomePage() {
 
   const urgentScopeLabel = (() => {
     const role = user?.role;
-    if (role === "admin") return "Across all companies and sites";
+    if (role === "developer") return "Across all companies and sites";
     if (role === "consultant") return "Across your assigned sites";
     const portfolio = data?.portfolio as { site?: { name: string } | null } | null;
     const companyName = portfolio?.site?.name;
@@ -2027,7 +2027,7 @@ export default function HomePage() {
       </div>
 
       {/* Client Cover — consultants and admins */}
-      {(user?.role === "consultant" || user?.role === "admin") && user?.id && (
+      {(user?.role === "consultant" || user?.role === "developer") && user?.id && (
         <ConsultantCoveragePanel userId={user.id} role={user.role} />
       )}
 

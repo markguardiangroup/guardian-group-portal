@@ -551,9 +551,9 @@ function PathwayWizard({
 export default function ToolkitBrowse() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const hasTemplateLibraryPerm = user?.role === "consultant" && !!(user.consultantPermissions as { templateLibrary?: boolean } | null | undefined)?.templateLibrary;
-  const canManageFolders = isAdmin || hasTemplateLibraryPerm;
+  const canManageFolders = isDeveloper || hasTemplateLibraryPerm;
 
   const [selectedModule, setSelectedModule] = useState<ModuleType>("health_safety");
   const [search, setSearch] = useState("");
@@ -755,7 +755,7 @@ export default function ToolkitBrowse() {
           ) : (
             <>
               <p className="font-medium">No templates available for this module yet.</p>
-              {isAdmin && <p className="text-sm mt-1">Add templates via the Template Library to get started.</p>}
+              {isDeveloper && <p className="text-sm mt-1">Add templates via the Template Library to get started.</p>}
             </>
           )}
         </div>

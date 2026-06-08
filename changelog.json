@@ -8119,6 +8119,13 @@
           "message": "Fixed: changes-required notification no longer sent twice when multiple admins exist",
           "category": "bug",
           "createdAt": "2026-06-05T21:30:00.000Z"
+        },
+        {
+          "id": "cf77242b-bb71-48c4-864f-d4fd5584c912",
+          "patch": 15,
+          "message": "Renamed: the Admin role is now called Developer throughout the portal",
+          "category": "other",
+          "createdAt": "2026-06-08T10:48:04.820Z"
         }
       ],
       "publishedPatch": 14,

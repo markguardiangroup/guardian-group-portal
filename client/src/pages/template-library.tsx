@@ -385,15 +385,15 @@ function DroppableUnassignedContent({
   );
 }
 
-function DraggableTemplateCard({ template, isAdmin, renderCard }: {
+function DraggableTemplateCard({ template, isDeveloper, renderCard }: {
   template: DocumentTemplate;
-  isAdmin: boolean;
+  isDeveloper: boolean;
   renderCard: (dragHandleProps: Record<string, unknown> | undefined) => JSX.Element | null;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: template.id,
     data: { template },
-    disabled: !isAdmin,
+    disabled: !isDeveloper,
   });
 
   const style = transform
@@ -412,7 +412,7 @@ export default function TemplateLibraryPage() {
   const { toast } = useToast();
   // Access to this page is gated by the per-user "Template Library" permission toggle.
   // Anyone who can see the page gets full management access (add/edit/archive/delete/etc.).
-  const isAdmin = !!user;
+  const isDeveloper = !!user;
   const canDelete = !!user;
   
   const [activeTab, setActiveTab] = useState("templates");
@@ -1648,7 +1648,7 @@ export default function TemplateLibraryPage() {
               {selectedTemplateIds.has(template.id) && <Check className="h-3 w-3 text-white" />}
             </div>
           )}
-          {!bulkSelecting && isDraggable && isAdmin && (
+          {!bulkSelecting && isDraggable && isDeveloper && (
             <div 
               {...dragHandleProps} 
               className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted"
@@ -1691,7 +1691,7 @@ export default function TemplateLibraryPage() {
                   Private
                 </Badge>
               )}
-              {isAdmin && (template.sources ?? []).length > 0 && (
+              {isDeveloper && (template.sources ?? []).length > 0 && (
                 <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs py-0" title={`Sources: ${(template.sources ?? []).join(", ")}`}>
                   {(template.sources ?? []).length} source{(template.sources ?? []).length !== 1 ? "s" : ""}
                 </Badge>
@@ -1748,7 +1748,7 @@ export default function TemplateLibraryPage() {
                     <DropdownMenuSeparator />
                   </>
                 )}
-                {isAdmin && (
+                {isDeveloper && (
                   <>
                     <DropdownMenuItem onClick={() => {
                       setVersionUploadTemplate(template);
@@ -1768,7 +1768,7 @@ export default function TemplateLibraryPage() {
                   <History className="h-4 w-4 mr-2" />
                   Version History
                 </DropdownMenuItem>
-                {isAdmin && (
+                {isDeveloper && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
@@ -1782,7 +1782,7 @@ export default function TemplateLibraryPage() {
                   <AlertTriangle className="h-4 w-4 mr-2" />
                   Archive
                 </DropdownMenuItem>
-                {isAdmin && (
+                {isDeveloper && (
                   <DropdownMenuItem onClick={() => handlePermanentDeleteTemplate(template)} className="text-destructive focus:text-destructive" data-testid={`button-permanent-delete-template-${template.id}`}>
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
@@ -1820,7 +1820,7 @@ export default function TemplateLibraryPage() {
     const showToolkitBadge = !!(folder as any).isLocked === false && (isInsideToolkit || !!(folder as any).toolkitFolderId);
     
     return (
-      <DroppableFolderAccordionItem key={folder.id} folderId={folder.id} isOver={isAdmin && isFolderOver && activeTemplateId !== null}>
+      <DroppableFolderAccordionItem key={folder.id} folderId={folder.id} isOver={isDeveloper && isFolderOver && activeTemplateId !== null}>
       <AccordionItem 
         value={folder.id} 
         className={`border rounded-lg mb-2 overflow-hidden ${isRootLevel ? moduleBorderColors[folderModule] : "border-border"}`}
@@ -1848,7 +1848,7 @@ export default function TemplateLibraryPage() {
             )}
             <ChevronDown className="chevron h-4 w-4 ml-auto shrink-0 text-muted-foreground transition-transform duration-200" />
           </AccordionPrimitive.Trigger>
-          {isAdmin && (
+          {isDeveloper && (
             <div className={`flex items-center gap-1 pr-2 ${isRootLevel ? `bg-gradient-to-r ${moduleGradients[folderModule]}` : ""}`}>
               {!(folder as any).isLocked && !(folder as any).toolkitFolderId && (
                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditFolder(folder)} data-testid={`button-folder-edit-${folder.id}`}>
@@ -1875,11 +1875,11 @@ export default function TemplateLibraryPage() {
                 <DraggableTemplateCard
                   key={template.id}
                   template={template}
-                  isAdmin={isAdmin}
+                  isDeveloper={isDeveloper}
                   renderCard={(dragHandleProps) => (
                     <TemplateCard
                       template={template}
-                      isDraggable={isAdmin}
+                      isDraggable={isDeveloper}
                       dragHandleProps={dragHandleProps}
                     />
                   )}
@@ -1919,7 +1919,7 @@ export default function TemplateLibraryPage() {
             </p>
           </div>
         </div>
-        {isAdmin && (
+        {isDeveloper && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -2053,7 +2053,7 @@ export default function TemplateLibraryPage() {
               </Select>
               
               {(() => {
-                const visibleSources = isAdmin
+                const visibleSources = isDeveloper
                   ? allSources.filter(s => s.isActive)
                   : allSources.filter(s => s.isActive && (user?.sources ?? []).includes(s.code));
                 return visibleSources.length > 0 ? (
@@ -2071,7 +2071,7 @@ export default function TemplateLibraryPage() {
                 ) : null;
               })()}
 
-              {isAdmin && (
+              {isDeveloper && (
                 <Button
                   variant={bulkSelecting ? "default" : "outline"}
                   onClick={() => {
@@ -2202,7 +2202,7 @@ export default function TemplateLibraryPage() {
                           {moduleTemplateCount} templates
                         </Badge>
                       </CardTitle>
-                      {isAdmin && (
+                      {isDeveloper && (
                         <CardDescription>
                           Drag templates between folders to organise them.
                         </CardDescription>
@@ -2221,10 +2221,10 @@ export default function TemplateLibraryPage() {
                       ) : (
                         <p className="text-muted-foreground text-center py-4">
                           No folder structure defined. 
-                          {isAdmin && " Create folders in the Folders tab first."}
+                          {isDeveloper && " Create folders in the Folders tab first."}
                         </p>
                       )}
-                      {(unassignedTemplates.length > 0 || (isAdmin && activeTemplateId !== null)) && (
+                      {(unassignedTemplates.length > 0 || (isDeveloper && activeTemplateId !== null)) && (
                         <DroppableUnassignedContent moduleId={module} isOver={overDropId === `__unassigned_${module}__`}>
                           <div className="flex items-center gap-2 px-4 py-3 border-b border-dashed border-muted-foreground/30">
                             <Inbox className="h-4 w-4 text-muted-foreground" />
@@ -2241,11 +2241,11 @@ export default function TemplateLibraryPage() {
                                 <DraggableTemplateCard
                                   key={template.id}
                                   template={template}
-                                  isAdmin={isAdmin}
+                                  isDeveloper={isDeveloper}
                                   renderCard={(dragHandleProps) => (
                                     <TemplateCard
                                       template={template}
-                                      isDraggable={isAdmin}
+                                      isDraggable={isDeveloper}
                                       dragHandleProps={dragHandleProps}
                                     />
                                   )}
@@ -2261,7 +2261,7 @@ export default function TemplateLibraryPage() {
               })}
               
               {/* Archived Templates Section */}
-              {isAdmin && archivedTemplates.length > 0 && (
+              {isDeveloper && archivedTemplates.length > 0 && (
                 <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
                   <CardHeader className="cursor-pointer" onClick={() => setShowArchived(!showArchived)}>
                     <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -2426,7 +2426,7 @@ export default function TemplateLibraryPage() {
                                       Download
                                     </DropdownMenuItem>
                                   )}
-                                  {isAdmin && (
+                                  {isDeveloper && (
                                     <>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem onClick={() => handleEditTemplate(template)}>
@@ -2521,7 +2521,7 @@ export default function TemplateLibraryPage() {
                               )}
                             </TableCell>
                             <TableCell>
-                              {isAdmin && (
+                              {isDeveloper && (
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" size="icon" data-testid={`button-folder-actions-${folder.id}`}>
@@ -3927,7 +3927,7 @@ export default function TemplateLibraryPage() {
       </AlertDialog>
 
       {/* ── Manage Toolkit Folders ── */}
-      {isAdmin && (
+      {isDeveloper && (
         <>
           <Dialog open={showManageTkFolders} onOpenChange={(open) => {
             if (!open) { setEditingTkFolderId(null); setEditingTkFolderSources([]); }

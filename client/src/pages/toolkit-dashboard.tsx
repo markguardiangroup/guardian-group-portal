@@ -51,7 +51,7 @@ export default function ToolkitDashboard() {
   const queryClient = useQueryClient();
   const { selectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
 
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   const isClient = user?.role === "client";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 

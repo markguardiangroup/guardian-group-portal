@@ -153,9 +153,9 @@ export default function DocumentUpload() {
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
 
-  const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
-  const canUploadCompanyGroupScope = isAdminOrConsultant || isFullPermissionClient;
+  const canUploadCompanyGroupScope = isDeveloperOrConsultant || isFullPermissionClient;
   const [uploadStep, setUploadStep] = useState<"choice" | "scope-decision" | "upload" | "complete">("choice");
   const goToUploadStep = (step: "choice" | "scope-decision" | "upload" | "complete") => {
     setUploadStep(step);
@@ -254,7 +254,7 @@ export default function DocumentUpload() {
     enabled: isFullPermissionClient && !!user?.companyId,
   });
   // Group scope is available to: admins, consultants, or full-perm clients at a group-owner company
-  const canUseGroupScope = isAdminOrConsultant || (isFullPermissionClient && !!userCompany?.isGroupOwner);
+  const canUseGroupScope = isDeveloperOrConsultant || (isFullPermissionClient && !!userCompany?.isGroupOwner);
 
   // Sites within the selected company (for company-scope destination picker)
   const { data: companySites } = useQuery<SiteWithCompany[]>({
@@ -332,10 +332,10 @@ export default function DocumentUpload() {
   })();
 
   useEffect(() => {
-    if (user && !isAdminOrConsultant && !isFullPermissionClient) {
+    if (user && !isDeveloperOrConsultant && !isFullPermissionClient) {
       navigate("/");
     }
-  }, [user, isAdminOrConsultant, isFullPermissionClient]);
+  }, [user, isDeveloperOrConsultant, isFullPermissionClient]);
 
   // For full-permission clients doing company/group scope uploads, auto-set their company as the entity
   useEffect(() => {
@@ -448,7 +448,7 @@ export default function DocumentUpload() {
 
   const { data: allUsers } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/users"],
-    enabled: isAdminOrConsultant,
+    enabled: isDeveloperOrConsultant,
   });
 
   // Warnings for upload step: identify selected sites missing clients or consultants
@@ -922,7 +922,7 @@ export default function DocumentUpload() {
 
       {hasUrlContext && uploadStep === "choice" && (
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
-          {isAdminOrConsultant && (
+          {isDeveloperOrConsultant && (
             <Card className="border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
               <CardContent className="py-6 flex flex-col items-start gap-4 h-full">
                 <div className="p-3 bg-primary/10 rounded-lg">
@@ -1120,7 +1120,7 @@ export default function DocumentUpload() {
                       />
                     )}
 
-                    {isAdminOrConsultant && (selectedSitesWithNoClients.length > 0 || selectedSitesWithNoConsultants.length > 0) && (
+                    {isDeveloperOrConsultant && (selectedSitesWithNoClients.length > 0 || selectedSitesWithNoConsultants.length > 0) && (
                       <div className="space-y-2">
                         {selectedSitesWithNoClients.length > 0 && (
                           <div className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/5 p-3" data-testid="warning-sites-no-clients">

@@ -240,10 +240,10 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
   const folderViewDragCount = useRef(0);
   const folderRowDragCounts = useRef<Record<string, number>>({});
 
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
   const isClient = user?.role === "client";
-  const canManageFolders = isAdmin || isConsultant;
+  const canManageFolders = isDeveloper || isConsultant;
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<Site[]>({
@@ -937,7 +937,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                           </TooltipTrigger>
                           <TooltipContent>Download</TooltipContent>
                         </Tooltip>
-                        {(isAdmin || isConsultant || file.uploadedByUserId === user?.id) && (
+                        {(isDeveloper || isConsultant || file.uploadedByUserId === user?.id) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button

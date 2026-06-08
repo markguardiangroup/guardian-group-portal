@@ -209,7 +209,7 @@ export default function Settings() {
   const { toast } = useToast();
 
   // Admins and pro consultants can edit name/email; standard consultants and clients cannot
-  const canEditIdentity = user?.role === "admin" || (user?.role === "consultant" && user?.consultantTier === "pro");
+  const canEditIdentity = user?.role === "developer" || (user?.role === "consultant" && user?.consultantTier === "pro");
 
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [documentAlerts, setDocumentAlerts] = useState(true);
@@ -365,7 +365,7 @@ export default function Settings() {
             <UserCog className="h-4 w-4" />
             Permissions
           </TabsTrigger>
-          {(user?.role === "admin" || user?.role === "consultant") && (
+          {(user?.role === "developer" || user?.role === "consultant") && (
             <TabsTrigger value="testing" className="gap-2" data-testid="tab-testing">
               <ClipboardList className="h-4 w-4" />
               Testing
@@ -845,7 +845,7 @@ export default function Settings() {
                     </Badge>
                   )}
                   <span className="text-sm text-muted-foreground">
-                    {user?.role === "admin" && "Full system access"}
+                    {user?.role === "developer" && "Full system access"}
                     {user?.role === "consultant" && "Can manage clients and documents"}
                     {user?.role === "client" && "Access to your organisation's content"}
                   </span>
@@ -987,7 +987,7 @@ export default function Settings() {
         <TabsContent value="legal-client">
           <div className="space-y-6">
             <LegalClientTab />
-            {user?.role === "admin" && <LegalDocumentsTab />}
+            {user?.role === "developer" && <LegalDocumentsTab />}
           </div>
         </TabsContent>
 
@@ -1303,7 +1303,7 @@ function printTaskList(list: TestingTaskList) {
 function TestingTab() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
 
   const [showListForm, setShowListForm] = useState(false);
@@ -1348,19 +1348,19 @@ function TestingTab() {
       if (!res.ok) throw new Error("Failed to load assignments");
       return res.json();
     },
-    enabled: isAdmin && !!selectedListId,
+    enabled: isDeveloper && !!selectedListId,
   });
 
   const { data: rawConsultants = [] } = useQuery<{ id: string; fullName: string; email: string }[]>({
     queryKey: ["/api/consultants"],
-    enabled: isAdmin,
+    enabled: isDeveloper,
   });
 
   const { data: rawAllUsers = [] } = useQuery<{ id: string; fullName: string; email: string; role: string }[]>({
     queryKey: ["/api/users"],
-    enabled: isAdmin,
+    enabled: isDeveloper,
   });
-  const adminUsers = rawAllUsers.filter(u => u.role === "admin");
+  const adminUsers = rawAllUsers.filter(u => u.role === "developer");
 
   const allConsultants = [
     ...rawConsultants,
@@ -1468,14 +1468,14 @@ function TestingTab() {
   const assignedConsultantIds = new Set(listAssignments.map((a: TestingAssignment) => a.assignedTo));
   const availableToAssign = allConsultants.filter(c => !assignedConsultantIds.has(c.id));
 
-  if (!isAdmin && !isConsultant) {
+  if (!isDeveloper && !isConsultant) {
     return <p className="text-muted-foreground text-sm">You do not have access to this section.</p>;
   }
 
   return (
     <div className="space-y-6">
       {/* Admin: Two-panel layout */}
-      {isAdmin && (
+      {isDeveloper && (
         <>
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -1704,7 +1704,7 @@ function TestingTab() {
       )}
 
       {/* Consultant: My Assigned Task Lists */}
-      {(isConsultant || isAdmin) && (
+      {(isConsultant || isDeveloper) && (
         <Card>
           <CardHeader>
             <CardTitle>My Testing Assignments</CardTitle>

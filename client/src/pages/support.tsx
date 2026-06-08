@@ -465,7 +465,7 @@ function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: 
         <div className="space-y-3 max-h-64 overflow-y-auto">
           {messages.map((msg) => {
             const isOwnMessage = msg.senderId === user?.id;
-            const isStaff = msg.senderRole === "admin" || msg.senderRole === "consultant";
+            const isStaff = msg.senderRole === "developer" || msg.senderRole === "consultant";
             return (
               <div
                 key={msg.id}
@@ -702,7 +702,7 @@ export default function Support() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
@@ -716,7 +716,7 @@ export default function Support() {
 
   const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
     queryKey: ["/api/companies?limit=1000"],
-    enabled: user?.role === "admin",
+    enabled: user?.role === "developer",
   });
   const companies = companiesResponse?.companies || [];
 
@@ -776,7 +776,7 @@ export default function Support() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">Filters:</span>
           </div>
-          {user?.role === "admin" && companies.length > 0 && (
+          {user?.role === "developer" && companies.length > 0 && (
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
               <SelectTrigger className="w-48" data-testid="filter-company">
                 <Building2 className="h-4 w-4 mr-2" />

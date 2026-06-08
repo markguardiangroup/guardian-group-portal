@@ -509,7 +509,7 @@ export default function CalendarPage() {
     if (prev !== "module") resetFilters();
   }, []);
 
-  const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+  const isPrivileged = user?.role === "developer" || user?.role === "consultant";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<any[]>({

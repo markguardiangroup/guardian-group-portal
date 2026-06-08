@@ -416,9 +416,9 @@ export default function ModuleAccessRequests() {
     return requests.filter(r => selectedRequests.has(r.id) && r.status === "pending");
   }, [requests, selectedRequests]);
 
-  const isAdmin = user?.role === "admin" || user?.role === "consultant";
+  const isDeveloper = user?.role === "developer" || user?.role === "consultant";
 
-  if (!isAdmin) {
+  if (!isDeveloper) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">

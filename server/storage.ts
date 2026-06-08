@@ -141,7 +141,7 @@ function formatReferenceNumber(prefix: ReferencePrefix, num: number): string {
 
 function getUserReferencePrefix(role: string): ReferencePrefix {
   switch (role) {
-    case 'admin': return 'ADM';
+    case 'developer': return 'ADM';
     case 'consultant': return 'CON';
     case 'client': return 'CLI';
     default: return 'USR';
@@ -5696,7 +5696,7 @@ export class MemStorage implements IStorage {
           password: hashedPassword,
           email: "admin@guardiangroup.com",
           fullName: "System Administrator",
-          role: "admin",
+          role: "developer",
           status: "active",
         });
         console.log("Default admin user created successfully.");

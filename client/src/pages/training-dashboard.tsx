@@ -123,7 +123,7 @@ export default function TrainingDashboard() {
     notes: "",
   });
 
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<SiteWithDetails[]>({
@@ -683,7 +683,7 @@ export default function TrainingDashboard() {
                                 <Award className="h-4 w-4 mr-2" />
                                 Complete & Upload Certificate
                               </DropdownMenuItem>
-                              {user?.role === "admin" && (
+                              {user?.role === "developer" && (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 

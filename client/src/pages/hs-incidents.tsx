@@ -2030,7 +2030,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const isPrivileged = user?.role === "admin" || user?.role === "consultant";
+  const isPrivileged = user?.role === "developer" || user?.role === "consultant";
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [invDetailsMinimised, setInvDetailsMinimised] = useState(true);
@@ -4130,9 +4130,9 @@ function IncidentsListView() {
 
   const activeConfig = registerTypeConfig[registerType];
 
-  const isPrivileged = user?.role === "admin" || user?.role === "consultant";
-  const isAdmin = user?.role === "admin";
-  const canReport = user?.role === "admin" || user?.role === "client" ||
+  const isPrivileged = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloper = user?.role === "developer";
+  const canReport = user?.role === "developer" || user?.role === "client" ||
     (user?.role === "consultant" && !!(user?.consultantPermissions as any)?.reportIncident);
   const { toast } = useToast();
 
@@ -4853,7 +4853,7 @@ function IncidentsListView() {
                                   View Incident
                                 </Link>
                               </DropdownMenuItem>
-                              {isAdmin && (
+                              {isDeveloper && (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem

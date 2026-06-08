@@ -108,7 +108,7 @@ interface UserWithoutPassword {
 
 function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { entity: Site & { companySources?: string[] | null }; onEditSite: () => void; companyId?: string; companyName?: string; siteId: string }) {
   const { user: authUser } = useAuth();
-  const isAdmin = authUser?.role === "admin";
+  const isDeveloper = authUser?.role === "developer";
   const isConsultant = authUser?.role === "consultant";
 
   const { data: siteStats } = useQuery<{ documents: Record<string, number>; cases: number; incidents: number }>({
@@ -128,12 +128,12 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!(siteId && (isAdmin || isConsultant)),
+    enabled: !!(siteId && (isDeveloper || isConsultant)),
   });
 
   const { data: siteUsers = [] } = useQuery<UserWithoutPassword[]>({
     queryKey: ["/api/sites", siteId, "users"],
-    enabled: !!(siteId && (isAdmin || isConsultant) && siteKeyContacts.length > 0),
+    enabled: !!(siteId && (isDeveloper || isConsultant) && siteKeyContacts.length > 0),
   });
 
   return (
@@ -223,7 +223,7 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
             </div>
           )}
 
-          {(isAdmin || isConsultant) && siteKeyContacts.length > 0 && (() => {
+          {(isDeveloper || isConsultant) && siteKeyContacts.length > 0 && (() => {
             const keyContactUsers = siteKeyContacts
               .map((kc) => siteUsers.find((u) => u.id === kc.userId))
               .filter(Boolean) as UserWithoutPassword[];
@@ -525,7 +525,7 @@ function ConsultantsTab({ siteId }: { siteId: string }) {
 function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string }) {
   const { toast } = useToast();
   const { user: authUser } = useAuth();
-  const isAdmin = authUser?.role === "admin";
+  const isDeveloper = authUser?.role === "developer";
   const isProConsultant = authUser?.role === "consultant" && authUser?.consultantTier === "pro";
   const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
   const [editRole, setEditRole] = useState<string>("");
@@ -551,7 +551,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!(siteId && (isAdmin || isConsultant)),
+    enabled: !!(siteId && (isDeveloper || isConsultant)),
   });
   const siteKeyContactIds = new Set(siteKeyContacts.map((kc) => kc.userId));
 
@@ -832,7 +832,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                             <Shield className="mr-2 h-4 w-4" />
                             {assignedClientIds.has(user.id) ? (isPrimaryContact ? "Primary contact — cannot remove" : "Remove Site Access") : "Grant Site Access"}
                           </DropdownMenuItem>
-                          {!isPrimaryContact && (isAdmin || isProConsultant) && (
+                          {!isPrimaryContact && (isDeveloper || isProConsultant) && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

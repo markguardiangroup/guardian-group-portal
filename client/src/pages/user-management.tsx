@@ -151,13 +151,13 @@ interface SiteBasic {
 const DEFAULT_PAGE_SIZE = 20;
 
 const roleColors: Record<UserRole, string> = {
-  admin: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  developer: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
   consultant: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
   client: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
 };
 
 const roleLabels: Record<UserRole, string> = {
-  admin: "Administrator",
+  developer: "Developer",
   consultant: "Consultant",
   client: "Client",
 };
@@ -191,10 +191,10 @@ function extractWebsiteDomain(website: string): string {
 export default function UserManagement() {
   const { user } = useAuth();
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
   const isStandardConsultant = isConsultant && !isPro;
-  const canAddUser = isAdmin || isPro;
+  const canAddUser = isDeveloper || isPro;
   const { toast } = useToast();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const companyFilter = selectedCompany || "all";
@@ -237,7 +237,7 @@ export default function UserManagement() {
     mobile: string;
     preferredContactMethod: "email" | "phone" | "mobile" | "any";
     notes: string;
-    role: "admin" | "consultant" | "client";
+    role: "developer" | "consultant" | "client";
     companyId: string;
     consultantTier: string;
     managerId: string;
@@ -266,7 +266,7 @@ export default function UserManagement() {
     mobile: "",
     preferredContactMethod: "email" as "email" | "phone" | "mobile" | "any",
     notes: "",
-    role: "client" as "admin" | "consultant" | "client",
+    role: "client" as "developer" | "consultant" | "client",
     companyId: "",
     consultantTier: "pro" as "" | "standard" | "pro" | "principal",
     clientPermissionRole: "full" as "full",
@@ -346,7 +346,7 @@ export default function UserManagement() {
 
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/users"],
-    enabled: isAdmin || isConsultant,
+    enabled: isDeveloper || isConsultant,
     staleTime: 60 * 1000,
   });
   useEffect(() => {
@@ -355,7 +355,7 @@ export default function UserManagement() {
 
   const { data: onlineData } = useQuery<{ userIds: string[] }>({
     queryKey: ["/api/users/online"],
-    enabled: isAdmin || isConsultant,
+    enabled: isDeveloper || isConsultant,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     staleTime: 20_000,
@@ -364,12 +364,12 @@ export default function UserManagement() {
 
   const { data: consultantsWithAssignments = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants"],
-    enabled: isAdmin,
+    enabled: isDeveloper,
   });
 
   const { data: keyContactUserIds = [] } = useQuery<string[]>({
     queryKey: ["/api/key-contacts/user-ids"],
-    enabled: isAdmin || isConsultant,
+    enabled: isDeveloper || isConsultant,
     staleTime: 0,
     queryFn: async () => {
       const res = await fetch("/api/key-contacts/user-ids", { credentials: "include" });
@@ -429,12 +429,12 @@ export default function UserManagement() {
 
   const { data: sites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
-    enabled: isAdmin || isConsultant,
+    enabled: isDeveloper || isConsultant,
   });
 
   const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; website?: string | null; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null; groupOwnerId?: string | null }[] }>({
     queryKey: ["/api/companies?limit=1000"],
-    enabled: isAdmin || isConsultant,
+    enabled: isDeveloper || isConsultant,
   });
   const companies = companiesResponse?.companies || [];
 
@@ -463,7 +463,7 @@ export default function UserManagement() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: isAdmin || isConsultant,
+    enabled: isDeveloper || isConsultant,
   });
 
   // Standard consultants can only create users for companies linked to their assigned sites
@@ -523,7 +523,7 @@ export default function UserManagement() {
     return u;
   });
 
-  if (!isAdmin && !isConsultant) {
+  if (!isDeveloper && !isConsultant) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
@@ -539,7 +539,7 @@ export default function UserManagement() {
   }
 
   const getVisibleUsers = () => {
-    if (isAdmin) return usersWithSiteInfo;
+    if (isDeveloper) return usersWithSiteInfo;
     if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "client");
     // Standard consultants: backend already filtered — safety net to ensure no consultants/admins slip through
     if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
@@ -557,7 +557,7 @@ export default function UserManagement() {
 
   const filteredUsers = getVisibleUsers().filter((u) => {
     const matchesTab =
-      userTypeTab === "client" ? u.role === "client" : u.role === "admin" || u.role === "consultant";
+      userTypeTab === "client" ? u.role === "client" : u.role === "developer" || u.role === "consultant";
     const matchesSearch = 
       u.fullName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -581,7 +581,7 @@ export default function UserManagement() {
     if (sortBy === "username") return dir * a.username.toLowerCase().localeCompare(b.username.toLowerCase());
     if (sortBy === "role") {
       const getRoleRank = (u: any) => {
-        if (u.role === "admin") return 0;
+        if (u.role === "developer") return 0;
         if (u.role === "consultant" && u.consultantTier === "pro") return 1;
         if (u.role === "consultant") return 2;
         return 3;
@@ -808,7 +808,7 @@ export default function UserManagement() {
         editingUser?.fullName;
       // Non-admins cannot update sources — omit entirely so the server preserves the existing value
       const { sources: _sources, ...dataWithoutSources } = data ?? {};
-      const payload = isAdmin ? { ...data, fullName } : { ...dataWithoutSources, fullName };
+      const payload = isDeveloper ? { ...data, fullName } : { ...dataWithoutSources, fullName };
       const response = await apiRequest("PATCH", `/api/users/${id}`, {
         ...payload,
         consultantTier: data?.consultantTier || null,
@@ -836,7 +836,7 @@ export default function UserManagement() {
   const handleSaveEdit = () => {
     if (!editingUser || !editFormData) return;
     // Only admins can assign sources; enforce the "at least one" validation only for admins
-    if (isAdmin && (editFormData.role === "consultant" || editFormData.role === "admin") && editFormData.sources.length === 0) {
+    if (isDeveloper && (editFormData.role === "consultant" || editFormData.role === "developer") && editFormData.sources.length === 0) {
       toast({ title: "At least one source is required for consultant and admin users", variant: "destructive" });
       return;
     }
@@ -1181,7 +1181,7 @@ export default function UserManagement() {
       return;
     }
     // Consultants must have at least one source (admin users always get all sources automatically)
-    if (isAdmin && newUser.role === "consultant" && newUser.sources.length === 0) {
+    if (isDeveloper && newUser.role === "consultant" && newUser.sources.length === 0) {
       toast({ title: "At least one source is required for consultant users", variant: "destructive" });
       return;
     }
@@ -1190,7 +1190,7 @@ export default function UserManagement() {
       `${newUser.firstName} ${newUser.lastName}`.trim() || 
       newUser.username;
     // For consultant/admin — ask whether to send the welcome email now
-    if (newUser.role === "consultant" || newUser.role === "admin") {
+    if (newUser.role === "consultant" || newUser.role === "developer") {
       setPendingEmailUser({ ...newUser, fullName });
       setIsAddUserOpen(false);
       return;
@@ -1204,7 +1204,7 @@ export default function UserManagement() {
   };
 
   const pendingBulkUsers = useMemo(
-    () => allUsers.filter(u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"),
+    () => allUsers.filter(u => (u.role === "consultant" || u.role === "developer") && u.status === "invite_required"),
     [allUsers]
   );
 
@@ -1352,7 +1352,7 @@ export default function UserManagement() {
   });
 
   const renderSiteAssignments = (u: UserWithAssignments) => {
-    if (u.role === "admin") {
+    if (u.role === "developer") {
       return <span className="text-xs text-muted-foreground leading-[22px] pl-2.5">All Sites</span>;
     }
 
@@ -1450,9 +1450,9 @@ export default function UserManagement() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && userTypeTab === "staff" && (() => {
+          {isDeveloper && userTypeTab === "staff" && (() => {
             const pendingCount = allUsers.filter(
-              u => (u.role === "consultant" || u.role === "admin") && u.status === "invite_required"
+              u => (u.role === "consultant" || u.role === "developer") && u.status === "invite_required"
             ).length;
             return pendingCount > 0 ? (
               <Button
@@ -1481,7 +1481,7 @@ export default function UserManagement() {
       <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
 
       <div className="flex flex-wrap items-center gap-3">
-        {(isAdmin || isPro) && (
+        {(isDeveloper || isPro) && (
           <div className="inline-flex rounded-lg border bg-muted/40 p-1 gap-1 shrink-0">
             <button
               onClick={() => { setUserTypeTab("staff"); setRoleFilter("all"); setStatusFilter("all"); setPage(1); }}
@@ -1489,7 +1489,7 @@ export default function UserManagement() {
               data-testid="tab-staff"
             >
               <ShieldCheck className="h-4 w-4" />
-              {isAdmin ? "Consultants & Admins" : "Consultants"}
+              {isDeveloper ? "Consultants & Admins" : "Consultants"}
             </button>
             <button
               onClick={() => { setUserTypeTab("client"); setRoleFilter("all"); setStatusFilter("all"); setSelectedCompany(null); setClientStaffFilter("my"); setPage(1); }}
@@ -1538,7 +1538,7 @@ export default function UserManagement() {
             <SelectContent>
               {isPro && myStaff.length > 0 && <SelectItem value="my_staff">My Staff</SelectItem>}
               <SelectItem value="all">All Staff</SelectItem>
-              {isAdmin && <SelectItem value="admin">Administrators</SelectItem>}
+              {isDeveloper && <SelectItem value="developer">Developers</SelectItem>}
               <SelectItem value="consultant">Consultants</SelectItem>
               <SelectItem value="pro_consultant">Pro Consultants</SelectItem>
             </SelectContent>
@@ -1647,7 +1647,7 @@ export default function UserManagement() {
                 <TableRow 
                   key={u.id} 
                   data-testid={`row-user-${u.id}`}
-                  className={u.role !== "admin" && (!u.siteAssignments || u.siteAssignments.length === 0) ? "bg-red-50 dark:bg-red-950/30" : ""}
+                  className={u.role !== "developer" && (!u.siteAssignments || u.siteAssignments.length === 0) ? "bg-red-50 dark:bg-red-950/30" : ""}
                 >
                   <TableCell>
                     <button
@@ -1723,7 +1723,7 @@ export default function UserManagement() {
                     </TableCell>
                   )}
                   <TableCell>
-                    {u.role === "admin" ? (
+                    {u.role === "developer" ? (
                       <button
                         onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
                         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -1747,7 +1747,7 @@ export default function UserManagement() {
                   </TableCell>
                   {userTypeTab === "staff" && (
                     <TableCell className="hidden md:table-cell">
-                      {(u.role === "admin" || u.role === "consultant") ? (() => {
+                      {(u.role === "developer" || u.role === "consultant") ? (() => {
                         const activeCodes = availableSources.filter(s => s.isActive).map(s => s.code);
                         const userSources = u.sources ?? [];
                         if (userSources.length === 0) {
@@ -1828,7 +1828,7 @@ export default function UserManagement() {
                             )}
                           </div>
                         );
-                      })() : u.role === "admin" ? (
+                      })() : u.role === "developer" ? (
                         <Badge variant="outline" className="text-xs px-1.5 py-0 bg-slate-50 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600" data-testid={`badge-perm-all-${u.id}`}>All</Badge>
                       ) : <span className="text-sm text-muted-foreground">—</span>}
                     </TableCell>
@@ -1898,7 +1898,7 @@ export default function UserManagement() {
                           <Eye className="h-4 w-4 mr-2" />
                           View Profile
                         </DropdownMenuItem>
-                        {(isAdmin || (isPro && u.role === "consultant")) && (
+                        {(isDeveloper || (isPro && u.role === "consultant")) && (
                           <>
                             <DropdownMenuItem onClick={() => openEditDialog(u)}>
                               <Pencil className="h-4 w-4 mr-2" />
@@ -1906,7 +1906,7 @@ export default function UserManagement() {
                             </DropdownMenuItem>
                           </>
                         )}
-                        {isAdmin && u.role === "consultant" && (
+                        {isDeveloper && u.role === "consultant" && (
                           <DropdownMenuItem
                             onClick={() => {
                               setPermissionsUser(u);
@@ -1918,13 +1918,13 @@ export default function UserManagement() {
                             Edit Permissions
                           </DropdownMenuItem>
                         )}
-                        {(isAdmin || isPro ? u.role !== "admin" : isStandardConsultant && u.role === "client") && (
+                        {(isDeveloper || isPro ? u.role !== "developer" : isStandardConsultant && u.role === "client") && (
                           <DropdownMenuItem onClick={() => openManageSitesDialog(u)} data-testid={`button-manage-sites-${u.id}`}>
                             <MapPin className="h-4 w-4 mr-2" />
                             Manage Sites
                           </DropdownMenuItem>
                         )}
-                        {(isAdmin || isConsultant) && (
+                        {(isDeveloper || isConsultant) && (
                           <>
                             {u.status === "invite_required" && (
                               <DropdownMenuItem 
@@ -1946,7 +1946,7 @@ export default function UserManagement() {
                             )}
                           </>
                         )}
-                        {isAdmin && (
+                        {isDeveloper && (
                           <>
                             {u.status === "locked" && (
                               <DropdownMenuItem 
@@ -1968,7 +1968,7 @@ export default function UserManagement() {
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            {u.role !== "admin" && (
+                            {u.role !== "developer" && (
                               <DropdownMenuItem 
                                 onClick={() => setDeleteConfirm(u)}
                                 className="text-destructive focus:text-destructive"
@@ -1984,13 +1984,13 @@ export default function UserManagement() {
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>,
-                isExpanded && (hasSites || u.role === "admin") && (
+                isExpanded && (hasSites || u.role === "developer") && (
                   <TableRow key={`expand-${u.id}`} className="bg-muted/30">
                     <TableCell colSpan={7} className="py-3 px-6">
                       <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">
-                        {u.role === "admin" ? "Access" : "Site Access"}
+                        {u.role === "developer" ? "Access" : "Site Access"}
                       </p>
-                      {u.role === "admin" ? (
+                      {u.role === "developer" ? (
                         <p className="text-sm text-muted-foreground">Full access to all sites</p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
@@ -2227,12 +2227,12 @@ export default function UserManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="edit-role">Role</Label>
-                      <Select value={editFormData.role} onValueChange={(v: "admin" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.id === user?.id}>
+                      <Select value={editFormData.role} onValueChange={(v: "developer" | "consultant" | "client") => setEditFormData({ ...editFormData, role: v })} disabled={editingUser.id === user?.id}>
                         <SelectTrigger id="edit-role" data-testid="select-edit-role" disabled={editingUser.id === user?.id}>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
+                          {isDeveloper && <SelectItem value="developer">Developer</SelectItem>}
                           <SelectItem value="consultant">Consultant</SelectItem>
                           <SelectItem value="client">Client</SelectItem>
                         </SelectContent>
@@ -2252,7 +2252,7 @@ export default function UserManagement() {
                         </Select>
                       </div>
                     )}
-                    {editFormData.role === "consultant" && (isAdmin || isPro) && (
+                    {editFormData.role === "consultant" && (isDeveloper || isPro) && (
                       <div className="grid gap-2">
                         <Label htmlFor="edit-manager">Managed by (Pro Consultant)</Label>
                         <Select
@@ -2302,12 +2302,12 @@ export default function UserManagement() {
                 </div>
               </div>
 
-              {(editFormData.role === "admin" || editFormData.role === "consultant") && availableSources.length > 0 && (
+              {(editFormData.role === "developer" || editFormData.role === "consultant") && availableSources.length > 0 && (
                 <div>
                   <h4 className="text-sm font-medium mb-3">
-                    Sources Access {isAdmin && <span className="text-destructive">*</span>}
+                    Sources Access {isDeveloper && <span className="text-destructive">*</span>}
                   </h4>
-                  {isAdmin ? (
+                  {isDeveloper ? (
                     <>
                       <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>
                       <div className="flex flex-wrap gap-2">
@@ -2593,7 +2593,7 @@ export default function UserManagement() {
               })()}
 
               {/* Sources */}
-              {(viewingUser.role === "admin" || viewingUser.role === "consultant") && viewingUser.sources && viewingUser.sources.length > 0 && (
+              {(viewingUser.role === "developer" || viewingUser.role === "consultant") && viewingUser.sources && viewingUser.sources.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-medium text-muted-foreground">Sources Access</h4>
                   <div className="flex flex-wrap gap-2">
@@ -2711,7 +2711,7 @@ export default function UserManagement() {
             <Button variant="outline" onClick={() => setViewingUser(null)}>
               Close
             </Button>
-            {isAdmin && viewingUser && (
+            {isDeveloper && viewingUser && (
               <Button onClick={() => { setViewingUser(null); openEditDialog(viewingUser); }}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit User
@@ -2760,17 +2760,17 @@ export default function UserManagement() {
                     ) : (
                       <Select
                         value={newUser.role}
-                        onValueChange={(value: "admin" | "consultant" | "client") => {
+                        onValueChange={(value: "developer" | "consultant" | "client") => {
                           const allSourceCodes = availableSources.filter(s => s.isActive).map(s => s.code);
-                          setNewUser({ ...newUser, role: value, sources: value === "admin" ? allSourceCodes : newUser.sources });
+                          setNewUser({ ...newUser, role: value, sources: value === "developer" ? allSourceCodes : newUser.sources });
                         }}
                       >
                         <SelectTrigger id="new-role-top" data-testid="select-new-role">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {isAdmin && <SelectItem value="admin">Administrator</SelectItem>}
-                          {isAdmin && <SelectItem value="consultant">Consultant</SelectItem>}
+                          {isDeveloper && <SelectItem value="developer">Developer</SelectItem>}
+                          {isDeveloper && <SelectItem value="consultant">Consultant</SelectItem>}
                           <SelectItem value="client">Client</SelectItem>
                         </SelectContent>
                       </Select>
@@ -3145,7 +3145,7 @@ export default function UserManagement() {
               </div>
             </div>
 
-            {isAdmin && newUser.role === "consultant" && (
+            {isDeveloper && newUser.role === "consultant" && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Permissions</h4>
                 <p className="text-xs text-muted-foreground mb-3">Control which features this consultant can access.</p>
@@ -3229,7 +3229,7 @@ export default function UserManagement() {
               </div>
             )}
 
-            {isAdmin && newUser.role === "consultant" && availableSources.length > 0 && (
+            {isDeveloper && newUser.role === "consultant" && availableSources.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium mb-3">Sources Access <span className="text-destructive">*</span></h4>
                 <p className="text-xs text-muted-foreground mb-3">Select which brands this user can access. At least one source is required.</p>

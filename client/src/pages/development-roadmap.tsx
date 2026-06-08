@@ -86,7 +86,7 @@ const categoryConfig: Record<string, { label: string; icon: typeof Rocket; badge
 
 const moduleConfig: Record<RoadmapModule, { label: string; icon: typeof LayoutDashboard; badgeColor: string }> = {
   OVERVIEW:  { label: "Overview",  icon: LayoutDashboard, badgeColor: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
-  ADMIN:     { label: "Admin",     icon: ShieldCheck,     badgeColor: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" },
+  ADMIN:     { label: "Developer",     icon: ShieldCheck,     badgeColor: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" },
   HR:        { label: "HR",        icon: Users,           badgeColor: "bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-300" },
   "H&S":     { label: "H&S",       icon: HardHat,         badgeColor: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" },
   EL:        { label: "EL",        icon: Scale,           badgeColor: "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300" },
@@ -202,7 +202,7 @@ export default function DevelopmentRoadmap() {
     queryKey: ["/api/users"],
   });
 
-  const adminUsers = useMemo(() => allUsers.filter(u => u.role === "admin"), [allUsers]);
+  const adminUsers = useMemo(() => allUsers.filter(u => u.role === "developer"), [allUsers]);
 
   const createMutation = useMutation({
     mutationFn: async (data: Partial<RoadmapItem>) => {
@@ -258,7 +258,7 @@ export default function DevelopmentRoadmap() {
     },
   });
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "developer") {
     navigate("/");
     return null;
   }

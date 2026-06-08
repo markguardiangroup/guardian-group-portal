@@ -75,7 +75,7 @@ export default function TrainingCertificates() {
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
   const [viewDialog, setViewDialog] = useState<CertificateWithDetails | null>(null);
 
-  const isAdminOrConsultant = user?.role === "admin" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
 
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],
@@ -211,7 +211,7 @@ export default function TrainingCertificates() {
               />
             </div>
 
-            {isAdminOrConsultant && (
+            {isDeveloperOrConsultant && (
               <Select value={selectedCompany} onValueChange={(v) => {
                 setSelectedCompany(v);
                 setSelectedSite("all");
@@ -321,7 +321,7 @@ export default function TrainingCertificates() {
                     <TableCell>
                       <div className="text-sm">
                         <div>{cert.siteName}</div>
-                        {isAdminOrConsultant && cert.companyName && (
+                        {isDeveloperOrConsultant && cert.companyName && (
                           <div className="text-xs text-muted-foreground">
                             {cert.companyName}
                           </div>
@@ -401,7 +401,7 @@ export default function TrainingCertificates() {
                 </div>
               )}
 
-              {isAdminOrConsultant && viewDialog.companyName && (
+              {isDeveloperOrConsultant && viewDialog.companyName && (
                 <div className="flex items-center gap-2 text-sm">
                   <Label className="text-muted-foreground w-28 shrink-0">Company:</Label>
                   <div className="flex items-center gap-1">

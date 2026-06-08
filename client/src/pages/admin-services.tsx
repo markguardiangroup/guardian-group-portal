@@ -146,9 +146,9 @@ const ALL_MODULES = [
 export default function AdminServices() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
-  const canManage = isAdmin || hasServicesPermission;
+  const canManage = isDeveloper || hasServicesPermission;
 
   // Main service catalogue filters
   const [moduleFilter, setModuleFilter] = useState("all");
@@ -654,7 +654,7 @@ export default function AdminServices() {
       </Card>
 
       {/* Badge Types Management (admin only) */}
-      {isAdmin && (
+      {isDeveloper && (
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">

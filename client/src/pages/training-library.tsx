@@ -432,7 +432,7 @@ export default function TrainingLibrary() {
     return filteredCourses.filter(c => !c.trainingFolderId);
   };
 
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isLoading = foldersLoading || coursesLoading;
 
   const ModuleIcon = moduleIcons[activeModule] || GraduationCap;
@@ -451,7 +451,7 @@ export default function TrainingLibrary() {
             </p>
           </div>
         </div>
-        {isAdmin && (
+        {isDeveloper && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -554,7 +554,7 @@ export default function TrainingLibrary() {
                 courses={filteredCourses}
                 getCoursesByFolder={getCoursesByFolder}
                 getUnassignedCourses={getUnassignedCourses}
-                isAdmin={isAdmin}
+                isDeveloper={isDeveloper}
                 onEditFolder={handleEditFolder}
                 onDeleteFolder={(id) => deleteFolderMutation.mutate(id)}
                 onViewCourse={setViewingCourse}
@@ -567,7 +567,7 @@ export default function TrainingLibrary() {
               <CourseListView
                 courses={filteredCourses}
                 folders={filteredFolders}
-                isAdmin={isAdmin}
+                isDeveloper={isDeveloper}
                 onViewCourse={setViewingCourse}
                 onEditCourse={handleEditCourse}
                 onDeleteCourse={(id) => deleteCourseMutation.mutate(id)}
@@ -1225,7 +1225,7 @@ function FolderView({
   courses,
   getCoursesByFolder,
   getUnassignedCourses,
-  isAdmin,
+  isDeveloper,
   onEditFolder,
   onDeleteFolder,
   onViewCourse,
@@ -1238,7 +1238,7 @@ function FolderView({
   courses: TrainingCourse[];
   getCoursesByFolder: (folderId: string) => TrainingCourse[];
   getUnassignedCourses: () => TrainingCourse[];
-  isAdmin: boolean;
+  isDeveloper: boolean;
   onEditFolder: (folder: TrainingFolder) => void;
   onDeleteFolder: (id: string) => void;
   onViewCourse: (course: TrainingCourse) => void;
@@ -1274,7 +1274,7 @@ function FolderView({
           <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No Training Content</h3>
           <p className="text-muted-foreground text-center">
-            {isAdmin 
+            {isDeveloper 
               ? "Create folders and add training courses to get started."
               : "No training content available for this module yet."}
           </p>
@@ -1331,7 +1331,7 @@ function FolderView({
                       {folderCourses.length} course{folderCourses.length !== 1 ? 's' : ''}
                     </Badge>
                   </div>
-                  {isAdmin && (
+                  {isDeveloper && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-folder-menu-${folder.id}`}>
@@ -1362,7 +1362,7 @@ function FolderView({
                       <CourseRow 
                         key={course.id} 
                         course={course} 
-                        isAdmin={isAdmin}
+                        isDeveloper={isDeveloper}
                         onView={() => onViewCourse(course)}
                         onEdit={() => onEditCourse(course)}
                         onDelete={() => onDeleteCourse(course.id)}
@@ -1405,7 +1405,7 @@ function FolderView({
                   <CourseRow 
                     key={course.id} 
                     course={course} 
-                    isAdmin={isAdmin}
+                    isDeveloper={isDeveloper}
                     onView={() => onViewCourse(course)}
                     onEdit={() => onEditCourse(course)}
                     onDelete={() => onDeleteCourse(course.id)}
@@ -1424,7 +1424,7 @@ function FolderView({
 function CourseListView({
   courses,
   folders,
-  isAdmin,
+  isDeveloper,
   onViewCourse,
   onEditCourse,
   onDeleteCourse,
@@ -1433,7 +1433,7 @@ function CourseListView({
 }: {
   courses: TrainingCourse[];
   folders: TrainingFolder[];
-  isAdmin: boolean;
+  isDeveloper: boolean;
   onViewCourse: (course: TrainingCourse) => void;
   onEditCourse: (course: TrainingCourse) => void;
   onDeleteCourse: (id: string) => void;
@@ -1453,7 +1453,7 @@ function CourseListView({
           <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No Training Courses</h3>
           <p className="text-muted-foreground text-center">
-            {isAdmin 
+            {isDeveloper 
               ? "Add training courses to this module to get started."
               : "No training courses available for this module yet."}
           </p>
@@ -1472,7 +1472,7 @@ function CourseListView({
             <TableHead>Provider</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Status</TableHead>
-            {isAdmin && <TableHead className="w-[50px]"></TableHead>}
+            {isDeveloper && <TableHead className="w-[50px]"></TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -1511,7 +1511,7 @@ function CourseListView({
                   <Badge variant="secondary">Optional</Badge>
                 )}
               </TableCell>
-              {isAdmin && (
+              {isDeveloper && (
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1550,13 +1550,13 @@ function CourseListView({
 // Course Row Component for Folder View
 function CourseRow({
   course,
-  isAdmin,
+  isDeveloper,
   onView,
   onEdit,
   onDelete,
 }: {
   course: TrainingCourse;
-  isAdmin: boolean;
+  isDeveloper: boolean;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -1587,7 +1587,7 @@ function CourseRow({
         ) : (
           <Badge variant="secondary">Optional</Badge>
         )}
-        {isAdmin && (
+        {isDeveloper && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" data-testid={`button-course-menu-${course.id}`}>

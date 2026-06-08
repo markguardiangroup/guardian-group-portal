@@ -53,7 +53,7 @@ const SiteDetail = lazyPage(() => import("@/pages/site-detail"));
 const Companies = lazyPage(() => import("@/pages/companies"));
 const CompanyDetail = lazyPage(() => import("@/pages/company-detail"));
 const Reports = lazyPage(() => import("@/pages/reports"));
-const AdminReports = lazyPage(() => import("@/pages/admin-reports"));
+const AdminReports = lazyPage(() => import("@/pages/developer-reports"));
 const AdminChangelog = lazyPage(() => import("@/pages/admin-changelog"));
 const Support = lazyPage(() => import("@/pages/support"));
 const Settings = lazyPage(() => import("@/pages/settings"));
@@ -312,10 +312,10 @@ function CloudShareSkeleton({ module }: { module: "health_safety" | "human_resou
 
 type GuardUser = { role: string; consultantPermissions?: { templateLibrary?: boolean; trainingLibrary?: boolean } | null } | null | undefined;
 
-const ADMIN_ONLY     = (u: GuardUser) => u?.role === "admin";
-const NOT_CLIENT     = (u: GuardUser) => u?.role === "admin" || u?.role === "consultant";
-const TEMPLATE_LIB   = (u: GuardUser) => u?.role === "admin" || (u?.role === "consultant" && u?.consultantPermissions?.templateLibrary === true);
-const TRAINING_LIB   = (u: GuardUser) => u?.role === "admin" || (u?.role === "consultant" && u?.consultantPermissions?.trainingLibrary === true);
+const ADMIN_ONLY     = (u: GuardUser) => u?.role === "developer";
+const NOT_CLIENT     = (u: GuardUser) => u?.role === "developer" || u?.role === "consultant";
+const TEMPLATE_LIB   = (u: GuardUser) => u?.role === "developer" || (u?.role === "consultant" && u?.consultantPermissions?.templateLibrary === true);
+const TRAINING_LIB   = (u: GuardUser) => u?.role === "developer" || (u?.role === "consultant" && u?.consultantPermissions?.trainingLibrary === true);
 
 function AccessGuard({ component: Component, allow }: { component: ComponentType<any>; allow: (u: GuardUser) => boolean }) {
   const { user } = useAuth();
@@ -388,8 +388,8 @@ function Router() {
       <Route path="/sites">{() => <AccessGuard component={Sites} allow={NOT_CLIENT} />}</Route>
       <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={NOT_CLIENT} />}</Route>
       <Route path="/reports">{() => <ModuleGuard module="reports"><Reports /></ModuleGuard>}</Route>
-      <Route path="/admin-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
-      <Route path="/admin-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/developer-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
+      <Route path="/developer-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
       <Route path="/support">{() => <ModuleGuard module="support"><Support /></ModuleGuard>}</Route>
       <Route path="/settings" component={Settings} />
       <Route path="/users">{() => <AccessGuard component={UserManagement} allow={NOT_CLIENT} />}</Route>
@@ -500,14 +500,14 @@ function RoutePrefetcher({
     if (isLoading) return; // wait until we know which modules to prefetch
     startedRef.current = true;
 
-    const isAdmin = role === "admin";
+    const isDeveloper = role === "developer";
     const isConsultant = role === "consultant";
-    const isPrivileged = isAdmin || isConsultant;
+    const isPrivileged = isDeveloper || isConsultant;
     const canAccess = (m: ModuleType) => hasVisibleAccess(m);
     const hasConsultantPerm = (key: "caseAdvocate" | "trainingLibrary" | "templateLibrary") =>
       consultantPermissions?.[key] === true;
-    const canSeeTemplateLibrary = isAdmin || (isConsultant && hasConsultantPerm("templateLibrary"));
-    const canSeeTrainingLibrary = isAdmin || (isConsultant && hasConsultantPerm("trainingLibrary"));
+    const canSeeTemplateLibrary = isDeveloper || (isConsultant && hasConsultantPerm("templateLibrary"));
+    const canSeeTrainingLibrary = isDeveloper || (isConsultant && hasConsultantPerm("trainingLibrary"));
 
     // Wait until the browser is idle so prefetches don't compete with the dashboard's first paint.
     const schedule = (cb: () => void) => {
@@ -526,7 +526,7 @@ function RoutePrefetcher({
       Dashboard2.preload();
       HelpGuide.preload();
       if (role === "client") HelpGuideClient.preload();
-      else if (isAdmin || (isConsultant && hasConsultantPerm("templateLibrary")) || (isConsultant && hasConsultantPerm("trainingLibrary"))) HelpGuidePro.preload();
+      else if (isDeveloper || (isConsultant && hasConsultantPerm("templateLibrary")) || (isConsultant && hasConsultantPerm("trainingLibrary"))) HelpGuidePro.preload();
       else HelpGuideConsultant.preload();
 
       // Module-gated pages — only fetch chunks for modules the user can access.
@@ -573,7 +573,7 @@ function RoutePrefetcher({
       // Library pages — admins always; consultants only with the matching permission.
       if (canSeeTemplateLibrary) TemplateLibrary.preload();
       if (canSeeTrainingLibrary) TrainingLibrary.preload();
-      if (isAdmin) {
+      if (isDeveloper) {
         AdminPathways.preload();
         AdminSources.preload();
         AdminServices.preload();

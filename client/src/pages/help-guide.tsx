@@ -159,7 +159,7 @@ export function HelpGuideLayout({
   const [selectedSection, setSelectedSection] = useState<string>(sections[0]?.id ?? "");
   const currentSection = sections.find((s) => s.id === selectedSection) ?? sections[0];
 
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
 
   function handleSwitch(path: string) {
     setSelectedSection(sections[0]?.id ?? "");
@@ -168,7 +168,7 @@ export function HelpGuideLayout({
 
   return (
     <div className="flex flex-col h-full">
-      {isAdmin && (
+      {isDeveloper && (
         <AdminViewSwitcher audienceLabel={audienceLabel} onSwitch={handleSwitch} />
       )}
       <div className="flex flex-1 overflow-hidden">
@@ -269,7 +269,7 @@ export default function HelpGuide() {
   if (!user) return null;
   if (user.role === "client") return <Redirect to="/help/client" />;
   const isProConsultant =
-    user.role === "admin" ||
+    user.role === "developer" ||
     user.consultantPermissions?.templateLibrary === true ||
     user.consultantPermissions?.trainingLibrary === true;
   if (isProConsultant) return <Redirect to="/help/pro-consultant" />;

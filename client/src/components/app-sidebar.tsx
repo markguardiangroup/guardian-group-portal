@@ -225,8 +225,8 @@ const adminNavItems = [
     icon: Plug,
   },
   {
-    title: "Admin Reports",
-    url: "/admin-reports",
+    title: "Developer Reports",
+    url: "/developer-reports",
     icon: ShieldAlert,
   },
   {
@@ -326,7 +326,7 @@ function NavItemWithFlyout({
 
   const filteredSubItems = item.subItems.filter((subItem) => {
     if (subItem.adminOnly && user?.role === "client") return false;
-    if (subItem.clientOnly && (user?.role === "admin" || user?.role === "consultant")) return false;
+    if (subItem.clientOnly && (user?.role === "developer" || user?.role === "consultant")) return false;
     return true;
   });
 
@@ -447,7 +447,7 @@ interface AppSidebarProps {
 }
 
 const roleLabels: Record<UserRole, string> = {
-  admin: "Administrator",
+  developer: "Developer",
   consultant: "Consultant",
   client: "Client",
 };
@@ -457,7 +457,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { state: sidebarState } = useSidebar();
   const { logout, isLoggingOut } = useAuth();
   const { hasActiveAccess, hasVisibleAccess, isHidden, isLoading: moduleAccessLoading } = useModuleAccess();
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
 
   // Fetch support request counts for notification badge
   // Badge is kept fresh via SSE 'support-request-created' / 'support-request-updated' events
@@ -730,7 +730,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </SidebarGroup>
 
         {isPrivilegedUser && (() => {
-          const filteredAdminItems = (user?.role === "admin" ? adminNavItems : consultantNavItemsWithPro)
+          const filteredAdminItems = (user?.role === "developer" ? adminNavItems : consultantNavItemsWithPro)
             .filter((item) => !((item as any).devOnly && import.meta.env.PROD))
             .filter((item) => {
               const perm = (item as any).permission as keyof NonNullable<AuthUser["consultantPermissions"]> | undefined;
@@ -739,8 +739,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
               }
               return true;
             });
-          const groupLabel = user?.role === "admin" ? "Admin" : "Tools";
-          const GroupIcon = user?.role === "admin" ? ShieldAlert : Wrench;
+          const groupLabel = user?.role === "developer" ? "Developer" : "Tools";
+          const GroupIcon = user?.role === "developer" ? ShieldAlert : Wrench;
           return (
             <SidebarGroup>
               <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

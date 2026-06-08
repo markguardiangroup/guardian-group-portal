@@ -259,9 +259,9 @@ export default function Sites() {
   const [, navigate] = useLocation();
   const [isAddSiteOpen, setIsAddSiteOpen] = useState(false);
   
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isProConsultant = user?.role === "consultant" && (user as any)?.consultantTier === "pro";
-  const canCreateSite = isAdmin || isProConsultant;
+  const canCreateSite = isDeveloper || isProConsultant;
 
   const [siteToDelete, setSiteToDelete] = useState<SiteWithDetails | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -762,7 +762,7 @@ export default function Sites() {
                           <Settings className="mr-2 h-4 w-4" />
                           Manage Site
                         </DropdownMenuItem>
-                        {isAdmin && (
+                        {isDeveloper && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

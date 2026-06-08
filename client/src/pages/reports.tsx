@@ -770,7 +770,7 @@ function PrivateTemplatesReport() {
   const [sourceFilter, setSourceFilter] = useState("all");
 
   const { data, isLoading, isError, error } = useQuery<{ templates: PrivateTemplateRow[]; total: number }>({
-    queryKey: ["/api/admin/private-templates"],
+    queryKey: ["/api/developer/private-templates"],
     staleTime: 60_000,
   });
 
@@ -986,8 +986,8 @@ export default function Reports() {
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);
   const setSiteFilter = (val: string) => setSelectedSiteId(val === "all" ? null : val);
 
-  const isAdmin = user?.role === "admin";
-  const isCaseAdvocate = isAdmin || (user?.role === "consultant" && (user?.consultantPermissions as any)?.caseAdvocate === true);
+  const isDeveloper = user?.role === "developer";
+  const isCaseAdvocate = isDeveloper || (user?.role === "consultant" && (user?.consultantPermissions as any)?.caseAdvocate === true);
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const [activeReport, setActiveReport] = useState<ReportId | null>(null);
@@ -1102,7 +1102,7 @@ export default function Reports() {
         : "live cases",
       accentColor: "hover:border-pink-400 dark:hover:border-pink-600",
     }] : []),
-    ...((isAdmin || isProConsultant) ? [{
+    ...((isDeveloper || isProConsultant) ? [{
       id: "private-templates" as ReportId,
       icon: Lock,
       iconColor: "text-rose-600 dark:text-rose-400",

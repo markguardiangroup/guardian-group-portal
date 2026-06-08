@@ -26,7 +26,7 @@ export default function AdminSources() {
   const [newCode, setNewCode] = useState("");
   const [newLabel, setNewLabel] = useState("");
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "developer") {
     return (
       <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
         <ShieldAlert className="h-10 w-10 text-muted-foreground" />

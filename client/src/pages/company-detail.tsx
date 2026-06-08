@@ -151,7 +151,7 @@ interface UserWithAssignments {
   username: string;
   email: string;
   fullName: string;
-  role: "admin" | "consultant" | "client";
+  role: "developer" | "consultant" | "client";
   companyId: string | null;
   status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
 
@@ -166,13 +166,13 @@ interface UserWithAssignments {
 }
 
 const roleColors: Record<string, string> = {
-  admin: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  developer: "bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/20",
   consultant: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/20",
   client: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
 };
 
 const roleLabels: Record<string, string> = {
-  admin: "Administrator",
+  developer: "Developer",
   consultant: "Consultant",
   client: "Client",
 };
@@ -286,7 +286,7 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
 function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; groupOwnerId?: string | null }) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
 
   const { data: moduleAccess, isLoading } = useQuery<CompanyModuleAccess>({
     queryKey: ["/api/companies", companyId, "module-access"],
@@ -431,14 +431,14 @@ function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; grou
                 id={`module-${key}`}
                 checked={enabled}
                 onCheckedChange={(checked) => handleToggle(key, checked)}
-                disabled={!isAdmin || updateMutation.isPending || isInherited}
+                disabled={!isDeveloper || updateMutation.isPending || isInherited}
                 data-testid={`switch-module-${key}`}
                 className="shrink-0"
               />
             </div>
           );
         })}
-        {!isAdmin && (
+        {!isDeveloper && (
           <p className="text-xs text-muted-foreground pt-1">
             Only administrators can modify module access.
           </p>
@@ -1179,7 +1179,7 @@ export default function CompanyDetail() {
   const fromParam = new URLSearchParams(searchString).get("from");
   const { toast } = useToast();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -1322,7 +1322,7 @@ export default function CompanyDetail() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!(companyId && (isAdmin || user?.role === "consultant")),
+    enabled: !!(companyId && (isDeveloper || user?.role === "consultant")),
     staleTime: 0,
   });
 
@@ -1335,7 +1335,7 @@ export default function CompanyDetail() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!(companyId && (isAdmin || isConsultant)),
+    enabled: !!(companyId && (isDeveloper || isConsultant)),
   });
   const companyKeyContactIds = new Set(companyKeyContacts.map((kc) => kc.userId));
 
@@ -1349,7 +1349,7 @@ export default function CompanyDetail() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!(isAdmin || isConsultant) && !!(company?.groupOwnerId ?? groupOwnerCompany?.id),
+    enabled: !!(isDeveloper || isConsultant) && !!(company?.groupOwnerId ?? groupOwnerCompany?.id),
   });
   const groupOwnerKeyContactIds = new Set(groupOwnerKeyContacts.map((kc) => kc.userId));
 
@@ -1390,7 +1390,7 @@ export default function CompanyDetail() {
       if (!res.ok) throw new Error("Failed to fetch companies");
       return res.json();
     },
-    enabled: isAdmin || isProConsultant,
+    enabled: isDeveloper || isProConsultant,
   });
   const allCompanies: CompanyWithSites[] = allCompaniesData?.companies ?? [];
 
@@ -2030,14 +2030,14 @@ export default function CompanyDetail() {
               {company.internalCompanyNumber && (
                 <p className="text-sm text-muted-foreground">Internal No: {company.internalCompanyNumber}</p>
               )}
-              {company.searchTag && (isAdmin || user?.role === "consultant") && (
+              {company.searchTag && (isDeveloper || user?.role === "consultant") && (
                 <p className="text-sm text-muted-foreground">Search Tag: {company.searchTag}</p>
               )}
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin ? (
+          {isDeveloper ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -2067,7 +2067,7 @@ export default function CompanyDetail() {
               {formatStatusDisplay(company.status)}
             </Badge>
           )}
-          {isAdmin && (
+          {isDeveloper && (
             <Button onClick={openEditDialog} data-testid="button-edit-company">
               <Pencil className="mr-2 h-4 w-4" />
               Edit Company
@@ -2089,7 +2089,7 @@ export default function CompanyDetail() {
             <Settings className="mr-2 h-4 w-4" />
             Module Access
           </TabsTrigger>
-          {(isAdmin || user?.role === "consultant") && (
+          {(isDeveloper || user?.role === "consultant") && (
             <TabsTrigger value="users" data-testid="tab-users">
               <Users className="mr-2 h-4 w-4" />
               Users {companyTabUsers.length > 0 && `(${companyTabUsers.length})`}
@@ -2099,19 +2099,19 @@ export default function CompanyDetail() {
             <MapPin className="mr-2 h-4 w-4" />
             Sites {sites.length > 0 && `(${sites.length})`}
           </TabsTrigger>
-          {(isAdmin || user?.role === "consultant") && (
+          {(isDeveloper || user?.role === "consultant") && (
             <TabsTrigger value="required-documents" data-testid="tab-required-documents">
               <FileText className="mr-2 h-4 w-4" />
               Mandatory Documents
             </TabsTrigger>
           )}
-          {(isAdmin || user?.role === "consultant") && (
+          {(isDeveloper || user?.role === "consultant") && (
             <TabsTrigger value="services" data-testid="tab-services">
               <PackageOpen className="mr-2 h-4 w-4" />
               Services
             </TabsTrigger>
           )}
-          {(isAdmin || isProConsultant) && (
+          {(isDeveloper || isProConsultant) && (
             <TabsTrigger value="groups" data-testid="tab-groups">
               <Network className="mr-2 h-4 w-4" />
               Groups
@@ -2152,7 +2152,7 @@ export default function CompanyDetail() {
                     <span><span className="text-muted-foreground">Employees:</span> {company.employeeRange}</span>
                   </div>
                 )}
-                {(isAdmin || user?.role === "consultant") && (() => {
+                {(isDeveloper || user?.role === "consultant") && (() => {
                   const displaySources = company.isGroupOwner && company.computedSources
                     ? company.computedSources
                     : company.sources;
@@ -2204,7 +2204,7 @@ export default function CompanyDetail() {
                   </div>
                 )}
 
-                {(isAdmin || user?.role === "consultant") && acceloLinks.length > 0 && (
+                {(isDeveloper || user?.role === "consultant") && acceloLinks.length > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Accelo Status</p>
                     <div className="space-y-1.5">
@@ -2260,7 +2260,7 @@ export default function CompanyDetail() {
                           <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 shrink-0">
                             Primary Contact
                           </Badge>
-                          {isAdmin && companyUsers.length > 0 && (
+                          {isDeveloper && companyUsers.length > 0 && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -2283,7 +2283,7 @@ export default function CompanyDetail() {
                   ) : (
                     <div className="flex items-center gap-2">
                       <p className="text-sm text-muted-foreground">No primary contact set</p>
-                      {isAdmin && companyUsers.length > 0 && (
+                      {isDeveloper && companyUsers.length > 0 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -2303,7 +2303,7 @@ export default function CompanyDetail() {
                 </div>
 
                 {/* Key Contacts */}
-                {(isAdmin || isConsultant) && companyKeyContacts.length > 0 && (() => {
+                {(isDeveloper || isConsultant) && companyKeyContacts.length > 0 && (() => {
                   const keyContactUsers = companyKeyContacts
                     .map((kc) => allUsers.find((u) => u.id === kc.userId))
                     .filter(Boolean) as typeof allUsers;
@@ -2374,21 +2374,21 @@ export default function CompanyDetail() {
         </TabsContent>
 
         {/* Required Documents Tab */}
-        {(isAdmin || user?.role === "consultant") && (
+        {(isDeveloper || user?.role === "consultant") && (
           <TabsContent value="required-documents" className="mt-6">
             <RequiredDocumentsCard companyId={companyId!} />
           </TabsContent>
         )}
 
         {/* Services Tab */}
-        {(isAdmin || user?.role === "consultant") && (
+        {(isDeveloper || user?.role === "consultant") && (
           <TabsContent value="services" className="mt-6">
-            <CompanyServicesTab companyId={companyId!} canManage={isAdmin || !!(user?.consultantPermissions as { services?: boolean } | null)?.services} />
+            <CompanyServicesTab companyId={companyId!} canManage={isDeveloper || !!(user?.consultantPermissions as { services?: boolean } | null)?.services} />
           </TabsContent>
         )}
 
         {/* Groups Tab — admin and Pro Consultant only */}
-        {(isAdmin || isProConsultant) && (
+        {(isDeveloper || isProConsultant) && (
           <TabsContent value="groups" className="mt-6">
             {(() => {
               const members = company.groupMembers ?? [];
@@ -2537,7 +2537,7 @@ export default function CompanyDetail() {
                         )}
                       </CardTitle>
                       {/* Add Members button — only when this company is the GO */}
-                      {(isAdmin || isProConsultant) && isGroupOwnerCompany && eligibleToAdd.length > 0 && (
+                      {(isDeveloper || isProConsultant) && isGroupOwnerCompany && eligibleToAdd.length > 0 && (
                         <Button
                           size="sm"
                           variant="outline"
@@ -2560,7 +2560,7 @@ export default function CompanyDetail() {
                     {hasGroupOwner ? (
                       <div className="space-y-3">
                         <p className="text-xs text-muted-foreground">This company is a member of a group.</p>
-                        {(isAdmin || isProConsultant) ? (
+                        {(isDeveloper || isProConsultant) ? (
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium">Group Owner</label>
                             <Select
@@ -2637,7 +2637,7 @@ export default function CompanyDetail() {
                                   >
                                     {member.status}
                                   </Badge>
-                                  {isAdmin && (
+                                  {isDeveloper && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -2673,7 +2673,7 @@ export default function CompanyDetail() {
                       </>
                     ) : (
                       /* State 3: Standalone company */
-                      (isAdmin || isProConsultant) ? (
+                      (isDeveloper || isProConsultant) ? (
                         <div className="space-y-4">
                           {/* Option A: Join an existing group */}
                           <div className="rounded-lg border p-4 space-y-2.5">
@@ -2756,7 +2756,7 @@ export default function CompanyDetail() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Sites ({sites.length})</h2>
-              {(isAdmin || isProConsultant) && (
+              {(isDeveloper || isProConsultant) && (
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => setAssignConsultantOpen(true)} data-testid="button-assign-consultant-sites">
                     <Users className="mr-2 h-4 w-4" />
@@ -2785,7 +2785,7 @@ export default function CompanyDetail() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     This company doesn't have any sites yet
                   </p>
-                  {(isAdmin || isProConsultant) && (
+                  {(isDeveloper || isProConsultant) && (
                     <Button className="mt-4" size="sm" onClick={() => setAddSiteDialogOpen(true)} data-testid="button-add-first-site">
                       <Plus className="mr-2 h-4 w-4" />
                       Add First Site
@@ -2798,13 +2798,13 @@ export default function CompanyDetail() {
         </TabsContent>
 
         {/* Users Tab */}
-        {(isAdmin || user?.role === "consultant") && (
+        {(isDeveloper || user?.role === "consultant") && (
           <TabsContent value="users" className="mt-6">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Users ({companyTabUsers.length})</h2>
                 <div className="flex items-center gap-2">
-                  {(isAdmin || isConsultant) && (
+                  {(isDeveloper || isConsultant) && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -2815,7 +2815,7 @@ export default function CompanyDetail() {
                       Create Client User
                     </Button>
                   )}
-                  {(isAdmin || isProConsultant) && (
+                  {(isDeveloper || isProConsultant) && (
                     <Button size="sm" variant="outline" onClick={() => setAssignConsultantOpen(true)} data-testid="button-assign-consultant-users">
                       <Users className="mr-2 h-4 w-4" />
                       Assign Consultant
@@ -2857,7 +2857,7 @@ export default function CompanyDetail() {
                                   <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-700">
                                     {u.consultantTier ? (u.consultantTier.charAt(0).toUpperCase() + u.consultantTier.slice(1)) : "Standard"}
                                   </Badge>
-                                  {(isAdmin || isProConsultant) && (
+                                  {(isDeveloper || isProConsultant) && (
                                     <Button
                                       size="sm"
                                       variant="ghost"
@@ -2960,7 +2960,7 @@ export default function CompanyDetail() {
                                   </div>
                                 </button>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  {u.companyId === companyId && isAdmin && (u.status === "invite_required" || u.status === "invited") ? (
+                                  {u.companyId === companyId && isDeveloper && (u.status === "invite_required" || u.status === "invited") ? (
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -3010,7 +3010,7 @@ export default function CompanyDetail() {
                                       )}
                                     </Badge>
                                   )}
-                                  {!isPrimary && (isAdmin || isProConsultant) && (
+                                  {!isPrimary && (isDeveloper || isProConsultant) && (
                                     <Button
                                       variant="ghost"
                                       size="sm"

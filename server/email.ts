@@ -28,7 +28,7 @@ function resolveRecipient(to: string, role?: string): string {
     console.log(`[DEV MODE] Redirecting email from ${to} to ${DEV_EMAIL_OVERRIDE}`);
     return DEV_EMAIL_OVERRIDE;
   }
-  if (role === "consultant" || role === "admin") {
+  if (role === "consultant" || role === "developer") {
     return to;
   }
   console.log(`[PROD] Client email from ${to} forwarded to ${CLIENT_FORWARD_EMAIL}`);
@@ -643,7 +643,7 @@ export async function sendCloudUploadNotificationEmail({
   isNewFolder?: boolean;
 }) {
   const recipient = resolveRecipient(to, role);
-  const isClientUploader = role === "consultant" || role === "admin";
+  const isClientUploader = role === "consultant" || role === "developer";
 
   const subject = isNewFolder
     ? `New Shared Folder — ${folderName}`

@@ -349,7 +349,7 @@ export default function AdminAcceloPage() {
   const [disconnectingSource, setDisconnectingSource] = useState<string | null>(null);
 
   const { data: integrations = [], isLoading, refetch } = useQuery<AcceloIntegrationRow[]>({
-    queryKey: ["/api/admin/accelo-integrations"],
+    queryKey: ["/api/developer/accelo-integrations"],
   });
 
   const { data: sourcesData = [] } = useQuery<Source[]>({
@@ -360,7 +360,7 @@ export default function AdminAcceloPage() {
     const params = new URLSearchParams(window.location.search);
     const connectedSource = params.get("source");
     if (params.get("connected") === "1") {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/accelo-integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
       toast({ title: `Accelo connected${connectedSource ? ` (${connectedSource})` : ""}` });
       window.history.replaceState({}, "", "/admin/integrations/accelo");
@@ -380,9 +380,9 @@ export default function AdminAcceloPage() {
   const availableSources = sourcesData.filter(s => !existingCodes.has(s.code));
 
   const createMutation = useMutation({
-    mutationFn: (data: IntegrationFormData) => apiRequest("POST", "/api/admin/accelo-integrations", data),
+    mutationFn: (data: IntegrationFormData) => apiRequest("POST", "/api/developer/accelo-integrations", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/accelo-integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
       setAddOpen(false);
       toast({ title: "Integration added" });
@@ -395,9 +395,9 @@ export default function AdminAcceloPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ sourceCode, data }: { sourceCode: string; data: Partial<IntegrationFormData & { isActive: boolean }> }) =>
-      apiRequest("PATCH", `/api/admin/accelo-integrations/${sourceCode}`, data),
+      apiRequest("PATCH", `/api/developer/accelo-integrations/${sourceCode}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/accelo-integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
       setEditTarget(null);
       toast({ title: "Integration updated" });
@@ -406,9 +406,9 @@ export default function AdminAcceloPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (sourceCode: string) => apiRequest("DELETE", `/api/admin/accelo-integrations/${sourceCode}`),
+    mutationFn: (sourceCode: string) => apiRequest("DELETE", `/api/developer/accelo-integrations/${sourceCode}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/accelo-integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
       setDeleteTarget(null);
       toast({ title: "Integration deleted" });
@@ -439,7 +439,7 @@ export default function AdminAcceloPage() {
     setDisconnectingSource(sourceCode);
     try {
       await apiRequest("DELETE", `/api/integrations/accelo/disconnect?source=${encodeURIComponent(sourceCode)}`);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/accelo-integrations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
       toast({ title: `${sourceCode} disconnected` });
     } catch {

@@ -134,7 +134,7 @@ export default function AdminPortalMessages() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<MessageFormData>(emptyForm());
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "developer") {
     setLocation("/home");
     return null;
   }

@@ -165,7 +165,7 @@ function EmailDetailSheet({
   const [copied, setCopied] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useQuery<EmailDetailResponse>({
-    queryKey: ["/api/admin/email-logs", emailId],
+    queryKey: ["/api/developer/email-logs", emailId],
     enabled: open && !!emailId,
     staleTime: 0,
     refetchOnMount: true,
@@ -347,11 +347,11 @@ function EmailDeliveryLogDialog({
   }, [search]);
 
   const queryKey = open
-    ? [`/api/admin/email-logs?page=${page}&pageSize=${pageSize}&dateRange=${dateRange}&status=${statusFilter}&search=${encodeURIComponent(debouncedSearch)}`]
+    ? [`/api/developer/email-logs?page=${page}&pageSize=${pageSize}&dateRange=${dateRange}&status=${statusFilter}&search=${encodeURIComponent(debouncedSearch)}`]
     : null;
 
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery<EmailLogsResponse>({
-    queryKey: queryKey ?? ["/api/admin/email-logs-disabled"],
+    queryKey: queryKey ?? ["/api/developer/email-logs-disabled"],
     enabled: open,
     staleTime: 0,
     refetchOnMount: true,
@@ -576,7 +576,7 @@ export default function AdminReports() {
   const [showEmailLog, setShowEmailLog] = useState(false);
   const [showAcceloSyncLog, setShowAcceloSyncLog] = useState(false);
   const { data: acceloSyncLogs = [], isLoading: acceloSyncLogsLoading, refetch: refetchAcceloSyncLogs } = useQuery<AcceloSyncLog[]>({
-    queryKey: ["/api/admin/accelo-sync-logs"],
+    queryKey: ["/api/developer/accelo-sync-logs"],
     enabled: showAcceloSyncLog,
     staleTime: 0,
   });
@@ -602,7 +602,7 @@ export default function AdminReports() {
     setScheduledTasksError(false);
     setScheduledTasksData(null);
     try {
-      const res = await fetch("/api/admin/scheduled-tasks", { credentials: "include" });
+      const res = await fetch("/api/developer/scheduled-tasks", { credentials: "include" });
       if (res.status === 401) { window.location.href = "/login"; return; }
       if (!res.ok) throw new Error(`${res.status}`);
       setScheduledTasksData(await res.json());
@@ -634,15 +634,15 @@ export default function AdminReports() {
     status: "active" | "upcoming" | "expired";
   }
   const { data: coverageEntries = [], isLoading: coverageLoading } = useQuery<AdminCoverageEntry[]>({
-    queryKey: ["/api/admin/consultant-coverage", includeExpiredCoverage],
+    queryKey: ["/api/developer/consultant-coverage", includeExpiredCoverage],
     queryFn: () =>
-      fetch(`/api/admin/consultant-coverage?includeExpired=${includeExpiredCoverage}`, { credentials: "include" }).then(r => r.json()),
+      fetch(`/api/developer/consultant-coverage?includeExpired=${includeExpiredCoverage}`, { credentials: "include" }).then(r => r.json()),
     enabled: showCoverageReport,
     staleTime: 0,
   });
   const cancelCoverageMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/consultant-coverage/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/consultant-coverage"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/developer/consultant-coverage"] }),
   });
   type LoginRangePreset = "today" | "3d" | "7d" | "30d" | "custom";
   const [loginReportRange, setLoginReportRange] = useState<LoginRangePreset>("today");
@@ -679,9 +679,9 @@ export default function AdminReports() {
       ? `from=${loginReportFrom}&to=${loginReportTo}`
       : `range=${loginReportRange}`;
   const { data: loginReportData, isLoading: loginReportLoading } = useQuery<{ from: string; to: string; range: string; logins: LoginAuditEntry[] }>({
-    queryKey: ["/api/admin/login-report", loginReportRange, loginReportFrom, loginReportTo],
+    queryKey: ["/api/developer/login-report", loginReportRange, loginReportFrom, loginReportTo],
     queryFn: async () => {
-      const res = await fetch(`/api/admin/login-report?${loginReportQs}`, { credentials: "include" });
+      const res = await fetch(`/api/developer/login-report?${loginReportQs}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch login report");
       return res.json();
     },
@@ -930,13 +930,13 @@ export default function AdminReports() {
   });
 
   const roleLabels: Record<UserRole, string> = {
-    admin: "Administrator",
+    developer: "Developer",
     consultant: "Consultant",
     client: "Client",
   };
 
   const roleColors: Record<UserRole, string> = {
-    admin: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+    developer: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800",
     consultant: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800",
     client: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
   };
@@ -1038,7 +1038,7 @@ export default function AdminReports() {
   };
 
   // Only administrators can access this page
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "developer") {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
@@ -1048,7 +1048,7 @@ export default function AdminReports() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              This section is restricted to administrators only.
+              This section is restricted to developers only.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -1056,7 +1056,7 @@ export default function AdminReports() {
     );
   }
 
-  const isAdmin = user.role === "admin";
+  const isDeveloper = user.role === "developer";
 
   return (
     <div className="flex flex-col h-full">
@@ -1064,10 +1064,10 @@ export default function AdminReports() {
         <div>
           <h1 className="text-3xl font-semibold flex items-center gap-2">
             <ShieldAlert className="h-8 w-8" />
-            Admin Reports
+            Developer Reports
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Confidential reports for administrators only
+            Confidential reports for developers only
           </p>
         </div>
       </div>
@@ -1081,7 +1081,7 @@ export default function AdminReports() {
             <div>
               <p className="font-medium text-amber-800 dark:text-amber-200">Confidential Information</p>
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                Reports in this section contain sensitive data and are only visible to administrators.
+                Reports in this section contain sensitive data and are only visible to developers.
                 Do not share this information with unauthorised personnel.
               </p>
             </div>
@@ -1093,7 +1093,7 @@ export default function AdminReports() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Available Admin Reports
+            Available Developer Reports
           </CardTitle>
           <CardDescription>Generate and download confidential reports</CardDescription>
         </CardHeader>
@@ -1136,7 +1136,7 @@ export default function AdminReports() {
             </div>
 
             {/* Changelog / Release Notes */}
-            <Link href="/admin-reports/changelog">
+            <Link href="/developer-reports/changelog">
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 data-testid="report-changelog"
@@ -1173,7 +1173,7 @@ export default function AdminReports() {
             </div>
 
             {/* Email Delivery Log — admin only */}
-            {isAdmin && (
+            {isDeveloper && (
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 onClick={() => setShowEmailLog(true)}
@@ -1193,7 +1193,7 @@ export default function AdminReports() {
             )}
 
             {/* Accelo Sync Log — admin only */}
-            {isAdmin && (
+            {isDeveloper && (
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 onClick={() => setShowAcceloSyncLog(true)}
@@ -1213,7 +1213,7 @@ export default function AdminReports() {
             )}
 
             {/* Consultant Coverage — admin only */}
-            {isAdmin && (
+            {isDeveloper && (
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 onClick={() => setShowCoverageReport(true)}
@@ -1233,7 +1233,7 @@ export default function AdminReports() {
             )}
 
             {/* Scheduled Tasks — admin only */}
-            {isAdmin && (
+            {isDeveloper && (
               <div
                 className="flex cursor-pointer items-center justify-between gap-4 rounded-md border p-4 hover-elevate"
                 onClick={() => { setShowScheduledTasks(true); loadScheduledTasks(); }}
@@ -1433,7 +1433,7 @@ export default function AdminReports() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">Roles:</span>
-                <Badge variant="outline" className={roleColors.admin}>Administrator</Badge>
+                <Badge variant="outline" className={roleColors.developer}>Developer</Badge>
                 <Badge variant="outline" className={roleColors.consultant}>Consultant</Badge>
                 <Badge variant="outline" className={proConsultantColor}>Pro Consultant</Badge>
                 <Badge variant="outline" className={roleColors.client}>Client</Badge>
@@ -1533,9 +1533,9 @@ export default function AdminReports() {
                     </div>
                     <div className="rounded-md border p-3 text-center">
                       <p className="text-2xl font-semibold text-purple-600">
-                        {usersData.filter(u => u.role === "admin").length}
+                        {usersData.filter(u => u.role === "developer").length}
                       </p>
-                      <p className="text-sm text-muted-foreground">Administrators</p>
+                      <p className="text-sm text-muted-foreground">Developers</p>
                     </div>
                     <div className="rounded-md border p-3 text-center">
                       <p className="text-2xl font-semibold text-blue-600">
@@ -1564,7 +1564,7 @@ export default function AdminReports() {
       </Dialog>
 
       {/* Email Delivery Log Dialog — admin only */}
-      {isAdmin && (
+      {isDeveloper && (
         <EmailDeliveryLogDialog
           open={showEmailLog}
           onOpenChange={setShowEmailLog}
@@ -1972,7 +1972,7 @@ export default function AdminReports() {
         <ArrangeCoverDialog
           open={arrangeCoverOpen}
           onOpenChange={setArrangeCoverOpen}
-          isAdmin
+          isDeveloper
           currentUserId={user.id}
         />
       )}

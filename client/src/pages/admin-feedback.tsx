@@ -41,7 +41,7 @@ export default function AdminFeedback() {
 
   const { data: feedbackList, isLoading } = useQuery<FeedbackWithMetadata[]>({
     queryKey: ["/api/feedback"],
-    enabled: !!user && (user.role === "admin" || user.role === "consultant"),
+    enabled: !!user && (user.role === "developer" || user.role === "consultant"),
   });
 
   const { data: comments } = useQuery<FeedbackComment[]>({
@@ -158,10 +158,10 @@ export default function AdminFeedback() {
     },
   });
 
-  const isAdmin = user?.role === "admin";
+  const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
 
-  if (!isAdmin && !isConsultant) {
+  if (!isDeveloper && !isConsultant) {
     return (
       <div className="container mx-auto p-6">
         <Card>
@@ -442,7 +442,7 @@ export default function AdminFeedback() {
                             </Button>
                           )}
 
-                          {isAdmin && (
+                          {isDeveloper && (
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"

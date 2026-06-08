@@ -8,7 +8,7 @@ import ChangelogSection from "@/components/changelog-section";
 export default function AdminChangelog() {
   const { user } = useAuth();
 
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "developer") {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
@@ -18,7 +18,7 @@ export default function AdminChangelog() {
               Access Denied
             </CardTitle>
             <CardDescription>
-              This section is restricted to administrators only.
+              This section is restricted to developers only.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -30,10 +30,10 @@ export default function AdminChangelog() {
     <div className="flex flex-col h-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0 px-8 py-6 bg-background border-b">
         <div className="flex items-center gap-4">
-          <Link href="/admin-reports">
+          <Link href="/developer-reports">
             <Button variant="outline" size="sm" data-testid="button-back-admin-reports">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Admin Reports
+              Back to Developer Reports
             </Button>
           </Link>
           <div>

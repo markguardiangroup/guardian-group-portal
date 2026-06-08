@@ -7,7 +7,7 @@ import { z } from "zod";
 export type ModuleType = "health_safety" | "human_resources" | "employment_law" | "training" | "toolkit" | "support" | "reports";
 
 // User roles (top-level)
-export type UserRole = "admin" | "consultant" | "client";
+export type UserRole = "developer" | "consultant" | "client";
 
 // Consultant tiers (for consultant users)
 export type ConsultantTier = "pro" | "standard";

@@ -409,8 +409,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
-  const isAdmin = user?.role === "admin";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloper = user?.role === "developer";
   
   // Restore document mutation
   const restoreMutation = useMutation({
@@ -932,7 +932,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return s;
   }, [hierarchy]);
 
-  // Drag-and-drop for folder view (admin only — individual items use disabled:!isAdmin)
+  // Drag-and-drop for folder view (admin only — individual items use disabled:!isDeveloper)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
 
@@ -2075,7 +2075,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     const parentMissingCount = (missingByFolderTemplateId.get(folder.id)?.length ?? 0) +
                       ((folder as any).childFolders ?? []).reduce((sum: number, cf: any) => sum + (missingByFolderTemplateId.get(cf.id)?.length ?? 0), 0);
                     return (
-                      <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isAdmin}>
+                      <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isDeveloper}>
                       <AccordionItem value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
                         <AccordionTrigger className="hover:no-underline px-2">
                           <div className="flex items-center justify-between w-full pr-4">
@@ -2116,7 +2116,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   const childStatusBadge = getFolderStatusBadge(adjustedChildStats);
                                   const childDropId = (childFolder as any).siteFolder?.id ?? childFolder.id;
                                   return (
-                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isAdmin}>
+                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isDeveloper}>
                                     <AccordionItem value={childFolder.id} className={`border rounded-lg ${moduleBorderColors[module]} overflow-hidden`}>
                                       <AccordionTrigger className="hover:no-underline px-3 py-2 bg-muted/30">
                                         <div className="flex items-center justify-between w-full pr-2">
@@ -2146,14 +2146,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       <AccordionContent>
                                         <div className="p-3 pl-10 space-y-2">
                                           {childFolder.documents && childFolder.documents.filter((doc: any) => !doc.isArchived).map((doc: any) => (
-                                            <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={childDropId} isDragEnabled={isAdmin}>
+                                            <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={childDropId} isDragEnabled={isDeveloper}>
                                             <Link
                                               href={`${basePath}/documents/${doc.id}`}
                                               className="flex items-center justify-between p-2 rounded-md border hover-elevate"
                                               data-testid={`link-document-${doc.id}`}
                                             >
                                               <div className="flex items-center gap-3">
-                                                {isAdmin && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
+                                                {isDeveloper && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                                                 <FileText className="h-4 w-4 text-muted-foreground" />
                                                 <div>
                                                   <p className="font-medium text-sm">{doc.title}</p>
@@ -2252,14 +2252,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {folder.documents.filter(doc => !doc.isArchived).length > 0 && (
                               <div className="space-y-2">
                                 {folder.documents.filter(doc => !doc.isArchived).map((doc) => (
-                                  <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={folderDropId} isDragEnabled={isAdmin}>
+                                  <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={folderDropId} isDragEnabled={isDeveloper}>
                                   <Link
                                     href={`${basePath}/documents/${doc.id}`}
                                     className="flex items-center justify-between p-3 rounded-md border hover-elevate"
                                     data-testid={`link-document-${doc.id}`}
                                   >
                                     <div className="flex items-center gap-3">
-                                      {isAdmin && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
+                                      {isDeveloper && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                                       <FileText className="h-4 w-4 text-muted-foreground" />
                                       <div>
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -2393,7 +2393,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
           {/* Unfiled Documents — includes any shared docs whose folder template doesn't exist on this site */}
           {hierarchySiteId && ((hierarchy?.unfiledDocuments?.length ?? 0) + expandedUnmatchedShared.length + (missingByFolderTemplateId.get("__unfiled__")?.length ?? 0)) > 0 && (
-            <DroppableFolderZone folderId="__unfiled__" isDragEnabled={isAdmin}>
+            <DroppableFolderZone folderId="__unfiled__" isDragEnabled={isDeveloper}>
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardHeader className={`pb-3 ${moduleBgColors[module]} rounded-t-lg`}>
                 <CardTitle className={`text-base flex items-center gap-2 ${moduleColors[module]}`}>
@@ -2410,14 +2410,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
                 {(hierarchy?.unfiledDocuments ?? []).map((doc) => (
-                  <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={null} isDragEnabled={isAdmin}>
+                  <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={null} isDragEnabled={isDeveloper}>
                   <Link
                     href={`${basePath}/documents/${doc.id}`}
                     className={`flex items-center justify-between p-3 rounded-md border ${moduleBorderColors[module]} hover-elevate`}
                     data-testid={`link-unfiled-document-${doc.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      {isAdmin && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
+                      {isDeveloper && <GripVertical className="h-4 w-4 text-muted-foreground/40 cursor-grab" />}
                       <FileText className={`h-4 w-4 ${moduleColors[module]}`} />
                       <div>
                         <p className="font-medium text-sm">{doc.title}</p>
@@ -2888,7 +2888,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     >
                       Restore
                     </Button>
-                    {user?.role === "admin" && (
+                    {user?.role === "developer" && (
                       <Button
                         variant="destructive"
                         size="sm"
@@ -3125,7 +3125,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "admin" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
   const isClientUser = user?.role === "client";
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");
@@ -3731,7 +3731,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
           {(document.approvalStatus === "pending" || document.approvalStatus === "client_signed_off") && !document.isArchived && (() => {
             const isClient = user?.role === "client";
-            const isConsultantOrAdmin = user?.role === "consultant" || user?.role === "admin";
+            const isConsultantOrDeveloper = user?.role === "consultant" || user?.role === "developer";
             const isPending = document.approvalStatus === "pending";
             const isSignedOff = document.approvalStatus === "client_signed_off";
 
@@ -3744,10 +3744,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             // Consultants/admins can act on client_signed_off docs (final approval) or pending client-uploaded docs
             // But NOT on auto-final-approval docs that are already in client_signed_off — those complete themselves.
             const isAutoFinalApproval = (document as any).autoFinalApproval === true;
-            const canConsultantAct = isConsultantOrAdmin && ((isSignedOff && !isAutoFinalApproval) || (isPending && (document as any).uploaderRole === "client"));
+            const canConsultantAct = isConsultantOrDeveloper && ((isSignedOff && !isAutoFinalApproval) || (isPending && (document as any).uploaderRole === "client"));
 
             if (!canClientAct && !canConsultantAct) {
-              if (isConsultantOrAdmin && isSignedOff && isAutoFinalApproval) {
+              if (isConsultantOrDeveloper && isSignedOff && isAutoFinalApproval) {
                 return (
                   <Card className="border-2 border-emerald-400 dark:border-emerald-600 bg-emerald-50/80 dark:bg-emerald-900/25" data-testid="card-auto-final-approval">
                     <CardHeader>
@@ -3797,13 +3797,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               }
               // Consultants/admins viewing a pending consultant-uploaded doc fall through
               // to the informational card (with notification panel, but no action buttons).
-              if (!isConsultantOrAdmin || !isPending) return null;
+              if (!isConsultantOrDeveloper || !isPending) return null;
             }
 
             const getTitle = () => {
               if (canClientAct) return "Client Sign-Off";
               if (isSignedOff) return "Final Approval";
-              if (isConsultantOrAdmin && isPending && !canConsultantAct) return "Awaiting Client Sign-Off";
+              if (isConsultantOrDeveloper && isPending && !canConsultantAct) return "Awaiting Client Sign-Off";
               return "Approval Actions";
             };
 
@@ -3811,7 +3811,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               if (canClientAct) return "Review and sign off on this document to confirm you've received and read it";
               if (isSignedOff) return "The client has signed off. Give final approval to complete the workflow";
               if (canConsultantAct && isPending) return "Review and approve this client-uploaded document";
-              if (isConsultantOrAdmin && isPending && !canConsultantAct) return "This document has been submitted and is awaiting the client's review and sign-off. You can resend the notification below.";
+              if (isConsultantOrDeveloper && isPending && !canConsultantAct) return "This document has been submitted and is awaiting the client's review and sign-off. You can resend the notification below.";
               return "Review and approve this document";
             };
 
@@ -4638,7 +4638,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       </Button>
                     )
                   )}
-                  {user?.role === "admin" && (
+                  {user?.role === "developer" && (
                     <Button
                       variant="outline"
                       className="w-full justify-start text-destructive hover:text-destructive"

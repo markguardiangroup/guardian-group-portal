@@ -230,7 +230,7 @@ export default function SiteModuleAccess() {
     },
   });
 
-  const isAdmin = user?.role === "admin" || user?.role === "consultant";
+  const isDeveloper = user?.role === "developer" || user?.role === "consultant";
 
   const filteredSites = useMemo(() => {
     return sites.filter(entity => {
@@ -273,7 +273,7 @@ export default function SiteModuleAccess() {
     });
   };
 
-  if (!isAdmin) {
+  if (!isDeveloper) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
