@@ -43,6 +43,10 @@ export function useServerEvents() {
 
       es.addEventListener("presence-changed", () => {
         queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
+        // Coming online/offline also updates the user's lastSeenAt (and may reflect a
+        // status change such as invited -> active on first sign-in), so refresh the
+        // user list too — otherwise the row shows stale status / "last seen".
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       });
 
       es.addEventListener("document-updated", (e) => {

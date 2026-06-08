@@ -8147,6 +8147,20 @@
           "message": "New Admin staff role: full consultant-style access with approval handled on behalf of a consultant",
           "category": "feature",
           "createdAt": "2026-06-08T15:07:36.391992Z"
+        },
+        {
+          "id": "246aca18-fbe6-493f-ba9b-cd8abc993b8e",
+          "patch": 15,
+          "message": "Fixed: user list now updates a member’s status and last seen live when they sign in",
+          "category": "bug",
+          "createdAt": "2026-06-08T15:45:43.733Z"
+        },
+        {
+          "id": "eff09076-ab23-4c66-b3ea-03b80df4d38a",
+          "patch": 15,
+          "message": "Fixed: Admin users no longer flagged red for having no sites assigned",
+          "category": "bug",
+          "createdAt": "2026-06-08T15:45:43.734Z"
         }
       ],
       "publishedPatch": 14,

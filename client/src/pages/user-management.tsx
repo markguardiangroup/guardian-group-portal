@@ -1650,7 +1650,7 @@ export default function UserManagement() {
                 <TableRow 
                   key={u.id} 
                   data-testid={`row-user-${u.id}`}
-                  className={u.role !== "developer" && (!u.siteAssignments || u.siteAssignments.length === 0) ? "bg-red-50 dark:bg-red-950/30" : ""}
+                  className={u.role !== "developer" && u.role !== "administrator" && (!u.siteAssignments || u.siteAssignments.length === 0) ? "bg-red-50 dark:bg-red-950/30" : ""}
                 >
                   <TableCell>
                     <button
