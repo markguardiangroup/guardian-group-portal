@@ -5346,6 +5346,15 @@ export async function registerRoutes(
       // Record which user was designated as the approver for this document
       await storage.updateDocument(documentId, { approvalRequestedFrom: targetUserId });
 
+      // Emit document-updated so the recipient's alert count, my-actions and document
+      // list refresh in real time (without this they only update on page reload).
+      try {
+        const docPayload = { documentId, siteId: existingDoc.siteId };
+        emitToUser(targetUserId, "document-updated", docPayload);
+        emitToRole("developer", "document-updated", docPayload);
+        emitToRole("consultant", "document-updated", docPayload);
+      } catch { /* non-fatal */ }
+
       res.json({ success: true, message: `Approval notification sent to ${targetUser.fullName}` });
     } catch (error) {
       console.error("Send approval notification error:", error);

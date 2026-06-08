@@ -8252,6 +8252,13 @@
           "message": "Sidebar now shows live alert badges for new actions, calendar items and cloud shares",
           "category": "feature",
           "createdAt": "2026-06-08T20:15:59.681Z"
+        },
+        {
+          "id": "000694de-910a-482a-9a1f-5f11a9878701",
+          "patch": 15,
+          "message": "Fixed: approval notification now updates the recipient's view in real time",
+          "category": "bug",
+          "createdAt": "2026-06-08T20:32:59.094Z"
         }
       ],
       "publishedPatch": 14,
