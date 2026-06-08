@@ -274,6 +274,7 @@ const consultantNavItems = [
     title: "Services",
     url: "/admin/services",
     icon: PackageOpen,
+    permission: "services" as const,
   },
   {
     title: "Feedback",
@@ -291,7 +292,7 @@ interface AuthUser {
   companyId: string | null;
   companyName?: string | null;
   consultantTier?: string | null;
-  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
+  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean; services?: boolean } | null;
   clientPermissionRole?: string | null;
   referenceNumber?: string | null;
   title?: string | null;

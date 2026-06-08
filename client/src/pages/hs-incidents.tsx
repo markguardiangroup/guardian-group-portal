@@ -4133,7 +4133,7 @@ function IncidentsListView() {
   const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isDeveloper = user?.role === "developer";
   const canReport = user?.role === "developer" || user?.role === "client" ||
-    (user?.role === "consultant" && !!(user?.consultantPermissions as any)?.reportIncident);
+    ((user?.role === "consultant" || user?.role === "administrator") && !!(user?.consultantPermissions as any)?.reportIncident);
   const { toast } = useToast();
 
   const deleteIncidentMutation = useMutation({

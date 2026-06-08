@@ -8175,6 +8175,13 @@
           "message": "Fixed: Admin role now has full privileged access across all portal pages and modules",
           "category": "bug",
           "createdAt": "2026-06-08T16:04:51.794Z"
+        },
+        {
+          "id": "438ee209-2ade-4f21-bdb5-5464d41073f3",
+          "patch": 15,
+          "message": "Fixed: Admin permission toggles now properly gate Cases, Services, and Incident reporting",
+          "category": "bug",
+          "createdAt": "2026-06-08T16:15:05.472Z"
         }
       ],
       "publishedPatch": 14,

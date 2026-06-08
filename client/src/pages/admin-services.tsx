@@ -147,7 +147,7 @@ export default function AdminServices() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isDeveloper = user?.role === "developer";
-  const hasServicesPermission = user?.role === "consultant" && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
+  const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
   const canManage = isDeveloper || hasServicesPermission;
 
   // Main service catalogue filters

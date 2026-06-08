@@ -219,7 +219,8 @@ function CasesList() {
   const isClientUser = user?.role === "client";
   const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
-  const isCaseAdvocate = isDeveloper || (isConsultant && user?.consultantPermissions?.caseAdvocate === true);
+  const isAdministrator = user?.role === "administrator";
+  const isCaseAdvocate = isDeveloper || ((isConsultant || isAdministrator) && user?.consultantPermissions?.caseAdvocate === true);
   const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
   
@@ -561,7 +562,7 @@ function CasesList() {
       </div>
       
       <div id="page-content" className="flex-1 overflow-auto space-y-6 p-8 dash-animate">
-      {isConsultant && !isCaseAdvocate ? (
+      {(isConsultant || isAdministrator) && !isCaseAdvocate ? (
         <div className="flex flex-col items-center justify-center py-24 text-center gap-4">
           <div className="rounded-full bg-muted p-4">
             <Lock className="h-8 w-8 text-muted-foreground" />
