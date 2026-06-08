@@ -230,7 +230,7 @@ export default function SiteModuleAccess() {
     },
   });
 
-  const isDeveloper = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloper = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   const filteredSites = useMemo(() => {
     return sites.filter(entity => {

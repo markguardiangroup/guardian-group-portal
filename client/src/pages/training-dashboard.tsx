@@ -123,7 +123,7 @@ export default function TrainingDashboard() {
     notes: "",
   });
 
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<SiteWithDetails[]>({

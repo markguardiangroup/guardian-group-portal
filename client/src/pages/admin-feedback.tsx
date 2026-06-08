@@ -41,7 +41,7 @@ export default function AdminFeedback() {
 
   const { data: feedbackList, isLoading } = useQuery<FeedbackWithMetadata[]>({
     queryKey: ["/api/feedback"],
-    enabled: !!user && (user.role === "developer" || user.role === "consultant"),
+    enabled: !!user && (user.role === "developer" || user.role === "consultant" || user.role === "administrator"),
   });
 
   const { data: comments } = useQuery<FeedbackComment[]>({

@@ -2030,7 +2030,7 @@ function IncidentDetailView({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const isPrivileged = user?.role === "developer" || user?.role === "consultant";
+  const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showFollowUpDialog, setShowFollowUpDialog] = useState(false);
   const [invDetailsMinimised, setInvDetailsMinimised] = useState(true);
@@ -4130,7 +4130,7 @@ function IncidentsListView() {
 
   const activeConfig = registerTypeConfig[registerType];
 
-  const isPrivileged = user?.role === "developer" || user?.role === "consultant";
+  const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isDeveloper = user?.role === "developer";
   const canReport = user?.role === "developer" || user?.role === "client" ||
     (user?.role === "consultant" && !!(user?.consultantPermissions as any)?.reportIncident);

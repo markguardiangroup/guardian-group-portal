@@ -220,7 +220,7 @@ function CasesList() {
   const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
   const isCaseAdvocate = isDeveloper || (isConsultant && user?.consultantPermissions?.caseAdvocate === true);
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
   
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({
@@ -1529,7 +1529,7 @@ function CaseDetailView({ id }: { id: string }) {
   // Fetch all users for access management (admin/consultant only)
   const { data: allUsers } = useQuery<UserType[]>({
     queryKey: ["/api/users"],
-    enabled: user?.role === "developer" || user?.role === "consultant",
+    enabled: user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator",
   });
 
   // Filter to company users
@@ -2140,10 +2140,10 @@ function CaseDetailView({ id }: { id: string }) {
                         <div className="flex items-center gap-1 mt-0.5">
                           {caseData.caseName ? (
                             <p className="text-sm text-muted-foreground">{caseData.caseName}</p>
-                          ) : (user?.role === "developer" || user?.role === "consultant") ? (
+                          ) : (user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") ? (
                             <p className="text-sm text-muted-foreground/50 italic">No case name set</p>
                           ) : null}
-                          {(user?.role === "developer" || user?.role === "consultant") && (
+                          {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                             <Button
                               size="icon"
                               variant="ghost"
@@ -2158,7 +2158,7 @@ function CaseDetailView({ id }: { id: string }) {
                         </div>
                       )}
                     </div>
-                    {(user?.role === "developer" || user?.role === "consultant") && (
+                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                       <Button
                         size="icon"
                         variant="ghost"
@@ -2196,7 +2196,7 @@ function CaseDetailView({ id }: { id: string }) {
               )}
             </p>
           </div>
-          {(user?.role === "developer" || user?.role === "consultant") && (
+          {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -2241,7 +2241,7 @@ function CaseDetailView({ id }: { id: string }) {
                 <div>
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">Description</p>
-                    {(user?.role === "developer" || user?.role === "consultant") && !editingDescription && (
+                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && !editingDescription && (
                       <Button
                         size="icon"
                         variant="ghost"
@@ -2298,7 +2298,7 @@ function CaseDetailView({ id }: { id: string }) {
                 <div className="border-t pt-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-muted-foreground">Source</p>
-                    {(user?.role === "developer" || user?.role === "consultant") && !editingSources && (
+                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && !editingSources && (
                       <Button
                         size="icon"
                         variant="ghost"
@@ -2424,7 +2424,7 @@ function CaseDetailView({ id }: { id: string }) {
           </Card>
 
           {/* ── Case Notes ─────────────────────────────────────────────── */}
-          {(user?.role === "developer" || user?.role === "consultant") && (
+          {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
             <Card>
               <button
                 className="w-full text-left"
@@ -2587,7 +2587,7 @@ function CaseDetailView({ id }: { id: string }) {
                 </CardTitle>
                 <CardDescription>Key documents required for this case</CardDescription>
               </div>
-              {(user?.role === "developer" || user?.role === "consultant") && (
+              {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                 <Button
                   size="sm"
                   onClick={() => { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "" }); setShowChecklistDialog(true); }}
@@ -2685,7 +2685,7 @@ function CaseDetailView({ id }: { id: string }) {
                               </p>
                             )}
                           </div>
-                          {(user?.role === "developer" || user?.role === "consultant") && (
+                          {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-7 w-7" data-testid={`button-checklist-menu-${item.id}`}>
@@ -2753,7 +2753,7 @@ function CaseDetailView({ id }: { id: string }) {
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Documents linked to this case</CardDescription>
               </div>
-              {(user?.role === "developer" || user?.role === "consultant") && (
+              {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                 <>
                   <input
                     ref={fileInputRef}
@@ -2810,7 +2810,7 @@ function CaseDetailView({ id }: { id: string }) {
                           <Download className="h-4 w-4" />
                         </Button>
                       </a>
-                      {(user?.role === "developer" || user?.role === "consultant") && (
+                      {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                         <Button 
                           size="icon" 
                           variant="ghost" 
@@ -2843,7 +2843,7 @@ function CaseDetailView({ id }: { id: string }) {
                 <CardTitle className="text-lg">Milestones</CardTitle>
                 <CardDescription>Track key dates and tasks for this case</CardDescription>
               </div>
-              {(user?.role === "developer" || user?.role === "consultant") && (
+              {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                 <Button 
                   size="sm" 
                   onClick={() => setShowMilestoneDialog(true)}
@@ -2958,7 +2958,7 @@ function CaseDetailView({ id }: { id: string }) {
                         </div>
                       )}
                     </div>
-                    {(user?.role === "developer" || user?.role === "consultant") && (
+                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -3127,7 +3127,7 @@ function CaseDetailView({ id }: { id: string }) {
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Saved document sets for download as PDF</CardDescription>
               </div>
-              {(user?.role === "developer" || user?.role === "consultant") && (
+              {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                 <Button size="sm" variant="outline" onClick={openNewBundleDialog} data-testid="button-new-bundle">
                   <PackagePlus className="h-4 w-4 mr-1.5" />
                   New Bundle
@@ -3183,7 +3183,7 @@ function CaseDetailView({ id }: { id: string }) {
                             <FileDown className="h-4 w-4" />
                           )}
                         </Button>
-                        {(user?.role === "developer" || user?.role === "consultant") && (
+                        {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                           <>
                             <Button
                               size="icon"

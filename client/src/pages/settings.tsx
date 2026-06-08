@@ -209,7 +209,7 @@ export default function Settings() {
   const { toast } = useToast();
 
   // Admins and pro consultants can edit name/email; standard consultants and clients cannot
-  const canEditIdentity = user?.role === "developer" || (user?.role === "consultant" && user?.consultantTier === "pro");
+  const canEditIdentity = user?.role === "developer" || user?.role === "administrator" || (user?.role === "consultant" && user?.consultantTier === "pro");
 
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [documentAlerts, setDocumentAlerts] = useState(true);
@@ -365,7 +365,7 @@ export default function Settings() {
             <UserCog className="h-4 w-4" />
             Permissions
           </TabsTrigger>
-          {(user?.role === "developer" || user?.role === "consultant") && (
+          {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
             <TabsTrigger value="testing" className="gap-2" data-testid="tab-testing">
               <ClipboardList className="h-4 w-4" />
               Testing

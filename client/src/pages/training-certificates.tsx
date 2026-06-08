@@ -75,7 +75,7 @@ export default function TrainingCertificates() {
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>("all");
   const [viewDialog, setViewDialog] = useState<CertificateWithDetails | null>(null);
 
-  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   const { data: sites } = useQuery<SiteWithCompany[]>({
     queryKey: ["/api/sites"],

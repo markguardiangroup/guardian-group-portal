@@ -3731,7 +3731,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
           {(document.approvalStatus === "pending" || document.approvalStatus === "client_signed_off") && !document.isArchived && (() => {
             const isClient = user?.role === "client";
-            const isConsultantOrDeveloper = user?.role === "consultant" || user?.role === "developer";
+            const isConsultantOrDeveloper = user?.role === "consultant" || user?.role === "developer" || user?.role === "administrator";
             const isPending = document.approvalStatus === "pending";
             const isSignedOff = document.approvalStatus === "client_signed_off";
 

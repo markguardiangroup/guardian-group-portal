@@ -416,7 +416,7 @@ export default function ModuleAccessRequests() {
     return requests.filter(r => selectedRequests.has(r.id) && r.status === "pending");
   }, [requests, selectedRequests]);
 
-  const isDeveloper = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloper = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   if (!isDeveloper) {
     return (

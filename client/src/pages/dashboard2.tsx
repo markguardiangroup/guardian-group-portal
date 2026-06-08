@@ -262,7 +262,7 @@ interface ActivityCardProps {
 
 function TrainingCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: ActivityCardProps) {
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   const { data: trainingBookings = [] } = useQuery<TrainingBooking[]>({
     queryKey: ["/api/training-bookings"],
@@ -334,7 +334,7 @@ function TrainingCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Ac
 
 function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: ActivityCardProps) {
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   const { data: incidents = [] } = useQuery<Incident[]>({
     queryKey: ["/api/incidents"],
@@ -410,7 +410,7 @@ function IncidentsCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: A
 
 function CasesCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: ActivityCardProps) {
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
 
   const { data: cases = [] } = useQuery<Case[]>({
     queryKey: ["/api/cases"],
@@ -756,7 +756,7 @@ export default function Dashboard2() {
   const [, navigate] = useLocation();
 
   const isClientUser = user?.role === "client";
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 

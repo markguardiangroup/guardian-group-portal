@@ -8168,6 +8168,13 @@
           "message": "Fixed: Admin now sees company/site dropdowns on dashboards and document pages",
           "category": "bug",
           "createdAt": "2026-06-08T15:56:34.125Z"
+        },
+        {
+          "id": "e6c51af6-ea2a-45b0-bcf9-cc5e50dfc2db",
+          "patch": 15,
+          "message": "Fixed: Admin role now has full privileged access across all portal pages and modules",
+          "category": "bug",
+          "createdAt": "2026-06-08T16:04:51.794Z"
         }
       ],
       "publishedPatch": 14,

@@ -1455,7 +1455,7 @@ export default function UserManagement() {
         <div className="flex items-center gap-2">
           {isDeveloper && userTypeTab === "staff" && (() => {
             const pendingCount = allUsers.filter(
-              u => (u.role === "consultant" || u.role === "developer") && u.status === "invite_required"
+              u => (u.role === "consultant" || u.role === "developer" || u.role === "administrator") && u.status === "invite_required"
             ).length;
             return pendingCount > 0 ? (
               <Button

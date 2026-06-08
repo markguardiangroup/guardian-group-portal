@@ -66,7 +66,7 @@ export default function MyTraining() {
   const [viewCertDialog, setViewCertDialog] = useState<TrainingDocument | null>(null);
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
 
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<SiteWithDetails[]>({

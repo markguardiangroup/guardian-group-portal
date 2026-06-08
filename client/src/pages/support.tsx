@@ -465,7 +465,7 @@ function ConversationThread({ requestId, isOpen }: { requestId: string; isOpen: 
         <div className="space-y-3 max-h-64 overflow-y-auto">
           {messages.map((msg) => {
             const isOwnMessage = msg.senderId === user?.id;
-            const isStaff = msg.senderRole === "developer" || msg.senderRole === "consultant";
+            const isStaff = msg.senderRole === "developer" || msg.senderRole === "consultant" || msg.senderRole === "administrator";
             return (
               <div
                 key={msg.id}
@@ -702,7 +702,7 @@ export default function Support() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites = [], isLoading: sitesLoading } = useQuery<SiteWithDetails[]>({

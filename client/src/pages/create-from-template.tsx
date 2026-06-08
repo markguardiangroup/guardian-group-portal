@@ -247,7 +247,7 @@ export default function CreateFromTemplate() {
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
 
   const { user } = useAuth();
-  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant";
+  const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isDeveloperOrConsultant || isFullPermissionClient;
   const [docScope, setDocScope] = useState<"site" | "company" | "group">(
