@@ -1152,9 +1152,11 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
               <Briefcase className="h-4 w-4 text-primary" />
             </div>
-            My Portfolio
+            {role === "administrator" ? "All Companies" : "My Portfolio"}
           </CardTitle>
-          <p className="text-xs text-muted-foreground">Your assigned clients &amp; sites</p>
+          <p className="text-xs text-muted-foreground">
+            {role === "administrator" ? "All companies and sites on the portal" : "Your assigned clients & sites"}
+          </p>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 pt-4">
           {/* Summary stats */}

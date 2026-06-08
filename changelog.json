@@ -8196,6 +8196,13 @@
           "message": "Fixed: Admin portfolio now shows all companies and sites, not just explicitly assigned ones",
           "category": "bug",
           "createdAt": "2026-06-08T16:42:10.133Z"
+        },
+        {
+          "id": "d87abf9d-e342-441a-980f-8906d007e16d",
+          "patch": 15,
+          "message": "Improved: Admin home page portfolio header now reads \"All Companies\" with correct description",
+          "category": "enhancement",
+          "createdAt": "2026-06-08T18:42:04.195Z"
         }
       ],
       "publishedPatch": 14,
