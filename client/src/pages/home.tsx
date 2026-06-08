@@ -1949,10 +1949,12 @@ export default function HomePage() {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const handleScroll = (e: Event) => {
       const el = e.target as HTMLElement;
-      if (!el?.scrollTop) return;
-      const maxScroll = el.scrollHeight - el.clientHeight;
-      if (maxScroll < 200) return;
-      if (el.scrollTop >= maxScroll / 2) {
+      // `e.target` is `document` for window-level scrolls — fall back to documentElement
+      const scroller = (el?.scrollTop != null && el.scrollTop > 0) ? el : document.documentElement;
+      const scrollTop = scroller.scrollTop;
+      const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+      if (!scrollTop || maxScroll < 200) return;
+      if (scrollTop >= maxScroll / 2) {
         setScrollHintFading(true);
         timer = setTimeout(() => setShowScrollHint(false), 400);
       }

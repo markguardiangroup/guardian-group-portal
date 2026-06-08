@@ -8217,6 +8217,13 @@
           "message": "Improved: \"See what's new\" bubble fades out smoothly when scrolled halfway down",
           "category": "enhancement",
           "createdAt": "2026-06-08T18:49:42.830Z"
+        },
+        {
+          "id": "8aa3c687-e122-4a8a-a9ed-f06162e5fc33",
+          "patch": 15,
+          "message": "Fixed: \"See what's new\" bubble fade-out now works correctly on scroll",
+          "category": "bug",
+          "createdAt": "2026-06-08T18:51:38.173Z"
         }
       ],
       "publishedPatch": 14,
