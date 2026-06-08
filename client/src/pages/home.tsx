@@ -1940,14 +1940,28 @@ export default function HomePage() {
   const [arrangeCoverOpen, setArrangeCoverOpen] = useState(false);
   const { state: sidebarState } = useSidebar();
   const [showScrollHint, setShowScrollHint] = useState(true);
+  const [scrollHintFading, setScrollHintFading] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const wasLoadingRef = useRef(false);
 
   useEffect(() => {
     if (!showScrollHint) return;
-    const handleScroll = () => setShowScrollHint(false);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = (e: Event) => {
+      const el = e.target as HTMLElement;
+      if (!el?.scrollTop) return;
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (maxScroll < 200) return;
+      if (el.scrollTop >= maxScroll / 2) {
+        setScrollHintFading(true);
+        timer = setTimeout(() => setShowScrollHint(false), 400);
+      }
+    };
     document.addEventListener("scroll", handleScroll, true);
-    return () => document.removeEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("scroll", handleScroll, true);
+      if (timer) clearTimeout(timer);
+    };
   }, [showScrollHint]);
 
 
@@ -2086,8 +2100,11 @@ export default function HomePage() {
             left: sidebarState === "collapsed"
               ? "calc(1.5rem + 50vw)"
               : "calc(8rem + 50vw)",
-            animation: "fadeInUp 0.4s ease both",
             transform: "translateX(-50%)",
+            animation: scrollHintFading ? undefined : "fadeInUp 0.4s ease both",
+            opacity: scrollHintFading ? 0 : 1,
+            transition: scrollHintFading ? "opacity 0.4s ease" : undefined,
+            pointerEvents: scrollHintFading ? "none" : undefined,
           }}
         >
           <div className="flex items-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 border border-primary/20 overflow-hidden">

@@ -8210,6 +8210,13 @@
           "message": "Fixed: \"See what's new\" bubble now disappears as soon as you scroll down",
           "category": "enhancement",
           "createdAt": "2026-06-08T18:46:04.813Z"
+        },
+        {
+          "id": "11214a71-012b-4b99-a7a3-803ea05f16fc",
+          "patch": 15,
+          "message": "Improved: \"See what's new\" bubble fades out smoothly when scrolled halfway down",
+          "category": "enhancement",
+          "createdAt": "2026-06-08T18:49:42.830Z"
         }
       ],
       "publishedPatch": 14,
