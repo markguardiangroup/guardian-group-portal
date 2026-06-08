@@ -180,7 +180,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     : "Legal Document Compliance";
   const themeClass = module === "health_safety" ? "theme-hs" : module === "employment_law" ? "theme-el" : "theme-hr";
   
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   
   // Fetch sites for all users (clients see their accessible sites)
   const { data: sites, isLoading: sitesLoading } = useQuery<SiteWithCompany[]>({

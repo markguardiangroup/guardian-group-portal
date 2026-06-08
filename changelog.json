@@ -8161,6 +8161,13 @@
           "message": "Fixed: Admin users no longer flagged red for having no sites assigned",
           "category": "bug",
           "createdAt": "2026-06-08T15:45:43.734Z"
+        },
+        {
+          "id": "1aad68d4-c6f4-4f42-9cfa-b03af1b8e822",
+          "patch": 15,
+          "message": "Fixed: Admin now sees company/site dropdowns on dashboards and document pages",
+          "category": "bug",
+          "createdAt": "2026-06-08T15:56:34.125Z"
         }
       ],
       "publishedPatch": 14,

@@ -409,7 +409,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Consultants and admins can view different sites
   const isClientUser = user?.role === "client";
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isDeveloper = user?.role === "developer";
   
   // Restore document mutation
@@ -3125,7 +3125,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isClientUser = user?.role === "client";
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<"approve" | "changes">("approve");

@@ -221,7 +221,7 @@ function UrgentActionsPanel({
   onActionClick: (type: string) => void;
 }) {
   const isDeveloper = role === "developer";
-  const isPrivileged = role === "developer" || role === "consultant";
+  const isPrivileged = role === "developer" || role === "consultant" || role === "administrator";
 
   const items = [
     {
@@ -602,7 +602,7 @@ function MyActionsPanel({ role }: { role: string }) {
     staleTime: 0,
   });
 
-  const isPrivileged = role === "developer" || role === "consultant";
+  const isPrivileged = role === "developer" || role === "consultant" || role === "administrator";
 
   const tiles = [
     {
@@ -1128,7 +1128,7 @@ export function ArrangeCoverDialog({
 const PORTFOLIO_INITIAL_ROWS = 4;
 
 function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["portfolio"]; role: string; animate: boolean }) {
-  const isPrivileged = role === "developer" || role === "consultant";
+  const isPrivileged = role === "developer" || role === "consultant" || role === "administrator";
   const [expanded, setExpanded] = useState(false);
 
   if (!portfolio) return null;
@@ -1977,7 +1977,7 @@ export default function HomePage() {
   const urgentScopeLabel = (() => {
     const role = user?.role;
     if (role === "developer") return "Across all companies and sites";
-    if (role === "consultant") return "Across your assigned sites";
+    if (role === "consultant" || role === "administrator") return "Across your assigned sites";
     const portfolio = data?.portfolio as { site?: { name: string } | null } | null;
     const companyName = portfolio?.site?.name;
     return companyName ? `For ${companyName}` : "For your accessible sites";
