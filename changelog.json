@@ -8182,6 +8182,13 @@
           "message": "Fixed: Admin permission toggles now properly gate Cases, Services, and Incident reporting",
           "category": "bug",
           "createdAt": "2026-06-08T16:15:05.472Z"
+        },
+        {
+          "id": "437bd7c9-3ce9-403f-bb5f-e818416f092e",
+          "patch": 15,
+          "message": "Fixed: Case Advocate badge now shows correctly for admin users in user detail panel",
+          "category": "bug",
+          "createdAt": "2026-06-08T16:30:29.722Z"
         }
       ],
       "publishedPatch": 14,

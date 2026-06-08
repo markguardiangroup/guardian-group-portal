@@ -477,7 +477,7 @@ function RoutePrefetcher({
 }: {
   userId: string;
   role: string;
-  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean } | null;
+  consultantPermissions?: { caseAdvocate?: boolean; trainingLibrary?: boolean; templateLibrary?: boolean; services?: boolean; reportIncident?: boolean } | null;
 }) {
   const startedRef = useRef(false);
   const immediateRef = useRef(false);
