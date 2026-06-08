@@ -489,12 +489,42 @@ export default function DocumentUpload() {
     );
   }, [allUsers, selectedSiteIds, selectedSiteObjects, allCompanies]);
 
-  // "Approval on behalf of" options — consultants who can own sign-off (Admins are
-  // excluded because they can never personally sign off).
-  const onBehalfConsultants = useMemo(() => {
-    if (!allUsers) return [];
-    return allUsers.filter(u => u.role === "consultant");
-  }, [allUsers]);
+  // "Approval on behalf of" options — only consultants actually eligible to own sign-off
+  // for the chosen target (assigned to the site, or pro-by-source for the company/group).
+  // The same eligibility is enforced server-side; the dropdown must never list every consultant.
+  const onBehalfScopeKey = useMemo(() => {
+    if (docScope === "site") {
+      return { mode: "site" as const, siteIds: [...selectedSiteIds].sort() };
+    }
+    return { mode: "entity" as const, scope: docScope, entityId: selectedEntityId };
+  }, [docScope, selectedSiteIds, selectedEntityId]);
+
+  const onBehalfQueryEnabled =
+    isAdministrator &&
+    requiresApproval &&
+    (onBehalfScopeKey.mode === "site"
+      ? onBehalfScopeKey.siteIds.length > 0
+      : !!onBehalfScopeKey.entityId);
+
+  const { data: onBehalfConsultants = [] } = useQuery<UserWithAssignments[]>({
+    queryKey: ["/api/eligible-sign-off-consultants", onBehalfScopeKey],
+    enabled: onBehalfQueryEnabled,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (onBehalfScopeKey.mode === "site") {
+        params.set("siteIds", onBehalfScopeKey.siteIds.join(","));
+      } else {
+        params.set("scope", onBehalfScopeKey.scope);
+        if (onBehalfScopeKey.entityId) params.set("entityId", onBehalfScopeKey.entityId);
+      }
+      const res = await fetch(`/api/eligible-sign-off-consultants?${params.toString()}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+  });
 
   // Client approver options for company/group scope — includes the entity's own clients
   // plus any group-owner company clients (GO users can approve on behalf of member companies)

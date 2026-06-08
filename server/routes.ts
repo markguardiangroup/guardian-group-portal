@@ -4241,6 +4241,25 @@ export async function registerRoutes(
         if (!onBehalfConsultant || onBehalfConsultant.role !== "consultant") {
           return res.status(400).json({ error: "The selected 'approval on behalf of' user must be a consultant." });
         }
+        if (onBehalfConsultant.status !== "active") {
+          return res.status(400).json({ error: "The selected 'approval on behalf of' consultant must be an active user." });
+        }
+        // Enforce eligibility server-side (never trust the client list): the nominated
+        // consultant must actually be able to own sign-off for this document's target —
+        // assigned to the site, or pro-by-source for the company/group.
+        let onBehalfEligible = false;
+        if (docScope === "site" && body.siteId) {
+          onBehalfEligible = await canUserAccessSite(onBehalfConsultant, body.siteId);
+        } else if ((docScope === "company" || docScope === "group") && resolvedEntityId) {
+          onBehalfEligible = await isDocumentOriginUser(onBehalfConsultant, {
+            scope: docScope,
+            entityId: resolvedEntityId,
+            siteId: null,
+          });
+        }
+        if (!onBehalfEligible) {
+          return res.status(400).json({ error: "The selected consultant is not eligible to sign off for the chosen site or company." });
+        }
         resolvedUploadedBy = onBehalfConsultant.id;
         resolvedInitiatedBy = user.id;
       }
@@ -13688,6 +13707,56 @@ export async function registerRoutes(
   // All Users Routes
   
   // Get all users (admin only)
+  // Consultants eligible to own document sign-off for a given target scope. Used by Admins to
+  // pick an "approval on behalf of" consultant. Eligibility mirrors document access exactly:
+  // assigned to the site (or pro-by-source) for site scope; pro-by-source / assigned to the
+  // entity company for company/group scope. Same rule is enforced again on upload.
+  app.get("/api/eligible-sign-off-consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const siteIdsParam = (req.query.siteIds as string | undefined)?.trim();
+      const scope = (req.query.scope as string | undefined)?.trim();
+      const entityId = (req.query.entityId as string | undefined)?.trim();
+      const siteIds = siteIdsParam
+        ? siteIdsParam.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+
+      const allUsers = await storage.getAllUsers();
+      const consultants = allUsers.filter((u) => u.role === "consultant" && u.status === "active");
+
+      const eligible: typeof consultants = [];
+      for (const c of consultants) {
+        let ok = false;
+        if (siteIds.length > 0) {
+          // Admin uploads one document per selected site, so the consultant must be
+          // eligible for EVERY selected site.
+          ok = true;
+          for (const sid of siteIds) {
+            if (!(await canUserAccessSite(c, sid))) {
+              ok = false;
+              break;
+            }
+          }
+        } else if ((scope === "company" || scope === "group") && entityId) {
+          ok = await isDocumentOriginUser(c, { scope, entityId, siteId: null });
+        }
+        if (ok) eligible.push(c);
+      }
+
+      res.json(eligible);
+    } catch (error) {
+      console.error("Error fetching eligible sign-off consultants:", error);
+      res.status(500).json({ error: "Failed to fetch eligible consultants" });
+    }
+  });
+
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
