@@ -448,7 +448,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
 
 interface MyActionsData {
   assignedDocs: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
-  pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
+  pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] };
   changesRequested: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
   myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
   myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
@@ -516,6 +516,9 @@ interface MyActionItem {
   badge: string | null;
   module: string | null;
   href: string;
+  renewalDate: string | null;
+  expiryDate: string | null;
+  receivedAt: string | null;
 }
 
 type SiteMap = Map<string, { name: string; companyName?: string }>;
@@ -538,17 +541,36 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
         module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
+        renewalDate: null,
+        expiryDate: null,
+        receivedAt: null,
       }));
     case "pendingApprovals":
-      return data.pendingApprovals.items.map((d) => ({
-        id: d.id,
-        label: d.title,
-        siteLabel: resolveSiteLabel(d.site_id, siteMap),
-        subLabel: null,
-        badge: "pending approval",
-        module: d.module ?? null,
-        href: docHref(d.module, d.id, d.site_id),
-      }));
+      return data.pendingApprovals.items
+        .map((d) => ({
+          id: d.id,
+          label: d.title,
+          siteLabel: resolveSiteLabel(d.site_id, siteMap),
+          subLabel: null,
+          badge: "pending approval",
+          module: d.module ?? null,
+          href: docHref(d.module, d.id, d.site_id),
+          renewalDate: d.renewal_date ?? null,
+          expiryDate: d.expiry_date ?? null,
+          receivedAt: d.updated_at ?? null,
+        }))
+        .sort((a, b) => {
+          // Primary: earliest of renewal/expiry date ascending (nulls last)
+          const da = a.renewalDate ?? a.expiryDate;
+          const db = b.renewalDate ?? b.expiryDate;
+          if (da && db) return new Date(da).getTime() - new Date(db).getTime();
+          if (da) return -1;
+          if (db) return 1;
+          // Secondary: received date descending
+          const ra = a.receivedAt ? new Date(a.receivedAt).getTime() : 0;
+          const rb = b.receivedAt ? new Date(b.receivedAt).getTime() : 0;
+          return rb - ra;
+        });
     case "changesRequested":
       return (data.changesRequested?.items ?? []).map((d) => ({
         id: d.id,
@@ -558,6 +580,9 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         badge: "changes requested",
         module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
+        renewalDate: null,
+        expiryDate: null,
+        receivedAt: null,
       }));
     case "myIncidents":
       return data.myIncidents.items.map((i) => ({
@@ -568,6 +593,9 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         badge: i.severity,
         module: "health_safety",
         href: "/health-safety/incidents",
+        renewalDate: null,
+        expiryDate: null,
+        receivedAt: null,
       }));
     case "myCases":
       return data.myCases.items.map((c) => ({
@@ -578,6 +606,9 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         badge: c.status,
         module: "employment_law",
         href: "/employment-law/cases",
+        renewalDate: null,
+        expiryDate: null,
+        receivedAt: null,
       }));
     case "mySupportRequests":
       return data.mySupportRequests.items.map((s) => ({
@@ -588,6 +619,9 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         badge: s.status,
         module: null,
         href: "/support",
+        renewalDate: null,
+        expiryDate: null,
+        receivedAt: null,
       }));
     default:
       return [];
@@ -790,7 +824,7 @@ function MyActionsPanel({ role }: { role: string }) {
 
       {/* My Actions detail modal */}
       <Dialog open={!!activeKey} onOpenChange={(v) => !v && setActiveKey(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col" data-testid="modal-my-action">
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col" data-testid="modal-my-action">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-base flex items-center gap-2">
               {activeTile && (() => { const Icon = activeTile.icon; return <Icon className={`h-4 w-4 ${activeTile.color}`} />; })()}
@@ -825,7 +859,7 @@ function MyActionsPanel({ role }: { role: string }) {
                         <TileIcon className={`h-4 w-4 ${activeTile?.color ?? "text-muted-foreground"}`} />
                       </div>
 
-                      {/* Title + site + subLabel */}
+                      {/* Title + site + subLabel + dates */}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground leading-snug truncate">{item.label}</p>
                         {item.siteLabel && (
@@ -833,6 +867,25 @@ function MyActionsPanel({ role }: { role: string }) {
                         )}
                         {item.subLabel && (
                           <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">{item.subLabel}</p>
+                        )}
+                        {(item.receivedAt || item.renewalDate || item.expiryDate) && (
+                          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                            {item.receivedAt && (
+                              <span className="text-[11px] text-muted-foreground">
+                                Received: {format(new Date(item.receivedAt), "d MMM yyyy")}
+                              </span>
+                            )}
+                            {item.renewalDate && (
+                              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                Renews: {format(new Date(item.renewalDate), "d MMM yyyy")}
+                              </span>
+                            )}
+                            {item.expiryDate && (
+                              <span className="text-[11px] text-red-600 dark:text-red-400 font-medium">
+                                Expires: {format(new Date(item.expiryDate), "d MMM yyyy")}
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
 

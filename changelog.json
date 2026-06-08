@@ -8259,6 +8259,13 @@
           "message": "Fixed: approval notification now updates the recipient's view in real time",
           "category": "bug",
           "createdAt": "2026-06-08T20:32:59.094Z"
+        },
+        {
+          "id": "abf72f80-cc34-4e01-817d-47e388ef8356",
+          "patch": 15,
+          "message": "Sign-off list now shows request date and renewal/expiry date, sorted by due date",
+          "category": "enhancement",
+          "createdAt": "2026-06-08T20:53:26.028Z"
         }
       ],
       "publishedPatch": 14,
