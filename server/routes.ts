@@ -13717,7 +13717,8 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
-      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
+      // Only Admins (who must nominate an on-behalf consultant) and Developers need this.
+      if (user.role !== "developer" && user.role !== "administrator") {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -13728,10 +13729,28 @@ export async function registerRoutes(
         ? siteIdsParam.split(",").map((s) => s.trim()).filter(Boolean)
         : [];
 
+      // Enforce that the CALLER can access the requested target before enumerating any
+      // consultants — prevents probing arbitrary sites/companies outside their scope.
+      // Developers have unrestricted access.
+      if (siteIds.length > 0) {
+        for (const sid of siteIds) {
+          if (user.role !== "developer" && !(await canUserAccessSite(user, sid))) {
+            return res.status(403).json({ error: "You do not have access to one of the selected sites." });
+          }
+        }
+      } else if ((scope === "company" || scope === "group") && entityId) {
+        if (user.role !== "developer" && !(await isDocumentOriginUser(user, { scope, entityId, siteId: null }))) {
+          return res.status(403).json({ error: "You do not have access to the selected company." });
+        }
+      } else {
+        return res.status(400).json({ error: "A target site or company is required." });
+      }
+
       const allUsers = await storage.getAllUsers();
       const consultants = allUsers.filter((u) => u.role === "consultant" && u.status === "active");
 
-      const eligible: typeof consultants = [];
+      // Minimal, sanitized DTO — NEVER return full user rows (they contain password hashes).
+      const eligible: Array<{ id: string; fullName: string; role: string | null; status: string | null }> = [];
       for (const c of consultants) {
         let ok = false;
         if (siteIds.length > 0) {
@@ -13747,7 +13766,7 @@ export async function registerRoutes(
         } else if ((scope === "company" || scope === "group") && entityId) {
           ok = await isDocumentOriginUser(c, { scope, entityId, siteId: null });
         }
-        if (ok) eligible.push(c);
+        if (ok) eligible.push({ id: c.id, fullName: c.fullName, role: c.role, status: c.status });
       }
 
       res.json(eligible);
