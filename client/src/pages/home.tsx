@@ -448,7 +448,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
 
 interface MyActionsData {
   assignedDocs: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
-  pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] };
+  pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] };
   changesRequested: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
   myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
   myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
@@ -550,7 +550,9 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         .map((d) => ({
           id: d.id,
           label: d.title,
-          siteLabel: resolveSiteLabel(d.site_id, siteMap),
+          siteLabel: d.company_name && d.site_name
+            ? `${d.company_name} — ${d.site_name}`
+            : d.company_name ?? d.site_name ?? resolveSiteLabel(d.site_id, siteMap),
           subLabel: null,
           badge: "pending approval",
           module: d.module ?? null,

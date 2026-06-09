@@ -8266,6 +8266,13 @@
           "message": "Sign-off list now shows request date and renewal/expiry date, sorted by due date",
           "category": "enhancement",
           "createdAt": "2026-06-08T20:53:26.028Z"
+        },
+        {
+          "id": "68317f96-2820-4fb5-b9c1-520b0f7b5f23",
+          "patch": 15,
+          "message": "Sign-off list now shows company and site name on each item",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T09:42:26.898Z"
         }
       ],
       "publishedPatch": 14,

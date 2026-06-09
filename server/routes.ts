@@ -20307,7 +20307,7 @@ export async function registerRoutes(
       const assignedDocsRes = { rows: [] as { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
 
       // 2. Documents awaiting this user's approval
-      let pendingApprovalsRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] = [];
+      let pendingApprovalsRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] = [];
 
       // Group/company-scoped docs have site_id = NULL, so site-id-based filters can
       // never match them. This helper pulls scoped pending docs for the given
@@ -20317,20 +20317,23 @@ export async function registerRoutes(
       const accessibleScopedPending = async (
         approvalStatus: string,
         applyClientFilters: boolean,
-      ): Promise<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[]> => {
+      ): Promise<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[]> => {
         const params: unknown[] = [approvalStatus];
         let extra = "";
         if (applyClientFilters) {
           params.push(userId);
-          extra = `AND uploaded_by != $2 AND (approval_requested_from IS NULL OR approval_requested_from = $2)`;
+          extra = `AND d.uploaded_by != $2 AND (d.approval_requested_from IS NULL OR d.approval_requested_from = $2)`;
         }
-        const r = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; scope: string | null; entity_id: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }>(
-          `SELECT id, title, site_id, module, scope, entity_id, renewal_date, expiry_date, updated_at FROM documents
-           WHERE approval_status = $1
-             AND site_id IS NULL AND scope IN ('company','group') AND is_archived = false
-             AND case_id IS NULL AND incident_id IS NULL
+        const r = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; scope: string | null; entity_id: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; company_name: string | null }>(
+          `SELECT d.id, d.title, d.site_id, d.module, d.scope, d.entity_id, d.renewal_date, d.expiry_date, d.updated_at,
+                  c.name AS company_name
+           FROM documents d
+           LEFT JOIN companies c ON c.id = d.entity_id
+           WHERE d.approval_status = $1
+             AND d.site_id IS NULL AND d.scope IN ('company','group') AND d.is_archived = false
+             AND d.case_id IS NULL AND d.incident_id IS NULL
              ${extra}
-           ORDER BY created_at DESC, id DESC LIMIT 200`,
+           ORDER BY d.created_at DESC, d.id DESC LIMIT 200`,
           params
         );
         const access = await Promise.all(
@@ -20340,10 +20343,10 @@ export async function registerRoutes(
         );
         return r.rows
           .filter((_, i) => access[i])
-          .map((d) => ({ id: d.id, title: d.title, site_id: d.site_id, module: d.module, renewal_date: d.renewal_date, expiry_date: d.expiry_date, updated_at: d.updated_at }));
+          .map((d) => ({ id: d.id, title: d.title, site_id: d.site_id, module: d.module, renewal_date: d.renewal_date, expiry_date: d.expiry_date, updated_at: d.updated_at, site_name: null, company_name: d.company_name }));
       };
 
-      const mergePending = (extra: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[]) => {
+      const mergePending = (extra: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[]) => {
         const seen = new Set(pendingApprovalsRows.map((r) => r.id));
         for (const row of extra) {
           if (!seen.has(row.id)) {
@@ -20365,8 +20368,15 @@ export async function registerRoutes(
             params.push(siteIds);
           }
         }
-        const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }>(
-          `SELECT id, title, site_id, module, renewal_date, expiry_date, updated_at FROM documents WHERE approval_status = $1 AND is_archived = false ${sitesFilter} LIMIT 20`,
+        const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+          `SELECT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
+                  s.name AS site_name,
+                  COALESCE(sc.name, ec.name) AS company_name
+           FROM documents d
+           LEFT JOIN sites s ON s.id = d.site_id
+           LEFT JOIN companies sc ON sc.id = s.company_id
+           LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+           WHERE d.approval_status = $1 AND d.is_archived = false ${sitesFilter} LIMIT 20`,
           params
         );
         pendingApprovalsRows = res2.rows;
@@ -20382,11 +20392,15 @@ export async function registerRoutes(
         const clientSites = await storage.getClientSites(userId);
         const siteIds = clientSites.map((s) => s.siteId);
         if (siteIds.length > 0) {
-          const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }>(
-            `SELECT id, title, site_id, module, renewal_date, expiry_date, updated_at FROM documents
-             WHERE approval_status = 'pending' AND uploaded_by != $1
-               AND site_id = ANY($2::varchar[]) AND is_archived = false
-               AND (approval_requested_from IS NULL OR approval_requested_from = $1)
+          const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+            `SELECT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
+                    s.name AS site_name, c.name AS company_name
+             FROM documents d
+             LEFT JOIN sites s ON s.id = d.site_id
+             LEFT JOIN companies c ON c.id = s.company_id
+             WHERE d.approval_status = 'pending' AND d.uploaded_by != $1
+               AND d.site_id = ANY($2::varchar[]) AND d.is_archived = false
+               AND (d.approval_requested_from IS NULL OR d.approval_requested_from = $1)
              LIMIT 20`,
             [userId, siteIds]
           );
