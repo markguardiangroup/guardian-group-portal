@@ -8301,6 +8301,13 @@
           "message": "Fixed: pending sign-off tasks now appear for company-member clients in My Actions",
           "category": "bug",
           "createdAt": "2026-06-09T10:04:18.491Z"
+        },
+        {
+          "id": "534ba7c5-f14f-40c2-bfaa-fc62e73b5d5e",
+          "patch": 15,
+          "message": "Fixed: changes-requested notification now fires for company-scoped documents",
+          "category": "bug",
+          "createdAt": "2026-06-09T10:13:25.666Z"
         }
       ],
       "publishedPatch": 14,

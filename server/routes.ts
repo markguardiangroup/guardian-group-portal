@@ -5025,17 +5025,25 @@ export async function registerRoutes(
         }
       }
 
-      // Send changes-requested notification
-      if (action === "changes" && document.siteId) {
+      // Send changes-requested notification.
+      // Works for both site-scoped (siteId set) and company/group-scoped (siteId null, entityId set) docs.
+      if (action === "changes" && (document.siteId || document.entityId)) {
         console.log(`[changes-trace] doc=${documentId} user=${user.id} role=${user.role} — entering changes notification block`);
         try {
-          const site = await storage.getSite(document.siteId);
+          const site = document.siteId ? await storage.getSite(document.siteId) : null;
+          // For company-scoped docs fall back to company name as the "site" label in emails.
+          let siteName = site?.name || "Unknown Site";
+          if (!site && document.entityId) {
+            const entityCompany = await storage.getCompany(document.entityId).catch(() => null);
+            if (entityCompany?.name) siteName = entityCompany.name;
+          }
           const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
           const modulePath = existingDoc.module === "health_safety" ? "health-safety"
             : existingDoc.module === "human_resources" ? "human-resources"
             : existingDoc.module === "employment_law" ? "employment-law"
             : "documents";
           const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
+          const notifEntityId = document.siteId || document.entityId;
           const changesNotifiedIds = new Set<string>();
 
           if (user.role === "consultant" || user.role === "developer") {
@@ -5054,7 +5062,7 @@ export async function registerRoutes(
                   to: client.email!,
                   fullName: client.fullName,
                   documentTitle: existingDoc.title,
-                  siteName: site?.name || "Unknown Site",
+                  siteName,
                   requestedBy: user.fullName,
                   comments: feedback || null,
                   documentUrl,
@@ -5065,7 +5073,7 @@ export async function registerRoutes(
                   action: "email_sent",
                   userId: user.id,
                   userName: user.fullName,
-                  entityId: document.siteId,
+                  entityId: notifEntityId,
                   documentId: document.id,
                   supportRequestId: null,
                   module: existingDoc.module,
@@ -5080,7 +5088,7 @@ export async function registerRoutes(
             // Client requested changes → notify the consultant responsible for this document.
             // Use the same fallback chain as the sign-off notification:
             //   1. Uploading consultant
-            //   2. Assigned pro consultant for the site
+            //   2. Assigned pro consultant for the site (site-scoped docs only)
             //   3. Admin fallback
             const sendChangesNotifToConsultant = async (target: { id: string; email: string | null; fullName: string; role: string | null }, label: string) => {
               if (!target.email) return false;
@@ -5090,7 +5098,7 @@ export async function registerRoutes(
                   to: target.email,
                   fullName: target.fullName,
                   documentTitle: existingDoc.title,
-                  siteName: site?.name || "Unknown Site",
+                  siteName,
                   requestedBy: user.fullName,
                   comments: feedback || null,
                   documentUrl,
@@ -5101,7 +5109,7 @@ export async function registerRoutes(
                   action: "email_sent",
                   userId: user.id,
                   userName: user.fullName,
-                  entityId: document.siteId,
+                  entityId: notifEntityId,
                   documentId: document.id,
                   supportRequestId: null,
                   module: existingDoc.module,
@@ -5122,10 +5130,10 @@ export async function registerRoutes(
               await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "developer (uploader)" : "consultant (uploader)");
             }
             console.log(`[changes-trace] after step1 notifiedSize=${changesNotifiedIds.size}`);
-            // Step 2: first assigned pro consultant (only if step 1 didn't fire)
-            if (changesNotifiedIds.size === 0) {
+            // Step 2: first assigned pro consultant (only if step 1 didn't fire; site-scoped docs only)
+            if (changesNotifiedIds.size === 0 && document.siteId) {
               try {
-                const assignments = await storage.getConsultantAssignments(document.siteId!);
+                const assignments = await storage.getConsultantAssignments(document.siteId);
                 const assignedConsultants = await Promise.all(assignments.map(a => storage.getUser(a.consultantId)));
                 const proConsultants = assignedConsultants.filter(
                   (u): u is NonNullable<typeof u> =>
