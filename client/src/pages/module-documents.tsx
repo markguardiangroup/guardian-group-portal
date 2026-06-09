@@ -4526,6 +4526,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           try { uploadMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
                         }
 
+                        // On-behalf name for the byline: prefer metadata (upload entries), fall back to
+                        // document-level fields for all other admin-initiated entries.
+                        const docInitiatedBy = (document as any).initiatedByUserId as string | null | undefined;
+                        const onBehalfName: string | null =
+                          uploadMeta.onBehalfUserName ||
+                          (docInitiatedBy && log.userId === docInitiatedBy ? (document.uploadedByName ?? null) : null);
+
                         return (
                           <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
@@ -4536,7 +4543,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium">{getActionLabel(log.action)}</p>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    {log.action === 'email_sent' ? <>by <span className="font-medium text-foreground">{log.userName}</span></> : log.userName}{uploadMeta.onBehalfUserName ? <> · on behalf of <span className="font-medium text-foreground">{uploadMeta.onBehalfUserName}</span></> : null} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                    {log.action === 'email_sent' ? <>by <span className="font-medium text-foreground">{log.userName}</span></> : log.userName}{onBehalfName ? <> · on behalf of <span className="font-medium text-foreground">{onBehalfName}</span></> : null} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
                                   {log.action === 'email_sent' && isExpanded && (emailTypeLabel || details) && (
                                     <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-0.5">
