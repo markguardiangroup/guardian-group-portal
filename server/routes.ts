@@ -20356,13 +20356,22 @@ export async function registerRoutes(
       const isAdminLike = user.role === "developer" || user.role === "administrator";
       const now = new Date();
 
-      // Load existing markers and lazily initialise any missing surface to "now".
+      // Load existing markers.
+      // home/calendar: initialise to "now" on first call so existing items don't
+      //   create a huge badge on first login.
+      // ishare/cloudshare: treat a missing record as epoch so files uploaded while
+      //   the user was offline still show as new until they visit the page.
       const surfaces = ["home", "calendar", "ishare", ...CLOUD_SHARE_MODULES.map((m) => `cloudshare:${m}`)];
       const seen = await storage.getAlertSeen(user.id);
       for (const s of surfaces) {
         if (!seen[s]) {
-          await storage.markAlertSeen(user.id, s);
-          seen[s] = now;
+          if (s === "home" || s === "calendar") {
+            await storage.markAlertSeen(user.id, s);
+            seen[s] = now;
+          } else {
+            // Don't persist — page visit via markAlertSurfaceSeen will set it.
+            seen[s] = new Date(0);
+          }
         }
       }
       const seenHome = seen["home"];

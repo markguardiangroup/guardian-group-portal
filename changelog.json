@@ -8546,6 +8546,13 @@
           "message": "Fixed: iShare file uploads now work — folder was being auto-deleted before files could be added",
           "category": "bug",
           "createdAt": "2026-06-09T21:24:00.000Z"
+        },
+        {
+          "id": "a1b3c5d7-ishare-badge-offline-upload-fix-2026",
+          "patch": 15,
+          "message": "Fixed: iShare badge now appears even when recipient was offline when files were uploaded",
+          "category": "bug",
+          "createdAt": "2026-06-09T21:32:00.000Z"
         }
       ],
       "publishedPatch": 14,
