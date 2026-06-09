@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,13 @@ const SectionHeader = ({
 export default function SetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const goToLogin = () => {
+    // Pre-seed the auth cache so AuthenticatedApp knows immediately
+    // the user is not signed in, skipping the loading spinner entirely.
+    queryClient.setQueryData(["/api/auth/me"], null);
+    setLocation("/");
+  };
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -173,7 +180,7 @@ export default function SetPassword() {
           description="This link is missing required information. Please use the link from your invitation email."
         />
         <div className="flex justify-center">
-          <Button onClick={() => setLocation("/")} data-testid="button-go-to-login">
+          <Button onClick={goToLogin} data-testid="button-go-to-login">
             Go to Login
           </Button>
         </div>
@@ -217,7 +224,7 @@ export default function SetPassword() {
           </table>
         </div>
         <div className="flex justify-center">
-          <Button onClick={() => setLocation("/")} data-testid="button-login-now">
+          <Button onClick={goToLogin} data-testid="button-login-now">
             Log In Now
           </Button>
         </div>
@@ -250,7 +257,7 @@ export default function SetPassword() {
           <p className="text-sm text-slate-500 text-center">
             Please contact your administrator to request a new invitation.
           </p>
-          <Button onClick={() => setLocation("/")} data-testid="button-go-to-login">
+          <Button onClick={goToLogin} data-testid="button-go-to-login">
             Go to Login
           </Button>
         </div>
@@ -294,7 +301,7 @@ export default function SetPassword() {
           </table>
         </div>
         <div className="flex justify-center">
-          <Button onClick={() => setLocation("/")} data-testid="button-login-now">
+          <Button onClick={goToLogin} data-testid="button-login-now">
             Log In Now
           </Button>
         </div>
