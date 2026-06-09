@@ -3827,7 +3827,8 @@ export async function registerRoutes(
         metadata: JSON.stringify({ 
           previousVersion: document.version, 
           newVersion: newVersionNumber,
-          changeNote 
+          changeNote,
+          onBehalfUserName: versionOnBehalfConsultant ? versionOnBehalfConsultant.fullName : null,
         }),
       });
 

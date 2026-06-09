@@ -8616,6 +8616,13 @@
           "message": "Fixed: new version uploaded by Admin now shows the consultant as uploader, not the Admin",
           "category": "bug",
           "createdAt": "2026-06-09T23:20:00.000Z"
+        },
+        {
+          "id": "e2f4a6b8-version-upload-audit-on-behalf-2026",
+          "patch": 15,
+          "message": "Fixed: 'New version uploaded' audit entry now shows 'on behalf of [consultant]'",
+          "category": "bug",
+          "createdAt": "2026-06-09T23:30:00.000Z"
         }
       ],
       "publishedPatch": 14,

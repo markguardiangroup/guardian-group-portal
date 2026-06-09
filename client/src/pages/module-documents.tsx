@@ -4522,7 +4522,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
                         // For upload entries, parse on-behalf name from metadata
                         let uploadMeta: { onBehalfUserName?: string | null } = {};
-                        if (log.action === 'document_uploaded' && log.metadata) {
+                        if ((log.action === 'document_uploaded' || log.action === 'document_version_uploaded' || log.action === 'version_uploaded') && log.metadata) {
                           try { uploadMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
                         }
 
