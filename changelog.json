@@ -8567,6 +8567,13 @@
           "message": "Fixed: cloud share badge could crash the server when files were present",
           "category": "bug",
           "createdAt": "2026-06-09T21:52:00.000Z"
+        },
+        {
+          "id": "d4e6f8a0-templates-sourceless-hidden-non-dev-2026",
+          "patch": 15,
+          "message": "Templates with no source are now hidden from consultants and clients — developer only",
+          "category": "feature",
+          "createdAt": "2026-06-09T22:05:00.000Z"
         }
       ],
       "publishedPatch": 14,

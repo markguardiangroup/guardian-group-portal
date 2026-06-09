@@ -3884,12 +3884,13 @@ export class MemStorage implements IStorage {
     }
     const templates = await query.orderBy(asc(documentTemplatesTable.sortOrder));
 
-    // Source filtering: if userSources provided, return only templates that have no
-    // sources set (visible to all) OR share at least one source with the user.
+    // Source filtering: if userSources provided (non-developer), hide templates that
+    // have no sources set — those are only visible to the developer role.
+    // Templates with sources are shown only if the user shares at least one source.
     if (userSources !== undefined) {
       return templates.filter(t => {
         const ts = t.sources ?? [];
-        if (ts.length === 0) return true; // no restriction — visible to all
+        if (ts.length === 0) return false; // no source set — developer-only
         return userSources.some(s => ts.includes(s));
       });
     }
