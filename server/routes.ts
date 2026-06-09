@@ -3725,10 +3725,26 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only origin users can upload new versions of company or group scoped documents" });
       }
       
-      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom, autoFinalApproval } = req.body;
+      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom, autoFinalApproval, onBehalfOfUserId } = req.body;
       
       if (!fileName || !fileUrl || !fileSize || !mimeType) {
         return res.status(400).json({ error: "Missing required file information" });
+      }
+
+      // Admin on-behalf validation — mirrors the main document upload route
+      let versionOnBehalfConsultant: { id: string; fullName: string } | null = null;
+      if (user.role === "administrator") {
+        if (!onBehalfOfUserId) {
+          return res.status(400).json({ error: "An 'approval on behalf of' consultant is required when an Admin uploads a new version." });
+        }
+        const obUser = await storage.getUser(onBehalfOfUserId);
+        if (!obUser || obUser.role !== "consultant") {
+          return res.status(400).json({ error: "The selected 'approval on behalf of' user must be a consultant." });
+        }
+        if (obUser.status !== "active") {
+          return res.status(400).json({ error: "The selected 'approval on behalf of' consultant must be an active user." });
+        }
+        versionOnBehalfConsultant = obUser;
       }
 
       // Determine approval status BEFORE any DB writes so we can validate early.
@@ -3775,10 +3791,12 @@ export async function registerRoutes(
         changeNote: changeNote || `Replaced by version ${newVersionNumber}`,
       });
       
-      // Update the main document with new file info. Reassign uploadedBy to
-      // the user who uploaded this new version so that any subsequent client
-      // sign-off notification goes to them (the consultant currently driving
-      // the approval cycle), not the original uploader.
+      // Update the main document with new file info.
+      // For admin on-behalf uploads: uploadedBy = the consultant (nominal owner / sign-off holder),
+      // initiatedByUserId = the admin (the one actually driving the approval cycle).
+      // For all other uploads: uploadedBy = the uploader, initiatedByUserId = null.
+      const resolvedUploadedBy = versionOnBehalfConsultant ? versionOnBehalfConsultant.id : user.id;
+      const resolvedInitiatedBy = versionOnBehalfConsultant ? user.id : null;
       const resolvedAutoFinalApproval = typeof autoFinalApproval === "boolean" ? autoFinalApproval : document.autoFinalApproval;
       console.log(`[version-upload] doc=${document.id} autoFinalApproval received=${autoFinalApproval} (${typeof autoFinalApproval}) → saving=${resolvedAutoFinalApproval}`);
 
@@ -3790,7 +3808,8 @@ export async function registerRoutes(
         version: newVersionNumber,
         status: newStatus,
         approvalStatus: newApprovalStatus,
-        uploadedBy: user.id,
+        uploadedBy: resolvedUploadedBy,
+        initiatedByUserId: resolvedInitiatedBy,
         updatedAt: new Date(),
         ...(approvalRequestedFrom ? { approvalRequestedFrom } : { approvalRequestedFrom: null }),
         autoFinalApproval: resolvedAutoFinalApproval,

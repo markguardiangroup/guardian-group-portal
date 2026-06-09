@@ -8602,6 +8602,13 @@
           "message": "Upload New Version dialog now pre-selects the existing on-behalf consultant",
           "category": "enhancement",
           "createdAt": "2026-06-09T22:55:00.000Z"
+        },
+        {
+          "id": "c9d2e5f7-version-upload-on-behalf-routing-fix-2026",
+          "patch": 15,
+          "message": "Fixed: changes-requested notification after a new version upload now goes to the Admin, not the developer fallback",
+          "category": "bug",
+          "createdAt": "2026-06-09T23:10:00.000Z"
         }
       ],
       "publishedPatch": 14,
