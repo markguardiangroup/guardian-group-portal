@@ -19703,7 +19703,11 @@ export async function registerRoutes(
       for (const d of countableDocs) {
         if (d.status === "overdue") {
           if (afterHome(overdueBecameActionable(d))) homeCount++;
-        } else if (d.status === "approval_required") {
+        } else if (d.status === "approval_required" && user.role !== "client") {
+          // Clients' sign-off tasks are already covered by the approvalStatus check
+          // below; counting approval_required by updatedAt for clients causes false
+          // positives when a consultant requests changes (bumping updatedAt without
+          // adding any new task for the client).
           if (afterHome(d.updatedAt ?? d.createdAt)) homeCount++;
         }
         // Pending approvals (privileged) / pending sign-offs (client) — mirror the
@@ -19853,9 +19857,9 @@ export async function registerRoutes(
       for (const m of CLOUD_SHARE_MODULES) {
         const sinceTs = seen[`cloudshare:${m}`].getTime();
         let c = 0;
-        for (const f of activity.folders) {
-          if (f.module === m && f.createdAt.getTime() > sinceTs) c++;
-        }
+        // Only count actual file uploads — not folder creation. Folders are
+        // structural and don't represent new content to review; counting them
+        // causes the badge to stay elevated after files are deleted from a folder.
         for (const f of activity.files) {
           if (f.module === m && f.createdAt.getTime() > sinceTs) c++;
         }

@@ -8273,6 +8273,20 @@
           "message": "Sign-off list now shows company and site name on each item",
           "category": "enhancement",
           "createdAt": "2026-06-09T09:42:26.898Z"
+        },
+        {
+          "id": "adcdfd0b-0b35-48b3-8015-79ef3a6eafdb",
+          "patch": 15,
+          "message": "Fixed: home badge no longer rises for clients when consultant requests changes",
+          "category": "bug",
+          "createdAt": "2026-06-09T09:54:36.504Z"
+        },
+        {
+          "id": "bc33f702-61c7-47a2-9eef-2781a37e7be8",
+          "patch": 15,
+          "message": "Fixed: cloud share badge only counts file uploads, not folder creation or deletions",
+          "category": "bug",
+          "createdAt": "2026-06-09T09:54:36.505Z"
         }
       ],
       "publishedPatch": 14,
