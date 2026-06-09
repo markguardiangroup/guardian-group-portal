@@ -5201,7 +5201,7 @@ export class MemStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getCloudShareActivityForUser(params: { userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<{ folders: { module: string; createdAt: Date }[]; files: { module: string; createdAt: Date }[] }> {
+  async getCloudShareActivityForUser(params: { userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<{ folders: { module: string; createdAt: Date }[]; files: { module: string; createdAt: Date; uploadedBy: string | null }[] }> {
     const { userId, userRole, userCompanyId, effectiveCompanyIds } = params;
     const now = new Date();
 
@@ -5248,13 +5248,13 @@ export class MemStorage implements IStorage {
     const folders = visibleFolders.map((f) => ({ module: f.module as string, createdAt: f.createdAt }));
 
     const folderIds = visibleFolders.map((f) => f.id);
-    let files: { module: string; createdAt: Date }[] = [];
+    let files: { module: string; createdAt: Date; uploadedBy: string | null }[] = [];
     if (folderIds.length > 0) {
       const rows = await db
-        .select({ module: clientUploadsTable.module, createdAt: clientUploadsTable.createdAt })
+        .select({ module: clientUploadsTable.module, createdAt: clientUploadsTable.createdAt, uploadedBy: clientUploadsTable.uploadedBy })
         .from(clientUploadsTable)
         .where(inArray(clientUploadsTable.folderId, folderIds));
-      files = rows.map((r) => ({ module: r.module as string, createdAt: r.createdAt }));
+      files = rows.map((r) => ({ module: r.module as string, createdAt: r.createdAt, uploadedBy: r.uploadedBy ?? null }));
     }
 
     return { folders, files };

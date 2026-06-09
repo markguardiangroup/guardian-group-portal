@@ -8343,6 +8343,13 @@
           "message": "New Admin staff role: full Pro-like access, on-behalf-of approval flow, no sign-off",
           "category": "feature",
           "createdAt": "2026-06-09T15:06:57.703Z"
+        },
+        {
+          "id": "2d3f065f-445b-4098-9ab6-75cec2a38e60",
+          "patch": 15,
+          "message": "Fixed: cloud share badge no longer counts files you uploaded yourself",
+          "category": "bug",
+          "createdAt": "2026-06-09T15:23:46.055Z"
         }
       ],
       "publishedPatch": 14,

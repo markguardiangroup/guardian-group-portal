@@ -19913,7 +19913,7 @@ export async function registerRoutes(
         // structural and don't represent new content to review; counting them
         // causes the badge to stay elevated after files are deleted from a folder.
         for (const f of activity.files) {
-          if (f.module === m && f.createdAt.getTime() > sinceTs) c++;
+          if (f.module === m && f.createdAt.getTime() > sinceTs && f.uploadedBy !== user.id) c++;
         }
         cloudshare[m] = c;
       }
