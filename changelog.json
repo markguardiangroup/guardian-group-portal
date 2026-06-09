@@ -8581,6 +8581,13 @@
           "message": "Fixed: Admin can now upload via the template flow — on-behalf consultant picker was missing",
           "category": "bug",
           "createdAt": "2026-06-09T22:20:00.000Z"
+        },
+        {
+          "id": "f6a8b2c4-audit-log-on-behalf-byline-2026",
+          "patch": 15,
+          "message": "Audit trail now shows who an Admin uploaded on behalf of in the document log",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T22:30:00.000Z"
         }
       ],
       "publishedPatch": 14,

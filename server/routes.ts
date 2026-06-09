@@ -4381,7 +4381,11 @@ export async function registerRoutes(
         metadata: docScope !== "site" || resolvedInitiatedBy
           ? JSON.stringify({
               ...(docScope !== "site" ? { scope: docScope, entityId: resolvedEntityId } : {}),
-              ...(resolvedInitiatedBy ? { initiatedByUserId: resolvedInitiatedBy, onBehalfOfUserId: resolvedUploadedBy } : {}),
+              ...(resolvedInitiatedBy ? {
+                initiatedByUserId: resolvedInitiatedBy,
+                onBehalfOfUserId: resolvedUploadedBy,
+                onBehalfUserName: onBehalfConsultant?.fullName ?? null,
+              } : {}),
             })
           : null,
       });
