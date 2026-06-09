@@ -228,6 +228,7 @@ export default function CreateFromTemplate() {
   const [requiresApproval, setRequiresApproval] = useState<boolean>(true);
   const [autoFinalApproval, setAutoFinalApproval] = useState<boolean>(true);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
+  const [selectedOnBehalfId, setSelectedOnBehalfId] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [complianceMode, setComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
@@ -248,6 +249,7 @@ export default function CreateFromTemplate() {
 
   const { user } = useAuth();
   const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
+  const isAdministrator = user?.role === "administrator";
   const isFullPermissionClient = user?.role === "client" && user?.clientPermissionRole === "full";
   const canUploadCompanyGroupScope = isDeveloperOrConsultant || isFullPermissionClient;
   const [docScope, setDocScope] = useState<"site" | "company" | "group">(
@@ -470,6 +472,40 @@ export default function CreateFromTemplate() {
     queryKey: ["/api/users"],
   });
 
+  const onBehalfScopeKey = useMemo(() => {
+    if (docScope === "site") {
+      return { mode: "site" as const, siteIds: [...selectedSiteIds].sort() };
+    }
+    return { mode: "entity" as const, scope: docScope, entityId: selectedEntityId };
+  }, [docScope, selectedSiteIds, selectedEntityId]);
+
+  const onBehalfQueryEnabled =
+    isAdministrator &&
+    requiresApproval &&
+    (onBehalfScopeKey.mode === "site"
+      ? onBehalfScopeKey.siteIds.length > 0
+      : !!onBehalfScopeKey.entityId);
+
+  const { data: onBehalfConsultants = [] } = useQuery<Array<{ id: string; fullName: string; role: string | null; status: string | null }>>({
+    queryKey: ["/api/eligible-sign-off-consultants", onBehalfScopeKey],
+    enabled: onBehalfQueryEnabled,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (onBehalfScopeKey.mode === "site") {
+        params.set("siteIds", onBehalfScopeKey.siteIds.join(","));
+      } else {
+        params.set("scope", onBehalfScopeKey.scope);
+        if (onBehalfScopeKey.entityId) params.set("entityId", onBehalfScopeKey.entityId);
+      }
+      const res = await fetch(`/api/eligible-sign-off-consultants?${params.toString()}`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      return res.json();
+    },
+  });
+
   const siteClientUsers = useMemo(() => {
     if (selectedSiteIds.length === 0) return [];
     return allUsers.filter(u =>
@@ -651,6 +687,7 @@ export default function CreateFromTemplate() {
         }
       }
       setSelectedApproverId("");
+      setSelectedOnBehalfId("");
       setSelectedFolderId("");
       if (next.length > 0) {
         const site = sites.find(s => s.id === next[0]);
@@ -702,6 +739,9 @@ export default function CreateFromTemplate() {
       }
       if (requiresApproval && !selectedApproverId) {
         throw new Error("Please select a client approver");
+      }
+      if (isAdministrator && requiresApproval && !selectedOnBehalfId) {
+        throw new Error("Please select a consultant to own sign-off (Approval On Behalf Of)");
       }
 
       // Step 1: Upload the file once to object storage
@@ -757,6 +797,7 @@ export default function CreateFromTemplate() {
           autoFinalApproval: requiresApproval ? autoFinalApproval : false,
           approvalRequestedFrom: requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+          onBehalfOfUserId: isAdministrator && requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
@@ -819,6 +860,7 @@ export default function CreateFromTemplate() {
           autoFinalApproval: requiresApproval ? autoFinalApproval : false,
           approvalRequestedFrom: requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
+          onBehalfOfUserId: isAdministrator && requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
@@ -1406,6 +1448,50 @@ export default function CreateFromTemplate() {
                     onCheckedChange={setAutoFinalApproval}
                     data-testid="toggle-auto-final-approval"
                   />
+                </div>
+              )}
+
+              {isAdministrator && requiresApproval && (
+                <div className="mt-3">
+                  <Label className="text-sm font-medium flex items-center gap-1">
+                    Approval On Behalf Of
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                    As an Admin you cannot personally sign off. Select the consultant who will own sign-off for this document.
+                  </p>
+                  {onBehalfConsultants.length > 0 ? (
+                    <Select value={selectedOnBehalfId} onValueChange={setSelectedOnBehalfId}>
+                      <SelectTrigger
+                        className={`mt-1 ${submitAttempted && isAdministrator && requiresApproval && !selectedOnBehalfId ? "border-destructive" : ""}`}
+                        data-testid="select-on-behalf-consultant"
+                      >
+                        <SelectValue placeholder="Select a consultant…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {onBehalfConsultants.map((u) => (
+                          <SelectItem
+                            key={u.id}
+                            value={u.id}
+                            disabled={u.status !== "active"}
+                            data-testid={`option-on-behalf-${u.id}`}
+                          >
+                            <span className="flex items-center gap-2">
+                              {u.fullName}
+                              {u.status !== "active" && (
+                                <span className="text-xs text-muted-foreground">(not active)</span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground mt-1">
+                      <Users className="h-4 w-4 shrink-0" />
+                      No consultants are available to own sign-off for the selected site(s). Assign a consultant in User Management first.
+                    </div>
+                  )}
                 </div>
               )}
 

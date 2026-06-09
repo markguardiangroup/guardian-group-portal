@@ -8574,6 +8574,13 @@
           "message": "Templates with no source are now hidden from consultants and clients — developer only",
           "category": "feature",
           "createdAt": "2026-06-09T22:05:00.000Z"
+        },
+        {
+          "id": "e5f7a9b1-admin-on-behalf-create-from-template-2026",
+          "patch": 15,
+          "message": "Fixed: Admin can now upload via the template flow — on-behalf consultant picker was missing",
+          "category": "bug",
+          "createdAt": "2026-06-09T22:20:00.000Z"
         }
       ],
       "publishedPatch": 14,
