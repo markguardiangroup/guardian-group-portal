@@ -5501,8 +5501,9 @@ export async function registerRoutes(
 
       const updated = await storage.updateDocument(id, body);
       
-      // Log the change — use a dedicated action when only the title changed
-      if ("title" in req.body && Object.keys(req.body).length === 1) {
+      // Log the change — use a dedicated rename action when the title changed
+      const titleChanged = "title" in req.body && req.body.title !== doc.title;
+      if (titleChanged) {
         await storage.createAuditLog({
           userId: user.id,
           userName: user.fullName,
@@ -5510,7 +5511,7 @@ export async function registerRoutes(
           entityId: doc.entityId,
           documentId: id,
           module: doc.module as any,
-          details: `Renamed document`,
+          details: `Document name updated`,
           metadata: JSON.stringify({ from: doc.title, to: req.body.title }),
           ipAddress: req.ip,
         });
