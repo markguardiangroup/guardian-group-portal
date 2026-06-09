@@ -8315,6 +8315,13 @@
           "message": "Fixed: toolkit templates now visible to GS clients (folder source codes were stored as labels)",
           "category": "bug",
           "createdAt": "2026-06-09T10:47:57.868Z"
+        },
+        {
+          "id": "bdbb85ea-b0f3-4f97-9dd4-a2c4d7dcd180",
+          "patch": 15,
+          "message": "Fixed: My Actions now loads correctly for Developer and Admin users (was crashing silently)",
+          "category": "bug",
+          "createdAt": "2026-06-09T14:36:29.783Z"
         }
       ],
       "publishedPatch": 14,

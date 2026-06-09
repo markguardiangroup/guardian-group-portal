@@ -20368,8 +20368,9 @@ export async function registerRoutes(
         }
       };
 
-      if (user.role === "consultant" || user.role === "developer") {
-        // Consultant/admin: docs where client has signed off, awaiting their final approval
+      if (user.role === "consultant" || user.role === "developer" || user.role === "administrator") {
+        // Consultant/developer/admin: docs where client has signed off, awaiting their final approval.
+        // Administrators can't personally approve but may still want visibility of outstanding sign-offs.
         let sitesFilter = "";
         const params: unknown[] = ["client_signed_off"];
         if (user.role === "consultant") {
@@ -20386,14 +20387,14 @@ export async function registerRoutes(
                   COALESCE(sc.name, ec.name) AS company_name
            FROM documents d
            LEFT JOIN sites s ON s.id = d.site_id
-           LEFT JOIN companies sc ON sc.id = s.company_id
+           LEFT JOIN companies sc ON sc.id = s.entity_id
            LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
            WHERE d.approval_status = $1 AND d.is_archived = false ${sitesFilter} LIMIT 20`,
           params
         );
         pendingApprovalsRows = res2.rows;
 
-        // The admin query above has no site filter so it already includes scoped
+        // The developer/admin query above has no site filter so it already includes scoped
         // docs. Consultants are site-filtered, so add scoped client_signed_off docs
         // they can access (gated by canUserAccessDocument).
         if (user.role === "consultant") {
@@ -20436,7 +20437,7 @@ export async function registerRoutes(
 
       // 3. Documents where client requested changes from this user (uploaded_by = userId)
       let changesRequestedRows: { id: string; title: string; site_id: string | null; module: string | null }[] = [];
-      if (user.role === "consultant" || user.role === "developer") {
+      if (user.role === "consultant" || user.role === "developer" || user.role === "administrator") {
         const crRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null }>(
           `SELECT id, title, site_id, module FROM documents
            WHERE approval_status = 'changes_requested' AND uploaded_by = $1 AND is_archived = false
