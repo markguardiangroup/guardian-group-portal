@@ -8308,6 +8308,13 @@
           "message": "Fixed: changes-requested notification now fires for company-scoped documents",
           "category": "bug",
           "createdAt": "2026-06-09T10:13:25.666Z"
+        },
+        {
+          "id": "2f87e15f-6b60-4206-b9b3-40d5ab63b1ba",
+          "patch": 15,
+          "message": "Fixed: toolkit templates now visible to GS clients (folder source codes were stored as labels)",
+          "category": "bug",
+          "createdAt": "2026-06-09T10:47:57.868Z"
         }
       ],
       "publishedPatch": 14,
