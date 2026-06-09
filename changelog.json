@@ -8427,6 +8427,13 @@
           "message": "Fixed: document rename input now auto-sizes to match the text length",
           "category": "bug",
           "createdAt": "2026-06-09T19:41:02.820Z"
+        },
+        {
+          "id": "e4a7c2f9-document-rename-audit-trail-2026",
+          "patch": 15,
+          "message": "Document renames now appear in the audit trail with expandable from/to names",
+          "category": "feature",
+          "createdAt": "2026-06-09T19:46:22.039Z"
         }
       ],
       "publishedPatch": 14,

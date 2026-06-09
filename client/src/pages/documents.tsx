@@ -1248,6 +1248,7 @@ function DocumentDetailView({ id }: { id: string }) {
   const [complianceDirty, setComplianceDirty] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
 
   const { data: document, isLoading } = useQuery<EnrichedDocument>({
     queryKey: ["/api/documents", id],
@@ -2238,10 +2239,24 @@ function DocumentDetailView({ id }: { id: string }) {
               {auditLogs && auditLogs.length > 0 ? (
                 <div className="relative space-y-4">
                   <div className="absolute bottom-0 left-3 top-0 w-px bg-border" />
-                  {auditLogs.map((log, index) => (
+                  {auditLogs.map((log, index) => {
+                    const isExpanded = expandedLogIds.has(log.id);
+                    const toggleLog = () => setExpandedLogIds(prev => {
+                      const next = new Set(prev);
+                      isExpanded ? next.delete(log.id) : next.add(log.id);
+                      return next;
+                    });
+                    let renameMeta: { from?: string; to?: string } = {};
+                    if (log.action === 'document_renamed' && log.metadata) {
+                      try { renameMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
+                    }
+                    const isRenameEntry = log.action === 'document_renamed' && !!(renameMeta.from || renameMeta.to);
+                    return (
                     <div key={log.id} className="relative pl-8">
                       <div className="absolute left-0 flex h-7 w-7 items-center justify-center rounded-full border bg-background">
-                        {log.action.includes("approved") ? (
+                        {log.action === 'document_renamed' ? (
+                          <Pencil className="h-3.5 w-3.5 text-sky-500" />
+                        ) : log.action.includes("approved") ? (
                           <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
                         ) : log.action.includes("rejected") ? (
                           <XCircle className="h-3.5 w-3.5 text-red-500" />
@@ -2252,21 +2267,47 @@ function DocumentDetailView({ id }: { id: string }) {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm">
-                          <span className="font-medium">{log.userName}</span>{" "}
-                          <span className="text-muted-foreground">
-                            {log.action.replace(/_/g, " ")}
-                          </span>
-                        </p>
-                        {log.details && (
-                          <p className="mt-0.5 text-sm text-muted-foreground">{log.details}</p>
-                        )}
-                        <p className="mt-1 font-mono text-xs text-muted-foreground">
-                          {log.createdAt && formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm">
+                              <span className="font-medium">{log.userName}</span>{" "}
+                              <span className="text-muted-foreground">
+                                {log.action === 'document_renamed' ? 'renamed this document' : log.action.replace(/_/g, " ")}
+                              </span>
+                            </p>
+                            {log.details && log.action !== 'document_renamed' && (
+                              <p className="mt-0.5 text-sm text-muted-foreground">{log.details}</p>
+                            )}
+                            {isRenameEntry && isExpanded && (
+                              <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-1.5 text-xs">
+                                <div className="flex items-start gap-2">
+                                  <span className="font-medium text-muted-foreground w-8 shrink-0">From</span>
+                                  <span className="text-foreground break-words">{renameMeta.from}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <span className="font-medium text-muted-foreground w-8 shrink-0">To</span>
+                                  <span className="text-foreground break-words font-medium">{renameMeta.to}</span>
+                                </div>
+                              </div>
+                            )}
+                            <p className="mt-1 font-mono text-xs text-muted-foreground">
+                              {log.createdAt && formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                            </p>
+                          </div>
+                          {isRenameEntry && (
+                            <button
+                              className="text-xs text-primary hover:underline shrink-0 mt-0.5"
+                              onClick={toggleLog}
+                              data-testid={`button-expand-log-${log.id}`}
+                            >
+                              {isExpanded ? 'Hide details' : 'See details'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="py-4 text-center text-sm text-muted-foreground">

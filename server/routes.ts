@@ -5501,17 +5501,31 @@ export async function registerRoutes(
 
       const updated = await storage.updateDocument(id, body);
       
-      // Log the change
-      await storage.createAuditLog({
-        userId: user.id,
-        userName: user.fullName,
-        action: "update_document",
-        entityId: doc.entityId,
-        documentId: id,
-        module: doc.module as any,
-        details: `Updated: ${Object.keys(req.body).join(", ")}`,
-        ipAddress: req.ip,
-      });
+      // Log the change — use a dedicated action when only the title changed
+      if ("title" in req.body && Object.keys(req.body).length === 1) {
+        await storage.createAuditLog({
+          userId: user.id,
+          userName: user.fullName,
+          action: "document_renamed",
+          entityId: doc.entityId,
+          documentId: id,
+          module: doc.module as any,
+          details: `Renamed document`,
+          metadata: JSON.stringify({ from: doc.title, to: req.body.title }),
+          ipAddress: req.ip,
+        });
+      } else {
+        await storage.createAuditLog({
+          userId: user.id,
+          userName: user.fullName,
+          action: "update_document",
+          entityId: doc.entityId,
+          documentId: id,
+          module: doc.module as any,
+          details: `Updated: ${Object.keys(req.body).join(", ")}`,
+          ipAddress: req.ip,
+        });
+      }
 
       try {
         const payload = { documentId: updated.id, siteId: updated.siteId };

@@ -4328,6 +4328,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   return { icon: Upload, bg: 'bg-blue-100 dark:bg-blue-900/40', color: 'text-blue-600 dark:text-blue-400', label: 'Upload' };
                 case 'document_archived':
                   return { icon: FileText, bg: 'bg-gray-100 dark:bg-gray-800', color: 'text-gray-600 dark:text-gray-400', label: 'Archive' };
+                case 'document_renamed':
+                  return { icon: Pencil, bg: 'bg-sky-100 dark:bg-sky-900/40', color: 'text-sky-600 dark:text-sky-400', label: 'Edit' };
                 default:
                   return { icon: FileText, bg: 'bg-muted', color: 'text-muted-foreground', label: 'Other' };
               }
@@ -4346,6 +4348,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 case 'document_viewed': return 'Document viewed';
                 case 'document_downloaded': return 'Document downloaded';
                 case 'document_archived': return 'Document archived';
+                case 'document_renamed': return 'Document renamed';
                 default: return action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
               }
             };
@@ -4357,7 +4360,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               views:     ['document_viewed'],
               downloads: ['document_downloaded'],
               emails:    ['email_sent'],
-              other:     ['document_archived'],
+              other:     ['document_archived', 'document_renamed', 'update_document'],
             };
 
             // Sort newest first, then apply type filter
@@ -4508,6 +4511,13 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         }
                         const emailTypeLabel = emailMeta.emailType ? EMAIL_TYPE_LABELS[emailMeta.emailType] ?? null : null;
 
+                        // For rename entries, parse from/to out of metadata
+                        let renameMeta: { from?: string; to?: string } = {};
+                        if (log.action === 'document_renamed' && log.metadata) {
+                          try { renameMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
+                        }
+                        const isRenameEntry = log.action === 'document_renamed' && !!(renameMeta.from || renameMeta.to);
+
                         return (
                           <div key={log.id} className="flex items-start gap-3 border-b pb-4 last:border-0 last:pb-0">
                             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${style.bg}`}>
@@ -4530,6 +4540,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       )}
                                     </div>
                                   )}
+                                  {isRenameEntry && isExpanded && (
+                                    <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-1.5 text-xs">
+                                      <div className="flex items-start gap-2">
+                                        <span className="font-medium text-muted-foreground w-8 shrink-0">From</span>
+                                        <span className="text-foreground break-words">{renameMeta.from}</span>
+                                      </div>
+                                      <div className="flex items-start gap-2">
+                                        <span className="font-medium text-muted-foreground w-8 shrink-0">To</span>
+                                        <span className="text-foreground break-words font-medium">{renameMeta.to}</span>
+                                      </div>
+                                    </div>
+                                  )}
                                   {isExpanded && hasManualComment && (
                                     <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
                                       <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
@@ -4548,6 +4570,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                     </button>
                                   )}
                                   {log.action === 'email_sent' && (emailTypeLabel || details) && (
+                                    <button
+                                      className="text-xs text-primary hover:underline"
+                                      onClick={toggleLog}
+                                      data-testid={`button-expand-log-${log.id}`}
+                                    >
+                                      {isExpanded ? 'Hide details' : 'See details'}
+                                    </button>
+                                  )}
+                                  {isRenameEntry && (
                                     <button
                                       className="text-xs text-primary hover:underline"
                                       onClick={toggleLog}
