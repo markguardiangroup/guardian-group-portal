@@ -8476,6 +8476,13 @@
           "message": "Fixed: admins no longer see group member companies from other sources",
           "category": "bug",
           "createdAt": "2026-06-09T20:29:29.931Z"
+        },
+        {
+          "id": "d4e9f3a2-admin-user-list-access-2026",
+          "patch": 15,
+          "message": "Fixed: admin users can now access the user list (was showing Access Denied)",
+          "category": "bug",
+          "createdAt": "2026-06-09T20:34:32.313Z"
         }
       ],
       "publishedPatch": 14,

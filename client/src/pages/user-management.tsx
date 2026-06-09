@@ -196,8 +196,9 @@ export default function UserManagement() {
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
   const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
+  const isAdmin = user?.role === "administrator";
   const isStandardConsultant = isConsultant && !isPro;
-  const canAddUser = isDeveloper || isPro;
+  const canAddUser = isDeveloper || isPro || isAdmin;
   const { toast } = useToast();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const companyFilter = selectedCompany || "all";
@@ -349,7 +350,7 @@ export default function UserManagement() {
 
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/users"],
-    enabled: isDeveloper || isConsultant,
+    enabled: isDeveloper || isConsultant || isAdmin,
     staleTime: 60 * 1000,
   });
   useEffect(() => {
@@ -358,7 +359,7 @@ export default function UserManagement() {
 
   const { data: onlineData } = useQuery<{ userIds: string[] }>({
     queryKey: ["/api/users/online"],
-    enabled: isDeveloper || isConsultant,
+    enabled: isDeveloper || isConsultant || isAdmin,
     refetchInterval: 30_000,
     refetchIntervalInBackground: false,
     staleTime: 20_000,
@@ -372,7 +373,7 @@ export default function UserManagement() {
 
   const { data: keyContactUserIds = [] } = useQuery<string[]>({
     queryKey: ["/api/key-contacts/user-ids"],
-    enabled: isDeveloper || isConsultant,
+    enabled: isDeveloper || isConsultant || isAdmin,
     staleTime: 0,
     queryFn: async () => {
       const res = await fetch("/api/key-contacts/user-ids", { credentials: "include" });
@@ -432,12 +433,12 @@ export default function UserManagement() {
 
   const { data: sites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
-    enabled: isDeveloper || isConsultant,
+    enabled: isDeveloper || isConsultant || isAdmin,
   });
 
   const { data: companiesResponse } = useQuery<{ companies: { id: string; name: string; website?: string | null; sources?: string[] | null; contactEmail?: string | null; contactName?: string | null; contactUserId?: string | null; groupOwnerId?: string | null }[] }>({
     queryKey: ["/api/companies?limit=1000"],
-    enabled: isDeveloper || isConsultant,
+    enabled: isDeveloper || isConsultant || isAdmin,
   });
   const companies = companiesResponse?.companies || [];
 
@@ -466,7 +467,7 @@ export default function UserManagement() {
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: isDeveloper || isConsultant,
+    enabled: isDeveloper || isConsultant || isAdmin,
   });
 
   // Standard consultants can only create users for companies linked to their assigned sites
@@ -526,7 +527,7 @@ export default function UserManagement() {
     return u;
   });
 
-  if (!isDeveloper && !isConsultant) {
+  if (!isDeveloper && !isConsultant && !isAdmin) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
         <Card className="max-w-md">
@@ -543,7 +544,7 @@ export default function UserManagement() {
 
   const getVisibleUsers = () => {
     if (isDeveloper) return usersWithSiteInfo;
-    if (isPro) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "administrator" || u.role === "client");
+    if (isPro || isAdmin) return usersWithSiteInfo.filter((u) => u.role === "consultant" || u.role === "administrator" || u.role === "client");
     // Standard consultants: backend already filtered — safety net to ensure no consultants/admins slip through
     if (isConsultant) return usersWithSiteInfo.filter((u) => u.role === "client");
     return [];
