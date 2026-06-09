@@ -1579,18 +1579,21 @@ function DocumentDetailView({ id }: { id: string }) {
           </Button>
           <div>
             {isPrivilegedUser && editingTitle ? (
-              <div className="flex items-center gap-2 mb-2 w-full">
-                <input
-                  className="text-3xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none flex-1 min-w-0"
-                  value={titleDraft}
-                  onChange={e => setTitleDraft(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter" && titleDraft.trim()) renameMutation.mutate(titleDraft.trim());
-                    if (e.key === "Escape") setEditingTitle(false);
-                  }}
-                  autoFocus
-                  data-testid="input-document-title"
-                />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="inline-grid">
+                  <span className="text-3xl font-semibold invisible whitespace-pre [grid-area:1/1] pointer-events-none">{titleDraft}&nbsp;</span>
+                  <input
+                    className="text-3xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none [grid-area:1/1] min-w-0 w-full"
+                    value={titleDraft}
+                    onChange={e => setTitleDraft(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && titleDraft.trim()) renameMutation.mutate(titleDraft.trim());
+                      if (e.key === "Escape") setEditingTitle(false);
+                    }}
+                    autoFocus
+                    data-testid="input-document-title"
+                  />
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"

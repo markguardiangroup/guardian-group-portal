@@ -8420,6 +8420,13 @@
           "message": "Fixed: document rename input now stays the same size as the title text",
           "category": "bug",
           "createdAt": "2026-06-09T19:37:34.194Z"
+        },
+        {
+          "id": "d3f5a9b2-document-title-input-auto-width-2026",
+          "patch": 15,
+          "message": "Fixed: document rename input now auto-sizes to match the text length",
+          "category": "bug",
+          "createdAt": "2026-06-09T19:41:02.820Z"
         }
       ],
       "publishedPatch": 14,
