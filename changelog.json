@@ -8511,6 +8511,13 @@
           "message": "iShare recipient list now includes developer accounts",
           "category": "enhancement",
           "createdAt": "2026-06-09T20:49:30.195Z"
+        },
+        {
+          "id": "b8d4e1f0-ishare-tables-created-2026",
+          "patch": 15,
+          "message": "Fixed: iShare folder creation was failing due to missing database tables",
+          "category": "bug",
+          "createdAt": "2026-06-09T20:53:56.250Z"
         }
       ],
       "publishedPatch": 14,
