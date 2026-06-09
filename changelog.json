@@ -8518,6 +8518,13 @@
           "message": "Fixed: iShare folder creation was failing due to missing database tables",
           "category": "bug",
           "createdAt": "2026-06-09T20:53:56.250Z"
+        },
+        {
+          "id": "c9e1f3a5-ishare-developer-recipient-fix-2026",
+          "patch": 15,
+          "message": "Fixed: iShare shares can now be sent to developers as well as consultants",
+          "category": "bug",
+          "createdAt": "2026-06-09T20:58:14.678Z"
         }
       ],
       "publishedPatch": 14,

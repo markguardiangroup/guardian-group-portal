@@ -18282,8 +18282,8 @@ export async function registerRoutes(
       }
 
       const recipient = await storage.getUser(recipientUserId);
-      if (!recipient || recipient.role !== "consultant") {
-        return res.status(400).json({ error: "Recipient must be a consultant" });
+      if (!recipient || !["consultant", "developer"].includes(recipient.role)) {
+        return res.status(400).json({ error: "Recipient must be a consultant or developer" });
       }
 
       // Folder expiry is a long-running safety-net; file-level expiry drives deletion

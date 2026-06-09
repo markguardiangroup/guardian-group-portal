@@ -354,7 +354,7 @@ export default function IShare() {
       return;
     }
     if (!recipientUserId) {
-      toast({ title: "Please select a recipient consultant", variant: "destructive" });
+      toast({ title: "Please select a recipient", variant: "destructive" });
       return;
     }
 
@@ -1176,10 +1176,10 @@ export default function IShare() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="recipient-select">Send to Consultant <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="recipient-select">Send to <span className="text-destructive">*</span></Label>
                   <Select value={recipientUserId} onValueChange={setRecipientUserId}>
                     <SelectTrigger id="recipient-select" data-testid="select-recipient">
-                      <SelectValue placeholder="Select a consultant..." />
+                      <SelectValue placeholder="Select a recipient..." />
                     </SelectTrigger>
                     <SelectContent>
                       {consultants
@@ -1279,7 +1279,7 @@ export default function IShare() {
                       return;
                     }
                     if (!recipientUserId) {
-                      toast({ title: "Please select a recipient consultant", variant: "destructive" });
+                      toast({ title: "Please select a recipient", variant: "destructive" });
                       return;
                     }
                     setCreateStep(2);
