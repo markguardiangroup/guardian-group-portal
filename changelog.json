@@ -8406,6 +8406,13 @@
           "message": "Fixed: 'Log In Now' after setting a password now goes straight to the login screen",
           "category": "bug",
           "createdAt": "2026-06-09T19:25:00.000Z"
+        },
+        {
+          "id": "a9c3e7f1-document-inline-title-edit-2026",
+          "patch": 15,
+          "message": "Non-client users can rename a document directly from the document detail page",
+          "category": "feature",
+          "createdAt": "2026-06-09T19:35:08.137Z"
         }
       ],
       "publishedPatch": 14,

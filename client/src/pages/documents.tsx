@@ -94,6 +94,9 @@ import {
   Plus,
   ExternalLink,
   RefreshCw,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { Document, DocumentType, DocumentVersion, AuditLog, DocumentFolder, Site, ModuleType, DocumentStatus, ApprovalStatus } from "@shared/schema";
@@ -1243,6 +1246,8 @@ function DocumentDetailView({ id }: { id: string }) {
   const [editExpiryDate, setEditExpiryDate] = useState<string>("");
   const [editIsRequired, setEditIsRequired] = useState(false);
   const [complianceDirty, setComplianceDirty] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
 
   const { data: document, isLoading } = useQuery<EnrichedDocument>({
     queryKey: ["/api/documents", id],
@@ -1422,6 +1427,20 @@ function DocumentDetailView({ id }: { id: string }) {
     },
   });
 
+  const renameMutation = useMutation({
+    mutationFn: async (title: string) => {
+      return apiRequest("PATCH", `/api/documents/${id}`, { title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      setEditingTitle(false);
+      toast({ title: "Document renamed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to rename document", variant: "destructive" });
+    },
+  });
+
   const complianceUpdateMutation = useMutation({
     mutationFn: async () => {
       const body: Record<string, any> = {};
@@ -1559,7 +1578,55 @@ function DocumentDetailView({ id }: { id: string }) {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-semibold">{document.title}</h1>
+            {isPrivilegedUser && editingTitle ? (
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  className="text-3xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none min-w-0 w-96 max-w-full"
+                  value={titleDraft}
+                  onChange={e => setTitleDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && titleDraft.trim()) renameMutation.mutate(titleDraft.trim());
+                    if (e.key === "Escape") setEditingTitle(false);
+                  }}
+                  autoFocus
+                  data-testid="input-document-title"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => { if (titleDraft.trim()) renameMutation.mutate(titleDraft.trim()); }}
+                  disabled={renameMutation.isPending || !titleDraft.trim()}
+                  data-testid="button-save-title"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={() => setEditingTitle(false)}
+                  data-testid="button-cancel-title"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-3xl font-semibold">{document.title}</h1>
+                {isPrivilegedUser && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => { setTitleDraft(document.title); setEditingTitle(true); }}
+                    data-testid="button-edit-title"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <Badge variant="secondary">{documentTypeLabels[document.type]}</Badge>
               <ComplianceBadge isMandatory={document.isMandatory} status={document.status} approvalStatus={document.approvalStatus} />

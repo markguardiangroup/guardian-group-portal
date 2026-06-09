@@ -90,6 +90,8 @@ import {
   Building2,
   ExternalLink,
   Link as LinkIcon,
+  Pencil,
+  Check,
 } from "lucide-react";
 import {
   Accordion,
@@ -3156,6 +3158,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [editExpiryDate, setEditExpiryDate] = useState<string>("");
   const [editIsRequired, setEditIsRequired] = useState(false);
   const [complianceDirty, setComplianceDirty] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
@@ -3325,6 +3329,20 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     onError: (error: Error, _vars, context) => {
       if (context) setEditIsRequired(context.previous);
       toast({ title: "Error", description: error.message || "Failed to update compliance setting", variant: "destructive" });
+    },
+  });
+
+  const renameMutation = useMutation({
+    mutationFn: async (title: string) => {
+      return apiRequest("PATCH", `/api/documents/${id}`, { title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      setEditingTitle(false);
+      toast({ title: "Document renamed" });
+    },
+    onError: () => {
+      toast({ title: "Failed to rename document", variant: "destructive" });
     },
   });
 
@@ -3659,8 +3677,56 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
           </Link>
         </Button>
         <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">{document.title}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            {isPrivilegedUser && editingTitle ? (
+              <div className="flex items-center gap-2">
+                <input
+                  className="text-2xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none min-w-0 w-96 max-w-full"
+                  value={titleDraft}
+                  onChange={e => setTitleDraft(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === "Enter" && titleDraft.trim()) renameMutation.mutate(titleDraft.trim());
+                    if (e.key === "Escape") setEditingTitle(false);
+                  }}
+                  autoFocus
+                  data-testid="input-document-title"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => { if (titleDraft.trim()) renameMutation.mutate(titleDraft.trim()); }}
+                  disabled={renameMutation.isPending || !titleDraft.trim()}
+                  data-testid="button-save-title"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={() => setEditingTitle(false)}
+                  data-testid="button-cancel-title"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold">{document.title}</h1>
+                {isPrivilegedUser && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={() => { setTitleDraft(document.title); setEditingTitle(true); }}
+                    data-testid="button-edit-title"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            )}
             {document.isArchived && (
               <Badge variant="secondary" className="gap-1 bg-muted">
                 <Archive className="h-3 w-3" />
