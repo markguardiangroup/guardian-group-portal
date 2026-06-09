@@ -5464,7 +5464,7 @@ export class MemStorage implements IStorage {
     return await db
       .select()
       .from(usersTable)
-      .where(eq(usersTable.role, "consultant"));
+      .where(inArray(usersTable.role, ["consultant", "developer"]));
   }
 
   async getIshares(folderId: string): Promise<IshareWithUploader[]> {
