@@ -8658,6 +8658,13 @@
           "message": "Fixed: 'Changes requested' audit entry no longer shows an unnecessary expand",
           "category": "bug",
           "createdAt": "2026-06-10T00:20:00.000Z"
+        },
+        {
+          "id": "e8f0a2b4-changes-requested-admin-notif-2026",
+          "patch": 15,
+          "message": "Fixed: 'Changes requested' notification now always goes to the Admin for on-behalf uploads",
+          "category": "bug",
+          "createdAt": "2026-06-10T00:30:00.000Z"
         }
       ],
       "publishedPatch": 14,

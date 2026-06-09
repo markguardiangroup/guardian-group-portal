@@ -5217,10 +5217,14 @@ export async function registerRoutes(
 
             // Step 1: if an Admin initiated this upload on behalf of a consultant,
             // the notification goes to the Admin — they are the one "taking charge".
+            // We add the admin to changesNotifiedIds AFTER the attempt (success or fail)
+            // so the consultant fallback (step 1b) never fires for on-behalf documents.
             if (existingDoc.initiatedByUserId) {
               const initiator = await storage.getUser(existingDoc.initiatedByUserId);
               if (initiator && initiator.role === "administrator") {
                 await sendChangesNotifToConsultant(initiator, "admin (initiator)");
+                // Block consultant fallback regardless of email success
+                changesNotifiedIds.add(initiator.id);
               }
             }
 
