@@ -8525,6 +8525,13 @@
           "message": "Fixed: iShare shares can now be sent to developers as well as consultants",
           "category": "bug",
           "createdAt": "2026-06-09T20:58:14.678Z"
+        },
+        {
+          "id": "d1a3c5e7-ishare-upload-route-fix-2026",
+          "patch": 15,
+          "message": "Fixed: iShare file uploads now work correctly",
+          "category": "bug",
+          "createdAt": "2026-06-09T21:00:54.499Z"
         }
       ],
       "publishedPatch": 14,

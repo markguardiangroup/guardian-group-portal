@@ -18224,6 +18224,43 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Generic file upload to object storage (returns objectPath) ─────────────
+  app.post("/api/uploads/file", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
+
+      const rawFileName = req.headers["x-file-name"] as string | undefined;
+      if (!rawFileName) return res.status(400).json({ error: "Missing X-File-Name header" });
+      const fileName = decodeURIComponent(rawFileName);
+      const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
+
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      const buffer = Buffer.concat(chunks);
+      if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
+
+      const objectStorageService = new ObjectStorageService();
+      const privateObjectDir = objectStorageService.getPrivateObjectDir();
+      const objectId = crypto.randomUUID();
+      const fullPath = `${privateObjectDir}/uploads/${objectId}`;
+      const pathParts = fullPath.startsWith("/") ? fullPath.slice(1).split("/") : fullPath.split("/");
+      const bucketName = pathParts[0];
+      const objectName = pathParts.slice(1).join("/");
+      const bucket = objectStorageClient.bucket(bucketName);
+      const file = bucket.file(objectName);
+      await file.save(buffer, { contentType, metadata: { originalName: fileName } });
+      const objectPath = `/objects/uploads/${objectId}`;
+
+      res.json({ objectPath });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
   // ─── iShare (consultant-to-consultant file transfer) ────────────────────────
   // Fully data-isolated from Cloud Share. Non-client users only. No site scoping.
   const isNonClient = (role: string | null | undefined) =>
