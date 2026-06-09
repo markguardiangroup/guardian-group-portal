@@ -8630,6 +8630,13 @@
           "message": "Fixed: 'Approval On Behalf Of' field now shows red border when empty, same as Approver",
           "category": "bug",
           "createdAt": "2026-06-09T23:40:00.000Z"
+        },
+        {
+          "id": "a4b6c8d0-upload-audit-on-behalf-name-backfill-2026",
+          "patch": 15,
+          "message": "Fixed: 'Document uploaded' audit entry now reliably shows 'on behalf of [consultant]'",
+          "category": "bug",
+          "createdAt": "2026-06-09T23:50:00.000Z"
         }
       ],
       "publishedPatch": 14,
