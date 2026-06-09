@@ -8399,13 +8399,6 @@
           "message": "Fixed: login button could get stuck and error message could disappear after a failed attempt",
           "category": "bug",
           "createdAt": "2026-06-09T18:18:00.000Z"
-        },
-        {
-          "id": "b8e2d4f6-set-password-smooth-redirect-2026",
-          "patch": 15,
-          "message": "Improved: goes straight to login after setting or resetting a password — no white flash",
-          "category": "enhancement",
-          "createdAt": "2026-06-09T18:27:00.000Z"
         }
       ],
       "publishedPatch": 14,

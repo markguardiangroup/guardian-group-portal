@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ const SectionHeader = ({
 
 export default function SetPassword() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -57,10 +55,6 @@ export default function SetPassword() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<"terms" | "privacy" | null>(null);
-
-  useEffect(() => {
-    if (isSuccess) setLocation("/");
-  }, [isSuccess, setLocation]);
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
@@ -177,7 +171,7 @@ export default function SetPassword() {
           description="This link is missing required information. Please use the link from your invitation email."
         />
         <div className="flex justify-center">
-          <Button onClick={() => setLocation("/")} data-testid="button-go-to-login">
+          <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
             Go to Login
           </Button>
         </div>
@@ -221,7 +215,7 @@ export default function SetPassword() {
           </table>
         </div>
         <div className="flex justify-center">
-          <Button onClick={() => setLocation("/")} data-testid="button-login-now">
+          <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
             Log In Now
           </Button>
         </div>
@@ -254,7 +248,7 @@ export default function SetPassword() {
           <p className="text-sm text-slate-500 text-center">
             Please contact your administrator to request a new invitation.
           </p>
-          <Button onClick={() => setLocation("/")} data-testid="button-go-to-login">
+          <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
             Go to Login
           </Button>
         </div>
@@ -298,7 +292,7 @@ export default function SetPassword() {
           </table>
         </div>
         <div className="flex justify-center">
-          <Button onClick={() => setLocation("/")} data-testid="button-login-now">
+          <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
             Log In Now
           </Button>
         </div>
