@@ -8539,6 +8539,13 @@
           "message": "Improved: iShare Upload Files dialog now opens straight to the file picker",
           "category": "enhancement",
           "createdAt": "2026-06-09T21:19:00.000Z"
+        },
+        {
+          "id": "f3c5d7e9-ishare-upload-folder-deleted-before-upload-2026",
+          "patch": 15,
+          "message": "Fixed: iShare file uploads now work — folder was being auto-deleted before files could be added",
+          "category": "bug",
+          "createdAt": "2026-06-09T21:24:00.000Z"
         }
       ],
       "publishedPatch": 14,

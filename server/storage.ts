@@ -5554,7 +5554,7 @@ export class MemStorage implements IStorage {
       const isEmpty = remaining.length === 0;
       const pastSafetyNet = folder.expiresAt < now;
 
-      if (isEmpty || pastSafetyNet) {
+      if (pastSafetyNet || (isEmpty && folder.createdAt < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000))) {
         await this.deleteIshareFolder(folder.id);
       }
     }
