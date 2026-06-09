@@ -161,7 +161,8 @@ export default function AdminFeedback() {
   const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
 
-  if (!isDeveloper && !isConsultant) {
+  const isAdmin = user?.role === "administrator";
+  if (!isDeveloper && !isConsultant && !isAdmin) {
     return (
       <div className="container mx-auto p-6">
         <Card>
