@@ -4536,7 +4536,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium">{getActionLabel(log.action)}</p>
                                   <p className="text-xs text-muted-foreground mt-0.5">
-                                    {log.userName}{uploadMeta.onBehalfUserName ? <> · on behalf of <span className="font-medium text-foreground">{uploadMeta.onBehalfUserName}</span></> : null} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                    {log.action === 'email_sent' ? <>by <span className="font-medium text-foreground">{log.userName}</span></> : log.userName}{uploadMeta.onBehalfUserName ? <> · on behalf of <span className="font-medium text-foreground">{uploadMeta.onBehalfUserName}</span></> : null} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
                                   {log.action === 'email_sent' && isExpanded && (emailTypeLabel || details) && (
                                     <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-0.5">
