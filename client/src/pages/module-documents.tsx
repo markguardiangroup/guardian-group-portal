@@ -4348,7 +4348,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 case 'document_viewed': return 'Document viewed';
                 case 'document_downloaded': return 'Document downloaded';
                 case 'document_archived': return 'Document archived';
-                case 'document_renamed': return 'Document renamed';
+                case 'document_renamed': return 'Document name updated';
                 default: return action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
               }
             };
@@ -4540,17 +4540,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       )}
                                     </div>
                                   )}
-                                  {isRenameEntry && isExpanded && (
-                                    <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-1.5 text-xs">
-                                      <div className="flex items-start gap-2">
-                                        <span className="font-medium text-muted-foreground w-8 shrink-0">From</span>
-                                        <span className="text-foreground break-words">{renameMeta.from}</span>
-                                      </div>
-                                      <div className="flex items-start gap-2">
-                                        <span className="font-medium text-muted-foreground w-8 shrink-0">To</span>
-                                        <span className="text-foreground break-words font-medium">{renameMeta.to}</span>
-                                      </div>
-                                    </div>
+                                  {isRenameEntry && (
+                                    <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                                      Changed from <span className="text-foreground">"{renameMeta.from}"</span> to <span className="text-foreground font-medium">"{renameMeta.to}"</span>
+                                    </p>
                                   )}
                                   {isExpanded && hasManualComment && (
                                     <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
@@ -4570,15 +4563,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                     </button>
                                   )}
                                   {log.action === 'email_sent' && (emailTypeLabel || details) && (
-                                    <button
-                                      className="text-xs text-primary hover:underline"
-                                      onClick={toggleLog}
-                                      data-testid={`button-expand-log-${log.id}`}
-                                    >
-                                      {isExpanded ? 'Hide details' : 'See details'}
-                                    </button>
-                                  )}
-                                  {isRenameEntry && (
                                     <button
                                       className="text-xs text-primary hover:underline"
                                       onClick={toggleLog}

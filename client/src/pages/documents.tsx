@@ -2272,37 +2272,21 @@ function DocumentDetailView({ id }: { id: string }) {
                             <p className="text-sm">
                               <span className="font-medium">{log.userName}</span>{" "}
                               <span className="text-muted-foreground">
-                                {log.action === 'document_renamed' ? 'renamed this document' : log.action.replace(/_/g, " ")}
+                                {log.action === 'document_renamed' ? 'updated the document name' : log.action.replace(/_/g, " ")}
                               </span>
                             </p>
                             {log.details && log.action !== 'document_renamed' && (
                               <p className="mt-0.5 text-sm text-muted-foreground">{log.details}</p>
                             )}
-                            {isRenameEntry && isExpanded && (
-                              <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-1.5 text-xs">
-                                <div className="flex items-start gap-2">
-                                  <span className="font-medium text-muted-foreground w-8 shrink-0">From</span>
-                                  <span className="text-foreground break-words">{renameMeta.from}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                  <span className="font-medium text-muted-foreground w-8 shrink-0">To</span>
-                                  <span className="text-foreground break-words font-medium">{renameMeta.to}</span>
-                                </div>
-                              </div>
+                            {isRenameEntry && (
+                              <p className="mt-0.5 text-sm text-muted-foreground break-words">
+                                Changed from <span className="text-foreground">"{renameMeta.from}"</span> to <span className="text-foreground font-medium">"{renameMeta.to}"</span>
+                              </p>
                             )}
                             <p className="mt-1 font-mono text-xs text-muted-foreground">
                               {log.createdAt && formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                             </p>
                           </div>
-                          {isRenameEntry && (
-                            <button
-                              className="text-xs text-primary hover:underline shrink-0 mt-0.5"
-                              onClick={toggleLog}
-                              data-testid={`button-expand-log-${log.id}`}
-                            >
-                              {isExpanded ? 'Hide details' : 'See details'}
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
