@@ -192,6 +192,11 @@ const adminNavItems = [
     icon: Users,
   },
   {
+    title: "iShare",
+    url: "/ishare",
+    icon: Send,
+  },
+  {
     title: "Template Library",
     url: "/template-library",
     icon: BookOpen,
@@ -232,11 +237,6 @@ const adminNavItems = [
     icon: ShieldAlert,
   },
   {
-    title: "iShare",
-    url: "/ishare",
-    icon: Send,
-  },
-  {
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,
@@ -266,6 +266,11 @@ const consultantNavItems = [
     icon: Users,
   },
   {
+    title: "iShare",
+    url: "/ishare",
+    icon: Send,
+  },
+  {
     title: "Template Library",
     url: "/template-library",
     icon: BookOpen,
@@ -282,11 +287,6 @@ const consultantNavItems = [
     url: "/admin/services",
     icon: PackageOpen,
     permission: "services" as const,
-  },
-  {
-    title: "iShare",
-    url: "/ishare",
-    icon: Send,
   },
   {
     title: "Feedback",

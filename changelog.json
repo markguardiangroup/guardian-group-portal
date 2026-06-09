@@ -8497,6 +8497,13 @@
           "message": "New iShare tool lets consultants securely send files to each other",
           "category": "feature",
           "createdAt": "2026-06-09T20:34:45.959Z"
+        },
+        {
+          "id": "f6a2b8c1-ishare-nav-position-2026",
+          "patch": 15,
+          "message": "Moved iShare link to just below Users in the sidebar",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T20:48:00.830Z"
         }
       ],
       "publishedPatch": 14,
