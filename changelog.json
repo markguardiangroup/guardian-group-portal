@@ -8322,6 +8322,13 @@
           "message": "Fixed: My Actions now loads correctly for Developer and Admin users (was crashing silently)",
           "category": "bug",
           "createdAt": "2026-06-09T14:36:29.783Z"
+        },
+        {
+          "id": "e0d16e24-42da-4ac6-b15a-de74261afded",
+          "patch": 15,
+          "message": "Received timestamp in sign-off list now shows time as well as date",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T14:57:49.204Z"
         }
       ],
       "publishedPatch": 14,

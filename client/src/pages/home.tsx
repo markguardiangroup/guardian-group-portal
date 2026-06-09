@@ -874,7 +874,7 @@ function MyActionsPanel({ role }: { role: string }) {
                           <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
                             {item.receivedAt && (
                               <span className="text-[11px] text-muted-foreground">
-                                Received: {format(new Date(item.receivedAt), "d MMM yyyy")}
+                                Received: {format(new Date(item.receivedAt), "d MMM yyyy, HH:mm")}
                               </span>
                             )}
                             {item.renewalDate && (
