@@ -117,7 +117,6 @@ export default function Login() {
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const turnstileRef = useRef<HTMLDivElement>(null);
   const turnstileWidgetId = useRef<string | null>(null);
@@ -226,7 +225,6 @@ export default function Login() {
 
       // Navigate straight away — the DataPrefetcher in AuthenticatedApp handles
       // background loading of all other data once the user lands on the dashboard.
-      setIsSubmitting(false);
       // Restore the originally-requested URL (from an email deep link, etc.)
       // unless the user actually started on /login or root.
       const intended = intendedPathRef.current || "/";
@@ -235,7 +233,6 @@ export default function Login() {
       setLocation(target);
     },
     onError: async (error: Error) => {
-      setIsSubmitting(false);
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
       setLoginError(null);
@@ -266,11 +263,9 @@ export default function Login() {
     },
   });
 
-  const isLoading = isSubmitting || loginMutation.isPending;
-
   return (
     <div className="min-h-screen flex">
-      {isLoading && (
+      {loginMutation.isPending && (
         <div className="login-progress-bar">
           <div className="login-progress-bar-inner" />
         </div>
@@ -420,22 +415,6 @@ export default function Login() {
           <ExternalLink className="h-3.5 w-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 self-start mt-1" />
         </a>
 
-        {isLoading ? (
-          <div className="relative z-10 w-full max-w-sm flex flex-col items-center gap-5 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl"
-              style={{ background: "linear-gradient(135deg, #0ea5e9, #818cf8)" }}>
-              <Loader2 className="h-8 w-8 text-white animate-spin" />
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-slate-800">Signing you in</p>
-              <p className="text-sm text-slate-500 mt-1">Loading your portal, please wait…</p>
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
-              <div className="h-full rounded-full login-progress-bar-inner" style={{ width: "60%" }} />
-            </div>
-          </div>
-        ) : (
-
         <div className="relative z-10 w-full max-w-sm">
           {/* Form card */}
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/80 p-8">
@@ -457,7 +436,7 @@ export default function Login() {
             </div>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(d => { setIsSubmitting(true); setIsAccountLocked(false); setAttemptsRemaining(null); setLoginError(null); loginMutation.mutate(d); })} className="space-y-4">
+              <form onSubmit={form.handleSubmit(d => { setIsAccountLocked(false); setAttemptsRemaining(null); setLoginError(null); loginMutation.mutate(d); })} className="space-y-4">
 
                 {isAccountLocked && (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4" data-testid="alert-account-locked">
@@ -586,7 +565,6 @@ export default function Login() {
             Protected by SSL encryption · GDPR compliant
           </p>
         </div>
-        )}
       </div>
 
       {/* Forgot password dialog */}
