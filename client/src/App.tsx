@@ -971,11 +971,13 @@ function PublicRoutes() {
 }
 
 function AppRouter() {
-  // Check if on public route first
+  // useLocation subscribes this component to URL changes so it re-renders
+  // when setLocation("/") is called from a public page (e.g. set-password).
+  // Without this, switching from PublicRoutes to AuthenticatedApp never happens
+  // and the browser shows a blank screen.
+  const [location] = useLocation();
   const publicPaths = ['/set-password'];
-  const isPublicRoute = publicPaths.some(path => 
-    window.location.pathname.startsWith(path)
-  );
+  const isPublicRoute = publicPaths.some(path => location.startsWith(path));
 
   if (isPublicRoute) {
     return <PublicRoutes />;
