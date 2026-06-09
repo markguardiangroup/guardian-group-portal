@@ -8609,6 +8609,13 @@
           "message": "Fixed: changes-requested notification after a new version upload now goes to the Admin, not the developer fallback",
           "category": "bug",
           "createdAt": "2026-06-09T23:10:00.000Z"
+        },
+        {
+          "id": "d1e3f5a7-version-upload-uploaded-by-consultant-2026",
+          "patch": 15,
+          "message": "Fixed: new version uploaded by Admin now shows the consultant as uploader, not the Admin",
+          "category": "bug",
+          "createdAt": "2026-06-09T23:20:00.000Z"
         }
       ],
       "publishedPatch": 14,
