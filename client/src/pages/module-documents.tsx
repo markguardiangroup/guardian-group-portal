@@ -4177,7 +4177,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   {isPrivilegedUser && (
                     <Button
                       className="bg-orange-600 hover:bg-orange-700 text-white"
-                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setShowUploadVersionDialog(true); }}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
                       data-testid="button-upload-version-changes"
                     >
                       <Upload className="mr-2 h-4 w-4" />
@@ -4712,7 +4712,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       variant="outline"
                       className="w-full justify-start"
                       data-testid="button-upload-version"
-                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setShowUploadVersionDialog(true); }}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload New Version
