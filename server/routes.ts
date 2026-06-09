@@ -5195,11 +5195,22 @@ export async function registerRoutes(
               }
             };
 
-            // Step 1: uploader (consultant or admin — whoever is responsible for the doc)
-            const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
-            console.log(`[changes-trace] uploader=${uploaderForChanges?.id} uploaderRole=${uploaderForChanges?.role}`);
-            if (uploaderForChanges && (uploaderForChanges.role === "consultant" || uploaderForChanges.role === "developer")) {
-              await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "developer (uploader)" : "consultant (uploader)");
+            // Step 1: if an Admin initiated this upload on behalf of a consultant,
+            // the notification goes to the Admin — they are the one "taking charge".
+            if (existingDoc.initiatedByUserId) {
+              const initiator = await storage.getUser(existingDoc.initiatedByUserId);
+              if (initiator && initiator.role === "administrator") {
+                await sendChangesNotifToConsultant(initiator, "admin (initiator)");
+              }
+            }
+
+            // Step 1b: no initiator — notify the uploading consultant/developer directly
+            if (changesNotifiedIds.size === 0) {
+              const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
+              console.log(`[changes-trace] uploader=${uploaderForChanges?.id} uploaderRole=${uploaderForChanges?.role}`);
+              if (uploaderForChanges && (uploaderForChanges.role === "consultant" || uploaderForChanges.role === "developer")) {
+                await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "developer (uploader)" : "consultant (uploader)");
+              }
             }
             console.log(`[changes-trace] after step1 notifiedSize=${changesNotifiedIds.size}`);
             // Step 2: first assigned pro consultant (only if step 1 didn't fire; site-scoped docs only)

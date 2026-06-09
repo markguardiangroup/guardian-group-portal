@@ -8588,6 +8588,13 @@
           "message": "Audit trail now shows who an Admin uploaded on behalf of in the document log",
           "category": "enhancement",
           "createdAt": "2026-06-09T22:30:00.000Z"
+        },
+        {
+          "id": "a7b9c3e5-changes-requested-notify-admin-not-consultant-2026",
+          "patch": 15,
+          "message": "Fixed: changes-requested notification now goes to the Admin who owns the upload, not the consultant",
+          "category": "bug",
+          "createdAt": "2026-06-09T22:45:00.000Z"
         }
       ],
       "publishedPatch": 14,
