@@ -3244,7 +3244,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const isDocumentScoped = !!document && !document.siteId && (document.scope === "company" || document.scope === "group");
   const documentEntityId = document?.entityId;
 
-  const approvalInProgress = document?.approvalStatus === "pending" || document?.approvalStatus === "client_signed_off";
+  const approvalInProgress = document?.approvalStatus === "pending" || document?.approvalStatus === "client_signed_off" || document?.approvalStatus === "changes_requested";
 
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
