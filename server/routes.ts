@@ -18235,11 +18235,14 @@ export async function registerRoutes(
       const fileName = decodeURIComponent(rawFileName);
       const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
 
+      console.log(`[uploads/file] receiving: fileName=${fileName} contentType=${contentType} bodyConsumed=${(req as any)._body !== undefined}`);
+
       const chunks: Buffer[] = [];
       for await (const chunk of req) {
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
       }
       const buffer = Buffer.concat(chunks);
+      console.log(`[uploads/file] buffer size: ${buffer.length} bytes`);
       if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
 
       const objectStorageService = new ObjectStorageService();

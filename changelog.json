@@ -8532,6 +8532,13 @@
           "message": "Fixed: iShare file uploads now work correctly",
           "category": "bug",
           "createdAt": "2026-06-09T21:00:54.499Z"
+        },
+        {
+          "id": "e2b4d6f8-ishare-upload-dialog-no-warning-step-2026",
+          "patch": 15,
+          "message": "Improved: iShare Upload Files dialog now opens straight to the file picker",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T21:19:00.000Z"
         }
       ],
       "publishedPatch": 14,

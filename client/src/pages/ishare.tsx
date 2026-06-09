@@ -388,10 +388,16 @@ export default function IShare() {
           setPendingFiles((prev) =>
             prev.map((f, idx) => (idx === i ? { ...f, status: "done", progress: 100 } : f))
           );
-        } catch {
+        } catch (uploadErr: any) {
+          console.error("iShare file upload error:", uploadErr);
           setPendingFiles((prev) =>
             prev.map((f, idx) => (idx === i ? { ...f, status: "error" } : f))
           );
+          toast({
+            title: `Failed to upload "${pf.file.name}"`,
+            description: uploadErr?.message || "Unknown error",
+            variant: "destructive",
+          });
         }
       }
 
@@ -434,10 +440,16 @@ export default function IShare() {
         setMoreFiles((prev) =>
           prev.map((f, idx) => (idx === i ? { ...f, status: "done", progress: 100 } : f))
         );
-      } catch {
+      } catch (uploadErr: any) {
+        console.error("iShare file upload error:", uploadErr);
         setMoreFiles((prev) =>
           prev.map((f, idx) => (idx === i ? { ...f, status: "error" } : f))
         );
+        toast({
+          title: `Failed to upload "${pf.file.name}"`,
+          description: uploadErr?.message || "Unknown error",
+          variant: "destructive",
+        });
       }
     }
     queryClient.invalidateQueries({ queryKey: ["/api/ishare-folders", selectedFolder.id, "files"] });
@@ -829,125 +841,98 @@ export default function IShare() {
             }
           }}>
             <DialogContent className="max-w-lg">
-              {!uploadMoreWarningShown ? (
-                <>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-500" />
-                      Before you upload
-                    </DialogTitle>
-                    <DialogDescription>
-                      Each file you upload will be <strong>automatically deleted 30 days</strong> after it is uploaded. If you need files available for longer, create a new upload closer to when they are needed.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter className="gap-2 sm:gap-0">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setUploadMoreOpen(false);
-                        setUploadMoreWarningShown(false);
-                        setTimeout(() => {
-                          setCreateDialogOpen(true);
-                          setCreateStep(1);
-                        }, 100);
-                      }}
-                      data-testid="button-create-new-upload"
-                    >
-                      Create New Upload
-                    </Button>
-                    <Button
-                      onClick={() => setUploadMoreWarningShown(true)}
-                      data-testid="button-continue-uploading"
-                    >
-                      Continue Uploading
-                    </Button>
-                  </DialogFooter>
-                </>
-              ) : (
-                <>
-                  <DialogHeader>
-                    <DialogTitle>Upload More Files</DialogTitle>
-                    <DialogDescription>
-                      Add files to <strong>{selectedFolder.name}</strong>. Each file will be automatically deleted 30 days after upload.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <input
-                      ref={moreFileInputRef}
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={handleMoreFileInputChange}
-                      data-testid="input-more-files"
-                    />
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => moreFileInputRef.current?.click()}
-                      data-testid="button-choose-more-files"
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choose Files
-                    </Button>
-                    {moreFiles.length > 0 && (
-                      <div className="space-y-2 max-h-56 overflow-y-auto">
-                        {moreFiles.map((pf, i) => (
-                          <div key={i} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30" data-testid={`more-file-item-${i}`}>
-                            <File className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{pf.file.name}</p>
-                              <p className="text-xs text-muted-foreground">{formatBytes(pf.file.size)}</p>
-                              <Input
-                                placeholder="Optional description"
-                                value={pf.description}
-                                onChange={(e) =>
-                                  setMoreFiles((prev) =>
-                                    prev.map((f, idx) => (idx === i ? { ...f, description: e.target.value } : f))
-                                  )
-                                }
-                                className="h-7 text-xs mt-1"
-                              />
-                            </div>
-                            {pf.status === "uploading" && <img src={logoIcon} alt="" className="h-4 w-4 rounded-full object-cover animate-spin shrink-0" style={{ animationDuration: "1.5s" }} />}
-                            {pf.status === "done" && <span className="text-xs text-emerald-600 shrink-0">Done</span>}
-                            {pf.status === "error" && <span className="text-xs text-destructive shrink-0">Error</span>}
-                            {pf.status === "pending" && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 shrink-0"
-                                onClick={() => setMoreFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
+              <DialogHeader>
+                <DialogTitle>Upload Files</DialogTitle>
+                <DialogDescription>
+                  Add files to <strong>{selectedFolder.name}</strong>.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-200">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span>Files are automatically deleted <strong>30 days</strong> after upload.</span>
+                </div>
+                <input
+                  ref={moreFileInputRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={handleMoreFileInputChange}
+                  data-testid="input-more-files"
+                />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => moreFileInputRef.current?.click()}
+                  data-testid="button-choose-more-files"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose Files
+                </Button>
+                {moreFiles.length > 0 && (
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {moreFiles.map((pf, i) => (
+                      <div key={i} className="flex items-center gap-2 p-2 rounded-md border bg-muted/30" data-testid={`more-file-item-${i}`}>
+                        <File className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{pf.file.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatBytes(pf.file.size)}</p>
+                          <Input
+                            placeholder="Optional description"
+                            value={pf.description}
+                            onChange={(e) =>
+                              setMoreFiles((prev) =>
+                                prev.map((f, idx) => (idx === i ? { ...f, description: e.target.value } : f))
+                              )
+                            }
+                            className="h-7 text-xs mt-1"
+                          />
+                        </div>
+                        {pf.status === "uploading" && <img src={logoIcon} alt="" className="h-4 w-4 rounded-full object-cover animate-spin shrink-0" style={{ animationDuration: "1.5s" }} />}
+                        {pf.status === "done" && <span className="text-xs text-emerald-600 shrink-0">Done</span>}
+                        {pf.status === "error" && <span className="text-xs text-destructive shrink-0">Error</span>}
+                        {pf.status === "pending" && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 shrink-0"
+                            onClick={() => setMoreFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setUploadMoreOpen(false);
-                        setMoreFiles([]);
-                        setUploadMoreWarningShown(false);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleUploadMoreFiles}
-                      disabled={moreFiles.length === 0 || uploadingMore}
-                      data-testid="button-confirm-upload-more"
-                    >
-                      {uploadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-                      Upload {moreFiles.length > 0 ? `${moreFiles.length} File${moreFiles.length !== 1 ? "s" : ""}` : ""}
-                    </Button>
-                  </DialogFooter>
-                </>
-              )}
+                )}
+                {moreFiles.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-6 border-2 border-dashed rounded-md text-muted-foreground">
+                    <Upload className="h-8 w-8 mb-2" />
+                    <p className="text-sm">No files selected yet</p>
+                    <p className="text-xs mt-1">Click "Choose Files" above to add files</p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUploadMoreOpen(false);
+                    setMoreFiles([]);
+                    setUploadMoreWarningShown(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUploadMoreFiles}
+                  disabled={moreFiles.length === 0 || uploadingMore}
+                  data-testid="button-confirm-upload-more"
+                >
+                  {uploadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Upload {moreFiles.length > 0 ? `${moreFiles.length} File${moreFiles.length !== 1 ? "s" : ""}` : "Files"}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 
