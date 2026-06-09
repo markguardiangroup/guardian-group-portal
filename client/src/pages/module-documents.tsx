@@ -4492,6 +4492,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           'document_viewed', 'document_downloaded', 'document_uploaded',
                           'document_approved', 'document_rejected',
                           'email_sent', 'document_version_uploaded', 'version_uploaded',
+                          'update_document', 'document_renamed',
                         ]);
                         const GENERIC_SIGNED_OFF_TEXT = ['document approved', 'document signed off'];
                         const hasManualComment = !!details && (
