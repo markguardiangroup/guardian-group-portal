@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const SectionHeader = ({
 );
 
 export default function SetPassword() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -171,7 +173,7 @@ export default function SetPassword() {
           description="This link is missing required information. Please use the link from your invitation email."
         />
         <div className="flex justify-center">
-          <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
+          <Button onClick={() => setLocation("/")} data-testid="button-go-to-login">
             Go to Login
           </Button>
         </div>
@@ -215,7 +217,7 @@ export default function SetPassword() {
           </table>
         </div>
         <div className="flex justify-center">
-          <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
+          <Button onClick={() => setLocation("/")} data-testid="button-login-now">
             Log In Now
           </Button>
         </div>
@@ -248,7 +250,7 @@ export default function SetPassword() {
           <p className="text-sm text-slate-500 text-center">
             Please contact your administrator to request a new invitation.
           </p>
-          <Button onClick={() => window.location.href = "/"} data-testid="button-go-to-login">
+          <Button onClick={() => setLocation("/")} data-testid="button-go-to-login">
             Go to Login
           </Button>
         </div>
@@ -292,7 +294,7 @@ export default function SetPassword() {
           </table>
         </div>
         <div className="flex justify-center">
-          <Button onClick={() => window.location.href = "/"} data-testid="button-login-now">
+          <Button onClick={() => setLocation("/")} data-testid="button-login-now">
             Log In Now
           </Button>
         </div>

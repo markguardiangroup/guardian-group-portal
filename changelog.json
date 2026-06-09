@@ -8399,6 +8399,13 @@
           "message": "Fixed: login button could get stuck and error message could disappear after a failed attempt",
           "category": "bug",
           "createdAt": "2026-06-09T18:18:00.000Z"
+        },
+        {
+          "id": "b8e2d4f6-set-password-login-now-no-white-flash-2026",
+          "patch": 15,
+          "message": "Fixed: 'Log In Now' after setting a password now navigates instantly with no white screen",
+          "category": "bug",
+          "createdAt": "2026-06-09T18:42:00.000Z"
         }
       ],
       "publishedPatch": 14,
