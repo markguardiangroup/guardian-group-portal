@@ -8371,6 +8371,13 @@
           "message": "Fixed: login screen now shows a clear error message when credentials are wrong",
           "category": "bug",
           "createdAt": "2026-06-09T16:08:18.925Z"
+        },
+        {
+          "id": "c4913c98-bd72-4618-9d09-762b452beb2e",
+          "patch": 15,
+          "message": "Admin role fully wired: can create/update/delete users, manage site assignments and consultant allocations",
+          "category": "feature",
+          "createdAt": "2026-06-09T16:28:00.452Z"
         }
       ],
       "publishedPatch": 14,

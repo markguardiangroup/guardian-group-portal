@@ -14050,7 +14050,7 @@ export async function registerRoutes(
       
       const isStandardConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
 
-      if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStandardConsultant) {
+      if (currentUser.role !== "developer" && !hasProPrivileges(currentUser) && !isStandardConsultant) {
         return res.status(403).json({ error: "Only developers and consultants can create users" });
       }
       
@@ -14061,9 +14061,9 @@ export async function registerRoutes(
         preferredContactMethod, notes, sources, consultantPermissions
       } = req.body;
       
-      // Consultants (pro and standard) can only create client users
-      if ((isProConsultant(currentUser) || isStandardConsultant) && role && role !== "client") {
-        return res.status(403).json({ error: "Consultants can only create client users" });
+      // Consultants (pro, standard) and Admins can only create client users
+      if ((hasProPrivileges(currentUser) || isStandardConsultant) && currentUser.role !== "developer" && role && role !== "client") {
+        return res.status(403).json({ error: "Consultants and admins can only create client users" });
       }
 
       // Standard consultants can only create users for companies they are assigned to
@@ -14520,7 +14520,7 @@ export async function registerRoutes(
       }
       
       // Only admin or pro consultant can assign consultants
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can assign consultants" });
       }
       
@@ -14571,7 +14571,7 @@ export async function registerRoutes(
       }
       
       // Only admin or pro consultant can remove consultant assignments
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can remove consultant assignments" });
       }
       
@@ -14608,7 +14608,7 @@ export async function registerRoutes(
       }
       
       // Only admin or pro consultant can update consultant assignments
-      if (user.role !== "developer" && !isProConsultant(user)) {
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can update consultant assignments" });
       }
       
@@ -14936,7 +14936,7 @@ export async function registerRoutes(
       }
       
       const isStdCon = currentUser.role === "consultant" && !isProConsultant(currentUser);
-      if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStdCon) {
+      if (currentUser.role !== "developer" && !hasProPrivileges(currentUser) && !isStdCon) {
         return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
 
@@ -15041,7 +15041,7 @@ export async function registerRoutes(
       const currentUser = await storage.getUser((req.session as any).userId);
       if (!currentUser) return res.status(401).json({ error: "Unauthorized" });
       const isStdConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
-      if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStdConsultant) {
+      if (currentUser.role !== "developer" && !hasProPrivileges(currentUser) && !isStdConsultant) {
         return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
       const targetUser = await storage.getUser(req.params.userId);
@@ -15085,7 +15085,7 @@ export async function registerRoutes(
       }
       
       const isStdCon = currentUser.role === "consultant" && !isProConsultant(currentUser);
-      if (currentUser.role !== "developer" && !isProConsultant(currentUser) && !isStdCon) {
+      if (currentUser.role !== "developer" && !hasProPrivileges(currentUser) && !isStdCon) {
         return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
 
@@ -15176,7 +15176,7 @@ export async function registerRoutes(
   app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);
-      if (!currentUser || (currentUser.role !== "developer" && !isProConsultant(currentUser))) {
+      if (!currentUser || (currentUser.role !== "developer" && !hasProPrivileges(currentUser))) {
         return res.status(403).json({ error: "Only developers and pro consultants can delete users" });
       }
 
@@ -15193,9 +15193,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Developer users cannot be deleted" });
       }
       
-      // Pro consultants cannot delete other consultants or admins
-      if (isProConsultant(currentUser) && targetUser.role === "consultant") {
-        return res.status(403).json({ error: "Pro consultants cannot delete other consultant accounts" });
+      // Pro consultants and Admins cannot delete other consultant or admin accounts
+      if (hasProPrivileges(currentUser) && currentUser.role !== "developer" && (targetUser.role === "consultant" || targetUser.role === "administrator")) {
+        return res.status(403).json({ error: "You cannot delete consultant or admin accounts" });
       }
 
       // Remove related records but keep audit logs
@@ -15272,8 +15272,8 @@ export async function registerRoutes(
       const isRestrictedRole = currentUser.role === "client" || (currentUser.role === "consultant" && !isProConsultant(currentUser));
 
       if (currentUser.role !== "developer") {
-        if (isProConsultant(currentUser)) {
-          // Pro consultants have full access to update users
+        if (hasProPrivileges(currentUser)) {
+          // Pro consultants and Admins have full access to update users
         } else if (isSelfEdit && isRestrictedRole) {
           // Standard consultants and clients may update their own profile,
           // but only a limited set of fields (enforced below)
