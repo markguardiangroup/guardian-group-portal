@@ -59,6 +59,12 @@ import {
   clientUploadFolders as clientUploadFoldersTable,
   clientUploadFolderAccess as clientUploadFolderAccessTable,
   clientUploads as clientUploadsTable,
+  type IshareFolder, type InsertIshareFolder,
+  type IshareFolderAccess, type InsertIshareFolderAccess,
+  type Ishare, type InsertIshare,
+  ishareFolders as ishareFoldersTable,
+  ishareFolderAccess as ishareFolderAccessTable,
+  ishares as isharesTable,
   alertSeen as alertSeenTable,
   userInvitations as userInvitationsTable,
   type DocumentPathway, type InsertDocumentPathway, type PathwayNode,
@@ -165,6 +171,24 @@ export type FolderAccessWithUser = ClientUploadFolderAccess & {
 };
 
 export type ClientUploadWithUploader = ClientUpload & {
+  uploaderName: string;
+};
+
+export type IshareFolderWithMeta = IshareFolder & {
+  fileCount: number;
+  totalSize: number;
+  creatorName: string;
+  recipientName: string;
+  recipientRole: string;
+};
+
+export type IshareAccessWithUser = IshareFolderAccess & {
+  userName: string;
+  userEmail: string;
+  userRole: string;
+};
+
+export type IshareWithUploader = Ishare & {
   uploaderName: string;
 };
 
@@ -518,6 +542,24 @@ export interface IStorage {
   correctMisclassifiedDocuments(): Promise<number>;
   // Cloud-share activity used by alert-count badges (folders/files created per module)
   getCloudShareActivityForUser(params: { userId: string; userRole: string; userCompanyId: string | null; effectiveCompanyIds?: string[] }): Promise<{ folders: { module: string; createdAt: Date }[]; files: { module: string; createdAt: Date }[] }>;
+
+  // iShare (consultant-to-consultant file transfer) — fully isolated from Cloud Share
+  getIshareFolders(params: { userId: string; userRole: string }): Promise<IshareFolderWithMeta[]>;
+  getIshareFolder(id: string): Promise<IshareFolder | undefined>;
+  createIshareFolder(data: InsertIshareFolder): Promise<IshareFolder>;
+  deleteIshareFolder(id: string): Promise<boolean>;
+  getIshareFolderAccess(folderId: string): Promise<IshareAccessWithUser[]>;
+  grantIshareFolderAccess(folderId: string, userId: string, grantedByUserId: string): Promise<void>;
+  revokeIshareFolderAccess(folderId: string, userId: string): Promise<void>;
+  getIshareGrantableUsers(folderId: string): Promise<User[]>;
+  getIshareRecipients(): Promise<User[]>;
+  getIshares(folderId: string): Promise<IshareWithUploader[]>;
+  getIshare(id: string): Promise<Ishare | undefined>;
+  createIshare(data: InsertIshare): Promise<Ishare>;
+  deleteIshare(id: string): Promise<boolean>;
+  cleanupExpiredIshares(): Promise<number>;
+  // iShare activity used by alert-count badge
+  getIshareActivityForUser(params: { userId: string; userRole: string }): Promise<{ files: { createdAt: Date; uploadedBy: string | null }[] }>;
 
   // Alert-count "last seen" markers (sidebar badges)
   getAlertSeen(userId: string): Promise<Record<string, Date>>;
@@ -5258,6 +5300,266 @@ export class MemStorage implements IStorage {
     }
 
     return { folders, files };
+  }
+
+  // ─── iShare (consultant-to-consultant) ──────────────────────────────────────
+  private async getVisibleIshareFolders(userId: string, userRole: string): Promise<IshareFolder[]> {
+    const now = new Date();
+    const allFolders = await db
+      .select()
+      .from(ishareFoldersTable)
+      .where(gt(ishareFoldersTable.expiresAt, now))
+      .orderBy(desc(ishareFoldersTable.createdAt));
+
+    if (userRole === "developer" || userRole === "administrator") {
+      return allFolders;
+    }
+
+    // Consultants see folders they created, received, or were granted access to.
+    const accessGrants = await db
+      .select()
+      .from(ishareFolderAccessTable)
+      .where(eq(ishareFolderAccessTable.userId, userId));
+    const accessFolderIds = new Set(accessGrants.map((g) => g.folderId));
+
+    return allFolders.filter(
+      (f) =>
+        f.createdByUserId === userId ||
+        f.recipientUserId === userId ||
+        accessFolderIds.has(f.id)
+    );
+  }
+
+  async getIshareFolders(params: { userId: string; userRole: string }): Promise<IshareFolderWithMeta[]> {
+    const visibleFolders = await this.getVisibleIshareFolders(params.userId, params.userRole);
+
+    const results: IshareFolderWithMeta[] = [];
+    for (const folder of visibleFolders) {
+      const files = await db
+        .select()
+        .from(isharesTable)
+        .where(eq(isharesTable.folderId, folder.id));
+      const fileCount = files.length;
+      const totalSize = files.reduce((sum, f) => sum + f.fileSize, 0);
+
+      const creator = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, folder.createdByUserId))
+        .limit(1);
+      const creatorName = creator[0]?.fullName ?? "Unknown";
+
+      const recipient = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, folder.recipientUserId))
+        .limit(1);
+      const recipientName = recipient[0]?.fullName ?? "Unknown";
+      const recipientRole = recipient[0]?.role ?? "consultant";
+
+      results.push({ ...folder, fileCount, totalSize, creatorName, recipientName, recipientRole });
+    }
+
+    return results;
+  }
+
+  async getIshareFolder(id: string): Promise<IshareFolder | undefined> {
+    const rows = await db
+      .select()
+      .from(ishareFoldersTable)
+      .where(eq(ishareFoldersTable.id, id))
+      .limit(1);
+    return rows[0];
+  }
+
+  async createIshareFolder(data: InsertIshareFolder): Promise<IshareFolder> {
+    const rows = await db
+      .insert(ishareFoldersTable)
+      .values(data)
+      .returning();
+    return rows[0];
+  }
+
+  async deleteIshareFolder(id: string): Promise<boolean> {
+    await db
+      .delete(ishareFolderAccessTable)
+      .where(eq(ishareFolderAccessTable.folderId, id));
+    await db
+      .delete(isharesTable)
+      .where(eq(isharesTable.folderId, id));
+    const result = await db
+      .delete(ishareFoldersTable)
+      .where(eq(ishareFoldersTable.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getIshareFolderAccess(folderId: string): Promise<IshareAccessWithUser[]> {
+    const grants = await db
+      .select()
+      .from(ishareFolderAccessTable)
+      .where(eq(ishareFolderAccessTable.folderId, folderId));
+
+    const results: IshareAccessWithUser[] = [];
+    for (const grant of grants) {
+      const user = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, grant.userId))
+        .limit(1);
+      if (user[0]) {
+        results.push({
+          ...grant,
+          userName: user[0].fullName,
+          userEmail: user[0].email,
+          userRole: user[0].role,
+        });
+      }
+    }
+    return results;
+  }
+
+  async grantIshareFolderAccess(folderId: string, userId: string, grantedByUserId: string): Promise<void> {
+    await db
+      .insert(ishareFolderAccessTable)
+      .values({ folderId, userId, grantedByUserId })
+      .onConflictDoNothing();
+  }
+
+  async revokeIshareFolderAccess(folderId: string, userId: string): Promise<void> {
+    await db
+      .delete(ishareFolderAccessTable)
+      .where(
+        and(
+          eq(ishareFolderAccessTable.folderId, folderId),
+          eq(ishareFolderAccessTable.userId, userId)
+        )
+      );
+  }
+
+  async getIshareGrantableUsers(folderId: string): Promise<User[]> {
+    const folder = await this.getIshareFolder(folderId);
+    if (!folder) return [];
+
+    const existingGrants = await db
+      .select()
+      .from(ishareFolderAccessTable)
+      .where(eq(ishareFolderAccessTable.folderId, folderId));
+    const excludedUserIds = new Set([
+      ...existingGrants.map((g) => g.userId),
+      folder.recipientUserId,
+      folder.createdByUserId,
+    ]);
+
+    // Any non-client user can be granted additional access.
+    const nonClientUsers = await db
+      .select()
+      .from(usersTable)
+      .where(inArray(usersTable.role, ["developer", "administrator", "consultant"]));
+
+    return nonClientUsers.filter((u) => !excludedUserIds.has(u.id));
+  }
+
+  async getIshareRecipients(): Promise<User[]> {
+    return await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.role, "consultant"));
+  }
+
+  async getIshares(folderId: string): Promise<IshareWithUploader[]> {
+    const files = await db
+      .select()
+      .from(isharesTable)
+      .where(eq(isharesTable.folderId, folderId))
+      .orderBy(desc(isharesTable.createdAt));
+
+    const results: IshareWithUploader[] = [];
+    for (const file of files) {
+      const uploader = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, file.uploadedByUserId))
+        .limit(1);
+      results.push({ ...file, uploaderName: uploader[0]?.fullName ?? "Unknown" });
+    }
+    return results;
+  }
+
+  async getIshare(id: string): Promise<Ishare | undefined> {
+    const rows = await db
+      .select()
+      .from(isharesTable)
+      .where(eq(isharesTable.id, id))
+      .limit(1);
+    return rows[0];
+  }
+
+  async createIshare(data: InsertIshare): Promise<Ishare> {
+    const rows = await db
+      .insert(isharesTable)
+      .values(data)
+      .returning();
+    return rows[0];
+  }
+
+  async deleteIshare(id: string): Promise<boolean> {
+    const result = await db
+      .delete(isharesTable)
+      .where(eq(isharesTable.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getIshareActivityForUser(params: { userId: string; userRole: string }): Promise<{ files: { createdAt: Date; uploadedBy: string | null }[] }> {
+    const visibleFolders = await this.getVisibleIshareFolders(params.userId, params.userRole);
+    const folderIds = visibleFolders.map((f) => f.id);
+    if (folderIds.length === 0) return { files: [] };
+
+    const rows = await db
+      .select({ createdAt: isharesTable.createdAt, uploadedBy: isharesTable.uploadedByUserId })
+      .from(isharesTable)
+      .where(inArray(isharesTable.folderId, folderIds));
+    return { files: rows.map((r) => ({ createdAt: r.createdAt, uploadedBy: r.uploadedBy ?? null })) };
+  }
+
+  async cleanupExpiredIshares(): Promise<number> {
+    const now = new Date();
+    const { objectStorageService } = await import("./replit_integrations/object_storage/objectStorage");
+
+    const expiredFiles = await db
+      .select()
+      .from(isharesTable)
+      .where(sql`${isharesTable.expiresAt} < ${now}`);
+
+    let fileCount = 0;
+    for (const file of expiredFiles) {
+      try {
+        await objectStorageService.deleteObjectEntityFile(file.fileUrl);
+      } catch {
+        // Continue even if object storage deletion fails
+      }
+      await db.delete(isharesTable).where(eq(isharesTable.id, file.id));
+      fileCount++;
+    }
+
+    const allFolders = await db.select().from(ishareFoldersTable);
+    for (const folder of allFolders) {
+      const remaining = await db
+        .select()
+        .from(isharesTable)
+        .where(eq(isharesTable.folderId, folder.id))
+        .limit(1);
+
+      const isEmpty = remaining.length === 0;
+      const pastSafetyNet = folder.expiresAt < now;
+
+      if (isEmpty || pastSafetyNet) {
+        await this.deleteIshareFolder(folder.id);
+      }
+    }
+
+    return fileCount;
   }
 
   async getAlertSeen(userId: string): Promise<Record<string, Date>> {

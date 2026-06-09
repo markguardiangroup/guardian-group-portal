@@ -31,6 +31,7 @@ import {
   Plug,
   PackageOpen,
   Wrench,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -231,6 +232,11 @@ const adminNavItems = [
     icon: ShieldAlert,
   },
   {
+    title: "iShare",
+    url: "/ishare",
+    icon: Send,
+  },
+  {
     title: "Feedback",
     url: "/feedback",
     icon: MessageSquare,
@@ -276,6 +282,11 @@ const consultantNavItems = [
     url: "/admin/services",
     icon: PackageOpen,
     permission: "services" as const,
+  },
+  {
+    title: "iShare",
+    url: "/ishare",
+    icon: Send,
   },
   {
     title: "Feedback",
@@ -497,6 +508,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { data: alertCounts } = useAlertCounts(!!user);
   const homeAlertCount = alertCounts?.home || 0;
   const calendarAlertCount = alertCounts?.calendar || 0;
+  const ishareAlertCount = alertCounts?.ishare || 0;
   const cloudShareCountFor = (module: ModuleType): number => {
     if (module === "health_safety") return alertCounts?.cloudshare.health_safety || 0;
     if (module === "human_resources") return alertCounts?.cloudshare.human_resources || 0;
@@ -822,6 +834,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                           <DropdownMenuSeparator />
                           {filteredAdminItems.map((item) => {
                             const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
+                            const itemBadge = item.url === "/ishare" ? ishareAlertCount : 0;
                             return (
                               <DropdownMenuItem
                                 key={item.title}
@@ -830,7 +843,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
                               >
                                 <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                                   <item.icon className="h-4 w-4" />
-                                  <span>{item.title}</span>
+                                  <span className="flex-1">{item.title}</span>
+                                  {itemBadge > 0 && (
+                                    <Badge
+                                      variant="destructive"
+                                      className="ml-auto h-5 min-w-5 px-1.5 text-xs"
+                                      data-testid={`badge-nav-ishare-collapsed`}
+                                    >
+                                      {itemBadge}
+                                    </Badge>
+                                  )}
                                 </Link>
                               </DropdownMenuItem>
                             );
@@ -841,6 +863,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   ) : (
                     filteredAdminItems.map((item) => {
                       const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
+                      const itemBadge = item.url === "/ishare" ? ishareAlertCount : 0;
                       return (
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
@@ -851,6 +874,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
                             <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
                               <item.icon className="h-4 w-4" />
                               <span className="flex-1">{item.title}</span>
+                              {itemBadge > 0 && (
+                                <Badge
+                                  variant="destructive"
+                                  className="ml-auto h-5 min-w-5 px-1.5 text-xs"
+                                  data-testid={`badge-nav-ishare`}
+                                >
+                                  {itemBadge}
+                                </Badge>
+                              )}
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>

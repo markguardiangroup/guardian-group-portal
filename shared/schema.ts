@@ -1518,6 +1518,60 @@ export const insertClientUploadSchema = createInsertSchema(clientUploads).omit({
 export type InsertClientUpload = z.infer<typeof insertClientUploadSchema>;
 export type ClientUpload = typeof clientUploads.$inferSelect;
 
+// ─── iShare (consultant-to-consultant file transfer) ──────────────────────────
+// Fully data-isolated from Cloud Share. A folder is created by one non-client
+// user and addressed to a recipient consultant. No site/company/module scoping.
+export const ishareFolders = pgTable("ishare_folders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  recipientUserId: varchar("recipient_user_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertIshareFolderSchema = createInsertSchema(ishareFolders).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertIshareFolder = z.infer<typeof insertIshareFolderSchema>;
+export type IshareFolder = typeof ishareFolders.$inferSelect;
+
+export const ishareFolderAccess = pgTable("ishare_folder_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  folderId: varchar("folder_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  grantedByUserId: varchar("granted_by_user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertIshareFolderAccessSchema = createInsertSchema(ishareFolderAccess).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertIshareFolderAccess = z.infer<typeof insertIshareFolderAccessSchema>;
+export type IshareFolderAccess = typeof ishareFolderAccess.$inferSelect;
+
+export const ishares = pgTable("ishares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  folderId: varchar("folder_id").notNull(),
+  uploadedByUserId: varchar("uploaded_by_user_id").notNull(),
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileUrl: text("file_url").notNull(),
+  description: text("description"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertIshareSchema = createInsertSchema(ishares).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertIshare = z.infer<typeof insertIshareSchema>;
+export type Ishare = typeof ishares.$inferSelect;
+
 // Feedback table for consultants to submit feedback during testing
 export const feedback = pgTable("feedback", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

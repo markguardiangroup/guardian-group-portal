@@ -75,6 +75,7 @@ const HelpGuidePro = lazyPage(() => import("@/pages/help-guide-pro"));
 const HSIncidents = lazyPage(() => import("@/pages/hs-incidents"));
 const CalendarPage = lazyPage(() => import("@/pages/calendar"));
 const ClientUploads = lazyPage(() => import("@/pages/client-uploads"));
+const IShare = lazyPage(() => import("@/pages/ishare"));
 const ToolkitDashboard = lazyPage(() => import("@/pages/toolkit-dashboard"));
 const ToolkitBrowse = lazyPage(() => import("@/pages/toolkit-browse"));
 const AdminPathways = lazyPage(() => import("@/pages/admin-pathways"));
@@ -379,6 +380,7 @@ function Router() {
       <Route path="/employment-law/cases" component={ElCasesGuarded} />
       <Route path="/employment-law/cases/:id" component={ElCasesGuarded} />
       <Route path="/employment-law/cloud-share" component={ELClientUploads} />
+      <Route path="/ishare">{() => <AccessGuard component={IShare} allow={NOT_CLIENT} />}</Route>
       
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />

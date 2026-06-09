@@ -8490,6 +8490,13 @@
           "message": "Fixed: admin users can now access the Feedback page",
           "category": "bug",
           "createdAt": "2026-06-09T20:35:08.275Z"
+        },
+        {
+          "id": "eb6baf69-1b3f-4f09-99ba-af7cd902af7c",
+          "patch": 15,
+          "message": "New iShare tool lets consultants securely send files to each other",
+          "category": "feature",
+          "createdAt": "2026-06-09T20:34:45.959Z"
         }
       ],
       "publishedPatch": 14,

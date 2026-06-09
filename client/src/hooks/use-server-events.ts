@@ -272,6 +272,17 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
       });
 
+      es.addEventListener("ishare-updated", (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.folderId) {
+            queryClient.invalidateQueries({ queryKey: ["/api/ishare-folders", data.folderId, "files"] });
+          }
+        } catch { /* ignore */ }
+        queryClient.invalidateQueries({ queryKey: ["/api/ishare-folders"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/alert-counts"] });
+      });
+
       es.onerror = () => {
         es.close();
         esRef.current = null;

@@ -31,7 +31,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendIShareNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
@@ -223,6 +223,9 @@ const DOCX_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 // Per-site cooldown for cloud upload notifications — one email per site per hour maximum.
 const cloudUploadNotifiedAt = new Map<string, Date>();
 const CLOUD_UPLOAD_NOTIFY_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+
+// Per-folder cooldown for iShare notifications — one email per folder per hour maximum.
+const ishareNotifiedAt = new Map<string, Date>();
 
 // Periodic cleanup: evict expired entries and delete their backing GCS objects.
 setInterval(async () => {
@@ -18221,6 +18224,557 @@ export async function registerRoutes(
     }
   });
 
+  // ─── iShare (consultant-to-consultant file transfer) ────────────────────────
+  // Fully data-isolated from Cloud Share. Non-client users only. No site scoping.
+  const isNonClient = (role: string | null | undefined) =>
+    role === "developer" || role === "consultant" || role === "administrator";
+
+  const canUserAccessIshareFolder = async (
+    user: { id: string; role: string },
+    folder: { id: string; createdByUserId: string; recipientUserId: string }
+  ): Promise<boolean> => {
+    if (user.role === "developer" || user.role === "administrator") return true;
+    if (folder.createdByUserId === user.id) return true;
+    if (folder.recipientUserId === user.id) return true;
+    const grants = await storage.getIshareFolderAccess(folder.id);
+    return grants.some((g) => g.userId === user.id);
+  };
+
+  // Recipient picker — consultants only
+  app.get("/api/ishare/consultants", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const consultants = await storage.getIshareRecipients();
+      res.json(consultants);
+    } catch (error) {
+      console.error("Error fetching iShare consultants:", error);
+      res.status(500).json({ error: "Failed to fetch consultants" });
+    }
+  });
+
+  app.get("/api/ishare-folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+
+      await storage.cleanupExpiredIshares();
+
+      const folders = await storage.getIshareFolders({ userId: user.id, userRole: user.role });
+      res.json(folders);
+    } catch (error) {
+      console.error("Error fetching iShare folders:", error);
+      res.status(500).json({ error: "Failed to fetch folders" });
+    }
+  });
+
+  app.post("/api/ishare-folders", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+
+      const { name, description, recipientUserId } = req.body;
+      if (!name || !recipientUserId) {
+        return res.status(400).json({ error: "name and recipientUserId are required" });
+      }
+
+      const recipient = await storage.getUser(recipientUserId);
+      if (!recipient || recipient.role !== "consultant") {
+        return res.status(400).json({ error: "Recipient must be a consultant" });
+      }
+
+      // Folder expiry is a long-running safety-net; file-level expiry drives deletion
+      const expiresAt = new Date(Date.now() + 366 * 24 * 60 * 60 * 1000);
+
+      const folder = await storage.createIshareFolder({
+        name,
+        description: description ?? null,
+        createdByUserId: user.id,
+        recipientUserId,
+        expiresAt,
+      });
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "ishare_folder_created",
+        resourceType: "ishare_folder",
+        resourceId: folder.id,
+        details: `Created iShare folder "${name}" for ${recipient.fullName}`,
+      });
+
+      // Notify the recipient consultant — per-folder cooldown
+      try {
+        const lastNotified = ishareNotifiedAt.get(folder.id);
+        const cooldownExpired = !lastNotified || (Date.now() - lastNotified.getTime()) > CLOUD_UPLOAD_NOTIFY_COOLDOWN_MS;
+        if (cooldownExpired && recipient.email && recipient.status === "active") {
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+          const portalUrl = `${baseUrl}/ishare`;
+          await sendIShareNotificationEmail({
+            to: recipient.email,
+            fullName: recipient.fullName,
+            senderName: user.fullName,
+            folderName: name,
+            portalUrl,
+            role: recipient.role,
+            isNewFolder: true,
+          });
+          await storage.createAuditLog({
+            action: "email_sent", userId: user.id, userName: user.fullName,
+            details: `iShare folder creation notification sent to ${recipient.fullName} (${recipient.email})`,
+            metadata: JSON.stringify({ targetUserId: recipient.id, emailType: "ishare_folder_notification" }),
+          });
+          ishareNotifiedAt.set(folder.id, new Date());
+        }
+      } catch (err) {
+        console.error("Failed to send iShare folder creation notification:", err);
+      }
+
+      try {
+        const payload = { folderId: folder.id };
+        emitToUser(folder.recipientUserId, "ishare-updated", payload);
+        emitToRole("developer", "ishare-updated", payload);
+        emitToRole("consultant", "ishare-updated", payload);
+        emitToRole("administrator", "ishare-updated", payload);
+      } catch { /* non-fatal */ }
+
+      res.status(201).json(folder);
+    } catch (error) {
+      console.error("Error creating iShare folder:", error);
+      res.status(500).json({ error: "Failed to create folder" });
+    }
+  });
+
+  app.delete("/api/ishare-folders/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+
+      const folder = await storage.getIshareFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const files = await storage.getIshares(folder.id);
+      const objectStorageService = new ObjectStorageService();
+      for (const file of files) {
+        try {
+          await objectStorageService.deleteObjectEntityFile(file.fileUrl);
+        } catch {}
+      }
+
+      const folderAccessGrants = await storage.getIshareFolderAccess(folder.id);
+
+      await storage.deleteIshareFolder(folder.id);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "ishare_folder_deleted",
+        resourceType: "ishare_folder",
+        resourceId: folder.id,
+        details: `Deleted iShare folder "${folder.name}" and ${files.length} file(s)`,
+      });
+
+      try {
+        const payload = { folderId: folder.id };
+        for (const access of folderAccessGrants) {
+          emitToUser(access.userId, "ishare-updated", payload);
+        }
+        emitToUser(folder.recipientUserId, "ishare-updated", payload);
+        emitToUser(folder.createdByUserId, "ishare-updated", payload);
+        emitToRole("developer", "ishare-updated", payload);
+        emitToRole("consultant", "ishare-updated", payload);
+        emitToRole("administrator", "ishare-updated", payload);
+      } catch { /* non-fatal */ }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting iShare folder:", error);
+      res.status(500).json({ error: "Failed to delete folder" });
+    }
+  });
+
+  app.get("/api/ishare-folders/:id/access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const folder = await storage.getIshareFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const grants = await storage.getIshareFolderAccess(folder.id);
+      res.json(grants);
+    } catch (error) {
+      console.error("Error fetching iShare folder access:", error);
+      res.status(500).json({ error: "Failed to fetch access" });
+    }
+  });
+
+  app.post("/api/ishare-folders/:id/access", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const folder = await storage.getIshareFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ error: "userId is required" });
+
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+      if (!isNonClient(targetUser.role)) {
+        return res.status(400).json({ error: "Can only grant access to non-client users" });
+      }
+
+      await storage.grantIshareFolderAccess(folder.id, userId, user.id);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "ishare_folder_access_granted",
+        resourceType: "ishare_folder",
+        resourceId: folder.id,
+        details: `Granted access to "${targetUser.fullName}" for iShare folder "${folder.name}"`,
+      });
+
+      try {
+        emitToUser(userId, "ishare-updated", { folderId: folder.id });
+      } catch { /* non-fatal */ }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error granting iShare folder access:", error);
+      res.status(500).json({ error: "Failed to grant access" });
+    }
+  });
+
+  app.delete("/api/ishare-folders/:id/access/:userId", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const folder = await storage.getIshareFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const { userId } = req.params;
+      if (folder.recipientUserId === userId) {
+        return res.status(400).json({ error: "Cannot revoke access from the recipient" });
+      }
+
+      const targetUser = await storage.getUser(userId);
+      await storage.revokeIshareFolderAccess(folder.id, userId);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "ishare_folder_access_revoked",
+        resourceType: "ishare_folder",
+        resourceId: folder.id,
+        details: `Revoked access from "${targetUser?.fullName ?? userId}" for iShare folder "${folder.name}"`,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error revoking iShare folder access:", error);
+      res.status(500).json({ error: "Failed to revoke access" });
+    }
+  });
+
+  app.get("/api/ishare-folders/:id/grantable-users", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const folder = await storage.getIshareFolder(req.params.id);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const users = await storage.getIshareGrantableUsers(folder.id);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching iShare grantable users:", error);
+      res.status(500).json({ error: "Failed to fetch grantable users" });
+    }
+  });
+
+  app.get("/api/ishare-folders/:folderId/files", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const folder = await storage.getIshareFolder(req.params.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+      const files = await storage.getIshares(folder.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching iShare folder files:", error);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  });
+
+  app.post("/api/ishares", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const { folderId, fileName, fileSize, fileUrl, description } = req.body;
+      if (!folderId || !fileName || !fileSize || !fileUrl) {
+        return res.status(400).json({ error: "folderId, fileName, fileSize, and fileUrl are required" });
+      }
+      const folder = await storage.getIshareFolder(folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+      const now = new Date();
+      if (folder.expiresAt < now) {
+        return res.status(400).json({ error: "This folder has expired" });
+      }
+
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const fileExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+      const upload = await storage.createIshare({
+        folderId,
+        uploadedByUserId: user.id,
+        fileName,
+        fileSize,
+        fileUrl,
+        description: description ?? null,
+        expiresAt: fileExpiresAt,
+      });
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "ishare_uploaded",
+        resourceType: "ishare",
+        resourceId: upload.id,
+        details: `Uploaded file "${fileName}" to iShare folder "${folder.name}"`,
+      });
+
+      try {
+        const folderAccess = await storage.getIshareFolderAccess(folderId);
+        const payload = { folderId, uploadId: upload.id };
+        for (const access of folderAccess) {
+          emitToUser(access.userId, "ishare-updated", payload);
+        }
+        emitToUser(folder.recipientUserId, "ishare-updated", payload);
+        emitToUser(folder.createdByUserId, "ishare-updated", payload);
+        emitToRole("developer", "ishare-updated", payload);
+        emitToRole("consultant", "ishare-updated", payload);
+        emitToRole("administrator", "ishare-updated", payload);
+      } catch { /* non-fatal */ }
+
+      // Notify the other party (recipient + creator + grantees, excluding uploader)
+      try {
+        const lastNotified = ishareNotifiedAt.get(folder.id);
+        const cooldownExpired = !lastNotified || (Date.now() - lastNotified.getTime()) > CLOUD_UPLOAD_NOTIFY_COOLDOWN_MS;
+        if (cooldownExpired) {
+          const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+          const portalUrl = `${baseUrl}/ishare`;
+
+          const recipientIds = new Set<string>();
+          recipientIds.add(folder.recipientUserId);
+          recipientIds.add(folder.createdByUserId);
+          const grants = await storage.getIshareFolderAccess(folder.id);
+          for (const g of grants) recipientIds.add(g.userId);
+          recipientIds.delete(user.id);
+
+          let sentAny = false;
+          for (const rid of recipientIds) {
+            const target = await storage.getUser(rid);
+            if (!target || !target.email || target.status !== "active") continue;
+            try {
+              await sendIShareNotificationEmail({
+                to: target.email,
+                fullName: target.fullName,
+                senderName: user.fullName,
+                folderName: folder.name,
+                fileName,
+                portalUrl,
+                role: target.role,
+              });
+              sentAny = true;
+              await storage.createAuditLog({
+                action: "email_sent", userId: user.id, userName: user.fullName,
+                details: `iShare upload notification sent to ${target.fullName} (${target.email})`,
+                metadata: JSON.stringify({ targetUserId: target.id, emailType: "ishare_upload_notification" }),
+              });
+            } catch (e) { console.error(`Failed to send iShare upload notification to ${rid}:`, e); }
+          }
+          if (sentAny) ishareNotifiedAt.set(folder.id, new Date());
+        }
+      } catch (err) {
+        console.error("Failed to send iShare upload notifications:", err);
+      }
+
+      res.status(201).json(upload);
+    } catch (error) {
+      console.error("Error creating iShare upload:", error);
+      res.status(500).json({ error: "Failed to create upload" });
+    }
+  });
+
+  app.get("/api/ishares/:id/download", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const upload = await storage.getIshare(req.params.id);
+      if (!upload) return res.status(404).json({ error: "File not found" });
+
+      const folder = await storage.getIshareFolder(upload.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(upload.fileUrl);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "ishare_downloaded",
+        resourceType: "ishare",
+        resourceId: upload.id,
+        userName: user.fullName,
+        details: `Downloaded file "${upload.fileName}" from iShare folder "${folder.name}"`,
+      });
+
+      res.setHeader("Content-Disposition", `attachment; filename="${upload.fileName}"`);
+      await objectStorageService.downloadObject(objectFile, res, 0, upload.fileName);
+    } catch (error) {
+      console.error("Error downloading iShare file:", error);
+      res.status(500).json({ error: "Failed to download file" });
+    }
+  });
+
+  app.delete("/api/ishares/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const upload = await storage.getIshare(req.params.id);
+      if (!upload) return res.status(404).json({ error: "File not found" });
+
+      const folder = await storage.getIshareFolder(upload.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+      // Consultants may only delete files they uploaded; admins/developers any.
+      if (
+        user.role === "consultant" &&
+        upload.uploadedByUserId !== user.id
+      ) {
+        return res.status(403).json({ error: "You can only delete files you uploaded" });
+      }
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const objectStorageService = new ObjectStorageService();
+      try {
+        await objectStorageService.deleteObjectEntityFile(upload.fileUrl);
+      } catch {}
+      await storage.deleteIshare(upload.id);
+
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "ishare_deleted",
+        resourceType: "ishare",
+        resourceId: upload.id,
+        details: `Deleted file "${upload.fileName}" from iShare folder "${folder.name}"`,
+      });
+
+      try {
+        const payload = { folderId: folder.id };
+        const folderAccess = await storage.getIshareFolderAccess(folder.id);
+        for (const access of folderAccess) {
+          emitToUser(access.userId, "ishare-updated", payload);
+        }
+        emitToUser(folder.recipientUserId, "ishare-updated", payload);
+        emitToUser(folder.createdByUserId, "ishare-updated", payload);
+        emitToRole("developer", "ishare-updated", payload);
+        emitToRole("consultant", "ishare-updated", payload);
+        emitToRole("administrator", "ishare-updated", payload);
+      } catch { /* non-fatal */ }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting iShare file:", error);
+      res.status(500).json({ error: "Failed to delete file" });
+    }
+  });
+
+  app.post("/api/ishare-folders/:folderId/download", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
+      const folder = await storage.getIshareFolder(req.params.folderId);
+      if (!folder) return res.status(404).json({ error: "Folder not found" });
+      const canAccess = await canUserAccessIshareFolder(user, folder);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const { fileIds } = req.body as { fileIds?: string[] };
+      const allFiles = await storage.getIshares(folder.id);
+      const filesToDownload = fileIds
+        ? allFiles.filter((f) => fileIds.includes(f.id))
+        : allFiles;
+
+      if (filesToDownload.length === 0) {
+        return res.status(400).json({ error: "No files to download" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${folder.name.replace(/[^a-zA-Z0-9]/g, "_")}_files.zip"`
+      );
+
+      const archive = archiver("zip", { zlib: { level: 6 } });
+      archive.pipe(res);
+
+      for (const file of filesToDownload) {
+        try {
+          const objectFile = await objectStorageService.getObjectEntityFile(file.fileUrl);
+          const stream = objectFile.createReadStream();
+          archive.append(stream, { name: file.fileName });
+
+          await storage.createAuditLog({
+            userId: user.id,
+            action: "ishare_downloaded",
+            resourceType: "ishare",
+            resourceId: file.id,
+            userName: user.fullName,
+            details: `Bulk downloaded file "${file.fileName}" from iShare folder "${folder.name}"`,
+          });
+        } catch {}
+      }
+
+      await archive.finalize();
+    } catch (error) {
+      console.error("Error creating iShare ZIP download:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to create ZIP download" });
+      }
+    }
+  });
+
   // Toolkit download tracking
   app.post("/api/toolkit/download", requireAuth, async (req, res) => {
     try {
@@ -19763,7 +20317,7 @@ export async function registerRoutes(
       const now = new Date();
 
       // Load existing markers and lazily initialise any missing surface to "now".
-      const surfaces = ["home", "calendar", ...CLOUD_SHARE_MODULES.map((m) => `cloudshare:${m}`)];
+      const surfaces = ["home", "calendar", "ishare", ...CLOUD_SHARE_MODULES.map((m) => `cloudshare:${m}`)];
       const seen = await storage.getAlertSeen(user.id);
       for (const s of surfaces) {
         if (!seen[s]) {
@@ -20031,7 +20585,20 @@ export async function registerRoutes(
         cloudshare[m] = c;
       }
 
-      res.json({ home: homeCount, calendar: calendarCount, cloudshare });
+      // ===== iSHARE (single surface, non-client only) =====
+      let ishare = 0;
+      if (isPrivileged) {
+        const sinceTs = seen["ishare"].getTime();
+        const ishareActivity = await storage.getIshareActivityForUser({
+          userId: user.id,
+          userRole: user.role,
+        });
+        for (const f of ishareActivity.files) {
+          if (f.createdAt.getTime() > sinceTs && f.uploadedBy !== user.id) ishare++;
+        }
+      }
+
+      res.json({ home: homeCount, calendar: calendarCount, cloudshare, ishare });
     } catch (err) {
       console.error("Alert counts error:", err);
       res.status(500).json({ error: "Failed to fetch alert counts" });
@@ -20047,6 +20614,7 @@ export async function registerRoutes(
       const valid =
         surface === "home" ||
         surface === "calendar" ||
+        surface === "ishare" ||
         CLOUD_SHARE_MODULES.some((m) => surface === `cloudshare:${m}`);
       if (!valid) return res.status(400).json({ error: "Invalid surface" });
       await storage.markAlertSeen(user.id, surface);

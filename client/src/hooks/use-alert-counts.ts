@@ -9,6 +9,7 @@ export interface AlertCounts {
     human_resources: number;
     employment_law: number;
   };
+  ishare?: number;
 }
 
 export function useAlertCounts(enabled = true) {
