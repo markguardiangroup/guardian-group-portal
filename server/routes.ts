@@ -1683,6 +1683,71 @@ export async function registerRoutes(
   // ==================== AUTHENTICATED INVITATION ENDPOINTS ====================
 
   // Resend invitation (admin only)
+  // Admin-initiated password reset — sends the same reset email as "forgot password"
+  app.post("/api/users/:userId/reset-password", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
+        return res.status(403).json({ error: "Only staff can reset user passwords" });
+      }
+
+      const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+      if (targetUser.status !== "active" && targetUser.status !== "locked") {
+        return res.status(400).json({ error: "Password reset is only available for active or locked accounts" });
+      }
+
+      await storage.invalidateUserInvitations(targetUser.id, "password_reset");
+
+      const token = generateSecureToken();
+      const tokenHash = hashToken(token);
+      const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+
+      await storage.createUserInvitation({
+        userId: targetUser.id,
+        email: targetUser.email,
+        tokenHash,
+        purpose: "password_reset",
+        expiresAt,
+        createdBy: currentUser.id,
+      });
+
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+      const resetUrl = `${baseUrl}/set-password?token=${token}`;
+
+      let emailSent = false;
+      try {
+        await sendPasswordResetEmail({
+          to: targetUser.email,
+          fullName: targetUser.fullName,
+          resetUrl,
+          expiresAt,
+          role: targetUser.role,
+        });
+        emailSent = true;
+      } catch (emailError) {
+        console.error("Failed to send password reset email:", emailError);
+      }
+
+      await storage.createAuditLog({
+        action: "password_reset_requested",
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        entityId: targetUser.id,
+        details: emailSent
+          ? `Password reset email sent to ${targetUser.fullName} (${targetUser.email}) by ${currentUser.fullName}`
+          : `Password reset link generated for ${targetUser.fullName} — email delivery failed`,
+        metadata: JSON.stringify({ targetUserId: targetUser.id }),
+      });
+
+      res.json({ success: true, emailSent });
+    } catch (error) {
+      console.error("Admin reset password error:", error);
+      res.status(500).json({ error: "Failed to send password reset" });
+    }
+  });
+
   app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
     try {
       const currentUser = await storage.getUser((req.session as any).userId);

@@ -8357,6 +8357,13 @@
           "message": "Fixed: users with Template Library permission can now create and edit toolkit folders",
           "category": "bug",
           "createdAt": "2026-06-09T15:37:20.784Z"
+        },
+        {
+          "id": "9e7e5d1e-59b1-4c1a-9ad4-c305e75723f1",
+          "patch": 15,
+          "message": "Staff can now send a password reset email to any active user from the user list",
+          "category": "feature",
+          "createdAt": "2026-06-09T15:58:32.712Z"
         }
       ],
       "publishedPatch": 14,

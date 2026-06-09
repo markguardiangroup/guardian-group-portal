@@ -98,6 +98,7 @@ import {
   Info,
   UserPlus,
   Star,
+  KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -1317,6 +1318,19 @@ export default function UserManagement() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("POST", `/api/users/${userId}/reset-password`);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Reset Email Sent", description: "A password reset email has been sent to the user." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to send password reset email. Please try again.", variant: "destructive" });
+    },
+  });
+
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
     const newStatus = targetUser.status === "active" ? "inactive" : "active";
     setStatusConfirm({ user: targetUser, newStatus });
@@ -1946,6 +1960,15 @@ export default function UserManagement() {
                               >
                                 <RefreshCw className="h-4 w-4 mr-2" />
                                 Resend Invitation
+                              </DropdownMenuItem>
+                            )}
+                            {(u.status === "active" || u.status === "locked") && (
+                              <DropdownMenuItem
+                                onClick={() => resetPasswordMutation.mutate(u.id)}
+                                data-testid={`button-reset-password-${u.id}`}
+                              >
+                                <KeyRound className="h-4 w-4 mr-2" />
+                                Reset Password
                               </DropdownMenuItem>
                             )}
                           </>
