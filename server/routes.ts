@@ -8233,11 +8233,13 @@ export async function registerRoutes(
               if (sourcesOverlap(mySources, effective)) directlyVisible.add(c.id);
             }
           }
-          // Expand: member companies of any visible GO
+          // Expand: member companies of any visible GO — only if member shares a source with this user
           const goExpandedIds = new Set<string>(directlyVisible);
           for (const cId of directlyVisible) {
             const members = await storage.getGroupMembers(cId);
-            for (const m of members) goExpandedIds.add(m.id);
+            for (const m of members) {
+              if (sourcesOverlap(mySources, m.sources ?? [])) goExpandedIds.add(m.id);
+            }
           }
           filteredCompanies = allCompanies.filter(c => goExpandedIds.has(c.id));
         } else {
@@ -9581,11 +9583,13 @@ export async function registerRoutes(
               .filter(site => sourcesOverlap(mySources, site.companySources ?? []))
               .map(site => site.companyId)
           );
-          // Expand: for each visible company that is a GO, include its member companies
+          // Expand: for each visible GO, include member companies that share a source with this user
           const goExpanded = new Set<string>(visibleCompanyIds);
           for (const cId of visibleCompanyIds) {
             const members = await storage.getGroupMembers(cId);
-            for (const m of members) goExpanded.add(m.id);
+            for (const m of members) {
+              if (sourcesOverlap(mySources, m.sources ?? [])) goExpanded.add(m.id);
+            }
           }
           let filteredSites = allSites.filter(site =>
             sourcesOverlap(mySources, site.companySources ?? []) || goExpanded.has(site.companyId)
@@ -10628,11 +10632,13 @@ export async function registerRoutes(
           if (sourcesOverlap(mySources, effective)) visibleCompanyIds.add(c.id);
         }
       }
-      // Member expansion: for each visible GO, include its member companies
+      // Member expansion: for each visible GO, only include members that share a source with this user
       const goExpandedIds = new Set<string>(visibleCompanyIds);
       for (const cId of visibleCompanyIds) {
         const members = await storage.getGroupMembers(cId);
-        for (const m of members) goExpandedIds.add(m.id);
+        for (const m of members) {
+          if (sourcesOverlap(mySources, m.sources ?? [])) goExpandedIds.add(m.id);
+        }
       }
       return new Set(allSites.filter((s: any) => goExpandedIds.has(s.companyId)).map((s: any) => s.id));
     }

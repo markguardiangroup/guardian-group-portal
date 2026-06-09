@@ -8469,6 +8469,13 @@
           "message": "Fixed: admins were seeing report data from other sources; reports are now source-locked",
           "category": "bug",
           "createdAt": "2026-06-09T20:19:13.128Z"
+        },
+        {
+          "id": "b3d7e2f1-admin-go-member-source-lock-2026",
+          "patch": 15,
+          "message": "Fixed: admins no longer see group member companies from other sources",
+          "category": "bug",
+          "createdAt": "2026-06-09T20:29:29.931Z"
         }
       ],
       "publishedPatch": 14,
