@@ -1434,6 +1434,7 @@ function DocumentDetailView({ id }: { id: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       setEditingTitle(false);
       toast({ title: "Document renamed" });
     },

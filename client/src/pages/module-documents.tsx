@@ -3338,6 +3338,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"] });
       setEditingTitle(false);
       toast({ title: "Document renamed" });
     },

@@ -8441,6 +8441,13 @@
           "message": "Rename audit entries now show the old and new name inline without needing to expand",
           "category": "enhancement",
           "createdAt": "2026-06-09T19:49:26.330Z"
+        },
+        {
+          "id": "a6c9e2f4-rename-audit-refresh-fix-2026",
+          "patch": 15,
+          "message": "Fixed: audit trail now refreshes immediately after a document is renamed",
+          "category": "bug",
+          "createdAt": "2026-06-09T19:51:48.453Z"
         }
       ],
       "publishedPatch": 14,
