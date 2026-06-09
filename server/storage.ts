@@ -5293,7 +5293,7 @@ export class MemStorage implements IStorage {
     let files: { module: string; createdAt: Date; uploadedBy: string | null }[] = [];
     if (folderIds.length > 0) {
       const rows = await db
-        .select({ module: clientUploadsTable.module, createdAt: clientUploadsTable.createdAt, uploadedBy: clientUploadsTable.uploadedBy })
+        .select({ module: clientUploadsTable.module, createdAt: clientUploadsTable.createdAt, uploadedBy: clientUploadsTable.uploadedByUserId })
         .from(clientUploadsTable)
         .where(inArray(clientUploadsTable.folderId, folderIds));
       files = rows.map((r) => ({ module: r.module as string, createdAt: r.createdAt, uploadedBy: r.uploadedBy ?? null }));
@@ -5617,8 +5617,9 @@ export class MemStorage implements IStorage {
 
       const isEmpty = remaining.length === 0;
       const pastSafetyNet = folder.expiresAt < now;
+      const olderThan7Days = folder.createdAt < new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      if (isEmpty || pastSafetyNet) {
+      if (pastSafetyNet || (isEmpty && olderThan7Days)) {
         await this.deleteClientUploadFolder(folder.id);
       }
     }

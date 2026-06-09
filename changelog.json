@@ -8553,6 +8553,20 @@
           "message": "Fixed: iShare badge now appears even when recipient was offline when files were uploaded",
           "category": "bug",
           "createdAt": "2026-06-09T21:32:00.000Z"
+        },
+        {
+          "id": "b2c4e6f8-ishare-cloudshare-cleanup-parity-2026",
+          "patch": 15,
+          "message": "Improved: iShare folder cleanup now matches cloud share — nightly sweep and 7-day grace for new empty folders",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T21:45:00.000Z"
+        },
+        {
+          "id": "c3d5e7f9-cloudshare-badge-uploadedby-field-fix-2026",
+          "patch": 15,
+          "message": "Fixed: cloud share badge could crash the server when files were present",
+          "category": "bug",
+          "createdAt": "2026-06-09T21:52:00.000Z"
         }
       ],
       "publishedPatch": 14,

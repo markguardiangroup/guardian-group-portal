@@ -488,9 +488,35 @@ process.on("uncaughtException", (err) => {
     }, ms).unref();
   }
 
+  // Run iShare expired file/folder cleanup on startup and then daily at 04:00 UK time
+  async function runExpiredIshareCleanup() {
+    try {
+      const count = await storage.cleanupExpiredIshares();
+      if (count > 0) {
+        console.log(`[scheduler] Deleted ${count} expired iShare file(s) and any empty folders.`);
+      }
+      storage.upsertSchedulerRun("ishare-cleanup").catch(() => {});
+    } catch (err) {
+      console.error("[scheduler] Expired iShare cleanup error:", err);
+    }
+  }
+  function scheduleNextIshareCleanup() {
+    const ms = msUntilNextUKTime(4, 0);
+    const nextRun = new Date(Date.now() + ms);
+    console.log(`[scheduler] Next iShare cleanup scheduled for ${nextRun.toISOString()} (${Math.round(ms / 60000)} min from now).`);
+    setTimeout(async () => {
+      await runExpiredIshareCleanup();
+      scheduleNextIshareCleanup();
+    }, ms).unref();
+  }
+
   // Run folder cleanup once on startup, then schedule for 03:00 UK each day
   runExpiredFolderCleanup();
   scheduleNextFolderCleanup();
+
+  // Run iShare cleanup once on startup, then schedule for 04:00 UK each day
+  runExpiredIshareCleanup();
+  scheduleNextIshareCleanup();
 
   // Run once immediately on startup to catch anything that expired overnight
   runExpiredDocumentSweep();
