@@ -4495,9 +4495,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           'update_document', 'document_renamed',
                         ]);
                         const GENERIC_SIGNED_OFF_TEXT = ['document approved', 'document signed off'];
+                        const GENERIC_CHANGES_TEXT = ['changes requested'];
                         const hasManualComment = !!details && (
                           !AUTO_DETAIL_ACTIONS.has(log.action) &&
-                          !(log.action === 'document_signed_off' && GENERIC_SIGNED_OFF_TEXT.includes(details.toLowerCase()))
+                          !(log.action === 'document_signed_off' && GENERIC_SIGNED_OFF_TEXT.includes(details.toLowerCase())) &&
+                          !(log.action === 'changes_requested' && GENERIC_CHANGES_TEXT.includes(details.toLowerCase()))
                         );
 
                         // For email entries, parse metadata for a friendly type label and show details inline
