@@ -8623,6 +8623,13 @@
           "message": "Fixed: 'New version uploaded' audit entry now shows 'on behalf of [consultant]'",
           "category": "bug",
           "createdAt": "2026-06-09T23:30:00.000Z"
+        },
+        {
+          "id": "f3a5b7c9-on-behalf-red-border-empty-2026",
+          "patch": 15,
+          "message": "Fixed: 'Approval On Behalf Of' field now shows red border when empty, same as Approver",
+          "category": "bug",
+          "createdAt": "2026-06-09T23:40:00.000Z"
         }
       ],
       "publishedPatch": 14,

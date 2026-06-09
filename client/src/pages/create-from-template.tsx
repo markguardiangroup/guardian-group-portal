@@ -1463,7 +1463,7 @@ export default function CreateFromTemplate() {
                   {onBehalfConsultants.length > 0 ? (
                     <Select value={selectedOnBehalfId} onValueChange={setSelectedOnBehalfId}>
                       <SelectTrigger
-                        className={`mt-1 ${submitAttempted && isAdministrator && requiresApproval && !selectedOnBehalfId ? "border-destructive" : ""}`}
+                        className={`mt-1 ${isAdministrator && requiresApproval && !selectedOnBehalfId ? "border-destructive" : ""}`}
                         data-testid="select-on-behalf-consultant"
                       >
                         <SelectValue placeholder="Select a consultant…" />
