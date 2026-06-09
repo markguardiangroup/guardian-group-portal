@@ -8462,6 +8462,13 @@
           "message": "Removed expand comment link from document edit audit entries",
           "category": "enhancement",
           "createdAt": "2026-06-09T19:58:26.269Z"
+        },
+        {
+          "id": "a9f3c1d8-admin-source-lock-reports-2026",
+          "patch": 15,
+          "message": "Fixed: admins were seeing report data from other sources; reports are now source-locked",
+          "category": "bug",
+          "createdAt": "2026-06-09T20:19:13.128Z"
         }
       ],
       "publishedPatch": 14,

@@ -10604,10 +10604,37 @@ export async function registerRoutes(
 
   // ─── Report helpers ───────────────────────────────────────────────────────
   async function getAllowedSiteIds(user: any): Promise<Set<string>> {
-    const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-    if (user.role === "developer" || user.role === "administrator" || isProConsultant) {
+    // Developer: unrestricted
+    if (user.role === "developer") {
       const sites = await storage.getSites();
       return new Set(sites.map((s: any) => s.id));
+    }
+    const isProConsultantUser = user.role === "consultant" && user.consultantTier === "pro";
+    // Administrator and Pro Consultant: source-scoped (same logic as /api/sites)
+    if (user.role === "administrator" || isProConsultantUser) {
+      const mySources: string[] = user.sources ?? [];
+      const [allSites, allCompanies] = await Promise.all([
+        storage.getSites(),
+        storage.getCompanies(),
+      ]);
+      // Directly visible companies via source overlap
+      const visibleCompanyIds = new Set<string>(
+        allCompanies.filter((c: any) => sourcesOverlap(mySources, c.sources ?? [])).map((c: any) => c.id)
+      );
+      // GO expansion: GO companies whose effective sources (own + members) overlap
+      for (const c of allCompanies) {
+        if (!visibleCompanyIds.has(c.id)) {
+          const effective = await getEffectiveGoSources(c.id);
+          if (sourcesOverlap(mySources, effective)) visibleCompanyIds.add(c.id);
+        }
+      }
+      // Member expansion: for each visible GO, include its member companies
+      const goExpandedIds = new Set<string>(visibleCompanyIds);
+      for (const cId of visibleCompanyIds) {
+        const members = await storage.getGroupMembers(cId);
+        for (const m of members) goExpandedIds.add(m.id);
+      }
+      return new Set(allSites.filter((s: any) => goExpandedIds.has(s.companyId)).map((s: any) => s.id));
     }
     if (user.role === "consultant") {
       const assignments = await storage.getConsultantSites(user.id);
