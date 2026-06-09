@@ -8329,6 +8329,20 @@
           "message": "Received timestamp in sign-off list now shows time as well as date",
           "category": "enhancement",
           "createdAt": "2026-06-09T14:57:49.204Z"
+        },
+        {
+          "id": "35248776-fb2c-493e-99a3-a920fe6ef06b",
+          "patch": 15,
+          "message": "Calendar badge now only counts events within 7 days; today's activities always show +1",
+          "category": "enhancement",
+          "createdAt": "2026-06-09T15:03:52.093Z"
+        },
+        {
+          "id": "4ba73e3a-f7b5-4753-bc06-392f9f13509c",
+          "patch": 15,
+          "message": "New Admin staff role: full Pro-like access, on-behalf-of approval flow, no sign-off",
+          "category": "feature",
+          "createdAt": "2026-06-09T15:06:57.703Z"
         }
       ],
       "publishedPatch": 14,
