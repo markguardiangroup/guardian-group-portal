@@ -8364,6 +8364,13 @@
           "message": "Staff can now send a password reset email to any active user from the user list",
           "category": "feature",
           "createdAt": "2026-06-09T15:58:32.712Z"
+        },
+        {
+          "id": "a703a56d-d5a9-433b-bbd3-ecfb0db84725",
+          "patch": 15,
+          "message": "Fixed: login screen now shows a clear error message when credentials are wrong",
+          "category": "bug",
+          "createdAt": "2026-06-09T16:08:18.925Z"
         }
       ],
       "publishedPatch": 14,

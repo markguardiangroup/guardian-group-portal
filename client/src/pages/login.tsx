@@ -115,6 +115,7 @@ export default function Login() {
   const [resetUrl, setResetUrl] = useState<string | null>(null);
   const [isAccountLocked, setIsAccountLocked] = useState(false);
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
@@ -237,6 +238,7 @@ export default function Login() {
       setIsSubmitting(false);
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
+      setLoginError(null);
       resetTurnstile();
       const msg = error.message || "";
       const statusCode = parseInt(msg.split(":")[0], 10);
@@ -249,13 +251,18 @@ export default function Login() {
         }
         if (typeof body.attemptsRemaining === "number") {
           setAttemptsRemaining(body.attemptsRemaining);
+          setLoginError("Incorrect username or password.");
+          return;
+        }
+        // Surface any explicit error message from the server (e.g. account inactive)
+        if (body.error) {
+          setLoginError(body.error);
+          return;
         }
       } catch {
-        // not JSON — show generic toast
+        // not JSON
       }
-      if (statusCode !== 423) {
-        toast({ title: "Login Failed", description: "Invalid username or password", variant: "destructive" });
-      }
+      setLoginError("Incorrect username or password. Please try again.");
     },
   });
 
@@ -450,7 +457,7 @@ export default function Login() {
             </div>
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(d => { setIsSubmitting(true); setIsAccountLocked(false); setAttemptsRemaining(null); loginMutation.mutate(d); })} className="space-y-4">
+              <form onSubmit={form.handleSubmit(d => { setIsSubmitting(true); setIsAccountLocked(false); setAttemptsRemaining(null); setLoginError(null); loginMutation.mutate(d); })} className="space-y-4">
 
                 {isAccountLocked && (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-4" data-testid="alert-account-locked">
@@ -472,14 +479,14 @@ export default function Login() {
                   </div>
                 )}
 
-                {attemptsRemaining !== null && attemptsRemaining > 0 && !isAccountLocked && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center gap-2.5" data-testid="alert-attempts-remaining">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <p className="text-sm text-amber-800">
-                      Incorrect password.{" "}
-                      <span className="font-semibold">
-                        {attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining
-                      </span>
+                {loginError && !isAccountLocked && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 flex items-center gap-2.5" data-testid="alert-login-error">
+                    <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                    <p className="text-sm text-red-800">
+                      {loginError}
+                      {attemptsRemaining !== null && attemptsRemaining > 0 && (
+                        <>{" "}<span className="font-semibold">{attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining.</span></>
+                      )}
                     </p>
                   </div>
                 )}
