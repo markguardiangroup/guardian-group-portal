@@ -8350,6 +8350,13 @@
           "message": "Fixed: cloud share badge no longer counts files you uploaded yourself",
           "category": "bug",
           "createdAt": "2026-06-09T15:23:46.055Z"
+        },
+        {
+          "id": "456dee77-e387-438e-9e0e-76c3ab286388",
+          "patch": 15,
+          "message": "Fixed: users with Template Library permission can now create and edit toolkit folders",
+          "category": "bug",
+          "createdAt": "2026-06-09T15:37:20.784Z"
         }
       ],
       "publishedPatch": 14,

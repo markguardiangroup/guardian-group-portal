@@ -6802,7 +6802,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can create toolkit folders" });
+      if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can create toolkit folders" });
 
       const schema = z.object({
         name: z.string().min(1).max(100),
@@ -6857,7 +6857,7 @@ export async function registerRoutes(
     try {
       const user = await storage.getUser((req.session as any).userId);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer") return res.status(403).json({ error: "Only developers can update toolkit folders" });
+      if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can update toolkit folders" });
 
       const schema = z.object({
         name: z.string().min(1).max(100).optional(),
