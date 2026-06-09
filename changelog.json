@@ -8403,7 +8403,7 @@
         {
           "id": "b8e2d4f6-set-password-smooth-redirect-2026",
           "patch": 15,
-          "message": "Improved: no more white flash when going to login after setting or resetting a password",
+          "message": "Improved: goes straight to login after setting or resetting a password — no white flash",
           "category": "enhancement",
           "createdAt": "2026-06-09T18:27:00.000Z"
         }

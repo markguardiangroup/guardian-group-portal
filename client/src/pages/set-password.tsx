@@ -54,17 +54,13 @@ export default function SetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [countdown, setCountdown] = useState(5);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<"terms" | "privacy" | null>(null);
 
   useEffect(() => {
-    if (!isSuccess) return;
-    if (countdown <= 0) { setLocation("/"); return; }
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [isSuccess, countdown, setLocation]);
+    if (isSuccess) setLocation("/");
+  }, [isSuccess, setLocation]);
 
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("token");
@@ -224,11 +220,10 @@ export default function SetPassword() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex justify-center">
           <Button onClick={() => setLocation("/")} data-testid="button-login-now">
             Log In Now
           </Button>
-          <p className="text-xs text-slate-400">Redirecting to login in {countdown}s…</p>
         </div>
       </AuthShell>
     );
@@ -302,11 +297,10 @@ export default function SetPassword() {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex justify-center">
           <Button onClick={() => setLocation("/")} data-testid="button-login-now">
             Log In Now
           </Button>
-          <p className="text-xs text-slate-400">Redirecting to login in {countdown}s…</p>
         </div>
       </AuthShell>
     );
