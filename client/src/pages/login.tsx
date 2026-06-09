@@ -235,7 +235,6 @@ export default function Login() {
       setLocation(target);
     },
     onError: async (error: Error) => {
-      console.log("[login onError] fired, error:", error.message);
       setIsSubmitting(false);
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
@@ -253,20 +252,17 @@ export default function Login() {
         if (typeof body.attemptsRemaining === "number") {
           setAttemptsRemaining(body.attemptsRemaining);
           setLoginError("Incorrect username or password.");
-          console.log("[login onError] set loginError (attemptsRemaining path)");
           return;
         }
         // Surface any explicit error message from the server (e.g. account inactive)
         if (body.error) {
           setLoginError(body.error);
-          console.log("[login onError] set loginError (body.error path):", body.error);
           return;
         }
       } catch {
-        console.log("[login onError] JSON parse failed");
+        // not JSON
       }
       setLoginError("Incorrect username or password. Please try again.");
-      console.log("[login onError] set loginError (fallback path)");
     },
   });
 

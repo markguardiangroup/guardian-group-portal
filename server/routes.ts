@@ -20215,9 +20215,7 @@ export async function registerRoutes(
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
       if (!user) return res.status(401).json({ error: "Unauthorized" });
-      const isDeveloper = user.role === "developer";
-      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-      if (!isDeveloper && !isProConsultant) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
+      if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
 
       const schema = z.object({
         userId: z.string().min(1),
@@ -20294,9 +20292,7 @@ export async function registerRoutes(
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
       if (!user) return res.status(401).json({ error: "Unauthorized" });
-      const isDeveloper = user.role === "developer";
-      const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
-      if (!isDeveloper && !isProConsultant) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
+      if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
 
       const { userId, entityType, entityId } = req.params;
       if (entityType !== "company" && entityType !== "site") {

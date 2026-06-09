@@ -8378,6 +8378,20 @@
           "message": "Admin role fully wired: can create/update/delete users, manage site assignments and consultant allocations",
           "category": "feature",
           "createdAt": "2026-06-09T16:28:00.452Z"
+        },
+        {
+          "id": "c9921284-f25c-4c55-abcc-3817cc6ce99e",
+          "patch": 15,
+          "message": "Fixed: clear error message now shows on the login screen when credentials are wrong",
+          "category": "bug",
+          "createdAt": "2026-06-09T16:44:46.702Z"
+        },
+        {
+          "id": "3c3ef680-194a-4565-8aa0-5cf42e7c7282",
+          "patch": 15,
+          "message": "New Admin staff role — Pro-level access, never an approver; on-behalf-of flow for document uploads",
+          "category": "feature",
+          "createdAt": "2026-06-09T16:49:32.063Z"
         }
       ],
       "publishedPatch": 14,
