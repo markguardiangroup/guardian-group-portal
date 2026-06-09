@@ -1579,9 +1579,9 @@ function DocumentDetailView({ id }: { id: string }) {
           </Button>
           <div>
             {isPrivilegedUser && editingTitle ? (
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 w-full">
                 <input
-                  className="text-3xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none min-w-0 w-96 max-w-full"
+                  className="text-3xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none flex-1 min-w-0"
                   value={titleDraft}
                   onChange={e => setTitleDraft(e.target.value)}
                   onKeyDown={e => {

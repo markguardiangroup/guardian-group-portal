@@ -3679,9 +3679,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
             {isPrivilegedUser && editingTitle ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
                 <input
-                  className="text-2xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none min-w-0 w-96 max-w-full"
+                  className="text-2xl font-semibold bg-transparent border-b-2 border-primary focus:outline-none flex-1 min-w-0"
                   value={titleDraft}
                   onChange={e => setTitleDraft(e.target.value)}
                   onKeyDown={e => {

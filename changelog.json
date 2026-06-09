@@ -8413,6 +8413,13 @@
           "message": "Non-client users can rename a document directly from the document detail page",
           "category": "feature",
           "createdAt": "2026-06-09T19:35:08.137Z"
+        },
+        {
+          "id": "c2e4f8a1-document-title-input-full-width-2026",
+          "patch": 15,
+          "message": "Fixed: document rename input now stays the same size as the title text",
+          "category": "bug",
+          "createdAt": "2026-06-09T19:37:34.194Z"
         }
       ],
       "publishedPatch": 14,
