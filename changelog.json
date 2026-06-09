@@ -8287,6 +8287,20 @@
           "message": "Fixed: cloud share badge only counts file uploads, not folder creation or deletions",
           "category": "bug",
           "createdAt": "2026-06-09T09:54:36.505Z"
+        },
+        {
+          "id": "66ac2da7-1837-47c9-b371-6ca03db7d4b6",
+          "patch": 15,
+          "message": "Fixed: new document version notification now shows correct sent date",
+          "category": "bug",
+          "createdAt": "2026-06-09T10:04:18.490Z"
+        },
+        {
+          "id": "3b27a222-592f-4b19-98cb-ffb38f9daea2",
+          "patch": 15,
+          "message": "Fixed: pending sign-off tasks now appear for company-member clients in My Actions",
+          "category": "bug",
+          "createdAt": "2026-06-09T10:04:18.491Z"
         }
       ],
       "publishedPatch": 14,

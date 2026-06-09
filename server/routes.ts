@@ -3787,7 +3787,7 @@ export async function registerRoutes(
                 documentId: document.id,
                 supportRequestId: null,
                 module: document.module,
-                details: `New version approval notification sent to ${notifyUser.fullName} (${notifyUser.email})`,
+                details: `Approval notification email sent to ${notifyUser.fullName} (${notifyUser.email})`,
                 metadata: JSON.stringify({ targetUserId: notifyUser.id, emailType: "approval_notification" }),
               });
             }
@@ -20392,21 +20392,32 @@ export async function registerRoutes(
           mergePending(await accessibleScopedPending("client_signed_off", false));
         }
       } else if (user.role === "client") {
-        // Client: docs with approval_status = "pending" uploaded by someone else on their assigned site(s) only
+        // Client: docs with approval_status = "pending" uploaded by someone else on their accessible site(s).
+        // Includes both directly assigned sites (client_site_assignments) AND all sites belonging to their
+        // company — mirroring the site-scope logic in /api/home-summary.
         const clientSites = await storage.getClientSites(userId);
-        const siteIds = clientSites.map((s) => s.siteId);
-        if (siteIds.length > 0) {
+        const directSiteIds = clientSites.map((s) => s.siteId);
+        let allClientSiteIds = [...directSiteIds];
+        if (user.companyId) {
+          const companySitesRes = await pool.query<{ id: string }>(
+            "SELECT id FROM sites WHERE entity_id = $1",
+            [user.companyId]
+          );
+          const companySiteIds = companySitesRes.rows.map((r) => r.id);
+          allClientSiteIds = [...new Set([...directSiteIds, ...companySiteIds])];
+        }
+        if (allClientSiteIds.length > 0) {
           const res2 = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
             `SELECT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
                     s.name AS site_name, c.name AS company_name
              FROM documents d
              LEFT JOIN sites s ON s.id = d.site_id
-             LEFT JOIN companies c ON c.id = s.company_id
+             LEFT JOIN companies c ON c.id = s.entity_id
              WHERE d.approval_status = 'pending' AND d.uploaded_by != $1
                AND d.site_id = ANY($2::varchar[]) AND d.is_archived = false
                AND (d.approval_requested_from IS NULL OR d.approval_requested_from = $1)
              LIMIT 20`,
-            [userId, siteIds]
+            [userId, allClientSiteIds]
           );
           pendingApprovalsRows = res2.rows;
         }
