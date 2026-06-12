@@ -8721,6 +8721,13 @@
           "message": "Site document cards: divider is more visible with a wider gap between the two halves",
           "category": "enhancement",
           "createdAt": "2026-06-12T15:49:24.000Z"
+        },
+        {
+          "id": "b2c3d4e5-site-card-divider-height-fix-2026",
+          "patch": 16,
+          "message": "Fixed: site card divider line no longer bleeds through the whole card",
+          "category": "bug",
+          "createdAt": "2026-06-12T15:53:06.000Z"
         }
       ],
       "publishedPatch": 15,

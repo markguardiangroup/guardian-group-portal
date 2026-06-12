@@ -835,7 +835,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               <p className="text-muted-foreground">{groupMissing} missing</p>
                             </TooltipContent>
                           </Tooltip>
-                          <div className="self-stretch flex items-center justify-center"><div className="w-0.5 h-full bg-gray-300 dark:bg-gray-600 rounded-full" /></div>
+                          <div className="flex items-center justify-center"><div className="w-0.5 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" /></div>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupOverdue > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
@@ -1076,7 +1076,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                   <p className="text-muted-foreground">{cMissing} missing</p>
                                 </TooltipContent>
                               </Tooltip>
-                              <div className="self-stretch flex items-center justify-center"><div className="w-0.5 h-full bg-gray-300 dark:bg-gray-600 rounded-full" /></div>
+                              <div className="flex items-center justify-center"><div className="w-0.5 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" /></div>
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
@@ -1296,7 +1296,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <p className="text-muted-foreground">{allMissing} missing</p>
                           </TooltipContent>
                         </Tooltip>
-                        <div className="self-stretch flex items-center justify-center"><div className="w-0.5 h-full bg-gray-300 dark:bg-gray-600 rounded-full" /></div>
+                        <div className="flex items-center justify-center"><div className="w-0.5 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" /></div>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allOverdueAll > 0 ? "bg-orange-50 dark:bg-orange-900/20" : "bg-muted/50"}`}>
@@ -1562,7 +1562,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <p className="text-muted-foreground">{missingCount} missing</p>
                           </TooltipContent>
                         </Tooltip>
-                        <div className="self-stretch flex items-center justify-center"><div className="w-0.5 h-full bg-gray-300 dark:bg-gray-600 rounded-full" /></div>
+                        <div className="flex items-center justify-center"><div className="w-0.5 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" /></div>
 
                         {/* Overdue */}
                         <Tooltip>
