@@ -1175,6 +1175,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const allMissing = missingRequiredDetails.filter((m) =>
                 filteredSites.some((s) => s.id === m.siteId)
               ).length;
+              const mandatoryAllDocs = allDocs.filter((d: any) => d.isMandatory);
+              const allOverdueRequired = mandatoryAllDocs.filter((d: any) => d.status === "overdue").length;
+              const allApprovalRequiredRequired = mandatoryAllDocs.filter((d: any) => d.status === "approval_required").length;
+              const allNonCompliant = allApprovalRequiredRequired + allOverdueRequired + allMissing;
               const allDenom = allCompliant + allApprovalRequired + allOverdue + allMissing;
               // Derive the compliance % from the server-side slot-based raw counts that
               // /api/sites already returns per site — this mirrors the same algorithm the
@@ -1284,9 +1288,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
-                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${(allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allApprovalRequired + allOverdue + allMissing}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && (allApprovalRequired + allOverdue + allMissing) > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                            <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
+                              {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allNonCompliant}</p>}
+                              <p className={`text-[10px] ${!isLoadingDocs && allNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
