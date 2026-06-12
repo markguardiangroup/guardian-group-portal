@@ -4201,7 +4201,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 : "This document is overdue and needs attention.";
             return (
               <Card className="border-2 border-red-400 dark:border-red-600 bg-red-50/80 dark:bg-red-900/20" data-testid="card-document-overdue">
-                <CardHeader className="pb-3">
+                <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-300">
                     <XCircle className="h-5 w-5" />
                     {label}
