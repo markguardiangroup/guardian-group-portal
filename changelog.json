@@ -8728,6 +8728,13 @@
           "message": "Fixed: site card divider line no longer bleeds through the whole card",
           "category": "bug",
           "createdAt": "2026-06-12T15:53:06.000Z"
+        },
+        {
+          "id": "c3d4e5f6-site-card-divider-removed-2026",
+          "patch": 16,
+          "message": "Removed divider line from site document cards; labels remain",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T15:56:30.000Z"
         }
       ],
       "publishedPatch": 15,
