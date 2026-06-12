@@ -8735,6 +8735,13 @@
           "message": "Removed vertical divider line from site document cards",
           "category": "enhancement",
           "createdAt": "2026-06-12T16:01:56.000Z"
+        },
+        {
+          "id": "d4e5f6a7-site-card-ghost-line-fixed-2026",
+          "patch": 16,
+          "message": "Fixed: ghost divider line running through entire site card removed; stat box dividers restored",
+          "category": "bug",
+          "createdAt": "2026-06-12T16:08:52.000Z"
         }
       ],
       "publishedPatch": 15,
