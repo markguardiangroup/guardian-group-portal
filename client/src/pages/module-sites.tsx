@@ -768,7 +768,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       </div>
 
                       {groupDenom > 0 ? (
-                        <div className="mb-4 min-h-[38px]">
+                        <div className="mb-1 min-h-[38px]">
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
                               <TrendingUp className="h-3 w-3" />
@@ -794,7 +794,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </div>
                         </div>
                       ) : (
-                        <div className="mb-4 min-h-[38px] flex items-center justify-center">
+                        <div className="mb-1 min-h-[38px] flex items-center justify-center">
                           <p className="text-xs text-muted-foreground">
                             {groupDocs.length === 0 ? "No group documents yet" : `${groupDocs.length} document${groupDocs.length !== 1 ? "s" : ""}`}
                           </p>
@@ -1009,7 +1009,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </div>
 
                           {cDenom > 0 ? (
-                            <div className="mb-4 min-h-[38px]">
+                            <div className="mb-1 min-h-[38px]">
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <TrendingUp className="h-3 w-3" />
@@ -1035,7 +1035,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                               </div>
                             </div>
                           ) : (
-                            <div className="mb-4 min-h-[38px] flex items-center justify-center">
+                            <div className="mb-1 min-h-[38px] flex items-center justify-center">
                               <p className="text-xs text-muted-foreground">
                                 {companyDocs.length === 0 ? "No company documents yet" : `${companyDocs.length} document${companyDocs.length !== 1 ? "s" : ""}`}
                               </p>
@@ -1231,7 +1231,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     </div>
 
                     {allDenom > 0 ? (
-                      <div className="mb-4 min-h-[38px]">
+                      <div className="mb-1 min-h-[38px]">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
@@ -1257,7 +1257,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     ) : (
-                      <div className="mb-4 min-h-[38px] flex items-center justify-center">
+                      <div className="mb-1 min-h-[38px] flex items-center justify-center">
                         <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
                       </div>
                     )}
@@ -1487,7 +1487,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     {/* Compliance bar */}
                     {scoreDenominator > 0 ? (
-                      <div className="mb-4 min-h-[38px]">
+                      <div className="mb-1 min-h-[38px]">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <TrendingUp className="h-3 w-3" />
@@ -1519,7 +1519,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     ) : (
-                      <div className="mb-4 min-h-[38px] flex items-center justify-center">
+                      <div className="mb-1 min-h-[38px] flex items-center justify-center">
                         <p className="text-xs text-muted-foreground">No documents uploaded yet</p>
                       </div>
                     )}

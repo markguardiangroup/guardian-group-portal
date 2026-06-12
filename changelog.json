@@ -8742,6 +8742,13 @@
           "message": "Fixed: ghost divider line running through entire site card removed; stat box dividers restored",
           "category": "bug",
           "createdAt": "2026-06-12T16:08:52.000Z"
+        },
+        {
+          "id": "e5f6a7b8-site-card-heading-gap-reduced-2026",
+          "patch": 16,
+          "message": "Reduced gap between compliance bar and Mandatory/Non mandatory headings",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T16:11:01.000Z"
         }
       ],
       "publishedPatch": 15,
