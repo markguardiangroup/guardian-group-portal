@@ -4189,8 +4189,33 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             );
           })()}
 
+          {/* ── Overdue warning card (renewal past, still approved) ──── */}
+          {document.approvalStatus === "approved" && document.status === "overdue" && !document.isArchived && (() => {
+            const isExpired = !!(document as any).expiryDate && new Date((document as any).expiryDate) < new Date();
+            const pastRenewal = !!(document as any).renewalDate && new Date((document as any).renewalDate) < new Date();
+            const label = isExpired ? "Document Expired" : "Renewal Overdue";
+            const desc = isExpired
+              ? `This document expired on ${format(new Date((document as any).expiryDate), "d MMM yyyy")} and needs to be renewed.`
+              : pastRenewal
+                ? `The renewal date of ${format(new Date((document as any).renewalDate), "d MMM yyyy")} has passed. A new version should be uploaded.`
+                : "This document is overdue and needs attention.";
+            return (
+              <Card className="border-2 border-red-400 dark:border-red-600 bg-red-50/80 dark:bg-red-900/20" data-testid="card-document-overdue">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-red-800 dark:text-red-300">
+                    <XCircle className="h-5 w-5" />
+                    {label}
+                  </CardTitle>
+                  <CardDescription className="text-red-700/80 dark:text-red-400/80">
+                    {desc}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })()}
+
           {/* ── Approved summary card ────────────────────────────────── */}
-          {document.approvalStatus === "approved" && !document.isArchived && (() => {
+          {document.approvalStatus === "approved" && document.status !== "overdue" && !document.isArchived && (() => {
             // Pull the most-recent sign-off and approval entries from audit log
             const signOffLog = auditLogs?.find(l => l.action === "document_signed_off");
             const approvalLog = auditLogs?.find(l => l.action === "document_approved");
