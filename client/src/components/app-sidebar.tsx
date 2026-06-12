@@ -399,7 +399,7 @@ function NavItemWithFlyout({
                     {subItem.icon && <subItem.icon className="h-4 w-4" />}
                     <span className="flex-1">{subItem.title}</span>
                     {subItem.url.endsWith("/cloud-share") && cloudShareCount > 0 && (
-                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground">
+                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
                         {cloudShareCount}
                       </Badge>
                     )}
@@ -432,12 +432,12 @@ function NavItemWithFlyout({
             <item.icon className={cn("h-4 w-4", noColor ? "text-muted-foreground" : "text-module-accent")} />
             <span className={cn("flex-1", !noColor && "nav-module-label")}>{item.title}</span>
             {item.module === "support" && openSupportCount > 0 && (
-              <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground" data-testid="badge-support-notifications">
+              <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" data-testid="badge-support-notifications">
                 {openSupportCount}
               </Badge>
             )}
             {cloudShareCount > 0 && (
-              <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground" data-testid={`badge-cloudshare-${item.module}`}>
+              <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" data-testid={`badge-cloudshare-${item.module}`}>
                 {cloudShareCount}
               </Badge>
             )}
@@ -462,7 +462,7 @@ function NavItemWithFlyout({
                       {subItem.icon && <subItem.icon className="h-3.5 w-3.5 shrink-0" />}
                       <span className="flex-1">{subItem.title}</span>
                       {subItem.url.endsWith("/cloud-share") && cloudShareCount > 0 && (
-                        <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground" data-testid={`badge-cloudshare-sub-${item.module}`}>
+                        <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" data-testid={`badge-cloudshare-sub-${item.module}`}>
                           {cloudShareCount}
                         </Badge>
                       )}
@@ -576,7 +576,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     <Home className="h-4 w-4" />
                     <span className="flex-1">Home</span>
                     {homeAlertCount > 0 && (
-                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground" data-testid="badge-home-alerts">
+                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" data-testid="badge-home-alerts">
                         {homeAlertCount}
                       </Badge>
                     )}
@@ -617,7 +617,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                     <CalendarDays className="h-4 w-4" />
                     <span className="flex-1">Calendar</span>
                     {calendarAlertCount > 0 && (
-                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground" data-testid="badge-calendar-alerts">
+                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" data-testid="badge-calendar-alerts">
                         {calendarAlertCount}
                       </Badge>
                     )}
@@ -643,7 +643,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                       <span className="flex-1">Support</span>
                       {openSupportCount > 0 && (
                         <Badge
-                          className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground"
+                          className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                           data-testid="badge-support-notifications"
                         >
                           {openSupportCount}
@@ -759,7 +759,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                           <span className={cn("flex-1", !item.noColor && "nav-module-label")}>{item.title}</span>
                           {item.module === "support" && openSupportCount > 0 && (
                             <Badge
-                              className="h-5 min-w-5 px-1.5 text-xs font-medium bg-muted text-muted-foreground"
+                              className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                               data-testid="badge-support-notifications"
                             >
                               {openSupportCount}
@@ -844,7 +844,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                                   <span className="flex-1">{item.title}</span>
                                   {itemBadge > 0 && (
                                     <Badge
-                                      className="ml-auto h-5 min-w-5 px-1.5 text-xs bg-muted text-muted-foreground"
+                                      className="ml-auto h-5 min-w-5 px-1.5 text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                                       data-testid={`badge-nav-ishare-collapsed`}
                                     >
                                       {itemBadge}
@@ -873,7 +873,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                               <span className="flex-1">{item.title}</span>
                               {itemBadge > 0 && (
                                 <Badge
-                                  className="ml-auto h-5 min-w-5 px-1.5 text-xs bg-muted text-muted-foreground"
+                                  className="ml-auto h-5 min-w-5 px-1.5 text-xs bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
                                   data-testid={`badge-nav-ishare`}
                                 >
                                   {itemBadge}

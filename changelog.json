@@ -8690,9 +8690,9 @@
         {
           "id": "c2d4e6f8-sidebar-badges-softened-2026",
           "patch": 16,
-          "message": "Sidebar notification count badges are now softer and less visually alarming",
+          "message": "Sidebar notification count badges are now a soft red instead of bold red",
           "category": "enhancement",
-          "createdAt": "2026-06-12T13:50:37.000Z"
+          "createdAt": "2026-06-12T13:54:30.000Z"
         }
       ],
       "publishedPatch": 15,
