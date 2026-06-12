@@ -12915,20 +12915,17 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin and pro consultants can set module access
-      if (user.role !== "developer" && !(user.role === "consultant" && user.consultantTier === "pro")) {
-        return res.status(403).json({ error: "Only developers and pro consultants can manage module access" });
+      // Developers, administrators, and all consultants can set module access
+      if (user.role !== "developer" && user.role !== "administrator" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only staff can manage module access" });
       }
       
-      // Pro consultants need to be assigned to this site
+      // Consultants must be assigned to this site
       if (user.role === "consultant") {
         const assignments = await storage.getConsultantAssignments(user.id);
         const siteAssignment = assignments.find(a => a.siteId === req.params.siteId);
         if (!siteAssignment) {
           return res.status(403).json({ error: "You are not assigned to this site" });
-        }
-        if (!siteAssignment.canManageModules) {
-          return res.status(403).json({ error: "You do not have permission to manage modules for this site" });
         }
       }
       
@@ -13008,9 +13005,20 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin and pro consultants can set company module access
-      if (user.role !== "developer" && !(user.role === "consultant" && user.consultantTier === "pro")) {
-        return res.status(403).json({ error: "Only developers and pro consultants can manage company module access" });
+      // Developers, administrators, and all consultants can set company module access
+      if (user.role !== "developer" && user.role !== "administrator" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only staff can manage company module access" });
+      }
+      
+      // Consultants must be assigned to at least one site in this company
+      if (user.role === "consultant") {
+        const consultantSites = await storage.getConsultantSites(user.id);
+        const companySites = await storage.getSitesByCompanyId(req.params.companyId);
+        const companySiteIds = new Set(companySites.map(s => s.id));
+        const hasAccess = consultantSites.some(a => companySiteIds.has(a.entityId));
+        if (!hasAccess) {
+          return res.status(403).json({ error: "You are not assigned to any site in this company" });
+        }
       }
       
       const { healthSafety, humanResources, employmentLaw, training, toolkit, support, reports } = req.body;

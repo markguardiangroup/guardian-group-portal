@@ -8700,6 +8700,13 @@
           "message": "Removed notification badge from the Calendar sidebar item",
           "category": "enhancement",
           "createdAt": "2026-06-12T14:40:03.000Z"
+        },
+        {
+          "id": "e4f6a8b0-module-access-all-consultants-2026",
+          "patch": 16,
+          "message": "Consultants and admins can now set module access for companies they manage",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T14:44:55.000Z"
         }
       ],
       "publishedPatch": 15,

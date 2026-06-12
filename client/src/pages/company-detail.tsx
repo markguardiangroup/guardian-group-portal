@@ -286,7 +286,7 @@ function SiteCard({ site, onManage }: { site: SiteWithDetails; onManage: (id: st
 function ModuleAccessCard({ companyId, groupOwnerId }: { companyId: string; groupOwnerId?: string | null }) {
   const { toast } = useToast();
   const { user } = useAuth();
-  const isDeveloper = user?.role === "developer";
+  const isDeveloper = user?.role === "developer" || user?.role === "administrator" || user?.role === "consultant";
 
   const { data: moduleAccess, isLoading } = useQuery<CompanyModuleAccess>({
     queryKey: ["/api/companies", companyId, "module-access"],
