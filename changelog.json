@@ -8686,13 +8686,6 @@
           "message": "Overdue documents now show a clear 'Renewal Overdue' or 'Expired' warning card",
           "category": "enhancement",
           "createdAt": "2026-06-10T00:50:00.000Z"
-        },
-        {
-          "id": "c2d4e6f8-overdue-card-spacing-2026",
-          "patch": 15,
-          "message": "Fixed: bottom padding on the overdue warning card now matches the top",
-          "category": "bug",
-          "createdAt": "2026-06-10T01:00:00.000Z"
         }
       ],
       "publishedPatch": 15,
