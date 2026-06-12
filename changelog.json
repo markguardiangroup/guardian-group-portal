@@ -8686,6 +8686,13 @@
           "message": "Overdue documents now show a clear 'Renewal Overdue' or 'Expired' warning card",
           "category": "enhancement",
           "createdAt": "2026-06-12T09:59:09.000Z"
+        },
+        {
+          "id": "c2d4e6f8-sidebar-badges-softened-2026",
+          "patch": 16,
+          "message": "Sidebar notification count badges are now softer and less visually alarming",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T13:50:37.000Z"
         }
       ],
       "publishedPatch": 15,
