@@ -507,7 +507,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
   // Unseen alert counts for sidebar badges (kept fresh via SSE invalidation)
   const { data: alertCounts } = useAlertCounts(!!user);
   const homeAlertCount = alertCounts?.home || 0;
-  const calendarAlertCount = alertCounts?.calendar || 0;
   const ishareAlertCount = alertCounts?.ishare || 0;
   const cloudShareCountFor = (module: ModuleType): number => {
     if (module === "health_safety") return alertCounts?.cloudshare.health_safety || 0;
@@ -616,11 +615,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
                   <Link href="/calendar" data-testid="nav-calendar">
                     <CalendarDays className="h-4 w-4" />
                     <span className="flex-1">Calendar</span>
-                    {calendarAlertCount > 0 && (
-                      <Badge className="h-5 min-w-5 px-1.5 text-xs font-medium bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" data-testid="badge-calendar-alerts">
-                        {calendarAlertCount}
-                      </Badge>
-                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

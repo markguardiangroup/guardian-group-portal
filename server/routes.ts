@@ -20400,11 +20400,11 @@ export async function registerRoutes(
       //   create a huge badge on first login.
       // ishare/cloudshare: treat a missing record as epoch so files uploaded while
       //   the user was offline still show as new until they visit the page.
-      const surfaces = ["home", "calendar", "ishare", ...CLOUD_SHARE_MODULES.map((m) => `cloudshare:${m}`)];
+      const surfaces = ["home", "ishare", ...CLOUD_SHARE_MODULES.map((m) => `cloudshare:${m}`)];
       const seen = await storage.getAlertSeen(user.id);
       for (const s of surfaces) {
         if (!seen[s]) {
-          if (s === "home" || s === "calendar") {
+          if (s === "home") {
             await storage.markAlertSeen(user.id, s);
             seen[s] = now;
           } else {
@@ -20414,7 +20414,6 @@ export async function registerRoutes(
         }
       }
       const seenHome = seen["home"];
-      const seenCal = seen["calendar"];
 
       // ── Site scope for HOME (mirrors /api/home-summary) ──────────────────────
       let userSiteIds: string[] | null = null; // null = all (admin/developer)
@@ -20533,118 +20532,6 @@ export async function registerRoutes(
         homeCount += parseInt(r.rows[0].count ?? "0", 10);
       }
 
-      // ===== CALENDAR ===== (mirrors /api/calendar/events scoping)
-      let calSiteIds: string[] | null = null; // null = all
-      if (user.role === "client") {
-        const clientSites = await storage.getClientSites(user.id);
-        calSiteIds = clientSites.map((a) => a.siteId);
-      } else if (user.role === "consultant" && user.consultantTier !== "pro") {
-        const consultantSites = await storage.getConsultantSites(user.id);
-        calSiteIds = consultantSites.map((a) => a.entityId);
-      }
-      const calScoped = calSiteIds !== null;
-      const calArr = calSiteIds ?? [];
-      const num = (r: any) => parseInt(r.rows[0]?.cnt ?? "0", 10);
-
-      let calendarCount = 0;
-
-      // Calendar badge rules:
-      //   1. 7-day window: only count events whose date falls within the next 7 days (today inclusive).
-      //   2. Today always counts: events due today add +1 regardless of the seen timestamp.
-      //   3. Events due tomorrow–day 7: only count if the record was created after seenCal (new).
-      //
-      // SQL helper: (date_col::date = CURRENT_DATE) OR
-      //             (date_col::date > CURRENT_DATE AND date_col::date <= CURRENT_DATE + 7 AND created_at > $seenParam)
-
-      // Documents (expiry + renewal events).
-      {
-        const sql = `SELECT
-          COUNT(*) FILTER (WHERE expiry_date IS NOT NULL AND (
-            expiry_date::date = CURRENT_DATE OR
-            (expiry_date::date > CURRENT_DATE AND expiry_date::date <= CURRENT_DATE + 7 AND created_at > $1)
-          )) +
-          COUNT(*) FILTER (WHERE renewal_date IS NOT NULL AND (
-            renewal_date::date = CURRENT_DATE OR
-            (renewal_date::date > CURRENT_DATE AND renewal_date::date <= CURRENT_DATE + 7 AND created_at > $1)
-          )) AS cnt
-          FROM documents
-          WHERE is_archived = false AND (expiry_date IS NOT NULL OR renewal_date IS NOT NULL)
-          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
-        calendarCount += num(await pool.query(sql, calScoped ? [seenCal, calArr] : [seenCal]));
-      }
-
-      // EL cases — consultants/admins need caseAdvocate; clients & developer always.
-      const canSeeELCases =
-        user.role === "developer" ||
-        user.role === "client" ||
-        ((user.role === "consultant" || user.role === "administrator") &&
-          !!(user.consultantPermissions as { caseAdvocate?: boolean } | null)?.caseAdvocate);
-
-      if (canSeeELCases) {
-        const caseSql = `SELECT
-          COUNT(*) FILTER (WHERE response_deadline IS NOT NULL AND (
-            response_deadline::date = CURRENT_DATE OR
-            (response_deadline::date > CURRENT_DATE AND response_deadline::date <= CURRENT_DATE + 7 AND created_at > $1)
-          )) +
-          COUNT(*) FILTER (WHERE hearing_date IS NOT NULL AND (
-            hearing_date::date = CURRENT_DATE OR
-            (hearing_date::date > CURRENT_DATE AND hearing_date::date <= CURRENT_DATE + 7 AND created_at > $1)
-          )) AS cnt
-          FROM cases
-          WHERE is_archived = false
-          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
-        calendarCount += num(await pool.query(caseSql, calScoped ? [seenCal, calArr] : [seenCal]));
-
-        const caseMsSql = `SELECT COUNT(*) AS cnt
-          FROM case_milestones m JOIN cases c ON c.id = m.case_id
-          WHERE m.due_date IS NOT NULL AND m.is_completed = false AND c.is_archived = false
-            AND (
-              m.due_date::date = CURRENT_DATE OR
-              (m.due_date::date > CURRENT_DATE AND m.due_date::date <= CURRENT_DATE + 7 AND m.created_at > $1)
-            )
-          ${calScoped ? "AND c.site_id = ANY($2::varchar[])" : ""}`;
-        calendarCount += num(await pool.query(caseMsSql, calScoped ? [seenCal, calArr] : [seenCal]));
-      }
-
-      // Incident action milestones.
-      {
-        const incMsSql = `SELECT COUNT(*) AS cnt
-          FROM incident_milestones m JOIN incidents i ON i.id = m.incident_id
-          WHERE m.due_date IS NOT NULL AND m.is_completed = false
-            AND (
-              m.due_date::date = CURRENT_DATE OR
-              (m.due_date::date > CURRENT_DATE AND m.due_date::date <= CURRENT_DATE + 7 AND m.created_at > $1)
-            )
-          ${calScoped ? "AND i.site_id = ANY($2::varchar[])" : ""}`;
-        calendarCount += num(await pool.query(incMsSql, calScoped ? [seenCal, calArr] : [seenCal]));
-      }
-
-      // Training bookings + legacy requests.
-      {
-        const bookSql = `SELECT COUNT(*) AS cnt FROM training_bookings
-          WHERE status = 'booked' AND scheduled_date IS NOT NULL
-            AND (
-              scheduled_date::date = CURRENT_DATE OR
-              (scheduled_date::date > CURRENT_DATE AND scheduled_date::date <= CURRENT_DATE + 7 AND created_at > $1)
-            )
-          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
-        calendarCount += num(await pool.query(bookSql, calScoped ? [seenCal, calArr] : [seenCal]));
-
-        const reqSql = `SELECT
-          COUNT(*) FILTER (WHERE status = 'booked' AND scheduled_date IS NOT NULL AND (
-            scheduled_date::date = CURRENT_DATE OR
-            (scheduled_date::date > CURRENT_DATE AND scheduled_date::date <= CURRENT_DATE + 7 AND created_at > $1)
-          )) +
-          COUNT(*) FILTER (WHERE renewal_date IS NOT NULL AND (
-            renewal_date::date = CURRENT_DATE OR
-            (renewal_date::date > CURRENT_DATE AND renewal_date::date <= CURRENT_DATE + 7 AND created_at > $1)
-          )) AS cnt
-          FROM training_requests
-          WHERE true
-          ${calScoped ? "AND site_id = ANY($2::varchar[])" : ""}`;
-        calendarCount += num(await pool.query(reqSql, calScoped ? [seenCal, calArr] : [seenCal]));
-      }
-
       // ===== CLOUD SHARE (per module) =====
       const cloudshare: Record<string, number> = {
         health_safety: 0,
@@ -20686,7 +20573,7 @@ export async function registerRoutes(
         }
       }
 
-      res.json({ home: homeCount, calendar: calendarCount, cloudshare, ishare });
+      res.json({ home: homeCount, cloudshare, ishare });
     } catch (err) {
       console.error("Alert counts error:", err);
       res.status(500).json({ error: "Failed to fetch alert counts" });
@@ -20701,7 +20588,6 @@ export async function registerRoutes(
       const surface = (req.body?.surface ?? "").toString();
       const valid =
         surface === "home" ||
-        surface === "calendar" ||
         surface === "ishare" ||
         CLOUD_SHARE_MODULES.some((m) => surface === `cloudshare:${m}`);
       if (!valid) return res.status(400).json({ error: "Invalid surface" });

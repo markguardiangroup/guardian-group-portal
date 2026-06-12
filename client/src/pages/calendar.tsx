@@ -38,7 +38,6 @@ import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 import { getLastSection, setLastSection } from "@/lib/navigation-tracker";
 import { useAuth } from "@/hooks/use-auth";
-import { markAlertSurfaceSeen } from "@/hooks/use-alert-counts";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isToday } from "date-fns";
 
 type CalendarEvent = {
@@ -510,10 +509,6 @@ export default function CalendarPage() {
     if (prev !== "module") resetFilters();
   }, []);
 
-  // Opening the calendar clears its unseen-alert badge.
-  useEffect(() => {
-    markAlertSurfaceSeen("calendar");
-  }, []);
 
   const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();

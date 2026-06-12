@@ -3,7 +3,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export interface AlertCounts {
   home: number;
-  calendar: number;
   cloudshare: {
     health_safety: number;
     human_resources: number;

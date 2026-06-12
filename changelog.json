@@ -8693,6 +8693,13 @@
           "message": "Sidebar notification count badges are now a soft red instead of bold red",
           "category": "enhancement",
           "createdAt": "2026-06-12T13:54:30.000Z"
+        },
+        {
+          "id": "d3e5f7a9-calendar-badge-removed-2026",
+          "patch": 16,
+          "message": "Removed notification badge from the Calendar sidebar item",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T14:40:03.000Z"
         }
       ],
       "publishedPatch": 15,
