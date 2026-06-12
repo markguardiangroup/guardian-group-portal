@@ -802,7 +802,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                       )}
 
                       <TooltipProvider delayDuration={300}>
-                        <div className="grid grid-cols-4 gap-1.5 text-center">
+                        <div className="flex mb-0.5">
+                          <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Mandatory</p>
+                          <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Non mandatory</p>
+                        </div>
+                        <div className="relative grid grid-cols-4 gap-1.5 text-center">
+                          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/50 pointer-events-none" />
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1037,7 +1042,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           )}
 
                           <TooltipProvider delayDuration={300}>
-                            <div className="grid grid-cols-4 gap-1.5 text-center">
+                            <div className="flex mb-0.5">
+                              <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Mandatory</p>
+                              <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Non mandatory</p>
+                            </div>
+                            <div className="relative grid grid-cols-4 gap-1.5 text-center">
+                              <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/50 pointer-events-none" />
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && companyDocs.length > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1251,7 +1261,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     )}
 
                     <TooltipProvider delayDuration={300}>
-                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                      <div className="flex mb-0.5">
+                        <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Mandatory</p>
+                        <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Non mandatory</p>
+                      </div>
+                      <div className="relative grid grid-cols-4 gap-1.5 text-center">
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/50 pointer-events-none" />
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allTotal > 0 ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-muted/50"}`}>
@@ -1508,7 +1523,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
                     {/* Stats row */}
                     <TooltipProvider delayDuration={300}>
-                      <div className="grid grid-cols-4 gap-1.5 text-center">
+                      <div className="flex mb-0.5">
+                        <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Mandatory</p>
+                        <p className="flex-1 text-center text-[9px] text-muted-foreground/50 font-medium">Non mandatory</p>
+                      </div>
+                      <div className="relative grid grid-cols-4 gap-1.5 text-center">
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/50 pointer-events-none" />
                         {/* Total */}
                         <Tooltip>
                           <TooltipTrigger asChild>

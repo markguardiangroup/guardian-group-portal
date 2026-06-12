@@ -8707,6 +8707,13 @@
           "message": "Consultants and admins can now set module access for companies they manage",
           "category": "enhancement",
           "createdAt": "2026-06-12T14:44:55.000Z"
+        },
+        {
+          "id": "f5a7b9c1-site-card-mandatory-divider-2026",
+          "patch": 16,
+          "message": "Site document cards now show Mandatory / Non mandatory labels and a divider",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T15:40:44.000Z"
         }
       ],
       "publishedPatch": 15,
