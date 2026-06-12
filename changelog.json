@@ -8643,49 +8643,49 @@
           "patch": 15,
           "message": "Email notification audit entries now read 'by [name]' to clarify sender vs recipient",
           "category": "enhancement",
-          "createdAt": "2026-06-10T00:00:00.000Z"
+          "createdAt": "2026-06-12T09:00:00.000Z"
         },
         {
           "id": "c6d8e0f2-all-admin-audit-on-behalf-2026",
           "patch": 15,
           "message": "All audit entries for admin on-behalf uploads now show 'on behalf of [consultant]'",
           "category": "enhancement",
-          "createdAt": "2026-06-10T00:10:00.000Z"
+          "createdAt": "2026-06-12T09:10:00.000Z"
         },
         {
           "id": "d7e9f1a3-changes-requested-no-expand-2026",
           "patch": 15,
           "message": "Fixed: 'Changes requested' audit entry no longer shows an unnecessary expand",
           "category": "bug",
-          "createdAt": "2026-06-10T00:20:00.000Z"
+          "createdAt": "2026-06-12T09:20:00.000Z"
         },
         {
           "id": "e8f0a2b4-changes-requested-admin-notif-2026",
           "patch": 15,
           "message": "Fixed: 'Changes requested' notification now always goes to the Admin for on-behalf uploads",
           "category": "bug",
-          "createdAt": "2026-06-10T00:30:00.000Z"
+          "createdAt": "2026-06-12T09:30:00.000Z"
         },
         {
           "id": "f9a1b3c5-upload-version-lists-changes-requested-2026",
           "patch": 15,
           "message": "Fixed: Upload Version dialog now pre-loads consultant and approver lists when changes are requested",
           "category": "bug",
-          "createdAt": "2026-06-10T00:40:00.000Z"
+          "createdAt": "2026-06-12T09:40:00.000Z"
         },
         {
           "id": "a0b2c4d6-overdue-approved-card-suppressed-2026",
           "patch": 15,
           "message": "Fixed: Overdue documents no longer show a misleading 'Document Approved' banner",
           "category": "bug",
-          "createdAt": "2026-06-10T00:50:00.000Z"
+          "createdAt": "2026-06-12T09:50:00.000Z"
         },
         {
           "id": "b1c3d5e7-overdue-warning-card-2026",
           "patch": 15,
           "message": "Overdue documents now show a clear 'Renewal Overdue' or 'Expired' warning card",
           "category": "enhancement",
-          "createdAt": "2026-06-10T00:50:00.000Z"
+          "createdAt": "2026-06-12T10:00:00.000Z"
         }
       ],
       "publishedPatch": 15,
