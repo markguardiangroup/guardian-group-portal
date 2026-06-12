@@ -8714,6 +8714,13 @@
           "message": "Site document cards now show Mandatory / Non mandatory labels and a divider",
           "category": "enhancement",
           "createdAt": "2026-06-12T15:40:44.000Z"
+        },
+        {
+          "id": "a1b2c3d4-site-card-divider-stronger-gap-2026",
+          "patch": 16,
+          "message": "Site document cards: divider is more visible with a wider gap between the two halves",
+          "category": "enhancement",
+          "createdAt": "2026-06-12T15:49:24.000Z"
         }
       ],
       "publishedPatch": 15,
