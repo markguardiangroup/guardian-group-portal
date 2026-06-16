@@ -44,6 +44,8 @@ export function emitToRole(role: UserRole, event: string, data: unknown): void {
   for (const [, set] of registry) {
     for (const client of set) {
       if (client.role === role) writeEvent(client.res, event, data);
+      // administrator users receive all events intended for developer
+      else if (role === "developer" && client.role === "administrator") writeEvent(client.res, event, data);
     }
   }
 }

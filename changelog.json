@@ -8695,6 +8695,13 @@
           "createdAt": "2026-06-16T15:44:00.000Z"
         },
         {
+          "id": "d4f6a8b0-sse-administrator-missing-events-2026",
+          "patch": 16,
+          "message": "Fixed: Admin users now receive real-time updates (document changes, approvals, uploads, etc.) via SSE",
+          "category": "bug",
+          "createdAt": "2026-06-16T15:55:00.000Z"
+        },
+        {
           "id": "a0b2c4d6-overdue-approved-card-suppressed-2026",
           "patch": 16,
           "message": "Fixed: Overdue documents no longer show a misleading 'Document Approved' banner",
