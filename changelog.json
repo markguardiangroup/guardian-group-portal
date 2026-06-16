@@ -8681,6 +8681,13 @@
           "createdAt": "2026-06-16T15:28:10.000Z"
         },
         {
+          "id": "b2d4f6a8-admin-company-detail-tabs-2026",
+          "patch": 16,
+          "message": "Fixed: Admin users now see all company detail tabs (Users, Mandatory Documents, Services, Groups)",
+          "category": "bug",
+          "createdAt": "2026-06-16T15:34:00.000Z"
+        },
+        {
           "id": "a0b2c4d6-overdue-approved-card-suppressed-2026",
           "patch": 16,
           "message": "Fixed: Overdue documents no longer show a misleading 'Document Approved' banner",

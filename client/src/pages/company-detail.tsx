@@ -1179,7 +1179,7 @@ export default function CompanyDetail() {
   const fromParam = new URLSearchParams(searchString).get("from");
   const { toast } = useToast();
   const { user } = useAuth();
-  const isDeveloper = user?.role === "developer";
+  const isDeveloper = user?.role === "developer" || user?.role === "administrator";
   const isProConsultant = user?.role === "consultant" && user?.consultantTier === "pro";
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
