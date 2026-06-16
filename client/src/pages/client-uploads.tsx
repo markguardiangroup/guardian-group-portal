@@ -248,8 +248,9 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
 
   const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
+  const isAdministrator = user?.role === "administrator";
   const isClient = user?.role === "client";
-  const canManageFolders = isDeveloper || isConsultant;
+  const canManageFolders = isDeveloper || isConsultant || isAdministrator;
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter } = useCoverageFilter();
 
   const { data: sites = [] } = useQuery<Site[]>({
@@ -943,7 +944,7 @@ export default function ClientUploads({ module }: { module: ClientUploadModule }
                           </TooltipTrigger>
                           <TooltipContent>Download</TooltipContent>
                         </Tooltip>
-                        {(isDeveloper || isConsultant || file.uploadedByUserId === user?.id) && (
+                        {(isDeveloper || isConsultant || isAdministrator || file.uploadedByUserId === user?.id) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button

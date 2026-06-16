@@ -1600,8 +1600,8 @@ export async function registerRoutes(
     folder: { id: string; siteId: string; allocatedClientId: string | null }
   ): Promise<boolean> => {
     if (user.role === "developer") return true;
-    // Consultants (pro and standard) are gated by site-level source access
-    if (user.role === "consultant") {
+    // Consultants and administrators are gated by site-level source access
+    if (user.role === "consultant" || user.role === "administrator") {
       return canUserAccessSite(user, folder.siteId);
     }
     if (user.role === "client" && user.id) {

@@ -8756,6 +8756,13 @@
           "message": "All Sites card Non Comp now counts mandatory docs only, matching individual site cards",
           "category": "bug",
           "createdAt": "2026-06-12T16:16:07.000Z"
+        },
+        {
+          "id": "a8f3c2e1-admin-client-uploads-access-2026",
+          "patch": 16,
+          "message": "Fixed: Admin users can now view and manage client upload folders",
+          "category": "bug",
+          "createdAt": "2026-06-16T14:45:22Z"
         }
       ],
       "publishedPatch": 15,
