@@ -3148,6 +3148,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [newVersionApprover, setNewVersionApprover] = useState("");
+  const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const [newVersionOnBehalfId, setNewVersionOnBehalfId] = useState("");
   const [newVersionAutoApproval, setNewVersionAutoApproval] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -3979,34 +3980,56 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
                       {approvalNotifications.length > 0 ? (
                         <div className="space-y-2">
-                          {approvalNotifications.map((notif, idx) => (
-                            <div key={notif.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{notif.name}</p>
-                                <p className="text-xs text-muted-foreground truncate">{notif.email}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Sent {new Date(notif.sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} by {notif.sentBy}
-                                </p>
-                              </div>
-                              {idx === 0 && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={resendNotifyMutation.isPending}
-                                  onClick={() => {
-                                    const matchingUser = siteClientUsers.find(u => u.email === notif.email);
-                                    if (matchingUser) {
-                                      resendNotifyMutation.mutate(matchingUser.id);
-                                    }
-                                  }}
-                                  data-testid={`button-resend-${notif.id}`}
-                                >
-                                  <RefreshCw className="mr-1 h-3 w-3" />
-                                  Resend
-                                </Button>
-                              )}
+                          {/* Latest entry — always visible, with Resend */}
+                          <div className="flex items-center justify-between gap-2 rounded-md border p-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{approvalNotifications[0].name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{approvalNotifications[0].email}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Sent {new Date(approvalNotifications[0].sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} by {approvalNotifications[0].sentBy}
+                              </p>
                             </div>
-                          ))}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={resendNotifyMutation.isPending}
+                              onClick={() => {
+                                const matchingUser = siteClientUsers.find(u => u.email === approvalNotifications[0].email);
+                                if (matchingUser) resendNotifyMutation.mutate(matchingUser.id);
+                              }}
+                              data-testid={`button-resend-${approvalNotifications[0].id}`}
+                            >
+                              <RefreshCw className="mr-1 h-3 w-3" />
+                              Resend
+                            </Button>
+                          </div>
+
+                          {/* History toggle */}
+                          {approvalNotifications.length > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => setShowNotificationHistory(v => !v)}
+                                data-testid="button-toggle-notification-history"
+                              >
+                                <ChevronDown className={`h-3 w-3 transition-transform ${showNotificationHistory ? "rotate-180" : ""}`} />
+                                {showNotificationHistory ? "Hide" : "Show"} history ({approvalNotifications.length - 1})
+                              </button>
+
+                              {showNotificationHistory && approvalNotifications.slice(1).map((notif) => (
+                                <div key={notif.id} className="flex items-center gap-2 rounded-md border p-2 opacity-60">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{notif.name}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{notif.email}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Sent {new Date(notif.sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} by {notif.sentBy}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground">No approval notifications have been sent yet.</p>

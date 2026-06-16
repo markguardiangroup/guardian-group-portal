@@ -8861,6 +8861,13 @@
           "message": "Approval notifications: Resend now only shown on the most recent entry; approver dropdown reverted to single selection",
           "category": "enhancement",
           "createdAt": "2026-06-16T21:10:00.000Z"
+        },
+        {
+          "id": "c3e5g7b9-notification-history-toggle-2026",
+          "patch": 16,
+          "message": "Approval notification history is now collapsed by default with a show/hide toggle",
+          "category": "enhancement",
+          "createdAt": "2026-06-16T21:20:00.000Z"
         }
       ],
       "publishedPatch": 15,
