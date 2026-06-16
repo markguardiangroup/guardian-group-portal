@@ -8840,6 +8840,13 @@
           "message": "Fixed: \"Approval on behalf of\" dropdown now shows all consultants when admin uploads a new version",
           "category": "bug",
           "createdAt": "2026-06-16T19:55:00.000Z"
+        },
+        {
+          "id": "e5a8c1d4-upload-version-approver-prepopulate-2026",
+          "patch": 16,
+          "message": "Fixed: Approver field now pre-fills with the previous approver when uploading a revised version",
+          "category": "bug",
+          "createdAt": "2026-06-16T20:10:00.000Z"
         }
       ],
       "publishedPatch": 15,
