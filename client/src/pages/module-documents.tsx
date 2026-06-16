@@ -3265,12 +3265,27 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   }, [siteUsers, allUsersForApproval, isDocumentScoped, documentEntityId]);
 
   const siteConsultants = useMemo(() => {
+    let base: Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>;
     if (isDocumentScoped) {
-      return (allUsersForApproval ?? []).filter(u => u.role === "consultant" && u.status === "active");
+      base = (allUsersForApproval ?? []).filter(u => u.role === "consultant" && u.status === "active");
+    } else {
+      base = (siteUsers ?? []).filter(u => u.role === "consultant" && u.status === "active");
     }
-    if (!siteUsers) return [];
-    return siteUsers.filter(u => u.role === "consultant" && u.status === "active");
-  }, [siteUsers, allUsersForApproval, isDocumentScoped]);
+    // Always include the document's original uploader if they are a consultant
+    // and not already in the list (e.g. no longer formally assigned to this site).
+    const uploaderRole = (document as any)?.uploaderRole;
+    const uploaderId = (document as any)?.uploadedBy;
+    const uploaderName = (document as any)?.uploadedByName;
+    if (
+      uploaderRole === "consultant" &&
+      uploaderId &&
+      uploaderName &&
+      !base.some(u => u.id === uploaderId)
+    ) {
+      base = [...base, { id: uploaderId, fullName: uploaderName, email: "", role: "consultant", status: "active" }];
+    }
+    return base;
+  }, [siteUsers, allUsersForApproval, isDocumentScoped, document]);
 
   // Reset draft-viewed gate whenever the user navigates to a different document
   useEffect(() => { setDraftViewed(false); }, [id]);

@@ -8833,6 +8833,13 @@
           "message": "Fixed: audit trail no longer shows \"(uploader)\" or \"(initiator)\" in email recipient labels",
           "category": "bug",
           "createdAt": "2026-06-16T19:35:00.000Z"
+        },
+        {
+          "id": "d4f7a0b3-upload-version-behalf-dropdown-fix-2026",
+          "patch": 16,
+          "message": "Fixed: \"Approval on behalf of\" dropdown now shows all consultants when admin uploads a new version",
+          "category": "bug",
+          "createdAt": "2026-06-16T19:55:00.000Z"
         }
       ],
       "publishedPatch": 15,

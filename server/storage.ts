@@ -3352,11 +3352,20 @@ export class MemStorage implements IStorage {
         .from(clientSiteAssignmentsTable)
         .where(eq(clientSiteAssignmentsTable.siteId, siteId));
       const clientIds = assignments.map((a) => a.clientId);
-      if (clientIds.length === 0) return [];
+
+      // Get consultants assigned to this site via consultantAssignments
+      const consultantAssignments = await db
+        .select()
+        .from(consultantAssignmentsTable)
+        .where(eq(consultantAssignmentsTable.siteId, siteId));
+      const consultantIds = consultantAssignments.map((a) => a.consultantId);
+
+      const allIds = [...new Set([...clientIds, ...consultantIds])];
+      if (allIds.length === 0) return [];
       return await db
         .select()
         .from(usersTable)
-        .where(inArray(usersTable.id, clientIds));
+        .where(inArray(usersTable.id, allIds));
     } catch (error) {
       console.error("Error fetching users by site from DB:", error);
       return [];
