@@ -449,7 +449,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
 interface MyActionsData {
   assignedDocs: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
   pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] };
-  changesRequested: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null }[] };
+  changesRequested: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] };
   myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
   myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
   canViewCases: boolean;
@@ -574,18 +574,29 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
           return rb - ra;
         });
     case "changesRequested":
-      return (data.changesRequested?.items ?? []).map((d) => ({
-        id: d.id,
-        label: d.title,
-        siteLabel: resolveSiteLabel(d.site_id, siteMap),
-        subLabel: "Changes requested by client",
-        badge: "changes requested",
-        module: d.module ?? null,
-        href: docHref(d.module, d.id, d.site_id),
-        renewalDate: null,
-        expiryDate: null,
-        receivedAt: null,
-      }));
+      return (data.changesRequested?.items ?? [])
+        .map((d) => ({
+          id: d.id,
+          label: d.title,
+          siteLabel: resolveSiteLabel(d.site_id, siteMap),
+          subLabel: "Changes requested by client",
+          badge: "changes requested",
+          module: d.module ?? null,
+          href: docHref(d.module, d.id, d.site_id),
+          renewalDate: d.renewal_date ?? null,
+          expiryDate: d.expiry_date ?? null,
+          receivedAt: d.updated_at ?? null,
+        }))
+        .sort((a, b) => {
+          const da = a.renewalDate ?? a.expiryDate;
+          const db = b.renewalDate ?? b.expiryDate;
+          if (da && db) return new Date(da).getTime() - new Date(db).getTime();
+          if (da) return -1;
+          if (db) return 1;
+          const ra = a.receivedAt ? new Date(a.receivedAt).getTime() : 0;
+          const rb = b.receivedAt ? new Date(b.receivedAt).getTime() : 0;
+          return rb - ra;
+        });
     case "myIncidents":
       return data.myIncidents.items.map((i) => ({
         id: i.id,
