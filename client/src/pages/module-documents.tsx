@@ -3147,7 +3147,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [reissueRenewalMonths, setReissueRenewalMonths] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
-  const [newVersionApprovers, setNewVersionApprovers] = useState<string[]>([]);
+  const [newVersionApprover, setNewVersionApprover] = useState("");
   const [newVersionOnBehalfId, setNewVersionOnBehalfId] = useState("");
   const [newVersionAutoApproval, setNewVersionAutoApproval] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
@@ -3481,7 +3481,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   };
 
   const uploadVersionMutation = useMutation({
-    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvers?: string[]; autoFinalApproval?: boolean; onBehalfOfUserId?: string }) => {
+    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvalRequestedFrom?: string; autoFinalApproval?: boolean; onBehalfOfUserId?: string }) => {
       return apiRequest("POST", `/api/documents/${id}/versions`, data);
     },
     onSuccess: () => {
@@ -3497,7 +3497,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       setShowUploadVersionDialog(false);
       setNewVersionFile(null);
       setChangeNote("");
-      setNewVersionApprovers([]);
+      setNewVersionApprover("");
       setNewVersionOnBehalfId("");
       toast({
         title: "Success",
@@ -3515,7 +3515,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const handleUploadVersion = () => {
     if (!newVersionFile) return;
-    if (newVersionApprovers.length === 0) return;
+    if (!newVersionApprover) return;
     if (user?.role === "administrator" && !newVersionOnBehalfId) return;
     uploadVersionMutation.mutate({
       fileName: newVersionFile.fileName,
@@ -3523,7 +3523,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       fileSize: newVersionFile.fileSize,
       mimeType: newVersionFile.mimeType,
       changeNote: changeNote || undefined,
-      approvers: newVersionApprovers,
+      approvalRequestedFrom: newVersionApprover || undefined,
       autoFinalApproval: newVersionAutoApproval,
       onBehalfOfUserId: user?.role === "administrator" && newVersionOnBehalfId ? newVersionOnBehalfId : undefined,
     });
@@ -3979,7 +3979,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
                       {approvalNotifications.length > 0 ? (
                         <div className="space-y-2">
-                          {approvalNotifications.map((notif) => (
+                          {approvalNotifications.map((notif, idx) => (
                             <div key={notif.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium truncate">{notif.name}</p>
@@ -3988,21 +3988,23 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   Sent {new Date(notif.sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} by {notif.sentBy}
                                 </p>
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={resendNotifyMutation.isPending}
-                                onClick={() => {
-                                  const matchingUser = siteClientUsers.find(u => u.email === notif.email);
-                                  if (matchingUser) {
-                                    resendNotifyMutation.mutate(matchingUser.id);
-                                  }
-                                }}
-                                data-testid={`button-resend-${notif.id}`}
-                              >
-                                <RefreshCw className="mr-1 h-3 w-3" />
-                                Resend
-                              </Button>
+                              {idx === 0 && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={resendNotifyMutation.isPending}
+                                  onClick={() => {
+                                    const matchingUser = siteClientUsers.find(u => u.email === notif.email);
+                                    if (matchingUser) {
+                                      resendNotifyMutation.mutate(matchingUser.id);
+                                    }
+                                  }}
+                                  data-testid={`button-resend-${notif.id}`}
+                                >
+                                  <RefreshCw className="mr-1 h-3 w-3" />
+                                  Resend
+                                </Button>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -4192,7 +4194,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   {isPrivilegedUser && (
                     <Button
                       className="bg-orange-600 hover:bg-orange-700 text-white"
-                      onClick={() => { const preApprover = (document as any).approvalRequestedFrom; setNewVersionApprovers(preApprover ? [preApprover] : []); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
                       data-testid="button-upload-version-changes"
                     >
                       <Upload className="mr-2 h-4 w-4" />
@@ -4749,7 +4751,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       variant="outline"
                       className="w-full justify-start"
                       data-testid="button-upload-version"
-                      onClick={() => { const preApprover = (document as any).approvalRequestedFrom; setNewVersionApprovers(preApprover ? [preApprover] : []); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload New Version
@@ -5310,50 +5312,22 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               </div>
             )}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Approvers <span className="text-destructive">*</span></label>
-              {newVersionApprovers.length > 0 && (
-                <div className="space-y-1.5">
-                  {newVersionApprovers.map((uid) => {
-                    const u = siteClientUsers.find(c => c.id === uid);
-                    return (
-                      <div key={uid} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm bg-muted/30">
-                        <span className="font-medium">{u?.fullName ?? uid} {u?.email && <span className="text-muted-foreground font-normal">({u.email})</span>}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => setNewVersionApprovers(prev => prev.filter(x => x !== uid))}
-                          data-testid={`button-remove-approver-${uid}`}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              <Select
-                value=""
-                onValueChange={(val) => {
-                  if (val && !newVersionApprovers.includes(val)) {
-                    setNewVersionApprovers(prev => [...prev, val]);
-                  }
-                }}
-              >
+              <label className="text-sm font-medium">Approver <span className="text-destructive">*</span></label>
+              <Select value={newVersionApprover} onValueChange={setNewVersionApprover}>
                 <SelectTrigger data-testid="select-version-approver">
-                  <SelectValue placeholder={newVersionApprovers.length === 0 ? "Select approver..." : "Add another approver..."} />
+                  <SelectValue placeholder="Select approver..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {siteClientUsers.filter(u => u.status === "active" && !newVersionApprovers.includes(u.id)).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.fullName} ({u.email})
+                  {siteClientUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id} disabled={u.status !== "active"}>
+                      <span className="flex items-center gap-2">
+                        {u.fullName} ({u.email})
+                        {u.status !== "active" && <span className="text-xs text-muted-foreground">Not Active</span>}
+                      </span>
                     </SelectItem>
                   ))}
-                  {siteClientUsers.filter(u => u.status === "active" && !newVersionApprovers.includes(u.id)).length === 0 && (
-                    <SelectItem value="__none" disabled>
-                      {siteClientUsers.length === 0 ? "No client users found" : "All active clients added"}
-                    </SelectItem>
+                  {siteClientUsers.length === 0 && (
+                    <SelectItem value="__none" disabled>No client users found</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -5390,7 +5364,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 setShowUploadVersionDialog(false);
                 setNewVersionFile(null);
                 setChangeNote("");
-                setNewVersionApprovers([]);
+                setNewVersionApprover("");
                 setNewVersionOnBehalfId("");
               }}
             >
@@ -5398,7 +5372,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </Button>
             <Button
               onClick={handleUploadVersion}
-              disabled={!newVersionFile || newVersionApprovers.length === 0 || (user?.role === "administrator" && !newVersionOnBehalfId) || uploadVersionMutation.isPending}
+              disabled={!newVersionFile || !newVersionApprover || (user?.role === "administrator" && !newVersionOnBehalfId) || uploadVersionMutation.isPending}
             >
               {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
             </Button>

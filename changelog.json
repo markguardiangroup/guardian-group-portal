@@ -8854,6 +8854,13 @@
           "message": "Fixed: admins/consultants now see a client go Active in real time when they accept their invite",
           "category": "bug",
           "createdAt": "2026-06-16T20:45:00.000Z"
+        },
+        {
+          "id": "b2d4f6a8-single-approver-resend-latest-only-2026",
+          "patch": 16,
+          "message": "Approval notifications: Resend now only shown on the most recent entry; approver dropdown reverted to single selection",
+          "category": "enhancement",
+          "createdAt": "2026-06-16T21:10:00.000Z"
         }
       ],
       "publishedPatch": 15,
