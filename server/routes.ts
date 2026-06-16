@@ -14040,26 +14040,31 @@ export async function registerRoutes(
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
       } else if (hasProPrivileges(user)) {
-        visibleUsers = allUsers.filter(u => {
-          if (u.role === "developer") return false;
-          if (u.role === "consultant" || u.role === "administrator") {
-            // See other staff (consultants / admins) that share at least one source
-            return sourcesOverlap(mySources, u.sources ?? []);
-          }
-          if (u.role === "client") {
-            // See clients whose company shares at least one source
-            if (!u.companyId) return false;
-            const clientCompany = allCompanies.find(c => c.id === u.companyId);
-            if (sourcesOverlap(mySources, clientCompany?.sources ?? [])) return true;
-            // GO expansion: if client's company is a GO member of a company the consultant can see
-            if (clientCompany?.groupOwnerId) {
-              const goCompany = allCompanies.find(c => c.id === clientCompany.groupOwnerId);
-              return sourcesOverlap(mySources, goCompany?.sources ?? []);
+        // Administrators with no sources configured: see all non-developer users (same as developer)
+        if (user.role === "administrator" && mySources.length === 0) {
+          visibleUsers = allUsers.filter(u => u.role !== "developer");
+        } else {
+          visibleUsers = allUsers.filter(u => {
+            if (u.role === "developer") return false;
+            if (u.role === "consultant" || u.role === "administrator") {
+              // See other staff (consultants / admins) that share at least one source
+              return sourcesOverlap(mySources, u.sources ?? []);
+            }
+            if (u.role === "client") {
+              // See clients whose company shares at least one source
+              if (!u.companyId) return false;
+              const clientCompany = allCompanies.find(c => c.id === u.companyId);
+              if (sourcesOverlap(mySources, clientCompany?.sources ?? [])) return true;
+              // GO expansion: if client's company is a GO member of a company the consultant can see
+              if (clientCompany?.groupOwnerId) {
+                const goCompany = allCompanies.find(c => c.id === clientCompany.groupOwnerId);
+                return sourcesOverlap(mySources, goCompany?.sources ?? []);
+              }
+              return false;
             }
             return false;
-          }
-          return false;
-        });
+          });
+        }
       } else {
         visibleUsers = allUsers;
       }

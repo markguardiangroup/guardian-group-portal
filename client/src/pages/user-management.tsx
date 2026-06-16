@@ -411,6 +411,8 @@ export default function UserManagement() {
 
   const staffScopeSitesUrl = useMemo(() => {
     if ((!isPro && !isAdmin) || clientStaffFilter === "all") return null;
+    // Admins on "my": backend already source-scopes results; no site-based frontend filter needed
+    if (clientStaffFilter === "my" && isAdmin && !isPro) return null;
     if (clientStaffFilter === "my") return "/api/sites?myAssigned=true";
     return `/api/sites?staffId=${clientStaffFilter}`;
   }, [isPro, isAdmin, clientStaffFilter]);
@@ -423,11 +425,13 @@ export default function UserManagement() {
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
-    enabled: (isPro || isAdmin) && clientStaffFilter !== "all",
+    enabled: (isPro || isAdmin) && clientStaffFilter !== "all" && !!staffScopeSitesUrl,
   });
 
   const staffScopeSet = useMemo(() => {
     if ((!isPro && !isAdmin) || clientStaffFilter === "all") return null;
+    // Admins on "my": no site-based scope — backend already filtered by source
+    if (clientStaffFilter === "my" && isAdmin && !isPro) return null;
     return new Set(staffScopeSites.map(s => s.id));
   }, [isPro, isAdmin, clientStaffFilter, staffScopeSites]);
 

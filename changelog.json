@@ -8770,6 +8770,13 @@
           "message": "Fixed: Admin users can now view the Clients tab and all client users",
           "category": "bug",
           "createdAt": "2026-06-16T14:52:57Z"
+        },
+        {
+          "id": "c4e5f6a7-admin-no-sources-see-all-clients-2026",
+          "patch": 16,
+          "message": "Fixed: Admin users with no sources now see all client users correctly",
+          "category": "bug",
+          "createdAt": "2026-06-16T14:56:19.984Z"
         }
       ],
       "publishedPatch": 15,
