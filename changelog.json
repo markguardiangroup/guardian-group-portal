@@ -8819,6 +8819,13 @@
           "message": "Changes Requested list now shows when changes were requested, expiry/renewal date, and is sorted by date",
           "category": "enhancement",
           "createdAt": "2026-06-16T18:58:00.000Z"
+        },
+        {
+          "id": "b2d5e8f1-my-actions-always-fresh-2026",
+          "patch": 16,
+          "message": "Fixed: My Actions panel now always shows fresh data on every visit",
+          "category": "bug",
+          "createdAt": "2026-06-16T19:21:00.000Z"
         }
       ],
       "publishedPatch": 15,

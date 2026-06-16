@@ -649,6 +649,8 @@ function MyActionsPanel({ role }: { role: string }) {
   const { data, isLoading } = useQuery<MyActionsData>({
     queryKey: ["/api/my-actions"],
     staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
 
   // Clear the Home unseen-alert badge only once the user actually scrolls the
