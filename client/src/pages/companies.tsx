@@ -85,6 +85,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Info, Copy, Hash } from "lucide-react";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User, ComplianceSummary } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
 import {
@@ -628,24 +629,48 @@ export default function Companies() {
     },
   });
 
-  const { data, isLoading } = useQuery<PaginatedCompaniesResponse>({
-    queryKey: ["/api/companies", { page, limit, search: debouncedSearch, status: statusFilter, staffFilter: isProConsultant ? staffFilter : undefined, groupFilter }],
+  const queryParams = {
+    page, limit, search: debouncedSearch, status: statusFilter,
+    staffFilter: isProConsultant ? staffFilter : undefined, groupFilter,
+  };
+  const buildCompanyUrl = (extra?: Record<string, string>) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(debouncedSearch && { search: debouncedSearch }),
+      ...(statusFilter !== "all" && { status: statusFilter }),
+      ...(isProConsultant && staffFilter === "my" && { myAssigned: "true" }),
+      ...(isProConsultant && staffFilter !== "my" && staffFilter !== "all" && { staffId: staffFilter }),
+      ...(groupFilter !== "all" && { groupFilter }),
+      ...extra,
+    });
+    return `/api/companies?${params}`;
+  };
+
+  // Phase 1: fast lite fetch — basic company data, no compliance computation
+  const { data: liteData, isLoading } = useQuery<PaginatedCompaniesResponse>({
+    queryKey: ["/api/companies", { ...queryParams, lite: true }],
     staleTime: 0,
     queryFn: async () => {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-        ...(debouncedSearch && { search: debouncedSearch }),
-        ...(statusFilter !== "all" && { status: statusFilter }),
-        ...(isProConsultant && staffFilter === "my" && { myAssigned: "true" }),
-        ...(isProConsultant && staffFilter !== "my" && staffFilter !== "all" && { staffId: staffFilter }),
-        ...(groupFilter !== "all" && { groupFilter }),
-      });
-      const response = await fetch(`/api/companies?${params}`, { credentials: "include" });
+      const response = await fetch(buildCompanyUrl({ lite: "true" }), { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch companies");
       return response.json();
     },
   });
+
+  // Phase 2: full fetch with compliance — runs in background, merges when ready
+  const { data: fullData } = useQuery<PaginatedCompaniesResponse>({
+    queryKey: ["/api/companies", queryParams],
+    staleTime: 0,
+    queryFn: async () => {
+      const response = await fetch(buildCompanyUrl(), { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch companies");
+      return response.json();
+    },
+  });
+
+  const data = fullData ?? liteData;
+  const complianceLoading = !fullData && !!liteData;
 
   // Fetch all companies (large limit) to derive available group owners for the filter dropdown
   const { data: allCompaniesData } = useQuery<PaginatedCompaniesResponse>({
@@ -1576,10 +1601,14 @@ export default function Companies() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <ComplianceModulePicker company={company} />
-                      <CompanyDocumentsModulePicker company={company} />
-                    </div>
+                    {complianceLoading ? (
+                      <img src={logoIcon} alt="Loading compliance" className="h-5 w-5 rounded-full object-cover shadow animate-spin" style={{ animationDuration: "1.5s" }} />
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <ComplianceModulePicker company={company} />
+                        <CompanyDocumentsModulePicker company={company} />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

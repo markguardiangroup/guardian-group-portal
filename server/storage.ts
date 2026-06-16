@@ -210,7 +210,7 @@ export interface IStorage {
   // Sites
   getSites(): Promise<Site[]>;
   getSitesWithCompany(): Promise<SiteWithCompany[]>;
-  getSitesWithDetails(): Promise<SiteWithDetails[]>;
+  getSitesWithDetails(lite?: boolean): Promise<SiteWithDetails[]>;
   getSitesWithDetailsByCompanyId(companyId: string): Promise<SiteWithDetails[]>;
   getSite(id: string): Promise<Site | undefined>;
   getSitesByCompanyId(companyId: string): Promise<Site[]>;
@@ -930,7 +930,93 @@ export class MemStorage implements IStorage {
    * Loads all sites with full detail in ~8 parallel DB queries (previously one query
    * per site plus one per assigned consultant — easily hundreds of round-trips).
    */
-  async getSitesWithDetails(): Promise<SiteWithDetails[]> {
+  async getSitesWithDetails(lite = false): Promise<SiteWithDetails[]> {
+    if (lite) {
+      const [
+        sites,
+        companies,
+        allModuleAccess,
+        allAssignments,
+        allUsers,
+      ] = await Promise.all([
+        db.select().from(sitesTable),
+        db.select().from(companiesTable),
+        db.select().from(siteModuleAccessTable),
+        db.select().from(consultantAssignmentsTable),
+        db.select().from(usersTable),
+      ]);
+
+      const companiesMap = new Map(companies.map(c => [c.id, c]));
+      const usersMap = new Map(allUsers.map(u => [u.id, u]));
+      const membersByGoId = new Map<string, typeof companies>();
+      for (const c of companies) {
+        if (c.groupOwnerId) {
+          if (!membersByGoId.has(c.groupOwnerId)) membersByGoId.set(c.groupOwnerId, []);
+          membersByGoId.get(c.groupOwnerId)!.push(c);
+        }
+      }
+      const moduleAccessBySite = new Map<string, typeof allModuleAccess>();
+      for (const a of allModuleAccess) {
+        if (!moduleAccessBySite.has(a.siteId)) moduleAccessBySite.set(a.siteId, []);
+        moduleAccessBySite.get(a.siteId)!.push(a);
+      }
+      const assignmentsBySite = new Map<string, typeof allAssignments>();
+      for (const a of allAssignments) {
+        const key = a.entityId ?? a.siteId;
+        if (!key) continue;
+        if (!assignmentsBySite.has(key)) assignmentsBySite.set(key, []);
+        assignmentsBySite.get(key)!.push(a);
+      }
+
+      return sites.map(site => {
+        const company = companiesMap.get(site.companyId);
+        const goMembers = membersByGoId.get(site.companyId) ?? [];
+        const moduleAccessList = moduleAccessBySite.get(site.id) ?? [];
+        const hsEnabled  = !!company?.healthSafetyAccess  || goMembers.some(m => m.healthSafetyAccess);
+        const hrEnabled  = !!company?.humanResourcesAccess || goMembers.some(m => m.humanResourcesAccess);
+        const elEnabled  = !!company?.employmentLawAccess  || goMembers.some(m => m.employmentLawAccess);
+        const moduleAccess: {
+          health_safety: "active" | "visible" | "hidden";
+          human_resources: "active" | "visible" | "hidden";
+          employment_law: "active" | "visible" | "hidden";
+          support: "active" | "visible" | "hidden";
+        } = {
+          health_safety: hsEnabled ? "active" : "hidden",
+          human_resources: hrEnabled ? "active" : "hidden",
+          employment_law: elEnabled ? "active" : "hidden",
+          support: "hidden",
+        };
+        for (const a of moduleAccessList) {
+          const key = a.module as "health_safety" | "human_resources" | "employment_law" | "support";
+          if (key !== "health_safety" && key !== "human_resources" && key !== "employment_law" && key !== "support") continue;
+          const companyAllows = key === "health_safety" ? hsEnabled : key === "human_resources" ? hrEnabled : key === "employment_law" ? elEnabled : false;
+          if (companyAllows || key === "support") {
+            moduleAccess[key] = a.status as "active" | "visible" | "hidden";
+          }
+        }
+        const assignments = assignmentsBySite.get(site.id) ?? [];
+        const assignedConsultants = assignments.map(a => ({
+          id: a.consultantId,
+          name: usersMap.get(a.consultantId)?.fullName ?? "Unknown",
+          isPrimary: a.isPrimary,
+        }));
+        return {
+          ...site,
+          companyName: company?.name,
+          companyNumber: company?.companyNumber ?? undefined,
+          companySearchTag: company?.searchTag ?? undefined,
+          companySources: company?.sources ?? null,
+          companyStatus: company?.status ?? null,
+          complianceSummary: undefined,
+          moduleScores: undefined,
+          moduleRawCounts: undefined,
+          moduleDocCounts: undefined,
+          moduleAccess,
+          assignedConsultants,
+        };
+      });
+    }
+
     const [
       sites,
       companies,

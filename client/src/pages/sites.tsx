@@ -65,6 +65,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SiteWithDetails, ComplianceSummary, Company, User } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
@@ -290,12 +291,28 @@ export default function Sites() {
   });
   const { toast } = useToast();
 
-  const sitesUrl = !isProConsultant ? "/api/sites"
-    : staffFilter === "my" ? "/api/sites?myAssigned=true"
-    : staffFilter !== "all" ? `/api/sites?staffId=${staffFilter}`
-    : "/api/sites";
-  const { data: sites, isLoading } = useQuery<SiteWithDetails[]>({
-    queryKey: [sitesUrl],
+  const sitesUrlParams = !isProConsultant ? ""
+    : staffFilter === "my" ? "?myAssigned=true"
+    : staffFilter !== "all" ? `?staffId=${staffFilter}`
+    : "";
+  const sitesUrl = `/api/sites${sitesUrlParams}`;
+  const sitesLiteUrl = `/api/sites${sitesUrlParams}${sitesUrlParams ? "&" : "?"}lite=true`;
+  const staffFilterKey = isProConsultant ? staffFilter : undefined;
+
+  // Phase 1: fast lite fetch — basic site data, no compliance computation
+  const { data: liteSites, isLoading } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites", { staffFilter: staffFilterKey, lite: true }],
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const response = await fetch(sitesLiteUrl, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch sites");
+      return response.json();
+    },
+  });
+
+  // Phase 2: full fetch with compliance — runs in background, merges when ready
+  const { data: fullSites } = useQuery<SiteWithDetails[]>({
+    queryKey: ["/api/sites", { staffFilter: staffFilterKey }],
     staleTime: 60 * 1000,
     queryFn: async () => {
       const response = await fetch(sitesUrl, { credentials: "include" });
@@ -303,6 +320,9 @@ export default function Sites() {
       return response.json();
     },
   });
+
+  const sites = fullSites ?? liteSites;
+  const complianceLoading = !fullSites && !!liteSites;
 
   const { data: companiesResponse } = useQuery<{ companies: Company[] }>({
     queryKey: ["/api/companies?limit=1000"],
@@ -738,10 +758,14 @@ export default function Sites() {
                     <span className="text-sm">{site.contactName || "—"}</span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      <SiteComplianceModulePicker site={site} />
-                      <SiteDocumentsModulePicker site={site} />
-                    </div>
+                    {complianceLoading ? (
+                      <img src={logoIcon} alt="Loading compliance" className="h-5 w-5 rounded-full object-cover shadow animate-spin" style={{ animationDuration: "1.5s" }} />
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <SiteComplianceModulePicker site={site} />
+                        <SiteDocumentsModulePicker site={site} />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>

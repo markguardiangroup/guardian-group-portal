@@ -8674,6 +8674,13 @@
           "createdAt": "2026-06-09T23:38:00.000Z"
         },
         {
+          "id": "a1c3e5f7-two-phase-loading-companies-sites-2026",
+          "patch": 16,
+          "message": "Improved: Companies and Sites lists now load instantly — compliance scores appear in the background with a spinning logo",
+          "category": "enhancement",
+          "createdAt": "2026-06-16T15:28:10.000Z"
+        },
+        {
           "id": "a0b2c4d6-overdue-approved-card-suppressed-2026",
           "patch": 16,
           "message": "Fixed: Overdue documents no longer show a misleading 'Document Approved' banner",

@@ -8179,11 +8179,21 @@ export async function registerRoutes(
       const search = (req.query.search as string || "").toLowerCase();
       const status = req.query.status as string | undefined;
       
-      const [rawCompanies, allSitesForCompliance, perCompanyModuleScores] = await Promise.all([
-        storage.getCompaniesWithSiteCount(),
-        storage.getSitesWithDetails(),
-        computePerCompanyModuleScores(user),
-      ]);
+      const isLite = req.query.lite === "true";
+      let rawCompanies: Awaited<ReturnType<typeof storage.getCompaniesWithSiteCount>>;
+      let allSitesForCompliance: Awaited<ReturnType<typeof storage.getSitesWithDetails>>;
+      let perCompanyModuleScores: Awaited<ReturnType<typeof computePerCompanyModuleScores>>;
+      if (isLite) {
+        rawCompanies = await storage.getCompaniesWithSiteCount();
+        allSitesForCompliance = [];
+        perCompanyModuleScores = new Map();
+      } else {
+        [rawCompanies, allSitesForCompliance, perCompanyModuleScores] = await Promise.all([
+          storage.getCompaniesWithSiteCount(),
+          storage.getSitesWithDetails(),
+          computePerCompanyModuleScores(user),
+        ]);
+      }
 
       // Aggregate site-level compliance summaries into company-level totals
       type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
@@ -8395,6 +8405,120 @@ export async function registerRoutes(
     }
   });
   
+  // Compliance-only endpoint — returns a map of companyId → compliance data for all
+  // companies visible to this user. Called as the "phase 2" background fetch after the
+  // lite (fast) companies list has already rendered.
+  app.get("/api/companies/compliance", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const [rawCompanies, allSitesForCompliance, perCompanyModuleScores] = await Promise.all([
+        storage.getCompaniesWithSiteCount(),
+        storage.getSitesWithDetails(),
+        computePerCompanyModuleScores(user),
+      ]);
+
+      type ComplianceAccum = { compliant: number; total: number; totalDocs: number; approvalRequired: number; overdue: number; missing: number; };
+      const complianceAccum = new Map<string, ComplianceAccum>();
+      const moduleDocAccum = new Map<string, { health_safety: number; human_resources: number; employment_law: number }>();
+      for (const site of allSitesForCompliance) {
+        if (!site.complianceSummary) continue;
+        const s = site.complianceSummary;
+        const existing = complianceAccum.get(site.companyId);
+        if (existing) {
+          existing.compliant += s.compliantDocuments;
+          existing.total += s.totalDocuments;
+          existing.totalDocs += s.totalAllDocuments;
+          existing.approvalRequired += s.approvalRequired;
+          existing.overdue += s.overdueDocuments;
+          existing.missing += s.missingRequiredDocuments;
+        } else {
+          complianceAccum.set(site.companyId, {
+            compliant: s.compliantDocuments, total: s.totalDocuments, totalDocs: s.totalAllDocuments,
+            approvalRequired: s.approvalRequired, overdue: s.overdueDocuments, missing: s.missingRequiredDocuments,
+          });
+        }
+        const mdc = site.moduleDocCounts;
+        if (mdc) {
+          const existingMdc = moduleDocAccum.get(site.companyId);
+          if (existingMdc) {
+            existingMdc.health_safety += mdc.health_safety;
+            existingMdc.human_resources += mdc.human_resources;
+            existingMdc.employment_law += mdc.employment_law;
+          } else {
+            moduleDocAccum.set(site.companyId, { health_safety: mdc.health_safety, human_resources: mdc.human_resources, employment_law: mdc.employment_law });
+          }
+        }
+      }
+
+      const allCompanies = rawCompanies.map(c => {
+        const acc = complianceAccum.get(c.id);
+        const moduleScores = perCompanyModuleScores.get(c.id);
+        const moduleDocCounts = moduleDocAccum.get(c.id);
+        if (!acc) return { ...c, moduleScores, moduleDocCounts, complianceSummary: undefined as any };
+        const scoreDenom = acc.compliant + acc.approvalRequired + acc.overdue + acc.missing;
+        return {
+          ...c, moduleScores, moduleDocCounts,
+          complianceSummary: {
+            totalDocuments: acc.total, compliantDocuments: acc.compliant,
+            approvalRequired: acc.approvalRequired, overdueDocuments: acc.overdue,
+            missingRequiredDocuments: acc.missing,
+            complianceScore: scoreDenom > 0 ? Math.round((acc.compliant / scoreDenom) * 100) : 0,
+            totalAllDocuments: acc.totalDocs, allDocuments: acc.totalDocs,
+            allCompliantDocuments: 0, allApprovalRequired: 0, allOverdueDocuments: 0,
+            pendingApprovals: 0, awaitingYourApproval: 0, awaitingOthersApproval: 0,
+          },
+        };
+      });
+
+      let filteredCompanies = allCompanies;
+      if (user.role === "consultant" || user.role === "administrator") {
+        const mySources = user.sources ?? [];
+        if (hasProPrivileges(user)) {
+          const directlyVisible = new Set(allCompanies.filter(c => sourcesOverlap(mySources, c.sources ?? [])).map(c => c.id));
+          for (const c of allCompanies) {
+            if (!directlyVisible.has(c.id)) {
+              const effective = await getEffectiveGoSources(c.id);
+              if (sourcesOverlap(mySources, effective)) directlyVisible.add(c.id);
+            }
+          }
+          const goExpandedIds = new Set<string>(directlyVisible);
+          for (const cId of directlyVisible) {
+            const members = await storage.getGroupMembers(cId);
+            for (const m of members) { if (sourcesOverlap(mySources, m.sources ?? [])) goExpandedIds.add(m.id); }
+          }
+          filteredCompanies = allCompanies.filter(c => goExpandedIds.has(c.id));
+        } else {
+          const effectiveSiteIds = await getEffectiveSiteIds(user.id);
+          const ownAssignments = await storage.getConsultantSites(user.id);
+          const directAssignedSiteIds = new Set(ownAssignments.map(a => a.siteId));
+          const directCompanyIds = new Set<string>();
+          for (const siteId of directAssignedSiteIds) { const site = await storage.getSite(siteId); if (site) directCompanyIds.add(site.companyId); }
+          const sourceOverlapCompanyIds = new Set([...directCompanyIds].filter(cId => { const co = allCompanies.find(c => c.id === cId); return co && sourcesOverlap(mySources, co.sources ?? []); }));
+          for (const siteId of effectiveSiteIds) { if (!directAssignedSiteIds.has(siteId)) { const site = await storage.getSite(siteId); if (site) sourceOverlapCompanyIds.add(site.companyId); } }
+          const goExpandedIds = new Set<string>(sourceOverlapCompanyIds);
+          for (const cId of sourceOverlapCompanyIds) { const members = await storage.getGroupMembers(cId); for (const m of members) goExpandedIds.add(m.id); }
+          filteredCompanies = allCompanies.filter(c => goExpandedIds.has(c.id));
+        }
+      } else if (user.role === "client" && user.companyId) {
+        const effectiveIds = await getEffectiveCompanyIds(user.companyId);
+        filteredCompanies = allCompanies.filter(c => effectiveIds.has(c.id));
+      } else if (user.role !== "developer") {
+        filteredCompanies = [];
+      }
+
+      const result: Record<string, any> = {};
+      for (const c of filteredCompanies) {
+        result[c.id] = { complianceSummary: c.complianceSummary, moduleScores: c.moduleScores, moduleDocCounts: c.moduleDocCounts };
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Companies compliance error:", error);
+      res.status(500).json({ error: "Failed to fetch compliance" });
+    }
+  });
+
   // Get single company with sites
   app.get("/api/companies/:companyId", requireAuth, async (req, res) => {
     try {
@@ -9597,7 +9721,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      const allSites = await storage.getSitesWithDetails();
+      const isLite = req.query.lite === "true";
+      const allSites = await storage.getSitesWithDetails(isLite);
       
       // Admin sees all sites, optionally filtered by companyId or staffId
       const companyIdFilter = req.query.companyId as string | undefined;
@@ -9691,6 +9816,57 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Entities error:", error);
       res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  // Compliance-only endpoint for sites — returns a map of siteId → compliance data.
+  // Called as the "phase 2" background fetch after the lite (fast) sites list has rendered.
+  app.get("/api/sites/compliance", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
+      const allSites = await storage.getSitesWithDetails(false);
+
+      let filteredSites = allSites;
+      if (user.role === "developer") {
+        // sees all
+      } else if (user.role === "consultant" || user.role === "administrator") {
+        const mySources = user.sources ?? [];
+        if (hasProPrivileges(user)) {
+          const visibleCompanyIds = new Set(allSites.filter(s => sourcesOverlap(mySources, s.companySources ?? [])).map(s => s.companyId));
+          const goExpanded = new Set<string>(visibleCompanyIds);
+          for (const cId of visibleCompanyIds) {
+            const members = await storage.getGroupMembers(cId);
+            for (const m of members) { if (sourcesOverlap(mySources, m.sources ?? [])) goExpanded.add(m.id); }
+          }
+          filteredSites = allSites.filter(s => sourcesOverlap(mySources, s.companySources ?? []) || goExpanded.has(s.companyId));
+        } else {
+          const assignedSiteIds = await getEffectiveSiteIds(user.id);
+          filteredSites = allSites.filter(s => assignedSiteIds.has(s.id));
+        }
+      } else if (user.role === "client" && user.companyId) {
+        const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
+        const clientSiteAssignments = await storage.getClientSites(user.id);
+        const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
+        filteredSites = allSites.filter(s => effectiveCompanyIds.has(s.companyId) && assignedSiteIds.has(s.id));
+      } else {
+        filteredSites = [];
+      }
+
+      const result: Record<string, any> = {};
+      for (const site of filteredSites) {
+        result[site.id] = {
+          complianceSummary: site.complianceSummary,
+          moduleScores: site.moduleScores,
+          moduleDocCounts: site.moduleDocCounts,
+          moduleAccess: site.moduleAccess,
+        };
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Sites compliance error:", error);
+      res.status(500).json({ error: "Failed to fetch compliance" });
     }
   });
 
