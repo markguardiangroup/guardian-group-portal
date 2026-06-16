@@ -4915,7 +4915,7 @@ export async function registerRoutes(
                   documentId: document.id,
                   supportRequestId: null,
                   module: existingDoc.module,
-                  details: `Auto-approval notification email sent to ${label} ${target.fullName} (${target.email})`,
+                  details: `Auto-approval notification email sent to ${target.fullName} (${target.email})`,
                   metadata: JSON.stringify({ targetUserId: target.id, emailType: "auto_approval_notification" }),
                 });
                 return true;
@@ -4992,7 +4992,7 @@ export async function registerRoutes(
                   documentId: document.id,
                   supportRequestId: null,
                   module: existingDoc.module,
-                  details: `Client sign-off notification email sent to ${label} ${target.fullName} (${target.email})`,
+                  details: `Client sign-off notification email sent to ${target.fullName} (${target.email})`,
                   metadata: JSON.stringify({ targetUserId: target.id, emailType: "sign_off_notification" }),
                 });
                 return true;
@@ -5217,7 +5217,7 @@ export async function registerRoutes(
                   documentId: document.id,
                   supportRequestId: null,
                   module: existingDoc.module,
-                  details: `Changes-requested notification email sent to ${label} ${target.fullName} (${target.email})`,
+                  details: `Changes-requested notification email sent to ${target.fullName} (${target.email})`,
                   metadata: JSON.stringify({ targetUserId: target.id, emailType: "changes_requested_notification" }),
                 });
                 return true;

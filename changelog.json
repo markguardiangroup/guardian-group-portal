@@ -8875,6 +8875,13 @@
           "message": "Fixed: audit trail no longer shows (initiator) or (uploader) labels on email notification entries",
           "category": "bug",
           "createdAt": "2026-06-16T21:30:00.000Z"
+        },
+        {
+          "id": "e5g7i9k1-remove-role-labels-audit-2026",
+          "patch": 16,
+          "message": "Fixed: audit trail email entries no longer show role labels like \"admin\" or \"consultant\"",
+          "category": "bug",
+          "createdAt": "2026-06-16T21:40:00.000Z"
         }
       ],
       "publishedPatch": 15,
