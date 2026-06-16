@@ -8763,6 +8763,13 @@
           "message": "Fixed: Admin users can now view and manage client upload folders",
           "category": "bug",
           "createdAt": "2026-06-16T14:45:22Z"
+        },
+        {
+          "id": "b3d4e5f6-admin-clients-tab-users-page-2026",
+          "patch": 16,
+          "message": "Fixed: Admin users can now view the Clients tab and all client users",
+          "category": "bug",
+          "createdAt": "2026-06-16T14:52:57Z"
         }
       ],
       "publishedPatch": 15,

@@ -410,10 +410,10 @@ export default function UserManagement() {
   }, []);
 
   const staffScopeSitesUrl = useMemo(() => {
-    if (!isPro || clientStaffFilter === "all") return null;
+    if ((!isPro && !isAdmin) || clientStaffFilter === "all") return null;
     if (clientStaffFilter === "my") return "/api/sites?myAssigned=true";
     return `/api/sites?staffId=${clientStaffFilter}`;
-  }, [isPro, clientStaffFilter]);
+  }, [isPro, isAdmin, clientStaffFilter]);
 
   const { data: staffScopeSites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites/staff-scope", clientStaffFilter],
@@ -423,13 +423,13 @@ export default function UserManagement() {
       if (!res.ok) throw new Error("Failed");
       return res.json();
     },
-    enabled: isPro && clientStaffFilter !== "all",
+    enabled: (isPro || isAdmin) && clientStaffFilter !== "all",
   });
 
   const staffScopeSet = useMemo(() => {
-    if (!isPro || clientStaffFilter === "all") return null;
+    if ((!isPro && !isAdmin) || clientStaffFilter === "all") return null;
     return new Set(staffScopeSites.map(s => s.id));
-  }, [isPro, clientStaffFilter, staffScopeSites]);
+  }, [isPro, isAdmin, clientStaffFilter, staffScopeSites]);
 
   const { data: sites = [] } = useQuery<SiteBasic[]>({
     queryKey: ["/api/sites"],
@@ -1499,7 +1499,7 @@ export default function UserManagement() {
       <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
 
       <div className="flex flex-wrap items-center gap-3">
-        {(isDeveloper || isPro) && (
+        {(isDeveloper || isPro || isAdmin) && (
           <div className="inline-flex rounded-lg border bg-muted/40 p-1 gap-1 shrink-0">
             <button
               onClick={() => { setUserTypeTab("staff"); setRoleFilter("all"); setStatusFilter("all"); setPage(1); }}
@@ -1533,7 +1533,7 @@ export default function UserManagement() {
           />
         </div>
 
-        {isPro && userTypeTab === "client" && (
+        {(isPro || isAdmin) && userTypeTab === "client" && (
           <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
             <SelectTrigger className="w-[200px] shrink-0" data-testid="select-client-staff-filter">
               <SelectValue />
