@@ -3725,8 +3725,13 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only origin users can upload new versions of company or group scoped documents" });
       }
       
-      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom, autoFinalApproval, onBehalfOfUserId } = req.body;
-      
+      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom, autoFinalApproval, onBehalfOfUserId, approvers: approversRaw } = req.body;
+      // Support either a single approvalRequestedFrom or an array of approvers
+      const approversArray: string[] = Array.isArray(approversRaw) && approversRaw.length > 0
+        ? approversRaw
+        : (approvalRequestedFrom ? [approvalRequestedFrom] : []);
+      const primaryApprover = approversArray[0] ?? null;
+
       if (!fileName || !fileUrl || !fileSize || !mimeType) {
         return res.status(400).json({ error: "Missing required file information" });
       }
@@ -3760,8 +3765,8 @@ export async function registerRoutes(
       }
 
       // Approver is mandatory when the new version will require client approval.
-      if (newApprovalStatus === "pending" && !approvalRequestedFrom) {
-        return res.status(400).json({ error: "An approver must be selected when uploading a new version that requires approval" });
+      if (newApprovalStatus === "pending" && approversArray.length === 0) {
+        return res.status(400).json({ error: "At least one approver must be selected when uploading a new version that requires approval" });
       }
       
       const newVersionNumber = document.version + 1;
@@ -3811,7 +3816,7 @@ export async function registerRoutes(
         uploadedBy: resolvedUploadedBy,
         initiatedByUserId: resolvedInitiatedBy,
         updatedAt: new Date(),
-        ...(approvalRequestedFrom ? { approvalRequestedFrom } : { approvalRequestedFrom: null }),
+        ...(primaryApprover ? { approvalRequestedFrom: primaryApprover } : { approvalRequestedFrom: null }),
         autoFinalApproval: resolvedAutoFinalApproval,
       });
       
@@ -3844,18 +3849,20 @@ export async function registerRoutes(
             : "documents";
           const documentUrl = `${baseUrl}/${modulePath}/documents/${document.id}`;
 
-          // Determine who to notify:
-          // 1. Explicitly designated approver (approvalRequestedFrom in request body)
-          // 2. The client who last signed off / requested changes (from audit log)
-          let notifyUserId: string | null = approvalRequestedFrom || null;
-          if (!notifyUserId) {
+          // Determine who to notify: all designated approvers, or fall back to last
+          // sign-off / changes-requested actor from the audit log.
+          let notifyUserIds: string[] = approversArray.length > 0 ? [...approversArray] : [];
+          if (notifyUserIds.length === 0) {
             const docLogs = await storage.getAuditLogs(document.id);
             const lastSignOff = docLogs.find(l => (l.action === "document_signed_off" || l.action === "changes_requested") && l.userId);
-            notifyUserId = lastSignOff?.userId || null;
+            if (lastSignOff?.userId) notifyUserIds = [lastSignOff.userId];
           }
 
-          if (notifyUserId) {
-            const notifyUser = await storage.getUser(notifyUserId);
+          const notifiedSet = new Set<string>();
+          for (const uid of notifyUserIds) {
+            if (notifiedSet.has(uid)) continue;
+            notifiedSet.add(uid);
+            const notifyUser = await storage.getUser(uid);
             if (notifyUser && notifyUser.email && notifyUser.role === "client" && notifyUser.status === "active") {
               await sendDocumentApprovalEmail({
                 to: notifyUser.email,

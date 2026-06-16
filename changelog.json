@@ -8840,6 +8840,13 @@
           "message": "Fixed: \"Approval on behalf of\" dropdown now shows all consultants when admin uploads a new version",
           "category": "bug",
           "createdAt": "2026-06-16T19:55:00.000Z"
+        },
+        {
+          "id": "f6b9d2e5-multi-approver-upload-version-2026",
+          "patch": 16,
+          "message": "Upload new version now supports multiple approvers — add or remove from a list before submitting",
+          "category": "enhancement",
+          "createdAt": "2026-06-16T20:30:00.000Z"
         }
       ],
       "publishedPatch": 15,
