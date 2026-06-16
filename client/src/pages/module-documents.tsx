@@ -4568,20 +4568,17 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium">{getActionLabel(log.action)}</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    {log.action === 'email_sent' ? <>by <span className="font-medium text-foreground">{log.userName}</span></> : log.userName}{onBehalfName ? <> · on behalf of <span className="font-medium text-foreground">{onBehalfName}</span></> : null} · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                  <p className="text-sm font-medium">
+                                    {log.action === 'email_sent' && emailTypeLabel
+                                      ? `Email notification sent - ${emailTypeLabel}`
+                                      : getActionLabel(log.action)}
                                   </p>
-                                  {log.action === 'email_sent' && isExpanded && (emailTypeLabel || details) && (
-                                    <div className="mt-1.5 rounded-md bg-muted/50 px-3 py-2 space-y-0.5">
-                                      {emailTypeLabel && (
-                                        <p className="text-xs font-medium text-foreground">{emailTypeLabel}</p>
-                                      )}
-                                      {details && (
-                                        <p className="text-xs text-muted-foreground break-words">{details}</p>
-                                      )}
-                                    </div>
-                                  )}
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {log.action === 'email_sent'
+                                      ? <>to <span className="font-medium text-foreground">{(/to\s+(.+)$/.exec(details ?? '') ?? [])[1] ?? details}</span></>
+                                      : <>{log.userName}{onBehalfName ? <> · on behalf of <span className="font-medium text-foreground">{onBehalfName}</span></> : null}</>
+                                    } · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                                  </p>
                                   {isRenameEntry && (
                                     <p className="text-xs text-muted-foreground mt-0.5 break-words">
                                       Changed from <span className="text-foreground">"{renameMeta.from}"</span> to <span className="text-foreground font-medium">"{renameMeta.to}"</span>
@@ -4602,15 +4599,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       data-testid={`button-expand-log-${log.id}`}
                                     >
                                       {isExpanded ? 'Hide comment' : 'Expand to see comment'}
-                                    </button>
-                                  )}
-                                  {log.action === 'email_sent' && (emailTypeLabel || details) && (
-                                    <button
-                                      className="text-xs text-primary hover:underline"
-                                      onClick={toggleLog}
-                                      data-testid={`button-expand-log-${log.id}`}
-                                    >
-                                      {isExpanded ? 'Hide details' : 'See details'}
                                     </button>
                                   )}
                                 </div>

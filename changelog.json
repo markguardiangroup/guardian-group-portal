@@ -8688,6 +8688,13 @@
           "createdAt": "2026-06-16T15:34:00.000Z"
         },
         {
+          "id": "c3e5f7a9-audit-email-two-line-format-2026",
+          "patch": 16,
+          "message": "Improved: Email audit entries now show type in the title and recipient on the second line — no expand needed",
+          "category": "enhancement",
+          "createdAt": "2026-06-16T15:44:00.000Z"
+        },
+        {
           "id": "a0b2c4d6-overdue-approved-card-suppressed-2026",
           "patch": 16,
           "message": "Fixed: Overdue documents no longer show a misleading 'Document Approved' banner",
