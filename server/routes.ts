@@ -1058,6 +1058,12 @@ export async function registerRoutes(
           ? "User accepted invitation and set their password" 
           : "User reset their password") + legalDetails,
       });
+
+      // Notify admins/consultants so they see the status change without refreshing
+      if (invitation.purpose === "invite") {
+        emitToRole("developer", "user-updated", { userId: updatedUser.id });
+        emitToRole("consultant", "user-updated", { userId: updatedUser.id });
+      }
       
       res.json({ 
         success: true, 

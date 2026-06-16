@@ -8847,6 +8847,13 @@
           "message": "Upload new version now supports multiple approvers — add or remove from a list before submitting",
           "category": "enhancement",
           "createdAt": "2026-06-16T20:30:00.000Z"
+        },
+        {
+          "id": "a1c3e5f7-user-activate-sse-emit-2026",
+          "patch": 16,
+          "message": "Fixed: admins/consultants now see a client go Active in real time when they accept their invite",
+          "category": "bug",
+          "createdAt": "2026-06-16T20:45:00.000Z"
         }
       ],
       "publishedPatch": 15,
