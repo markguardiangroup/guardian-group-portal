@@ -8777,6 +8777,13 @@
           "message": "Fixed: Admin users with no sources now see all client users correctly",
           "category": "bug",
           "createdAt": "2026-06-16T14:56:19.984Z"
+        },
+        {
+          "id": "d5f6a7b8-admin-no-my-clients-filter-2026",
+          "patch": 16,
+          "message": "Removed: Redundant \"My clients\" filter from Admin view on Users page",
+          "category": "enhancement",
+          "createdAt": "2026-06-16T14:58:52.898Z"
         }
       ],
       "publishedPatch": 15,

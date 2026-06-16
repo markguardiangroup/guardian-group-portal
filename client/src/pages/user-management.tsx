@@ -383,7 +383,7 @@ export default function UserManagement() {
   });
   const keyContactUserIdSet = useMemo(() => new Set(keyContactUserIds), [keyContactUserIds]);
 
-  const [clientStaffFilter, setClientStaffFilter] = useState<string>("my");
+  const [clientStaffFilter, setClientStaffFilter] = useState<string>(isAdmin ? "all" : "my");
 
   const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants/my-staff"],
@@ -1537,7 +1537,7 @@ export default function UserManagement() {
           />
         </div>
 
-        {(isPro || isAdmin) && userTypeTab === "client" && (
+        {isPro && userTypeTab === "client" && (
           <Select value={clientStaffFilter} onValueChange={(v) => { setClientStaffFilter(v); setPage(1); }}>
             <SelectTrigger className="w-[200px] shrink-0" data-testid="select-client-staff-filter">
               <SelectValue />
