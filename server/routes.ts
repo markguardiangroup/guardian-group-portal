@@ -4914,14 +4914,14 @@ export async function registerRoutes(
 
             // Step 1: notify the uploading consultant.
             if (uploader && uploader.email && uploader.role === "consultant") {
-              await sendAutoNotifTo(uploader, "consultant (uploader)");
+              await sendAutoNotifTo(uploader, "consultant");
             }
 
             // Step 1b: if an Admin initiated this upload on the consultant's behalf, notify them too.
             if (existingDoc.initiatedByUserId) {
               const initiator = await storage.getUser(existingDoc.initiatedByUserId);
               if (initiator && initiator.email) {
-                await sendAutoNotifTo(initiator, "admin (initiator)");
+                await sendAutoNotifTo(initiator, "admin");
               }
             }
 
@@ -4991,14 +4991,14 @@ export async function registerRoutes(
 
             // Step 1: notify the uploading consultant (if applicable).
             if (uploader && uploader.email && uploader.role === "consultant") {
-              await sendSignOffTo(uploader, "consultant (uploader)");
+              await sendSignOffTo(uploader, "consultant");
             }
 
             // Step 1b: if an Admin initiated this upload on the consultant's behalf, notify them too.
             if (existingDoc.initiatedByUserId) {
               const initiator = await storage.getUser(existingDoc.initiatedByUserId);
               if (initiator && initiator.email) {
-                await sendSignOffTo(initiator, "admin (initiator)");
+                await sendSignOffTo(initiator, "admin");
               }
             }
 
@@ -5120,7 +5120,6 @@ export async function registerRoutes(
       // Send changes-requested notification.
       // Works for both site-scoped (siteId set) and company/group-scoped (siteId null, entityId set) docs.
       if (action === "changes" && (document.siteId || document.entityId)) {
-        console.log(`[changes-trace] doc=${documentId} user=${user.id} role=${user.role} — entering changes notification block`);
         try {
           const site = document.siteId ? await storage.getSite(document.siteId) : null;
           // For company-scoped docs fall back to company name as the "site" label in emails.
@@ -5222,7 +5221,7 @@ export async function registerRoutes(
             if (existingDoc.initiatedByUserId) {
               const initiator = await storage.getUser(existingDoc.initiatedByUserId);
               if (initiator && initiator.role === "administrator") {
-                await sendChangesNotifToConsultant(initiator, "admin (initiator)");
+                await sendChangesNotifToConsultant(initiator, "admin");
                 // Block consultant fallback regardless of email success
                 changesNotifiedIds.add(initiator.id);
               }
@@ -5231,12 +5230,10 @@ export async function registerRoutes(
             // Step 1b: no initiator — notify the uploading consultant/developer directly
             if (changesNotifiedIds.size === 0) {
               const uploaderForChanges = existingDoc.uploadedBy ? await storage.getUser(existingDoc.uploadedBy) : null;
-              console.log(`[changes-trace] uploader=${uploaderForChanges?.id} uploaderRole=${uploaderForChanges?.role}`);
               if (uploaderForChanges && (uploaderForChanges.role === "consultant" || uploaderForChanges.role === "developer")) {
-                await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "developer (uploader)" : "consultant (uploader)");
+                await sendChangesNotifToConsultant(uploaderForChanges, uploaderForChanges.role === "developer" ? "developer" : "consultant");
               }
             }
-            console.log(`[changes-trace] after step1 notifiedSize=${changesNotifiedIds.size}`);
             // Step 2: first assigned pro consultant (only if step 1 didn't fire; site-scoped docs only)
             if (changesNotifiedIds.size === 0 && document.siteId) {
               try {
