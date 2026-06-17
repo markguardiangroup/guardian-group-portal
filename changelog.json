@@ -8917,6 +8917,13 @@
           "message": "Final Approval button is now disabled for Admin users with a tooltip explaining only the consultant can approve",
           "category": "enhancement",
           "createdAt": "2026-06-17T12:15:00.000Z"
+        },
+        {
+          "id": "e5f6a7b8-awaiting-approval-uploader-fallback-2026",
+          "patch": 16,
+          "message": "Awaiting My Approval now includes docs the consultant uploaded, even if not assigned to that site",
+          "category": "enhancement",
+          "createdAt": "2026-06-17T12:30:00.000Z"
         }
       ],
       "publishedPatch": 15,

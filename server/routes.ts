@@ -21381,6 +21381,23 @@ export async function registerRoutes(
         // they can access (gated by canUserAccessDocument).
         if (user.role === "consultant") {
           mergePending(await accessibleScopedPending("client_signed_off", false));
+
+          // Also include client_signed_off docs the consultant uploaded or initiated
+          // on behalf of — even if they are not formally assigned to that site.
+          const uploaderRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+            `SELECT DISTINCT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
+                    s.name AS site_name,
+                    COALESCE(sc.name, ec.name) AS company_name
+             FROM documents d
+             LEFT JOIN sites s ON s.id = d.site_id
+             LEFT JOIN companies sc ON sc.id = s.entity_id
+             LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+             WHERE d.approval_status = 'client_signed_off'
+               AND d.is_archived = false
+               AND (d.uploaded_by = $1 OR d.initiated_by_user_id = $1)`,
+            [userId]
+          );
+          mergePending(uploaderRes.rows);
         }
       } else if (user.role === "client") {
         // Client: docs with approval_status = "pending" uploaded by someone else on their accessible site(s).
