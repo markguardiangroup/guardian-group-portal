@@ -3822,7 +3822,9 @@ export async function registerRoutes(
         uploadedBy: resolvedUploadedBy,
         initiatedByUserId: resolvedInitiatedBy,
         updatedAt: new Date(),
-        ...(primaryApprover ? { approvalRequestedFrom: primaryApprover } : { approvalRequestedFrom: null }),
+        // Only update approvalRequestedFrom if a new approver was explicitly chosen;
+        // otherwise leave the existing value intact so renewals carry the approver forward.
+        ...(primaryApprover ? { approvalRequestedFrom: primaryApprover } : {}),
         autoFinalApproval: resolvedAutoFinalApproval,
       });
       
@@ -4843,8 +4845,8 @@ export async function registerRoutes(
         ...(lastApprovedAt && { lastApprovedAt }),
         ...(renewalDate && { renewalDate }),
         ...(isFinalApproval && { approvedVersion: (existingDoc.approvedVersion ?? 0) + 1 }),
-        // Clear the designated approver once client has signed off — the next stage is consultant-only
-        ...(isClientSignOff && { approvalRequestedFrom: null }),
+        // Keep approvalRequestedFrom intact — it persists across sign-offs and renewals
+        //   so the next upload cycle pre-populates the same approver automatically.
       });
 
       if (!document) {
