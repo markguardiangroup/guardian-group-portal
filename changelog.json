@@ -8882,6 +8882,13 @@
           "message": "Fixed: audit trail email entries no longer show role labels like \"admin\" or \"consultant\"",
           "category": "bug",
           "createdAt": "2026-06-16T21:40:00.000Z"
+        },
+        {
+          "id": "f7h9j1l3-assigned-docs-overdue-expiring-2026",
+          "patch": 16,
+          "message": "Assigned Documents tile now shows docs overdue or expiring within 14 days (excluding those in other action tiles)",
+          "category": "feature",
+          "createdAt": "2026-06-17T09:45:00.000Z"
         }
       ],
       "publishedPatch": 15,

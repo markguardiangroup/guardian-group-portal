@@ -21209,8 +21209,88 @@ export async function registerRoutes(
       const now = new Date();
       const in14Days = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-      // 1. Documents directly assigned to this user — column removed; always empty
-      const assignedDocsRes = { rows: [] as { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
+      // 1. Documents overdue or expiring within 14 days — excluding docs already in
+      //    the "Awaiting My Approval" or "Changes Requested" tiles.
+      let assignedDocsRows: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null; site_name: string | null; company_name: string | null }[] = [];
+
+      if (user.role === "consultant" || user.role === "developer" || user.role === "administrator") {
+        let siteFilter = "";
+        const adParams: unknown[] = [in14Days];
+        if (user.role === "consultant") {
+          const consultantSites = await storage.getConsultantSites(userId);
+          const siteIds = consultantSites.map((s) => s.entityId);
+          if (siteIds.length > 0) {
+            adParams.push(siteIds);
+            siteFilter = `AND d.site_id = ANY($${adParams.length}::varchar[])`;
+          } else {
+            siteFilter = "AND false"; // consultant with no sites — nothing to show
+          }
+        }
+        const adRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null; site_name: string | null; company_name: string | null }>(
+          `SELECT d.id, d.title, d.site_id, d.module, d.status, d.renewal_date, d.expiry_date,
+                  s.name AS site_name,
+                  COALESCE(sc.name, ec.name) AS company_name
+           FROM documents d
+           LEFT JOIN sites s ON s.id = d.site_id
+           LEFT JOIN companies sc ON sc.id = s.entity_id
+           LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+           WHERE d.is_archived = false
+             AND d.case_id IS NULL AND d.incident_id IS NULL
+             AND d.approval_status NOT IN ('client_signed_off', 'changes_requested')
+             AND (
+               (d.renewal_date IS NOT NULL AND d.renewal_date <= $1)
+               OR (d.expiry_date IS NOT NULL AND d.expiry_date <= $1)
+             )
+             ${siteFilter}
+           ORDER BY LEAST(
+             COALESCE(d.renewal_date, '9999-12-31'),
+             COALESCE(d.expiry_date, '9999-12-31')
+           ) ASC
+           LIMIT 50`,
+          adParams
+        );
+        assignedDocsRows = adRes.rows;
+      } else if (user.role === "client") {
+        const clientSites = await storage.getClientSites(userId);
+        const directSiteIds = clientSites.map((s) => s.siteId);
+        let allClientSiteIds = [...directSiteIds];
+        if (user.companyId) {
+          const companySitesRes = await pool.query<{ id: string }>(
+            "SELECT id FROM sites WHERE entity_id = $1",
+            [user.companyId]
+          );
+          allClientSiteIds = [...new Set([...directSiteIds, ...companySitesRes.rows.map((r) => r.id)])];
+        }
+        if (allClientSiteIds.length > 0) {
+          const adRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null; site_name: string | null; company_name: string | null }>(
+            `SELECT d.id, d.title, d.site_id, d.module, d.status, d.renewal_date, d.expiry_date,
+                    s.name AS site_name, c.name AS company_name
+             FROM documents d
+             LEFT JOIN sites s ON s.id = d.site_id
+             LEFT JOIN companies c ON c.id = s.entity_id
+             WHERE d.is_archived = false
+               AND d.site_id = ANY($1::varchar[])
+               AND NOT (
+                 d.approval_status = 'pending'
+                 AND (d.approval_requested_from IS NULL OR d.approval_requested_from = $2)
+                 AND d.uploaded_by != $2
+               )
+               AND d.approval_status != 'changes_requested'
+               AND (
+                 (d.renewal_date IS NOT NULL AND d.renewal_date <= $3)
+                 OR (d.expiry_date IS NOT NULL AND d.expiry_date <= $3)
+               )
+             ORDER BY LEAST(
+               COALESCE(d.renewal_date, '9999-12-31'),
+               COALESCE(d.expiry_date, '9999-12-31')
+             ) ASC
+             LIMIT 50`,
+            [allClientSiteIds, userId, in14Days]
+          );
+          assignedDocsRows = adRes.rows;
+        }
+      }
+      const assignedDocsRes = { rows: assignedDocsRows };
 
       // 2. Documents awaiting this user's approval
       let pendingApprovalsRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] = [];
