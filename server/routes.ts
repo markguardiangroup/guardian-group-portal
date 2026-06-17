@@ -4839,14 +4839,20 @@ export async function registerRoutes(
         }
       }
 
+      // If a client is acting on this document (sign-off or changes requested) and no
+      // designated approver has been stored yet, record them now so the next version
+      // upload dialog pre-populates them automatically.
+      const clientActingOnDoc = user.role === "client" && !existingDoc.approvalRequestedFrom;
+
       const document = await storage.updateDocument(documentId, {
         approvalStatus,
         status: documentStatus,
         ...(lastApprovedAt && { lastApprovedAt }),
         ...(renewalDate && { renewalDate }),
         ...(isFinalApproval && { approvedVersion: (existingDoc.approvedVersion ?? 0) + 1 }),
-        // Keep approvalRequestedFrom intact — it persists across sign-offs and renewals
-        //   so the next upload cycle pre-populates the same approver automatically.
+        // Capture the first client who interacts with this doc so renewals remember them.
+        // Only writes when approvalRequestedFrom is currently null — never overwrites an existing value here.
+        ...(clientActingOnDoc && { approvalRequestedFrom: user.id }),
       });
 
       if (!document) {
