@@ -4130,8 +4130,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             <span>
                               <Button
                                 className={isSignedOff ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}
-                                disabled={canClientAct && !draftViewed}
-                                style={canClientAct && !draftViewed ? { pointerEvents: "none" } : undefined}
+                                disabled={(canClientAct && !draftViewed) || (isSignedOff && user?.role === "administrator")}
+                                style={(canClientAct && !draftViewed) || (isSignedOff && user?.role === "administrator") ? { pointerEvents: "none" } : undefined}
                                 onClick={() => { setApprovalAction("approve"); setShowApprovalDialog(true); }}
                                 data-testid="button-approve"
                               >
@@ -4143,6 +4143,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           {canClientAct && !draftViewed && (
                             <TooltipContent>
                               Please view or download the draft first
+                            </TooltipContent>
+                          )}
+                          {isSignedOff && user?.role === "administrator" && (
+                            <TooltipContent>
+                              Admins cannot perform final approval. The assigned consultant must approve this document.
                             </TooltipContent>
                           )}
                         </Tooltip>

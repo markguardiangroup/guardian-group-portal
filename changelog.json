@@ -8910,6 +8910,13 @@
           "message": "Approver is now automatically recorded when a client first signs off or requests changes on a doc",
           "category": "enhancement",
           "createdAt": "2026-06-17T10:48:00.000Z"
+        },
+        {
+          "id": "d4e5f6a7-admin-final-approval-disabled-2026",
+          "patch": 16,
+          "message": "Final Approval button is now disabled for Admin users with a tooltip explaining only the consultant can approve",
+          "category": "enhancement",
+          "createdAt": "2026-06-17T12:15:00.000Z"
         }
       ],
       "publishedPatch": 15,
