@@ -21409,12 +21409,15 @@ export async function registerRoutes(
         mergePending(await accessibleScopedPending("pending", true));
       }
 
-      // 3. Documents where client requested changes from this user (uploaded_by = userId)
+      // 3. Documents where client requested changes — shown to the uploader OR the admin
+      //    who initiated the upload on their behalf (initiated_by_user_id).
       let changesRequestedRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] = [];
       if (user.role === "consultant" || user.role === "developer" || user.role === "administrator") {
         const crRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }>(
-          `SELECT id, title, site_id, module, renewal_date, expiry_date, updated_at FROM documents
-           WHERE approval_status = 'changes_requested' AND uploaded_by = $1 AND is_archived = false
+          `SELECT DISTINCT id, title, site_id, module, renewal_date, expiry_date, updated_at FROM documents
+           WHERE approval_status = 'changes_requested'
+             AND (uploaded_by = $1 OR initiated_by_user_id = $1)
+             AND is_archived = false
            LIMIT 20`,
           [userId]
         );

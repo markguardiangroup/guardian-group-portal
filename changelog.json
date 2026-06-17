@@ -8889,6 +8889,13 @@
           "message": "Assigned Documents tile now shows docs overdue or expiring within 14 days (excluding those in other action tiles)",
           "category": "feature",
           "createdAt": "2026-06-17T09:45:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-changes-requested-initiated-by-2026",
+          "patch": 16,
+          "message": "Changes Requested tile now also shows docs an admin uploaded on behalf of a consultant",
+          "category": "enhancement",
+          "createdAt": "2026-06-17T10:25:00.000Z"
         }
       ],
       "publishedPatch": 15,
