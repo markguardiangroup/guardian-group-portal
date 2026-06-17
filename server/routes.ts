@@ -14636,8 +14636,11 @@ export async function registerRoutes(
       }
       
       const users = await storage.getUsersBySite(req.params.siteId);
-      // Remove passwords from response
-      const safeUsers = users.map(({ password, ...u }) => u);
+      // Remove passwords from response and exclude non-client roles (consultants/admins
+      // are fetched separately via /api/sites/:siteId/consultants).
+      const safeUsers = users
+        .filter((u) => u.role === "client")
+        .map(({ password, ...u }) => u);
       res.json(safeUsers);
     } catch (error) {
       console.error("Get entity users error:", error);
