@@ -8945,6 +8945,13 @@
           "message": "New: TOTP authenticator app MFA — set up via QR code, backup codes, trusted devices, admin reset, and portal-wide enforcement toggle",
           "category": "feature",
           "createdAt": "2026-06-18T12:07:25.612Z"
+        },
+        {
+          "id": "f8a9b0c1-site-tiles-compliant-approved-unapproved-2026",
+          "patch": 16,
+          "message": "Site tiles now show Compliant / Non Comp. (mandatory) and Approved / Unapproved (non-mandatory) across all card types",
+          "category": "enhancement",
+          "createdAt": "2026-06-18T21:00:00.000Z"
         }
       ],
       "publishedPatch": 15,
