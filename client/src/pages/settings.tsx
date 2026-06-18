@@ -65,6 +65,10 @@ import {
   Printer,
   Archive,
   ArchiveRestore,
+  Mail,
+  Send,
+  AtSign,
+  Tag,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -369,6 +373,12 @@ export default function Settings() {
             <TabsTrigger value="testing" className="gap-2" data-testid="tab-testing">
               <ClipboardList className="h-4 w-4" />
               Testing
+            </TabsTrigger>
+          )}
+          {(user?.role === "developer" || user?.role === "administrator") && (
+            <TabsTrigger value="email" className="gap-2" data-testid="tab-email">
+              <Mail className="h-4 w-4" />
+              Email
             </TabsTrigger>
           )}
         </TabsList>
@@ -994,8 +1004,276 @@ export default function Settings() {
         <TabsContent value="testing">
           <TestingTab />
         </TabsContent>
+        <TabsContent value="email">
+          <EmailSettingsTab />
+        </TabsContent>
       </Tabs>
       </div>
+    </div>
+  );
+}
+
+// ─── Email Settings Tab ───────────────────────────────────────────────────────
+
+type EmailSettingsData = {
+  sendAll: boolean;
+  allowedRoles: string[];
+  allowedEmails: string[];
+  allowedDomains: string[];
+  catchAllAddress: string | null;
+};
+
+const ROLE_OPTIONS = [
+  { value: "administrator", label: "Admin" },
+  { value: "consultant", label: "Consultant" },
+  { value: "client", label: "Client" },
+];
+
+function TagInput({
+  values,
+  onChange,
+  placeholder,
+  testId,
+}: {
+  values: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+  testId?: string;
+}) {
+  const [draft, setDraft] = useState("");
+
+  function addTag() {
+    const trimmed = draft.trim();
+    if (!trimmed || values.includes(trimmed)) { setDraft(""); return; }
+    onChange([...values, trimmed]);
+    setDraft("");
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder={placeholder}
+          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+          data-testid={testId}
+        />
+        <Button type="button" variant="outline" size="sm" onClick={addTag} data-testid={`${testId}-add`}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      {values.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {values.map(v => (
+            <Badge key={v} variant="secondary" className="gap-1 pr-1">
+              {v}
+              <button
+                type="button"
+                onClick={() => onChange(values.filter(x => x !== v))}
+                className="ml-1 rounded hover:bg-muted p-0.5"
+                data-testid={`remove-tag-${v}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmailSettingsTab() {
+  const { toast } = useToast();
+
+  const { data, isLoading } = useQuery<EmailSettingsData>({
+    queryKey: ["/api/email-settings"],
+  });
+
+  const [sendAll, setSendAll] = useState(false);
+  const [allowedRoles, setAllowedRoles] = useState<string[]>([]);
+  const [allowedEmails, setAllowedEmails] = useState<string[]>([]);
+  const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
+  const [catchAllAddress, setCatchAllAddress] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      setSendAll(data.sendAll);
+      setAllowedRoles(data.allowedRoles ?? []);
+      setAllowedEmails(data.allowedEmails ?? []);
+      setAllowedDomains(data.allowedDomains ?? []);
+      setCatchAllAddress(data.catchAllAddress ?? "");
+    }
+  }, [data]);
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PUT", "/api/email-settings", {
+        sendAll,
+        allowedRoles,
+        allowedEmails,
+        allowedDomains,
+        catchAllAddress: catchAllAddress.trim() || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
+      toast({ title: "Email settings saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save email settings", variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading email settings…
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Email Routing</CardTitle>
+          <CardDescription>
+            Control how outbound emails are delivered. Settings apply to this environment only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+
+          {/* Send all toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label className="text-base font-medium flex items-center gap-2">
+                <Send className="h-4 w-4 text-primary" />
+                Send all emails normally
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Every email is delivered to the real recipient. Use this in production.
+              </p>
+            </div>
+            <Switch
+              checked={sendAll}
+              onCheckedChange={setSendAll}
+              data-testid="switch-send-all"
+            />
+          </div>
+
+          {/* Restricted mode settings */}
+          {!sendAll && (
+            <div className="space-y-6 rounded-lg border p-4 bg-muted/30">
+              <p className="text-sm text-muted-foreground">
+                Emails matching the allow-list below are sent normally. All others are redirected to the catch-all address.
+              </p>
+
+              {/* Allowed roles */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 font-medium">
+                  <UserCog className="h-4 w-4 text-primary" />
+                  Allowed roles
+                </Label>
+                <p className="text-xs text-muted-foreground">Users with these roles always receive their real emails.</p>
+                <div className="flex flex-wrap gap-3">
+                  {ROLE_OPTIONS.map(r => (
+                    <label key={r.value} className="flex items-center gap-2 cursor-pointer select-none">
+                      <Checkbox
+                        checked={allowedRoles.includes(r.value)}
+                        onCheckedChange={checked => {
+                          setAllowedRoles(
+                            checked
+                              ? [...allowedRoles, r.value]
+                              : allowedRoles.filter(x => x !== r.value)
+                          );
+                        }}
+                        data-testid={`checkbox-role-${r.value}`}
+                      />
+                      <span className="text-sm">{r.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Allowed email addresses */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 font-medium">
+                  <AtSign className="h-4 w-4 text-primary" />
+                  Allowed email addresses
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Specific addresses that always receive their real emails (e.g. mark@example.com).
+                </p>
+                <TagInput
+                  values={allowedEmails}
+                  onChange={setAllowedEmails}
+                  placeholder="Add email address…"
+                  testId="input-allowed-email"
+                />
+              </div>
+
+              <Separator />
+
+              {/* Allowed domains */}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 font-medium">
+                  <Tag className="h-4 w-4 text-primary" />
+                  Allowed domains
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Everyone at these domains receives their real emails (e.g. @guardiangroup.co.uk).
+                </p>
+                <TagInput
+                  values={allowedDomains}
+                  onChange={setAllowedDomains}
+                  placeholder="Add domain (e.g. @example.com)…"
+                  testId="input-allowed-domain"
+                />
+              </div>
+
+              <Separator />
+
+              {/* Catch-all address */}
+              <div className="space-y-3">
+                <Label htmlFor="catchAll" className="flex items-center gap-2 font-medium">
+                  <Mail className="h-4 w-4 text-primary" />
+                  Catch-all address
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  All emails that don't match the allow-list are redirected here.
+                </p>
+                <Input
+                  id="catchAll"
+                  value={catchAllAddress}
+                  onChange={e => setCatchAllAddress(e.target.value)}
+                  placeholder="e.g. staging-test@guardiangroup.co.uk"
+                  data-testid="input-catch-all"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end">
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              data-testid="button-save-email-settings"
+            >
+              {saveMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
+              ) : (
+                <><Save className="h-4 w-4 mr-2" />Save Email Settings</>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

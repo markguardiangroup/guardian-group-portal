@@ -31,7 +31,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendIShareNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendIShareNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment, invalidateEmailSettingsCache } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
@@ -20295,6 +20295,92 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Email detail error:", err);
       res.status(500).json({ error: "Failed to fetch email detail" });
+    }
+  });
+
+  // ── Email Settings ───────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/email-settings
+   * Returns the current email routing settings (developer + administrator only).
+   * If no row exists, returns sensible defaults.
+   */
+  app.get("/api/email-settings", requireAuth, async (req: any, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || (user.role !== "developer" && user.role !== "administrator")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const result = await pool.query(
+        "SELECT id, send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, updated_at, updated_by FROM email_settings LIMIT 1"
+      );
+      if (result.rows.length === 0) {
+        return res.json({
+          sendAll: false,
+          allowedRoles: [],
+          allowedEmails: [],
+          allowedDomains: [],
+          catchAllAddress: null,
+        });
+      }
+      const row = result.rows[0];
+      return res.json({
+        id: row.id,
+        sendAll: row.send_all,
+        allowedRoles: row.allowed_roles ?? [],
+        allowedEmails: row.allowed_emails ?? [],
+        allowedDomains: row.allowed_domains ?? [],
+        catchAllAddress: row.catch_all_address,
+        updatedAt: row.updated_at,
+        updatedBy: row.updated_by,
+      });
+    } catch (err) {
+      console.error("Email settings GET error:", err);
+      res.status(500).json({ error: "Failed to fetch email settings" });
+    }
+  });
+
+  /**
+   * PUT /api/email-settings
+   * Creates or replaces the email routing settings row.
+   */
+  app.put("/api/email-settings", requireAuth, async (req: any, res) => {
+    try {
+      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      if (!user || (user.role !== "developer" && user.role !== "administrator")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress } = req.body;
+
+      // Singleton row — delete any existing row then insert fresh
+      await pool.query("DELETE FROM email_settings");
+      await pool.query(
+        `INSERT INTO email_settings (send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, updated_at, updated_by)
+         VALUES ($1, $2, $3, $4, $5, now(), $6)`,
+        [
+          sendAll ?? false,
+          allowedRoles ?? [],
+          allowedEmails ?? [],
+          allowedDomains ?? [],
+          catchAllAddress || null,
+          user.id,
+        ]
+      );
+
+      invalidateEmailSettingsCache();
+
+      await storage.createAuditLog({
+        userId: user.id,
+        action: "email_settings_updated",
+        entityType: "email_settings",
+        entityId: "global",
+        details: { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress },
+      });
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("Email settings PUT error:", err);
+      res.status(500).json({ error: "Failed to save email settings" });
     }
   });
 

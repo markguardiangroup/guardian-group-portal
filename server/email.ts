@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { GetEmailResponseSuccess, ListEmail } from "resend";
+import { pool } from "./db";
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
@@ -13,6 +14,56 @@ const FROM_NAME = "Guardian Group";
 const DEV_EMAIL_OVERRIDE = "mark@guardiangroup.co.uk";
 const CLIENT_FORWARD_EMAIL = "mark@guardiangroup.co.uk";
 
+// ─── Email settings cache ─────────────────────────────────────────────────────
+// Loaded from the email_settings DB table; refreshed every 60 s so UI changes
+// take effect quickly without hitting the DB on every outbound email.
+
+type CachedSettings = {
+  sendAll: boolean;
+  allowedRoles: string[];
+  allowedEmails: string[];
+  allowedDomains: string[];
+  catchAllAddress: string | null;
+} | null;
+
+let _settingsCache: CachedSettings = undefined as any; // undefined = never loaded
+let _settingsCacheAt = 0;
+const SETTINGS_CACHE_TTL = 60_000;
+
+async function loadEmailSettings(): Promise<CachedSettings> {
+  try {
+    const now = Date.now();
+    if (_settingsCache !== undefined && now - _settingsCacheAt < SETTINGS_CACHE_TTL) {
+      return _settingsCache;
+    }
+    const res = await pool.query<{
+      send_all: boolean;
+      allowed_roles: string[] | null;
+      allowed_emails: string[] | null;
+      allowed_domains: string[] | null;
+      catch_all_address: string | null;
+    }>("SELECT send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address FROM email_settings LIMIT 1");
+    const row = res.rows[0];
+    _settingsCache = row ? {
+      sendAll: row.send_all,
+      allowedRoles: row.allowed_roles ?? [],
+      allowedEmails: row.allowed_emails ?? [],
+      allowedDomains: row.allowed_domains ?? [],
+      catchAllAddress: row.catch_all_address,
+    } : null;
+    _settingsCacheAt = now;
+    return _settingsCache;
+  } catch {
+    return null; // fallback to legacy hardcoded behaviour
+  }
+}
+
+/** Call this after saving email settings so the next email uses fresh settings. */
+export function invalidateEmailSettingsCache() {
+  _settingsCache = undefined as any;
+  _settingsCacheAt = 0;
+}
+
 function escHtml(s: string | null | undefined): string {
   if (!s) return "";
   return s
@@ -23,7 +74,32 @@ function escHtml(s: string | null | undefined): string {
     .replace(/'/g, "&#39;");
 }
 
-function resolveRecipient(to: string, role?: string): string {
+async function resolveRecipient(to: string, role?: string): Promise<string> {
+  const settings = await loadEmailSettings();
+
+  if (settings) {
+    // Send-all mode: real email for everyone
+    if (settings.sendAll) return to;
+
+    const toLC = to.toLowerCase();
+
+    // Role allow-list
+    if (role && settings.allowedRoles.includes(role)) return to;
+
+    // Email address allow-list
+    if (settings.allowedEmails.some(e => e.toLowerCase() === toLC)) return to;
+
+    // Domain allow-list (stored with or without leading @)
+    const domain = toLC.split("@")[1];
+    if (domain && settings.allowedDomains.some(d => d.toLowerCase().replace(/^@/, "") === domain)) return to;
+
+    // Catch-all fallback
+    const fallback = settings.catchAllAddress || DEV_EMAIL_OVERRIDE;
+    console.log(`[EMAIL ROUTING] ${to} (role: ${role ?? "none"}) → redirected to ${fallback}`);
+    return fallback;
+  }
+
+  // No settings row — use legacy hardcoded behaviour
   if (!IS_PRODUCTION) {
     console.log(`[DEV MODE] Redirecting email from ${to} to ${DEV_EMAIL_OVERRIDE}`);
     return DEV_EMAIL_OVERRIDE;
@@ -61,7 +137,7 @@ export async function sendInvitationEmail({
   role?: string;
 }) {
   const expiryText = `${Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))} hours`;
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -132,7 +208,7 @@ export async function sendPasswordResetEmail({
   role?: string;
 }) {
   const expiryText = `${Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))} hour(s)`;
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -214,7 +290,7 @@ export async function sendDocumentApprovalEmail({
   documentUrl: string;
   role?: string;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -304,7 +380,7 @@ export async function sendDocumentApprovedEmail({
   comments?: string | null;
   role?: string;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const subject = isMandatory
     ? `Document Now Compliant — ${documentTitle}`
@@ -422,7 +498,7 @@ export async function sendClientSignOffEmail({
   comments?: string | null;
   role?: string;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const noConsultantWarning = noConsultantAssigned ? `
           <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin: 20px 0;">
@@ -535,7 +611,7 @@ export async function sendAutoApprovedNotificationEmail({
   comments?: string | null;
   role?: string;
 }) {
-  const recipient = resolveRecipient(to, role || "consultant");
+  const recipient = await resolveRecipient(to, role || "consultant");
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -642,7 +718,7 @@ export async function sendCloudUploadNotificationEmail({
   role?: string;
   isNewFolder?: boolean;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
   const isClientUploader = role === "consultant" || role === "developer";
 
   const subject = isNewFolder
@@ -758,7 +834,7 @@ export async function sendIShareNotificationEmail({
   role?: string;
   isNewFolder?: boolean;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const subject = isNewFolder
     ? `New iShare Folder — ${folderName}`
@@ -865,7 +941,7 @@ export async function sendChangesRequestedEmail({
   documentUrl: string;
   role?: string;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const { data, error } = await resend.emails.send({
     from: `${FROM_NAME} <${FROM_EMAIL}>`,
@@ -1134,7 +1210,7 @@ export async function sendIncidentNotificationEmail({
   portalUrl: string;
   role?: string;
 }) {
-  const recipient = resolveRecipient(to, role);
+  const recipient = await resolveRecipient(to, role);
 
   const severityColors: Record<string, { bg: string; border: string; text: string; label: string }> = {
     critical:   { bg: "#fef2f2", border: "#fca5a5", text: "#991b1b", label: "Critical" },

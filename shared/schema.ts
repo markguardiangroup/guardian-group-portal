@@ -2007,3 +2007,22 @@ export const consultantCoverage = pgTable("consultant_coverage", {
 export const insertConsultantCoverageSchema = createInsertSchema(consultantCoverage).omit({ id: true, createdAt: true });
 export type InsertConsultantCoverage = z.infer<typeof insertConsultantCoverageSchema>;
 export type ConsultantCoverage = typeof consultantCoverage.$inferSelect;
+
+// Email routing settings — one row per environment, controls how outbound emails are routed.
+// sendAll=true  → every email goes to its real recipient.
+// sendAll=false → allowedRoles / allowedEmails / allowedDomains receive real emails;
+//                 everyone else is redirected to catchAllAddress.
+export const emailSettings = pgTable("email_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sendAll: boolean("send_all").notNull().default(false),
+  allowedRoles: text("allowed_roles").array(),
+  allowedEmails: text("allowed_emails").array(),
+  allowedDomains: text("allowed_domains").array(),
+  catchAllAddress: text("catch_all_address"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: varchar("updated_by"),
+});
+
+export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, updatedAt: true });
+export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
+export type EmailSettings = typeof emailSettings.$inferSelect;
