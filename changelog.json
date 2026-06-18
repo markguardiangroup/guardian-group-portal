@@ -8973,6 +8973,13 @@
           "message": "Fixed: HR Documents header totals now match folder counts (shared docs counted per site)",
           "category": "bug",
           "createdAt": "2026-06-18T23:00:00.000Z"
+        },
+        {
+          "id": "d4f6h8c0-hr-docs-header-matches-table-count-2026",
+          "patch": 16,
+          "message": "Fixed: HR Documents header stats now match the table document count exactly",
+          "category": "bug",
+          "createdAt": "2026-06-18T23:15:00.000Z"
         }
       ],
       "publishedPatch": 15,

@@ -1376,16 +1376,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return { byFolder, summary: { totalDocuments: sTotal, compliant: sCompliant, approved: sApproved, approvalRequired: sReview, overdue: sOverdue } };
   }, [expandedSharedByFolderTemplate, sharedByFolderTemplate, selectedSiteId, filteredSites]);
 
-  // Header stats adjusted for per-site expansion of shared docs.
-  // In "All Sites" view sharedExpansionDeltas adds the virtual extra rows;
-  // in any other view the deltas are all zero so this equals docStats.
-  const adjustedHeaderStats = useMemo(() => ({
-    total: docStats.total + sharedExpansionDeltas.summary.totalDocuments,
-    compliant: docStats.compliant + sharedExpansionDeltas.summary.compliant,
-    approved: docStats.approved + sharedExpansionDeltas.summary.approved,
-    approvalRequired: docStats.approvalRequired + sharedExpansionDeltas.summary.approvalRequired,
-    overdue: docStats.overdue + sharedExpansionDeltas.summary.overdue,
-  }), [docStats, sharedExpansionDeltas.summary]);
+  // Header stats derived from the fully-expanded table list so the folder header,
+  // the table header, and the "X Documents" table badge all agree exactly.
+  const adjustedHeaderStats = useMemo(
+    () => statusCounts(expandedTableDocuments.map(e => e.doc)),
+    [expandedTableDocuments],
+  );
 
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
