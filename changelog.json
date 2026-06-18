@@ -8966,6 +8966,13 @@
           "message": "Fixed: All Sites tile now counts shared company/group docs once per site, matching individual site tile totals",
           "category": "bug",
           "createdAt": "2026-06-18T22:30:00.000Z"
+        },
+        {
+          "id": "c3e5g7b9-hr-docs-header-per-site-expansion-2026",
+          "patch": 16,
+          "message": "Fixed: HR Documents header totals now match folder counts (shared docs counted per site)",
+          "category": "bug",
+          "createdAt": "2026-06-18T23:00:00.000Z"
         }
       ],
       "publishedPatch": 15,

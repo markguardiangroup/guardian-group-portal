@@ -1376,6 +1376,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return { byFolder, summary: { totalDocuments: sTotal, compliant: sCompliant, approved: sApproved, approvalRequired: sReview, overdue: sOverdue } };
   }, [expandedSharedByFolderTemplate, sharedByFolderTemplate, selectedSiteId, filteredSites]);
 
+  // Header stats adjusted for per-site expansion of shared docs.
+  // In "All Sites" view sharedExpansionDeltas adds the virtual extra rows;
+  // in any other view the deltas are all zero so this equals docStats.
+  const adjustedHeaderStats = useMemo(() => ({
+    total: docStats.total + sharedExpansionDeltas.summary.totalDocuments,
+    compliant: docStats.compliant + sharedExpansionDeltas.summary.compliant,
+    approved: docStats.approved + sharedExpansionDeltas.summary.approved,
+    approvalRequired: docStats.approvalRequired + sharedExpansionDeltas.summary.approvalRequired,
+    overdue: docStats.overdue + sharedExpansionDeltas.summary.overdue,
+  }), [docStats, sharedExpansionDeltas.summary]);
+
   const getDocTypeLabel = (type: string, documentTypeId?: string | null) => {
     if (documentTypeId && allDocumentTypes) {
       const apiDocType = allDocumentTypes.find(dt => dt.id === documentTypeId);
@@ -1607,23 +1618,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
-                      <span>{docStats.total} Total</span>
+                      <span>{adjustedHeaderStats.total} Total</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{docStats.compliant} Compliant</span>
+                      <span>{adjustedHeaderStats.compliant} Compliant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-emerald-500" />
-                      <span>{docStats.approved} Approved</span>
+                      <span>{adjustedHeaderStats.approved} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{docStats.approvalRequired} Approval Required</span>
+                      <span>{adjustedHeaderStats.approvalRequired} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{docStats.overdue} Overdue</span>
+                      <span>{adjustedHeaderStats.overdue} Overdue</span>
                     </div>
                     {missingSlots.length > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
@@ -2027,23 +2038,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <div className="flex items-center gap-4 text-sm flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
-                      <span>{docStats.total} Total</span>
+                      <span>{adjustedHeaderStats.total} Total</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-green-600" />
-                      <span>{docStats.compliant} Compliant</span>
+                      <span>{adjustedHeaderStats.compliant} Compliant</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileCheck className="h-4 w-4 text-emerald-500" />
-                      <span>{docStats.approved} Approved</span>
+                      <span>{adjustedHeaderStats.approved} Approved</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileClock className="h-4 w-4 text-yellow-600" />
-                      <span>{docStats.approvalRequired} Approval Required</span>
+                      <span>{adjustedHeaderStats.approvalRequired} Approval Required</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{docStats.overdue} Overdue</span>
+                      <span>{adjustedHeaderStats.overdue} Overdue</span>
                     </div>
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
