@@ -136,11 +136,20 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
+  // Paths whose response bodies must never appear in logs (contain secrets/tokens)
+  const SENSITIVE_RESPONSE_PATHS = new Set([
+    "/api/auth/totp-setup",
+    "/api/auth/totp-confirm",
+    "/api/auth/totp-regenerate-codes",
+    "/api/auth/login",
+    "/api/auth/change-password",
+  ]);
+
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
+      if (capturedJsonResponse && !SENSITIVE_RESPONSE_PATHS.has(path)) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
