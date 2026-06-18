@@ -1121,30 +1121,28 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
             {/* All Sites aggregate tile — only shown when there are 2+ sites */}
             {(() => {
               if (filteredSites.length <= 1) return null;
-              // Companies whose own company/group-scoped documents belong to this
-              // scope. When a group is selected we use every member company so the
-              // count matches the group's document list (which shows all group-owned
-              // docs, shared or not). Otherwise we use the companies of the sites in
-              // view.
-              const scopeCompanyIds = new Set<string>(filteredSites.map((s) => s.companyId));
-              if (selectedGroup !== "all" && (!selectedCompany || selectedCompany === "all")) {
-                selectedGroupCompanies.forEach((c) => scopeCompanyIds.add(c.id));
+              // Expand docs per site: shared company/group docs count once for
+              // every site they're visible to — identical rule to the individual
+              // site tile filter. This ensures a company-scoped doc for a company
+              // with N sites contributes N times to the aggregate, just as it
+              // would if you summed all the individual site tile counts.
+              const allDocs: any[] = [];
+              for (const _asSite of filteredSites) {
+                (documents ?? []).forEach((d: any) => {
+                  if (!isCountableDoc(d)) return;
+                  const visible =
+                    d.siteId === _asSite.id ||
+                    (d.siteId === null && (
+                      (d.sharedWithSiteIds?.includes(_asSite.id) ?? false) ||
+                      (d.sharedWithCompanyIds?.includes(_asSite.companyId) ?? false) ||
+                      (d.entityId === _asSite.companyId &&
+                        (d.scope !== "group" ||
+                          ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0))
+                    ));
+                  if (visible) allDocs.push(d);
+                });
               }
-              // Canonical scope: a document belongs here if it is site-assigned to a
-              // filtered site, OR it is a company/group-scoped doc owned by an
-              // in-scope company, OR it has been shared into the scope. Each doc is
-              // counted ONCE — no per-site expansion.
-              const allDocs = (documents ?? []).filter(
-                (d) => isCountableDoc(d) && (
-                  (d.siteId !== null && filteredSites.some((s) => s.id === d.siteId)) ||
-                  (d.siteId === null && (
-                    (!!d.entityId && scopeCompanyIds.has(d.entityId)) ||
-                    (d.sharedWithSiteIds?.some((id) => filteredSites.some((s) => s.id === id)) ?? false) ||
-                    (d.sharedWithCompanyIds?.some((id) => scopeCompanyIds.has(id)) ?? false)
-                  ))
-                )
-              );
-              // Status-based buckets, each document counted once.
+              // Status-based buckets, each document counted once per site.
               const allCounts = statusCounts(allDocs);
               const allCompliant = allCounts.compliant;
               const allApprovalRequired = allCounts.approvalRequired;
