@@ -686,11 +686,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupReqOverdue = _gMandatory.filter((d: any) => d.status === "overdue").length;
               const groupReqApproval = _gMandatory.filter((d: any) => d.status === "approval_required").length;
               const groupMandatoryExpired = _gMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupMandatoryRenewalOverdue = _gMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               // Non-mandatory approved / unapproved
               const groupNmApproved = _gNonMandatory.filter((d: any) => d.status === "approved").length;
               const groupNmUnapproved = _gNonMandatory.length - groupNmApproved;
-              const groupNmOverdue = _gNonMandatory.filter((d: any) => d.status === "overdue").length;
               const groupNmExpired = _gNonMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupNmRenewalOverdue = _gNonMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               const groupNmApprovalRequired = _gNonMandatory.filter((d: any) => d.status === "approval_required").length;
               // Slot-based compliance score — kept separate from the status tiles so
               // the % stays slot-based: required docs bucketed by expiry/renewal date,
@@ -830,7 +831,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs space-y-0.5">
                               <p className="font-semibold">Not compliant (mandatory)</p>
-                              <p className="text-muted-foreground">{groupReqOverdue} overdue</p>
+                              <p className="text-muted-foreground">{groupMandatoryRenewalOverdue} overdue</p>
                               <p className="text-muted-foreground">{groupMandatoryExpired} expired</p>
                               <p className="text-muted-foreground">{groupReqApproval} awaiting approval</p>
                               <p className="text-muted-foreground">{groupMissing} missing</p>
@@ -852,7 +853,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs space-y-0.5">
                               <p className="font-semibold">Non-mandatory not approved</p>
-                              <p className="text-muted-foreground">{groupNmOverdue} overdue</p>
+                              <p className="text-muted-foreground">{groupNmRenewalOverdue} overdue</p>
                               <p className="text-muted-foreground">{groupNmExpired} expired</p>
                               <p className="text-muted-foreground">{groupNmApprovalRequired} awaiting approval</p>
                             </TooltipContent>
@@ -917,11 +918,12 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     const cReqOverdue = _cMandatory.filter((d: any) => d.status === "overdue").length;
                     const cReqApproval = _cMandatory.filter((d: any) => d.status === "approval_required").length;
                     const cMandatoryExpired = _cMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cMandatoryRenewalOverdue = _cMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     // Non-mandatory approved / unapproved
                     const cNmApproved = _cNonMandatory.filter((d: any) => d.status === "approved").length;
                     const cNmUnapproved = _cNonMandatory.length - cNmApproved;
-                    const cNmOverdue = _cNonMandatory.filter((d: any) => d.status === "overdue").length;
                     const cNmExpired = _cNonMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cNmRenewalOverdue = _cNonMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     const cNmApprovalRequired = _cNonMandatory.filter((d: any) => d.status === "approval_required").length;
                     // Slot-based compliance score — UNCHANGED: required-only docs
                     // bucketed by expiry/renewal date, plus missing required slots.
@@ -1064,7 +1066,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-xs space-y-0.5">
                                   <p className="font-semibold">Not compliant (mandatory)</p>
-                                  <p className="text-muted-foreground">{cReqOverdue} overdue</p>
+                                  <p className="text-muted-foreground">{cMandatoryRenewalOverdue} overdue</p>
                                   <p className="text-muted-foreground">{cMandatoryExpired} expired</p>
                                   <p className="text-muted-foreground">{cReqApproval} awaiting approval</p>
                                   <p className="text-muted-foreground">{cMissing} missing</p>
@@ -1086,7 +1088,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-xs space-y-0.5">
                                   <p className="font-semibold">Non-mandatory not approved</p>
-                                  <p className="text-muted-foreground">{cNmOverdue} overdue</p>
+                                  <p className="text-muted-foreground">{cNmRenewalOverdue} overdue</p>
                                   <p className="text-muted-foreground">{cNmExpired} expired</p>
                                   <p className="text-muted-foreground">{cNmApprovalRequired} awaiting approval</p>
                                 </TooltipContent>
@@ -1157,12 +1159,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const allOverdueRequired = mandatoryAllDocs.filter((d: any) => d.status === "overdue").length;
               const allApprovalRequiredRequired = mandatoryAllDocs.filter((d: any) => d.status === "approval_required").length;
               const allMandatoryExpired = mandatoryAllDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allMandatoryRenewalOverdue = mandatoryAllDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _asNow) && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
               const allNonCompliant = allApprovalRequiredRequired + allOverdueRequired + allMissing;
               // Non-mandatory approved / unapproved
               const allNmApproved = nonMandatoryAllDocs.filter((d: any) => d.status === "approved").length;
               const allNmUnapproved = nonMandatoryAllDocs.length - allNmApproved;
-              const allNmOverdue = nonMandatoryAllDocs.filter((d: any) => d.status === "overdue").length;
               const allNmExpired = nonMandatoryAllDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allNmRenewalOverdue = nonMandatoryAllDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _asNow) && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
               const allNmApprovalRequired = nonMandatoryAllDocs.filter((d: any) => d.status === "approval_required").length;
               const allDenom = allCompliant + allApprovalRequired + allOverdue + allMissing;
               // Derive the compliance % from the server-side slot-based raw counts that
@@ -1273,7 +1276,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
                             <p className="font-semibold">Not compliant (mandatory)</p>
-                            <p className="text-muted-foreground">{allOverdueRequired} overdue</p>
+                            <p className="text-muted-foreground">{allMandatoryRenewalOverdue} overdue</p>
                             <p className="text-muted-foreground">{allMandatoryExpired} expired</p>
                             <p className="text-muted-foreground">{allApprovalRequiredRequired} awaiting approval</p>
                             <p className="text-muted-foreground">{allMissing} missing</p>
@@ -1295,7 +1298,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
                             <p className="font-semibold">Non-mandatory not approved</p>
-                            <p className="text-muted-foreground">{allNmOverdue} overdue</p>
+                            <p className="text-muted-foreground">{allNmRenewalOverdue} overdue</p>
                             <p className="text-muted-foreground">{allNmExpired} expired</p>
                             <p className="text-muted-foreground">{allNmApprovalRequired} awaiting approval</p>
                           </TooltipContent>
@@ -1371,6 +1374,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const overdueRequired = mandatorySiteDocs.filter((d) => d.status === "overdue").length;
               const approvalRequiredRequired = mandatorySiteDocs.filter((d) => d.status === "approval_required").length;
               const sMandatoryExpired = mandatorySiteDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sMandatoryRenewalOverdue = mandatorySiteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;
@@ -1379,8 +1383,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const sNmApproved = nonMandatorySiteDocs.filter((d) => d.status === "approved").length;
               // Box 4: unapproved non-mandatory docs
               const sNmUnapproved = nonMandatorySiteDocs.length - sNmApproved;
-              const sNmOverdue = nonMandatorySiteDocs.filter((d) => d.status === "overdue").length;
               const sNmExpired = nonMandatorySiteDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sNmRenewalOverdue = nonMandatorySiteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const sNmApprovalRequired = nonMandatorySiteDocs.filter((d) => d.status === "approval_required").length;
               const scoreDenominator = compliant + approvalRequiredRequired + overdueRequired + missingCount;
               const pct =
@@ -1525,7 +1529,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
                             <p className="font-semibold">Not compliant (mandatory)</p>
-                            <p className="text-muted-foreground">{overdueRequired} overdue</p>
+                            <p className="text-muted-foreground">{sMandatoryRenewalOverdue} overdue</p>
                             <p className="text-muted-foreground">{sMandatoryExpired} expired</p>
                             <p className="text-muted-foreground">{approvalRequiredRequired} awaiting approval</p>
                             <p className="text-muted-foreground">{missingCount} missing</p>
@@ -1550,7 +1554,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
                             <p className="font-semibold">Non-mandatory not approved</p>
-                            <p className="text-muted-foreground">{sNmOverdue} overdue</p>
+                            <p className="text-muted-foreground">{sNmRenewalOverdue} overdue</p>
                             <p className="text-muted-foreground">{sNmExpired} expired</p>
                             <p className="text-muted-foreground">{sNmApprovalRequired} awaiting approval</p>
                           </TooltipContent>

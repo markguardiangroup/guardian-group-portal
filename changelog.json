@@ -8952,6 +8952,13 @@
           "message": "Site tiles now show Compliant / Non Comp. (mandatory) and Approved / Unapproved (non-mandatory) across all card types",
           "category": "enhancement",
           "createdAt": "2026-06-18T21:00:00.000Z"
+        },
+        {
+          "id": "a1c3e5f7-tile-tooltip-overdue-vs-expired-split-2026",
+          "patch": 16,
+          "message": "Fixed: tile tooltips now correctly separate overdue (renewal) from expired (expiry date) — no more double-counting",
+          "category": "bug",
+          "createdAt": "2026-06-18T22:00:00.000Z"
         }
       ],
       "publishedPatch": 15,
