@@ -1336,6 +1336,21 @@ export default function UserManagement() {
     },
   });
 
+  const resetMfaMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiRequest("DELETE", `/api/users/${userId}/mfa`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      toast({ title: "MFA Reset", description: "The user's MFA has been cleared. They will need to set it up again on next login." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Error", description: e.message || "Failed to reset MFA.", variant: "destructive" });
+    },
+  });
+
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
     const newStatus = targetUser.status === "active" ? "inactive" : "active";
     setStatusConfirm({ user: targetUser, newStatus });
@@ -1974,6 +1989,15 @@ export default function UserManagement() {
                               >
                                 <KeyRound className="h-4 w-4 mr-2" />
                                 Reset Password
+                              </DropdownMenuItem>
+                            )}
+                            {(u.status === "active" || u.status === "invited") && (
+                              <DropdownMenuItem
+                                onClick={() => resetMfaMutation.mutate(u.id)}
+                                data-testid={`button-reset-mfa-${u.id}`}
+                              >
+                                <Smartphone className="h-4 w-4 mr-2" />
+                                Reset MFA
                               </DropdownMenuItem>
                             )}
                           </>

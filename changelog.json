@@ -8938,6 +8938,13 @@
           "message": "New: Email Settings tab — control email routing per environment with send-all mode, role/address/domain allow-lists, and a catch-all address",
           "category": "feature",
           "createdAt": "2026-06-18T10:00:00.000Z"
+        },
+        {
+          "id": "e7f8a9b0-totp-mfa-authenticator-2026",
+          "patch": 16,
+          "message": "New: TOTP authenticator app MFA — set up via QR code, backup codes, trusted devices, admin reset, and portal-wide enforcement toggle",
+          "category": "feature",
+          "createdAt": "2026-06-18T12:07:25.612Z"
         }
       ],
       "publishedPatch": 15,

@@ -8,7 +8,9 @@ import {
   Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle,
   Shield, Users, Scale, GraduationCap, FileCheck, BarChart3, CheckCircle2,
   LayoutDashboard, CalendarDays, BellRing, ExternalLink,
+  Smartphone, KeyRound,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,6 +119,12 @@ export default function Login() {
   const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
+  // MFA flow state
+  const [mfaStep, setMfaStep] = useState<"idle" | "mfa_required" | "setup_required">("idle");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaError, setMfaError] = useState<string | null>(null);
+  const [trustDevice, setTrustDevice] = useState(false);
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const turnstileRef = useRef<HTMLDivElement>(null);
   const turnstileWidgetId = useRef<string | null>(null);
@@ -213,6 +221,16 @@ export default function Login() {
       setIsAccountLocked(false);
       setAttemptsRemaining(null);
 
+      // Handle MFA pause states
+      if (userData.status === "mfa_required") {
+        setMfaStep("mfa_required");
+        return;
+      }
+      if (userData.status === "setup_required") {
+        setMfaStep("setup_required");
+        return;
+      }
+
       // Seed the auth cache immediately so AuthProvider sees the user without
       // needing to re-fetch, which eliminates the race window that caused the
       // "10-second hang then back to login" issue.
@@ -263,9 +281,30 @@ export default function Login() {
     },
   });
 
+  const mfaVerifyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/mfa-verify", { code: mfaCode.trim().toUpperCase(), trustDevice });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Invalid code");
+      return body;
+    },
+    onSuccess: (userData) => {
+      setMfaError(null);
+      queryClient.setQueryData(["/api/auth/me"], userData);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      const intended = intendedPathRef.current || "/";
+      const target = intended === "/" || intended.startsWith("/login") ? "/" : intended;
+      setLocation(target);
+    },
+    onError: (err: Error) => {
+      setMfaError(err.message || "Invalid code. Please try again.");
+      setMfaCode("");
+    },
+  });
+
   return (
     <div className="min-h-screen flex">
-      {loginMutation.isPending && (
+      {(loginMutation.isPending || mfaVerifyMutation.isPending) && (
         <div className="login-progress-bar">
           <div className="login-progress-bar-inner" />
         </div>
@@ -435,6 +474,116 @@ export default function Login() {
               <p className="text-slate-400 text-sm mt-1">Sign in to your compliance portal</p>
             </div>
 
+            {mfaStep !== "idle" ? (
+              <div className="space-y-5">
+                {/* MFA step header */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100">
+                    {mfaStep === "setup_required" ? (
+                      <Smartphone className="h-4 w-4 text-sky-600" />
+                    ) : (
+                      <KeyRound className="h-4 w-4 text-sky-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {mfaStep === "setup_required" ? "Set up authenticator" : "Two-factor verification"}
+                    </h2>
+                    <p className="text-slate-400 text-sm mt-0.5">
+                      {mfaStep === "setup_required"
+                        ? "MFA is required — set up an authenticator app in Settings first, then return here."
+                        : useRecoveryCode
+                          ? "Enter one of your backup recovery codes."
+                          : "Enter the 6-digit code from your authenticator app."}
+                    </p>
+                  </div>
+                </div>
+
+                {mfaStep === "setup_required" ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                    Your administrator requires all users to set up MFA. Please sign in and navigate to <strong>Settings → Security</strong> to configure your authenticator app.
+                    <div className="mt-3">
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          // Allow through to force setup (user will be prompted after login)
+                          mfaVerifyMutation.mutate();
+                        }}
+                        disabled={mfaVerifyMutation.isPending}
+                        data-testid="button-mfa-setup-continue"
+                      >
+                        {mfaVerifyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        I'll set it up now — continue
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {mfaError && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-3 flex items-center gap-2.5" data-testid="alert-mfa-error">
+                        <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                        <p className="text-sm text-red-800">{mfaError}</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <label className="text-slate-600 text-sm font-medium">
+                        {useRecoveryCode ? "Recovery code" : "Authenticator code"}
+                      </label>
+                      <Input
+                        value={mfaCode}
+                        onChange={e => setMfaCode(useRecoveryCode ? e.target.value.toUpperCase() : e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder={useRecoveryCode ? "XXXXXXXX" : "000000"}
+                        maxLength={useRecoveryCode ? 8 : 6}
+                        className="h-11 border-slate-200 bg-slate-50 text-slate-900 font-mono text-center text-lg tracking-widest placeholder:text-slate-400 focus:bg-white"
+                        data-testid="input-mfa-code"
+                        onKeyDown={e => { if (e.key === "Enter" && mfaCode.length > 0) mfaVerifyMutation.mutate(); }}
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Checkbox id="trust-device" checked={trustDevice} onCheckedChange={v => setTrustDevice(!!v)} data-testid="checkbox-trust-device" />
+                      <label htmlFor="trust-device" className="text-sm text-slate-600 cursor-pointer select-none">
+                        Trust this device for 30 days
+                      </label>
+                    </div>
+
+                    <Button
+                      className="w-full h-11 font-semibold text-white border-0"
+                      style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
+                      onClick={() => mfaVerifyMutation.mutate()}
+                      disabled={mfaCode.length === 0 || mfaVerifyMutation.isPending}
+                      data-testid="button-mfa-verify"
+                    >
+                      {mfaVerifyMutation.isPending ? (
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying...</>
+                      ) : (
+                        <>Verify <ArrowRight className="ml-2 h-4 w-4" /></>
+                      )}
+                    </Button>
+
+                    <button
+                      type="button"
+                      className="w-full text-xs text-slate-400 hover:text-slate-600 font-medium py-1 transition-colors"
+                      onClick={() => { setUseRecoveryCode(v => !v); setMfaCode(""); setMfaError(null); }}
+                      data-testid="button-toggle-recovery-code"
+                    >
+                      {useRecoveryCode ? "Use authenticator code instead" : "Use a backup recovery code"}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  className="w-full text-xs text-slate-400 hover:text-slate-600 font-medium py-1 transition-colors"
+                  onClick={() => { setMfaStep("idle"); setMfaCode(""); setMfaError(null); setUseRecoveryCode(false); }}
+                  data-testid="button-back-to-login"
+                >
+                  ← Back to sign in
+                </button>
+              </div>
+            ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(d => { setIsAccountLocked(false); setAttemptsRemaining(null); setLoginError(null); loginMutation.mutate(d); })} className="space-y-4">
 
@@ -558,6 +707,7 @@ export default function Login() {
                 </button>
               </form>
             </Form>
+            )}
           </div>
 
           {/* Footer */}

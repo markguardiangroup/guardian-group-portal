@@ -69,6 +69,7 @@ import {
   Send,
   AtSign,
   Tag,
+  RefreshCw,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -378,7 +379,7 @@ export default function Settings() {
           {(user?.role === "developer" || user?.role === "administrator") && (
             <TabsTrigger value="email" className="gap-2" data-testid="tab-email">
               <Mail className="h-4 w-4" />
-              Email
+              Email &amp; MFA
             </TabsTrigger>
           )}
         </TabsList>
@@ -742,6 +743,8 @@ export default function Settings() {
 
         <TabsContent value="security">
           <div className="space-y-6">
+            <TotpSetupCard />
+            <TrustedDevicesCard />
             <Card>
               <CardHeader>
                 <CardTitle>Change Password</CardTitle>
@@ -1013,6 +1016,367 @@ export default function Settings() {
   );
 }
 
+// ─── TOTP / MFA Components ────────────────────────────────────────────────────
+
+type TrustedDevice = {
+  id: string;
+  deviceLabel: string | null;
+  createdAt: string;
+  expiresAt: string;
+  lastUsedAt: string | null;
+};
+
+function TotpSetupCard() {
+  const { toast } = useToast();
+
+  const { data: totpStatus, isLoading: statusLoading, refetch: refetchStatus } = useQuery<{ totpEnabled: boolean }>({
+    queryKey: ["/api/auth/totp-status"],
+  });
+
+  const { data: recoveryStatus, refetch: refetchRecovery } = useQuery<{ remaining: number; total: number }>({
+    queryKey: ["/api/auth/totp-recovery-status"],
+    enabled: totpStatus?.totpEnabled === true,
+  });
+
+  const [setupData, setSetupData] = useState<{ secret: string; qrDataUrl: string } | null>(null);
+  const [confirmCode, setConfirmCode] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [acknowledged, setAcknowledged] = useState(false);
+
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [removePassword, setRemovePassword] = useState("");
+
+  const [showRegenDialog, setShowRegenDialog] = useState(false);
+  const [regenPassword, setRegenPassword] = useState("");
+  const [regenCodes, setRegenCodes] = useState<string[]>([]);
+  const [showRegenCodesModal, setShowRegenCodesModal] = useState(false);
+
+  const startSetupMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("GET", "/api/auth/totp-setup");
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed"); }
+      return res.json();
+    },
+    onSuccess: (data) => setSetupData(data),
+    onError: (e: Error) => toast({ title: e.message || "Failed to start setup", variant: "destructive" }),
+  });
+
+  const confirmMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/totp-confirm", { code: confirmCode });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Invalid code");
+      return body;
+    },
+    onSuccess: (data) => {
+      setBackupCodes(data.recoveryCodes);
+      setShowBackupModal(true);
+      setSetupData(null);
+      setConfirmCode("");
+      refetchStatus();
+    },
+    onError: (e: Error) => toast({ title: e.message || "Invalid code", variant: "destructive" }),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", "/api/auth/totp", { password: removePassword });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      setShowRemoveDialog(false);
+      setRemovePassword("");
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/totp-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/trusted-devices"] });
+      toast({ title: "Authenticator app removed" });
+    },
+    onError: (e: Error) => toast({ title: e.message || "Failed to remove", variant: "destructive" }),
+  });
+
+  const regenMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/totp-regenerate-codes", { password: regenPassword });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed");
+      return body;
+    },
+    onSuccess: (data) => {
+      setRegenCodes(data.recoveryCodes);
+      setShowRegenDialog(false);
+      setRegenPassword("");
+      setShowRegenCodesModal(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/totp-recovery-status"] });
+    },
+    onError: (e: Error) => toast({ title: e.message || "Failed to regenerate codes", variant: "destructive" }),
+  });
+
+  if (statusLoading) return null;
+
+  const isSetup = totpStatus?.totpEnabled === true;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Smartphone className="h-5 w-5" />
+          Authenticator App
+        </CardTitle>
+        <CardDescription>
+          Add a second layer of security using an authenticator app like Google Authenticator or Authy.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!isSetup && !setupData && (
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div>
+              <p className="text-sm font-medium">Not configured</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Set up an authenticator app to protect your account.</p>
+            </div>
+            <Button onClick={() => startSetupMutation.mutate()} disabled={startSetupMutation.isPending} data-testid="button-setup-totp">
+              {startSetupMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Set Up
+            </Button>
+          </div>
+        )}
+
+        {setupData && (
+          <div className="space-y-4 rounded-lg border p-4">
+            <p className="text-sm font-medium">Scan this QR code with your authenticator app</p>
+            <div className="flex justify-center">
+              <img src={setupData.qrDataUrl} alt="TOTP QR Code" className="w-48 h-48 rounded-lg" data-testid="img-totp-qr" />
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Can't scan? Enter this key manually:{" "}
+              <code className="font-mono text-xs bg-muted px-1 py-0.5 rounded">{setupData.secret}</code>
+            </p>
+            <div className="space-y-2">
+              <Label>Enter the 6-digit code from your app to confirm</Label>
+              <Input
+                value={confirmCode}
+                onChange={e => setConfirmCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                maxLength={6}
+                className="font-mono text-center text-lg tracking-widest"
+                data-testid="input-totp-confirm"
+                onKeyDown={e => { if (e.key === "Enter" && confirmCode.length === 6) confirmMutation.mutate(); }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setSetupData(null); setConfirmCode(""); }}>Cancel</Button>
+              <Button onClick={() => confirmMutation.mutate()} disabled={confirmCode.length !== 6 || confirmMutation.isPending} data-testid="button-confirm-totp">
+                {confirmMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Confirm
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isSetup && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-sm font-medium">Configured</span>
+            </div>
+            {recoveryStatus && (
+              <div className="flex items-center justify-between rounded-lg border px-4 py-3 bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium">Backup recovery codes</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{recoveryStatus.remaining} of {recoveryStatus.total} codes remaining</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowRegenDialog(true)} data-testid="button-regen-codes">
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                  Regenerate
+                </Button>
+              </div>
+            )}
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="text-destructive hover:text-destructive border-destructive/30" onClick={() => setShowRemoveDialog(true)} data-testid="button-remove-totp">
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Remove authenticator
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+
+      {/* Backup codes — first-time modal */}
+      <Dialog open={showBackupModal} onOpenChange={(o) => { if (!o && acknowledged) { setShowBackupModal(false); setAcknowledged(false); refetchRecovery(); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save your backup codes</DialogTitle>
+            <DialogDescription>
+              These 10 single-use codes let you sign in if you lose access to your authenticator app. Save them somewhere safe — they won't be shown again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-2">
+            {backupCodes.map((c, i) => (
+              <code key={i} className="font-mono text-sm bg-muted rounded px-3 py-2 text-center tracking-widest" data-testid={`backup-code-${i}`}>{c}</code>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Checkbox id="ack-codes" checked={acknowledged} onCheckedChange={v => setAcknowledged(!!v)} data-testid="checkbox-ack-codes" />
+            <label htmlFor="ack-codes" className="text-sm cursor-pointer select-none">I've saved my backup codes</label>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => { setShowBackupModal(false); setAcknowledged(false); refetchRecovery(); }} disabled={!acknowledged} data-testid="button-done-backup-codes">
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove TOTP dialog */}
+      <Dialog open={showRemoveDialog} onOpenChange={(o) => { setShowRemoveDialog(o); if (!o) setRemovePassword(""); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove authenticator app</DialogTitle>
+            <DialogDescription>Enter your current password to remove the authenticator app. Your backup codes and trusted devices will also be cleared.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>Current password</Label>
+            <Input type="password" value={removePassword} onChange={e => setRemovePassword(e.target.value)} placeholder="Enter your password" data-testid="input-remove-totp-password" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowRemoveDialog(false); setRemovePassword(""); }}>Cancel</Button>
+            <Button variant="destructive" onClick={() => removeMutation.mutate()} disabled={!removePassword || removeMutation.isPending} data-testid="button-confirm-remove-totp">
+              {removeMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerate codes dialog */}
+      <Dialog open={showRegenDialog} onOpenChange={(o) => { setShowRegenDialog(o); if (!o) setRegenPassword(""); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Regenerate backup codes</DialogTitle>
+            <DialogDescription>Your existing backup codes will be invalidated. Enter your password to continue.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>Current password</Label>
+            <Input type="password" value={regenPassword} onChange={e => setRegenPassword(e.target.value)} placeholder="Enter your password" data-testid="input-regen-password" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowRegenDialog(false); setRegenPassword(""); }}>Cancel</Button>
+            <Button onClick={() => regenMutation.mutate()} disabled={!regenPassword || regenMutation.isPending} data-testid="button-confirm-regen">
+              {regenMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Regenerate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Show newly regenerated codes */}
+      <Dialog open={showRegenCodesModal} onOpenChange={setShowRegenCodesModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New backup codes</DialogTitle>
+            <DialogDescription>Save these codes — your old ones have been permanently invalidated.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-2">
+            {regenCodes.map((c, i) => (
+              <code key={i} className="font-mono text-sm bg-muted rounded px-3 py-2 text-center tracking-widest">{c}</code>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => { setShowRegenCodesModal(false); setRegenCodes([]); }} data-testid="button-close-new-codes">Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function TrustedDevicesCard() {
+  const { toast } = useToast();
+
+  const { data: devices, isLoading } = useQuery<TrustedDevice[]>({
+    queryKey: ["/api/auth/trusted-devices"],
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("DELETE", `/api/auth/trusted-devices/${id}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/trusted-devices"] });
+      toast({ title: "Device revoked" });
+    },
+    onError: () => toast({ title: "Failed to revoke device", variant: "destructive" }),
+  });
+
+  const revokeAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", "/api/auth/trusted-devices");
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed");
+      return body;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/trusted-devices"] });
+      toast({ title: "All trusted devices revoked" });
+    },
+    onError: () => toast({ title: "Failed to revoke devices", variant: "destructive" }),
+  });
+
+  const activeDevices = (devices ?? []).filter(d => new Date(d.expiresAt) > new Date());
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Monitor className="h-5 w-5" />
+              Trusted Devices
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Devices that skip the MFA check for 30 days. Revoke any device you don't recognise.
+            </CardDescription>
+          </div>
+          {activeDevices.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => revokeAllMutation.mutate()} disabled={revokeAllMutation.isPending} data-testid="button-revoke-all-devices">
+              Revoke all
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : activeDevices.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No trusted devices.</p>
+        ) : (
+          <div className="space-y-2">
+            {activeDevices.map(d => (
+              <div key={d.id} className="flex items-center justify-between rounded-md border px-3 py-2.5" data-testid={`device-row-${d.id}`}>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{d.deviceLabel || "Unknown device"}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Added {format(new Date(d.createdAt), "d MMM yyyy")} · Expires {format(new Date(d.expiresAt), "d MMM yyyy")}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => revokeMutation.mutate(d.id)} disabled={revokeMutation.isPending} data-testid={`button-revoke-device-${d.id}`}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Email Settings Tab ───────────────────────────────────────────────────────
 
 type EmailSettingsData = {
@@ -1021,6 +1385,7 @@ type EmailSettingsData = {
   allowedEmails: string[];
   allowedDomains: string[];
   catchAllAddress: string | null;
+  mfaRequired: boolean;
 };
 
 const ROLE_OPTIONS = [
@@ -1096,6 +1461,7 @@ function EmailSettingsTab() {
   const [allowedEmails, setAllowedEmails] = useState<string[]>([]);
   const [allowedDomains, setAllowedDomains] = useState<string[]>([]);
   const [catchAllAddress, setCatchAllAddress] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -1104,6 +1470,7 @@ function EmailSettingsTab() {
       setAllowedEmails(data.allowedEmails ?? []);
       setAllowedDomains(data.allowedDomains ?? []);
       setCatchAllAddress(data.catchAllAddress ?? "");
+      setMfaRequired(data.mfaRequired ?? false);
     }
   }, [data]);
 
@@ -1115,6 +1482,7 @@ function EmailSettingsTab() {
         allowedEmails,
         allowedDomains,
         catchAllAddress: catchAllAddress.trim() || null,
+        mfaRequired,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
@@ -1138,6 +1506,45 @@ function EmailSettingsTab() {
 
   return (
     <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Multi-Factor Authentication</CardTitle>
+          <CardDescription>
+            Enforce TOTP authenticator app sign-in for all users across this portal.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label className="text-base font-medium flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-primary" />
+                Require MFA for all users
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                When enabled, every user must set up and verify an authenticator app to sign in.
+              </p>
+            </div>
+            <Switch
+              checked={mfaRequired}
+              onCheckedChange={setMfaRequired}
+              data-testid="switch-mfa-required"
+            />
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending}
+              data-testid="button-save-mfa-settings"
+            >
+              {saveMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
+              ) : (
+                <><Save className="h-4 w-4 mr-2" />Save MFA Settings</>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Email Routing</CardTitle>

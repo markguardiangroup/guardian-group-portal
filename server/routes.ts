@@ -4,6 +4,10 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { createRequire } from "module";
+const _require = createRequire(import.meta.url);
+const { authenticator: totpAuthenticator } = _require("otplib") as { authenticator: { generateSecret: () => string; keyuri: (user: string, service: string, secret: string) => string; check: (token: string, secret: string) => boolean; } };
+import QRCode from "qrcode";
 import {
   buildAuthUrlFromIntegration,
   exchangeCode,
@@ -722,6 +726,32 @@ export async function registerRoutes(
         success: true,
       });
 
+      // Check if MFA is required for this deployment
+      const settingsResult = await pool.query("SELECT mfa_required FROM email_settings LIMIT 1");
+      const mfaRequired: boolean = settingsResult.rows[0]?.mfa_required ?? false;
+
+      // Check trusted-device cookie — a valid cookie bypasses MFA
+      let isTrustedDevice = false;
+      const tdToken = (req as any).cookies?.td_token as string | undefined;
+      if (tdToken && mfaRequired) {
+        const tokenHash = crypto.createHash("sha256").update(tdToken).digest("hex");
+        const tdResult = await pool.query(
+          "SELECT id FROM trusted_devices WHERE user_id = $1 AND token_hash = $2 AND expires_at > NOW()",
+          [user.id, tokenHash]
+        );
+        if (tdResult.rows.length > 0) {
+          isTrustedDevice = true;
+          await pool.query("UPDATE trusted_devices SET last_used_at = NOW() WHERE id = $1", [tdResult.rows[0].id]);
+        }
+      }
+
+      if (mfaRequired && !isTrustedDevice) {
+        // Pause login — store pending user ID and return status
+        (req.session as any).pendingMfaUserId = user.id;
+        const totpEnabled = !!(user as any).totpEnabled && !!(user as any).totpSecret;
+        return res.json({ status: totpEnabled ? "mfa_required" : "setup_required" });
+      }
+
       // Create audit log for successful login
       await storage.createAuditLog({
         action: "login",
@@ -781,6 +811,432 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // ── TOTP / MFA Endpoints ─────────────────────────────────────────────────
+
+  /**
+   * POST /api/auth/mfa-verify
+   * Completes a paused login by verifying a TOTP code or backup recovery code.
+   * Optional body param `trustDevice: true` to set a 30-day trusted-device cookie.
+   */
+  app.post("/api/auth/mfa-verify", async (req: any, res) => {
+    try {
+      const pendingUserId = req.session?.pendingMfaUserId;
+      if (!pendingUserId) {
+        return res.status(400).json({ error: "No pending MFA session" });
+      }
+
+      const { code, trustDevice } = req.body;
+      if (!code) return res.status(400).json({ error: "Code required" });
+
+      const user = await storage.getUser(pendingUserId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const totpEnabled = !!(user as any).totpEnabled;
+      const totpSecret = (user as any).totpSecret as string | null;
+
+      let verified = false;
+
+      // Try TOTP code first
+      if (totpEnabled && totpSecret) {
+        try {
+          verified = totpAuthenticator.check(code, totpSecret);
+        } catch {
+          verified = false;
+        }
+      }
+
+      // If TOTP failed, try backup recovery code
+      if (!verified) {
+        const codeHash = crypto.createHash("sha256").update(code.trim().toUpperCase()).digest("hex");
+        const rcResult = await pool.query(
+          "SELECT id FROM mfa_recovery_codes WHERE user_id = $1 AND code_hash = $2 AND used_at IS NULL",
+          [user.id, codeHash]
+        );
+        if (rcResult.rows.length > 0) {
+          // Mark recovery code as used
+          await pool.query("UPDATE mfa_recovery_codes SET used_at = NOW() WHERE id = $1", [rcResult.rows[0].id]);
+          verified = true;
+        }
+      }
+
+      if (!verified) {
+        return res.status(401).json({ error: "Invalid code. Please try again." });
+      }
+
+      // Clear pending MFA
+      delete req.session.pendingMfaUserId;
+
+      // Handle trust-device
+      if (trustDevice) {
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const userAgent = req.get("User-Agent") || "Unknown device";
+        const deviceLabel = userAgent.substring(0, 100);
+        await pool.query(
+          "INSERT INTO trusted_devices (user_id, token_hash, device_label, expires_at) VALUES ($1, $2, $3, $4)",
+          [user.id, tokenHash, deviceLabel, expiresAt]
+        );
+        const isProduction = process.env.NODE_ENV === "production";
+        res.cookie("td_token", rawToken, {
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: "lax",
+          maxAge: 30 * 24 * 60 * 60 * 1000,
+          path: "/",
+        });
+      }
+
+      // Create audit log
+      await storage.createAuditLog({
+        action: "login",
+        userId: user.id,
+        userName: user.fullName,
+        details: "Successful login via MFA",
+      });
+
+      // Update last login timestamp
+      await storage.updateUser(user.id, { lastLoginAt: new Date() });
+
+      // Invalidate reset tokens
+      try {
+        await storage.invalidateUserInvitations(user.id, "password_reset");
+      } catch {}
+
+      // Complete session
+      req.session.userId = user.id;
+      req.session.user = {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        companyId: user.companyId,
+        clientPermissionRole: user.clientPermissionRole,
+        consultantTier: user.consultantTier,
+        sources: user.sources,
+      };
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        companyId: user.companyId,
+        clientPermissionRole: user.clientPermissionRole,
+        consultantTier: user.consultantTier,
+        consultantPermissions: user.consultantPermissions,
+        title: user.title,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        jobTitle: user.jobTitle,
+        department: user.department,
+        phone: user.phone,
+        mobile: user.mobile,
+        preferredContactMethod: user.preferredContactMethod,
+        notes: user.notes,
+        referenceNumber: user.referenceNumber,
+        legalAcceptedAt: user.legalAcceptedAt,
+        sources: user.sources,
+      });
+    } catch (err) {
+      console.error("MFA verify error:", err);
+      res.status(500).json({ error: "MFA verification failed" });
+    }
+  });
+
+  // Authentication middleware for protected routes
+  const requireAuth = (req: any, res: any, next: any) => {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    next();
+  };
+
+  /**
+   * GET /api/auth/totp-setup
+   * Generates a new TOTP secret + QR code for the authenticated user.
+   * The secret is stored in the session (not the DB) until confirmed.
+   */
+  app.get("/api/auth/totp-setup", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const secret = totpAuthenticator.generateSecret();
+      const otpauthUrl = totpAuthenticator.keyuri(user.email, "Guardian Group", secret);
+      const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
+
+      // Store pending secret in session
+      req.session.pendingTotpSecret = secret;
+
+      res.json({ secret, qrDataUrl });
+    } catch (err) {
+      console.error("TOTP setup error:", err);
+      res.status(500).json({ error: "Failed to generate TOTP setup" });
+    }
+  });
+
+  /**
+   * POST /api/auth/totp-confirm
+   * Verifies the first code from the authenticator app, saves the secret,
+   * and generates + returns 10 single-use backup recovery codes.
+   */
+  app.post("/api/auth/totp-confirm", requireAuth, async (req: any, res) => {
+    try {
+      const { code } = req.body;
+      const pendingSecret = req.session?.pendingTotpSecret as string | undefined;
+
+      if (!pendingSecret) {
+        return res.status(400).json({ error: "No TOTP setup in progress. Please start setup again." });
+      }
+      if (!code) return res.status(400).json({ error: "Code required" });
+
+      let isValid = false;
+      try {
+        isValid = totpAuthenticator.check(code, pendingSecret);
+      } catch {
+        isValid = false;
+      }
+
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid code. Please check your authenticator app and try again." });
+      }
+
+      const userId = req.session.userId;
+
+      // Save secret and enable TOTP
+      await pool.query(
+        "UPDATE users SET totp_secret = $1, totp_enabled = TRUE WHERE id = $2",
+        [pendingSecret, userId]
+      );
+
+      // Clear pending secret
+      delete req.session.pendingTotpSecret;
+
+      // Generate 10 backup recovery codes
+      const plainCodes: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        // Generate an 8-char uppercase alphanumeric code
+        const raw = crypto.randomBytes(5).toString("hex").toUpperCase().substring(0, 8);
+        plainCodes.push(raw);
+      }
+
+      // Delete existing recovery codes and insert new ones
+      await pool.query("DELETE FROM mfa_recovery_codes WHERE user_id = $1", [userId]);
+      for (const code of plainCodes) {
+        const hash = crypto.createHash("sha256").update(code).digest("hex");
+        await pool.query(
+          "INSERT INTO mfa_recovery_codes (user_id, code_hash) VALUES ($1, $2)",
+          [userId, hash]
+        );
+      }
+
+      await storage.createAuditLog({
+        userId,
+        action: "totp_enabled",
+        entityType: "user",
+        entityId: userId,
+        details: { message: "TOTP authenticator app enabled" },
+      });
+
+      res.json({ recoveryCodes: plainCodes });
+    } catch (err) {
+      console.error("TOTP confirm error:", err);
+      res.status(500).json({ error: "Failed to confirm TOTP setup" });
+    }
+  });
+
+  /**
+   * DELETE /api/auth/totp
+   * Disables TOTP for the authenticated user (requires current password).
+   */
+  app.delete("/api/auth/totp", requireAuth, async (req: any, res) => {
+    try {
+      const { password } = req.body;
+      if (!password) return res.status(400).json({ error: "Current password required" });
+
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const valid = user.password.startsWith("$2")
+        ? await bcrypt.compare(password, user.password)
+        : user.password === password;
+
+      if (!valid) return res.status(401).json({ error: "Incorrect password" });
+
+      await pool.query("UPDATE users SET totp_secret = NULL, totp_enabled = FALSE WHERE id = $1", [userId]);
+      await pool.query("DELETE FROM mfa_recovery_codes WHERE user_id = $1", [userId]);
+      await pool.query("DELETE FROM trusted_devices WHERE user_id = $1", [userId]);
+
+      // Clear td_token cookie
+      res.clearCookie("td_token", { path: "/" });
+
+      await storage.createAuditLog({
+        userId,
+        action: "totp_disabled",
+        entityType: "user",
+        entityId: userId,
+        details: { message: "TOTP authenticator app removed" },
+      });
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("TOTP delete error:", err);
+      res.status(500).json({ error: "Failed to remove TOTP" });
+    }
+  });
+
+  /**
+   * GET /api/auth/totp-recovery-status
+   * Returns the count of remaining unused backup codes.
+   */
+  app.get("/api/auth/totp-recovery-status", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const result = await pool.query(
+        "SELECT COUNT(*) FROM mfa_recovery_codes WHERE user_id = $1 AND used_at IS NULL",
+        [userId]
+      );
+      const remaining = parseInt(result.rows[0].count, 10);
+      res.json({ remaining, total: 10 });
+    } catch (err) {
+      console.error("Recovery status error:", err);
+      res.status(500).json({ error: "Failed to get recovery code status" });
+    }
+  });
+
+  /**
+   * POST /api/auth/totp-regenerate-codes
+   * Regenerates all backup recovery codes (requires current password).
+   */
+  app.post("/api/auth/totp-regenerate-codes", requireAuth, async (req: any, res) => {
+    try {
+      const { password } = req.body;
+      if (!password) return res.status(400).json({ error: "Current password required" });
+
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      const valid = user.password.startsWith("$2")
+        ? await bcrypt.compare(password, user.password)
+        : user.password === password;
+
+      if (!valid) return res.status(401).json({ error: "Incorrect password" });
+
+      // Generate 10 new backup codes
+      const plainCodes: string[] = [];
+      for (let i = 0; i < 10; i++) {
+        const raw = crypto.randomBytes(5).toString("hex").toUpperCase().substring(0, 8);
+        plainCodes.push(raw);
+      }
+
+      await pool.query("DELETE FROM mfa_recovery_codes WHERE user_id = $1", [userId]);
+      for (const code of plainCodes) {
+        const hash = crypto.createHash("sha256").update(code).digest("hex");
+        await pool.query(
+          "INSERT INTO mfa_recovery_codes (user_id, code_hash) VALUES ($1, $2)",
+          [userId, hash]
+        );
+      }
+
+      await storage.createAuditLog({
+        userId,
+        action: "totp_codes_regenerated",
+        entityType: "user",
+        entityId: userId,
+        details: { message: "Backup recovery codes regenerated" },
+      });
+
+      res.json({ recoveryCodes: plainCodes });
+    } catch (err) {
+      console.error("Regen codes error:", err);
+      res.status(500).json({ error: "Failed to regenerate recovery codes" });
+    }
+  });
+
+  /**
+   * GET /api/auth/trusted-devices
+   * Lists the authenticated user's trusted devices.
+   */
+  app.get("/api/auth/trusted-devices", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const result = await pool.query(
+        "SELECT id, device_label, created_at, expires_at, last_used_at FROM trusted_devices WHERE user_id = $1 ORDER BY created_at DESC",
+        [userId]
+      );
+      res.json(result.rows.map((r: any) => ({
+        id: r.id,
+        deviceLabel: r.device_label,
+        createdAt: r.created_at,
+        expiresAt: r.expires_at,
+        lastUsedAt: r.last_used_at,
+      })));
+    } catch (err) {
+      console.error("Trusted devices error:", err);
+      res.status(500).json({ error: "Failed to list trusted devices" });
+    }
+  });
+
+  /**
+   * DELETE /api/auth/trusted-devices/:id
+   * Revokes a single trusted device.
+   */
+  app.delete("/api/auth/trusted-devices/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const { id } = req.params;
+      await pool.query(
+        "DELETE FROM trusted_devices WHERE id = $1 AND user_id = $2",
+        [id, userId]
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Revoke device error:", err);
+      res.status(500).json({ error: "Failed to revoke device" });
+    }
+  });
+
+  /**
+   * DELETE /api/auth/trusted-devices
+   * Revokes ALL trusted devices for the authenticated user.
+   */
+  app.delete("/api/auth/trusted-devices", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      await pool.query("DELETE FROM trusted_devices WHERE user_id = $1", [userId]);
+      res.clearCookie("td_token", { path: "/" });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Revoke all devices error:", err);
+      res.status(500).json({ error: "Failed to revoke all devices" });
+    }
+  });
+
+  /**
+   * GET /api/auth/totp-status
+   * Returns the authenticated user's TOTP enabled status.
+   */
+  app.get("/api/auth/totp-status", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session.userId;
+      const result = await pool.query(
+        "SELECT totp_enabled FROM users WHERE id = $1",
+        [userId]
+      );
+      const totpEnabled = result.rows[0]?.totp_enabled ?? false;
+      res.json({ totpEnabled });
+    } catch (err) {
+      console.error("TOTP status error:", err);
+      res.status(500).json({ error: "Failed to get TOTP status" });
     }
   });
 
@@ -1155,15 +1611,6 @@ export async function registerRoutes(
   });
 
   // ==================== END PUBLIC INVITATION ENDPOINTS ====================
-
-  // Authentication middleware for protected routes
-  const requireAuth = (req: any, res: any, next: any) => {
-    const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-    next();
-  };
 
   // Change password (authenticated users only)
   app.post("/api/auth/change-password", requireAuth, async (req, res) => {
@@ -15554,6 +16001,40 @@ export async function registerRoutes(
     }
   });
 
+  /**
+   * DELETE /api/users/:id/mfa
+   * Resets MFA for a user — accessible to developer, administrator, consultant.
+   */
+  app.delete("/api/users/:id/mfa", requireAuth, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser((req.session as any).userId);
+      if (!currentUser) return res.status(401).json({ error: "Not authenticated" });
+      const canReset = currentUser.role === "developer" || currentUser.role === "administrator" || currentUser.role === "consultant";
+      if (!canReset) return res.status(403).json({ error: "Access denied" });
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+      await pool.query("UPDATE users SET totp_secret = NULL, totp_enabled = FALSE WHERE id = $1", [targetUser.id]);
+      await pool.query("DELETE FROM mfa_recovery_codes WHERE user_id = $1", [targetUser.id]);
+      await pool.query("DELETE FROM trusted_devices WHERE user_id = $1", [targetUser.id]);
+
+      await storage.createAuditLog({
+        action: "mfa_reset",
+        entityType: "user",
+        entityId: targetUser.id,
+        userId: currentUser.id,
+        userName: currentUser.fullName,
+        details: `MFA reset for user ${targetUser.fullName} (${targetUser.username}) by ${currentUser.fullName}`,
+      });
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("Admin MFA reset error:", err);
+      res.status(500).json({ error: "Failed to reset MFA" });
+    }
+  });
+
   // Update user
   app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {
@@ -20312,7 +20793,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Admin access required" });
       }
       const result = await pool.query(
-        "SELECT id, send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, updated_at, updated_by FROM email_settings LIMIT 1"
+        "SELECT id, send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, mfa_required, updated_at, updated_by FROM email_settings LIMIT 1"
       );
       if (result.rows.length === 0) {
         return res.json({
@@ -20321,6 +20802,7 @@ export async function registerRoutes(
           allowedEmails: [],
           allowedDomains: [],
           catchAllAddress: null,
+          mfaRequired: false,
         });
       }
       const row = result.rows[0];
@@ -20331,6 +20813,7 @@ export async function registerRoutes(
         allowedEmails: row.allowed_emails ?? [],
         allowedDomains: row.allowed_domains ?? [],
         catchAllAddress: row.catch_all_address,
+        mfaRequired: row.mfa_required ?? false,
         updatedAt: row.updated_at,
         updatedBy: row.updated_by,
       });
@@ -20350,19 +20833,20 @@ export async function registerRoutes(
       if (!user || (user.role !== "developer" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress } = req.body;
+      const { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress, mfaRequired } = req.body;
 
       // Singleton row — delete any existing row then insert fresh
       await pool.query("DELETE FROM email_settings");
       await pool.query(
-        `INSERT INTO email_settings (send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, updated_at, updated_by)
-         VALUES ($1, $2, $3, $4, $5, now(), $6)`,
+        `INSERT INTO email_settings (send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, mfa_required, updated_at, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, now(), $7)`,
         [
           sendAll ?? false,
           allowedRoles ?? [],
           allowedEmails ?? [],
           allowedDomains ?? [],
           catchAllAddress || null,
+          mfaRequired ?? false,
           user.id,
         ]
       );
@@ -20374,7 +20858,7 @@ export async function registerRoutes(
         action: "email_settings_updated",
         entityType: "email_settings",
         entityId: "global",
-        details: { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress },
+        details: { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress, mfaRequired },
       });
 
       return res.json({ ok: true });

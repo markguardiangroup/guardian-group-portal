@@ -147,6 +147,9 @@ export const users = pgTable("users", {
   lastSeenAt: timestamp("last_seen_at"),
   legalAcceptedAt: timestamp("legal_accepted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // TOTP MFA
+  totpSecret: text("totp_secret"),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, referenceNumber: true, createdAt: true, lastLoginAt: true, lastSeenAt: true, legalAcceptedAt: true });
@@ -2019,6 +2022,7 @@ export const emailSettings = pgTable("email_settings", {
   allowedEmails: text("allowed_emails").array(),
   allowedDomains: text("allowed_domains").array(),
   catchAllAddress: text("catch_all_address"),
+  mfaRequired: boolean("mfa_required").notNull().default(false),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: varchar("updated_by"),
 });
@@ -2026,3 +2030,31 @@ export const emailSettings = pgTable("email_settings", {
 export const insertEmailSettingsSchema = createInsertSchema(emailSettings).omit({ id: true, updatedAt: true });
 export type InsertEmailSettings = z.infer<typeof insertEmailSettingsSchema>;
 export type EmailSettings = typeof emailSettings.$inferSelect;
+
+// Trusted devices — HTTP-only cookie token ↔ hashed row, 30-day expiry
+export const trustedDevices = pgTable("trusted_devices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  tokenHash: text("token_hash").notNull(),
+  deviceLabel: text("device_label"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+export const insertTrustedDeviceSchema = createInsertSchema(trustedDevices).omit({ id: true, createdAt: true });
+export type InsertTrustedDevice = z.infer<typeof insertTrustedDeviceSchema>;
+export type TrustedDevice = typeof trustedDevices.$inferSelect;
+
+// MFA recovery codes — SHA-256 hashed, one-time use
+export const mfaRecoveryCodes = pgTable("mfa_recovery_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  codeHash: text("code_hash").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMfaRecoveryCodeSchema = createInsertSchema(mfaRecoveryCodes).omit({ id: true, createdAt: true });
+export type InsertMfaRecoveryCode = z.infer<typeof insertMfaRecoveryCodeSchema>;
+export type MfaRecoveryCode = typeof mfaRecoveryCodes.$inferSelect;
