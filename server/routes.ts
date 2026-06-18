@@ -816,6 +816,9 @@ export async function registerRoutes(
 
   // ── TOTP / MFA Endpoints ─────────────────────────────────────────────────
 
+  // Per-user MFA attempt throttle (in-memory, resets on server restart)
+  const mfaLoginAttempts = new Map<string, { count: number; lockedUntil?: Date }>();
+
   /**
    * POST /api/auth/mfa-verify
    * Completes a paused login by verifying a TOTP code or backup recovery code.
@@ -826,6 +829,14 @@ export async function registerRoutes(
       const pendingUserId = req.session?.pendingMfaUserId;
       if (!pendingUserId) {
         return res.status(400).json({ error: "No pending MFA session" });
+      }
+
+      // Rate-limit MFA attempts to prevent online brute-force
+      const _mfaNow = new Date();
+      const _prevAttempts = mfaLoginAttempts.get(pendingUserId);
+      if (_prevAttempts?.lockedUntil && _prevAttempts.lockedUntil > _mfaNow) {
+        const _minutesLeft = Math.ceil((_prevAttempts.lockedUntil.getTime() - _mfaNow.getTime()) / 60000);
+        return res.status(429).json({ error: `Too many failed attempts. Please try again in ${_minutesLeft} minute${_minutesLeft !== 1 ? "s" : ""}.` });
       }
 
       const { code, trustDevice } = req.body;
@@ -863,11 +874,19 @@ export async function registerRoutes(
       }
 
       if (!verified) {
+        const _existingAttempts = mfaLoginAttempts.get(pendingUserId) ?? { count: 0 };
+        const _newCount = _existingAttempts.count + 1;
+        if (_newCount >= 5) {
+          mfaLoginAttempts.set(pendingUserId, { count: _newCount, lockedUntil: new Date(Date.now() + 15 * 60 * 1000) });
+          return res.status(429).json({ error: "Too many failed attempts. Please wait 15 minutes before trying again." });
+        }
+        mfaLoginAttempts.set(pendingUserId, { count: _newCount });
         return res.status(401).json({ error: "Invalid code. Please try again." });
       }
 
-      // Clear pending MFA
+      // Clear pending MFA and attempt counter
       delete req.session.pendingMfaUserId;
+      mfaLoginAttempts.delete(pendingUserId);
 
       // Handle trust-device
       if (trustDevice) {
@@ -963,9 +982,11 @@ export async function registerRoutes(
    * Generates a new TOTP secret + QR code for the authenticated user.
    * The secret is stored in the session (not the DB) until confirmed.
    */
-  app.get("/api/auth/totp-setup", requireAuth, async (req: any, res) => {
+  app.get("/api/auth/totp-setup", async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.session.userId);
+      const userId = req.session?.userId ?? req.session?.pendingMfaUserId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
 
       const secret = totpAuthenticator.generateSecret();
@@ -987,8 +1008,11 @@ export async function registerRoutes(
    * Verifies the first code from the authenticator app, saves the secret,
    * and generates + returns 10 single-use backup recovery codes.
    */
-  app.post("/api/auth/totp-confirm", requireAuth, async (req: any, res) => {
+  app.post("/api/auth/totp-confirm", async (req: any, res) => {
     try {
+      const userId = req.session?.userId ?? req.session?.pendingMfaUserId;
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+      const isMandatorySetupFlow = !req.session?.userId && !!req.session?.pendingMfaUserId;
       const { code } = req.body;
       const pendingSecret = req.session?.pendingTotpSecret as string | undefined;
 
@@ -1007,8 +1031,6 @@ export async function registerRoutes(
       if (!isValid) {
         return res.status(400).json({ error: "Invalid code. Please check your authenticator app and try again." });
       }
-
-      const userId = req.session.userId;
 
       // Save secret and enable TOTP
       await pool.query(
@@ -1044,6 +1066,46 @@ export async function registerRoutes(
         entityId: userId,
         details: { message: "TOTP authenticator app enabled" },
       });
+
+      if (isMandatorySetupFlow) {
+        // Complete login after mandatory setup
+        delete (req.session as any).pendingMfaUserId;
+        const user = await storage.getUser(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+        await storage.createAuditLog({
+          action: "login",
+          userId: user.id,
+          userName: user.fullName,
+          details: "Successful login via mandatory TOTP setup",
+        });
+        await storage.updateUser(user.id, { lastLoginAt: new Date() });
+        try { await storage.invalidateUserInvitations(user.id, "password_reset"); } catch {}
+        req.session.userId = user.id;
+        req.session.user = {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          companyId: user.companyId,
+          clientPermissionRole: user.clientPermissionRole,
+          consultantTier: user.consultantTier,
+          sources: user.sources,
+        };
+        return res.json({
+          recoveryCodes: plainCodes,
+          loginComplete: true,
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          companyId: user.companyId,
+          clientPermissionRole: user.clientPermissionRole,
+          consultantTier: user.consultantTier,
+          sources: user.sources,
+        });
+      }
 
       res.json({ recoveryCodes: plainCodes });
     } catch (err) {

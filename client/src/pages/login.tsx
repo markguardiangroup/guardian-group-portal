@@ -125,6 +125,14 @@ export default function Login() {
   const [mfaError, setMfaError] = useState<string | null>(null);
   const [trustDevice, setTrustDevice] = useState(false);
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  // TOTP mandatory setup sub-flow state
+  const [setupSubStep, setSetupSubStep] = useState<"loading" | "qr" | "confirm" | "codes">("loading");
+  const [setupQrDataUrl, setSetupQrDataUrl] = useState<string>("");
+  const [setupSecret, setSetupSecret] = useState<string>("");
+  const [setupCode, setSetupCode] = useState<string>("");
+  const [setupRecoveryCodes, setSetupRecoveryCodes] = useState<string[]>([]);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupUserData, setSetupUserData] = useState<any>(null);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const turnstileRef = useRef<HTMLDivElement>(null);
   const turnstileWidgetId = useRef<string | null>(null);
@@ -302,9 +310,58 @@ export default function Login() {
     },
   });
 
+  const totpSetupMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/auth/totp-setup", { credentials: "include" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed to start MFA setup");
+      return body as { secret: string; qrDataUrl: string };
+    },
+    onSuccess: (data) => {
+      setSetupQrDataUrl(data.qrDataUrl);
+      setSetupSecret(data.secret);
+      setSetupSubStep("qr");
+      setSetupError(null);
+    },
+    onError: (err: Error) => {
+      setSetupError(err.message || "Failed to load MFA setup. Please try again.");
+    },
+  });
+
+  const totpConfirmMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/auth/totp-confirm", { code: setupCode.trim() });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Invalid code");
+      return body as { recoveryCodes: string[]; loginComplete?: boolean } & Record<string, any>;
+    },
+    onSuccess: (data) => {
+      setSetupRecoveryCodes(data.recoveryCodes || []);
+      if (data.loginComplete) setSetupUserData(data);
+      setSetupSubStep("codes");
+      setSetupError(null);
+    },
+    onError: (err: Error) => {
+      setSetupError(err.message || "Invalid code. Please check your authenticator app.");
+      setSetupCode("");
+    },
+  });
+
+  useEffect(() => {
+    if (mfaStep === "setup_required") {
+      setSetupSubStep("loading");
+      setSetupError(null);
+      setSetupCode("");
+      setSetupUserData(null);
+      setSetupRecoveryCodes([]);
+      totpSetupMutation.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mfaStep]);
+
   return (
     <div className="min-h-screen flex">
-      {(loginMutation.isPending || mfaVerifyMutation.isPending) && (
+      {(loginMutation.isPending || mfaVerifyMutation.isPending || totpSetupMutation.isPending || totpConfirmMutation.isPending) && (
         <div className="login-progress-bar">
           <div className="login-progress-bar-inner" />
         </div>
@@ -487,11 +544,13 @@ export default function Login() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-slate-900">
-                      {mfaStep === "setup_required" ? "Set up authenticator" : "Two-factor verification"}
+                      {mfaStep === "setup_required"
+                        ? setupSubStep === "confirm" ? "Verify code" : setupSubStep === "codes" ? "Backup codes" : "Set up authenticator"
+                        : "Two-factor verification"}
                     </h2>
                     <p className="text-slate-400 text-sm mt-0.5">
                       {mfaStep === "setup_required"
-                        ? "MFA is required — set up an authenticator app in Settings first, then return here."
+                        ? "Your administrator requires MFA. Set up your authenticator app to continue."
                         : useRecoveryCode
                           ? "Enter one of your backup recovery codes."
                           : "Enter the 6-digit code from your authenticator app."}
@@ -500,22 +559,108 @@ export default function Login() {
                 </div>
 
                 {mfaStep === "setup_required" ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                    Your administrator requires all users to set up MFA. Please sign in and navigate to <strong>Settings → Security</strong> to configure your authenticator app.
-                    <div className="mt-3">
-                      <Button
-                        className="w-full"
-                        onClick={() => {
-                          // Allow through to force setup (user will be prompted after login)
-                          mfaVerifyMutation.mutate();
-                        }}
-                        disabled={mfaVerifyMutation.isPending}
-                        data-testid="button-mfa-setup-continue"
-                      >
-                        {mfaVerifyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                        I'll set it up now — continue
-                      </Button>
-                    </div>
+                  <div className="space-y-4">
+                    {setupSubStep === "loading" && (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                        <span className="ml-3 text-sm text-slate-500">Preparing setup…</span>
+                      </div>
+                    )}
+                    {setupError && (
+                      <div className="rounded-lg border border-red-200 bg-red-50 p-3 flex items-center gap-2.5">
+                        <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
+                        <p className="text-sm text-red-800">{setupError}</p>
+                      </div>
+                    )}
+                    {setupSubStep === "qr" && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600">
+                          Scan this QR code with your authenticator app (e.g. Google Authenticator, Authy).
+                        </p>
+                        {setupQrDataUrl && (
+                          <div className="flex justify-center">
+                            <img src={setupQrDataUrl} alt="TOTP QR code" className="w-44 h-44 rounded-lg border border-slate-200" />
+                          </div>
+                        )}
+                        <details className="text-xs text-slate-400">
+                          <summary className="cursor-pointer hover:text-slate-600 select-none">Can't scan? Enter manually</summary>
+                          <p className="mt-1 font-mono break-all bg-slate-50 rounded p-2 border border-slate-200 text-slate-700 select-all">{setupSecret}</p>
+                        </details>
+                        <Button
+                          className="w-full h-11 font-semibold text-white border-0"
+                          style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
+                          onClick={() => { setSetupError(null); setSetupSubStep("confirm"); }}
+                          data-testid="button-mfa-setup-next"
+                        >
+                          Next — I've scanned it <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                    {setupSubStep === "confirm" && (
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600">Enter the 6-digit code from your authenticator app to confirm.</p>
+                        <Input
+                          value={setupCode}
+                          onChange={e => setSetupCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          placeholder="000000"
+                          maxLength={6}
+                          className="h-11 border-slate-200 bg-slate-50 text-slate-900 font-mono text-center text-lg tracking-widest placeholder:text-slate-400 focus:bg-white"
+                          data-testid="input-mfa-setup-code"
+                          onKeyDown={e => { if (e.key === "Enter" && setupCode.length === 6) totpConfirmMutation.mutate(); }}
+                          autoFocus
+                        />
+                        <Button
+                          className="w-full h-11 font-semibold text-white border-0"
+                          style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
+                          onClick={() => totpConfirmMutation.mutate()}
+                          disabled={setupCode.length !== 6 || totpConfirmMutation.isPending}
+                          data-testid="button-mfa-setup-confirm"
+                        >
+                          {totpConfirmMutation.isPending
+                            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Confirming…</>
+                            : <>Confirm <ArrowRight className="ml-2 h-4 w-4" /></>}
+                        </Button>
+                        <button
+                          type="button"
+                          className="w-full text-xs text-slate-400 hover:text-slate-600 font-medium py-1 transition-colors"
+                          onClick={() => { setSetupSubStep("qr"); setSetupError(null); }}
+                          data-testid="button-mfa-setup-back-to-qr"
+                        >
+                          ← Back to QR code
+                        </button>
+                      </div>
+                    )}
+                    {setupSubStep === "codes" && (
+                      <div className="space-y-3">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                          <p className="text-sm font-semibold text-amber-800 mb-0.5">Save your backup codes</p>
+                          <p className="text-xs text-amber-700">Store these somewhere safe — each code can only be used once.</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {setupRecoveryCodes.map((rc, i) => (
+                            <div key={i} className="font-mono text-xs text-center bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-slate-700 select-all">
+                              {rc}
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          className="w-full h-11 font-semibold text-white border-0"
+                          style={{ background: "linear-gradient(90deg, #0ea5e9, #0891b2)" }}
+                          onClick={() => {
+                            if (setupUserData) {
+                              queryClient.setQueryData(["/api/auth/me"], setupUserData);
+                              queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+                              const intended = intendedPathRef.current || "/";
+                              const target = intended === "/" || intended.startsWith("/login") ? "/" : intended;
+                              setLocation(target);
+                            }
+                          }}
+                          data-testid="button-mfa-setup-enter-portal"
+                        >
+                          I've saved my codes — Enter portal <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <>

@@ -1336,6 +1336,8 @@ export default function UserManagement() {
     },
   });
 
+  const [resetMfaConfirm, setResetMfaConfirm] = useState<{ id: string; name: string } | null>(null);
+
   const resetMfaMutation = useMutation({
     mutationFn: async (userId: string) => {
       const res = await apiRequest("DELETE", `/api/users/${userId}/mfa`);
@@ -1344,9 +1346,11 @@ export default function UserManagement() {
       return body;
     },
     onSuccess: () => {
+      setResetMfaConfirm(null);
       toast({ title: "MFA Reset", description: "The user's MFA has been cleared. They will need to set it up again on next login." });
     },
     onError: (e: Error) => {
+      setResetMfaConfirm(null);
       toast({ title: "Error", description: e.message || "Failed to reset MFA.", variant: "destructive" });
     },
   });
@@ -1962,7 +1966,7 @@ export default function UserManagement() {
                             Manage Sites
                           </DropdownMenuItem>
                         )}
-                        {(isDeveloper || isConsultant) && (
+                        {(isDeveloper || isConsultant || isAdmin) && (
                           <>
                             {u.status === "invite_required" && (
                               <DropdownMenuItem 
@@ -1993,7 +1997,7 @@ export default function UserManagement() {
                             )}
                             {(u.status === "active" || u.status === "invited") && (
                               <DropdownMenuItem
-                                onClick={() => resetMfaMutation.mutate(u.id)}
+                                onClick={() => setResetMfaConfirm({ id: u.id, name: u.fullName || u.username })}
                                 data-testid={`button-reset-mfa-${u.id}`}
                               >
                                 <Smartphone className="h-4 w-4 mr-2" />
@@ -4042,6 +4046,31 @@ export default function UserManagement() {
               data-testid="button-confirm-delete-user"
             >
               {deleteUserMutation.isPending ? "Deleting..." : "Yes, Delete User"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset MFA Confirmation Dialog */}
+      <AlertDialog open={!!resetMfaConfirm} onOpenChange={(open) => !open && setResetMfaConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset MFA for {resetMfaConfirm?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear their authenticator setup and any trusted devices.
+              <span className="block mt-2 text-foreground">
+                They will be prompted to reconfigure MFA on their next login if MFA is required portal-wide.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-reset-mfa">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => resetMfaConfirm && resetMfaMutation.mutate(resetMfaConfirm.id)}
+              disabled={resetMfaMutation.isPending}
+              data-testid="button-confirm-reset-mfa"
+            >
+              {resetMfaMutation.isPending ? "Resetting…" : "Yes, Reset MFA"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
