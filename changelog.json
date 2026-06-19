@@ -8987,6 +8987,13 @@
           "message": "Fixed: group-scoped docs with no share records no longer appear in the documents table",
           "category": "bug",
           "createdAt": "2026-06-19T00:00:00.000Z"
+        },
+        {
+          "id": "f6h8j0l2-folder-total-matches-header-count-2026",
+          "patch": 16,
+          "message": "Fixed: folder document counts now match the header total exactly",
+          "category": "bug",
+          "createdAt": "2026-06-19T00:10:00.000Z"
         }
       ],
       "publishedPatch": 15,

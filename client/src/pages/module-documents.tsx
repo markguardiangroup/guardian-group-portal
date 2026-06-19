@@ -1329,7 +1329,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const expandedDocs: any[] = [];
       for (const doc of docs) {
         const full = docLookup.get(doc.id);
-        if (!full) { expandedDocs.push(doc); continue; }
+        // Skip docs not in filteredDocuments — they're in the server folder count
+        // (server.stats.totalDocuments) but not in expandedTableDocuments. Omitting
+        // them from expandedDocs makes the delta math cancel the server's count for
+        // them, so adjusted folder total == expandedTableDocuments count.
+        if (!full) continue;
         const sharedWithSiteIds = (full as any).sharedWithSiteIds as string[] | undefined;
         const sharedWithCompanyIds = (full as any).sharedWithCompanyIds as string[] | undefined;
         const docEntityId = (full as any).entityId as string | undefined;
