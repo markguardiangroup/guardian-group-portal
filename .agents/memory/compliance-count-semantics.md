@@ -50,6 +50,15 @@ inflating counts. The user's hard rule: an explicit share is required everywhere
    plus `matchesSite` requires the share to target the selected site/its company.
 3. Client `isVisibleSharedDoc` in `sharedByFolderTemplate`: same site/company gate
    for folder view.
+4. Client per-site EXPANSION `coveredSites` filters (3 copies: expandedTableDocuments,
+   expandedUnmatchedShared, expandedSharedByFolderTemplate). At all-sites a scoped doc
+   is expanded to one virtual row per covered site, and the header
+   (`adjustedHeaderStats = statusCounts(expandedTableDocuments)`) counts those rows.
+   `coveredSites` must match ONLY explicitly-shared sites/companies
+   (`sharedWithSiteIds.includes(s.id) || sharedWithCompanyIds.includes(s.companyId)`).
+   A removed owner-bypass (`scope==='group' && entityId===s.companyId`) was expanding
+   group docs to their owner company's sites with no share, over-counting the
+   All-Companies/All-Sites totals (e.g. compliant showed 40, should be 38).
 
 **Server-restart gotcha:** routes.ts changes do NOT hot-reload — the client
 hot-reloads but the Express server keeps old code until restarted. Symptom of a
