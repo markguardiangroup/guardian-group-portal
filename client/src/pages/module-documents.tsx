@@ -2534,8 +2534,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       {/* Table View */}
       {viewMode === "table" && (
-      <Card>
-        <CardHeader className="pb-4">
+      <Card className="border-0 shadow-none rounded-none bg-transparent">
+        <CardHeader className="pb-4 px-0">
           {(() => {
             const complianceLockedByStatus = statusFilter === "compliant" || statusFilter === "approved";
             const hasActiveFilters = !!searchQuery || statusFilter !== "all" || complianceFilter !== "all" || folderFilter !== "all" || renewalFilter !== "all";
@@ -2623,44 +2623,44 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {isLoading ? (
             <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
-            <Table className="[&_td]:py-2.5 [&_th]:py-2.5">
+            <Table className="table-fixed w-full [&_td]:py-2 [&_th]:py-2">
               <TableHeader>
-                <TableRow>
-                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap min-w-[280px]">
+                <TableRow className="border-b-2 bg-muted/40 hover:bg-muted/40">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-2">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
-                      <span className="ml-1 text-xs font-normal text-muted-foreground normal-case">
-                        {expandedTableDocuments.length} Documents
+                      <span className="ml-1 text-xs font-normal normal-case">
+                        {expandedTableDocuments.length}
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead className="w-14 whitespace-nowrap">Compliance</TableHead>
-                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap w-16">
+                  <TableHead className="w-28 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
+                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none w-16 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Period
                       {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none whitespace-nowrap w-20">
+                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Renews
                       {sortBy === "renewalDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none whitespace-nowrap w-20">
+                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Expires
                       {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none whitespace-nowrap w-28">
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none w-32 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Status
                       {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none whitespace-nowrap w-20">
+                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Modified
                       {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2695,7 +2695,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     : (doc.sharedScope === "group" ? "group" : doc.sharedScope === "company" ? "company"
                       : ((doc as any).scope === "group" ? "group" : (doc as any).scope === "company" ? "company" : null));
                   return (
-                  <TableRow key={rowKey} className="hover-elevate" data-testid={`row-document-${rowKey}`}>
+                  <TableRow key={rowKey} className="hover:bg-muted/40 transition-colors" data-testid={`row-document-${rowKey}`}>
                     <TableCell>
                       <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-2.5">
                         <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -2738,7 +2738,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge compact isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                      <ComplianceBadge compact isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} className="flex-col items-start gap-0.5" />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (

@@ -9134,6 +9134,13 @@
           "message": "Table view: Compliance column further narrowed to w-14",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:43:06.284Z"
+        },
+        {
+          "id": "5ff98108-cd79-4ee4-b582-014fb0668708",
+          "patch": 16,
+          "message": "Table view: borderless flat design, fixed column widths, clean row hover",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:48:43.260Z"
         }
       ],
       "publishedPatch": 15,
