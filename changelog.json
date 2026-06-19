@@ -9085,6 +9085,13 @@
           "message": "Table view: renewal and expiry dates highlighted red (past), amber (≤30 days), yellow (≤60 days)",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:09:31.836Z"
+        },
+        {
+          "id": "3f699db5-368b-4207-9267-0031ec6d2f01",
+          "patch": 16,
+          "message": "Table view: 60-day date highlight changed from yellow to blue to match dashboard",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:14:03.980Z"
         }
       ],
       "publishedPatch": 15,
