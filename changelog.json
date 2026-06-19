@@ -9267,6 +9267,13 @@
           "message": "Table view: actions menu fully clear of scrollbar edge",
           "category": "enhancement",
           "createdAt": "2026-06-19T19:35:44.594Z"
+        },
+        {
+          "id": "f4c66a7b-7f61-484a-9c28-f4f2a13a15e2",
+          "patch": 16,
+          "message": "Table view: Document column widened at expense of Modified column",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T20:38:40.145Z"
         }
       ],
       "publishedPatch": 15,
