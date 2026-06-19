@@ -9190,6 +9190,13 @@
           "message": "Table view: narrowed the Folder column width",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:12:52.260Z"
+        },
+        {
+          "id": "97958967-82f8-4983-bac4-daa2e8883084",
+          "patch": 16,
+          "message": "Table view: columns now fit on one screen — Document fixed width, narrower Folder/Compliance/Status",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T16:17:38.475Z"
         }
       ],
       "publishedPatch": 15,
