@@ -2624,8 +2624,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
             <Table className="table-fixed w-full [&_td]:py-2 [&_th]:py-2">
-              <TableHeader>
-                <TableRow className="border-b-2 bg-muted/40 hover:bg-muted/40">
+              <TableHeader className="sticky top-0 z-10">
+                <TableRow className="border-b-2 bg-muted hover:bg-muted">
                   <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-2">
                       Document

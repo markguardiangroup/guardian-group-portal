@@ -9148,6 +9148,13 @@
           "message": "Table view: reduced surrounding padding, compliance column widened",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:54:12.477Z"
+        },
+        {
+          "id": "dc95a659-dee0-4053-8868-c907887dc173",
+          "patch": 16,
+          "message": "Table view: column header now sticks to the top when scrolling",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:55:53.054Z"
         }
       ],
       "publishedPatch": 15,
