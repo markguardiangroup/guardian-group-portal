@@ -9092,6 +9092,13 @@
           "message": "Table view: 60-day date highlight changed from yellow to blue to match dashboard",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:14:03.980Z"
+        },
+        {
+          "id": "d9e7ca97-3c72-4064-aceb-8018476be3c0",
+          "patch": 16,
+          "message": "Table view: 60-day date highlight reverted back to yellow",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:15:23.682Z"
         }
       ],
       "publishedPatch": 15,

@@ -2752,7 +2752,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           : days <= 30
                             ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
                             : days <= 60
-                              ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                              ? "bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400"
                               : "";
                         return <span className={`text-xs rounded px-1.5 py-0.5 ${cls}`}>{format(d, "d MMM yyyy")}</span>;
                       })() : (
@@ -2768,7 +2768,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           : days <= 30
                             ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
                             : days <= 60
-                              ? "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                              ? "bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400"
                               : "";
                         return <span className={`text-xs rounded px-1.5 py-0.5 ${cls}`}>{format(d, "d MMM yyyy")}</span>;
                       })() : (
