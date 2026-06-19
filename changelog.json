@@ -9197,6 +9197,13 @@
           "message": "Table view: columns now fit on one screen — Document fixed width, narrower Folder/Compliance/Status",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:17:38.475Z"
+        },
+        {
+          "id": "6c7f1979-235b-4037-979f-82610d3bbf52",
+          "patch": 16,
+          "message": "Fixed: document table no longer causes a horizontal scrollbar",
+          "category": "bug",
+          "createdAt": "2026-06-19T16:19:51.929Z"
         }
       ],
       "publishedPatch": 15,
