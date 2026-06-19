@@ -1337,20 +1337,21 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (
                     // Native site doc
                     d.siteId === site.id ||
-                    // Scoped (group/company) doc visible to this site. Matches the
-                    // documents page / dashboard rule exactly: a scoped doc counts
-                    // for the site if it's shared to the site, shared to the site's
-                    // company, or owned by the site's company (company or group
-                    // scope). Without the owned-by-company clause, company-scoped
-                    // docs were missed here (site card showed fewer docs than the
-                    // documents page for the same site).
+                    // Scoped (group/company) doc visible to this site. Mirrors the
+                    // hierarchy API rule (computeSharedDocsForSiteH): company-scope
+                    // docs owned by this company are always visible at its own sites
+                    // (no share record needed). Group-scope docs require at least one
+                    // share record. This keeps the site card in sync with the Documents
+                    // page for the same site.
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
                       (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
-                      // Docs owned by this company only count if at least one
-                      // share record exists — company-scoped docs without shares
-                      // are not visible at site level.
-                      (d.entityId === site.companyId &&
+                      // Company-scope docs owned by this company — always visible
+                      // at this company's own sites (no explicit share needed).
+                      (d.scope === "company" && d.entityId === site.companyId) ||
+                      // Group-scope docs owned by this company need at least one
+                      // share record before they count at site level.
+                      (d.scope !== "company" && d.entityId === site.companyId &&
                         ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)
                     ))
                   )

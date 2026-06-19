@@ -9309,6 +9309,13 @@
           "message": "Fixed: company-scoped docs without share records no longer counted in site compliance tiles",
           "category": "bug",
           "createdAt": "2026-06-19T21:25:41.081Z"
+        },
+        {
+          "id": "a2c1e4f6-site-card-company-docs-match-docs-page-2026",
+          "patch": 16,
+          "message": "Fixed: individual site compliance cards now match the Documents page — company-owned docs always visible at their own sites",
+          "category": "bug",
+          "createdAt": "2026-06-19T21:45:00.000Z"
         }
       ],
       "publishedPatch": 15,
