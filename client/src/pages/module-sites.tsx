@@ -1134,9 +1134,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     d.siteId === _asSite.id ||
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(_asSite.id) ?? false) ||
-                      (d.sharedWithCompanyIds?.includes(_asSite.companyId) ?? false) ||
-                      (d.entityId === _asSite.companyId &&
-                        ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)
+                      (d.sharedWithCompanyIds?.includes(_asSite.companyId) ?? false)
                     ));
                   if (visible) allDocs.push(d);
                 });
@@ -1337,22 +1335,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   (
                     // Native site doc
                     d.siteId === site.id ||
-                    // Scoped (group/company) doc visible to this site. Mirrors the
-                    // hierarchy API rule (computeSharedDocsForSiteH): company-scope
-                    // docs owned by this company are always visible at its own sites
-                    // (no share record needed). Group-scope docs require at least one
-                    // share record. This keeps the site card in sync with the Documents
-                    // page for the same site.
+                    // Scoped (group/company) doc visible to this site only when it has
+                    // an explicit share record pointing at this site or at this site's
+                    // company. Zero-share company docs are not at site level and are
+                    // not counted here.
                     (d.siteId === null && (
                       (d.sharedWithSiteIds?.includes(site.id) ?? false) ||
-                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false) ||
-                      // Company-scope docs owned by this company — always visible
-                      // at this company's own sites (no explicit share needed).
-                      (d.scope === "company" && d.entityId === site.companyId) ||
-                      // Group-scope docs owned by this company need at least one
-                      // share record before they count at site level.
-                      (d.scope !== "company" && d.entityId === site.companyId &&
-                        ((d.sharedWithSiteIds?.length ?? 0) + (d.sharedWithCompanyIds?.length ?? 0)) > 0)
+                      (d.sharedWithCompanyIds?.includes(site.companyId) ?? false)
                     ))
                   )
               );

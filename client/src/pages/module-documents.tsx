@@ -1087,13 +1087,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       (!selectedCompany || selectedCompany === "all") &&
       sharedDocIdSet.size > 0
     ) {
-      // Company-scoped docs owned by this company always appear at their own
-      // sites without an explicit share record (mirrors server behaviour).
-      // Group-scoped docs require at least one share record (server line 14099),
-      // so they must be confirmed via sharedDocIdSet just like any other doc.
-      const scope = (doc as any).scope;
-      const isOwnedCompany = scope === "company" && !!(doc as any).entityId;
-      if (!isOwnedCompany && !sharedDocIdSet.has(doc.id)) return false;
+      // All scoped docs (company and group) require at least one share record
+      // to appear at site level. Zero-share company docs are not pushed to any
+      // specific site and should not be counted in site-level stats.
+      if (!sharedDocIdSet.has(doc.id)) return false;
     }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());

@@ -9316,6 +9316,13 @@
           "message": "Fixed: individual site compliance cards now match the Documents page — company-owned docs always visible at their own sites",
           "category": "bug",
           "createdAt": "2026-06-19T21:45:00.000Z"
+        },
+        {
+          "id": "b3d2f5a7-unified-compliance-count-site-level-only-2026",
+          "patch": 16,
+          "message": "Fixed: All Sites card, site cards, and Documents page now show the same mandatory compliant count — only docs explicitly shared to site level are counted",
+          "category": "bug",
+          "createdAt": "2026-06-19T22:10:00.000Z"
         }
       ],
       "publishedPatch": 15,
