@@ -2623,6 +2623,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {isLoading ? (
             <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
+            <div className="overflow-auto max-h-[calc(100dvh-240px)]">
             <Table className="table-fixed w-full [&_td]:py-2 [&_th]:py-2">
               <TableHeader>
                 <TableRow className="border-b-2 bg-muted hover:bg-muted">
@@ -2873,6 +2874,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </TableBody>
             </Table>
+            </div>
           ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" ? (
             <Table>
               <TableHeader>
