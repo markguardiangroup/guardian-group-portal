@@ -9351,6 +9351,13 @@
           "message": "Fixed: explicitly shared doc now correctly appears in site folder view after share-record fix",
           "category": "bug",
           "createdAt": "2026-06-19T23:00:00.000Z"
+        },
+        {
+          "id": "g8c7d0f2-zero-share-scoped-docs-hidden-everywhere-2026",
+          "patch": 16,
+          "message": "Fixed: company/group docs with no shares are now hidden in all folder and table views",
+          "category": "bug",
+          "createdAt": "2026-06-19T23:15:00.000Z"
         }
       ],
       "publishedPatch": 15,

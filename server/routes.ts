@@ -14090,9 +14090,12 @@ export async function registerRoutes(
           if (module && doc.module !== module) continue;
           const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
           if (doc.scope === "company" && doc.entityId === companyId) {
-            // Company-scope docs owned by this company always appear at this company's
-            // own sites — no explicit share record required. Share records are only used
-            // to share a doc to a different company/site (cross-company visibility).
+            // Company-scope docs owned by this company are only visible at a site if
+            // they have an explicit share record pointing to that site or its company.
+            // Zero-share company docs are hidden from all site/company views.
+            const hasSiteShare = shares.some((s: any) => s.entityType === "site" && s.entityId === siteId);
+            const hasCompanyShare = shares.some((s: any) => s.entityType === "company" && s.entityId === companyId);
+            if (!hasSiteShare && !hasCompanyShare) continue;
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && doc.entityId === companyId) {

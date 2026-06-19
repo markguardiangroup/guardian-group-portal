@@ -1060,6 +1060,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     
 
   const filteredDocuments = documents?.filter((doc) => {
+    // Universal gate: company/group scoped docs (siteId=null) must have at least
+    // one explicit share record to be visible anywhere. Zero-share scoped docs are
+    // hidden in all views — folder and table must match exactly.
+    if (doc.siteId === null) {
+      const swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
+      const swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
+      if (!swsi?.length && !swci?.length) return false;
+    }
+
     // Scope filter — when navigating from a Group/Company card, show docs that are
     // either owned at that scope+entity, OR shared down to that entity from a higher
     // scope (e.g. a group doc shared with this company).
@@ -1074,8 +1083,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       }
       // When a specific site is also selected within the scope view, further
       // restrict scoped docs to only those with an explicit share record for
-      // that site or its company. Without this, every company-owned doc appears
-      // for every site of that company regardless of whether it was shared.
+      // that site or its company.
       if (doc.siteId === null && selectedSiteId && selectedSiteId !== "all") {
         const _swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
         const _swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
@@ -1103,25 +1111,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       const entityId = (doc as any).entityId as string | null | undefined;
       if (!entityId || !groupCompanyIds.has(entityId)) return false;
     }
-    // "All Companies - All Sites" view: gate scoped (siteId=null) docs via
-    // sharedDocIdSet so the table matches the folder view exactly. The hierarchy
-    // backend (computeSharedDocsForSiteH) requires an explicit share record before
-    // including a scoped doc; the flat API does not — so without this filter the
-    // table shows extra rows for docs that have no share records yet.
-    // Only activates once the hierarchy has loaded (sharedDocIdSet.size > 0).
-    if (
-      !urlScope &&
-      doc.siteId === null &&
-      !groupCompanyIds &&
-      (!selectedSiteId || selectedSiteId === "all") &&
-      (!selectedCompany || selectedCompany === "all") &&
-      sharedDocIdSet.size > 0
-    ) {
-      // All scoped docs (company and group) require at least one share record
-      // to appear at site level. Zero-share company docs are not pushed to any
-      // specific site and should not be counted in site-level stats.
-      if (!sharedDocIdSet.has(doc.id)) return false;
-    }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
@@ -1129,20 +1118,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       (complianceFilter === "mandatory" && doc.isMandatory) ||
       (complianceFilter === "not_required" && !doc.isMandatory);
     
-    // Filter by site - site-scoped docs must match selected site.
-    // Shared-link docs (siteId=null) are included when the hierarchy confirms they
-    // are visible to the selected site (via sharedDocIdSet). This ensures table view
-    // matches folder view: both show the same shared/group documents.
+    // Filter by site. The universal gate above already ensures all siteId=null docs
+    // have at least one share. Here we narrow further: when a specific site is
+    // selected, a scoped doc must have a share explicitly pointing to that site or
+    // its company. Site-scoped docs must simply match the selected site.
     let matchesSite = true;
     if (urlScope && urlEntityId) {
       // Scope-view already constrains by entity; skip site/company filters
     } else if (selectedSiteId && selectedSiteId !== "all") {
       if (doc.siteId === null) {
-        // Scoped (group/company) doc — include only if it has an explicit share
-        // record pointing to this site or to this site's company. Relying solely
-        // on sharedDocIdSet is not sufficient because the server hierarchy also
-        // returns company-owned docs for their company's own sites without any
-        // share record, which we intentionally exclude from site-level counts.
         const _swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
         const _swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
         const _selSite = filteredSites.find(s => s.id === selectedSiteId);
