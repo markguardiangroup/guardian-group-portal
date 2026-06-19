@@ -2623,10 +2623,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {isLoading ? (
             <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
-            <Table>
+            <Table className="[&_td]:py-2.5 [&_th]:py-2.5">
               <TableHeader>
                 <TableRow>
-                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap min-w-[240px]">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap min-w-[380px]">
                     <span className="flex items-center gap-2">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2697,23 +2697,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   return (
                   <TableRow key={rowKey} className="hover-elevate" data-testid={`row-document-${rowKey}`}>
                     <TableCell>
-                      <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
+                      <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div>
-                          <p className="font-medium">{doc.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {docMetaLine(doc)}
-                          </p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-snug truncate">{doc.title}</p>
+                          {(() => {
+                            const siteInfo = doc.siteId ? siteMap.get(doc.siteId) : null;
+                            const companyPart = siteInfo?.companyName ?? (doc as any).companyName ?? null;
+                            const sitePart = siteInfo?.name ?? null;
+                            const line = [companyPart, sitePart].filter(Boolean).join(" · ");
+                            return line ? <p className="text-xs text-muted-foreground leading-snug truncate">{line}</p> : null;
+                          })()}
+                          {(() => {
+                            const parts: string[] = [];
+                            const isApproved = doc.approvalStatus === "approved" || !doc.approvalStatus;
+                            if (isApproved) { const vNum = (doc as any).approvedVersion ?? 0; if (vNum > 0) parts.push(`v${vNum}`); }
+                            const ext = getFileExtension(doc.fileName); if (ext) parts.push(ext);
+                            const sz = formatFileSize(doc.fileSize); if (sz) parts.push(sz);
+                            return parts.length > 0 ? <p className="text-xs text-muted-foreground leading-snug">{parts.join(" · ")}</p> : null;
+                          })()}
                           {isLinkedRow ? (
-                            <Badge variant="outline" className={`mt-1 text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
+                            <Badge variant="outline" className={`mt-0.5 text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
                               <LinkIcon className="h-3 w-3 mr-1" />
                               Shared from {linkedFromScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
                             </Badge>
                           ) : null}
                           {doc.isArchived && (
-                            <Badge variant="secondary" className="mt-1 gap-1 bg-muted">
+                            <Badge variant="secondary" className="mt-0.5 gap-1 bg-muted">
                               <Archive className="h-3 w-3" />
                               Archived
                             </Badge>
@@ -2726,29 +2738,29 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
-                        <Badge variant="secondary">{(doc as any).renewalPeriodMonths}mo</Badge>
+                        <Badge variant="secondary" className="text-xs">{(doc as any).renewalPeriodMonths}mo</Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {(doc as any).renewalDate ? (
-                        <span className="text-sm">{format(new Date((doc as any).renewalDate), "d MMM yyyy")}</span>
+                        <span className="text-xs">{format(new Date((doc as any).renewalDate), "d MMM yyyy")}</span>
                       ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {(doc as any).expiryDate ? (
-                        <span className="text-sm">{format(new Date((doc as any).expiryDate), "d MMM yyyy")}</span>
+                        <span className="text-xs">{format(new Date((doc as any).expiryDate), "d MMM yyyy")}</span>
                       ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell>
                       <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                    <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "d MMM yyyy")}
                     </TableCell>
                     <TableCell>

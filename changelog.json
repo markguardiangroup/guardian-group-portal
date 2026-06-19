@@ -9071,6 +9071,13 @@
           "message": "Table view: Renewals filter now covers expiry dates too, with a new Expired option and updated labels",
           "category": "enhancement",
           "createdAt": "2026-06-19T14:54:55.272Z"
+        },
+        {
+          "id": "2773d342-9173-4b0f-af61-9399da51743f",
+          "patch": 16,
+          "message": "Table view: document column restructured to 3-row layout (name, company/site, file details), smaller icon, reduced row spacing",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:04:03.037Z"
         }
       ],
       "publishedPatch": 15,
