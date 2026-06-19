@@ -9344,6 +9344,13 @@
           "message": "Fixed: folder view now hides company docs without explicit site shares when a site is selected",
           "category": "bug",
           "createdAt": "2026-06-19T22:45:00.000Z"
+        },
+        {
+          "id": "f7b6c9e1-hierarchy-shared-docs-expose-share-records-2026",
+          "patch": 16,
+          "message": "Fixed: explicitly shared doc now correctly appears in site folder view after share-record fix",
+          "category": "bug",
+          "createdAt": "2026-06-19T23:00:00.000Z"
         }
       ],
       "publishedPatch": 15,

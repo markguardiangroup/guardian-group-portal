@@ -14517,6 +14517,14 @@ export async function registerRoutes(
               })
             : false;
           const effectiveIsRequired = d.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate;
+          // Surface share records so the client can apply site-level visibility rules
+          const shareRecordsH = sharesByDocIdHierarchy.get(d.id) ?? [];
+          const sharedWithCompanyIds = shareRecordsH
+            .filter((s: any) => s.entityType === "company")
+            .map((s: any) => s.entityId);
+          const sharedWithSiteIds = shareRecordsH
+            .filter((s: any) => s.entityType === "site")
+            .map((s: any) => s.entityId);
           return {
             id: d.id,
             title: d.title,
@@ -14538,6 +14546,8 @@ export async function registerRoutes(
             renewalPeriodMonths: d.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
             sharedScope: d.sharedScope,
             sharedFromEntityName: d.sharedFromEntityName,
+            sharedWithCompanyIds,
+            sharedWithSiteIds,
           };
         });
       }
