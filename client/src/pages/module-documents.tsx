@@ -2647,44 +2647,44 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("folder")} className="cursor-pointer select-none w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("folder")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Folder
                       {sortBy === "folder" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead className="w-32 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
-                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none w-16 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
+                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none w-12 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Period
                       {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Renews
                       {sortBy === "renewalDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Expires
                       {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none w-28 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Status
                       {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none w-20 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Modified
                       {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
