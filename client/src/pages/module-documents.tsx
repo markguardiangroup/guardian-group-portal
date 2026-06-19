@@ -1055,6 +1055,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       if (!ownedAtScope && !sharedToCompany) {
         return false;
       }
+      // When a specific site is also selected within the scope view, further
+      // restrict scoped docs to only those with an explicit share record for
+      // that site or its company. Without this, every company-owned doc appears
+      // for every site of that company regardless of whether it was shared.
+      if (doc.siteId === null && selectedSiteId && selectedSiteId !== "all") {
+        const _swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
+        const _swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
+        const _selSite = filteredSites.find(s => s.id === selectedSiteId);
+        const hasExplicitShare =
+          (_swsi?.includes(selectedSiteId) ?? false) ||
+          !!(_selSite && _swci?.includes(_selSite.companyId));
+        if (!hasExplicitShare) return false;
+      }
     }
     // Sidebar group-picker filter: when a group is selected via the sidebar (not URL
     // params), restrict site-scoped docs to group member companies' sites only.

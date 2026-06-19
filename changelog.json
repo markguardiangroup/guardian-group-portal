@@ -9330,6 +9330,13 @@
           "message": "Fixed: company docs without site-level shares no longer appear in site or company document lists",
           "category": "bug",
           "createdAt": "2026-06-19T22:20:00.000Z"
+        },
+        {
+          "id": "d5f4a7c9-scope-view-site-filter-explicit-shares-2026",
+          "patch": 16,
+          "message": "Fixed: selecting a site within a company view now only shows docs explicitly shared to that site",
+          "category": "bug",
+          "createdAt": "2026-06-19T22:30:00.000Z"
         }
       ],
       "publishedPatch": 15,
