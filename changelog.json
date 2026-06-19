@@ -9246,6 +9246,13 @@
           "message": "Table view: Document column wider (26%), Folder column narrower (7%)",
           "category": "enhancement",
           "createdAt": "2026-06-19T18:07:16.291Z"
+        },
+        {
+          "id": "5f2f3193-2488-49d6-a1c4-ba6d0ee09d3e",
+          "patch": 16,
+          "message": "Table view: Document wider (29%), Folder wider (9%), actions column minimal (3%)",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T19:24:49.728Z"
         }
       ],
       "publishedPatch": 15,
