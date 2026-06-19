@@ -2716,20 +2716,26 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             if (isApproved) { const vNum = (doc as any).approvedVersion ?? 0; if (vNum > 0) parts.push(`v${vNum}`); }
                             const ext = getFileExtension(doc.fileName); if (ext) parts.push(ext);
                             const sz = formatFileSize(doc.fileSize); if (sz) parts.push(sz);
-                            return parts.length > 0 ? <p className="text-xs text-muted-foreground leading-snug">{parts.join(" · ")}</p> : null;
+                            const hasDetails = parts.length > 0 || isLinkedRow || doc.isArchived;
+                            if (!hasDetails) return null;
+                            return (
+                              <div className="flex items-center gap-1.5 flex-wrap leading-snug">
+                                {parts.length > 0 && <span className="text-xs text-muted-foreground">{parts.join(" · ")}</span>}
+                                {isLinkedRow && (
+                                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
+                                    <LinkIcon className="h-2.5 w-2.5" />
+                                    Shared{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ` from ${linkedFromScope === "group" ? "Group" : "Company"}`}
+                                  </Badge>
+                                )}
+                                {doc.isArchived && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1 bg-muted">
+                                    <Archive className="h-2.5 w-2.5" />
+                                    Archived
+                                  </Badge>
+                                )}
+                              </div>
+                            );
                           })()}
-                          {isLinkedRow ? (
-                            <Badge variant="outline" className={`mt-0.5 text-xs ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
-                              <LinkIcon className="h-3 w-3 mr-1" />
-                              Shared from {linkedFromScope === "group" ? "Group" : "Company"}{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ""}
-                            </Badge>
-                          ) : null}
-                          {doc.isArchived && (
-                            <Badge variant="secondary" className="mt-0.5 gap-1 bg-muted">
-                              <Archive className="h-3 w-3" />
-                              Archived
-                            </Badge>
-                          )}
                         </div>
                       </Link>
                     </TableCell>

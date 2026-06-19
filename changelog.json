@@ -9106,6 +9106,13 @@
           "message": "Table view: compliance and status badges smaller, columns tightened to fit full screen",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:21:24.992Z"
+        },
+        {
+          "id": "f47a38c9-a9e9-4919-a456-798faa68f88d",
+          "patch": 16,
+          "message": "Table view: Shared and Archived tags now sit inline with the file details line",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:22:25.363Z"
         }
       ],
       "publishedPatch": 15,
