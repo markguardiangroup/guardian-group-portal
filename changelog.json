@@ -9141,6 +9141,13 @@
           "message": "Table view: borderless flat design, fixed column widths, clean row hover",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:48:43.260Z"
+        },
+        {
+          "id": "ced32b84-0f6d-4241-b454-f3ad2b4eb6c2",
+          "patch": 16,
+          "message": "Table view: reduced surrounding padding, compliance column widened",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:54:12.477Z"
         }
       ],
       "publishedPatch": 15,

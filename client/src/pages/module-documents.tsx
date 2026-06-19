@@ -2534,8 +2534,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       {/* Table View */}
       {viewMode === "table" && (
-      <Card className="border-0 shadow-none rounded-none bg-transparent">
-        <CardHeader className="pb-4 px-0">
+      <Card className="border-0 shadow-none rounded-none bg-transparent -mx-8 -mt-2">
+        <CardHeader className="pb-3 px-8">
           {(() => {
             const complianceLockedByStatus = statusFilter === "compliant" || statusFilter === "approved";
             const hasActiveFilters = !!searchQuery || statusFilter !== "all" || complianceFilter !== "all" || folderFilter !== "all" || renewalFilter !== "all";
@@ -2635,7 +2635,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead className="w-28 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
+                  <TableHead className="w-36 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
                   <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none w-16 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Period
