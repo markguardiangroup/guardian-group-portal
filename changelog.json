@@ -9029,6 +9029,34 @@
           "message": "Added Compliance filter (Mandatory / Not Required) to table view",
           "category": "feature",
           "createdAt": "2026-06-19T13:31:53.850Z"
+        },
+        {
+          "id": "ee9d53bc-3e96-4e57-976b-303b9fb4455a",
+          "patch": 16,
+          "message": "Table view: added Clear filters button that appears when any filter is active",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T13:42:28.493Z"
+        },
+        {
+          "id": "c81200e5-b81f-4b28-8855-bba64c4ed58b",
+          "patch": 16,
+          "message": "Table view: Compliance filter auto-disables when Status is Compliant or Approved",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T13:42:28.493Z"
+        },
+        {
+          "id": "2773f7ba-236d-434b-9814-306c0923924c",
+          "patch": 16,
+          "message": "Table view: removed Unfiled option from folder filter",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T13:42:28.493Z"
+        },
+        {
+          "id": "c31122ef-10d5-49ba-a8ee-fb15704de6d6",
+          "patch": 16,
+          "message": "Table view: renamed compliance filter option to Non Mandatory",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T13:42:28.493Z"
         }
       ],
       "publishedPatch": 15,

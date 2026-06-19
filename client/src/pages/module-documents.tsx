@@ -2532,70 +2532,88 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       {viewMode === "table" && (
       <Card>
         <CardHeader className="pb-4">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search documents..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-search-documents"
-              />
-            </div>
-            <div className="flex gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40" data-testid="select-document-status">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="compliant">Compliant</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="approval_required">Approval Required</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="missing">Missing</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={complianceFilter} onValueChange={setComplianceFilter}>
-                <SelectTrigger className="w-44" data-testid="select-compliance-filter">
-                  <SelectValue placeholder="Compliance" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Compliance</SelectItem>
-                  <SelectItem value="mandatory">Mandatory</SelectItem>
-                  <SelectItem value="not_required">Not Required</SelectItem>
-                </SelectContent>
-              </Select>
-              {moduleFolderTemplates.length > 0 && (
-                <Select value={folderFilter} onValueChange={setFolderFilter}>
-                  <SelectTrigger className="w-44" data-testid="select-folder-filter">
-                    <SelectValue placeholder="Folder" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Folders</SelectItem>
-                    <SelectItem value="unfiled">Unfiled</SelectItem>
-                    {moduleFolderTemplates.map((folder) => (
-                      <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              <Select value={renewalFilter} onValueChange={setRenewalFilter}>
-                <SelectTrigger className="w-44" data-testid="select-renewal-filter">
-                  <SelectValue placeholder="Renewal Date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Renewals</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                  <SelectItem value="30days">Next 30 Days</SelectItem>
-                  <SelectItem value="60days">Next 60 Days</SelectItem>
-                  <SelectItem value="90days">Next 90 Days</SelectItem>
-                  <SelectItem value="none">No Renewal Date</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          {(() => {
+            const complianceLockedByStatus = statusFilter === "compliant" || statusFilter === "approved";
+            const hasActiveFilters = !!searchQuery || statusFilter !== "all" || complianceFilter !== "all" || folderFilter !== "all" || renewalFilter !== "all";
+            const clearAllFilters = () => {
+              setSearchQuery("");
+              setStatusFilter("all");
+              setComplianceFilter("all");
+              setFolderFilter("all");
+              setRenewalFilter("all");
+            };
+            return (
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search documents..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-documents"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); if (v === "compliant" || v === "approved") setComplianceFilter("all"); }}>
+                    <SelectTrigger className="w-40" data-testid="select-document-status">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="compliant">Compliant</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="approval_required">Approval Required</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="missing">Missing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={complianceFilter} onValueChange={setComplianceFilter} disabled={complianceLockedByStatus}>
+                    <SelectTrigger className="w-44" data-testid="select-compliance-filter">
+                      <SelectValue placeholder="Compliance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Compliance</SelectItem>
+                      <SelectItem value="mandatory">Mandatory</SelectItem>
+                      <SelectItem value="not_required">Non Mandatory</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {moduleFolderTemplates.length > 0 && (
+                    <Select value={folderFilter} onValueChange={setFolderFilter}>
+                      <SelectTrigger className="w-44" data-testid="select-folder-filter">
+                        <SelectValue placeholder="Folder" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Folders</SelectItem>
+                        {moduleFolderTemplates.map((folder) => (
+                          <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Select value={renewalFilter} onValueChange={setRenewalFilter}>
+                    <SelectTrigger className="w-44" data-testid="select-renewal-filter">
+                      <SelectValue placeholder="Renewal Date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Renewals</SelectItem>
+                      <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="30days">Next 30 Days</SelectItem>
+                      <SelectItem value="60days">Next 60 Days</SelectItem>
+                      <SelectItem value="90days">Next 90 Days</SelectItem>
+                      <SelectItem value="none">No Renewal Date</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="gap-1.5 text-muted-foreground hover:text-foreground" data-testid="button-clear-filters">
+                      <X className="h-3.5 w-3.5" />
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
