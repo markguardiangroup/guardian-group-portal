@@ -9169,6 +9169,13 @@
           "message": "Table view: column headers now stick to top when scrolling",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:02:57.240Z"
+        },
+        {
+          "id": "689fd3e4-c5a7-4b24-8e32-1292b42ffd26",
+          "patch": 16,
+          "message": "Table view: column headers now stick to top when scrolling, matching the Companies list behaviour",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T16:07:58.673Z"
         }
       ],
       "publishedPatch": 15,

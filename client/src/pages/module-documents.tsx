@@ -2623,11 +2623,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {isLoading ? (
             <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
-            <div className="overflow-auto max-h-[calc(100dvh-240px)]">
-            <Table className="table-fixed w-full [&_td]:py-2 [&_th]:py-2">
+            <Table wrapperClassName="overflow-visible" className="sticky-table-header-p8 table-fixed w-full [&_td]:py-2 [&_th]:py-2">
               <TableHeader>
                 <TableRow className="border-b-2 bg-muted hover:bg-muted">
-                  <TableHead onClick={() => handleSort("title")} className="sticky top-0 z-10 bg-muted cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-2">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2636,38 +2635,38 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-muted w-36 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
-                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="sticky top-0 z-10 bg-muted cursor-pointer select-none w-16 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="w-36 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
+                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none w-16 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Period
                       {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("renewalDate")} className="sticky top-0 z-10 bg-muted cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Renews
                       {sortBy === "renewalDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("expiryDate")} className="sticky top-0 z-10 bg-muted cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Expires
                       {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("status")} className="sticky top-0 z-10 bg-muted cursor-pointer select-none w-32 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none w-32 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Status
                       {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("updatedAt")} className="sticky top-0 z-10 bg-muted cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Modified
                       {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-muted w-10"></TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -2874,7 +2873,6 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </TableBody>
             </Table>
-            </div>
           ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" ? (
             <Table>
               <TableHeader>
