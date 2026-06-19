@@ -9225,6 +9225,13 @@
           "message": "Table view: wider Folder column, narrower Document column, table no longer stretches full width",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:34:02.838Z"
+        },
+        {
+          "id": "b99ef7d5-9584-4ab9-a954-648aab0d8d59",
+          "patch": 16,
+          "message": "Fixed: document table no longer causes horizontal scrollbar",
+          "category": "bug",
+          "createdAt": "2026-06-19T18:01:03.833Z"
         }
       ],
       "publishedPatch": 15,
