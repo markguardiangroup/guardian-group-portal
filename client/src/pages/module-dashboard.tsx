@@ -444,19 +444,63 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     });
   }, [documents, siteId, companySiteIds, sites]);
 
+  // The sites that are in view for the current selection (single site, a
+  // company's sites, or every site at all-companies/all-sites).
+  const inScopeSites = useMemo(() => {
+    if (!sites) return [] as SiteWithCompany[];
+    if (siteId) return sites.filter(s => s.id === siteId);
+    if (companySiteIds && companySiteIds.length > 0) return sites.filter(s => companySiteIds.includes(s.id));
+    return sites;
+  }, [sites, siteId, companySiteIds]);
+
+  // Per-site expansion — identical to the Documents page. At an aggregate view
+  // (more than one site in scope) a scoped (company/group) doc is counted once
+  // per site it is EXPLICITLY shared with, so the dashboard tiles, score and
+  // dialogs equal the Documents page and the sum of the individual site cards.
+  // Single-site views keep one row per doc (no expansion).
+  const expandedModuleDocs = useMemo((): Document[] => {
+    if (inScopeSites.length <= 1) return filteredModuleDocs;
+    const result: Document[] = [];
+    for (const doc of filteredModuleDocs) {
+      if (doc.siteId !== null) {
+        result.push(doc);
+        continue;
+      }
+      const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+      const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+      const anyShare = ((sharedWithSiteIds?.length ?? 0) + (sharedWithCompanyIds?.length ?? 0)) > 0;
+      const coveredSites = inScopeSites.filter(s =>
+        sharedWithSiteIds?.includes(s.id) ||
+        sharedWithCompanyIds?.includes(s.companyId)
+      );
+      if (coveredSites.length === 0) {
+        // A scoped doc with NO share at all must never appear or count — this
+        // mirrors the Documents page universal gate, which drops zero-share
+        // scoped docs before expansion. A doc that HAS shares but none land on
+        // an in-scope site is kept once, mirroring the Documents page fallback.
+        if (anyShare) result.push(doc);
+      } else {
+        for (const site of coveredSites) {
+          result.push({ ...doc, siteId: site.id } as Document);
+        }
+      }
+    }
+    return result;
+  }, [filteredModuleDocs, inScopeSites]);
+
   const docsDialogDocs = useMemo((): Document[] => {
     if (!docsDialogFilter) return [];
     switch (docsDialogFilter) {
-      case "req_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "compliant");
-      case "req_non_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
-      case "req_overdue": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "overdue");
-      case "total": return filteredModuleDocs.filter(isCountableDoc);
-      case "all_compliant": return filteredModuleDocs.filter(d => isCountableDoc(d) && (d.status === "compliant" || d.status === "approved"));
-      case "all_review": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "approval_required");
-      case "all_overdue": return filteredModuleDocs.filter(d => isCountableDoc(d) && d.status === "overdue");
+      case "req_compliant": return expandedModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "compliant");
+      case "req_non_compliant": return expandedModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required"));
+      case "req_overdue": return expandedModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "overdue");
+      case "total": return expandedModuleDocs.filter(isCountableDoc);
+      case "all_compliant": return expandedModuleDocs.filter(d => isCountableDoc(d) && (d.status === "compliant" || d.status === "approved"));
+      case "all_review": return expandedModuleDocs.filter(d => isCountableDoc(d) && d.status === "approval_required");
+      case "all_overdue": return expandedModuleDocs.filter(d => isCountableDoc(d) && d.status === "overdue");
       default: return [];
     }
-  }, [docsDialogFilter, filteredModuleDocs]);
+  }, [docsDialogFilter, expandedModuleDocs]);
 
   const docsDialogMeta: Record<DocsDialogFilter, { title: string }> = {
     req_compliant: { title: "Compliant (Mandatory Documents)" },
@@ -482,11 +526,11 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   }, [sites]);
 
   // Document Progress tiles — single source of truth = the in-scope document
-  // list. Status-based buckets, each document counted exactly once (no per-site
-  // expansion), so the tiles always equal the matching dialog's row count.
+  // list, expanded per covered site at aggregate views so the tiles equal the
+  // matching dialog's row count AND the Documents page totals.
   const allDocStats = useMemo(
-    () => statusCounts(filteredModuleDocs, true),
-    [filteredModuleDocs],
+    () => statusCounts(expandedModuleDocs, true),
+    [expandedModuleDocs],
   );
 
   // Mandatory-document compliance — doc-based and using each document's own
@@ -496,24 +540,25 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // missing OR not approved (overdue / awaiting approval). Cloud uploads, case,
   // incident and archived docs are always excluded via isCountableDoc.
   const reqCompliantCount = useMemo(
-    () => filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "compliant").length,
-    [filteredModuleDocs],
+    () => expandedModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && d.status === "compliant").length,
+    [expandedModuleDocs],
   );
   const reqNonCompliantPresent = useMemo(
-    () => filteredModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required")).length,
-    [filteredModuleDocs],
+    () => expandedModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required")).length,
+    [expandedModuleDocs],
   );
   const reqNonCompliantCount = reqNonCompliantPresent + missingRequiredDetails.length;
   const complianceDenom = reqCompliantCount + reqNonCompliantCount;
   const complianceScore = complianceDenom > 0 ? Math.round((reqCompliantCount / complianceDenom) * 100) : 0;
 
-  // One row per document (no per-site expansion) so the dialog row count always
-  // matches the tile number. Site docs show their site; scoped (group/company)
-  // docs show their owning company so the user still sees where they live.
+  // Rows mirror the (per-site expanded) tile counts. Expanded scoped docs carry a
+  // real siteId, so the same doc id can appear once per site — the key includes
+  // siteId to stay unique. Site docs show their site; an unshared scoped doc
+  // falls back to showing its owning company so the user sees where it lives.
   const expandedDocsDialogRows = useMemo(() => {
     return docsDialogDocs.map(doc => {
       if (doc.siteId) {
-        return { doc, key: doc.id, siteName: siteNameMap[doc.siteId] ?? null };
+        return { doc, key: `${doc.id}-${doc.siteId}`, siteName: siteNameMap[doc.siteId] ?? null };
       }
       const entityId = (doc as any).entityId as string | undefined;
       const ownerCompany = entityId ? sites?.find(s => s.companyId === entityId)?.companyName ?? null : null;

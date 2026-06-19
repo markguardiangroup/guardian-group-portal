@@ -9372,6 +9372,13 @@
           "message": "Fixed: All Companies/All Sites compliant totals no longer over-count shared docs",
           "category": "bug",
           "createdAt": "2026-06-19T23:38:30.544Z"
+        },
+        {
+          "id": "91e3193f-d6c8-4e7a-aa46-5b4f38df4001",
+          "patch": 16,
+          "message": "Fixed: HR dashboard compliant/non-compliant/score now match the Documents page",
+          "category": "bug",
+          "createdAt": "2026-06-19T23:50:54.029Z"
         }
       ],
       "publishedPatch": 15,

@@ -59,6 +59,17 @@ inflating counts. The user's hard rule: an explicit share is required everywhere
    A removed owner-bypass (`scope==='group' && entityId===s.companyId`) was expanding
    group docs to their owner company's sites with no share, over-counting the
    All-Companies/All-Sites totals (e.g. compliant showed 40, should be 38).
+5. The module DASHBOARD (module-dashboard.tsx) is a SEPARATE surface that must
+   also agree. It reads the SAME `["/api/documents/module", module]` query, so to
+   match the Documents page it must expand scoped docs per covered site too
+   (`expandedModuleDocs`) at aggregate views (>1 site in scope). Pitfall: at
+   all-sites `filteredModuleDocs` returns ALL docs (no share gate), so the
+   expansion step itself must DROP zero-share scoped docs (keep a has-share doc
+   once if none of its shares land in scope) to mirror the Documents page gate.
+   Tiles, compliance score, AND the click-through dialogs must all read the
+   expanded list, or tile≠dialog. Note: `filteredModuleDocs` still has an
+   owner-bypass (`entityId===company` for non-group scope) that only affects the
+   SINGLE-SITE dashboard view (expansion is skipped there); left intact.
 
 **Server-restart gotcha:** routes.ts changes do NOT hot-reload — the client
 hot-reloads but the Express server keeps old code until restarted. Symptom of a
