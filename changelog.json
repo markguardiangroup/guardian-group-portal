@@ -9120,13 +9120,6 @@
           "message": "Table view: document icon borderless to match folder style; columns tightened to fit full screen",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:29:03.412Z"
-        },
-        {
-          "id": "b237605e-bf20-48d7-9e05-151b30de4d48",
-          "patch": 16,
-          "message": "Table view: compliance column condensed to icon-only badges to save horizontal space",
-          "category": "enhancement",
-          "createdAt": "2026-06-19T15:32:39.254Z"
         }
       ],
       "publishedPatch": 15,
