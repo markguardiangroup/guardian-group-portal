@@ -9127,6 +9127,13 @@
           "message": "Table view: Compliance column narrowed to reduce gap before Period column",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:41:05.458Z"
+        },
+        {
+          "id": "49ca6336-d625-4c8a-b112-120df8913484",
+          "patch": 16,
+          "message": "Table view: Compliance column further narrowed to w-14",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:43:06.284Z"
         }
       ],
       "publishedPatch": 15,
