@@ -9253,6 +9253,13 @@
           "message": "Table view: Document wider (29%), Folder wider (9%), actions column minimal (3%)",
           "category": "enhancement",
           "createdAt": "2026-06-19T19:24:49.728Z"
+        },
+        {
+          "id": "5d6ac778-b9cf-4abb-90e8-c86b03c9e843",
+          "patch": 16,
+          "message": "Table view: actions menu now fully visible within the screen",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T19:28:25.100Z"
         }
       ],
       "publishedPatch": 15,

@@ -2638,7 +2638,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Table wrapperClassName="overflow-visible" className="sticky-table-header-p8 table-fixed w-full [&_td]:py-2 [&_th]:py-2">
               <TableHeader>
                 <TableRow className="border-b-2 bg-muted hover:bg-muted">
-                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none w-[29%] text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none w-[28%] text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-2">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2684,7 +2684,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead className="w-[3%]"></TableHead>
+                  <TableHead className="w-[4%]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
