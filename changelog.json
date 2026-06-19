@@ -9232,6 +9232,13 @@
           "message": "Fixed: document table no longer causes horizontal scrollbar",
           "category": "bug",
           "createdAt": "2026-06-19T18:01:03.833Z"
+        },
+        {
+          "id": "7a379a94-10be-4c87-8649-ca22c20ae1d2",
+          "patch": 16,
+          "message": "Fixed: document table columns now use percentage widths — no horizontal scrollbar on any screen size",
+          "category": "bug",
+          "createdAt": "2026-06-19T18:05:13.415Z"
         }
       ],
       "publishedPatch": 15,
