@@ -9057,6 +9057,13 @@
           "message": "Table view: renamed compliance filter option to Non Mandatory",
           "category": "enhancement",
           "createdAt": "2026-06-19T13:42:28.493Z"
+        },
+        {
+          "id": "7b4a00ad-5e08-450e-9e38-3161eb7590bc",
+          "patch": 16,
+          "message": "Table view: Clear filters is now an icon-only button to prevent layout shift",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T13:46:14.641Z"
         }
       ],
       "publishedPatch": 15,

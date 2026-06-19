@@ -2605,9 +2605,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </SelectContent>
                   </Select>
                   {hasActiveFilters && (
-                    <Button variant="ghost" size="sm" onClick={clearAllFilters} className="gap-1.5 text-muted-foreground hover:text-foreground" data-testid="button-clear-filters">
-                      <X className="h-3.5 w-3.5" />
-                      Clear filters
+                    <Button variant="ghost" size="icon" onClick={clearAllFilters} className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0" title="Clear filters" data-testid="button-clear-filters">
+                      <X className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
