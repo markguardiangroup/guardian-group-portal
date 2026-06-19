@@ -9295,6 +9295,13 @@
           "message": "Table view: missing doc rows show company/site and upload prompt on separate lines",
           "category": "enhancement",
           "createdAt": "2026-06-19T20:53:39.354Z"
+        },
+        {
+          "id": "b5338bb2-a571-4d7d-9d74-df1ce11bdc9d",
+          "patch": 16,
+          "message": "Table view: missing doc rows show company and site in amber colour",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T20:55:19.083Z"
         }
       ],
       "publishedPatch": 15,

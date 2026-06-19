@@ -2883,7 +2883,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <div className="min-w-0">
                           <p className="text-sm font-medium leading-snug truncate text-amber-800 dark:text-amber-200">{slot.templateName}</p>
                           {(slot.companyName || slot.siteName) && (
-                            <p className="text-xs text-muted-foreground leading-snug truncate">{[slot.companyName, slot.siteName].filter(Boolean).join(" · ")}</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug truncate">{[slot.companyName, slot.siteName].filter(Boolean).join(" · ")}</p>
                           )}
                           <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug truncate">Mandatory — not yet uploaded{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
@@ -2926,7 +2926,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         <div className="min-w-0">
                           <p className="text-sm font-medium leading-snug truncate text-amber-800 dark:text-amber-200">{slot.templateName}</p>
                           {(slot.companyName || slot.siteName) && (
-                            <p className="text-xs text-muted-foreground leading-snug truncate">{[slot.companyName, slot.siteName].filter(Boolean).join(" · ")}</p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug truncate">{[slot.companyName, slot.siteName].filter(Boolean).join(" · ")}</p>
                           )}
                           <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug truncate">Mandatory — not yet uploaded{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
