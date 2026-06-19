@@ -9274,6 +9274,13 @@
           "message": "Table view: Document column widened at expense of Modified column",
           "category": "enhancement",
           "createdAt": "2026-06-19T20:38:40.145Z"
+        },
+        {
+          "id": "eafaed34-d4b6-4064-9b94-1e5b350f54fa",
+          "patch": 16,
+          "message": "Table view: missing required doc rows now align correctly with all columns",
+          "category": "bug",
+          "createdAt": "2026-06-19T20:43:12.779Z"
         }
       ],
       "publishedPatch": 15,

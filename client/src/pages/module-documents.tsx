@@ -2888,6 +2888,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
                     <TableCell>
                       <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory — Missing</Badge>
                     </TableCell>
@@ -2929,6 +2930,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell><span className="text-muted-foreground text-sm">—</span></TableCell>
                     <TableCell>
                       <Badge className="bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700 text-xs">Mandatory — Missing</Badge>
                     </TableCell>
