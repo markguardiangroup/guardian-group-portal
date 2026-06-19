@@ -9288,6 +9288,13 @@
           "message": "Table view: missing doc rows now match regular row font size and icon style",
           "category": "enhancement",
           "createdAt": "2026-06-19T20:45:02.954Z"
+        },
+        {
+          "id": "e63a7381-ee12-40ae-8956-21d2ade61128",
+          "patch": 16,
+          "message": "Table view: missing doc rows show company/site and upload prompt on separate lines",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T20:53:39.354Z"
         }
       ],
       "publishedPatch": 15,
