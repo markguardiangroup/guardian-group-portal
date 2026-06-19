@@ -9001,6 +9001,13 @@
           "message": "Fixed: remaining 1-doc gap between folder totals and header count",
           "category": "bug",
           "createdAt": "2026-06-19T00:20:00.000Z"
+        },
+        {
+          "id": "h8j0l2n4-archived-excluded-folder-counts-2026",
+          "patch": 16,
+          "message": "Fixed: archived documents no longer included in folder document counts",
+          "category": "bug",
+          "createdAt": "2026-06-19T00:30:00.000Z"
         }
       ],
       "publishedPatch": 15,

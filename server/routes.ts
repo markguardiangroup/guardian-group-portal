@@ -14038,6 +14038,7 @@ export async function registerRoutes(
       // Exclude case docs, incident docs, and cloud share (source "external") — same as table view and dashboard
       const siteDocuments = allDocuments.filter(d =>
         targetSiteIds.includes(d.siteId) &&
+        !d.isArchived &&
         !d.caseId &&
         !d.incidentId &&
         d.source !== "external"
