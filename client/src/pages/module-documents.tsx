@@ -983,12 +983,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   // Build lookup: documentTypeId -> folder template name (for display/legacy)
   // Also build documentTypeId -> folder template ID (for filter matching by ID)
-  const { docTypeToFolderName, docTypeToFolderTemplateId } = useMemo(() => {
+  const { docTypeToFolderName, docTypeToFolderTemplateId, folderTemplateIdToName } = useMemo(() => {
     const nameMap = new Map<string, string>();
     const idMap = new Map<string, string>();
-    if (!folderRules || !folderTemplates) return { docTypeToFolderName: nameMap, docTypeToFolderTemplateId: idMap };
+    const ftNameMap = new Map<string, string>();
+    if (!folderRules || !folderTemplates) return { docTypeToFolderName: nameMap, docTypeToFolderTemplateId: idMap, folderTemplateIdToName: ftNameMap };
     
     const templateMap = new Map(folderTemplates.map(t => [t.id, t]));
+    folderTemplates.forEach(t => ftNameMap.set(t.id, t.name));
     
     for (const rule of folderRules) {
       const template = templateMap.get(rule.folderTemplateId);
@@ -997,7 +999,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         idMap.set(rule.documentTypeId, template.id);
       }
     }
-    return { docTypeToFolderName: nameMap, docTypeToFolderTemplateId: idMap };
+    return { docTypeToFolderName: nameMap, docTypeToFolderTemplateId: idMap, folderTemplateIdToName: ftNameMap };
   }, [folderRules, folderTemplates, module]);
 
   // Build a fast site lookup: siteId → { name, companyName }
@@ -1220,6 +1222,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           aVal = a.title.toLowerCase();
           bVal = b.title.toLowerCase();
           break;
+        case "folder": {
+          const getFolderName = (d: any) => {
+            if (d.folderTemplateId) return folderTemplateIdToName.get(d.folderTemplateId) ?? "";
+            if (d.documentTypeId) return docTypeToFolderName.get(d.documentTypeId) ?? "";
+            return "";
+          };
+          aVal = getFolderName(a).toLowerCase();
+          bVal = getFolderName(b).toLowerCase();
+          break;
+        }
         case "status":
           aVal = a.status || "";
           bVal = b.status || "";
@@ -2635,6 +2647,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
+                  <TableHead onClick={() => handleSort("folder")} className="cursor-pointer select-none w-40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      Folder
+                      {sortBy === "folder" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
+                    </span>
+                  </TableHead>
                   <TableHead className="w-36 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Compliance</TableHead>
                   <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none w-16 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -2736,6 +2754,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                           })()}
                         </div>
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const name = (doc as any).folderTemplateId
+                          ? (folderTemplateIdToName.get((doc as any).folderTemplateId) ?? null)
+                          : ((doc as any).documentTypeId ? (docTypeToFolderName.get((doc as any).documentTypeId) ?? null) : null);
+                        return name
+                          ? <span className="text-xs text-muted-foreground truncate block max-w-full" title={name}>{name}</span>
+                          : <span className="text-muted-foreground text-xs">—</span>;
+                      })()}
                     </TableCell>
                     <TableCell>
                       <ComplianceBadge compact isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} className="flex-col items-start gap-0.5" />

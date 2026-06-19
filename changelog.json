@@ -9176,6 +9176,13 @@
           "message": "Table view: column headers now stick to top when scrolling, matching the Companies list behaviour",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:07:58.673Z"
+        },
+        {
+          "id": "36d18d44-e708-42b2-af53-fbd927b3512d",
+          "patch": 16,
+          "message": "Table view: added sortable Folder column between Document and Compliance",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T16:11:24.097Z"
         }
       ],
       "publishedPatch": 15,
