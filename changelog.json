@@ -9008,6 +9008,27 @@
           "message": "Fixed: archived documents no longer included in folder document counts",
           "category": "bug",
           "createdAt": "2026-06-19T00:30:00.000Z"
+        },
+        {
+          "id": "d7c211ab-5586-4027-9e7e-4f5f053e153d",
+          "patch": 16,
+          "message": "Table status filter now includes Approved and Missing options",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T13:31:53.850Z"
+        },
+        {
+          "id": "9412b998-49e6-4bfe-ad96-34ac3e8ac951",
+          "patch": 16,
+          "message": "Table folder filter now correctly filters all document types including shared docs",
+          "category": "bug",
+          "createdAt": "2026-06-19T13:31:53.850Z"
+        },
+        {
+          "id": "f316ed8c-c0a9-4b4b-93f8-ee9103966617",
+          "patch": 16,
+          "message": "Added Compliance filter (Mandatory / Not Required) to table view",
+          "category": "feature",
+          "createdAt": "2026-06-19T13:31:53.850Z"
         }
       ],
       "publishedPatch": 15,

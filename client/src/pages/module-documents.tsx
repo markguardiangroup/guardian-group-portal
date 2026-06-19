@@ -336,6 +336,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [complianceFilter, setComplianceFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("updatedAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [folderFilter, setFolderFilter] = useState<string>("all");
@@ -980,20 +981,23 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     return folderTemplates.filter(t => t.module === module && t.isActive && !t.isLocked && !t.toolkitFolderId);
   }, [folderTemplates, module]);
   
-  // Build lookup: documentTypeId -> folder template name
-  const docTypeToFolderName = useMemo(() => {
-    const lookup = new Map<string, string>();
-    if (!folderRules || !folderTemplates) return lookup;
+  // Build lookup: documentTypeId -> folder template name (for display/legacy)
+  // Also build documentTypeId -> folder template ID (for filter matching by ID)
+  const { docTypeToFolderName, docTypeToFolderTemplateId } = useMemo(() => {
+    const nameMap = new Map<string, string>();
+    const idMap = new Map<string, string>();
+    if (!folderRules || !folderTemplates) return { docTypeToFolderName: nameMap, docTypeToFolderTemplateId: idMap };
     
     const templateMap = new Map(folderTemplates.map(t => [t.id, t]));
     
     for (const rule of folderRules) {
       const template = templateMap.get(rule.folderTemplateId);
       if (template && template.module === module) {
-        lookup.set(rule.documentTypeId, template.name);
+        nameMap.set(rule.documentTypeId, template.name);
+        idMap.set(rule.documentTypeId, template.id);
       }
     }
-    return lookup;
+    return { docTypeToFolderName: nameMap, docTypeToFolderTemplateId: idMap };
   }, [folderRules, folderTemplates, module]);
 
   // Build a fast site lookup: siteId → { name, companyName }
@@ -1092,6 +1096,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
+    const matchesCompliance = complianceFilter === "all" ||
+      (complianceFilter === "mandatory" && doc.isMandatory) ||
+      (complianceFilter === "not_required" && !doc.isMandatory);
     
     // Filter by site - site-scoped docs must match selected site.
     // Shared-link docs (siteId=null) are included when the hierarchy confirms they
@@ -1135,15 +1142,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       }
     }
     
-    // Filter by folder - match documents whose document type is assigned to the selected folder
+    // Filter by folder - match documents by folder template ID.
+    // Shared/scoped docs carry folderTemplateId directly; site-scoped docs are
+    // matched via documentTypeId → folderTemplateId through folderRules.
     let matchesFolder = true;
     if (folderFilter === "unfiled") {
-      // Show only documents that have no folderId
       matchesFolder = !(doc as any).folderId;
     } else if (folderFilter !== "all") {
-      const docTypeId = (doc as any).documentTypeId;
-      const docFolderName = docTypeId ? docTypeToFolderName.get(docTypeId) : null;
-      matchesFolder = docFolderName === folderFilter;
+      const directTemplateId = (doc as any).folderTemplateId as string | null | undefined;
+      if (directTemplateId) {
+        matchesFolder = directTemplateId === folderFilter;
+      } else {
+        const docTypeId = (doc as any).documentTypeId;
+        matchesFolder = docTypeId ? docTypeToFolderTemplateId.get(docTypeId) === folderFilter : false;
+      }
     }
     
     // Filter by renewal date
@@ -1180,7 +1192,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // view is active. Scope/site/company/archived filters still apply to both.
     const passesTableFilters =
       viewMode !== "table" ||
-      (matchesSearch && matchesStatus && matchesFolder && matchesRenewal);
+      (matchesSearch && matchesStatus && matchesCompliance && matchesFolder && matchesRenewal);
 
     return passesTableFilters && matchesSite && matchesCompany && !doc.isArchived;
   });
@@ -2539,8 +2551,20 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="compliant">Compliant</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="approval_required">Approval Required</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="missing">Missing</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={complianceFilter} onValueChange={setComplianceFilter}>
+                <SelectTrigger className="w-44" data-testid="select-compliance-filter">
+                  <SelectValue placeholder="Compliance" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Compliance</SelectItem>
+                  <SelectItem value="mandatory">Mandatory</SelectItem>
+                  <SelectItem value="not_required">Not Required</SelectItem>
                 </SelectContent>
               </Select>
               {moduleFolderTemplates.length > 0 && (
@@ -2552,7 +2576,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <SelectItem value="all">All Folders</SelectItem>
                     <SelectItem value="unfiled">Unfiled</SelectItem>
                     {moduleFolderTemplates.map((folder) => (
-                      <SelectItem key={folder.id} value={folder.name}>{folder.name}</SelectItem>
+                      <SelectItem key={folder.id} value={folder.id}>{folder.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -2767,7 +2791,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   );
                 })}
                 {/* Missing required document slots — shown only when no active search/status/folder/renewal filters */}
-                {!searchQuery && statusFilter === "all" && folderFilter === "all" && renewalFilter === "all" && tableMissingSlots.map((slot) => (
+                {!searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" && tableMissingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 border-dashed ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -2793,7 +2817,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </TableBody>
             </Table>
-          ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && folderFilter === "all" && renewalFilter === "all" ? (
+          ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -2839,7 +2863,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               <FileText className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-medium">No documents found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || statusFilter !== "all" || renewalFilter !== "all"
+                {searchQuery || statusFilter !== "all" || complianceFilter !== "all" || renewalFilter !== "all"
                   ? "Try adjusting your search or filters"
                   : isPrivilegedUser
                     ? `Upload your first ${config.shortName} document to get started`
