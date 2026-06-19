@@ -2744,16 +2744,34 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {(doc as any).renewalDate ? (
-                        <span className="text-xs">{format(new Date((doc as any).renewalDate), "d MMM yyyy")}</span>
-                      ) : (
+                      {(doc as any).renewalDate ? (() => {
+                        const d = new Date((doc as any).renewalDate);
+                        const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+                        const cls = days < 0
+                          ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
+                          : days <= 30
+                            ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                            : days <= 60
+                              ? "bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400"
+                              : "";
+                        return <span className={`text-xs rounded px-1.5 py-0.5 ${cls}`}>{format(d, "d MMM yyyy")}</span>;
+                      })() : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {(doc as any).expiryDate ? (
-                        <span className="text-xs">{format(new Date((doc as any).expiryDate), "d MMM yyyy")}</span>
-                      ) : (
+                      {(doc as any).expiryDate ? (() => {
+                        const d = new Date((doc as any).expiryDate);
+                        const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+                        const cls = days < 0
+                          ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400"
+                          : days <= 30
+                            ? "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400"
+                            : days <= 60
+                              ? "bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400"
+                              : "";
+                        return <span className={`text-xs rounded px-1.5 py-0.5 ${cls}`}>{format(d, "d MMM yyyy")}</span>;
+                      })() : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>

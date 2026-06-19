@@ -9078,6 +9078,13 @@
           "message": "Table view: document column restructured to 3-row layout (name, company/site, file details), smaller icon, reduced row spacing",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:04:03.037Z"
+        },
+        {
+          "id": "05e965cd-c6be-4a93-b942-ba28ce128f48",
+          "patch": 16,
+          "message": "Table view: renewal and expiry dates highlighted red (past), amber (≤30 days), yellow (≤60 days)",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:09:31.836Z"
         }
       ],
       "publishedPatch": 15,
