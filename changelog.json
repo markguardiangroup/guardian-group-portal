@@ -9260,6 +9260,13 @@
           "message": "Table view: actions menu now fully visible within the screen",
           "category": "enhancement",
           "createdAt": "2026-06-19T19:28:25.100Z"
+        },
+        {
+          "id": "932c1fb8-0482-4310-ac4c-9ed078c7c424",
+          "patch": 16,
+          "message": "Table view: actions menu fully clear of scrollbar edge",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T19:35:44.594Z"
         }
       ],
       "publishedPatch": 15,
