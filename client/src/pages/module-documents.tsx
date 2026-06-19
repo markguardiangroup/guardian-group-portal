@@ -1366,7 +1366,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     let sTotal = 0, sCompliant = 0, sApproved = 0, sReview = 0, sOverdue = 0;
     for (const [folderId, expandedDocs] of expandedSharedByFolderTemplate.entries()) {
       const originalDocs = sharedByFolderTemplate.get(folderId) ?? [];
-      if (expandedDocs.length <= originalDocs.length) continue;
+      // Do NOT guard on expandedDocs.length <= originalDocs.length here.
+      // When passthrough ghost docs are skipped, expandedDocs can be SHORTER
+      // than originalDocs, producing a negative delta that correctly cancels
+      // the server's count for those ghost docs in the folder total.
+      if (expandedDocs.length === originalDocs.length) continue;
       const virtualRows = expandedDocs.filter(d => (d as any)._virtualKey);
       const delta = {
         totalDocuments: expandedDocs.length - originalDocs.length,

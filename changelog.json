@@ -8994,6 +8994,13 @@
           "message": "Fixed: folder document counts now match the header total exactly",
           "category": "bug",
           "createdAt": "2026-06-19T00:10:00.000Z"
+        },
+        {
+          "id": "g7i9k1m3-folder-negative-delta-ghost-doc-2026",
+          "patch": 16,
+          "message": "Fixed: remaining 1-doc gap between folder totals and header count",
+          "category": "bug",
+          "createdAt": "2026-06-19T00:20:00.000Z"
         }
       ],
       "publishedPatch": 15,
