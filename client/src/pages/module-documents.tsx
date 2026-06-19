@@ -2626,7 +2626,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Table className="[&_td]:py-2.5 [&_th]:py-2.5">
               <TableHeader>
                 <TableRow>
-                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap min-w-[380px]">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none whitespace-nowrap min-w-[280px]">
                     <span className="flex items-center gap-2">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2642,13 +2642,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none whitespace-nowrap w-24">
+                  <TableHead onClick={() => handleSort("renewalDate")} className="cursor-pointer select-none whitespace-nowrap w-20">
                     <span className="flex items-center gap-1">
                       Renews
                       {sortBy === "renewalDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none whitespace-nowrap w-24">
+                  <TableHead onClick={() => handleSort("expiryDate")} className="cursor-pointer select-none whitespace-nowrap w-20">
                     <span className="flex items-center gap-1">
                       Expires
                       {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2698,9 +2698,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   <TableRow key={rowKey} className="hover-elevate" data-testid={`row-document-${rowKey}`}>
                     <TableCell>
                       <Link href={`${basePath}/documents/${doc.id}`} className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                        </div>
+                        <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium leading-snug truncate">{doc.title}</p>
                           {(() => {

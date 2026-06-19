@@ -9113,6 +9113,13 @@
           "message": "Table view: Shared and Archived tags now sit inline with the file details line",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:22:25.363Z"
+        },
+        {
+          "id": "0c6c4551-58f7-4ba4-8bcf-787bba7540cd",
+          "patch": 16,
+          "message": "Table view: document icon borderless to match folder style; columns tightened to fit full screen",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:29:03.412Z"
         }
       ],
       "publishedPatch": 15,
