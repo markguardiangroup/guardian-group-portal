@@ -2635,10 +2635,10 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           {isLoading ? (
             <FetchingOverlay />
           ) : filteredDocuments && filteredDocuments.length > 0 ? (
-            <Table wrapperClassName="overflow-visible" className="sticky-table-header-p8 table-fixed w-full [&_td]:py-2 [&_th]:py-2">
+            <Table wrapperClassName="overflow-visible" className="sticky-table-header-p8 table-fixed w-auto [&_td]:py-2 [&_th]:py-2">
               <TableHeader>
                 <TableRow className="border-b-2 bg-muted hover:bg-muted">
-                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("title")} className="cursor-pointer select-none w-48 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-2">
                       Document
                       {sortBy === "title" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2647,7 +2647,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("folder")} className="cursor-pointer select-none w-24 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <TableHead onClick={() => handleSort("folder")} className="cursor-pointer select-none w-32 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className="flex items-center gap-1">
                       Folder
                       {sortBy === "folder" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}

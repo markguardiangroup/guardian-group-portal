@@ -9218,6 +9218,13 @@
           "message": "Fixed: document table column widths rebalanced to eliminate horizontal scrollbar",
           "category": "bug",
           "createdAt": "2026-06-19T16:30:19.969Z"
+        },
+        {
+          "id": "f42ef65c-236a-4d75-85e4-f584eec369c7",
+          "patch": 16,
+          "message": "Table view: wider Folder column, narrower Document column, table no longer stretches full width",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T16:34:02.838Z"
         }
       ],
       "publishedPatch": 15,
