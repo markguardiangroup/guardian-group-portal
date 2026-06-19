@@ -9281,6 +9281,13 @@
           "message": "Table view: missing required doc rows now align correctly with all columns",
           "category": "bug",
           "createdAt": "2026-06-19T20:43:12.779Z"
+        },
+        {
+          "id": "ab2a04b6-b832-46ed-a3a4-77854ac78ede",
+          "patch": 16,
+          "message": "Table view: missing doc rows now match regular row font size and icon style",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T20:45:02.954Z"
         }
       ],
       "publishedPatch": 15,

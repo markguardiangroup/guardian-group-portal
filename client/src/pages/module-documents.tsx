@@ -2878,13 +2878,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 {!searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" && tableMissingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 border-dashed ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30 border-2 border-dashed border-amber-300 dark:border-amber-700">
-                          <AlertCircle className="h-5 w-5 text-amber-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                      <div className="flex items-center gap-2.5">
+                        <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-snug truncate text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug truncate">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -2920,13 +2918,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 {tableMissingSlots.map((slot) => (
                   <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900/30 border-2 border-dashed border-amber-300 dark:border-amber-700">
-                          <AlertCircle className="h-5 w-5 text-amber-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-amber-800 dark:text-amber-200">{slot.templateName}</p>
-                          <p className="text-sm text-amber-600 dark:text-amber-400">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
+                      <div className="flex items-center gap-2.5">
+                        <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-snug truncate text-amber-800 dark:text-amber-200">{slot.templateName}</p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 leading-snug truncate">Mandatory — not yet uploaded{slot.siteName ? ` · ${slot.siteName}` : ""}{isPrivilegedUser ? " — click to upload" : ""}</p>
                         </div>
                       </div>
                     </TableCell>
