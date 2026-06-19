@@ -9323,6 +9323,13 @@
           "message": "Fixed: All Sites card, site cards, and Documents page now show the same mandatory compliant count — only docs explicitly shared to site level are counted",
           "category": "bug",
           "createdAt": "2026-06-19T22:10:00.000Z"
+        },
+        {
+          "id": "c4e3f6b8-zero-share-company-docs-hidden-site-view-2026",
+          "patch": 16,
+          "message": "Fixed: company docs without site-level shares no longer appear in site or company document lists",
+          "category": "bug",
+          "createdAt": "2026-06-19T22:20:00.000Z"
         }
       ],
       "publishedPatch": 15,

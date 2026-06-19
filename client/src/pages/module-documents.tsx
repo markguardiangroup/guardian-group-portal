@@ -1108,10 +1108,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       // Scope-view already constrains by entity; skip site/company filters
     } else if (selectedSiteId && selectedSiteId !== "all") {
       if (doc.siteId === null) {
-        // Scoped (group/company) doc — include only if the hierarchy confirms it
-        // is visible for the selected site. Works regardless of isSharedLink value
-        // (admins are "origin" users so isSharedLink=false even for shared docs).
-        matchesSite = sharedDocIdSet.has(doc.id);
+        // Scoped (group/company) doc — include only if it has an explicit share
+        // record pointing to this site or to this site's company. Relying solely
+        // on sharedDocIdSet is not sufficient because the server hierarchy also
+        // returns company-owned docs for their company's own sites without any
+        // share record, which we intentionally exclude from site-level counts.
+        const _swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
+        const _swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
+        const _selSite = filteredSites.find(s => s.id === selectedSiteId);
+        matchesSite =
+          (_swsi?.includes(selectedSiteId) ?? false) ||
+          !!(_selSite && _swci?.includes(_selSite.companyId));
       } else {
         matchesSite = doc.siteId === selectedSiteId;
       }
@@ -1132,9 +1139,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
         matchesCompany =
           (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
-          !!(selectedCompanyId && sharedWithCompanyIds?.includes(selectedCompanyId)) ||
-          // Doc owned by this company — no share record exists for the origin entity
-          !!(selectedCompanyId && (doc as any).entityId === selectedCompanyId);
+          !!(selectedCompanyId && sharedWithCompanyIds?.includes(selectedCompanyId));
       } else {
         const docCompanyName = (doc as any).companyName || sites?.find(s => s.id === doc.siteId)?.companyName;
         matchesCompany = docCompanyName === selectedCompany;
