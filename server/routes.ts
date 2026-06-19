@@ -14089,27 +14089,29 @@ export async function registerRoutes(
           if (!includeArchived && doc.isArchived) continue;
           if (module && doc.module !== module) continue;
           const shares = sharesByDocIdHierarchy.get(doc.id) ?? [];
+          // Universal visibility rule for every scoped (company/group) doc: it is only
+          // visible at a site if it has an explicit share record pointing to that exact
+          // site OR to its company. Zero-share scoped docs — and docs shared only to
+          // unrelated sites/companies — are hidden from all site/company/group views.
+          // This keeps server folder counts in lockstep with the client's display gates.
+          const hasSiteShare = shares.some((s: any) => s.entityType === "site" && s.entityId === siteId);
+          const hasCompanyShare = shares.some((s: any) => s.entityType === "company" && s.entityId === companyId);
           if (doc.scope === "company" && doc.entityId === companyId) {
-            // Company-scope docs owned by this company are only visible at a site if
-            // they have an explicit share record pointing to that site or its company.
-            // Zero-share company docs are hidden from all site/company views.
-            const hasSiteShare = shares.some((s: any) => s.entityType === "site" && s.entityId === siteId);
-            const hasCompanyShare = shares.some((s: any) => s.entityType === "company" && s.entityId === companyId);
             if (!hasSiteShare && !hasCompanyShare) continue;
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "company", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && doc.entityId === companyId) {
-            // Own group doc: appears at own sites only if at least one share record exists
-            if (shares.length > 0) {
-              seenIds.add(doc.id);
-              results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
-            }
+            // Own group doc: appears at own sites only if explicitly shared to this site or company.
+            if (!hasSiteShare && !hasCompanyShare) continue;
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
           } else if (doc.scope === "group" && (company as any).groupOwnerId && doc.entityId === (company as any).groupOwnerId) {
-            if (shares.some((s: any) => s.entityType === "company" && s.entityId === companyId)) {
-              const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
-              seenIds.add(doc.id);
-              results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
-            }
+            // Inherited group-owner doc: visible to a member site only via an explicit
+            // share to that site or to the member company (site-target shares included).
+            if (!hasSiteShare && !hasCompanyShare) continue;
+            const goCompany = companyMapHierarchy.get((company as any).groupOwnerId);
+            seenIds.add(doc.id);
+            results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
           }
         }
         return results;

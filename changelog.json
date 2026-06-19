@@ -9358,6 +9358,13 @@
           "message": "Fixed: company/group docs with no shares are now hidden in all folder and table views",
           "category": "bug",
           "createdAt": "2026-06-19T23:15:00.000Z"
+        },
+        {
+          "id": "1d164c2f-94d4-4848-8aa7-8363bf24c53d",
+          "patch": 16,
+          "message": "Fixed: group-scoped docs now require an explicit share to show and be counted at a site",
+          "category": "bug",
+          "createdAt": "2026-06-19T23:20:00.801Z"
         }
       ],
       "publishedPatch": 15,

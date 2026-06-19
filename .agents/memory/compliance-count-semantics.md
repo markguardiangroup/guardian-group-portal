@@ -25,19 +25,40 @@ modals, documents list) must agree. The canonical source of truth is the
 - A headline count MUST equal the row count of the modal it opens — drive both
   from the same filtered array + filters.
 
-## Scoped doc visibility (counting a scoped doc for a site/company)
-A doc with `siteId === null` counts for a site when:
+## Scoped doc visibility — EXPLICIT-SHARE-ONLY rule (current, overrides old owner-bypass)
+A scoped doc (`siteId === null`, scope company/group) is visible/counted for a
+site **only** when it has an explicit share record:
 `sharedWithSiteIds.includes(siteId)` OR
-`sharedWithCompanyIds.includes(site.companyId)` OR
-`entityId === site.companyId` (owned by the site's company; origin docs have no
-share record).
+`sharedWithCompanyIds.includes(site.companyId)`.
+There is **NO** `entityId === companyId` owner bypass anymore. Zero-share scoped
+docs — and docs shared only to unrelated sites/companies — must NOT appear or be
+counted in ANY view (All-Sites card, site cards, Documents folder view,
+Documents table view). Folder and table must match exactly.
 
-**Why:** company/group-owned docs often have no share record, so omitting the
-`entityId === companyId` clause made the site card show fewer docs than the
-documents page.
+**Why:** the old owner-bypass (`entityId === companyId`) made company/group docs
+with no shares (or shares to other companies) show up on their owner's sites,
+inflating counts. The user's hard rule: an explicit share is required everywhere.
 
-**How to apply (multi-company scopes):** when scope spans multiple companies
-(e.g. a Group Owner viewing all members), match `entityId` /
-`sharedWithCompanyIds` against the **set of all in-scope company IDs**, not a
-single picked companyId — otherwise owned-but-unshared docs for the other
-in-scope companies get dropped.
+**How to apply — the rule lives in THREE mirrored places; change all together:**
+1. Server `computeSharedDocsForSiteH` (server/routes.ts): every scope branch
+   (company-own, group-own, inherited group-owner) gates on
+   `hasSiteShare || hasCompanyShare` (site-target share to siteId OR company-target
+   share to companyId). This feeds BOTH the hierarchy `sharedDocuments` array AND
+   folder `stats.totalDocuments` (`folderDocuments + childDocs + sharedForThisFolder`).
+2. Client `filteredDocuments` universal gate (module-documents.tsx): drop any
+   `siteId===null` doc with empty sharedWithSiteIds AND empty sharedWithCompanyIds;
+   plus `matchesSite` requires the share to target the selected site/its company.
+3. Client `isVisibleSharedDoc` in `sharedByFolderTemplate`: same site/company gate
+   for folder view.
+
+**Server-restart gotcha:** routes.ts changes do NOT hot-reload — the client
+hot-reloads but the Express server keeps old code until restarted. Symptom of a
+forgotten restart: docs correctly hidden (new client) but folder header count
+still inflated (old server). At ALL-SITES the client `sharedExpansionDeltas`
+masks the server overcount; at a SPECIFIC site there is no delta, so the stale
+server count shows through. Always restart the workflow after editing routes.ts.
+
+**Latent (not yet fixed):** client URL-scope `ownedAtScope` bypass
+(urlScope company/group, no specific site) can still include owned-but-shared-
+elsewhere docs at the company-AGGREGATE view — doesn't manifest with current data;
+align with the server rule if it ever does.
