@@ -1081,12 +1081,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       (!selectedCompany || selectedCompany === "all") &&
       sharedDocIdSet.size > 0
     ) {
-      // Owned group/company-scoped docs are always included (counted once), even
-      // without an explicit share record. Other scoped docs still require the
-      // hierarchy to confirm a share so the table matches the folder view.
+      // Company-scoped docs owned by this company always appear at their own
+      // sites without an explicit share record (mirrors server behaviour).
+      // Group-scoped docs require at least one share record (server line 14099),
+      // so they must be confirmed via sharedDocIdSet just like any other doc.
       const scope = (doc as any).scope;
-      const isOwnedScoped = (scope === "company" || scope === "group") && !!(doc as any).entityId;
-      if (!isOwnedScoped && !sharedDocIdSet.has(doc.id)) return false;
+      const isOwnedCompany = scope === "company" && !!(doc as any).entityId;
+      if (!isOwnedCompany && !sharedDocIdSet.has(doc.id)) return false;
     }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());

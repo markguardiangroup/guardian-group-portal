@@ -8980,6 +8980,13 @@
           "message": "Fixed: HR Documents header stats now match the table document count exactly",
           "category": "bug",
           "createdAt": "2026-06-18T23:15:00.000Z"
+        },
+        {
+          "id": "e5g7i9k1-group-docs-no-share-hidden-table-2026",
+          "patch": 16,
+          "message": "Fixed: group-scoped docs with no share records no longer appear in the documents table",
+          "category": "bug",
+          "createdAt": "2026-06-19T00:00:00.000Z"
         }
       ],
       "publishedPatch": 15,
