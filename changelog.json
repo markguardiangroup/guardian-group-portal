@@ -9099,6 +9099,13 @@
           "message": "Table view: 60-day date highlight reverted back to yellow",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:15:23.682Z"
+        },
+        {
+          "id": "d9f24fe3-be24-47f0-8b33-a600c89f120f",
+          "patch": 16,
+          "message": "Table view: compliance and status badges smaller, columns tightened to fit full screen",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:21:24.992Z"
         }
       ],
       "publishedPatch": 15,

@@ -11,9 +11,10 @@ interface ComplianceBadgeProps {
   expiryDate?: string | Date | null;
   hideApprovalChips?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
-export function ComplianceBadge({ isMandatory, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, className }: ComplianceBadgeProps) {
+export function ComplianceBadge({ isMandatory, status, approvalStatus, renewalDate, expiryDate, hideApprovalChips = false, className, compact = false }: ComplianceBadgeProps) {
   const now = new Date();
   const isPastRenewal = !!renewalDate && new Date(renewalDate as string) < now;
 
@@ -42,10 +43,10 @@ export function ComplianceBadge({ isMandatory, status, approvalStatus, renewalDa
         <Badge
           key={chip.label}
           variant="outline"
-          className={cn("gap-1.5 font-medium", chip.cls)}
+          className={cn(compact ? "gap-1 text-[10px] px-1.5 py-0 font-medium" : "gap-1.5 font-medium", chip.cls)}
           data-testid={chip.testId}
         >
-          <chip.Icon className="h-3 w-3" />
+          <chip.Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
           {chip.label}
         </Badge>
       ))}
@@ -58,9 +59,10 @@ interface DocumentStatusBadgeProps {
   approvalStatus: ApprovalStatus;
   expiryDate?: string | Date | null;
   className?: string;
+  compact?: boolean;
 }
 
-export function DocumentStatusBadge({ status, approvalStatus, expiryDate, className }: DocumentStatusBadgeProps) {
+export function DocumentStatusBadge({ status, approvalStatus, expiryDate, className, compact = false }: DocumentStatusBadgeProps) {
   const now = new Date();
   let label: string;
   let Icon: typeof CheckCircle;
@@ -114,10 +116,10 @@ export function DocumentStatusBadge({ status, approvalStatus, expiryDate, classN
   return (
     <Badge
       variant="outline"
-      className={cn("gap-1.5 font-medium", statusClassName, className)}
+      className={cn(compact ? "gap-1 text-[10px] px-1.5 py-0 font-medium" : "gap-1.5 font-medium", statusClassName, className)}
       data-testid="badge-document-status"
     >
-      <Icon className="h-3 w-3" />
+      <Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
       {label}
     </Badge>
   );

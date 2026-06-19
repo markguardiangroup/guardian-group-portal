@@ -2635,8 +2635,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead className="w-28 whitespace-nowrap">Compliance</TableHead>
-                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap w-20">
+                  <TableHead className="w-24 whitespace-nowrap">Compliance</TableHead>
+                  <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap w-16">
                     <span className="flex items-center gap-1">
                       Period
                       {sortBy === "renewalPeriodMonths" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
@@ -2654,19 +2654,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       {sortBy === "expiryDate" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none whitespace-nowrap w-32">
+                  <TableHead onClick={() => handleSort("status")} className="cursor-pointer select-none whitespace-nowrap w-28">
                     <span className="flex items-center gap-1">
                       Status
                       {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none whitespace-nowrap w-24">
+                  <TableHead onClick={() => handleSort("updatedAt")} className="cursor-pointer select-none whitespace-nowrap w-20">
                     <span className="flex items-center gap-1">
                       Modified
                       {sortBy === "updatedAt" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}
                     </span>
                   </TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -2734,7 +2734,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <ComplianceBadge isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
+                      <ComplianceBadge compact isMandatory={doc.isMandatory} status={doc.status} approvalStatus={doc.approvalStatus} renewalDate={(doc as any).renewalDate} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
                     <TableCell>
                       {(doc as any).renewalPeriodMonths ? (
@@ -2776,7 +2776,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <DocumentStatusBadge status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
+                      <DocumentStatusBadge compact status={doc.status} approvalStatus={doc.approvalStatus} expiryDate={(doc as any).expiryDate} />
                     </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
                       {doc.updatedAt && format(new Date(doc.updatedAt), "d MMM yyyy")}
