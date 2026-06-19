@@ -9211,6 +9211,13 @@
           "message": "Fixed: document table columns fit on screen with no horizontal scrollbar",
           "category": "bug",
           "createdAt": "2026-06-19T16:24:50.507Z"
+        },
+        {
+          "id": "118106da-f42d-47a6-8153-0ae82fcc6d33",
+          "patch": 16,
+          "message": "Fixed: document table column widths rebalanced to eliminate horizontal scrollbar",
+          "category": "bug",
+          "createdAt": "2026-06-19T16:30:19.969Z"
         }
       ],
       "publishedPatch": 15,
