@@ -9183,6 +9183,13 @@
           "message": "Table view: added sortable Folder column between Document and Compliance",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:11:24.097Z"
+        },
+        {
+          "id": "837fa8aa-62a0-4c61-8f20-bf7834075544",
+          "patch": 16,
+          "message": "Table view: narrowed the Folder column width",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T16:12:52.260Z"
         }
       ],
       "publishedPatch": 15,
