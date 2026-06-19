@@ -9302,6 +9302,13 @@
           "message": "Table view: missing doc rows show company and site in amber colour",
           "category": "enhancement",
           "createdAt": "2026-06-19T20:55:19.083Z"
+        },
+        {
+          "id": "74f9828f-0b6b-4993-b32f-2089bd9f79a6",
+          "patch": 16,
+          "message": "Fixed: company-scoped docs without share records no longer counted in site compliance tiles",
+          "category": "bug",
+          "createdAt": "2026-06-19T21:25:41.081Z"
         }
       ],
       "publishedPatch": 15,
