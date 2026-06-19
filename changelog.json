@@ -9239,6 +9239,13 @@
           "message": "Fixed: document table columns now use percentage widths — no horizontal scrollbar on any screen size",
           "category": "bug",
           "createdAt": "2026-06-19T18:05:13.415Z"
+        },
+        {
+          "id": "a4e653a8-5287-43f8-9137-a095b11efc78",
+          "patch": 16,
+          "message": "Table view: Document column wider (26%), Folder column narrower (7%)",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T18:07:16.291Z"
         }
       ],
       "publishedPatch": 15,
