@@ -1161,28 +1161,32 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     // Filter by renewal date
     let matchesRenewal = true;
     if (renewalFilter !== "all") {
+      const now = new Date();
+      const renewalDate = doc.renewalDate ? new Date(doc.renewalDate) : null;
+      const expiryDate = (doc as any).expiryDate ? new Date((doc as any).expiryDate) : null;
       if (renewalFilter === "none") {
-        matchesRenewal = !doc.renewalDate;
-      } else if (!doc.renewalDate) {
-        // Date-based filter active but doc has no renewal date — exclude it
-        matchesRenewal = false;
+        matchesRenewal = !renewalDate && !expiryDate;
+      } else if (renewalFilter === "overdue") {
+        matchesRenewal = !!(renewalDate && renewalDate < now);
+      } else if (renewalFilter === "expired") {
+        matchesRenewal = !!(expiryDate && expiryDate < now);
       } else {
-        const now = new Date();
-        const renewalDate = new Date(doc.renewalDate);
-        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        // "next Ndays" — include docs whose renewal date OR expiry date falls in the window
+        const daysUntilRenewal = renewalDate ? Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+        const daysUntilExpiry = expiryDate ? Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+        const inWindow = (days: number | null, limit: number) => days !== null && days >= 0 && days <= limit;
         switch (renewalFilter) {
-          case "overdue":
-            matchesRenewal = daysUntilRenewal < 0;
-            break;
           case "30days":
-            matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 30;
+            matchesRenewal = inWindow(daysUntilRenewal, 30) || inWindow(daysUntilExpiry, 30);
             break;
           case "60days":
-            matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 60;
+            matchesRenewal = inWindow(daysUntilRenewal, 60) || inWindow(daysUntilExpiry, 60);
             break;
           case "90days":
-            matchesRenewal = daysUntilRenewal >= 0 && daysUntilRenewal <= 90;
+            matchesRenewal = inWindow(daysUntilRenewal, 90) || inWindow(daysUntilExpiry, 90);
             break;
+          default:
+            matchesRenewal = false;
         }
       }
     }
@@ -2592,16 +2596,17 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </Select>
                   )}
                   <Select value={renewalFilter} onValueChange={setRenewalFilter}>
-                    <SelectTrigger className="w-44" data-testid="select-renewal-filter">
-                      <SelectValue placeholder="Renewal Date" />
+                    <SelectTrigger className="w-52" data-testid="select-renewal-filter">
+                      <SelectValue placeholder="Renewals / Expiry" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Renewals</SelectItem>
+                      <SelectItem value="all">All Renewals / Expiry</SelectItem>
                       <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
                       <SelectItem value="30days">Next 30 Days</SelectItem>
                       <SelectItem value="60days">Next 60 Days</SelectItem>
                       <SelectItem value="90days">Next 90 Days</SelectItem>
-                      <SelectItem value="none">No Renewal Date</SelectItem>
+                      <SelectItem value="none">No Renewal / Expiry</SelectItem>
                     </SelectContent>
                   </Select>
                   {hasActiveFilters && (

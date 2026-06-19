@@ -9064,6 +9064,13 @@
           "message": "Table view: Clear filters is now an icon-only button to prevent layout shift",
           "category": "enhancement",
           "createdAt": "2026-06-19T13:46:14.641Z"
+        },
+        {
+          "id": "fd33cc31-dde5-4b46-a0c5-539549bc4fd1",
+          "patch": 16,
+          "message": "Table view: Renewals filter now covers expiry dates too, with a new Expired option and updated labels",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T14:54:55.272Z"
         }
       ],
       "publishedPatch": 15,
