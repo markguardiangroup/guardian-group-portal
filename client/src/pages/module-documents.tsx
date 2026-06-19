@@ -2635,7 +2635,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       </span>
                     </span>
                   </TableHead>
-                  <TableHead className="w-24 whitespace-nowrap">Compliance</TableHead>
+                  <TableHead className="w-16 whitespace-nowrap">Compliance</TableHead>
                   <TableHead onClick={() => handleSort("renewalPeriodMonths")} className="cursor-pointer select-none whitespace-nowrap w-16">
                     <span className="flex items-center gap-1">
                       Period

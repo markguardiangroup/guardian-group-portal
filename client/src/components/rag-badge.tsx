@@ -38,16 +38,17 @@ export function ComplianceBadge({ isMandatory, status, approvalStatus, renewalDa
   if (chips.length === 0) return null;
 
   return (
-    <div className={cn("flex items-center gap-1 flex-wrap", className)}>
+    <div className={cn(compact ? "flex items-center gap-1" : "flex items-center gap-1 flex-wrap", className)}>
       {chips.map(chip => (
         <Badge
           key={chip.label}
           variant="outline"
-          className={cn(compact ? "gap-1 text-[10px] px-1.5 py-0 font-medium" : "gap-1.5 font-medium", chip.cls)}
+          title={chip.label}
+          className={cn(compact ? "gap-0 text-[10px] px-1 py-0 font-medium" : "gap-1.5 font-medium", chip.cls)}
           data-testid={chip.testId}
         >
-          <chip.Icon className={compact ? "h-2.5 w-2.5" : "h-3 w-3"} />
-          {chip.label}
+          <chip.Icon className={compact ? "h-3 w-3" : "h-3 w-3"} />
+          {!compact && chip.label}
         </Badge>
       ))}
     </div>
