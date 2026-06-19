@@ -9120,6 +9120,13 @@
           "message": "Table view: document icon borderless to match folder style; columns tightened to fit full screen",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:29:03.412Z"
+        },
+        {
+          "id": "efeb9648-bc69-455a-9b50-55c0404b4647",
+          "patch": 16,
+          "message": "Table view: Compliance column narrowed to reduce gap before Period column",
+          "category": "enhancement",
+          "createdAt": "2026-06-19T15:41:05.458Z"
         }
       ],
       "publishedPatch": 15,
