@@ -903,6 +903,22 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     if (!hierarchy?.sharedDocuments) {
       return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
     }
+
+    // When a specific site is selected, only include shared docs that have an
+    // explicit share record pointing to that site (or its company). Zero-share
+    // company/group docs must be excluded here, just as they are in filteredDocuments.
+    const selSite = (selectedSiteId && selectedSiteId !== "all")
+      ? filteredSites.find(s => s.id === selectedSiteId)
+      : null;
+
+    const isVisibleSharedDoc = (doc: HierarchyDocument) => {
+      if (!selSite) return true; // no site filter — show all shared docs
+      const swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
+      const swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
+      return (swsi?.includes(selSite.id) ?? false) ||
+             !!(selSite.companyId && swci?.includes(selSite.companyId));
+    };
+
     const knownTemplateIds = new Set<string>();
     const collectIds = (folders: HierarchyFolder[] | undefined) => {
       if (!folders) return;
@@ -913,6 +929,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     };
     collectIds(hierarchy.folders);
     for (const doc of hierarchy.sharedDocuments) {
+      if (!isVisibleSharedDoc(doc)) continue;
       const tplId = doc.folderTemplateId ?? null;
       if (tplId && knownTemplateIds.has(tplId)) {
         const arr = byTpl.get(tplId) ?? [];
@@ -923,7 +940,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       }
     }
     return { sharedByFolderTemplate: byTpl, unmatchedShared: unmatched };
-  }, [hierarchy]);
+  }, [hierarchy, selectedSiteId, filteredSites]);
 
   // Set of shared-doc IDs that the hierarchy API confirmed are visible for the
   // currently selected site. Used to correctly include shared docs in table view.

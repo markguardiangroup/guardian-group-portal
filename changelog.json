@@ -9337,6 +9337,13 @@
           "message": "Fixed: selecting a site within a company view now only shows docs explicitly shared to that site",
           "category": "bug",
           "createdAt": "2026-06-19T22:30:00.000Z"
+        },
+        {
+          "id": "e6a5b8d0-folder-view-shared-docs-site-filter-2026",
+          "patch": 16,
+          "message": "Fixed: folder view now hides company docs without explicit site shares when a site is selected",
+          "category": "bug",
+          "createdAt": "2026-06-19T22:45:00.000Z"
         }
       ],
       "publishedPatch": 15,
