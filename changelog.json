@@ -9407,6 +9407,13 @@
           "message": "Renamed the site card 'Non Comp.' label to 'Non-compliant'",
           "category": "enhancement",
           "createdAt": "2026-06-20T20:50:09.219Z"
+        },
+        {
+          "id": "d7e1d2c5-33b6-4b1c-9fb1-f830e9db17ea",
+          "patch": 16,
+          "message": "Site card 'Non-compliant' label now fits on a single line",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T20:51:28.886Z"
         }
       ],
       "publishedPatch": 15,
