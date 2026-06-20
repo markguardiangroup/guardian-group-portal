@@ -826,7 +826,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                             <TooltipTrigger asChild>
                               <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && groupNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
                                 {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${groupNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{groupNonCompliant}</p>}
-                                <p className={`text-[10px] ${!isLoadingDocs && groupNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                                <p className={`text-[10px] ${!isLoadingDocs && groupNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non-compliant</p>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="text-xs space-y-0.5">
@@ -1061,7 +1061,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                                 <TooltipTrigger asChild>
                                   <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && cNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
                                     {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${cNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{cNonCompliant}</p>}
-                                    <p className={`text-[10px] ${!isLoadingDocs && cNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                                    <p className={`text-[10px] ${!isLoadingDocs && cNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non-compliant</p>
                                   </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="bottom" className="text-xs space-y-0.5">
@@ -1266,7 +1266,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <TooltipTrigger asChild>
                             <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && allNonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${allNonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{allNonCompliant}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && allNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                              <p className={`text-[10px] ${!isLoadingDocs && allNonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non-compliant</p>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">
@@ -1510,7 +1510,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                           <TooltipTrigger asChild>
                             <div className={`rounded-lg px-1.5 py-1.5 cursor-default ${!isLoadingDocs && nonCompliant > 0 ? "bg-red-50 dark:bg-red-900/20" : "bg-muted/50"}`}>
                               {isLoadingDocs ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-muted-foreground my-0.5" /> : <p className={`text-sm font-bold ${nonCompliant > 0 ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>{nonCompliant}</p>}
-                              <p className={`text-[10px] ${!isLoadingDocs && nonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non Comp.</p>
+                              <p className={`text-[10px] ${!isLoadingDocs && nonCompliant > 0 ? "text-red-600/70 dark:text-red-400/70" : "text-muted-foreground/70"}`}>Non-compliant</p>
                             </div>
                           </TooltipTrigger>
                           <TooltipContent side="bottom" className="text-xs space-y-0.5">

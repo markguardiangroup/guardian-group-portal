@@ -9400,6 +9400,13 @@
           "message": "Fixed: site card tooltips now count all overdue documents, not just expired ones",
           "category": "bug",
           "createdAt": "2026-06-20T20:45:08.012Z"
+        },
+        {
+          "id": "c3b747dd-7e0d-4bf5-8178-7e2ab6f44cae",
+          "patch": 16,
+          "message": "Renamed the site card 'Non Comp.' label to 'Non-compliant'",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T20:50:09.219Z"
         }
       ],
       "publishedPatch": 15,
