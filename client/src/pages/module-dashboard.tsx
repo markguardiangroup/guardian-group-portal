@@ -41,6 +41,21 @@ interface SiteWithCompany {
   address: string | null;
 
   contactPhone: string | null;
+  // Server-side slot-based compliance raw counts per module — the same numbers
+  // /api/sites feeds the module-sites "All Sites" card, so the dashboard's
+  // compliance % stays in lock-step with that card.
+  moduleRawCounts?: {
+    health_safety: { compliant: number; denom: number };
+    human_resources: { compliant: number; denom: number };
+    employment_law: { compliant: number; denom: number };
+  };
+  // Per-module access state — the dashboard only aggregates sites where the
+  // module is active/visible, exactly like the module-sites "All Sites" card.
+  moduleAccess?: {
+    health_safety?: string | null;
+    human_resources?: string | null;
+    employment_law?: string | null;
+  } | null;
 }
 
 interface CompanyListItem {
@@ -448,10 +463,18 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // company's sites, or every site at all-companies/all-sites).
   const inScopeSites = useMemo(() => {
     if (!sites) return [] as SiteWithCompany[];
-    if (siteId) return sites.filter(s => s.id === siteId);
-    if (companySiteIds && companySiteIds.length > 0) return sites.filter(s => companySiteIds.includes(s.id));
-    return sites;
-  }, [sites, siteId, companySiteIds]);
+    // Base set = sites where THIS module is active/visible — identical to the
+    // module-sites "All Sites" card (moduleActiveSites). Sites with the module
+    // disabled must not contribute docs, missing slots or % to the dashboard.
+    const moduleKey = module as keyof NonNullable<SiteWithCompany["moduleAccess"]>;
+    const active = sites.filter(s => {
+      const a = s.moduleAccess?.[moduleKey];
+      return a === "active" || a === "visible";
+    });
+    if (siteId) return active.filter(s => s.id === siteId);
+    if (companySiteIds && companySiteIds.length > 0) return active.filter(s => companySiteIds.includes(s.id));
+    return active;
+  }, [sites, siteId, companySiteIds, module]);
 
   // Per-site expansion — identical to the Documents page. At an aggregate view
   // (more than one site in scope) a scoped (company/group) doc is counted once
@@ -460,33 +483,32 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
   // Single-site views keep one row per doc (no expansion).
   const expandedModuleDocs = useMemo((): Document[] => {
     if (inScopeSites.length <= 1) return filteredModuleDocs;
+    // Aggregate view: build the doc set EXACTLY like the module-sites
+    // "All Sites" card — iterate the in-view (module-active) sites and include,
+    // for each, that site's own docs PLUS any scoped (company/group) doc that is
+    // EXPLICITLY shared to the site or its company. No owner-bypass and no
+    // zero-share fallback: a scoped doc only counts where it is actually shared,
+    // so the dashboard's set is identical to the card's and to the sum of the
+    // individual site cards. Scoped docs are cloned with the covering siteId so
+    // the same doc can appear once per site and dialog rows stay keyable.
     const result: Document[] = [];
-    for (const doc of filteredModuleDocs) {
-      if (doc.siteId !== null) {
-        result.push(doc);
-        continue;
-      }
-      const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
-      const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
-      const anyShare = ((sharedWithSiteIds?.length ?? 0) + (sharedWithCompanyIds?.length ?? 0)) > 0;
-      const coveredSites = inScopeSites.filter(s =>
-        sharedWithSiteIds?.includes(s.id) ||
-        sharedWithCompanyIds?.includes(s.companyId)
-      );
-      if (coveredSites.length === 0) {
-        // A scoped doc with NO share at all must never appear or count — this
-        // mirrors the Documents page universal gate, which drops zero-share
-        // scoped docs before expansion. A doc that HAS shares but none land on
-        // an in-scope site is kept once, mirroring the Documents page fallback.
-        if (anyShare) result.push(doc);
-      } else {
-        for (const site of coveredSites) {
-          result.push({ ...doc, siteId: site.id } as Document);
-        }
+    for (const site of inScopeSites) {
+      for (const doc of (documents ?? [])) {
+        if (!isCountableDoc(doc)) continue;
+        const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
+        const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
+        const visible =
+          doc.siteId === site.id ||
+          (doc.siteId === null && (
+            (sharedWithSiteIds?.includes(site.id) ?? false) ||
+            (sharedWithCompanyIds?.includes(site.companyId) ?? false)
+          ));
+        if (!visible) continue;
+        result.push(doc.siteId === site.id ? doc : ({ ...doc, siteId: site.id } as Document));
       }
     }
     return result;
-  }, [filteredModuleDocs, inScopeSites]);
+  }, [documents, filteredModuleDocs, inScopeSites]);
 
   const docsDialogDocs = useMemo((): Document[] => {
     if (!docsDialogFilter) return [];
@@ -547,9 +569,30 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     () => expandedModuleDocs.filter(d => isCountableDoc(d) && d.isMandatory && (d.status === "overdue" || d.status === "approval_required")).length,
     [expandedModuleDocs],
   );
-  const reqNonCompliantCount = reqNonCompliantPresent + missingRequiredDetails.length;
+  // Missing required slots, scoped to the sites actually in view — mirrors the
+  // "All Sites" card (missingRequiredDetails filtered to filteredSites). Without
+  // this the dashboard counted missing rows for sites outside the current view.
+  const scopedMissingCount = useMemo(() => {
+    const inScopeSiteIds = new Set(inScopeSites.map(s => s.id));
+    return missingRequiredDetails.filter(m => inScopeSiteIds.has(m.siteId)).length;
+  }, [missingRequiredDetails, inScopeSites]);
+  const reqNonCompliantCount = reqNonCompliantPresent + scopedMissingCount;
+  // Compliance % uses the SAME server-side slot-based raw counts that drive the
+  // module-sites "All Sites" card, so the two surfaces always show the same
+  // percentage. Falls back to the doc-based ratio only when raw counts are
+  // absent (e.g. an older cached /api/sites response).
+  const { rawCompliant, rawDenom } = useMemo(() => {
+    let c = 0, d = 0;
+    for (const site of inScopeSites) {
+      const raw = site.moduleRawCounts?.[module as keyof NonNullable<SiteWithCompany["moduleRawCounts"]>];
+      if (raw) { c += raw.compliant; d += raw.denom; }
+    }
+    return { rawCompliant: c, rawDenom: d };
+  }, [inScopeSites, module]);
   const complianceDenom = reqCompliantCount + reqNonCompliantCount;
-  const complianceScore = complianceDenom > 0 ? Math.round((reqCompliantCount / complianceDenom) * 100) : 0;
+  const complianceScore = rawDenom > 0
+    ? Math.round((rawCompliant / rawDenom) * 100)
+    : complianceDenom > 0 ? Math.round((reqCompliantCount / complianceDenom) * 100) : 0;
 
   // Rows mirror the (per-site expanded) tile counts. Expanded scoped docs carry a
   // real siteId, so the same doc id can appear once per site — the key includes

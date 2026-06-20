@@ -9379,6 +9379,13 @@
           "message": "Fixed: HR dashboard compliant/non-compliant/score now match the Documents page",
           "category": "bug",
           "createdAt": "2026-06-19T23:50:54.029Z"
+        },
+        {
+          "id": "7fd47fed-7a32-41e8-8247-24cbecfec122",
+          "patch": 16,
+          "message": "Fixed: HR dashboard compliance counts and score now match the All Sites card",
+          "category": "bug",
+          "createdAt": "2026-06-20T00:06:07.014Z"
         }
       ],
       "publishedPatch": 15,

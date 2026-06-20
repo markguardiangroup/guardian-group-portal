@@ -1,6 +1,6 @@
 - [Changelog patch discipline](changelog-patch-discipline.md) — always read the live `patch` from the active version in changelog.json; never trust a cached/scratchpad value.
 - [Role model & naming](role-model.md) — `administrator` (display "Admin") vs `developer` super-admin; `admin` is forbidden (boot migration rewrites it); isProConsultant closure architecture.
 - [Role rename conventions](role-rename-conventions.md) — Admin role is now "Developer"; what to rename vs preserve, and the users/portal_messages data-migration gotcha.
-- [Compliance count semantics](compliance-count-semantics.md) — counts are client doc-based off the `status` field + isCountableDoc; mandatory-approved = status "compliant"; headline must equal modal rows; scoped docs count by share OR entityId==company.
+- [Compliance count semantics](compliance-count-semantics.md) — all surfaces must match the canonical "All Sites" card; explicit-share-only for scoped docs (no owner-bypass); aggregate parity needs same module-active site set + per-site doc expansion + summed raw %.
 - [SSE real-time gotchas](sse-realtime-gotchas.md) — TanStack prefix-match excludes sibling `/foo/online` keys; company-scoped emits must run before row delete; emit after all downstream mutations.
 - [DB push workflow](db-push-workflow.md) — schema syncs via `db:push` (shared/schema.ts is truth); migrations/ folder + journal are stale/inert, never add migration files.

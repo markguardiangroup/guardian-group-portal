@@ -1,84 +1,56 @@
 ---
 name: Document compliance count semantics
-description: Canonical rules for computing/displaying document compliance counts across site cards, dashboard, and documents list.
+description: Canonical rules for keeping document compliance counts/% consistent across every surface (site cards, module dashboard, documents list).
 ---
 
 # Document compliance count semantics
 
-All compliance counts shown to users (site cards, module dashboard headline +
-modals, documents list) must agree. The canonical source of truth is the
-**client-side, document-based** computation, NOT the server slot-based numbers.
+Every surface that shows compliance (individual site cards, the module-sites
+"All Sites" aggregate card, the module dashboard headline + click-through
+modals, and the Documents list) MUST agree. Treat the **module-sites "All Sites"
+card** as the canonical aggregate — it already matches the Documents page — and
+align other surfaces to it.
 
-## The rules
-- A document's own `status` field is authoritative — do NOT recompute via date
-  math (`expiryDate`/`renewalDate`) or `approvalStatus`. For a **mandatory** doc
-  the approved/good state is exactly `status === "compliant"`; non-mandatory
-  approved docs get `status === "approved"`. (See server
-  `correctMisclassifiedDocuments`.) Statuses: compliant | approval_required |
-  overdue | approved.
-- **Compliant** = mandatory docs with `status === "compliant"`.
-- **Non-Compliant** = mandatory docs not approved (`status` overdue or
-  approval_required) **plus** missing required (from missing-required-templates).
-- Always exclude non-counting docs via `isCountableDoc` from
-  `client/src/lib/doc-stats.ts`: `!isArchived && !caseId && !incidentId &&
-  source !== "external"`. `statusCounts()` buckets by the `status` field.
+## Core rules
+- A doc's own `status` field is authoritative; do NOT recompute from
+  `expiryDate`/`renewalDate`/`approvalStatus`. Mandatory good state = `status
+  === "compliant"`. **Compliant** = mandatory docs with status compliant.
+  **Non-Compliant** = mandatory docs not approved (overdue/approval_required)
+  PLUS missing-required slots.
+- Always exclude non-counting docs with `isCountableDoc` (`client/src/lib/doc-stats.ts`).
 - A headline count MUST equal the row count of the modal it opens — drive both
-  from the same filtered array + filters.
+  from the same filtered array.
 
-## Scoped doc visibility — EXPLICIT-SHARE-ONLY rule (current, overrides old owner-bypass)
-A scoped doc (`siteId === null`, scope company/group) is visible/counted for a
-site **only** when it has an explicit share record:
-`sharedWithSiteIds.includes(siteId)` OR
-`sharedWithCompanyIds.includes(site.companyId)`.
-There is **NO** `entityId === companyId` owner bypass anymore. Zero-share scoped
-docs — and docs shared only to unrelated sites/companies — must NOT appear or be
-counted in ANY view (All-Sites card, site cards, Documents folder view,
-Documents table view). Folder and table must match exactly.
+## Explicit-share-only rule (overrides any old owner-bypass)
+A scoped doc (`siteId === null`) counts for a site **only** with an explicit
+share: `sharedWithSiteIds.includes(siteId)` OR
+`sharedWithCompanyIds.includes(site.companyId)`. There is NO `entityId ===
+companyId` owner bypass. Zero-share scoped docs, and docs shared only to
+unrelated sites/companies, never appear or count anywhere.
+**Why:** the user's hard rule — an explicit share is required everywhere;
+owner-bypass inflated owner-site counts.
 
-**Why:** the old owner-bypass (`entityId === companyId`) made company/group docs
-with no shares (or shares to other companies) show up on their owner's sites,
-inflating counts. The user's hard rule: an explicit share is required everywhere.
+## Aggregate parity (how surfaces drift, and how to stop it)
+- **Same site set.** The card aggregates only sites where the module is
+  active/visible (`moduleAccess[module]` is "active"/"visible"). Any aggregate
+  surface must filter to the SAME module-active set, or sites with the module
+  disabled silently inflate the dashboard's counts/%/missing.
+- **Same doc construction.** Build the aggregate doc set by iterating the
+  in-scope sites and, per site, taking its own docs plus scoped docs explicitly
+  shared to it/its company (cloning scoped docs per covering site). No
+  owner-bypass, no "keep a has-share doc once even if uncovered" fallback —
+  those reintroduce drift. Mirror the card's construction exactly.
+- **Same %.** Per-site compliance % comes from server slot-based raw counts
+  (`site.moduleRawCounts[module]`: compliant/denom). An aggregate % must sum
+  those raw counts across the in-scope sites, not derive from a doc-based ratio.
+- **Why a shared helper is worth it:** these three (site set + doc expansion +
+  raw %) have repeatedly drifted because each surface re-implements them; a
+  single shared helper used by both pages prevents recurrence.
 
-**How to apply — the rule lives in THREE mirrored places; change all together:**
-1. Server `computeSharedDocsForSiteH` (server/routes.ts): every scope branch
-   (company-own, group-own, inherited group-owner) gates on
-   `hasSiteShare || hasCompanyShare` (site-target share to siteId OR company-target
-   share to companyId). This feeds BOTH the hierarchy `sharedDocuments` array AND
-   folder `stats.totalDocuments` (`folderDocuments + childDocs + sharedForThisFolder`).
-2. Client `filteredDocuments` universal gate (module-documents.tsx): drop any
-   `siteId===null` doc with empty sharedWithSiteIds AND empty sharedWithCompanyIds;
-   plus `matchesSite` requires the share to target the selected site/its company.
-3. Client `isVisibleSharedDoc` in `sharedByFolderTemplate`: same site/company gate
-   for folder view.
-4. Client per-site EXPANSION `coveredSites` filters (3 copies: expandedTableDocuments,
-   expandedUnmatchedShared, expandedSharedByFolderTemplate). At all-sites a scoped doc
-   is expanded to one virtual row per covered site, and the header
-   (`adjustedHeaderStats = statusCounts(expandedTableDocuments)`) counts those rows.
-   `coveredSites` must match ONLY explicitly-shared sites/companies
-   (`sharedWithSiteIds.includes(s.id) || sharedWithCompanyIds.includes(s.companyId)`).
-   A removed owner-bypass (`scope==='group' && entityId===s.companyId`) was expanding
-   group docs to their owner company's sites with no share, over-counting the
-   All-Companies/All-Sites totals (e.g. compliant showed 40, should be 38).
-5. The module DASHBOARD (module-dashboard.tsx) is a SEPARATE surface that must
-   also agree. It reads the SAME `["/api/documents/module", module]` query, so to
-   match the Documents page it must expand scoped docs per covered site too
-   (`expandedModuleDocs`) at aggregate views (>1 site in scope). Pitfall: at
-   all-sites `filteredModuleDocs` returns ALL docs (no share gate), so the
-   expansion step itself must DROP zero-share scoped docs (keep a has-share doc
-   once if none of its shares land in scope) to mirror the Documents page gate.
-   Tiles, compliance score, AND the click-through dialogs must all read the
-   expanded list, or tile≠dialog. Note: `filteredModuleDocs` still has an
-   owner-bypass (`entityId===company` for non-group scope) that only affects the
-   SINGLE-SITE dashboard view (expansion is skipped there); left intact.
-
-**Server-restart gotcha:** routes.ts changes do NOT hot-reload — the client
-hot-reloads but the Express server keeps old code until restarted. Symptom of a
-forgotten restart: docs correctly hidden (new client) but folder header count
-still inflated (old server). At ALL-SITES the client `sharedExpansionDeltas`
-masks the server overcount; at a SPECIFIC site there is no delta, so the stale
-server count shows through. Always restart the workflow after editing routes.ts.
-
-**Latent (not yet fixed):** client URL-scope `ownedAtScope` bypass
-(urlScope company/group, no specific site) can still include owned-but-shared-
-elsewhere docs at the company-AGGREGATE view — doesn't manifest with current data;
-align with the server rule if it ever does.
+## Gotchas
+- Counts/% live in BOTH client and server (`computeSharedDocsForSiteH` and folder
+  `stats.totalDocuments` in server/routes.ts). Change the share rule in all
+  mirrored places together.
+- routes.ts does NOT hot-reload — restart the workflow after server edits. At
+  all-sites a client expansion delta can mask a stale server overcount; at a
+  specific site it shows through.
