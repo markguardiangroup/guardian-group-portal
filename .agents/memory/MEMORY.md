@@ -4,3 +4,4 @@
 - [Compliance count semantics](compliance-count-semantics.md) — all surfaces must match the canonical "All Sites" card; explicit-share-only for scoped docs (no owner-bypass); aggregate parity needs same module-active site set + per-site doc expansion + summed raw %.
 - [SSE real-time gotchas](sse-realtime-gotchas.md) — TanStack prefix-match excludes sibling `/foo/online` keys; company-scoped emits must run before row delete; emit after all downstream mutations.
 - [DB push workflow](db-push-workflow.md) — schema syncs via `db:push` (shared/schema.ts is truth); migrations/ folder + journal are stale/inert, never add migration files.
+- [Stale server after merge](stale-server-after-merge.md) — merged server code may keep running old process; audit/behaviour looks unchanged until workflow restart.
