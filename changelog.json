@@ -9435,6 +9435,13 @@
           "message": "Fixed: audit trail now lists only the document fields that actually changed",
           "category": "bug",
           "createdAt": "2026-06-20T21:16:23.171Z"
+        },
+        {
+          "id": "7929e144-11d0-4a5a-9ca9-6cd0524b882d",
+          "patch": 16,
+          "message": "Fixed: company back button no longer loops back to the upload page",
+          "category": "bug",
+          "createdAt": "2026-06-20T21:33:29.349Z"
         }
       ],
       "publishedPatch": 15,

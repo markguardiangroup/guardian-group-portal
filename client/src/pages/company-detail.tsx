@@ -2007,7 +2007,7 @@ export default function CompanyDetail() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-4 shrink-0 px-8 py-6 bg-background border-b">
-        <Button variant="ghost" size="icon" onClick={() => window.history.back()} data-testid="button-back">
+        <Button variant="ghost" size="icon" onClick={() => navigate(fromParam || "/companies")} data-testid="button-back">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
