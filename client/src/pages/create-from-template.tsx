@@ -1388,7 +1388,7 @@ export default function CreateFromTemplate() {
               </div>
             )}
 
-            <div className="rounded-lg border p-4 space-y-3">
+            <div className="rounded-lg border-2 border-muted-foreground/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <h3 className="text-sm font-semibold">Approval</h3>

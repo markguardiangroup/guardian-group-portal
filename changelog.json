@@ -9449,6 +9449,13 @@
           "message": "Approval section tidied: single Client Approval toggle in a clearer panel",
           "category": "enhancement",
           "createdAt": "2026-06-20T21:42:22.199Z"
+        },
+        {
+          "id": "1a793ae2-2b76-4630-bea4-81a72cc67350",
+          "patch": 16,
+          "message": "Approval section panel border is now darker and easier to see",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T21:46:37.921Z"
         }
       ],
       "publishedPatch": 15,
