@@ -4775,20 +4775,25 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           if (field === 'renewalPeriodMonths') return `${v} month${Number(v) === 1 ? '' : 's'}`;
                           return String(v);
                         };
+                        let hasMetadataChanges = false;
                         let updateChanges: { field: string; from: any; to: any }[] = [];
                         if (log.action === 'update_document' && log.metadata) {
                           try {
                             const parsed = JSON.parse(log.metadata);
                             if (Array.isArray(parsed?.changes)) {
-                              updateChanges = parsed.changes.filter((c: any) => c && !IGNORED_UPDATE_FIELDS.has(c.field));
+                              hasMetadataChanges = true;
+                              updateChanges = parsed.changes
+                                .filter((c: any) => c && !IGNORED_UPDATE_FIELDS.has(c.field))
+                                // Only show fields whose displayed value actually changed.
+                                .filter((c: any) => fmtUpdateVal(c.field, c.from) !== fmtUpdateVal(c.field, c.to));
                             }
                           } catch { /* ignore */ }
                         }
                         const hasUpdateChanges = log.action === 'update_document' && updateChanges.length > 0;
                         // Collapse to one line + expand when there are multiple changed fields.
                         const updateNeedsExpand = updateChanges.length > 1;
-                        // Fall back to the plain field-name list only when no before/after detail exists.
-                        const isUpdateEntry = log.action === 'update_document' && !hasUpdateChanges && updatedFields.length > 0;
+                        // Fall back to the plain field-name list only for legacy entries with no before/after metadata.
+                        const isUpdateEntry = log.action === 'update_document' && !hasMetadataChanges && updatedFields.length > 0;
 
                         // For upload entries, parse on-behalf name from metadata
                         let uploadMeta: { onBehalfUserName?: string | null } = {};

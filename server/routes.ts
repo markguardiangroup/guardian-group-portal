@@ -6095,12 +6095,21 @@ export async function registerRoutes(
           const tb = b ? new Date(b).getTime() : null;
           return ta === tb;
         };
+        // Type-aware equality so untouched fields are never reported as changed
+        // (e.g. null vs false for booleans, "12" vs 12 for numbers).
+        const valuesEqual = (field: string, a0: any, b0: any) => {
+          if (DATE_FIELDS.has(field)) return datesEqual(a0, b0);
+          const a = a0 === undefined || a0 === "" ? null : a0;
+          const b = b0 === undefined || b0 === "" ? null : b0;
+          if (typeof a === "boolean" || typeof b === "boolean") return Boolean(a) === Boolean(b);
+          if (a === null && b === null) return true;
+          if (a === null || b === null) return false;
+          return String(a) === String(b);
+        };
         const changes = Object.keys(req.body)
           .filter((k) => !IGNORED_UPDATE_FIELDS.has(k))
           .map((k) => ({ field: k, from: (doc as any)[k] ?? null, to: (updated as any)[k] ?? null }))
-          .filter((c) =>
-            DATE_FIELDS.has(c.field) ? !datesEqual(c.from, c.to) : (c.from ?? null) !== (c.to ?? null),
-          );
+          .filter((c) => !valuesEqual(c.field, c.from, c.to));
         await storage.createAuditLog({
           userId: user.id,
           userName: user.fullName,

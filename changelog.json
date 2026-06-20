@@ -9428,6 +9428,13 @@
           "message": "Audit trail document updates now show old and new values, with expand for long entries",
           "category": "enhancement",
           "createdAt": "2026-06-20T21:08:01.065Z"
+        },
+        {
+          "id": "883b45d1-2f3f-489d-9a1e-1b3211268fc6",
+          "patch": 16,
+          "message": "Fixed: audit trail now lists only the document fields that actually changed",
+          "category": "bug",
+          "createdAt": "2026-06-20T21:16:23.171Z"
         }
       ],
       "publishedPatch": 15,
