@@ -397,67 +397,6 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   type DocsDialogFilter = "req_compliant" | "req_non_compliant" | "req_overdue" | "total" | "all_compliant" | "all_review" | "all_overdue";
   const [docsDialogFilter, setDocsDialogFilter] = useState<DocsDialogFilter | null>(null);
-  const filteredModuleDocs = useMemo(() => {
-    if (!documents) return [];
-    return documents.filter(doc => {
-      if (doc.isArchived) return false;
-      if (siteId) {
-        // Site-owned doc — direct match
-        if (doc.siteId === siteId) return true;
-        // Scoped (group/company) doc — include if shared with this site or the
-        // site's owning company. isSharedLink is false for origin/admin users
-        // so we check siteId===null as the reliable signal for a scoped doc.
-        if (doc.siteId === null) {
-          const siteCompanyId = sites?.find(s => s.id === siteId)?.companyId;
-          const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
-          const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
-          const anyShareExists = ((sharedWithSiteIds?.length ?? 0) + (sharedWithCompanyIds?.length ?? 0)) > 0;
-          return (
-            (sharedWithSiteIds?.includes(siteId) ?? false) ||
-            !!(siteCompanyId && sharedWithCompanyIds?.includes(siteCompanyId)) ||
-            // Company-scoped docs owned by the same company always appear at its sites.
-            // Group-scoped docs owned by the same company appear only if at least one
-            // share record exists (meaning the uploader chose to share it) — the
-            // share recipient does not have to be this specific site or company.
-            !!(siteCompanyId && (doc as any).entityId === siteCompanyId &&
-              ((doc as any).scope !== "group" || anyShareExists))
-          );
-        }
-        return false;
-      }
-      if (companySiteIds && companySiteIds.length > 0) {
-        if (companySiteIds.includes(doc.siteId)) return true;
-        // Also include scoped docs shared with (or owned by) ANY of the companies
-        // in scope. The selection can span multiple companies (e.g. a group
-        // owner viewing all member companies), so we match against the full set
-        // of in-scope company IDs — not a single one — otherwise company-owned
-        // docs for the other in-scope companies would be wrongly dropped.
-        if (doc.siteId === null) {
-          const companySiteIdSet = new Set(companySiteIds);
-          const companyIdSet = new Set(
-            (sites ?? [])
-              .filter(s => companySiteIdSet.has(s.id))
-              .map(s => s.companyId)
-          );
-          const sharedWithSiteIds = (doc as any).sharedWithSiteIds as string[] | undefined;
-          const sharedWithCompanyIds = (doc as any).sharedWithCompanyIds as string[] | undefined;
-          const entityId = (doc as any).entityId as string | undefined;
-          const anyShareExistsM = ((sharedWithSiteIds?.length ?? 0) + (sharedWithCompanyIds?.length ?? 0)) > 0;
-          return (
-            (sharedWithSiteIds?.some(sid => companySiteIdSet.has(sid)) ?? false) ||
-            (sharedWithCompanyIds?.some(cid => companyIdSet.has(cid)) ?? false) ||
-            // Company-scoped docs owned by any in-scope company always appear.
-            // Group-scoped docs owned by an in-scope company appear only if at
-            // least one share record exists (recipient doesn't matter).
-            !!(entityId && companyIdSet.has(entityId) &&
-              ((doc as any).scope !== "group" || anyShareExistsM))
-          );
-        }
-        return false;
-      }
-      return true;
-    });
-  }, [documents, siteId, companySiteIds, sites]);
 
   // The sites that are in view for the current selection (single site, a
   // company's sites, or every site at all-companies/all-sites).
@@ -476,21 +415,16 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
     return active;
   }, [sites, siteId, companySiteIds, module]);
 
-  // Per-site expansion — identical to the Documents page. At an aggregate view
-  // (more than one site in scope) a scoped (company/group) doc is counted once
-  // per site it is EXPLICITLY shared with, so the dashboard tiles, score and
-  // dialogs equal the Documents page and the sum of the individual site cards.
-  // Single-site views keep one row per doc (no expansion).
+  // The dashboard doc set — built EXACTLY like the module-sites cards and the
+  // Documents page so every scope agrees: single site, a company's sites, or
+  // all sites. Iterate the in-scope (module-active) sites and include, per site,
+  // that site's own docs PLUS any scoped (company/group) doc EXPLICITLY shared to
+  // the site or its company. Explicit-share-only — NO owner-bypass (entityId ===
+  // company) and no zero-share fallback — so a scoped doc only counts where it is
+  // actually shared. Scoped docs are cloned with the covering siteId so the same
+  // doc can appear once per covered site and dialog rows stay keyable. This is
+  // the SAME loop the All Sites aggregate card uses, applied at every scope.
   const expandedModuleDocs = useMemo((): Document[] => {
-    if (inScopeSites.length <= 1) return filteredModuleDocs;
-    // Aggregate view: build the doc set EXACTLY like the module-sites
-    // "All Sites" card — iterate the in-view (module-active) sites and include,
-    // for each, that site's own docs PLUS any scoped (company/group) doc that is
-    // EXPLICITLY shared to the site or its company. No owner-bypass and no
-    // zero-share fallback: a scoped doc only counts where it is actually shared,
-    // so the dashboard's set is identical to the card's and to the sum of the
-    // individual site cards. Scoped docs are cloned with the covering siteId so
-    // the same doc can appear once per site and dialog rows stay keyable.
     const result: Document[] = [];
     for (const site of inScopeSites) {
       for (const doc of (documents ?? [])) {
@@ -508,7 +442,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
       }
     }
     return result;
-  }, [documents, filteredModuleDocs, inScopeSites]);
+  }, [documents, inScopeSites]);
 
   const docsDialogDocs = useMemo((): Document[] => {
     if (!docsDialogFilter) return [];

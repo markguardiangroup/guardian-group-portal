@@ -48,9 +48,13 @@ owner-bypass inflated owner-site counts.
   single shared helper used by both pages prevents recurrence.
 
 ## Gotchas
-- Counts/% live in BOTH client and server (`computeSharedDocsForSiteH` and folder
-  `stats.totalDocuments` in server/routes.ts). Change the share rule in all
-  mirrored places together.
-- routes.ts does NOT hot-reload — restart the workflow after server edits. At
-  all-sites a client expansion delta can mask a stale server overcount; at a
-  specific site it shows through.
+- The share/visibility rule is mirrored in BOTH the client surfaces and the
+  server doc-sharing + folder-stats computations. Change all mirrors together or
+  a header count will disagree with its list.
+- Server code does NOT hot-reload — restart the workflow after server edits. At
+  all-sites a client-side expansion delta can mask a stale server overcount; at a
+  specific site there is no delta, so the stale count shows through.
+- The module DASHBOARD must build its doc set with the SAME explicit-share,
+  per-in-scope-site loop at EVERY scope (single site, company, all sites) — a
+  single-site special-case that reused the old owner-bypass filter silently
+  inflated site-level totals/%. One construction, all scopes.

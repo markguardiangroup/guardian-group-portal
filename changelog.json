@@ -9386,6 +9386,13 @@
           "message": "Fixed: HR dashboard compliance counts and score now match the All Sites card",
           "category": "bug",
           "createdAt": "2026-06-20T00:06:07.014Z"
+        },
+        {
+          "id": "3f4e2ec8-69f1-4f2b-afea-02e5147dc681",
+          "patch": 16,
+          "message": "Fixed: site-level compliance dashboard now matches the site card and document list",
+          "category": "bug",
+          "createdAt": "2026-06-20T00:19:49.992Z"
         }
       ],
       "publishedPatch": 15,
