@@ -4763,7 +4763,32 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             .filter(k => k && !IGNORED_UPDATE_FIELDS.has(k))
                             .map(humanizeField);
                         }
-                        const isUpdateEntry = log.action === 'update_document' && updatedFields.length > 0;
+                        // Newer update entries carry the actual before/after values in metadata.
+                        const DATE_UPDATE_FIELDS = new Set(['expiryDate', 'renewalDate', 'reviewDate', 'lastApprovedAt']);
+                        const fmtUpdateVal = (field: string, v: any): string => {
+                          if (v === null || v === undefined || v === '') return '—';
+                          if (DATE_UPDATE_FIELDS.has(field)) {
+                            const d = new Date(v);
+                            return isNaN(d.getTime()) ? String(v) : format(d, 'MMM d, yyyy');
+                          }
+                          if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+                          if (field === 'renewalPeriodMonths') return `${v} month${Number(v) === 1 ? '' : 's'}`;
+                          return String(v);
+                        };
+                        let updateChanges: { field: string; from: any; to: any }[] = [];
+                        if (log.action === 'update_document' && log.metadata) {
+                          try {
+                            const parsed = JSON.parse(log.metadata);
+                            if (Array.isArray(parsed?.changes)) {
+                              updateChanges = parsed.changes.filter((c: any) => c && !IGNORED_UPDATE_FIELDS.has(c.field));
+                            }
+                          } catch { /* ignore */ }
+                        }
+                        const hasUpdateChanges = log.action === 'update_document' && updateChanges.length > 0;
+                        // Collapse to one line + expand when there are multiple changed fields.
+                        const updateNeedsExpand = updateChanges.length > 1;
+                        // Fall back to the plain field-name list only when no before/after detail exists.
+                        const isUpdateEntry = log.action === 'update_document' && !hasUpdateChanges && updatedFields.length > 0;
 
                         // For upload entries, parse on-behalf name from metadata
                         let uploadMeta: { onBehalfUserName?: string | null } = {};
@@ -4794,7 +4819,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   <p className="text-xs text-muted-foreground mt-0.5">
                                     {log.action === 'email_sent'
                                       ? <>to <span className="font-medium text-foreground">{(/to\s+(.+)$/.exec(details ?? '') ?? [])[1] ?? details}</span></>
-                                      : <>{log.userName}{onBehalfName ? <> · on behalf of <span className="font-medium text-foreground">{onBehalfName}</span></> : null}</>
+                                      : <>{log.userName}{onBehalfName && log.action !== 'update_document' ? <> · on behalf of <span className="font-medium text-foreground">{onBehalfName}</span></> : null}</>
                                     } · {format(new Date(log.createdAt), "MMM d, yyyy 'at' h:mm a")}
                                   </p>
                                   {isRenameEntry && (
@@ -4806,6 +4831,22 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                     <p className="text-xs text-muted-foreground mt-0.5 break-words" data-testid={`text-updated-fields-${log.id}`}>
                                       Updated <span className="text-foreground font-medium">{updatedFields.join(', ')}</span>
                                     </p>
+                                  )}
+                                  {hasUpdateChanges && (
+                                    updateNeedsExpand && !isExpanded ? (
+                                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1" data-testid={`text-updated-fields-${log.id}`}>
+                                        Updated <span className="text-foreground font-medium">{updateChanges.map(c => humanizeField(c.field)).join(', ')}</span>
+                                      </p>
+                                    ) : (
+                                      <div className="mt-0.5 space-y-0.5" data-testid={`text-updated-fields-${log.id}`}>
+                                        {updateChanges.map((c, i) => (
+                                          <p key={i} className="text-xs text-muted-foreground break-words">
+                                            <span className="text-foreground font-medium">{humanizeField(c.field)}</span>
+                                            {' '}changed from <span className="text-foreground">{fmtUpdateVal(c.field, c.from)}</span> to <span className="text-foreground font-medium">{fmtUpdateVal(c.field, c.to)}</span>
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )
                                   )}
                                   {isExpanded && hasManualComment && (
                                     <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
@@ -4822,6 +4863,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       data-testid={`button-expand-log-${log.id}`}
                                     >
                                       {isExpanded ? 'Hide comment' : 'Expand to see comment'}
+                                    </button>
+                                  )}
+                                  {hasUpdateChanges && updateNeedsExpand && (
+                                    <button
+                                      className="text-xs text-primary hover:underline"
+                                      onClick={toggleLog}
+                                      data-testid={`button-expand-log-${log.id}`}
+                                    >
+                                      {isExpanded ? 'Hide changes' : 'Show changes'}
                                     </button>
                                   )}
                                 </div>

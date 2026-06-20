@@ -9421,6 +9421,13 @@
           "message": "Audit trail now shows which fields a document update changed",
           "category": "enhancement",
           "createdAt": "2026-06-20T20:59:22.511Z"
+        },
+        {
+          "id": "9e0f4836-a3bc-46bd-baa9-e7728e9934b8",
+          "patch": 16,
+          "message": "Audit trail document updates now show old and new values, with expand for long entries",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T21:08:01.065Z"
         }
       ],
       "publishedPatch": 15,

@@ -6085,6 +6085,22 @@ export async function registerRoutes(
           ipAddress: req.ip,
         });
       } else {
+        // Record the before/after value of each field the user actually changed so
+        // the audit trail can show "X changed from … to …". Compare against the
+        // persisted result so server-side recalculations are reflected accurately.
+        const IGNORED_UPDATE_FIELDS = new Set(["id", "entityId", "updatedAt", "createdAt"]);
+        const DATE_FIELDS = new Set(["expiryDate", "renewalDate", "reviewDate", "lastApprovedAt"]);
+        const datesEqual = (a: any, b: any) => {
+          const ta = a ? new Date(a).getTime() : null;
+          const tb = b ? new Date(b).getTime() : null;
+          return ta === tb;
+        };
+        const changes = Object.keys(req.body)
+          .filter((k) => !IGNORED_UPDATE_FIELDS.has(k))
+          .map((k) => ({ field: k, from: (doc as any)[k] ?? null, to: (updated as any)[k] ?? null }))
+          .filter((c) =>
+            DATE_FIELDS.has(c.field) ? !datesEqual(c.from, c.to) : (c.from ?? null) !== (c.to ?? null),
+          );
         await storage.createAuditLog({
           userId: user.id,
           userName: user.fullName,
@@ -6092,7 +6108,8 @@ export async function registerRoutes(
           entityId: doc.entityId,
           documentId: id,
           module: doc.module as any,
-          details: `Updated: ${Object.keys(req.body).join(", ")}`,
+          details: `Updated: ${changes.map((c) => c.field).join(", ")}`,
+          metadata: JSON.stringify({ changes }),
           ipAddress: req.ip,
         });
       }
