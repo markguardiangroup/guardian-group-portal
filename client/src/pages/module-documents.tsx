@@ -4558,6 +4558,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 case 'document_downloaded': return 'Document downloaded';
                 case 'document_archived': return 'Document archived';
                 case 'document_renamed': return 'Document name updated';
+                case 'update_document': return 'Document updated';
                 default: return action.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
               }
             };
@@ -4730,6 +4731,40 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         }
                         const isRenameEntry = log.action === 'document_renamed' && !!(renameMeta.from || renameMeta.to);
 
+                        // For "Document updated" entries, turn the stored field-key list
+                        // ("Updated: title, expiryDate") into friendly, human-readable names.
+                        const FIELD_LABELS: Record<string, string> = {
+                          title: 'Title',
+                          description: 'Description',
+                          expiryDate: 'Expiry date',
+                          renewalDate: 'Renewal date',
+                          renewalPeriodMonths: 'Renewal period',
+                          noExpiry: 'Expiry settings',
+                          isMandatory: 'Mandatory status',
+                          requiresApproval: 'Approval requirement',
+                          status: 'Status',
+                          notes: 'Notes',
+                          reference: 'Reference number',
+                          fileUrl: 'File',
+                          reviewDate: 'Review date',
+                          category: 'Category',
+                          tags: 'Tags',
+                        };
+                        const IGNORED_UPDATE_FIELDS = new Set(['id', 'entityId', 'updatedAt', 'createdAt']);
+                        const humanizeField = (k: string) =>
+                          FIELD_LABELS[k] ??
+                          k.replace(/([A-Z])/g, ' $1').replace(/^./, (c: string) => c.toUpperCase()).trim();
+                        let updatedFields: string[] = [];
+                        if (log.action === 'update_document' && details.startsWith('Updated:')) {
+                          updatedFields = details
+                            .slice('Updated:'.length)
+                            .split(',')
+                            .map(s => s.trim())
+                            .filter(k => k && !IGNORED_UPDATE_FIELDS.has(k))
+                            .map(humanizeField);
+                        }
+                        const isUpdateEntry = log.action === 'update_document' && updatedFields.length > 0;
+
                         // For upload entries, parse on-behalf name from metadata
                         let uploadMeta: { onBehalfUserName?: string | null } = {};
                         if ((log.action === 'document_uploaded' || log.action === 'document_version_uploaded' || log.action === 'version_uploaded') && log.metadata) {
@@ -4765,6 +4800,11 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                   {isRenameEntry && (
                                     <p className="text-xs text-muted-foreground mt-0.5 break-words">
                                       Changed from <span className="text-foreground">"{renameMeta.from}"</span> to <span className="text-foreground font-medium">"{renameMeta.to}"</span>
+                                    </p>
+                                  )}
+                                  {isUpdateEntry && (
+                                    <p className="text-xs text-muted-foreground mt-0.5 break-words" data-testid={`text-updated-fields-${log.id}`}>
+                                      Updated <span className="text-foreground font-medium">{updatedFields.join(', ')}</span>
                                     </p>
                                   )}
                                   {isExpanded && hasManualComment && (

@@ -9414,6 +9414,13 @@
           "message": "Site card 'Non-compliant' label now fits on a single line",
           "category": "enhancement",
           "createdAt": "2026-06-20T20:51:28.886Z"
+        },
+        {
+          "id": "db773949-fe94-4c54-b4f2-82e60be79192",
+          "patch": 16,
+          "message": "Audit trail now shows which fields a document update changed",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T20:59:22.511Z"
         }
       ],
       "publishedPatch": 15,
