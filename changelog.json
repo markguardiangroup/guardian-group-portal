@@ -9393,6 +9393,13 @@
           "message": "Fixed: site-level compliance dashboard now matches the site card and document list",
           "category": "bug",
           "createdAt": "2026-06-20T00:19:49.992Z"
+        },
+        {
+          "id": "800e03b8-87ff-4c5a-bfdf-e8872aff5fe1",
+          "patch": 16,
+          "message": "Fixed: site card tooltips now count all overdue documents, not just expired ones",
+          "category": "bug",
+          "createdAt": "2026-06-20T20:45:08.012Z"
         }
       ],
       "publishedPatch": 15,

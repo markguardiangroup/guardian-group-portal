@@ -685,13 +685,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const groupMandatoryCompliant = _gMandatory.filter((d: any) => d.status === "compliant").length;
               const groupReqOverdue = _gMandatory.filter((d: any) => d.status === "overdue").length;
               const groupReqApproval = _gMandatory.filter((d: any) => d.status === "approval_required").length;
-              const groupMandatoryExpired = _gMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
-              const groupMandatoryRenewalOverdue = _gMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupMandatoryExpired = _gMandatory.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupMandatoryRenewalOverdue = _gMandatory.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               // Non-mandatory approved / unapproved
               const groupNmApproved = _gNonMandatory.filter((d: any) => d.status === "approved").length;
               const groupNmUnapproved = _gNonMandatory.length - groupNmApproved;
-              const groupNmExpired = _gNonMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
-              const groupNmRenewalOverdue = _gNonMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _gNow) && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupNmExpired = _gNonMandatory.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
+              const groupNmRenewalOverdue = _gNonMandatory.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _gNow)).length;
               const groupNmApprovalRequired = _gNonMandatory.filter((d: any) => d.status === "approval_required").length;
               // Slot-based compliance score — kept separate from the status tiles so
               // the % stays slot-based: required docs bucketed by expiry/renewal date,
@@ -917,13 +917,13 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                     const cMandatoryCompliant = _cMandatory.filter((d: any) => d.status === "compliant").length;
                     const cReqOverdue = _cMandatory.filter((d: any) => d.status === "overdue").length;
                     const cReqApproval = _cMandatory.filter((d: any) => d.status === "approval_required").length;
-                    const cMandatoryExpired = _cMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
-                    const cMandatoryRenewalOverdue = _cMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cMandatoryExpired = _cMandatory.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cMandatoryRenewalOverdue = _cMandatory.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     // Non-mandatory approved / unapproved
                     const cNmApproved = _cNonMandatory.filter((d: any) => d.status === "approved").length;
                     const cNmUnapproved = _cNonMandatory.length - cNmApproved;
-                    const cNmExpired = _cNonMandatory.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
-                    const cNmRenewalOverdue = _cNonMandatory.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _cNow) && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cNmExpired = _cNonMandatory.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
+                    const cNmRenewalOverdue = _cNonMandatory.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _cNow)).length;
                     const cNmApprovalRequired = _cNonMandatory.filter((d: any) => d.status === "approval_required").length;
                     // Slot-based compliance score — UNCHANGED: required-only docs
                     // bucketed by expiry/renewal date, plus missing required slots.
@@ -1153,14 +1153,14 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const allMandatoryCompliant = mandatoryAllDocs.filter((d: any) => d.status === "compliant").length;
               const allOverdueRequired = mandatoryAllDocs.filter((d: any) => d.status === "overdue").length;
               const allApprovalRequiredRequired = mandatoryAllDocs.filter((d: any) => d.status === "approval_required").length;
-              const allMandatoryExpired = mandatoryAllDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
-              const allMandatoryRenewalOverdue = mandatoryAllDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _asNow) && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allMandatoryExpired = mandatoryAllDocs.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allMandatoryRenewalOverdue = mandatoryAllDocs.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
               const allNonCompliant = allApprovalRequiredRequired + allOverdueRequired + allMissing;
               // Non-mandatory approved / unapproved
               const allNmApproved = nonMandatoryAllDocs.filter((d: any) => d.status === "approved").length;
               const allNmUnapproved = nonMandatoryAllDocs.length - allNmApproved;
-              const allNmExpired = nonMandatoryAllDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
-              const allNmRenewalOverdue = nonMandatoryAllDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _asNow) && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allNmExpired = nonMandatoryAllDocs.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
+              const allNmRenewalOverdue = nonMandatoryAllDocs.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _asNow)).length;
               const allNmApprovalRequired = nonMandatoryAllDocs.filter((d: any) => d.status === "approval_required").length;
               const allDenom = allCompliant + allApprovalRequired + allOverdue + allMissing;
               // Derive the compliance % from the server-side slot-based raw counts that
@@ -1359,8 +1359,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               // Box 2: non-compliant mandatory (overdue + awaiting approval + missing)
               const overdueRequired = mandatorySiteDocs.filter((d) => d.status === "overdue").length;
               const approvalRequiredRequired = mandatorySiteDocs.filter((d) => d.status === "approval_required").length;
-              const sMandatoryExpired = mandatorySiteDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
-              const sMandatoryRenewalOverdue = mandatorySiteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sMandatoryExpired = mandatorySiteDocs.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sMandatoryRenewalOverdue = mandatorySiteDocs.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const missingCount = missingRequiredDetails.filter(
                 (m) => m.siteId === site.id
               ).length;
@@ -1369,8 +1369,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
               const sNmApproved = nonMandatorySiteDocs.filter((d) => d.status === "approved").length;
               // Box 4: unapproved non-mandatory docs
               const sNmUnapproved = nonMandatorySiteDocs.length - sNmApproved;
-              const sNmExpired = nonMandatorySiteDocs.filter((d: any) => !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
-              const sNmRenewalOverdue = nonMandatorySiteDocs.filter((d: any) => !!(d.renewalDate && new Date(d.renewalDate) < _sNow) && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sNmExpired = nonMandatorySiteDocs.filter((d: any) => d.status === "overdue" && !!(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
+              const sNmRenewalOverdue = nonMandatorySiteDocs.filter((d: any) => d.status === "overdue" && !(d.expiryDate && new Date(d.expiryDate) < _sNow)).length;
               const sNmApprovalRequired = nonMandatorySiteDocs.filter((d) => d.status === "approval_required").length;
               const scoreDenominator = compliant + approvalRequiredRequired + overdueRequired + missingCount;
               const pct =
