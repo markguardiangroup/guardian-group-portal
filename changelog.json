@@ -9463,6 +9463,13 @@
           "message": "Clearer approval labels and auto-approval note now fits on one line",
           "category": "enhancement",
           "createdAt": "2026-06-20T21:49:58.447Z"
+        },
+        {
+          "id": "c3cadfc1-58de-4306-83bb-8792e78fdacb",
+          "patch": 16,
+          "message": "Auto-approval note now stays on one line at all screen sizes",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T21:52:24.753Z"
         }
       ],
       "publishedPatch": 15,
