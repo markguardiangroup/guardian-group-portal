@@ -1391,14 +1391,14 @@ export default function CreateFromTemplate() {
             <div className="rounded-lg border-2 border-muted-foreground/30 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <h3 className="text-sm font-semibold">Approval</h3>
+                <h3 className="text-sm font-semibold">Client Approval</h3>
               </div>
               <p className="text-xs text-muted-foreground -mt-1">
                 Set from the template preference — override here if needed
               </p>
               <div className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
                 <div className="space-y-0.5">
-                  <Label className="text-sm font-medium">Client Approval</Label>
+                  <Label className="text-sm font-medium">Client Approval Required?</Label>
                   <p className="text-xs text-muted-foreground">
                     {requiresApproval
                       ? "Needs review before becoming compliant"
@@ -1414,9 +1414,9 @@ export default function CreateFromTemplate() {
 
               {requiresApproval && (
                 <div className="mt-3 ml-1 flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
-                  <div className="space-y-0.5">
+                  <div className="space-y-0.5 min-w-0 flex-1">
                     <Label className="text-sm font-medium">Auto Final Approval</Label>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">
                       {autoFinalApproval
                         ? "This document will be approved automatically once the client approves it"
                         : "A consultant will need to provide final sign-off after the client approves."}

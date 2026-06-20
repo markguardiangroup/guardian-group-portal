@@ -9456,6 +9456,13 @@
           "message": "Approval section panel border is now darker and easier to see",
           "category": "enhancement",
           "createdAt": "2026-06-20T21:46:37.921Z"
+        },
+        {
+          "id": "2cc22043-9b23-41c9-8c3e-473044281da8",
+          "patch": 16,
+          "message": "Clearer approval labels and auto-approval note now fits on one line",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T21:49:58.447Z"
         }
       ],
       "publishedPatch": 15,
