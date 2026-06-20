@@ -9442,6 +9442,13 @@
           "message": "Fixed: company back button no longer loops back to the upload page",
           "category": "bug",
           "createdAt": "2026-06-20T21:33:29.349Z"
+        },
+        {
+          "id": "b33a4593-b86a-4b78-aea3-042ee9192038",
+          "patch": 16,
+          "message": "Approval section tidied: single Client Approval toggle in a clearer panel",
+          "category": "enhancement",
+          "createdAt": "2026-06-20T21:42:22.199Z"
         }
       ],
       "publishedPatch": 15,

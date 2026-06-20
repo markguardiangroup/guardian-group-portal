@@ -37,7 +37,6 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   Calendar,
   BookOpen,
   Flame,
@@ -1389,48 +1388,28 @@ export default function CreateFromTemplate() {
               </div>
             )}
 
-            <div className="pt-2">
-              <Label className="text-sm font-medium">Approval Process</Label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+            <div className="rounded-lg border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-sm font-semibold">Approval</h3>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-1">
                 Set from the template preference — override here if needed
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setRequiresApproval(true)}
-                  data-testid="approval-required-button"
-                  className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
-                    requiresApproval
-                      ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                      : "border-muted bg-muted/30 hover:bg-muted/50"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <XCircle className={`h-3.5 w-3.5 ${requiresApproval ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
-                    Client approval
-                  </span>
-                  <span className="text-xs text-muted-foreground leading-tight">
-                    Needs review before becoming compliant
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRequiresApproval(false)}
-                  data-testid="no-approval-button"
-                  className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
-                    !requiresApproval
-                      ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                      : "border-muted bg-muted/30 hover:bg-muted/50"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <CheckCircle2 className={`h-3.5 w-3.5 ${!requiresApproval ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
-                    Auto-approve
-                  </span>
-                  <span className="text-xs text-muted-foreground leading-tight">
-                    Marked compliant immediately on upload
-                  </span>
-                </button>
+              <div className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Client Approval</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {requiresApproval
+                      ? "Needs review before becoming compliant"
+                      : "Marked compliant immediately on upload"}
+                  </p>
+                </div>
+                <Switch
+                  checked={requiresApproval}
+                  onCheckedChange={setRequiresApproval}
+                  data-testid="toggle-client-approval"
+                />
               </div>
 
               {requiresApproval && (
