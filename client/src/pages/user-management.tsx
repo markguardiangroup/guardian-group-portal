@@ -1631,7 +1631,7 @@ export default function UserManagement() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead onClick={() => handleSortUsers("username")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortUsers("username")} className="w-[26%] cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">User {sortBy === "username" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               {userTypeTab === "staff" ? (
@@ -1641,11 +1641,11 @@ export default function UserManagement() {
               ) : (
                 <TableHead className="w-24">Role</TableHead>
               )}
-              {userTypeTab === "client" && <TableHead className="min-w-[160px]">Company</TableHead>}
+              {userTypeTab === "client" && <TableHead className="w-[15%]">Company</TableHead>}
               <TableHead>Sites Assigned</TableHead>
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Sources</TableHead>}
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Permissions</TableHead>}
-              <TableHead onClick={() => handleSortUsers("status")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortUsers("status")} className="w-28 cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead onClick={() => handleSortUsers("lastSeen")} className="w-32 cursor-pointer select-none whitespace-nowrap">

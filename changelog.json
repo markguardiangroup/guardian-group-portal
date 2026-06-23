@@ -9512,6 +9512,13 @@
           "message": "Fixed: table column widths on Companies, Sites and Users no longer shift when filtering",
           "category": "bug",
           "createdAt": "2026-06-23T15:30:53.094Z"
+        },
+        {
+          "id": "95667e96-8119-45d4-99a2-aedf04e03369",
+          "patch": 16,
+          "message": "Improved: wider User column and rebalanced columns on the Users table",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T15:37:10.361Z"
         }
       ],
       "publishedPatch": 15,
