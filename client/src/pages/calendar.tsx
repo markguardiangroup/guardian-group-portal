@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef } from "react";
 import { CountUp } from "@/components/ui/count-up";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery } from "@tanstack/react-query";
@@ -36,7 +36,6 @@ import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import { setLastSection } from "@/lib/navigation-tracker";
 import { useAuth } from "@/hooks/use-auth";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isToday } from "date-fns";
 
@@ -499,15 +498,9 @@ export default function CalendarPage() {
   const [moduleFilter, setModuleFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [metricDialog, setMetricDialog] = useState<null | "total" | "overdue" | "upcoming">(null);
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange, resetFilters } = useSiteFilter();
-
-  // Reset company/site filter on mount so the calendar always starts clean —
-  // it has its own filter section and should not inherit the company pre-filter
-  // from the module document pages.
-  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
-    setLastSection("calendar");
-    resetFilters();
-  }, []);
+  // Calendar keeps its own remembered company/site filter ("calendar" scope)
+  // so it neither affects nor is affected by other pages' filters.
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter("calendar");
 
 
   const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";

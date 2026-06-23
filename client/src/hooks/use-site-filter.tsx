@@ -1,60 +1,55 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from "react";
 
-interface SiteFilterContextType {
+interface ScopeState {
   selectedCompany: string | null;
   selectedSiteId: string | null;
   selectedGroup: string;
+}
+
+const DEFAULT_SCOPE: ScopeState = {
+  selectedCompany: null,
+  selectedSiteId: null,
+  selectedGroup: "all",
+};
+
+interface SiteFilterContextType {
+  scopes: Record<string, ScopeState>;
+  updateScope: (scope: string, patch: Partial<ScopeState>) => void;
+  // Global (non-scoped) filters shared across the app.
   coverageConsultantId: string | null;
   proStaffFilter: string;
   sitesCompanyId: string | null;
-  setSelectedCompany: (company: string | null) => void;
-  setSelectedSiteId: (siteId: string | null) => void;
-  setSelectedGroup: (group: string) => void;
   setCoverageConsultantId: (id: string | null) => void;
   setProStaffFilter: (v: string) => void;
   setSitesCompanyId: (id: string | null) => void;
-  handleCompanyChange: (company: string | null) => void;
-  resetFilters: () => void;
 }
 
 const SiteFilterContext = createContext<SiteFilterContextType | null>(null);
 
 export function SiteFilterProvider({ children }: { children: ReactNode }) {
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<string>("all");
+  const [scopes, setScopes] = useState<Record<string, ScopeState>>({});
   const [coverageConsultantId, setCoverageConsultantId] = useState<string | null>(null);
   const [proStaffFilter, setProStaffFilter] = useState<string>("my");
   const [sitesCompanyId, setSitesCompanyId] = useState<string | null>(null);
 
-  const handleCompanyChange = useCallback((company: string | null) => {
-    setSelectedCompany(company);
-    setSelectedSiteId(null);
-  }, []);
-
-  const resetFilters = useCallback(() => {
-    setSelectedCompany(null);
-    setSelectedSiteId(null);
-    setSelectedGroup("all");
+  const updateScope = useCallback((scope: string, patch: Partial<ScopeState>) => {
+    setScopes((prev) => {
+      const current = prev[scope] ?? DEFAULT_SCOPE;
+      return { ...prev, [scope]: { ...current, ...patch } };
+    });
   }, []);
 
   return (
     <SiteFilterContext.Provider
       value={{
-        selectedCompany,
-        selectedSiteId,
-        selectedGroup,
+        scopes,
+        updateScope,
         coverageConsultantId,
         proStaffFilter,
         sitesCompanyId,
-        setSelectedCompany,
-        setSelectedSiteId,
-        setSelectedGroup,
         setCoverageConsultantId,
         setProStaffFilter,
         setSitesCompanyId,
-        handleCompanyChange,
-        resetFilters,
       }}
     >
       {children}
@@ -62,10 +57,75 @@ export function SiteFilterProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useSiteFilter() {
+/**
+ * Access the company/site/group filter for a given scope. Each scope keeps its
+ * own remembered selection, so pages that pass a unique scope (e.g. "calendar",
+ * "support", "incidents", "cases") do not affect one another. Pages that omit a
+ * scope share the default "global" bucket, preserving the previous behaviour
+ * where the selection flows between the dashboard, companies, sites and the
+ * module document pages.
+ */
+export function useSiteFilter(scope: string = "global") {
   const context = useContext(SiteFilterContext);
   if (!context) {
     throw new Error("useSiteFilter must be used within a SiteFilterProvider");
   }
-  return context;
+  const { scopes, updateScope } = context;
+  const state = scopes[scope] ?? DEFAULT_SCOPE;
+
+  const setSelectedCompany = useCallback(
+    (company: string | null) => updateScope(scope, { selectedCompany: company }),
+    [updateScope, scope],
+  );
+  const setSelectedSiteId = useCallback(
+    (siteId: string | null) => updateScope(scope, { selectedSiteId: siteId }),
+    [updateScope, scope],
+  );
+  const setSelectedGroup = useCallback(
+    (group: string) => updateScope(scope, { selectedGroup: group }),
+    [updateScope, scope],
+  );
+  const handleCompanyChange = useCallback(
+    (company: string | null) => updateScope(scope, { selectedCompany: company, selectedSiteId: null }),
+    [updateScope, scope],
+  );
+  const resetFilters = useCallback(
+    () => updateScope(scope, { ...DEFAULT_SCOPE }),
+    [updateScope, scope],
+  );
+
+  return useMemo(
+    () => ({
+      selectedCompany: state.selectedCompany,
+      selectedSiteId: state.selectedSiteId,
+      selectedGroup: state.selectedGroup,
+      setSelectedCompany,
+      setSelectedSiteId,
+      setSelectedGroup,
+      handleCompanyChange,
+      resetFilters,
+      coverageConsultantId: context.coverageConsultantId,
+      proStaffFilter: context.proStaffFilter,
+      sitesCompanyId: context.sitesCompanyId,
+      setCoverageConsultantId: context.setCoverageConsultantId,
+      setProStaffFilter: context.setProStaffFilter,
+      setSitesCompanyId: context.setSitesCompanyId,
+    }),
+    [
+      state.selectedCompany,
+      state.selectedSiteId,
+      state.selectedGroup,
+      setSelectedCompany,
+      setSelectedSiteId,
+      setSelectedGroup,
+      handleCompanyChange,
+      resetFilters,
+      context.coverageConsultantId,
+      context.proStaffFilter,
+      context.sitesCompanyId,
+      context.setCoverageConsultantId,
+      context.setProStaffFilter,
+      context.setSitesCompanyId,
+    ],
+  );
 }

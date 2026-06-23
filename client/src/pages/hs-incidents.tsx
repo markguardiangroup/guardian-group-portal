@@ -108,7 +108,6 @@ import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import { getLastSection, setLastSection } from "@/lib/navigation-tracker";
 import { format, formatDistanceToNow, isPast } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -4118,15 +4117,9 @@ function IncidentsListView() {
   const [metricDialog, setMetricDialog] = useState<null | "active" | "riddor" | "open_actions">(null);
   const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
   const [incidentDeleteConfirmText, setIncidentDeleteConfirmText] = useState("");
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter();
-
-  // Reset company/site filter on mount so incidents always start clean — it
-  // has its own filter section and should not inherit state from other pages.
-  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
-    const prev = getLastSection();
-    setLastSection("incidents");
-    if (prev !== "module") resetFilters();
-  }, []);
+  // Incidents keeps its own remembered company/site filter ("incidents" scope)
+  // so it neither affects nor is affected by other pages' filters.
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, setSelectedCompany, handleCompanyChange, resetFilters } = useSiteFilter("incidents");
 
   const activeConfig = registerTypeConfig[registerType];
 

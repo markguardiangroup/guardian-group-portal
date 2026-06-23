@@ -9477,6 +9477,13 @@
           "message": "Calendar and Support no longer inherit the module pages company filter",
           "category": "enhancement",
           "createdAt": "2026-06-23T13:52:10.978Z"
+        },
+        {
+          "id": "7d9b036e-c4ca-492e-94ba-aba77d5295b4",
+          "patch": 16,
+          "message": "Fixed: Calendar, Support, Incidents and Cases now keep their own filters separately",
+          "category": "bug",
+          "createdAt": "2026-06-23T14:43:13.667Z"
         }
       ],
       "publishedPatch": 15,
