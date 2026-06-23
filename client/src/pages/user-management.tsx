@@ -1714,7 +1714,7 @@ export default function UserManagement() {
                     </button>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col items-start gap-1">
                       <Badge variant="outline" className={roleColors[u.role]}>
                         {roleLabels[u.role]}
                       </Badge>

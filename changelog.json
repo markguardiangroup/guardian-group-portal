@@ -9526,6 +9526,13 @@
           "message": "Fixed: role badges no longer overflow in the Users table",
           "category": "bug",
           "createdAt": "2026-06-23T15:43:35.750Z"
+        },
+        {
+          "id": "72a19ae4-1d67-42cd-b548-a4722ab8a8ab",
+          "patch": 16,
+          "message": "Improved: role badges now size to fit their text in the Users table",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T15:46:56.168Z"
         }
       ],
       "publishedPatch": 15,
