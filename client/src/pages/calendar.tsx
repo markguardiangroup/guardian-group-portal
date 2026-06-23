@@ -36,7 +36,7 @@ import { CompanyCombobox } from "@/components/company-combobox";
 import { SiteCombobox } from "@/components/site-combobox";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
-import { getLastSection, setLastSection } from "@/lib/navigation-tracker";
+import { setLastSection } from "@/lib/navigation-tracker";
 import { useAuth } from "@/hooks/use-auth";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isToday } from "date-fns";
 
@@ -502,11 +502,11 @@ export default function CalendarPage() {
   const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange, resetFilters } = useSiteFilter();
 
   // Reset company/site filter on mount so the calendar always starts clean —
-  // it has its own filter section and should not inherit state from other pages.
+  // it has its own filter section and should not inherit the company pre-filter
+  // from the module document pages.
   useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
-    const prev = getLastSection();
     setLastSection("calendar");
-    if (prev !== "module") resetFilters();
+    resetFilters();
   }, []);
 
 

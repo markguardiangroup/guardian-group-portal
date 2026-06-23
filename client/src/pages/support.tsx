@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
@@ -694,7 +694,14 @@ function SupportRequestCard({ request, sites, canRespond }: { request: SupportRe
 
 export default function Support() {
   const { user } = useAuth();
-  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange } = useSiteFilter();
+  const { selectedCompany, selectedSiteId, setSelectedSiteId, handleCompanyChange, resetFilters } = useSiteFilter();
+
+  // Reset company/site filter on mount so support always starts clean — it
+  // should not inherit the company pre-filter from the module document pages.
+  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
+    resetFilters();
+  }, []);
+
   const companyFilter = selectedCompany || "all";
   const siteFilter = selectedSiteId || "all";
   const setCompanyFilter = (val: string) => handleCompanyChange(val === "all" ? null : val);

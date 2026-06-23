@@ -9470,6 +9470,13 @@
           "message": "Auto-approval note now stays on one line at all screen sizes",
           "category": "enhancement",
           "createdAt": "2026-06-20T21:52:24.753Z"
+        },
+        {
+          "id": "cabce6ef-cf88-4886-ac5b-709c08a538db",
+          "patch": 16,
+          "message": "Calendar and Support no longer inherit the module pages company filter",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T13:52:10.978Z"
         }
       ],
       "publishedPatch": 15,
