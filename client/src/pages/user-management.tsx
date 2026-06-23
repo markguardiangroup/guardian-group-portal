@@ -1628,7 +1628,7 @@ export default function UserManagement() {
       </div>
 
       <Card>
-        <Table wrapperClassName="overflow-visible" className="sticky-table-header">
+        <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead onClick={() => handleSortUsers("username")} className="cursor-pointer select-none whitespace-nowrap">

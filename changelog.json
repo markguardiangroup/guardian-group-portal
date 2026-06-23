@@ -9505,6 +9505,13 @@
           "message": "Removed Refresh button on Companies, Sites and Users",
           "category": "enhancement",
           "createdAt": "2026-06-23T15:22:01.298Z"
+        },
+        {
+          "id": "fdbaa729-109b-49bd-b9d7-c7f58289821b",
+          "patch": 16,
+          "message": "Fixed: table column widths on Companies, Sites and Users no longer shift when filtering",
+          "category": "bug",
+          "createdAt": "2026-06-23T15:30:53.094Z"
         }
       ],
       "publishedPatch": 15,

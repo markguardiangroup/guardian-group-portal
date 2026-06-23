@@ -670,7 +670,7 @@ export default function Sites() {
       </div>
 
       <Card>
-        <Table wrapperClassName="overflow-visible" className="sticky-table-header">
+        <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead onClick={() => handleSortSites("name")} className="cursor-pointer select-none whitespace-nowrap">
