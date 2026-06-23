@@ -1635,11 +1635,11 @@ export default function UserManagement() {
                 <div className="flex items-center gap-1">User {sortBy === "username" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               {userTypeTab === "staff" ? (
-                <TableHead onClick={() => handleSortUsers("role")} className="w-24 cursor-pointer select-none whitespace-nowrap">
+                <TableHead onClick={() => handleSortUsers("role")} className="w-32 cursor-pointer select-none whitespace-nowrap">
                   <div className="flex items-center gap-1">Role {sortBy === "role" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
                 </TableHead>
               ) : (
-                <TableHead className="w-24">Role</TableHead>
+                <TableHead className="w-32">Role</TableHead>
               )}
               {userTypeTab === "client" && <TableHead className="w-[15%]">Company</TableHead>}
               <TableHead>Sites Assigned</TableHead>

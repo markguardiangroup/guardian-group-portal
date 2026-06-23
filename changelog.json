@@ -9519,6 +9519,13 @@
           "message": "Improved: wider User column and rebalanced columns on the Users table",
           "category": "enhancement",
           "createdAt": "2026-06-23T15:37:10.361Z"
+        },
+        {
+          "id": "983644f4-bdd6-480a-8404-406d0bd78f05",
+          "patch": 16,
+          "message": "Fixed: role badges no longer overflow in the Users table",
+          "category": "bug",
+          "createdAt": "2026-06-23T15:43:35.750Z"
         }
       ],
       "publishedPatch": 15,
