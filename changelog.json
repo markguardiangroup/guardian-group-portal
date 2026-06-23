@@ -9533,6 +9533,13 @@
           "message": "Improved: role badges now size to fit their text in the Users table",
           "category": "enhancement",
           "createdAt": "2026-06-23T15:46:56.168Z"
+        },
+        {
+          "id": "a402919e-71bd-467b-96ce-ba137a60a277",
+          "patch": 16,
+          "message": "Updated: iShare description clarifies files are shared internally with consultants",
+          "category": "other",
+          "createdAt": "2026-06-23T15:53:07.961Z"
         }
       ],
       "publishedPatch": 15,

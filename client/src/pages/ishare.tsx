@@ -997,7 +997,7 @@ export default function IShare() {
                 <span className="font-normal text-muted-foreground text-2xl"> - Consultant File Transfer</span>
               </h1>
               <p className="text-base mt-1 text-muted-foreground min-h-[1.5rem]">
-                Share files securely with other consultants.
+                Share files securely internally with other consultants.
               </p>
             </div>
           </div>
