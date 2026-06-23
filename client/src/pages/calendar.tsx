@@ -23,6 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
   ExternalLink,
+  X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -358,6 +359,18 @@ function EventTable({
             <SelectItem value="upcoming">Upcoming</SelectItem>
           </SelectContent>
         </Select>
+        {(!!search || (isPrivileged && !!selectedCompany && selectedCompany !== "all") || (!!selectedSiteId && selectedSiteId !== "all") || moduleFilter !== "all" || statusFilter !== "all" || (hasCoverage && coverageFilter !== "my") || (isProConsultant && proStaffFilter !== "my")) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setSearch(""); onCompanyChange("all"); onSiteChange("all"); onModuleChange("all"); setStatusFilter("all"); setCoverageFilter("my"); setProStaffFilter("my"); }}
+            className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+            title="Clear filters"
+            data-testid="button-clear-filters-calendar"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
         <p className="text-xs text-muted-foreground shrink-0">
           {filtered.length} event{filtered.length !== 1 ? "s" : ""}
         </p>

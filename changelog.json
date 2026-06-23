@@ -9484,6 +9484,13 @@
           "message": "Fixed: Calendar, Support, Incidents and Cases now keep their own filters separately",
           "category": "bug",
           "createdAt": "2026-06-23T14:43:13.667Z"
+        },
+        {
+          "id": "fbad9bbe-4d7d-4ba6-a09f-0fb8afab674c",
+          "patch": 16,
+          "message": "Added an X to clear all filters on Calendar, Support, Incidents and Cases",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T15:03:14.686Z"
         }
       ],
       "publishedPatch": 15,

@@ -62,6 +62,7 @@ import {
   MapPin,
   Building2,
   User,
+  X,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import type { SupportRequest, SupportPriority, SupportStatus } from "@shared/schema";
@@ -853,6 +854,18 @@ export default function Support() {
               </SelectContent>
             </Select>
           )}
+          {(companyFilter !== "all" || siteFilter !== "all" || !!searchQuery || (hasCoverage && coverageFilter !== "my") || (isProConsultant && proStaffFilter !== "my")) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { setCompanyFilter("all"); setSiteFilter("all"); setSearchQuery(""); setCoverageFilter("my"); setProStaffFilter("my"); }}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+              title="Clear filters"
+              data-testid="button-clear-filters-support"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       )}
 
@@ -874,6 +887,18 @@ export default function Support() {
               ))}
             </SelectContent>
           </Select>
+          {(siteFilter !== "all" || !!searchQuery) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { setSiteFilter("all"); setSearchQuery(""); }}
+              className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+              title="Clear filters"
+              data-testid="button-clear-filters-support-client"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       )}
 

@@ -5,3 +5,4 @@
 - [SSE real-time gotchas](sse-realtime-gotchas.md) — TanStack prefix-match excludes sibling `/foo/online` keys; company-scoped emits must run before row delete; emit after all downstream mutations.
 - [DB push workflow](db-push-workflow.md) — schema syncs via `db:push` (shared/schema.ts is truth); migrations/ folder + journal are stale/inert, never add migration files.
 - [Stale server after merge](stale-server-after-merge.md) — merged server code may keep running old process; audit/behaviour looks unchanged until workflow restart.
+- [Filter clear-X pattern](filter-clear-pattern.md) — every filter bar needs one ghost X that resets ALL filters (incl coverage/pro-staff→"my"), shown for ALL roles when any filter active; site-docs is the reference.

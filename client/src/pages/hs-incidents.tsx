@@ -4721,18 +4721,6 @@ function IncidentsListView() {
                       testId="select-site-incidents"
                       disabled={!selectedCompany || selectedCompany === "all"}
                     />
-                    {((selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={resetFilters}
-                        className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                        data-testid="button-clear-filters-incidents"
-                        title="Clear selection"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
                   </>
                 ) : (
                   <Select
@@ -4762,6 +4750,18 @@ function IncidentsListView() {
                   RIDDOR
                   {riddorFilter && <X className="h-3.5 w-3.5 ml-0.5" />}
                 </Button>
+                {(!!searchQuery || statusFilter !== "all" || riddorFilter || (selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => { setSearchQuery(""); setStatusFilter("all"); setRiddorFilter(false); resetFilters(); }}
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    data-testid="button-clear-filters-incidents"
+                    title="Clear filters"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
