@@ -2631,11 +2631,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <SelectItem value="none">No Renewal / Expiry</SelectItem>
                     </SelectContent>
                   </Select>
-                  {hasActiveFilters && (
-                    <Button variant="ghost" size="icon" onClick={clearAllFilters} className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0" title="Clear filters" data-testid="button-clear-filters">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="icon" onClick={clearAllFilters} disabled={!hasActiveFilters} className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0" title="Clear filters" data-testid="button-clear-filters">
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             );

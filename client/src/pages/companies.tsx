@@ -48,7 +48,7 @@ import {
   BookOpen,
   HelpCircle,
   BarChart2,
-  RefreshCw,
+  X,
   MoreHorizontal,
   Download,
   Loader2,
@@ -1319,16 +1319,10 @@ export default function Companies() {
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 1;
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [alreadyShown] = useState(() => _companiesShown);
   useEffect(() => {
     if (!isLoading && companies.length > 0) _companiesShown = true;
   }, [isLoading, companies.length]);
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-    setIsRefreshing(false);
-  };
 
 
   const formatStatusDisplay = (status: string) => {
@@ -1442,15 +1436,15 @@ export default function Companies() {
           </Select>
         )}
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          title="Refresh"
-          data-testid="button-refresh-companies"
-          className="shrink-0"
+          onClick={() => { setSearchQuery(""); setStatusFilter("all"); setGroupFilter("all"); setStaffFilter("my"); setPage(1); }}
+          disabled={!(!!searchQuery || statusFilter !== "all" || groupFilter !== "all" || (isProConsultant && staffFilter !== "my"))}
+          title="Clear filters"
+          data-testid="button-clear-filters-companies"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <X className="h-4 w-4" />
         </Button>
       </div>
 

@@ -794,18 +794,17 @@ function CasesList() {
                   )}
                 </>
               )}
-              {(!!searchQuery || statusFilter !== "all" || typeFilter !== "all" || (selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all")) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => { setSearchQuery(""); setStatusFilter("all"); setTypeFilter("all"); resetFilters(); }}
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                  data-testid="button-clear-filters-cases"
-                  title="Clear filters"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setSearchQuery(""); setStatusFilter("all"); setTypeFilter("all"); resetFilters(); }}
+                disabled={!(!!searchQuery || statusFilter !== "all" || typeFilter !== "all" || (selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all"))}
+                className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                data-testid="button-clear-filters-cases"
+                title="Clear filters"
+              >
+                <X className="h-4 w-4" />
+              </Button>
               {/* View toggle */}
               <div className="flex items-center rounded-md border bg-muted/40 p-0.5 gap-0.5">
                 <Button

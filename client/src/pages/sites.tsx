@@ -40,7 +40,7 @@ import {
   AlertTriangle,
   XCircle,
   Settings,
-  RefreshCw,
+  X,
   ChevronUp,
   ChevronDown,
   FileText,
@@ -567,19 +567,10 @@ export default function Sites() {
   }, [searchQuery, companyFilter, complianceFilter, staffFilter, pageSize]);
   const paginatedSites = filteredSites?.slice((page - 1) * pageSize, page * pageSize);
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [alreadyShown] = useState(() => _sitesShown);
   useEffect(() => {
     if (!isLoading && filteredSites && filteredSites.length > 0) _sitesShown = true;
   }, [isLoading, filteredSites?.length]);
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/companies?limit=1000"] }),
-    ]);
-    setIsRefreshing(false);
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -666,15 +657,15 @@ export default function Sites() {
           </SelectContent>
         </Select>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          title="Refresh"
-          data-testid="button-refresh-sites"
-          className="shrink-0"
+          onClick={() => { setSearchQuery(""); setComplianceFilter("all"); setCompanyFilter("all"); setStaffFilter("my"); setPage(1); }}
+          disabled={!(!!searchQuery || complianceFilter !== "all" || companyFilter !== "all" || (isProConsultant && staffFilter !== "my"))}
+          title="Clear filters"
+          data-testid="button-clear-filters-sites"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <X className="h-4 w-4" />
         </Button>
       </div>
 

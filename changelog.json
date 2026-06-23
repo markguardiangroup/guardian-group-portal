@@ -9491,6 +9491,20 @@
           "message": "Added an X to clear all filters on Calendar, Support, Incidents and Cases",
           "category": "enhancement",
           "createdAt": "2026-06-23T15:03:14.686Z"
+        },
+        {
+          "id": "10ca3fa7-2180-4ed1-8151-797dd64018c8",
+          "patch": 16,
+          "message": "Clear-filters (X) button now always visible, greyed out when no filters active",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T15:22:01.297Z"
+        },
+        {
+          "id": "9f559270-1828-4a5f-a47d-bd90c0d2b1da",
+          "patch": 16,
+          "message": "Removed Refresh button on Companies, Sites and Users",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T15:22:01.298Z"
         }
       ],
       "publishedPatch": 15,

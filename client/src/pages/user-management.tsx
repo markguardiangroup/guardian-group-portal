@@ -216,7 +216,6 @@ export default function UserManagement() {
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
   const [viewingUser, setViewingUser] = useState<UserWithAssignments | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [alreadyShown] = useState(() => _usersShown);
   const { data: userActivityLogs = [], isLoading: isActivityLoading } = useQuery<any[]>({
     queryKey: ["/api/users", viewingUser?.id, "activity"],
@@ -1470,17 +1469,6 @@ export default function UserManagement() {
     );
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/consultants"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"] }),
-      queryClient.invalidateQueries({ queryKey: ["/api/companies?limit=1000"] }),
-    ]);
-    setIsRefreshing(false);
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
@@ -1627,15 +1615,15 @@ export default function UserManagement() {
           Online Now
         </Button>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          title="Refresh"
-          data-testid="button-refresh-users"
-          className="shrink-0"
+          onClick={() => { setSearch(""); setStatusFilter("all"); setOnlineFilter(false); setCompanyFilter("all"); setRoleFilter((isPro && myStaff.length > 0) ? "my_staff" : "all"); setClientStaffFilter(isAdmin ? "all" : "my"); setPage(1); }}
+          disabled={!(!!search || statusFilter !== "all" || onlineFilter || (userTypeTab === "client" && companyFilter !== "all") || (userTypeTab === "staff" && roleFilter !== ((isPro && myStaff.length > 0) ? "my_staff" : "all")) || (userTypeTab === "client" && isPro && clientStaffFilter !== (isAdmin ? "all" : "my")))}
+          title="Clear filters"
+          data-testid="button-clear-filters-users"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <X className="h-4 w-4" />
         </Button>
       </div>
 
