@@ -4886,7 +4886,8 @@ export async function registerRoutes(
 
       const document = await storage.createDocument({
         title: body.title,
-        comments: body.comments || null,
+        // Internal comments are staff-only — never accept them from client users.
+        comments: user.role === "client" ? null : (body.comments || null),
         module: body.module,
         type: body.type as any,
         documentTypeId: body.documentTypeId || null,

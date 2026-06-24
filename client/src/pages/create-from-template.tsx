@@ -1349,17 +1349,20 @@ export default function CreateFromTemplate() {
               </div>
             )}
 
-            <div>
-              <Label htmlFor="documentComments">Comments</Label>
-              <Textarea
-                id="documentComments"
-                value={documentComments}
-                onChange={(e) => setDocumentComments(e.target.value)}
-                placeholder="Add any comments about this document"
-                className="mt-1"
-                data-testid="textarea-comments"
-              />
-            </div>
+            {isDeveloperOrConsultant && (
+              <div>
+                <Label htmlFor="documentComments">Internal Comments</Label>
+                <p className="mt-0.5 text-[11px] italic text-muted-foreground/70">Not visible to the client</p>
+                <Textarea
+                  id="documentComments"
+                  value={documentComments}
+                  onChange={(e) => setDocumentComments(e.target.value)}
+                  placeholder="Add internal comments (staff only)..."
+                  className="mt-1"
+                  data-testid="textarea-comments"
+                />
+              </div>
+            )}
 
             {(selectedSitesWithNoClients.length > 0 || selectedSitesWithNoConsultants.length > 0) && (
               <div className="space-y-2">

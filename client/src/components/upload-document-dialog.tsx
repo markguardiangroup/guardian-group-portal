@@ -221,6 +221,7 @@ export function UploadDocumentDialog({
   })();
 
   const isAdmin = user?.role === "administrator";
+  const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   // For admin on-behalf-of: show all active consultants; server validates eligibility.
   const eligibleOnBehalfConsultants = isAdmin
     ? (allUsers ?? []).filter(u => u.role === "consultant" && u.status === "active")
@@ -354,20 +355,23 @@ export function UploadDocumentDialog({
               )}
             />
 
-            {/* Comments */}
-            <FormField
-              control={form.control}
-              name="comments"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Comments</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Add any comments about this document" rows={2} {...field} data-testid="input-upload-dialog-comments" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Internal Comments — staff only */}
+            {isPrivilegedUser && (
+              <FormField
+                control={form.control}
+                name="comments"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Internal Comments</FormLabel>
+                    <p className="text-[11px] italic text-muted-foreground/70">Not visible to the client</p>
+                    <FormControl>
+                      <Textarea placeholder="Add internal comments (staff only)..." rows={2} {...field} data-testid="input-upload-dialog-comments" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* File upload */}
             <div>
