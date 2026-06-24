@@ -9561,6 +9561,13 @@
           "message": "Upload page comments labelled Internal Comments and hidden from clients",
           "category": "enhancement",
           "createdAt": "2026-06-24T08:39:20.987Z"
+        },
+        {
+          "id": "65ff2b8a-79e0-4813-a3c1-e4faa3d4fa0a",
+          "patch": 16,
+          "message": "Fixed: enabling MFA / saving email settings no longer errors",
+          "category": "bug",
+          "createdAt": "2026-06-24T13:23:48.065Z"
         }
       ],
       "publishedPatch": 15,

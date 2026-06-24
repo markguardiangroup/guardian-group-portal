@@ -20972,10 +20972,11 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId: user.id,
+        userName: user.fullName,
         action: "email_settings_updated",
         entityType: "email_settings",
         entityId: "global",
-        details: { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress, mfaRequired },
+        details: JSON.stringify({ sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress, mfaRequired }),
       });
 
       return res.json({ ok: true });
