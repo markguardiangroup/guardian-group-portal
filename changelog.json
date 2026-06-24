@@ -9554,6 +9554,13 @@
           "message": "Internal Comments on new documents are staff-only and hidden from clients",
           "category": "enhancement",
           "createdAt": "2026-06-24T08:37:17.488Z"
+        },
+        {
+          "id": "a20cdb72-9745-427d-98f5-af32e23c6f3f",
+          "patch": 16,
+          "message": "Upload page comments labelled Internal Comments and hidden from clients",
+          "category": "enhancement",
+          "createdAt": "2026-06-24T08:39:20.987Z"
         }
       ],
       "publishedPatch": 15,

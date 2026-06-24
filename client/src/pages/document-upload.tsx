@@ -1128,23 +1128,26 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="comments"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Comments</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Add any comments about this document"
-                              {...field}
-                              data-testid="textarea-comments"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {isDeveloperOrConsultant && (
+                      <FormField
+                        control={form.control}
+                        name="comments"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Internal Comments</FormLabel>
+                            <p className="text-[11px] italic text-muted-foreground/70">Not visible to the client</p>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Add internal comments (staff only)..."
+                                {...field}
+                                data-testid="textarea-comments"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     {!isModulePreselected && (
                       <FormField
