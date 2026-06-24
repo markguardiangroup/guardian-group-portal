@@ -22130,6 +22130,72 @@ export async function registerRoutes(
         mergePending(await accessibleScopedPending("pending", true));
       }
 
+      // 2b. Documents awaiting the CLIENT's approval (approval_status = 'pending') that
+      //     staff are involved in. Mirrors the client_signed_off block above but for the
+      //     'pending' status, so consultants/admins can see approvals they're waiting on
+      //     the client to sign off. Not shown to clients (they have their own pending box).
+      let awaitingClientApprovalRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] = [];
+      if (user.role === "consultant" || user.role === "developer" || user.role === "administrator") {
+        let sitesFilter = "";
+        const params: unknown[] = ["pending"];
+        if (user.role === "consultant") {
+          const consultantSites = await storage.getConsultantSites(userId);
+          const siteIds = consultantSites.map((s) => s.entityId);
+          if (siteIds.length > 0) {
+            sitesFilter = "AND site_id = ANY($2::varchar[])";
+            params.push(siteIds);
+          } else {
+            sitesFilter = "AND false";
+          }
+        }
+        const res2b = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+          `SELECT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
+                  s.name AS site_name,
+                  COALESCE(sc.name, ec.name) AS company_name
+           FROM documents d
+           LEFT JOIN sites s ON s.id = d.site_id
+           LEFT JOIN companies sc ON sc.id = s.entity_id
+           LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+           WHERE d.approval_status = $1 AND d.is_archived = false
+             AND d.case_id IS NULL AND d.incident_id IS NULL ${sitesFilter} LIMIT 20`,
+          params
+        );
+        awaitingClientApprovalRows = res2b.rows;
+
+        const mergeAwaiting = (extra: typeof awaitingClientApprovalRows) => {
+          const seen = new Set(awaitingClientApprovalRows.map((r) => r.id));
+          for (const row of extra) {
+            if (!seen.has(row.id)) {
+              awaitingClientApprovalRows.push(row);
+              seen.add(row.id);
+            }
+          }
+        };
+
+        // Group/company-scoped pending docs the user can access.
+        mergeAwaiting(await accessibleScopedPending("pending", false));
+
+        // Consultants are site-filtered above, so also include pending docs they
+        // uploaded or initiated on behalf of — even outside their assigned sites.
+        if (user.role === "consultant") {
+          const uploaderRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+            `SELECT DISTINCT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
+                    s.name AS site_name,
+                    COALESCE(sc.name, ec.name) AS company_name
+             FROM documents d
+             LEFT JOIN sites s ON s.id = d.site_id
+             LEFT JOIN companies sc ON sc.id = s.entity_id
+             LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+             WHERE d.approval_status = 'pending'
+               AND d.is_archived = false
+               AND d.case_id IS NULL AND d.incident_id IS NULL
+               AND (d.uploaded_by = $1 OR d.initiated_by_user_id = $1)`,
+            [userId]
+          );
+          mergeAwaiting(uploaderRes.rows);
+        }
+      }
+
       // 3. Documents where client requested changes — shown to the uploader OR the admin
       //    who initiated the upload on their behalf (initiated_by_user_id).
       let changesRequestedRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] = [];
@@ -22183,6 +22249,7 @@ export async function registerRoutes(
       return res.json({
         assignedDocs: { count: assignedDocsRes.rows.length, items: assignedDocsRes.rows },
         pendingApprovals: { count: pendingApprovalsRows.length, items: pendingApprovalsRows },
+        awaitingClientApproval: { count: awaitingClientApprovalRows.length, items: awaitingClientApprovalRows },
         changesRequested: { count: changesRequestedRows.length, items: changesRequestedRows },
         myIncidents: { count: myIncidentsRes.rows.length, items: myIncidentsRes.rows },
         myCases: { count: myCasesRows.length, items: myCasesRows },

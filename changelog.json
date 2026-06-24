@@ -9582,6 +9582,13 @@
           "message": "Fixed: removing the authenticator app no longer fails with a server error",
           "category": "bug",
           "createdAt": "2026-06-24T14:30:19.517Z"
+        },
+        {
+          "id": "86880cdd-2d5d-4082-8b56-ee3b077994d5",
+          "patch": 16,
+          "message": "Home page now shows an Awaiting Client Approval box for your documents",
+          "category": "feature",
+          "createdAt": "2026-06-24T16:06:27.202Z"
         }
       ],
       "publishedPatch": 15,

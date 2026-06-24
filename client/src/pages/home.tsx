@@ -49,6 +49,7 @@ import {
   BookOpen,
   GraduationCap,
   FileCheck,
+  FileClock,
   UserCheck,
   KeyRound,
   ExternalLink,
@@ -449,6 +450,7 @@ function HomepageBanner({ banners }: { banners: BannerMessage[] }) {
 interface MyActionsData {
   assignedDocs: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; status: string; renewal_date: string | null; expiry_date: string | null }[] };
   pendingApprovals: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] };
+  awaitingClientApproval?: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] };
   changesRequested: { count: number; items: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null }[] };
   myIncidents: { count: number; items: { id: string; incident_reference: string; title: string; site_id: string; severity: string; status: string }[] };
   myCases: { count: number; items: { id: string; case_reference: string; case_name: string; employee_name: string; site_id: string; status: string }[] };
@@ -479,6 +481,7 @@ const ACTION_BADGE_CLS: Record<string, string> = {
   overdue:             "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   "due soon":          "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   "pending approval":  "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "awaiting client":   "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
   "changes requested": "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
   open:                "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
   in_progress:         "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -569,6 +572,32 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
           if (da) return -1;
           if (db) return 1;
           // Secondary: received date descending
+          const ra = a.receivedAt ? new Date(a.receivedAt).getTime() : 0;
+          const rb = b.receivedAt ? new Date(b.receivedAt).getTime() : 0;
+          return rb - ra;
+        });
+    case "awaitingClientApproval":
+      return (data.awaitingClientApproval?.items ?? [])
+        .map((d) => ({
+          id: d.id,
+          label: d.title,
+          siteLabel: d.company_name && d.site_name
+            ? `${d.company_name} — ${d.site_name}`
+            : d.company_name ?? d.site_name ?? resolveSiteLabel(d.site_id, siteMap),
+          subLabel: "Awaiting client approval",
+          badge: "awaiting client",
+          module: d.module ?? null,
+          href: docHref(d.module, d.id, d.site_id),
+          renewalDate: d.renewal_date ?? null,
+          expiryDate: d.expiry_date ?? null,
+          receivedAt: d.updated_at ?? null,
+        }))
+        .sort((a, b) => {
+          const da = a.renewalDate ?? a.expiryDate;
+          const db = b.renewalDate ?? b.expiryDate;
+          if (da && db) return new Date(da).getTime() - new Date(db).getTime();
+          if (da) return -1;
+          if (db) return 1;
           const ra = a.receivedAt ? new Date(a.receivedAt).getTime() : 0;
           const rb = b.receivedAt ? new Date(b.receivedAt).getTime() : 0;
           return rb - ra;
@@ -697,6 +726,18 @@ function MyActionsPanel({ role }: { role: string }) {
       border: "border-amber-200 dark:border-amber-800",
       href: "/documents",
       show: true,
+    },
+    {
+      key: "awaitingClientApproval",
+      label: "Awaiting Client Approval",
+      sublabel: "Waiting on client sign-off",
+      count: data?.awaitingClientApproval?.count ?? 0,
+      icon: FileClock,
+      color: "text-sky-600 dark:text-sky-400",
+      bg: "bg-sky-50 dark:bg-sky-950/20",
+      border: "border-sky-200 dark:border-sky-800",
+      href: "/documents",
+      show: isPrivileged,
     },
     {
       key: "changesRequested",
