@@ -9575,6 +9575,13 @@
           "message": "Fixed: authenticator app (TOTP) setup failed to generate",
           "category": "bug",
           "createdAt": "2026-06-24T14:05:41.782Z"
+        },
+        {
+          "id": "4b40a310-4c38-4ba2-80f2-1be7385b8c51",
+          "patch": 16,
+          "message": "Fixed: removing the authenticator app no longer fails with a server error",
+          "category": "bug",
+          "createdAt": "2026-06-24T14:30:19.517Z"
         }
       ],
       "publishedPatch": 15,

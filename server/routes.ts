@@ -1059,8 +1059,11 @@ export async function registerRoutes(
         );
       }
 
+      const confirmingUser = await storage.getUser(userId);
+
       await storage.createAuditLog({
         userId,
+        userName: confirmingUser?.fullName ?? userId,
         action: "totp_enabled",
         entityType: "user",
         entityId: userId,
@@ -1070,7 +1073,7 @@ export async function registerRoutes(
       if (isMandatorySetupFlow) {
         // Complete login after mandatory setup
         delete (req.session as any).pendingMfaUserId;
-        const user = await storage.getUser(userId);
+        const user = confirmingUser;
         if (!user) return res.status(404).json({ error: "User not found" });
         await storage.createAuditLog({
           action: "login",
@@ -1142,6 +1145,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId,
+        userName: user.fullName,
         action: "totp_disabled",
         entityType: "user",
         entityId: userId,
@@ -1211,6 +1215,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         userId,
+        userName: user.fullName,
         action: "totp_codes_regenerated",
         entityType: "user",
         entityId: userId,
