@@ -9568,6 +9568,13 @@
           "message": "Fixed: enabling MFA / saving email settings no longer errors",
           "category": "bug",
           "createdAt": "2026-06-24T13:23:48.065Z"
+        },
+        {
+          "id": "cd30844b-5d2c-447c-97be-d847861f31a1",
+          "patch": 16,
+          "message": "Fixed: authenticator app (TOTP) setup failed to generate",
+          "category": "bug",
+          "createdAt": "2026-06-24T14:05:41.782Z"
         }
       ],
       "publishedPatch": 15,
