@@ -1248,6 +1248,8 @@ function DocumentDetailView({ id }: { id: string }) {
   const [complianceDirty, setComplianceDirty] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [editingComments, setEditingComments] = useState(false);
+  const [commentsDraft, setCommentsDraft] = useState("");
   const [expandedLogIds, setExpandedLogIds] = useState<Set<string>>(new Set());
 
   const { data: document, isLoading } = useQuery<EnrichedDocument>({
@@ -1440,6 +1442,21 @@ function DocumentDetailView({ id }: { id: string }) {
     },
     onError: () => {
       toast({ title: "Failed to rename document", variant: "destructive" });
+    },
+  });
+
+  const commentsMutation = useMutation({
+    mutationFn: async (comments: string) => {
+      return apiRequest("PATCH", `/api/documents/${id}`, { comments: comments || null });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      setEditingComments(false);
+      toast({ title: "Internal comments saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save internal comments", variant: "destructive" });
     },
   });
 
@@ -1760,10 +1777,51 @@ function DocumentDetailView({ id }: { id: string }) {
                     </div>
                   );
                 })()}
-                {document.comments && (
+                {isPrivilegedUser && (
                   <div className="px-6 py-2.5">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Comments</dt>
-                    <dd className="mt-0.5 text-sm text-muted-foreground leading-relaxed">{document.comments}</dd>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Internal Comments</dt>
+                        <p className="mt-0.5 text-[11px] italic text-muted-foreground/70">Not visible to the client</p>
+                      </div>
+                      {!editingComments && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => { setCommentsDraft(document.comments ?? ""); setEditingComments(true); }}
+                          data-testid="button-edit-internal-comments"
+                        >
+                          <Pencil className="mr-1 h-3 w-3" /> Edit
+                        </Button>
+                      )}
+                    </div>
+                    {editingComments ? (
+                      <div className="mt-2 space-y-2">
+                        <Textarea
+                          value={commentsDraft}
+                          onChange={(e) => setCommentsDraft(e.target.value)}
+                          placeholder="Add internal comments (staff only)..."
+                          rows={3}
+                          data-testid="input-internal-comments"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => commentsMutation.mutate(commentsDraft.trim())}
+                            disabled={commentsMutation.isPending}
+                            data-testid="button-save-internal-comments"
+                          >
+                            {commentsMutation.isPending ? "Saving..." : "Save"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditingComments(false)} data-testid="button-cancel-internal-comments">Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <dd className="mt-1 text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap" data-testid="text-internal-comments">
+                        {document.comments ? document.comments : <span className="italic text-muted-foreground/60">No internal comments</span>}
+                      </dd>
+                    )}
                   </div>
                 )}
               </dl>

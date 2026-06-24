@@ -6,3 +6,4 @@
 - [DB push workflow](db-push-workflow.md) — schema syncs via `db:push` (shared/schema.ts is truth); migrations/ folder + journal are stale/inert, never add migration files.
 - [Stale server after merge](stale-server-after-merge.md) — merged server code may keep running old process; audit/behaviour looks unchanged until workflow restart.
 - [Filter clear-X pattern](filter-clear-pattern.md) — every filter bar needs one ghost X that resets ALL filters (incl coverage/pro-staff→"my"), shown for ALL roles when any filter active; site-docs is the reference.
+- [Document comments are staff-only](document-comments-surfaces.md) — `documents.comments` is internal staff notes; redact via stripInternalDocFields on every client-facing doc endpoint + block client writes.

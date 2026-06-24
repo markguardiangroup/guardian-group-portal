@@ -1820,6 +1820,14 @@ export async function registerRoutes(
     return false;
   };
 
+  // Document "Comments" are internal/staff-only — never expose them to client users.
+  const stripInternalDocFields = <T extends { comments?: string | null }>(doc: T, role: string): T => {
+    if (role === "client") {
+      return { ...doc, comments: null };
+    }
+    return doc;
+  };
+
   /**
    * Unified document access check that handles site-scoped, company-scoped, and group-scoped docs.
    * For site-scoped (siteId != null): delegates to canUserAccessSite.
@@ -3982,7 +3990,7 @@ export async function registerRoutes(
         ),
         ...accessibleScopedDocs.filter(d => !d.caseId && !d.incidentId && d.source !== "external"),
       ];
-      res.json(regularDocs);
+      res.json(regularDocs.map(d => stripInternalDocFields(d, user.role)));
     } catch (error) {
       console.error("Module documents error:", error);
       res.status(500).json({ error: "Failed to fetch module documents" });
@@ -4099,7 +4107,7 @@ export async function registerRoutes(
         }))).filter((d): d is NonNullable<typeof d> => d !== null);
       }
       
-      res.json(filteredDocuments);
+      res.json(filteredDocuments.map(d => stripInternalDocFields(d, user.role)));
     } catch (error) {
       console.error("Documents error:", error);
       res.status(500).json({ error: "Failed to fetch documents" });
@@ -4141,14 +4149,14 @@ export async function registerRoutes(
         uploaderRole = uploader?.role ?? undefined;
       }
 
-      res.json({
+      res.json(stripInternalDocFields({
         ...document,
         uploaderRole,
         isSharedLink,
         sharedScope: isSharedLink ? document.scope : undefined,
         sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
         companyName: companyName ?? (document as any).companyName ?? null,
-      });
+      }, user.role));
     } catch (error) {
       console.error("Document error:", error);
       res.status(500).json({ error: "Failed to fetch document" });
@@ -5807,7 +5815,7 @@ export async function registerRoutes(
         await emitDocumentUpdated(document, payload);
       } catch { /* non-fatal */ }
 
-      res.json(document);
+      res.json(stripInternalDocFields(document, user.role));
     } catch (error) {
       console.error("Document approval error:", error);
       res.status(500).json({ error: "Failed to update document approval" });
@@ -6664,7 +6672,7 @@ export async function registerRoutes(
       }
       
       const documents = await storage.getDocumentsByFolder(req.params.id);
-      res.json(documents);
+      res.json(documents.map(d => stripInternalDocFields(d, user.role)));
     } catch (error) {
       console.error("Get folder documents error:", error);
       res.status(500).json({ error: "Failed to fetch folder documents" });
@@ -12686,7 +12694,7 @@ export async function registerRoutes(
       }
 
       const documents = await storage.getCaseDocuments(req.params.id);
-      res.json(documents);
+      res.json(documents.map(d => stripInternalDocFields(d, user.role)));
     } catch (error) {
       console.error("Get case documents error:", error);
       res.status(500).json({ error: "Failed to fetch case documents" });
@@ -18093,7 +18101,7 @@ export async function registerRoutes(
         const uploader = await storage.getUser(doc.uploadedBy);
         return { ...doc, uploadedByName: uploader?.fullName || "Unknown" };
       }));
-      res.json(enriched);
+      res.json(enriched.map(d => stripInternalDocFields(d, user?.role)));
     } catch (error) {
       console.error("Error fetching incident documents:", error);
       res.status(500).json({ error: "Failed to fetch documents" });
@@ -18116,7 +18124,7 @@ export async function registerRoutes(
 
       const document = await storage.createDocument({
         title,
-        comments: req.body.comments ?? null,
+        comments: user.role === "client" ? null : (req.body.comments ?? null),
         module: "health_safety",
         type: "incident_report",
         entityId: incident.entityId,
@@ -18167,7 +18175,11 @@ export async function registerRoutes(
       const doc = await storage.getDocument(req.params.docId);
       if (!doc || doc.incidentId !== incident.id) return res.status(404).json({ error: "Document not found" });
       const { title, comments } = req.body;
-      const updated = await storage.updateDocument(req.params.docId, { title, comments });
+      const updates: Record<string, any> = {};
+      if (title !== undefined) updates.title = title;
+      // Internal comments are staff-only — ignore comment edits from client users.
+      if (comments !== undefined && user.role !== "client") updates.comments = comments;
+      const updated = await storage.updateDocument(req.params.docId, updates);
       await emitDocumentUpdated(doc, { documentId: doc.id, incidentId: incident.id });
       await emitSiteScoped("incident-updated", incident.siteId, incident.entityId, { incidentId: incident.id });
       res.json(updated);

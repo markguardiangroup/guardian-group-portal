@@ -9540,6 +9540,13 @@
           "message": "Updated: iShare description clarifies files are shared internally with consultants",
           "category": "other",
           "createdAt": "2026-06-23T15:53:07.961Z"
+        },
+        {
+          "id": "51a36b7b-1d48-4dbb-b385-ee8aad8d01ca",
+          "patch": 16,
+          "message": "Document Comments are now staff-only internal notes, hidden from clients",
+          "category": "enhancement",
+          "createdAt": "2026-06-24T08:26:26.579Z"
         }
       ],
       "publishedPatch": 15,
