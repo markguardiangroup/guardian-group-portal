@@ -9645,6 +9645,13 @@
           "message": "Improved: Companies page loads faster by skipping redundant data loading",
           "category": "enhancement",
           "createdAt": "2026-06-25T15:18:57.508736Z"
+        },
+        {
+          "id": "f1135424-18e8-4eae-98ad-dde47565abb7",
+          "patch": 16,
+          "message": "Improved: client Users page now matches the staff layout and style",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T15:26:51.681991Z"
         }
       ],
       "publishedPatch": 15,

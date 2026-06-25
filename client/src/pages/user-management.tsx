@@ -205,6 +205,8 @@ type ClientVisibleUser = {
 // controls — clients can only view the people connected to their companies and sites.
 function ClientUsersView() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useQuery<ClientVisibleUser[]>({
     queryKey: ["/api/users"],
@@ -213,7 +215,7 @@ function ClientUsersView() {
   const { data: companies = [] } = useQuery<{ id: string; name: string }[]>({
     queryKey: ["/api/companies", "all-lite"],
     queryFn: async () => {
-      const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
+      const res = await fetch("/api/companies?limit=1000&lite=true", { credentials: "include" });
       if (!res.ok) return [];
       const data = await res.json();
       return Array.isArray(data) ? data : (data.companies ?? []);
@@ -234,14 +236,18 @@ function ClientUsersView() {
 
   const term = search.trim().toLowerCase();
   const filtered = useMemo(() => {
-    const list = term
-      ? users.filter(
-          (u) =>
-            u.fullName?.toLowerCase().includes(term) ||
-            u.email?.toLowerCase().includes(term) ||
-            companyNameForUser(u).toLowerCase().includes(term),
-        )
-      : users;
+    let list = users;
+    if (term) {
+      list = list.filter(
+        (u) =>
+          u.fullName?.toLowerCase().includes(term) ||
+          u.email?.toLowerCase().includes(term) ||
+          companyNameForUser(u).toLowerCase().includes(term),
+      );
+    }
+    if (statusFilter !== "all") {
+      list = list.filter((u) => (u.status ?? "active") === statusFilter);
+    }
     const order: Record<string, number> = { administrator: 0, consultant: 1, client: 2 };
     return [...list].sort((a, b) => {
       const ra = order[a.role] ?? 9;
@@ -249,85 +255,179 @@ function ClientUsersView() {
       if (ra !== rb) return ra - rb;
       return (a.fullName || "").localeCompare(b.fullName || "");
     });
-  }, [users, term, companyNameById]);
+  }, [users, term, statusFilter, companyNameById]);
+
+  const renderStatusBadge = (status?: string | null) => {
+    const s = status ?? "active";
+    return (
+      <Badge
+        variant={s === "active" ? "default" : s === "invited" || s === "invite_required" || s === "site_required" || s === "locked" ? "outline" : "secondary"}
+        className={
+          s === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
+          s === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
+          s === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
+          s === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+        }
+        data-testid={`badge-client-user-status-${s}`}
+      >
+        {s === "active" ? (<><UserCheck className="h-3 w-3 mr-1" />Active</>) :
+         s === "invited" ? (<><Clock className="h-3 w-3 mr-1" />Invited</>) :
+         s === "invite_required" ? (<><Mail className="h-3 w-3 mr-1" />Invite Required</>) :
+         s === "site_required" ? (<><MapPin className="h-3 w-3 mr-1" />Site Required</>) :
+         s === "locked" ? (<><LockKeyhole className="h-3 w-3 mr-1" />Locked</>) :
+         (<><UserX className="h-3 w-3 mr-1" />Inactive</>)}
+      </Badge>
+    );
+  };
+
+  const hasFilters = !!search || statusFilter !== "all";
 
   return (
     <div className="flex flex-col h-full">
-      <div className="shrink-0 px-6 py-6 bg-background border-b">
-        <h1 className="text-2xl font-semibold">Users</h1>
-        <p className="text-sm text-muted-foreground">People connected to your organisation</p>
-      </div>
-      <div className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-4">
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, email or company"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
-            data-testid="input-search-client-users"
-          />
+      <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
+        <div>
+          <h1 className="text-3xl font-semibold">Users</h1>
+          <p className="mt-1 text-muted-foreground">View people connected to your organisation</p>
         </div>
+      </div>
+
+      <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative max-w-sm flex-1 min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email or company"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8"
+              data-testid="input-search-client-users"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]" data-testid="select-client-status-filter">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="invited">Invited</SelectItem>
+              <SelectItem value="invite_required">Invite Required</SelectItem>
+              <SelectItem value="site_required">Site Required</SelectItem>
+              <SelectItem value="locked">Locked</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setSearch(""); setStatusFilter("all"); }}
+            disabled={!hasFilters}
+            title="Clear filters"
+            data-testid="button-clear-filters-client-users"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
         <Card>
-          <Table>
+          <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead className="hidden md:table-cell">Sites</TableHead>
+                <TableHead className="w-[28%]">User</TableHead>
+                <TableHead className="w-32">Role</TableHead>
+                <TableHead className="w-[18%]">Company</TableHead>
+                <TableHead>Sites Assigned</TableHead>
+                <TableHead className="w-28">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4}>
+                  <TableCell colSpan={5}>
                     <FetchingOverlay />
                   </TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
-                    No connected users found.
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    {hasFilters ? "No users match your filters." : "No connected users found."}
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((u) => (
-                  <TableRow key={u.id} data-testid={`row-client-user-${u.id}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                          {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                filtered.flatMap((u) => {
+                  const isExpanded = expandedUserId === u.id;
+                  const hasSites = !!u.siteAssignments && u.siteAssignments.length > 0;
+                  return [
+                    <TableRow key={u.id} data-testid={`row-client-user-${u.id}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
+                            {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate" data-testid={`text-client-user-name-${u.id}`}>{u.fullName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-medium truncate" data-testid={`text-client-user-name-${u.id}`}>{u.fullName}</p>
-                          <p className="text-xs text-muted-foreground truncate">{u.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={roleColors[u.role]} data-testid={`badge-client-user-role-${u.id}`}>
-                        {roleLabels[u.role]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm">{companyNameForUser(u)}</span>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {u.siteAssignments && u.siteAssignments.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {u.siteAssignments.map((a) => (
-                            <Badge key={a.siteId} variant="secondary" className="text-xs">
-                              {a.siteName}
-                            </Badge>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={roleColors[u.role]} data-testid={`badge-client-user-role-${u.id}`}>
+                          {roleLabels[u.role]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {u.companyId && companyNameById.has(u.companyId) ? (
+                          <Link
+                            href={`/companies/${u.companyId}?from=/users`}
+                            className="text-xs font-medium text-primary hover:underline underline-offset-2 w-fit"
+                            data-testid={`link-client-user-company-${u.id}`}
+                          >
+                            {companyNameForUser(u)}
+                          </Link>
+                        ) : (
+                          <span className="text-sm">{companyNameForUser(u)}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {hasSites ? (
+                          <button
+                            onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                            className="flex items-center gap-1.5 text-xs hover:text-foreground transition-colors"
+                            data-testid={`button-expand-client-sites-${u.id}`}
+                          >
+                            <span className="font-medium">{u.siteAssignments!.length} {u.siteAssignments!.length === 1 ? "site" : "sites"}</span>
+                            <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          </button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {renderStatusBadge(u.status)}
+                      </TableCell>
+                    </TableRow>,
+                    isExpanded && hasSites && (
+                      <TableRow key={`expand-${u.id}`} className="bg-muted/30">
+                        <TableCell colSpan={5} className="py-3 px-6">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">Site Access</p>
+                          <div className="flex flex-wrap gap-2">
+                            {u.siteAssignments!.map((a) => (
+                              <div key={a.siteId} className="flex items-center gap-1.5 text-xs bg-background border rounded-md px-2.5 py-1.5">
+                                {a.isPrimary && <Shield className="h-3 w-3 text-amber-500 shrink-0" />}
+                                <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="font-medium">{a.siteName}</span>
+                                {a.companyName && a.companyName !== "Unknown" && (
+                                  <span className="text-muted-foreground">· {a.companyName}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ),
+                  ].filter(Boolean);
+                })
               )}
             </TableBody>
           </Table>
