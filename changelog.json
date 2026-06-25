@@ -9652,6 +9652,13 @@
           "message": "Improved: client Users page now matches the staff layout and style",
           "category": "enhancement",
           "createdAt": "2026-06-25T15:26:51.681991Z"
+        },
+        {
+          "id": "c2937caa-ecac-4582-94df-2ea81b52399f",
+          "patch": 16,
+          "message": "Users page now shows only colleagues from your own company",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T16:01:22.860802Z"
         }
       ],
       "publishedPatch": 15,

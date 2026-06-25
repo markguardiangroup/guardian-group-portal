@@ -14805,9 +14805,8 @@ export async function registerRoutes(
       // Used to strip out-of-scope site/company metadata from the enriched response below.
       let clientInScopeSiteIds: Set<string> | null = null;
       let clientEffectiveCompanyIds: Set<string> | null = null;
-      // For client callers, pre-grouped assignment maps so enrichment avoids per-site
-      // DB round-trips (one batched query each, grouped in memory).
-      let consultantAssignmentsByConsultant: Map<string, { entityId: string | null; isPrimary: boolean | null }[]> | null = null;
+      // For client callers, a pre-grouped client-site-assignment map so enrichment
+      // avoids per-site DB round-trips (one batched query, grouped in memory).
       let clientSitesByClient: Map<string, { siteId: string }[]> | null = null;
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
@@ -14838,24 +14837,16 @@ export async function registerRoutes(
           });
         }
       } else if (user.role === "client") {
-        // Clients see everyone connected to their own + group-member companies/sites:
-        // fellow clients in those companies, consultants assigned to their in-scope sites
-        // or whose sources overlap, and admins whose sources overlap. Never developers.
+        // Clients only see fellow client users within their own + group-member
+        // companies. Consultants/administrators (Guardian Group staff) and developers
+        // are never surfaced in the client-facing directory.
         if (!user.companyId) {
           visibleUsers = [];
         } else {
           const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
-          // Batch all assignment data once, then group in memory — avoids per-site DB round-trips.
-          const [allConsultantAssignments, allClientSiteAssignments] = await Promise.all([
-            storage.getAllConsultantAssignments(),
-            storage.getAllClientSiteAssignments(),
-          ]);
-          consultantAssignmentsByConsultant = new Map();
-          for (const ca of allConsultantAssignments) {
-            const list = consultantAssignmentsByConsultant.get(ca.consultantId) ?? [];
-            list.push({ entityId: ca.entityId, isPrimary: ca.isPrimary });
-            consultantAssignmentsByConsultant.set(ca.consultantId, list);
-          }
+          // Batch client site assignments once, then group in memory — avoids per-site
+          // DB round-trips during enrichment.
+          const allClientSiteAssignments = await storage.getAllClientSiteAssignments();
           clientSitesByClient = new Map();
           for (const csa of allClientSiteAssignments) {
             const list = clientSitesByClient.get(csa.clientId) ?? [];
@@ -14877,34 +14868,12 @@ export async function registerRoutes(
           // Expose the in-scope site/company sets so enrichment can strip out-of-scope metadata.
           clientInScopeSiteIds = inScopeSiteIds;
           clientEffectiveCompanyIds = effectiveCompanyIds;
-          // Consultants directly assigned to any in-scope site are connected.
-          const connectedConsultantIds = new Set<string>();
-          for (const ca of allConsultantAssignments) {
-            if (ca.entityId && inScopeSiteIds.has(ca.entityId)) {
-              connectedConsultantIds.add(ca.consultantId);
-            }
-          }
-          // Staff (consultants/admins) serving the client's companies via shared sources.
-          const inScopeSources = new Set<string>();
-          for (const cId of effectiveCompanyIds) {
-            const comp = allCompanies.find(c => c.id === cId);
-            (comp?.sources ?? []).forEach(s => inScopeSources.add(s));
-          }
-          const scopeSourcesArr = [...inScopeSources];
-          visibleUsers = allUsers.filter(u => {
-            if (u.role === "developer") return false;
-            if (u.role === "client") {
-              return !!u.companyId && effectiveCompanyIds.has(u.companyId);
-            }
-            if (u.role === "consultant") {
-              if (connectedConsultantIds.has(u.id)) return true;
-              return sourcesOverlap(scopeSourcesArr, u.sources ?? []);
-            }
-            if (u.role === "administrator") {
-              return sourcesOverlap(scopeSourcesArr, u.sources ?? []);
-            }
-            return false;
-          });
+          // Clients only see fellow client users within their own + group-member
+          // companies. Consultants and administrators (Guardian Group staff) are
+          // intentionally excluded from the client-facing directory.
+          visibleUsers = allUsers.filter(u =>
+            u.role === "client" && !!u.companyId && effectiveCompanyIds.has(u.companyId)
+          );
         }
       } else {
         visibleUsers = allUsers;
@@ -14936,26 +14905,15 @@ export async function registerRoutes(
           .map(kc => allSites.find(s => s.id === kc.entityId)?.name || kc.entityId);
 
         if (u.role === "consultant") {
+          // Only staff callers ever see consultants here (clients no longer do),
+          // so site assignments are resolved via per-site lookups.
           const assignments: { siteId: string; siteName: string; companyName: string; isPrimary: boolean }[] = [];
-          if (consultantAssignmentsByConsultant) {
-            // Client caller: use the pre-grouped map (no per-site DB calls).
-            for (const ca of consultantAssignmentsByConsultant.get(u.id) ?? []) {
-              if (!ca.entityId) continue;
-              // Never surface assignments to sites outside the client's scope.
-              if (clientInScopeSiteIds && !clientInScopeSiteIds.has(ca.entityId)) continue;
-              const site = allSites.find(s => s.id === ca.entityId);
-              if (!site) continue;
+          for (const site of allSites) {
+            const siteAssignments = await storage.getConsultantAssignments(site.id);
+            const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
+            if (userAssignment) {
               const company = allCompanies.find(c => c.id === site.companyId);
-              assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!ca.isPrimary });
-            }
-          } else {
-            for (const site of allSites) {
-              const siteAssignments = await storage.getConsultantAssignments(site.id);
-              const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
-              if (userAssignment) {
-                const company = allCompanies.find(c => c.id === site.companyId);
-                assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!userAssignment.isPrimary });
-              }
+              assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!userAssignment.isPrimary });
             }
           }
           return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites };
