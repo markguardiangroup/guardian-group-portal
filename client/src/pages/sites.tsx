@@ -46,7 +46,7 @@ import {
   FileText,
   HardHat,
   Scale,
-  MoreVertical,
+  MoreHorizontal,
   Trash2,
 } from "lucide-react";
 import {
@@ -764,9 +764,10 @@ export default function Sites() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8"
                           data-testid={`button-site-menu-${site.id}`}
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">

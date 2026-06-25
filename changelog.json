@@ -9750,6 +9750,13 @@
           "message": "Sites table now fills the width with wider Address and Company columns",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:43:35.895Z"
+        },
+        {
+          "id": "cbac9eaf-7982-43c6-8eb8-8ff5b4fa4aec",
+          "patch": 16,
+          "message": "Consistent action menus across Sites, Companies and Users pages",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:51:41.348Z"
         }
       ],
       "publishedPatch": 15,

@@ -2166,10 +2166,10 @@ export default function UserManagement() {
                       );
                     })()}
                   </TableCell>
-                  <TableCell className="w-12 px-1 text-right">
+                  <TableCell className="w-12 px-1">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" data-testid={`button-actions-${u.id}`}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-actions-${u.id}`}>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
