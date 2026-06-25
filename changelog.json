@@ -9596,6 +9596,13 @@
           "message": "Sidebar hint now shows on every login and reflects expand/minimise",
           "category": "enhancement",
           "createdAt": "2026-06-25T08:08:25.315Z"
+        },
+        {
+          "id": "7a4d2413-13a9-42e3-8f16-cdb2c393920b",
+          "patch": 16,
+          "message": "Clearer wording on the sidebar menu expand/minimise hint",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T08:17:11.989Z"
         }
       ],
       "publishedPatch": 15,

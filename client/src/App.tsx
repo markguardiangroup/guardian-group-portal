@@ -842,7 +842,7 @@ function SidebarExpandHint() {
     <div className="absolute left-10 top-1/2 -translate-y-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-left-1 duration-200">
       <div className="relative bg-primary text-primary-foreground text-xs font-medium px-3 py-2 rounded-md shadow-lg whitespace-nowrap">
         <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-b-[5px] border-r-[6px] border-t-transparent border-b-transparent border-r-primary" />
-        {collapsed ? "Click to expand the sidebar" : "Click to minimise the sidebar"}
+        {collapsed ? "Click here to expand the sidebar menu" : "Click here to minimise the sidebar menu"}
       </div>
     </div>
   );
