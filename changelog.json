@@ -9736,6 +9736,13 @@
           "message": "Client users can now have their site access edited from the company page",
           "category": "feature",
           "createdAt": "2026-06-25T21:34:09.120Z"
+        },
+        {
+          "id": "0e4da528-700c-4b18-8f55-b4faa1dd9aaf",
+          "patch": 16,
+          "message": "Clearer message when editing client sites: at least 1 site must stay assigned",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:37:57.396Z"
         }
       ],
       "publishedPatch": 15,

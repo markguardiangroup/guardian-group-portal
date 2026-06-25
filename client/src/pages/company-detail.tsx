@@ -1769,11 +1769,16 @@ export default function CompanyDetail() {
 
   const handleSaveClientAssignments = async () => {
     if (!editClientId) return;
+    const currentSites = company?.sites || [];
+    const toAdd = currentSites.filter((s: SiteWithDetails) => clientSiteSelections[s.id] && !originalClientSites.has(s.id));
+    const toRemove = currentSites.filter((s: SiteWithDetails) => !clientSiteSelections[s.id] && originalClientSites.has(s.id));
+    const anySelected = currentSites.some((s: SiteWithDetails) => clientSiteSelections[s.id]);
+    if (!anySelected) {
+      toast({ title: "A client must have at least 1 site assigned", variant: "destructive" });
+      return;
+    }
     setSavingClientAssignments(true);
     try {
-      const currentSites = company?.sites || [];
-      const toAdd = currentSites.filter((s: SiteWithDetails) => clientSiteSelections[s.id] && !originalClientSites.has(s.id));
-      const toRemove = currentSites.filter((s: SiteWithDetails) => !clientSiteSelections[s.id] && originalClientSites.has(s.id));
       await Promise.all([
         ...toAdd.map((s: SiteWithDetails) => apiRequest("POST", `/api/users/${editClientId}/site-assignments/${s.id}`, {})),
         ...toRemove.map((s: SiteWithDetails) => apiRequest("DELETE", `/api/users/${editClientId}/site-assignments/${s.id}`)),
@@ -1785,8 +1790,19 @@ export default function CompanyDetail() {
       setEditClientId("");
       setClientSiteSelections({});
       setOriginalClientSites(new Set());
-    } catch {
-      toast({ title: "Failed to update client access", variant: "destructive" });
+    } catch (error) {
+      let message = "Failed to update client access";
+      const raw = error instanceof Error ? error.message : "";
+      const match = raw.match(/^\d+:\s*(.*)$/s);
+      if (match) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          if (parsed?.error) message = parsed.error;
+        } catch {
+          if (match[1]) message = match[1];
+        }
+      }
+      toast({ title: message, variant: "destructive" });
     } finally {
       setSavingClientAssignments(false);
     }
