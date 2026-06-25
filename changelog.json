@@ -9722,6 +9722,13 @@
           "message": "Fixed: actions (...) menu on the Users page no longer runs off the edge",
           "category": "bug",
           "createdAt": "2026-06-25T21:24:28.263Z"
+        },
+        {
+          "id": "bc8467d6-4bb7-4df1-b371-0fe49bac13b8",
+          "patch": 16,
+          "message": "Removed the Full badge from the Assign Client User dialog",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:25:46.553Z"
         }
       ],
       "publishedPatch": 15,

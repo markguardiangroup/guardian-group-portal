@@ -978,9 +978,6 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                         <div className="space-y-2">
                           <p className="font-medium">{selected.fullName}</p>
                           <p className="text-sm text-muted-foreground">{selected.email}</p>
-                          <Badge variant="outline" className="text-xs">
-                            {roleLabels[selected.clientPermissionRole || "full"] || "Full"}
-                          </Badge>
                         </div>
                       ) : null;
                     })()}
