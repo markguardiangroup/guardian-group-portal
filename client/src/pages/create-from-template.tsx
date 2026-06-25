@@ -244,6 +244,7 @@ export default function CreateFromTemplate() {
   const [siteSearch, setSiteSearch] = useState("");
   const [expandedSitePickerCompanies, setExpandedSitePickerCompanies] = useState<Set<string>>(new Set());
   const [showToolkitTemplates, setShowToolkitTemplates] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [showSiteConfirmDialog, setShowSiteConfirmDialog] = useState(false);
 
   const { user } = useAuth();
@@ -592,11 +593,36 @@ export default function CreateFromTemplate() {
     return map;
   }, [folderTemplates]);
 
+  // Folder options available for the current module/toolkit selection
+  const folderOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const t of templates) {
+      if (!t.isActive) continue;
+      if (showToolkitTemplates ? t.visibility !== "public" : t.visibility === "public") continue;
+      if (selectedModule !== "all" && t.module !== selectedModule) continue;
+      const fid = t.folderTemplateId;
+      if (!fid) continue;
+      const name = folderTemplateMap.get(fid);
+      if (name && !seen.has(fid)) seen.set(fid, name);
+    }
+    return Array.from(seen.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [templates, selectedModule, showToolkitTemplates, folderTemplateMap]);
+
+  // Reset folder filter if it is no longer valid for the current module/toolkit view
+  useEffect(() => {
+    if (selectedFolder !== "all" && !folderOptions.some(f => f.id === selectedFolder)) {
+      setSelectedFolder("all");
+    }
+  }, [folderOptions, selectedFolder]);
+
   const filteredTemplates = useMemo(() => {
     return templates.filter(t => {
       if (!t.isActive) return false;
       if (showToolkitTemplates ? t.visibility !== "public" : t.visibility === "public") return false;
       if (selectedModule !== "all" && t.module !== selectedModule) return false;
+      if (selectedFolder !== "all" && t.folderTemplateId !== selectedFolder) return false;
       if (templateSearch) {
         const search = templateSearch.toLowerCase();
         return t.name.toLowerCase().includes(search) || 
@@ -604,7 +630,7 @@ export default function CreateFromTemplate() {
       }
       return true;
     });
-  }, [templates, selectedModule, templateSearch, showToolkitTemplates]);
+  }, [templates, selectedModule, selectedFolder, templateSearch, showToolkitTemplates]);
 
 
   const filteredSites = useMemo(() => {
@@ -1153,6 +1179,22 @@ export default function CreateFromTemplate() {
             </SelectItem>
           </SelectContent>
         </Select>
+        <Select value={selectedFolder} onValueChange={setSelectedFolder} disabled={folderOptions.length === 0}>
+          <SelectTrigger className="w-56" data-testid="select-folder-filter">
+            <SelectValue placeholder="All Folders" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Folders</SelectItem>
+            {folderOptions.map((f) => (
+              <SelectItem key={f.id} value={f.id}>
+                <span className="flex items-center gap-2">
+                  <Folder className="h-4 w-4 text-muted-foreground" />
+                  {f.name}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex items-center gap-2 ml-auto">
           <BookOpen className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Toolkit templates</span>
@@ -1180,7 +1222,7 @@ export default function CreateFromTemplate() {
       ) : (
         <TooltipProvider>
           <div
-              key={`${selectedModule}-${templateSearch}-${showToolkitTemplates}`}
+              key={`${selectedModule}-${selectedFolder}-${templateSearch}-${showToolkitTemplates}`}
               className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
               style={{ gridAutoRows: selectedModule === "all" ? "10rem" : "8.5rem" }}
             >

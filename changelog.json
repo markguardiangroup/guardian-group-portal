@@ -9785,6 +9785,13 @@
           "message": "MFA setup now shows \"Guardian Group Portal\" in your authenticator app",
           "category": "enhancement",
           "createdAt": "2026-06-25T22:09:45.114Z"
+        },
+        {
+          "id": "6b02864d-61cd-40c7-9a25-cbdc4062ccff",
+          "patch": 16,
+          "message": "Added a folder filter to the Create from Template page",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T22:13:33.532Z"
         }
       ],
       "publishedPatch": 15,
