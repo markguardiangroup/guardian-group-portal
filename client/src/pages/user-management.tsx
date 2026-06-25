@@ -2000,7 +2000,7 @@ export default function UserManagement() {
                     {u.role === "developer" ? (
                       <button
                         onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
                         data-testid={`button-expand-sites-${u.id}`}
                       >
                         <span className="font-medium">All Sites</span>
@@ -2009,14 +2009,14 @@ export default function UserManagement() {
                     ) : u.siteAssignments && u.siteAssignments.length > 0 ? (
                       <button
                         onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
-                        className="flex items-center gap-1.5 text-xs hover:text-foreground transition-colors"
+                        className="flex items-center gap-1.5 text-sm hover:text-foreground transition-colors"
                         data-testid={`button-expand-sites-${u.id}`}
                       >
                         <span className="font-medium">{u.siteAssignments.length} {u.siteAssignments.length === 1 ? "site" : "sites"}</span>
                         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                       </button>
                     ) : (
-                      <span className="text-xs text-muted-foreground">None</span>
+                      <span className="text-sm text-muted-foreground">None</span>
                     )}
                   </TableCell>
                   {userTypeTab === "staff" && (

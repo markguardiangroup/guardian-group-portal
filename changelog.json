@@ -9771,6 +9771,13 @@
           "message": "Removed duplicate last seen text under user names on the Users page",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:58:24.248Z"
+        },
+        {
+          "id": "c1d2e912-dfd2-4173-98e5-2d034527b462",
+          "patch": 16,
+          "message": "Users table text size now matches the Companies and Sites pages",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T22:02:22.372Z"
         }
       ],
       "publishedPatch": 15,
