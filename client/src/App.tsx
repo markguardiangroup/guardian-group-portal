@@ -315,6 +315,7 @@ type GuardUser = { role: string; consultantPermissions?: { templateLibrary?: boo
 
 const ADMIN_ONLY     = (u: GuardUser) => u?.role === "developer";
 const NOT_CLIENT     = (u: GuardUser) => u?.role === "developer" || u?.role === "consultant" || u?.role === "administrator";
+const ORG_VIEW       = (u: GuardUser) => u?.role === "developer" || u?.role === "consultant" || u?.role === "administrator" || u?.role === "client";
 const TEMPLATE_LIB   = (u: GuardUser) => u?.role === "developer" || ((u?.role === "consultant" || u?.role === "administrator") && u?.consultantPermissions?.templateLibrary === true);
 const TRAINING_LIB   = (u: GuardUser) => u?.role === "developer" || ((u?.role === "consultant" || u?.role === "administrator") && u?.consultantPermissions?.trainingLibrary === true);
 
@@ -385,16 +386,16 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
-      <Route path="/companies">{() => <AccessGuard component={Companies} allow={NOT_CLIENT} />}</Route>
-      <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={NOT_CLIENT} />}</Route>
-      <Route path="/sites">{() => <AccessGuard component={Sites} allow={NOT_CLIENT} />}</Route>
-      <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={NOT_CLIENT} />}</Route>
+      <Route path="/companies">{() => <AccessGuard component={Companies} allow={ORG_VIEW} />}</Route>
+      <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={ORG_VIEW} />}</Route>
+      <Route path="/sites">{() => <AccessGuard component={Sites} allow={ORG_VIEW} />}</Route>
+      <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={ORG_VIEW} />}</Route>
       <Route path="/reports">{() => <ModuleGuard module="reports"><Reports /></ModuleGuard>}</Route>
       <Route path="/developer-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
       <Route path="/developer-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
       <Route path="/support">{() => <ModuleGuard module="support"><Support /></ModuleGuard>}</Route>
       <Route path="/settings" component={Settings} />
-      <Route path="/users">{() => <AccessGuard component={UserManagement} allow={NOT_CLIENT} />}</Route>
+      <Route path="/users">{() => <AccessGuard component={UserManagement} allow={ORG_VIEW} />}</Route>
       <Route path="/template-library">{() => <AccessGuard component={TemplateLibrary} allow={TEMPLATE_LIB} />}</Route>
       <Route path="/training-library">{() => <AccessGuard component={TrainingLibrary} allow={TRAINING_LIB} />}</Route>
       <Route path="/training">{() => <ModuleGuard module="training"><Training /></ModuleGuard>}</Route>

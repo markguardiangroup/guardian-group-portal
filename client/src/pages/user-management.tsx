@@ -191,6 +191,150 @@ function extractWebsiteDomain(website: string): string {
   }
 }
 
+type ClientVisibleUser = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  status?: string | null;
+  companyId?: string | null;
+  siteAssignments?: { siteId: string; siteName: string; companyName: string; isPrimary?: boolean }[];
+};
+
+// Strictly read-only directory shown to client users. No create/edit/delete/assign
+// controls — clients can only view the people connected to their companies and sites.
+function ClientUsersView() {
+  const [search, setSearch] = useState("");
+
+  const { data: users = [], isLoading } = useQuery<ClientVisibleUser[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const { data: companies = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/companies", "all-lite"],
+    queryFn: async () => {
+      const res = await fetch("/api/companies?limit=1000", { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : (data.companies ?? []);
+    },
+  });
+
+  const companyNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of companies) map.set(c.id, c.name);
+    return map;
+  }, [companies]);
+
+  const companyNameForUser = (u: ClientVisibleUser): string => {
+    if (u.companyId && companyNameById.has(u.companyId)) return companyNameById.get(u.companyId)!;
+    const fromSite = u.siteAssignments?.find((a) => a.companyName && a.companyName !== "Unknown");
+    return fromSite?.companyName ?? "—";
+  };
+
+  const term = search.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    const list = term
+      ? users.filter(
+          (u) =>
+            u.fullName?.toLowerCase().includes(term) ||
+            u.email?.toLowerCase().includes(term) ||
+            companyNameForUser(u).toLowerCase().includes(term),
+        )
+      : users;
+    const order: Record<string, number> = { administrator: 0, consultant: 1, client: 2 };
+    return [...list].sort((a, b) => {
+      const ra = order[a.role] ?? 9;
+      const rb = order[b.role] ?? 9;
+      if (ra !== rb) return ra - rb;
+      return (a.fullName || "").localeCompare(b.fullName || "");
+    });
+  }, [users, term, companyNameById]);
+
+  if (isLoading) {
+    return <FetchingOverlay />;
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 px-6 py-6 bg-background border-b">
+        <h1 className="text-2xl font-semibold">Users</h1>
+        <p className="text-sm text-muted-foreground">People connected to your organisation</p>
+      </div>
+      <div className="flex-1 overflow-auto px-6 pb-6 pt-6 space-y-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email or company"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8"
+            data-testid="input-search-client-users"
+          />
+        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead className="hidden md:table-cell">Sites</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
+                    No connected users found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((u) => (
+                  <TableRow key={u.id} data-testid={`row-client-user-${u.id}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                          {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate" data-testid={`text-client-user-name-${u.id}`}>{u.fullName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={roleColors[u.role]} data-testid={`badge-client-user-role-${u.id}`}>
+                        {roleLabels[u.role]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{companyNameForUser(u)}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {u.siteAssignments && u.siteAssignments.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {u.siteAssignments.map((a) => (
+                            <Badge key={a.siteId} variant="secondary" className="text-xs">
+                              {a.siteName}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export default function UserManagement() {
   const { user } = useAuth();
   const isPro = user?.role === "consultant" && user?.consultantTier === "pro";
@@ -529,6 +673,10 @@ export default function UserManagement() {
     // siteAssignments are now included directly from /api/users for both consultants and clients
     return u;
   });
+
+  if (user?.role === "client") {
+    return <ClientUsersView />;
+  }
 
   if (!isDeveloper && !isConsultant && !isAdmin) {
     return (

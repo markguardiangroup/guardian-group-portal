@@ -295,6 +295,25 @@ const consultantNavItems = [
   },
 ];
 
+// Read-only organisation views available to client users.
+const clientOrgNavItems = [
+  {
+    title: "Companies",
+    url: "/companies",
+    icon: Landmark,
+  },
+  {
+    title: "Sites",
+    url: "/sites",
+    icon: MapPin,
+  },
+  {
+    title: "Users",
+    url: "/users",
+    icon: Users,
+  },
+];
+
 interface AuthUser {
   id: string;
   username: string;
@@ -884,6 +903,36 @@ export function AppSidebar({ user }: AppSidebarProps) {
             </SidebarGroup>
           );
         })()}
+
+        {user?.role === "client" && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Organisation
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {clientOrgNavItems.map((item) => {
+                  const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
+                        className={cn("transition-colors", isActive && "bg-sidebar-accent font-medium")}
+                      >
+                        <Link href={item.url} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>

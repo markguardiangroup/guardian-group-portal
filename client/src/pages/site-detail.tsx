@@ -110,6 +110,7 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
   const { user: authUser } = useAuth();
   const isDeveloper = authUser?.role === "developer";
   const isConsultant = authUser?.role === "consultant";
+  const isClient = authUser?.role === "client";
 
   const { data: siteStats } = useQuery<{ documents: Record<string, number>; cases: number; incidents: number }>({
     queryKey: ["/api/sites", siteId, "stats"],
@@ -160,10 +161,12 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <CardTitle className="text-base">Site Details</CardTitle>
-          <Button variant="outline" size="sm" onClick={onEditSite} data-testid="button-edit-site">
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Site
-          </Button>
+          {!isClient && (
+            <Button variant="outline" size="sm" onClick={onEditSite} data-testid="button-edit-site">
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Site
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -527,6 +530,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
   const { user: authUser } = useAuth();
   const isDeveloper = authUser?.role === "developer";
   const isProConsultant = authUser?.role === "consultant" && authUser?.consultantTier === "pro";
+  const isClient = authUser?.role === "client";
   const [editingUser, setEditingUser] = useState<UserWithoutPassword | null>(null);
   const [editRole, setEditRole] = useState<string>("");
   const [editStatus, setEditStatus] = useState<string>("");
@@ -717,10 +721,12 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
     <>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Users ({nonProConsultants.length + users.length})</h2>
-        <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
-          <Plus className="mr-2 h-4 w-4" />
-          Assign Client User
-        </Button>
+        {!isClient && (
+          <Button size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
+            <Plus className="mr-2 h-4 w-4" />
+            Assign Client User
+          </Button>
+        )}
       </div>
       {hasAnyUsers ? (
         <Card>
@@ -817,6 +823,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                           <><XCircle className="h-3 w-3 mr-1" />{user.status}</>
                         )}
                       </Badge>
+                      {!isClient && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-user-menu-${user.id}`}>
@@ -853,6 +860,7 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                      )}
                     </div>
                   </div>
                   );
@@ -871,10 +879,12 @@ function UsersTab({ siteId, companyId }: { siteId: string; companyId?: string })
             <p className="mt-1 text-sm text-muted-foreground text-center">
               No consultants or clients are currently assigned to this site
             </p>
-            <Button className="mt-4" size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-first-user">
-              <Plus className="mr-2 h-4 w-4" />
-              Assign Client User
-            </Button>
+            {!isClient && (
+              <Button className="mt-4" size="sm" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-first-user">
+                <Plus className="mr-2 h-4 w-4" />
+                Assign Client User
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -1467,6 +1477,8 @@ export default function SiteDetail() {
   const [, navigate] = useLocation();
   const searchString = useSearch();
   const { toast } = useToast();
+  const { user: authUser } = useAuth();
+  const isClient = authUser?.role === "client";
   const siteId = params.siteId;
   const fromParam = new URLSearchParams(searchString).get("from");
   const [isEditSiteOpen, setIsEditSiteOpen] = useState(false);
@@ -1783,10 +1795,12 @@ export default function SiteDetail() {
             <Users className="mr-2 h-4 w-4" />
             Users
           </TabsTrigger>
-          <TabsTrigger value="compliance" data-testid="tab-compliance">
-            <FileText className="mr-2 h-4 w-4" />
-            Mandatory Documents
-          </TabsTrigger>
+          {!isClient && (
+            <TabsTrigger value="compliance" data-testid="tab-compliance">
+              <FileText className="mr-2 h-4 w-4" />
+              Mandatory Documents
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="overview">
@@ -1797,9 +1811,11 @@ export default function SiteDetail() {
           <UsersTab siteId={siteId!} companyId={entity.companyId} />
         </TabsContent>
 
-        <TabsContent value="compliance">
-          <ComplianceTab siteId={siteId!} companyId={entity.companyId} />
-        </TabsContent>
+        {!isClient && (
+          <TabsContent value="compliance">
+            <ComplianceTab siteId={siteId!} companyId={entity.companyId} />
+          </TabsContent>
+        )}
       </Tabs>
 
       <Dialog open={isEditSiteOpen} onOpenChange={setIsEditSiteOpen}>

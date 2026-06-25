@@ -2085,10 +2085,12 @@ export default function CompanyDetail() {
             <Building2 className="mr-2 h-4 w-4" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="module-access" data-testid="tab-module-access">
-            <Settings className="mr-2 h-4 w-4" />
-            Module Access
-          </TabsTrigger>
+          {(isDeveloper || isConsultant) && (
+            <TabsTrigger value="module-access" data-testid="tab-module-access">
+              <Settings className="mr-2 h-4 w-4" />
+              Module Access
+            </TabsTrigger>
+          )}
           {(isDeveloper || user?.role === "consultant") && (
             <TabsTrigger value="users" data-testid="tab-users">
               <Users className="mr-2 h-4 w-4" />
@@ -2369,9 +2371,11 @@ export default function CompanyDetail() {
         </TabsContent>
 
         {/* Module Access Tab */}
-        <TabsContent value="module-access" className="mt-6">
-          <ModuleAccessCard companyId={companyId!} groupOwnerId={company?.groupOwnerId} />
-        </TabsContent>
+        {(isDeveloper || isConsultant) && (
+          <TabsContent value="module-access" className="mt-6">
+            <ModuleAccessCard companyId={companyId!} groupOwnerId={company?.groupOwnerId} />
+          </TabsContent>
+        )}
 
         {/* Required Documents Tab */}
         {(isDeveloper || user?.role === "consultant") && (

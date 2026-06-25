@@ -1304,6 +1304,7 @@ export default function Companies() {
   };
 
   const isDeveloper = user?.role === "developer";
+  const isClient = user?.role === "client";
   const canCreateCompany = isDeveloper || isProConsultant;
   const companiesRaw = data?.companies || [];
   const companies = [...companiesRaw].sort((a, b) => {
@@ -1619,13 +1620,15 @@ export default function Companies() {
                           <Eye className="mr-2 h-4 w-4" />
                           View Sites
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => { e.stopPropagation(); handleEdit(company); }}
-                          data-testid={`button-edit-company-${company.id}`}
-                        >
-                          <Edit className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
+                        {!isClient && (
+                          <DropdownMenuItem
+                            onClick={(e) => { e.stopPropagation(); handleEdit(company); }}
+                            data-testid={`button-edit-company-${company.id}`}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
                         {isDeveloper && (
                           <DropdownMenuItem
                             onClick={(e) => { e.stopPropagation(); setDeleteTarget(company); setDeleteConfirmText(""); }}

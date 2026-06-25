@@ -14722,8 +14722,9 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
       
-      // Only admin and consultant can access user management
-      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
+      // Staff can access user management. Clients get a strictly-scoped, read-only
+      // view of the people connected to their own + group-member companies/sites.
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator" && user.role !== "client") {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -14824,6 +14825,55 @@ export async function registerRoutes(
             return false;
           });
         }
+      } else if (user.role === "client") {
+        // Clients see everyone connected to their own + group-member companies/sites:
+        // fellow clients in those companies, consultants assigned to their in-scope sites
+        // or whose sources overlap, and admins whose sources overlap. Never developers.
+        if (!user.companyId) {
+          visibleUsers = [];
+        } else {
+          const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
+          // In-scope sites mirror canUserAccessSite for clients: member-company sites are
+          // all in scope; own-company sites only when the client is explicitly assigned.
+          const clientSiteAssignments = await storage.getClientSites(user.id);
+          const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
+          const inScopeSiteIds = new Set<string>();
+          for (const s of allSites) {
+            if (!effectiveCompanyIds.has(s.companyId)) continue;
+            if (s.companyId !== user.companyId) {
+              inScopeSiteIds.add(s.id);
+            } else if (assignedSiteIds.has(s.id)) {
+              inScopeSiteIds.add(s.id);
+            }
+          }
+          // Consultants directly assigned to any in-scope site are connected.
+          const connectedConsultantIds = new Set<string>();
+          for (const sid of inScopeSiteIds) {
+            const cas = await storage.getConsultantAssignments(sid);
+            cas.forEach(a => connectedConsultantIds.add(a.consultantId));
+          }
+          // Staff (consultants/admins) serving the client's companies via shared sources.
+          const inScopeSources = new Set<string>();
+          for (const cId of effectiveCompanyIds) {
+            const comp = allCompanies.find(c => c.id === cId);
+            (comp?.sources ?? []).forEach(s => inScopeSources.add(s));
+          }
+          const scopeSourcesArr = [...inScopeSources];
+          visibleUsers = allUsers.filter(u => {
+            if (u.role === "developer") return false;
+            if (u.role === "client") {
+              return !!u.companyId && effectiveCompanyIds.has(u.companyId);
+            }
+            if (u.role === "consultant") {
+              if (connectedConsultantIds.has(u.id)) return true;
+              return sourcesOverlap(scopeSourcesArr, u.sources ?? []);
+            }
+            if (u.role === "administrator") {
+              return sourcesOverlap(scopeSourcesArr, u.sources ?? []);
+            }
+            return false;
+          });
+        }
       } else {
         visibleUsers = allUsers;
       }
@@ -14839,7 +14889,7 @@ export async function registerRoutes(
 
       // Enrich users with site assignments
       const usersWithAssignments = await Promise.all(visibleUsers.map(async (u) => {
-        const { password, ...safeUser } = u;
+        const { password, totpSecret, ...safeUser } = u;
 
         // Determine key contact designations for this user
         const userKCs = keyContactsByUser.get(u.id) ?? [];
