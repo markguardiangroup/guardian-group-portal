@@ -3951,7 +3951,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                     <dd className="mt-0.5 text-sm font-medium">{document.updatedAt ? format(new Date(document.updatedAt), "MMM d, yyyy 'at' h:mm a") : "Unknown"}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Uploaded By</dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created By</dt>
                     <dd className="mt-0.5 text-sm font-medium">{document.uploadedByName || "Unknown"}</dd>
                   </div>
                 </div>

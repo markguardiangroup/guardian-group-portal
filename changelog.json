@@ -9610,6 +9610,13 @@
           "message": "Covering consultants now see the covered person’s documents in Awaiting My Approval",
           "category": "enhancement",
           "createdAt": "2026-06-25T08:29:23.773Z"
+        },
+        {
+          "id": "af82a340-7dd2-4af8-9591-ed2f23184343",
+          "patch": 16,
+          "message": "Document page now shows \"Created By\" instead of \"Uploaded By\"",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T08:33:04.175Z"
         }
       ],
       "publishedPatch": 15,
