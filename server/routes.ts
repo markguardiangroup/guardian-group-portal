@@ -550,6 +550,37 @@ export async function registerRoutes(
     }
   }
 
+  // Activate a company the moment its first client user becomes active.
+  // No-ops unless the company is currently "pending", so it only ever fires once.
+  async function activateCompanyOnFirstActiveClient(
+    companyId: string | null | undefined,
+    actorUserId: string,
+    actorName: string,
+  ): Promise<void> {
+    try {
+      if (!companyId) return;
+      // Atomic, race-safe transition: only the request that flips the row from
+      // "pending" to "active" gets a returned row, so the audit log fires once.
+      const { rows } = await pool.query<{ name: string }>(
+        "UPDATE companies SET status = 'active' WHERE id = $1 AND status = 'pending' RETURNING name",
+        [companyId]
+      );
+      if (rows.length === 0) return;
+      await storage.createAuditLog({
+        action: "company_activated",
+        entityType: "company",
+        entityId: companyId,
+        userId: actorUserId,
+        userName: actorName,
+        details: `Company "${rows[0].name}" automatically activated when its first client user became active.`,
+        metadata: { previousStatus: "pending", newStatus: "active" },
+      });
+    } catch (err) {
+      // Non-fatal: the user activation has already been persisted.
+      console.error("[company-status] Failed to auto-activate company:", err);
+    }
+  }
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -1550,6 +1581,12 @@ export async function registerRoutes(
       
       if (!updatedUser) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      // When the first client user of a company goes live, activate the company.
+      // This route always sets status to "active", so any client completing it counts.
+      if (updatedUser.role === "client") {
+        await activateCompanyOnFirstActiveClient(updatedUser.companyId, updatedUser.id, updatedUser.fullName ?? "System");
       }
       
       // Mark the invitation as used
@@ -9797,8 +9834,6 @@ export async function registerRoutes(
           if (updates.contactEmail === undefined) updates.contactEmail = contactUser.email || null;
           if (updates.contactPhone === undefined) updates.contactPhone = contactUser.phone || contactUser.mobile || null;
           if (updates.contactPosition === undefined) updates.contactPosition = contactUser.jobTitle || null;
-          // Auto-update status from pending to active when a primary contact is set
-          if (updates.status === undefined) updates.status = "active";
         }
       }
       
@@ -16351,6 +16386,11 @@ export async function registerRoutes(
       
       if (!updated) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      // When a client user is set active and its company is still pending, activate the company
+      if (allowFullFieldEdit && status === "active" && updated.role === "client") {
+        await activateCompanyOnFirstActiveClient(updated.companyId, currentUser.id, currentUser.fullName ?? "System");
       }
       
       // If account was deactivated or locked, revoke their active SSE session

@@ -9806,6 +9806,13 @@
           "message": "Improved: Users table columns are now spaced more evenly",
           "category": "enhancement",
           "createdAt": "2026-06-25T22:38:57.842Z"
+        },
+        {
+          "id": "af926dbf-533f-40ef-a662-b6544dba0f68",
+          "patch": 16,
+          "message": "Companies now activate when their first client user goes live, not when a contact is set",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T23:01:27.136Z"
         }
       ],
       "publishedPatch": 15,
