@@ -18,6 +18,7 @@ import { BreadcrumbNav } from "@/components/breadcrumb-nav";
 import { PdfViewer } from "@/components/pdf-viewer";
 import { SiteFilterProvider } from "@/hooks/use-site-filter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
@@ -277,6 +278,48 @@ function RouteFallback() {
   return <FetchingOverlay />;
 }
 
+// Skeleton shown while a list page's lazy chunk loads. Renders the page header and
+// table structure immediately (matching the real pages) with the loading logo in the
+// table body, so navigation never flashes a blank white screen.
+function TablePageSkeleton({ title, columns }: { title: string; columns: number }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between gap-4 shrink-0 px-8 py-6 bg-background border-b">
+        <div>
+          <h1 className="text-3xl font-semibold">{title}</h1>
+          <div className="mt-1 h-5" />
+        </div>
+      </div>
+      <div id="page-content" className="flex-1 overflow-auto px-8 pt-6 space-y-6 dash-animate">
+        <div className="flex flex-wrap items-center gap-3">
+          <Skeleton className="h-9 w-full max-w-sm" />
+          <Skeleton className="h-9 w-[160px]" />
+        </div>
+        <Card>
+          <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
+            <TableHeader>
+              <TableRow>
+                {Array.from({ length: columns }).map((_, i) => (
+                  <TableHead key={i}>
+                    <Skeleton className="h-4 w-24" />
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={columns}>
+                  <FetchingOverlay />
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 const MODULE_CLOUD_SHARE_LABELS = {
   health_safety: "Health & Safety",
   human_resources: "Human Resources",
@@ -386,16 +429,16 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/documents/upload" component={DocumentUpload} />
       <Route path="/documents/:id" component={Documents} />
-      <Route path="/companies">{() => <AccessGuard component={Companies} allow={ORG_VIEW} />}</Route>
+      <Route path="/companies">{() => <Suspense fallback={<TablePageSkeleton title="Companies" columns={8} />}><AccessGuard component={Companies} allow={ORG_VIEW} /></Suspense>}</Route>
       <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={ORG_VIEW} />}</Route>
-      <Route path="/sites">{() => <AccessGuard component={Sites} allow={ORG_VIEW} />}</Route>
+      <Route path="/sites">{() => <Suspense fallback={<TablePageSkeleton title="Sites" columns={6} />}><AccessGuard component={Sites} allow={ORG_VIEW} /></Suspense>}</Route>
       <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={ORG_VIEW} />}</Route>
       <Route path="/reports">{() => <ModuleGuard module="reports"><Reports /></ModuleGuard>}</Route>
       <Route path="/developer-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
       <Route path="/developer-reports/changelog">{() => <AccessGuard component={AdminChangelog} allow={ADMIN_ONLY} />}</Route>
       <Route path="/support">{() => <ModuleGuard module="support"><Support /></ModuleGuard>}</Route>
       <Route path="/settings" component={Settings} />
-      <Route path="/users">{() => <AccessGuard component={UserManagement} allow={ORG_VIEW} />}</Route>
+      <Route path="/users">{() => <Suspense fallback={<TablePageSkeleton title="Users" columns={6} />}><AccessGuard component={UserManagement} allow={ORG_VIEW} /></Suspense>}</Route>
       <Route path="/template-library">{() => <AccessGuard component={TemplateLibrary} allow={TEMPLATE_LIB} />}</Route>
       <Route path="/training-library">{() => <AccessGuard component={TrainingLibrary} allow={TRAINING_LIB} />}</Route>
       <Route path="/training">{() => <ModuleGuard module="training"><Training /></ModuleGuard>}</Route>
