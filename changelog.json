@@ -9715,6 +9715,13 @@
           "message": "Fixed: setting a new user as primary contact no longer fails",
           "category": "bug",
           "createdAt": "2026-06-25T21:19:10.202Z"
+        },
+        {
+          "id": "985f45e8-ccd0-4e6a-8c7d-985e3bb7a82d",
+          "patch": 16,
+          "message": "Fixed: actions (...) menu on the Users page no longer runs off the edge",
+          "category": "bug",
+          "createdAt": "2026-06-25T21:24:28.263Z"
         }
       ],
       "publishedPatch": 15,

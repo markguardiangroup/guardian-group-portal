@@ -2166,14 +2166,14 @@ export default function UserManagement() {
                       );
                     })()}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="w-12 px-1 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" data-testid={`button-actions-${u.id}`}>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" sideOffset={4} collisionPadding={8}>
                         <DropdownMenuItem onClick={() => setViewingUser(u)} data-testid={`button-view-profile-${u.id}`}>
                           <Eye className="h-4 w-4 mr-2" />
                           View Profile
