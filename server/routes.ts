@@ -990,7 +990,7 @@ export async function registerRoutes(
       if (!user) return res.status(404).json({ error: "User not found" });
 
       const secret = totpAuthenticator.generateSecret();
-      const otpauthUrl = totpAuthenticator.keyuri(user.email, "Guardian Group", secret);
+      const otpauthUrl = totpAuthenticator.keyuri(user.email, "Guardian Group Portal", secret);
       const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
 
       // Store pending secret in session
