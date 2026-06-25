@@ -22051,9 +22051,19 @@ export async function registerRoutes(
         // Administrators can't personally approve but may still want visibility of outstanding sign-offs.
         let sitesFilter = "";
         const params: unknown[] = ["client_signed_off"];
+        // IDs of consultants this user is actively covering for — their awaiting-approval
+        // docs should temporarily surface in this consultant's list while covering.
+        let coveringAbsentIds: string[] = [];
         if (user.role === "consultant") {
           const consultantSites = await storage.getConsultantSites(userId);
-          const siteIds = consultantSites.map((s) => s.entityId);
+          const coveringFor = await storage.getActiveCoverageForCovering(userId);
+          coveringAbsentIds = [...new Set(coveringFor.map((c) => c.absentConsultantId))];
+          const coverageSiteIds: string[] = [];
+          for (const absentId of coveringAbsentIds) {
+            const absentSites = await storage.getConsultantSites(absentId);
+            coverageSiteIds.push(...absentSites.map((s) => s.entityId));
+          }
+          const siteIds = [...new Set([...consultantSites.map((s) => s.entityId), ...coverageSiteIds])];
           if (siteIds.length > 0) {
             sitesFilter = "AND site_id = ANY($2::varchar[])";
             params.push(siteIds);
@@ -22080,6 +22090,12 @@ export async function registerRoutes(
 
           // Also include client_signed_off docs the consultant uploaded or initiated
           // on behalf of — even if they are not formally assigned to that site.
+          // Note: docs awaiting approval for consultants being covered are surfaced via
+          // the coverage-site union above, which keeps "shown" in lockstep with "can
+          // approve" (a covering consultant can only approve where the absent consultant
+          // is assigned to the site). We intentionally do NOT broaden this uploader
+          // fallback to covered consultants, as that would surface scoped/unassigned
+          // docs they can neither access nor approve.
           const uploaderRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
             `SELECT DISTINCT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
                     s.name AS site_name,

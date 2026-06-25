@@ -9603,6 +9603,13 @@
           "message": "Clearer wording on the sidebar menu expand/minimise hint",
           "category": "enhancement",
           "createdAt": "2026-06-25T08:17:11.989Z"
+        },
+        {
+          "id": "53d8e5b1-75c6-4453-9c6a-3749fea81b44",
+          "patch": 16,
+          "message": "Covering consultants now see the covered person’s documents in Awaiting My Approval",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T08:29:23.773Z"
         }
       ],
       "publishedPatch": 15,
