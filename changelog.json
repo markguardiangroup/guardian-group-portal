@@ -9764,6 +9764,13 @@
           "message": "Companies table columns rebalanced; company column now wider for names and badges",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:56:06.314Z"
+        },
+        {
+          "id": "a6b35856-10d3-4e58-b86b-7304f06ba1cf",
+          "patch": 16,
+          "message": "Removed duplicate last seen text under user names on the Users page",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:58:24.248Z"
         }
       ],
       "publishedPatch": 15,
