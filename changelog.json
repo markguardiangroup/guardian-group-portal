@@ -9729,6 +9729,13 @@
           "message": "Removed the Full badge from the Assign Client User dialog",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:25:46.553Z"
+        },
+        {
+          "id": "38a0422f-2f64-42d6-ab80-6b6da9c1b7ec",
+          "patch": 16,
+          "message": "Client users can now have their site access edited from the company page",
+          "category": "feature",
+          "createdAt": "2026-06-25T21:34:09.120Z"
         }
       ],
       "publishedPatch": 15,

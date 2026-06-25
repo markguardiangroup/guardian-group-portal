@@ -1192,6 +1192,11 @@ export default function CompanyDetail() {
   const [consultantSiteSelections, setConsultantSiteSelections] = useState<Record<string, boolean>>({});
   const [originalConsultantSites, setOriginalConsultantSites] = useState<Set<string>>(new Set());
   const [savingConsultantAssignments, setSavingConsultantAssignments] = useState(false);
+  const [editClientSitesOpen, setEditClientSitesOpen] = useState(false);
+  const [editClientId, setEditClientId] = useState("");
+  const [clientSiteSelections, setClientSiteSelections] = useState<Record<string, boolean>>({});
+  const [originalClientSites, setOriginalClientSites] = useState<Set<string>>(new Set());
+  const [savingClientAssignments, setSavingClientAssignments] = useState(false);
   const [changePrimaryContactOpen, setChangePrimaryContactOpen] = useState(false);
   const [selectedNewContactId, setSelectedNewContactId] = useState("");
   const [primaryContactConflict, setPrimaryContactConflict] = useState<{
@@ -1742,6 +1747,49 @@ export default function CompanyDetail() {
     });
     setConsultantSiteSelections(selections);
     setOriginalConsultantSites(assignedSiteIds);
+  };
+
+  const handleEditClientSites = (clientId: string) => {
+    setEditClientId(clientId);
+    const client = tabClients.find(c => c.id === clientId);
+    if (!client) return;
+    const assignedSiteIds = new Set(
+      (client.siteAssignments || [])
+        .filter((a: SiteAssignment) => companySiteIds.has(a.siteId))
+        .map((a: SiteAssignment) => a.siteId)
+    );
+    const selections: Record<string, boolean> = {};
+    (company?.sites || []).forEach((s: SiteWithDetails) => {
+      selections[s.id] = assignedSiteIds.has(s.id);
+    });
+    setClientSiteSelections(selections);
+    setOriginalClientSites(assignedSiteIds);
+    setEditClientSitesOpen(true);
+  };
+
+  const handleSaveClientAssignments = async () => {
+    if (!editClientId) return;
+    setSavingClientAssignments(true);
+    try {
+      const currentSites = company?.sites || [];
+      const toAdd = currentSites.filter((s: SiteWithDetails) => clientSiteSelections[s.id] && !originalClientSites.has(s.id));
+      const toRemove = currentSites.filter((s: SiteWithDetails) => !clientSiteSelections[s.id] && originalClientSites.has(s.id));
+      await Promise.all([
+        ...toAdd.map((s: SiteWithDetails) => apiRequest("POST", `/api/users/${editClientId}/site-assignments/${s.id}`, {})),
+        ...toRemove.map((s: SiteWithDetails) => apiRequest("DELETE", `/api/users/${editClientId}/site-assignments/${s.id}`)),
+      ]);
+      await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
+      toast({ title: "Client site access updated successfully" });
+      setEditClientSitesOpen(false);
+      setEditClientId("");
+      setClientSiteSelections({});
+      setOriginalClientSites(new Set());
+    } catch {
+      toast({ title: "Failed to update client access", variant: "destructive" });
+    } finally {
+      setSavingClientAssignments(false);
+    }
   };
 
   const handleSaveConsultantAssignments = async () => {
@@ -3032,6 +3080,17 @@ export default function CompanyDetail() {
                                       {companyKeyContactIds.has(u.id) ? "Remove Key Contact" : "Set as Key Contact"}
                                     </Button>
                                   )}
+                                  {!isPrimary && (isDeveloper || isProConsultant) && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                      onClick={() => handleEditClientSites(u.id)}
+                                      data-testid={`button-edit-sites-${u.id}`}
+                                    >
+                                      Edit sites
+                                    </Button>
+                                  )}
                                   {clientSites.length > 0 ? (
                                     <button
                                       onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
@@ -3759,6 +3818,79 @@ export default function CompanyDetail() {
               data-testid="button-save-consultant-assignments"
             >
               {savingConsultantAssignments ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Client Site Access dialog */}
+      <Dialog open={editClientSitesOpen} onOpenChange={(v) => {
+        setEditClientSitesOpen(v);
+        if (!v) {
+          setEditClientId("");
+          setClientSiteSelections({});
+          setOriginalClientSites(new Set());
+        }
+      }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Edit Site Access</DialogTitle>
+            <DialogDescription>
+              {(() => {
+                const client = tabClients.find(c => c.id === editClientId);
+                return client
+                  ? `Choose which sites ${client.fullName} should have access to. Ticked sites are already assigned.`
+                  : "Choose which sites this user should have access to.";
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Sites</Label>
+              {(company?.sites || []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">This company has no sites yet.</p>
+              ) : (
+                <div className="rounded-md border divide-y max-h-64 overflow-y-auto">
+                  {(company?.sites || []).map((site: SiteWithDetails) => {
+                    const checked = !!clientSiteSelections[site.id];
+                    return (
+                      <label
+                        key={site.id}
+                        htmlFor={`client-site-check-${site.id}`}
+                        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-muted/40 transition-colors"
+                        data-testid={`label-client-site-assignment-${site.id}`}
+                      >
+                        <input
+                          id={`client-site-check-${site.id}`}
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) =>
+                            setClientSiteSelections((prev) => ({ ...prev, [site.id]: e.target.checked }))
+                          }
+                          className="h-4 w-4 rounded border-border accent-primary"
+                          data-testid={`checkbox-client-site-${site.id}`}
+                        />
+                        <span className="flex-1 text-sm font-medium">{site.name}</span>
+                        {checked && originalClientSites.has(site.id) && (
+                          <span className="text-xs text-muted-foreground">Already assigned</span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditClientSitesOpen(false)} data-testid="button-cancel-edit-client-sites">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveClientAssignments}
+              disabled={!editClientId || savingClientAssignments}
+              data-testid="button-save-client-assignments"
+            >
+              {savingClientAssignments ? "Saving…" : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
