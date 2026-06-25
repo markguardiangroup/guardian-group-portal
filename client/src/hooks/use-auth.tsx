@@ -273,10 +273,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       localStorage.removeItem("dev_user");
+      localStorage.removeItem("sidebar_hint_seen");
       window.location.replace("/");
     },
     onError: () => {
       localStorage.removeItem("dev_user");
+      localStorage.removeItem("sidebar_hint_seen");
       window.location.replace("/");
     },
   });

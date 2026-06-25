@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useServerEvents } from "@/hooks/use-server-events";
 import { useModuleAccess } from "@/hooks/use-module-access";
@@ -814,25 +814,26 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
 
 function SidebarExpandHint() {
   const [visible, setVisible] = useState(false);
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
 
   useEffect(() => {
     const alreadySeen = localStorage.getItem("sidebar_hint_seen") === "true";
     if (alreadySeen) return;
 
-    // Read collapsed state from the sidebar DOM attribute — avoids cross-module context issues
-    const t = setTimeout(() => {
-      const sidebar = document.querySelector('[data-sidebar="sidebar"]');
-      if (sidebar?.getAttribute("data-state") === "collapsed") {
-        setVisible(true);
-        const hideTimer = setTimeout(() => {
-          setVisible(false);
-          localStorage.setItem("sidebar_hint_seen", "true");
-        }, 5000);
-        return () => clearTimeout(hideTimer);
-      }
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const showTimer = setTimeout(() => {
+      setVisible(true);
+      hideTimer = setTimeout(() => {
+        setVisible(false);
+        localStorage.setItem("sidebar_hint_seen", "true");
+      }, 5000);
     }, 150);
 
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(showTimer);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, []);
 
   if (!visible) return null;
@@ -841,7 +842,7 @@ function SidebarExpandHint() {
     <div className="absolute left-10 top-1/2 -translate-y-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-left-1 duration-200">
       <div className="relative bg-primary text-primary-foreground text-xs font-medium px-3 py-2 rounded-md shadow-lg whitespace-nowrap">
         <span className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-b-[5px] border-r-[6px] border-t-transparent border-b-transparent border-r-primary" />
-        Click to expand the sidebar
+        {collapsed ? "Click to expand the sidebar" : "Click to minimise the sidebar"}
       </div>
     </div>
   );

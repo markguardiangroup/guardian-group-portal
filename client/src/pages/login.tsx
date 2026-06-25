@@ -253,6 +253,7 @@ export default function Login() {
       // background loading of all other data once the user lands on the dashboard.
       // Restore the originally-requested URL (from an email deep link, etc.)
       // unless the user actually started on /login or root.
+      localStorage.removeItem("sidebar_hint_seen");
       const intended = intendedPathRef.current || "/";
       const target =
         intended === "/" || intended.startsWith("/login") ? "/" : intended;
@@ -300,6 +301,7 @@ export default function Login() {
       setMfaError(null);
       queryClient.setQueryData(["/api/auth/me"], userData);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      localStorage.removeItem("sidebar_hint_seen");
       const intended = intendedPathRef.current || "/";
       const target = intended === "/" || intended.startsWith("/login") ? "/" : intended;
       setLocation(target);
@@ -650,6 +652,7 @@ export default function Login() {
                             if (setupUserData) {
                               queryClient.setQueryData(["/api/auth/me"], setupUserData);
                               queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+                              localStorage.removeItem("sidebar_hint_seen");
                               const intended = intendedPathRef.current || "/";
                               const target = intended === "/" || intended.startsWith("/login") ? "/" : intended;
                               setLocation(target);

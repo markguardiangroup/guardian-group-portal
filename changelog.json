@@ -9589,6 +9589,13 @@
           "message": "Home page now shows an Awaiting Client Approval box for your documents",
           "category": "feature",
           "createdAt": "2026-06-24T16:06:27.202Z"
+        },
+        {
+          "id": "d8a0adb1-e789-4064-9084-f661556d9d2a",
+          "patch": 16,
+          "message": "Sidebar hint now shows on every login and reflects expand/minimise",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T08:08:25.315Z"
         }
       ],
       "publishedPatch": 15,
