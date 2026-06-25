@@ -1795,8 +1795,10 @@ function CaseDetailView({ id }: { id: string }) {
   const [bundleName, setBundleName] = useState("");
   // bundleItemOrder: all linked item IDs in user's drag order (determines PDF order)
   const [bundleItemOrder, setBundleItemOrder] = useState<string[]>([]);
-  // bundleCheckedIds: which of the above are selected/included
+  // bundleCheckedIds: which of the above are selected/included (holds checklist item IDs and document IDs)
   const [bundleCheckedIds, setBundleCheckedIds] = useState<Set<string>>(new Set());
+  // bundleDocOrder: case document IDs (not linked to a checklist item) in user's drag order
+  const [bundleDocOrder, setBundleDocOrder] = useState<string[]>([]);
   const [downloadingBundleId, setDownloadingBundleId] = useState<string | null>(null);
   const [bundleToDelete, setBundleToDelete] = useState<CaseBundle | null>(null);
   const [bundleEditConfirmPending, setBundleEditConfirmPending] = useState(false);
@@ -1813,11 +1815,28 @@ function CaseDetailView({ id }: { id: string }) {
     () => new Map((documents ?? []).map(doc => [doc.id, doc])),
     [documents],
   );
+  // Case documents that are NOT linked to an essential (checklist) document
+  const unlinkedCaseDocuments = useMemo(() => {
+    const linkedDocIds = new Set(
+      (checklistItems ?? []).map(i => i.linkedDocumentId).filter(Boolean) as string[],
+    );
+    return (documents ?? []).filter(doc => doc.fileUrl && !linkedDocIds.has(doc.id));
+  }, [documents, checklistItems]);
   const bundleSensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor));
   const handleBundleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
       setBundleItemOrder(prev => {
+        const oldIndex = prev.indexOf(String(active.id));
+        const newIndex = prev.indexOf(String(over.id));
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
+  const handleBundleDocDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setBundleDocOrder(prev => {
         const oldIndex = prev.indexOf(String(active.id));
         const newIndex = prev.indexOf(String(over.id));
         return arrayMove(prev, oldIndex, newIndex);
@@ -1830,7 +1849,8 @@ function CaseDetailView({ id }: { id: string }) {
     setBundleName("");
     const ids = linkedChecklistItems.map(item => item.id);
     setBundleItemOrder(ids);
-    setBundleCheckedIds(new Set(ids)); // all selected by default
+    setBundleDocOrder(unlinkedCaseDocuments.map(doc => doc.id));
+    setBundleCheckedIds(new Set(ids)); // all essential documents selected by default
     setShowBundleDialog(true);
   };
 
@@ -1842,11 +1862,18 @@ function CaseDetailView({ id }: { id: string }) {
     const savedIdsSet = new Set(savedIds);
     const remainingIds = linkedChecklistItems.map(item => item.id).filter(id => !savedIdsSet.has(id));
     setBundleItemOrder([...savedIds, ...remainingIds]);
-    setBundleCheckedIds(new Set(savedIds));
+
+    const docIds = new Set(unlinkedCaseDocuments.map(doc => doc.id));
+    const savedDocIds = (bundle.documentIds ?? []).filter(docId => docIds.has(docId));
+    const savedDocSet = new Set(savedDocIds);
+    const remainingDocIds = unlinkedCaseDocuments.map(doc => doc.id).filter(docId => !savedDocSet.has(docId));
+    setBundleDocOrder([...savedDocIds, ...remainingDocIds]);
+
+    setBundleCheckedIds(new Set([...savedIds, ...savedDocIds]));
     setShowBundleDialog(true);
   };
 
-  const createBundleMutation = useMutation<CaseBundle, Error, { name: string; checklistItemIds: string[] }>({
+  const createBundleMutation = useMutation<CaseBundle, Error, { name: string; checklistItemIds: string[]; documentIds: string[] }>({
     mutationFn: (data) =>
       apiRequest("POST", `/api/cases/${id}/bundles`, data).then(r => r.json()),
     onSuccess: () => {
@@ -1855,7 +1882,7 @@ function CaseDetailView({ id }: { id: string }) {
     onError: (err) => toast({ title: "Failed to save bundle", description: String(err), variant: "destructive" }),
   });
 
-  const updateBundleMutation = useMutation<CaseBundle, Error, { bundleId: string; data: { name?: string; checklistItemIds?: string[] } }>({
+  const updateBundleMutation = useMutation<CaseBundle, Error, { bundleId: string; data: { name?: string; checklistItemIds?: string[]; documentIds?: string[] } }>({
     mutationFn: ({ bundleId, data }) =>
       apiRequest("PATCH", `/api/cases/${id}/bundles/${bundleId}`, data).then(r => r.json()),
     onSuccess: () => {
@@ -1877,9 +1904,10 @@ function CaseDetailView({ id }: { id: string }) {
   const handleSaveBundle = async () => {
     try {
       const checklistItemIds = bundleItemOrder.filter(id => bundleCheckedIds.has(id));
+      const documentIds = bundleDocOrder.filter(id => bundleCheckedIds.has(id));
       editingBundle
-        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds } })
-        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds });
+        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds, documentIds } })
+        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds, documentIds });
       setShowBundleDialog(false);
       setBundleEditConfirmPending(false);
       toast({
@@ -3142,7 +3170,7 @@ function CaseDetailView({ id }: { id: string }) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{bundle.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {bundle.checklistItemIds?.length ?? 0} document{(bundle.checklistItemIds?.length ?? 0) === 1 ? "" : "s"}
+                          {((bundle.checklistItemIds?.length ?? 0) + (bundle.documentIds?.length ?? 0))} document{((bundle.checklistItemIds?.length ?? 0) + (bundle.documentIds?.length ?? 0)) === 1 ? "" : "s"}
                         </p>
                         {bundle.cachedFileUrl && (
                           <>
@@ -3216,7 +3244,7 @@ function CaseDetailView({ id }: { id: string }) {
           <DialogHeader>
             <DialogTitle>{editingBundle ? "Edit Bundle" : "New Document Bundle"}</DialogTitle>
             <DialogDescription>
-              Choose a name and select checklist items to include in this bundle.
+              Choose a name and select the documents to include in this bundle.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -3229,59 +3257,101 @@ function CaseDetailView({ id }: { id: string }) {
                 data-testid="input-bundle-name"
               />
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-foreground">
-                  Documents ({bundleCheckedIds.size} / {bundleItemOrder.length} selected)
+                  Documents ({bundleCheckedIds.size} selected)
                 </label>
-                {bundleItemOrder.length > 0 && (
+                {(bundleItemOrder.length + bundleDocOrder.length) > 0 && (
                   <button
                     type="button"
                     className="text-xs text-primary hover:underline"
                     onClick={() => {
-                      if (bundleCheckedIds.size === bundleItemOrder.length) {
+                      const allIds = [...bundleItemOrder, ...bundleDocOrder];
+                      if (bundleCheckedIds.size === allIds.length) {
                         setBundleCheckedIds(new Set());
                       } else {
-                        setBundleCheckedIds(new Set(bundleItemOrder));
+                        setBundleCheckedIds(new Set(allIds));
                       }
                     }}
                     data-testid="button-bundle-select-all"
                   >
-                    {bundleCheckedIds.size === bundleItemOrder.length ? "Deselect All" : "Select All"}
+                    {bundleCheckedIds.size === (bundleItemOrder.length + bundleDocOrder.length) ? "Deselect All" : "Select All"}
                   </button>
                 )}
               </div>
-              <div className="max-h-60 overflow-y-auto rounded border divide-y">
-                {bundleItemOrder.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No completed checklist items with documents</p>
-                ) : (
-                  <DndContext sensors={bundleSensors} collisionDetection={closestCenter} onDragEnd={handleBundleDragEnd}>
-                    <SortableContext items={bundleItemOrder} strategy={verticalListSortingStrategy}>
-                      {bundleItemOrder.map(itemId => {
-                        const item = linkedChecklistMap.get(itemId);
-                        if (!item) return null;
-                        const linkedDoc = item.linkedDocumentId ? documentMap.get(item.linkedDocumentId) : undefined;
-                        return (
-                          <SortableBundleItem
-                            key={itemId}
-                            id={itemId}
-                            title={item.title}
-                            fileName={linkedDoc?.fileName}
-                            mimeType={linkedDoc?.mimeType}
-                            checked={bundleCheckedIds.has(itemId)}
-                            onCheckedChange={(checked) => {
-                              setBundleCheckedIds(prev => {
-                                const next = new Set(prev);
-                                if (checked) next.add(itemId); else next.delete(itemId);
-                                return next;
-                              });
-                            }}
-                          />
-                        );
-                      })}
-                    </SortableContext>
-                  </DndContext>
-                )}
+
+              {/* Essential Documents — linked to a case checklist item */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Essential Documents</p>
+                <div className="max-h-44 overflow-y-auto rounded border divide-y">
+                  {bundleItemOrder.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No completed checklist items with documents</p>
+                  ) : (
+                    <DndContext sensors={bundleSensors} collisionDetection={closestCenter} onDragEnd={handleBundleDragEnd}>
+                      <SortableContext items={bundleItemOrder} strategy={verticalListSortingStrategy}>
+                        {bundleItemOrder.map(itemId => {
+                          const item = linkedChecklistMap.get(itemId);
+                          if (!item) return null;
+                          const linkedDoc = item.linkedDocumentId ? documentMap.get(item.linkedDocumentId) : undefined;
+                          return (
+                            <SortableBundleItem
+                              key={itemId}
+                              id={itemId}
+                              title={item.title}
+                              fileName={linkedDoc?.fileName}
+                              mimeType={linkedDoc?.mimeType}
+                              checked={bundleCheckedIds.has(itemId)}
+                              onCheckedChange={(checked) => {
+                                setBundleCheckedIds(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(itemId); else next.delete(itemId);
+                                  return next;
+                                });
+                              }}
+                            />
+                          );
+                        })}
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </div>
+              </div>
+
+              {/* Case Documents — case files not linked to an essential document */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Case Documents</p>
+                <div className="max-h-44 overflow-y-auto rounded border divide-y">
+                  {bundleDocOrder.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">No other case documents available</p>
+                  ) : (
+                    <DndContext sensors={bundleSensors} collisionDetection={closestCenter} onDragEnd={handleBundleDocDragEnd}>
+                      <SortableContext items={bundleDocOrder} strategy={verticalListSortingStrategy}>
+                        {bundleDocOrder.map(docId => {
+                          const doc = documentMap.get(docId);
+                          if (!doc) return null;
+                          return (
+                            <SortableBundleItem
+                              key={docId}
+                              id={docId}
+                              title={doc.title || doc.fileName || "Document"}
+                              fileName={doc.fileName}
+                              mimeType={doc.mimeType}
+                              checked={bundleCheckedIds.has(docId)}
+                              onCheckedChange={(checked) => {
+                                setBundleCheckedIds(prev => {
+                                  const next = new Set(prev);
+                                  if (checked) next.add(docId); else next.delete(docId);
+                                  return next;
+                                });
+                              }}
+                            />
+                          );
+                        })}
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </div>
               </div>
             </div>
           </div>

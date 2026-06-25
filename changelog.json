@@ -9680,6 +9680,13 @@
           "message": "Template name now auto-fills from the file name when uploading templates",
           "category": "enhancement",
           "createdAt": "2026-06-25T17:43:44.672Z"
+        },
+        {
+          "id": "46da8899-4214-45b6-acef-bd400733ac37",
+          "patch": 16,
+          "message": "Case bundles can now include case documents, not just essential ones",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T17:59:31.996Z"
         }
       ],
       "publishedPatch": 15,

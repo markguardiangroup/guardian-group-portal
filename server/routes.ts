@@ -13236,6 +13236,7 @@ export async function registerRoutes(
       if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
 
       const { name, checklistItemIds } = req.body;
+      const documentIds = Array.isArray(req.body.documentIds) ? req.body.documentIds : [];
       if (!name || typeof name !== "string" || !name.trim()) {
         return res.status(400).json({ error: "Bundle name is required" });
       }
@@ -13247,6 +13248,7 @@ export async function registerRoutes(
         caseId: req.params.id,
         name: name.trim(),
         checklistItemIds,
+        documentIds,
         createdBy: user.id,
       });
       await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
@@ -13275,6 +13277,9 @@ export async function registerRoutes(
       if (req.body.name && typeof req.body.name === "string") updates.name = req.body.name.trim();
       if (Array.isArray(req.body.checklistItemIds)) {
         updates.checklistItemIds = req.body.checklistItemIds;
+      }
+      if (Array.isArray(req.body.documentIds)) {
+        updates.documentIds = req.body.documentIds;
       }
 
       // Invalidate + delete cached PDF on any change
@@ -13358,7 +13363,8 @@ export async function registerRoutes(
         }
       }
 
-      if (bundle.checklistItemIds.length === 0) {
+      const documentIds = bundle.documentIds ?? [];
+      if (bundle.checklistItemIds.length === 0 && documentIds.length === 0) {
         return res.status(400).json({ error: "Bundle has no documents" });
       }
 
@@ -13371,8 +13377,24 @@ export async function registerRoutes(
           .map(id => checklistMap.get(id))
           .filter((item): item is (typeof allChecklist)[number] => !!item);
 
-        if (selectedItems.length === 0) {
-          throw new Error("No matching checklist items found");
+        // Resolve the documents to merge, in order: essential (checklist-linked) first,
+        // then the additional case documents added directly to the bundle.
+        const docsToMerge: { id: string; fileUrl: string | null; fileName: string | null; mimeType: string | null }[] = [];
+        for (const item of selectedItems) {
+          if (!item.linkedDocumentId) continue;
+          const doc = await storage.getDocument(item.linkedDocumentId);
+          if (doc) docsToMerge.push({ id: item.id, fileUrl: doc.fileUrl, fileName: doc.fileName, mimeType: doc.mimeType });
+        }
+        for (const docId of documentIds) {
+          const doc = await storage.getDocument(docId);
+          // Only include documents that actually belong to this case
+          if (doc && doc.caseId === req.params.caseId) {
+            docsToMerge.push({ id: docId, fileUrl: doc.fileUrl, fileName: doc.fileName, mimeType: doc.mimeType });
+          }
+        }
+
+        if (docsToMerge.length === 0) {
+          throw new Error("No matching documents found");
         }
 
         // Create temp dir
@@ -13380,21 +13402,18 @@ export async function registerRoutes(
 
         const pdfPaths: string[] = [];
 
-        for (let i = 0; i < selectedItems.length; i++) {
-          const item = selectedItems[i];
-          if (!item.linkedDocumentId) continue;
-
-          const doc = await storage.getDocument(item.linkedDocumentId);
-          if (!doc || !doc.fileUrl) continue;
+        for (let i = 0; i < docsToMerge.length; i++) {
+          const entry = docsToMerge[i];
+          if (!entry.fileUrl) continue;
 
           try {
-            const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
+            const objectFile = await objectStorageService.getObjectEntityFile(entry.fileUrl);
             const [fileBuffer] = await objectFile.download();
-            const mimeType = doc.mimeType || "application/octet-stream";
-            const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i, doc.fileName);
+            const mimeType = entry.mimeType || "application/octet-stream";
+            const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i, entry.fileName ?? undefined);
             pdfPaths.push(pdfPath);
           } catch (fileError) {
-            console.warn(`Bundle: skipping item ${item.id} due to error:`, fileError);
+            console.warn(`Bundle: skipping item ${entry.id} due to error:`, fileError);
           }
         }
 
