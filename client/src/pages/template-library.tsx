@@ -1380,6 +1380,15 @@ export default function TemplateLibraryPage() {
 
   const handleEditTemplate = (template: DocumentTemplate) => {
     setSelectedTemplate(template);
+    const editVisibility = (template.visibility as "public" | "private") || "public";
+    const editToolkitFolderId = (template as any).toolkitFolderId || "";
+    let editSources = template.sources ?? [];
+    // For public templates assigned to a Toolkit folder, only the folder's sources are valid
+    if (editVisibility === "public" && editToolkitFolderId) {
+      const folder = toolkitFolders.find(f => f.id === editToolkitFolderId);
+      const allowed = folder?.sources ?? [];
+      editSources = editSources.filter(c => allowed.includes(c));
+    }
     setTemplateFormData({
       name: template.name,
       description: template.description || "",
@@ -1389,7 +1398,7 @@ export default function TemplateLibraryPage() {
       isMandatory: template.isMandatory || false,
       renewalPeriodMonths: template.renewalPeriodMonths || null,
       requiresApproval: template.requiresApproval !== false,
-      visibility: (template.visibility as "public" | "private") || "public",
+      visibility: editVisibility,
       fileName: template.fileName,
       fileUrl: template.fileUrl || "",
       fileSize: template.fileSize,
@@ -1398,10 +1407,10 @@ export default function TemplateLibraryPage() {
       sortOrder: template.sortOrder,
       createNewFolder: false,
       newFolderName: "",
-      toolkitFolderId: (template as any).toolkitFolderId || "",
+      toolkitFolderId: editToolkitFolderId,
       createNewToolkitFolder: false,
       newToolkitFolderName: "",
-      sources: template.sources ?? [],
+      sources: editSources,
     });
     setIsEditTemplateDialogOpen(true);
   };
@@ -2641,7 +2650,7 @@ export default function TemplateLibraryPage() {
                 <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
                   checked={bulkShared.visibility === "public"}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : bulkShared.requiresApproval, renewalPeriodMonths: checked ? null : bulkShared.renewalPeriodMonths })}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", sources: checked ? [] : bulkShared.sources, requiresApproval: checked ? false : bulkShared.requiresApproval, renewalPeriodMonths: checked ? null : bulkShared.renewalPeriodMonths })}
                   data-testid="switch-bulk-visibility"
                 />
               </div>
@@ -2674,7 +2683,11 @@ export default function TemplateLibraryPage() {
                 </div>
                 {!bulkShared.createNewToolkitFolder ? (
                   <>
-                    <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false })}>
+                    <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => {
+                      const folder = toolkitFolders.find(f => f.id === v);
+                      const allowed = folder?.sources ?? [];
+                      setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false, sources: bulkShared.sources.filter(c => allowed.includes(c)) });
+                    }}>
                       <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
                       <SelectContent>
                         {toolkitFolders.filter(f => f.module === bulkShared.module).sort((a, b) => a.name.localeCompare(b.name)).map(f => (
@@ -2775,26 +2788,40 @@ export default function TemplateLibraryPage() {
             )}
 
             {/* Source */}
-            {allSources.filter(s => s.isActive).length > 0 && (
+            {allSources.filter(s => s.isActive).length > 0 && (() => {
+              const restrictToFolder = bulkShared.visibility === "public" && !bulkShared.createNewToolkitFolder;
+              const selectedTkFolder = restrictToFolder
+                ? toolkitFolders.find(f => f.id === bulkShared.toolkitFolderId)
+                : undefined;
+              const folderSources = selectedTkFolder?.sources ?? [];
+              const noFolderSelected = restrictToFolder && !bulkShared.toolkitFolderId;
+              return (
               <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium">Source <span className="text-destructive">*</span></Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Select at least one source. This controls which source users can see this template.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {noFolderSelected
+                      ? "Select a Toolkit Folder first to choose sources."
+                      : "Select at least one source. This controls which source users can see this template."}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {allSources.filter(s => s.isActive).map(s => {
                     const checked = bulkShared.sources.includes(s.code);
+                    const allowed = !restrictToFolder || folderSources.includes(s.code);
+                    const disabled = noFolderSelected || !allowed;
                     return (
                       <button
                         key={s.code}
                         type="button"
+                        disabled={disabled}
                         onClick={() => {
                           const next = checked
                             ? bulkShared.sources.filter(c => c !== s.code)
                             : [...bulkShared.sources, s.code];
                           setBulkShared({ ...bulkShared, sources: next });
                         }}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"}`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"} ${disabled ? "opacity-40 cursor-not-allowed hover:border-border" : ""}`}
                         data-testid={`button-bulk-source-${s.code}`}
                       >
                         {s.label}
@@ -2802,11 +2829,15 @@ export default function TemplateLibraryPage() {
                     );
                   })}
                 </div>
-                {bulkShared.sources.length === 0 && (
+                {restrictToFolder && bulkShared.toolkitFolderId && folderSources.length === 0 && (
+                  <p className="text-xs text-amber-600">The selected folder has no sources configured. Add sources to the folder first.</p>
+                )}
+                {!noFolderSelected && bulkShared.sources.length === 0 && (
                   <p className="text-xs text-destructive">At least one source is required.</p>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {/* ── File picker ── */}
             <div className="space-y-2">
@@ -3004,7 +3035,7 @@ export default function TemplateLibraryPage() {
                 <Switch
                   id="edit-template-visibility"
                   checked={templateFormData.visibility === "public"}
-                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", requiresApproval: checked ? false : templateFormData.requiresApproval, renewalPeriodMonths: checked ? null : templateFormData.renewalPeriodMonths })}
+                  onCheckedChange={(checked) => setTemplateFormData({ ...templateFormData, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", sources: checked ? [] : templateFormData.sources, requiresApproval: checked ? false : templateFormData.requiresApproval, renewalPeriodMonths: checked ? null : templateFormData.renewalPeriodMonths })}
                   data-testid="switch-edit-template-visibility"
                 />
               </div>
@@ -3038,7 +3069,11 @@ export default function TemplateLibraryPage() {
                   <>
                     <Select
                       value={templateFormData.toolkitFolderId}
-                      onValueChange={(v) => setTemplateFormData({ ...templateFormData, toolkitFolderId: v })}
+                      onValueChange={(v) => {
+                        const folder = toolkitFolders.find(f => f.id === v);
+                        const allowed = folder?.sources ?? [];
+                        setTemplateFormData({ ...templateFormData, toolkitFolderId: v, sources: templateFormData.sources.filter(c => allowed.includes(c)) });
+                      }}
                     >
                       <SelectTrigger data-testid="select-edit-toolkit-folder">
                         <SelectValue placeholder="No folder (unassigned)" />
@@ -3125,26 +3160,40 @@ export default function TemplateLibraryPage() {
             </div>
             )}
             {/* Source */}
-            {allSources.filter(s => s.isActive).length > 0 && (
+            {allSources.filter(s => s.isActive).length > 0 && (() => {
+              const restrictToFolder = templateFormData.visibility === "public" && !templateFormData.createNewToolkitFolder;
+              const selectedTkFolder = restrictToFolder
+                ? toolkitFolders.find(f => f.id === templateFormData.toolkitFolderId)
+                : undefined;
+              const folderSources = selectedTkFolder?.sources ?? [];
+              const noFolderSelected = restrictToFolder && !templateFormData.toolkitFolderId;
+              return (
               <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium">Source <span className="text-destructive">*</span></Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">Select at least one source. This controls which source users can see this template.</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {noFolderSelected
+                      ? "Select a Toolkit Folder first to choose sources."
+                      : "Select at least one source. This controls which source users can see this template."}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {allSources.filter(s => s.isActive).map(s => {
                     const checked = templateFormData.sources.includes(s.code);
+                    const allowed = !restrictToFolder || folderSources.includes(s.code);
+                    const disabled = noFolderSelected || !allowed;
                     return (
                       <button
                         key={s.code}
                         type="button"
+                        disabled={disabled}
                         onClick={() => {
                           const next = checked
                             ? templateFormData.sources.filter(c => c !== s.code)
                             : [...templateFormData.sources, s.code];
                           setTemplateFormData({ ...templateFormData, sources: next });
                         }}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"}`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"} ${disabled ? "opacity-40 cursor-not-allowed hover:border-border" : ""}`}
                         data-testid={`button-edit-source-${s.code}`}
                       >
                         {s.label}
@@ -3152,11 +3201,15 @@ export default function TemplateLibraryPage() {
                     );
                   })}
                 </div>
-                {templateFormData.sources.length === 0 && (
+                {restrictToFolder && templateFormData.toolkitFolderId && folderSources.length === 0 && (
+                  <p className="text-xs text-amber-600">The selected folder has no sources configured. Add sources to the folder first.</p>
+                )}
+                {!noFolderSelected && templateFormData.sources.length === 0 && (
                   <p className="text-xs text-destructive">At least one source is required.</p>
                 )}
               </div>
-            )}
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditTemplateDialogOpen(false)}>Cancel</Button>

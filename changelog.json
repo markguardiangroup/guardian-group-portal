@@ -9687,6 +9687,20 @@
           "message": "Case bundles can now include case documents, not just essential ones",
           "category": "enhancement",
           "createdAt": "2026-06-25T17:59:31.996Z"
+        },
+        {
+          "id": "5c568266-0b0d-49d8-9a0f-64f628695a4c",
+          "patch": 16,
+          "message": "Public template sources now limited to the selected Toolkit folder",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T20:04:56.515Z"
+        },
+        {
+          "id": "c46fc757-6034-4856-b76c-54941a6ad174",
+          "patch": 16,
+          "message": "Editing a public template now drops sources not allowed by its folder",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T20:06:35.798Z"
         }
       ],
       "publishedPatch": 15,
