@@ -14801,6 +14801,10 @@ export async function registerRoutes(
       //                       + GO expansion: clients from member companies of any GO they can see
       // - Developer:          everyone
       let visibleUsers: typeof allUsers;
+      // For client callers, the set of sites/companies the requesting client may see.
+      // Used to strip out-of-scope site/company metadata from the enriched response below.
+      let clientInScopeSiteIds: Set<string> | null = null;
+      let clientEffectiveCompanyIds: Set<string> | null = null;
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
       } else if (hasProPrivileges(user)) {
@@ -14850,6 +14854,9 @@ export async function registerRoutes(
               inScopeSiteIds.add(s.id);
             }
           }
+          // Expose the in-scope site/company sets so enrichment can strip out-of-scope metadata.
+          clientInScopeSiteIds = inScopeSiteIds;
+          clientEffectiveCompanyIds = effectiveCompanyIds;
           // Consultants directly assigned to any in-scope site are connected.
           const connectedConsultantIds = new Set<string>();
           for (const sid of inScopeSiteIds) {
@@ -14895,18 +14902,23 @@ export async function registerRoutes(
       const usersWithAssignments = await Promise.all(visibleUsers.map(async (u) => {
         const { password, totpSecret, ...safeUser } = u;
 
-        // Determine key contact designations for this user
+        // Determine key contact designations for this user. For client callers,
+        // only surface key-contact companies/sites that are within the client's scope.
         const userKCs = keyContactsByUser.get(u.id) ?? [];
         const keyContactCompanies = userKCs
           .filter(kc => kc.entityType === "company")
+          .filter(kc => !clientEffectiveCompanyIds || clientEffectiveCompanyIds.has(kc.entityId))
           .map(kc => allCompanies.find(c => c.id === kc.entityId)?.name || kc.entityId);
         const keyContactSites = userKCs
           .filter(kc => kc.entityType === "site")
+          .filter(kc => !clientInScopeSiteIds || clientInScopeSiteIds.has(kc.entityId))
           .map(kc => allSites.find(s => s.id === kc.entityId)?.name || kc.entityId);
 
         if (u.role === "consultant") {
           const assignments: { siteId: string; siteName: string; companyName: string; isPrimary: boolean }[] = [];
           for (const site of allSites) {
+            // For client callers, never surface assignments to sites outside their scope.
+            if (clientInScopeSiteIds && !clientInScopeSiteIds.has(site.id)) continue;
             const siteAssignments = await storage.getConsultantAssignments(site.id);
             const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
             if (userAssignment) {
@@ -14917,7 +14929,10 @@ export async function registerRoutes(
           return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites };
         } else if (u.role === "client") {
           const clientAssignments = await storage.getClientSites(u.id);
-          const assignments = clientAssignments.map(a => {
+          const assignments = clientAssignments
+            // For client callers, only show assignments to sites within their scope.
+            .filter(a => !clientInScopeSiteIds || clientInScopeSiteIds.has(a.siteId))
+            .map(a => {
             const site = allSites.find(s => s.id === a.siteId);
             const company = site ? allCompanies.find(c => c.id === site.companyId) : null;
             return { siteId: a.siteId, siteName: site?.name || "Unknown", companyName: company?.name || "Unknown", isPrimary: false };
