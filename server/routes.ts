@@ -10370,9 +10370,13 @@ export async function registerRoutes(
         const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
         const clientSiteAssignments = await storage.getClientSites(user.id);
         const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
-        let filteredSites = allSites.filter(site => 
-          effectiveCompanyIds.has(site.companyId) && assignedSiteIds.has(site.id)
-        );
+        // Mirror canUserAccessSite: member-company (GO) sites are in scope by
+        // membership alone; own-company sites require an explicit assignment.
+        let filteredSites = allSites.filter(site => {
+          if (!effectiveCompanyIds.has(site.companyId)) return false;
+          if (site.companyId !== user.companyId) return true;
+          return assignedSiteIds.has(site.id);
+        });
         if (companyIdFilter) filteredSites = filteredSites.filter(s => s.companyId === companyIdFilter);
         res.json(filteredSites);
         return;
