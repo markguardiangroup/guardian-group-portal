@@ -9701,6 +9701,13 @@
           "message": "Editing a public template now drops sources not allowed by its folder",
           "category": "enhancement",
           "createdAt": "2026-06-25T20:06:35.798Z"
+        },
+        {
+          "id": "3834ea5e-cbe2-4754-be39-1cea38472c44",
+          "patch": 16,
+          "message": "Email domain mismatch now warns as you type the domain extension",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:05:21.753Z"
         }
       ],
       "publishedPatch": 15,

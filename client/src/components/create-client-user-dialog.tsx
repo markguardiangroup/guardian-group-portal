@@ -331,9 +331,22 @@ export function CreateClientUserDialog({
                         value={form.email}
                         className={emailError ? "border-destructive focus-visible:ring-destructive" : ""}
                         onChange={(e) => {
-                          setForm(f => ({ ...f, email: e.target.value }));
+                          const val = e.target.value;
+                          setForm(f => ({ ...f, email: val }));
                           if (emailError) setEmailError(null);
-                          setDomainMismatch(null);
+                          const emailDomain = extractEmailDomain(val.trim());
+                          // Run the domain check live, but only once the domain
+                          // extension (.com, .co.uk, ...) has started being typed.
+                          if (companyWebsite && emailDomain.includes(".")) {
+                            const websiteDomain = extractWebsiteDomain(companyWebsite);
+                            if (websiteDomain && emailDomain !== websiteDomain) {
+                              setDomainMismatch({ emailDomain, websiteDomain });
+                            } else {
+                              setDomainMismatch(null);
+                            }
+                          } else {
+                            setDomainMismatch(null);
+                          }
                         }}
                         onBlur={async (e) => {
                           const val = e.target.value.trim();
