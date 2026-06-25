@@ -162,7 +162,7 @@ export function CreateClientUserDialog({
         await apiRequest("POST", `/api/users/${createdUser.id}/site-assignments/${siteId}`, {});
       }
       if (setPrimary) {
-        await apiRequest("PATCH", `/api/companies/${companyId}/primary-contact`, { userId: createdUser.id });
+        await apiRequest("PATCH", `/api/companies/${companyId}`, { contactUserId: createdUser.id });
         queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId] });
         queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
       }
@@ -181,8 +181,8 @@ export function CreateClientUserDialog({
         description: parts.length > 0 ? parts.join(", ") + "." : `${createdUser.fullName} created successfully.`,
       });
       onCreated?.();
-    } catch {
-      toast({ title: "Failed to save some settings", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Failed to save some settings", description: err?.message || undefined, variant: "destructive" });
     } finally {
       setIsSaving(false);
       setShowSiteAssign(false);

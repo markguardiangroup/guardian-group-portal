@@ -9708,6 +9708,13 @@
           "message": "Email domain mismatch now warns as you type the domain extension",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:05:21.753Z"
+        },
+        {
+          "id": "c2bd1941-995a-4a9f-8e4b-138ea15bc9ff",
+          "patch": 16,
+          "message": "Fixed: setting a new user as primary contact no longer fails",
+          "category": "bug",
+          "createdAt": "2026-06-25T21:19:10.202Z"
         }
       ],
       "publishedPatch": 15,
