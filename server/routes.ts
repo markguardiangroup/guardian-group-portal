@@ -14805,6 +14805,10 @@ export async function registerRoutes(
       // Used to strip out-of-scope site/company metadata from the enriched response below.
       let clientInScopeSiteIds: Set<string> | null = null;
       let clientEffectiveCompanyIds: Set<string> | null = null;
+      // For client callers, pre-grouped assignment maps so enrichment avoids per-site
+      // DB round-trips (one batched query each, grouped in memory).
+      let consultantAssignmentsByConsultant: Map<string, { entityId: string | null; isPrimary: boolean | null }[]> | null = null;
+      let clientSitesByClient: Map<string, { siteId: string }[]> | null = null;
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
       } else if (hasProPrivileges(user)) {
@@ -14841,10 +14845,26 @@ export async function registerRoutes(
           visibleUsers = [];
         } else {
           const effectiveCompanyIds = await getEffectiveCompanyIds(user.companyId);
+          // Batch all assignment data once, then group in memory — avoids per-site DB round-trips.
+          const [allConsultantAssignments, allClientSiteAssignments] = await Promise.all([
+            storage.getAllConsultantAssignments(),
+            storage.getAllClientSiteAssignments(),
+          ]);
+          consultantAssignmentsByConsultant = new Map();
+          for (const ca of allConsultantAssignments) {
+            const list = consultantAssignmentsByConsultant.get(ca.consultantId) ?? [];
+            list.push({ entityId: ca.entityId, isPrimary: ca.isPrimary });
+            consultantAssignmentsByConsultant.set(ca.consultantId, list);
+          }
+          clientSitesByClient = new Map();
+          for (const csa of allClientSiteAssignments) {
+            const list = clientSitesByClient.get(csa.clientId) ?? [];
+            list.push({ siteId: csa.siteId });
+            clientSitesByClient.set(csa.clientId, list);
+          }
           // In-scope sites mirror canUserAccessSite for clients: member-company sites are
           // all in scope; own-company sites only when the client is explicitly assigned.
-          const clientSiteAssignments = await storage.getClientSites(user.id);
-          const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
+          const assignedSiteIds = new Set((clientSitesByClient.get(user.id) ?? []).map(a => a.siteId));
           const inScopeSiteIds = new Set<string>();
           for (const s of allSites) {
             if (!effectiveCompanyIds.has(s.companyId)) continue;
@@ -14859,9 +14879,10 @@ export async function registerRoutes(
           clientEffectiveCompanyIds = effectiveCompanyIds;
           // Consultants directly assigned to any in-scope site are connected.
           const connectedConsultantIds = new Set<string>();
-          for (const sid of inScopeSiteIds) {
-            const cas = await storage.getConsultantAssignments(sid);
-            cas.forEach(a => connectedConsultantIds.add(a.consultantId));
+          for (const ca of allConsultantAssignments) {
+            if (ca.entityId && inScopeSiteIds.has(ca.entityId)) {
+              connectedConsultantIds.add(ca.consultantId);
+            }
           }
           // Staff (consultants/admins) serving the client's companies via shared sources.
           const inScopeSources = new Set<string>();
@@ -14916,19 +14937,33 @@ export async function registerRoutes(
 
         if (u.role === "consultant") {
           const assignments: { siteId: string; siteName: string; companyName: string; isPrimary: boolean }[] = [];
-          for (const site of allSites) {
-            // For client callers, never surface assignments to sites outside their scope.
-            if (clientInScopeSiteIds && !clientInScopeSiteIds.has(site.id)) continue;
-            const siteAssignments = await storage.getConsultantAssignments(site.id);
-            const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
-            if (userAssignment) {
+          if (consultantAssignmentsByConsultant) {
+            // Client caller: use the pre-grouped map (no per-site DB calls).
+            for (const ca of consultantAssignmentsByConsultant.get(u.id) ?? []) {
+              if (!ca.entityId) continue;
+              // Never surface assignments to sites outside the client's scope.
+              if (clientInScopeSiteIds && !clientInScopeSiteIds.has(ca.entityId)) continue;
+              const site = allSites.find(s => s.id === ca.entityId);
+              if (!site) continue;
               const company = allCompanies.find(c => c.id === site.companyId);
-              assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!userAssignment.isPrimary });
+              assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!ca.isPrimary });
+            }
+          } else {
+            for (const site of allSites) {
+              const siteAssignments = await storage.getConsultantAssignments(site.id);
+              const userAssignment = siteAssignments.find(a => a.consultantId === u.id);
+              if (userAssignment) {
+                const company = allCompanies.find(c => c.id === site.companyId);
+                assignments.push({ siteId: site.id, siteName: site.name, companyName: company?.name || "Unknown", isPrimary: !!userAssignment.isPrimary });
+              }
             }
           }
           return { ...safeUser, siteAssignments: assignments, keyContactCompanies, keyContactSites };
         } else if (u.role === "client") {
-          const clientAssignments = await storage.getClientSites(u.id);
+          // Client caller: use the pre-grouped map; otherwise fall back to a direct query.
+          const clientAssignments = clientSitesByClient
+            ? (clientSitesByClient.get(u.id) ?? [])
+            : await storage.getClientSites(u.id);
           const assignments = clientAssignments
             // For client callers, only show assignments to sites within their scope.
             .filter(a => !clientInScopeSiteIds || clientInScopeSiteIds.has(a.siteId))

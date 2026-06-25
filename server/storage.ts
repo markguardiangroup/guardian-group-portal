@@ -341,6 +341,7 @@ export interface IStorage {
   
   // Consultant Assignments
   getConsultantAssignments(siteId: string): Promise<ConsultantAssignment[]>;
+  getAllConsultantAssignments(): Promise<ConsultantAssignment[]>;
   getConsultantSites(consultantId: string): Promise<ConsultantAssignment[]>;
   assignConsultant(assignment: InsertConsultantAssignment): Promise<ConsultantAssignment>;
   updateConsultantAssignment(consultantId: string, siteId: string, updates: Partial<ConsultantAssignment>): Promise<ConsultantAssignment | undefined>;
@@ -349,6 +350,7 @@ export interface IStorage {
   // Client Site Assignments
   getClientSiteAssignments(siteId: string): Promise<ClientSiteAssignment[]>;
   getClientSites(clientId: string): Promise<ClientSiteAssignment[]>;
+  getAllClientSiteAssignments(): Promise<ClientSiteAssignment[]>;
   assignClientToSite(assignment: InsertClientSiteAssignment): Promise<ClientSiteAssignment>;
   removeClientSiteAssignment(clientId: string, siteId: string): Promise<boolean>;
   clearClientSiteAssignments(clientId: string): Promise<void>;
@@ -3243,6 +3245,10 @@ export class MemStorage implements IStorage {
     return results;
   }
 
+  async getAllConsultantAssignments(): Promise<ConsultantAssignment[]> {
+    return await db.select().from(consultantAssignmentsTable);
+  }
+
   async getConsultantSites(consultantId: string): Promise<ConsultantAssignment[]> {
     const results = await db.select().from(consultantAssignmentsTable)
       .where(eq(consultantAssignmentsTable.consultantId, consultantId));
@@ -3303,6 +3309,10 @@ export class MemStorage implements IStorage {
   async getClientSites(clientId: string): Promise<ClientSiteAssignment[]> {
     return await db.select().from(clientSiteAssignmentsTable)
       .where(eq(clientSiteAssignmentsTable.clientId, clientId));
+  }
+
+  async getAllClientSiteAssignments(): Promise<ClientSiteAssignment[]> {
+    return await db.select().from(clientSiteAssignmentsTable);
   }
 
   async assignClientToSite(assignment: InsertClientSiteAssignment): Promise<ClientSiteAssignment> {

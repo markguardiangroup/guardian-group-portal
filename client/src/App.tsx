@@ -573,6 +573,14 @@ function RoutePrefetcher({
         UserManagement.preload();
         AdminFeedback.preload();
         CreateFromTemplate.preload();
+      } else if (role === "client") {
+        // Clients have read-only access to the Organisation views — preload them so
+        // navigating doesn't show a full-screen loader while the chunk downloads.
+        Sites.preload();
+        SiteDetail.preload();
+        Companies.preload();
+        CompanyDetail.preload();
+        UserManagement.preload();
       }
       // Library pages — admins always; consultants only with the matching permission.
       if (canSeeTemplateLibrary) TemplateLibrary.preload();

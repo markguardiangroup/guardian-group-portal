@@ -9624,6 +9624,13 @@
           "message": "Clients can now view their companies, sites and connected people (read-only)",
           "category": "feature",
           "createdAt": "2026-06-25T12:38:25.942763Z"
+        },
+        {
+          "id": "80ddff62-6ced-48ea-add8-53e9f056f52b",
+          "patch": 16,
+          "message": "Improved: Companies, Sites and Users pages load faster for client users",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T14:16:55.536198Z"
         }
       ],
       "publishedPatch": 15,
