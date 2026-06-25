@@ -9666,6 +9666,13 @@
           "message": "Improved: Companies, Sites and Users pages load instantly without a blank screen",
           "category": "enhancement",
           "createdAt": "2026-06-25T16:08:54.779Z"
+        },
+        {
+          "id": "42171a51-bda9-4bb9-a7cb-871ae78dd31a",
+          "patch": 16,
+          "message": "Fixed: Companies actions menu (3 dots) no longer runs off the page edge",
+          "category": "bug",
+          "createdAt": "2026-06-25T16:52:05.879Z"
         }
       ],
       "publishedPatch": 15,
