@@ -9792,6 +9792,13 @@
           "message": "Added a folder filter to the Create from Template page",
           "category": "enhancement",
           "createdAt": "2026-06-25T22:13:33.532Z"
+        },
+        {
+          "id": "26489e54-e7e4-4403-96f0-a34b8101a423",
+          "patch": 16,
+          "message": "Fixed: client Users table status badges no longer overlap other columns",
+          "category": "bug",
+          "createdAt": "2026-06-25T22:36:28.883Z"
         }
       ],
       "publishedPatch": 15,

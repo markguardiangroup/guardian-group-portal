@@ -1894,7 +1894,7 @@ export default function UserManagement() {
               <TableHead>Sites Assigned</TableHead>
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Sources</TableHead>}
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Permissions</TableHead>}
-              <TableHead onClick={() => handleSortUsers("status")} className="w-28 cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortUsers("status")} className="w-36 cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead onClick={() => handleSortUsers("lastSeen")} className="w-32 cursor-pointer select-none whitespace-nowrap">
@@ -2111,10 +2111,11 @@ export default function UserManagement() {
                     <Badge 
                       variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" || u.status === "site_required" || u.status === "locked" ? "outline" : "secondary"}
                       className={
+                        "whitespace-nowrap " + (
                         u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors" :
                         u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" :
                         u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" :
-                        u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+                        u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : "")
                       }
                       onClick={u.status === "site_required" ? () => {
                         setUserNeedingSiteAssignment(u);
