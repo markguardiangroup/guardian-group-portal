@@ -1891,7 +1891,7 @@ export default function UserManagement() {
                 <TableHead className="w-32">Role</TableHead>
               )}
               {userTypeTab === "client" && <TableHead className="w-[15%]">Company</TableHead>}
-              <TableHead>Sites Assigned</TableHead>
+              <TableHead className="w-[16%]">Sites Assigned</TableHead>
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Sources</TableHead>}
               {userTypeTab === "staff" && <TableHead className="hidden md:table-cell">Permissions</TableHead>}
               <TableHead onClick={() => handleSortUsers("status")} className="w-36 cursor-pointer select-none whitespace-nowrap">
