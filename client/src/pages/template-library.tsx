@@ -1195,7 +1195,7 @@ export default function TemplateLibraryPage() {
       fileSize: file.size,
       mimeType: file.type || "application/octet-stream",
       objectPath: "",
-      name: "",
+      name: file.name.replace(/\.[^/.]+$/, ""),
       description: "",
       status: "uploading" as const,
     }));

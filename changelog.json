@@ -9673,6 +9673,13 @@
           "message": "Fixed: Companies actions menu (3 dots) no longer runs off the page edge",
           "category": "bug",
           "createdAt": "2026-06-25T16:52:05.879Z"
+        },
+        {
+          "id": "e37f043c-402c-494d-9eee-c84d9382cd66",
+          "patch": 16,
+          "message": "Template name now auto-fills from the file name when uploading templates",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T17:43:44.672Z"
         }
       ],
       "publishedPatch": 15,
