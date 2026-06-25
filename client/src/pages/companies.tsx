@@ -1455,23 +1455,23 @@ export default function Companies() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead onClick={() => handleSortCompanies("name")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortCompanies("name")} className="cursor-pointer select-none whitespace-nowrap w-[26%]">
                 <div className="flex items-center gap-1">Company {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortCompanies("status")} className="w-28 cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortCompanies("status")} className="w-[10%] cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Status {sortBy === "status" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortCompanies("city")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortCompanies("city")} className="cursor-pointer select-none whitespace-nowrap w-[22%]">
                 <div className="flex items-center gap-1">Address {sortBy === "city" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortCompanies("industry")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortCompanies("industry")} className="cursor-pointer select-none whitespace-nowrap w-[13%]">
                 <div className="flex items-center gap-1">Industry {sortBy === "industry" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead className="hidden lg:table-cell">Sources</TableHead>
-              <TableHead onClick={() => handleSortCompanies("siteCount")} className="w-20 cursor-pointer select-none whitespace-nowrap">
+              <TableHead className="hidden lg:table-cell w-[9%]">Sources</TableHead>
+              <TableHead onClick={() => handleSortCompanies("siteCount")} className="w-[8%] cursor-pointer select-none whitespace-nowrap">
                 <div className="flex items-center gap-1">Sites {sortBy === "siteCount" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortCompanies("compliance")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortCompanies("compliance")} className="cursor-pointer select-none whitespace-nowrap w-[12%]">
                 <div className="flex items-center gap-1">Compliance {sortBy === "compliance" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead className="w-[80px]"></TableHead>

@@ -9757,6 +9757,13 @@
           "message": "Consistent action menus across Sites, Companies and Users pages",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:51:41.348Z"
+        },
+        {
+          "id": "95db0120-355a-4b78-a37d-62be1bb40df6",
+          "patch": 16,
+          "message": "Companies table columns rebalanced; company column now wider for names and badges",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:56:06.314Z"
         }
       ],
       "publishedPatch": 15,
