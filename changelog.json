@@ -9743,6 +9743,13 @@
           "message": "Clearer message when editing client sites: at least 1 site must stay assigned",
           "category": "enhancement",
           "createdAt": "2026-06-25T21:37:57.396Z"
+        },
+        {
+          "id": "66a5071c-c34b-46d6-b234-8b773e35f9d2",
+          "patch": 16,
+          "message": "Sites table now fills the width with wider Address and Company columns",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T21:43:35.895Z"
         }
       ],
       "publishedPatch": 15,

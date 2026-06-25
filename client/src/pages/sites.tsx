@@ -673,15 +673,15 @@ export default function Sites() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead onClick={() => handleSortSites("name")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead onClick={() => handleSortSites("name")} className="cursor-pointer select-none whitespace-nowrap w-[18%]">
                 <div className="flex items-center gap-1">Site Name {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead onClick={() => handleSortSites("company")} className="cursor-pointer select-none whitespace-nowrap min-w-[180px]">
+              <TableHead onClick={() => handleSortSites("company")} className="cursor-pointer select-none whitespace-nowrap w-[24%]">
                 <div className="flex items-center gap-1">Company {sortBy === "company" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
-              <TableHead className="hidden md:table-cell">Address</TableHead>
-              <TableHead className="hidden lg:table-cell">Primary Contact</TableHead>
-              <TableHead onClick={() => handleSortSites("compliance")} className="cursor-pointer select-none whitespace-nowrap">
+              <TableHead className="hidden md:table-cell w-[28%]">Address</TableHead>
+              <TableHead className="hidden lg:table-cell w-[15%]">Primary Contact</TableHead>
+              <TableHead onClick={() => handleSortSites("compliance")} className="cursor-pointer select-none whitespace-nowrap w-[15%]">
                 <div className="flex items-center gap-1">Compliance {sortBy === "compliance" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
               <TableHead className="w-[80px]"></TableHead>
