@@ -672,12 +672,14 @@ export default function Companies() {
   const data = fullData ?? liteData;
   const complianceLoading = !fullData && !!liteData;
 
-  // Fetch all companies (large limit) to derive available group owners for the filter dropdown
+  // Fetch all companies (large limit) to derive available group owners for the filter dropdown.
+  // Use the lite path — this only needs the company list + isGroupOwner flag, not the
+  // expensive per-company compliance computation.
   const { data: allCompaniesData } = useQuery<PaginatedCompaniesResponse>({
-    queryKey: ["/api/companies", { limit: 1000 }],
+    queryKey: ["/api/companies", { limit: 1000, lite: true }],
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const response = await fetch("/api/companies?limit=1000", { credentials: "include" });
+      const response = await fetch("/api/companies?limit=1000&lite=true", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch companies");
       return response.json();
     },

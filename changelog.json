@@ -9638,6 +9638,13 @@
           "message": "Improved: Users page shows an in-table loader instead of a full-screen one",
           "category": "enhancement",
           "createdAt": "2026-06-25T14:23:14.974694Z"
+        },
+        {
+          "id": "457e1eb2-3797-49f2-a194-c3a73a0061aa",
+          "patch": 16,
+          "message": "Improved: Companies page loads faster by skipping redundant data loading",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T15:18:57.508736Z"
         }
       ],
       "publishedPatch": 15,
