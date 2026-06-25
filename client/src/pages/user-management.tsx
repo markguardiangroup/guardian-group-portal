@@ -251,10 +251,6 @@ function ClientUsersView() {
     });
   }, [users, term, companyNameById]);
 
-  if (isLoading) {
-    return <FetchingOverlay />;
-  }
-
   return (
     <div className="flex flex-col h-full">
       <div className="shrink-0 px-6 py-6 bg-background border-b">
@@ -283,7 +279,13 @@ function ClientUsersView() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4}>
+                    <FetchingOverlay />
+                  </TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
                     No connected users found.

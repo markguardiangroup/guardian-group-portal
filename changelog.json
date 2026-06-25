@@ -9631,6 +9631,13 @@
           "message": "Improved: Companies, Sites and Users pages load faster for client users",
           "category": "enhancement",
           "createdAt": "2026-06-25T14:16:55.536198Z"
+        },
+        {
+          "id": "48c6a950-5e78-4ea9-bfeb-448194e1ccbc",
+          "patch": 16,
+          "message": "Improved: Users page shows an in-table loader instead of a full-screen one",
+          "category": "enhancement",
+          "createdAt": "2026-06-25T14:23:14.974694Z"
         }
       ],
       "publishedPatch": 15,
