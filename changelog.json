@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "b3d5f7a9-strategic-overview-pptx-download-2026",
+          "patch": 16,
+          "message": "Strategic overview deck available as a downloadable PowerPoint file",
+          "category": "feature",
+          "createdAt": "2026-06-25T00:00:00.000Z"
+        },
+        {
           "id": "a2c4e6f8-doc-misclassified-overdue-selfheal-2026",
           "patch": 0,
           "message": "Fixed: approved documents incorrectly showing as overdue are now auto-corrected on startup - Fixes a live issue",
@@ -9841,6 +9848,230 @@
           "message": "Admins now get an FYI email at sign-off; the consultant gets the approval request",
           "category": "enhancement",
           "createdAt": "2026-06-26T09:24:38.215Z"
+        },
+        {
+          "id": "f3a1c8e2-investor-deck-slides-2026",
+          "patch": 16,
+          "message": "Investor presentation deck added — navigable slide deck at /investor-deck",
+          "category": "feature",
+          "createdAt": "2026-06-21T12:18:34.132Z"
+        },
+        {
+          "id": "a9c2f4b1-investor-deck-hero-copy-2026",
+          "patch": 16,
+          "message": "Investor deck: softened bold claim on title slide",
+          "category": "enhancement",
+          "createdAt": "2026-06-21T12:34:53.702Z"
+        },
+        {
+          "id": "c7e3a9f2-investor-deck-password-gate-2026",
+          "patch": 16,
+          "message": "Investor deck is now password protected",
+          "category": "enhancement",
+          "createdAt": "2026-06-21T12:38:04.617Z"
+        },
+        {
+          "id": "b8d4f2a1-investor-deck-connected-app-forms-2026",
+          "patch": 16,
+          "message": "Investor deck: expanded Connected Apps with form builder slide",
+          "category": "enhancement",
+          "createdAt": "2026-06-21T12:41:23.445Z"
+        },
+        {
+          "id": "d2e4f6a8-investor-deck-form-slide-simplified-2026",
+          "patch": 16,
+          "message": "Investor deck: simplified form builder slide — less text, more visual",
+          "category": "enhancement",
+          "createdAt": "2026-06-21T12:49:57.019Z"
+        },
+        {
+          "id": "e1f3a5c7-investor-deck-connected-app-future-2026",
+          "patch": 16,
+          "message": "Investor deck: clarified Connected App forms are a Year 2 roadmap item",
+          "category": "enhancement",
+          "createdAt": "2026-06-21T12:52:08.905Z"
+        },
+        {
+          "id": "b1e73867-a524-4ea9-bedf-7e8ea525507a",
+          "patch": 16,
+          "message": "Investor deck restructured: new story arc, milestone timeline, 6-pillar roadmap",
+          "category": "feature",
+          "createdAt": "2026-06-22T12:33:39.188Z"
+        },
+        {
+          "id": "86b11714-fda7-4fe7-9e92-0071f0a67cf5",
+          "patch": 16,
+          "message": "Investor deck: removed Investment Thesis summary slide",
+          "category": "enhancement",
+          "createdAt": "2026-06-22T12:39:36.319Z"
+        },
+        {
+          "id": "f371aa9c-568f-466e-b2ac-1e033ea676b3",
+          "patch": 16,
+          "message": "Deck: renamed from Investor Presentation to Strategic Overview",
+          "category": "enhancement",
+          "createdAt": "2026-06-22T15:39:48.730Z"
+        },
+        {
+          "id": "1a0c5b90-fff6-441f-b958-e98b77969c22",
+          "patch": 16,
+          "message": "Deck: moved Technical Foundations slide to sit after Who It Serves",
+          "category": "enhancement",
+          "createdAt": "2026-06-22T15:42:49.534Z"
+        },
+        {
+          "id": "a1b0bddd-5bb7-4281-9d41-36d934935cb9",
+          "patch": 16,
+          "message": "Deck: Guardian App named and elevated throughout — headline slide updated",
+          "category": "enhancement",
+          "createdAt": "2026-06-22T15:46:02.336Z"
+        },
+        {
+          "id": "55290e6b-be84-4f50-a912-686d9b9f4cfc",
+          "patch": 16,
+          "message": "Deck: roadmap titles aligned; milestone timeline uses month numbers from Month 0",
+          "category": "enhancement",
+          "createdAt": "2026-06-22T15:52:56.443Z"
+        },
+        {
+          "id": "47ca7cce-b7ba-4dd8-b11a-7f056b34d8d8",
+          "patch": 16,
+          "message": "Deck: removed AI auto-reports from 0–12 month milestone timeline",
+          "category": "enhancement",
+          "createdAt": "2026-06-22T15:54:06.781Z"
+        },
+        {
+          "id": "d6b2c8ac-0776-4a60-a1f3-bff05c7ea445",
+          "patch": 16,
+          "message": "Deck URL changed from /investor-deck to /portal-deck",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:44:43.051Z"
+        },
+        {
+          "id": "55da7f69-5ec1-4f2c-bd01-2a528c112041",
+          "patch": 16,
+          "message": "Deck: updated all references from 7 brands to 8 brands",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:48:08.502Z"
+        },
+        {
+          "id": "2f81e9cc-8638-47ad-a864-da22d60d4050",
+          "patch": 16,
+          "message": "Deck: milestone timeline updated to Push/Pull CRM API",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:48:43.352Z"
+        },
+        {
+          "id": "5f62dee3-e98f-4302-baf4-9933152ee1cc",
+          "patch": 16,
+          "message": "Deck: milestone tiles enlarged to use full 6-column width",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:50:24.285Z"
+        },
+        {
+          "id": "fc247156-2e44-4a08-84c0-bb8f98c80408",
+          "patch": 16,
+          "message": "Deck: removed word live before clients on milestone timeline slide",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:51:19.406Z"
+        },
+        {
+          "id": "7049c7b2-38d3-471e-9f4e-d9f0b4abee4b",
+          "patch": 16,
+          "message": "Deck: nav arrows now circular teal buttons; GG logo added to first and last slides",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:57:50.590Z"
+        },
+        {
+          "id": "afbce220-ed06-4a46-9125-cc70b7c13063",
+          "patch": 16,
+          "message": "Deck: removed unsubstantiated 60%+ stat from AI layer slide",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T08:58:42.328Z"
+        },
+        {
+          "id": "338ad4bc-cd49-4711-819c-5d8998914dc7",
+          "patch": 16,
+          "message": "Deck: replaced GG badge with real Guardian Group logo on all three gate/slide positions",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T09:01:59.808Z"
+        },
+        {
+          "id": "582cf828-175e-409e-929a-43553345bf74",
+          "patch": 16,
+          "message": "Deck: logo ring redrawn as crisp SVG — no background artefact",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T09:04:55.874Z"
+        },
+        {
+          "id": "541daac1-999c-4b51-ab22-bd6a0a963c2d",
+          "patch": 16,
+          "message": "Fixed: error flash when entering deck password",
+          "category": "bug",
+          "createdAt": "2026-06-23T09:13:54.172Z"
+        },
+        {
+          "id": "635b130f-d090-4e89-b20a-8648dfe637aa",
+          "patch": 16,
+          "message": "Deck: removed \"First AI milestone\" banner from 18–24 month slide",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T09:16:22.521Z"
+        },
+        {
+          "id": "28ed0a6a-8d2b-497d-a5b1-ae1cd91c4383",
+          "patch": 16,
+          "message": "Deck: milestone badges changed from \"IN PROGRESS\" to \"✓ LIVE\" for completed items",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T09:18:06.665Z"
+        },
+        {
+          "id": "1970d2a1-48f2-4bcd-b818-f47f4309e0c4",
+          "patch": 16,
+          "message": "Deck: Download PDF button added — opens browser print dialog with all slides as landscape pages",
+          "category": "feature",
+          "createdAt": "2026-06-23T13:23:22.843Z"
+        },
+        {
+          "id": "bfc99ee6-6950-4893-824c-ee6e8563df3d",
+          "patch": 16,
+          "message": "Deck: PDF export generated via headless Chromium (all slides, landscape A4)",
+          "category": "feature",
+          "createdAt": "2026-06-23T13:28:18.218Z"
+        },
+        {
+          "id": "822bb915-8479-4623-b31e-1129a2515c4d",
+          "patch": 16,
+          "message": "Deck: added Month 5 milestone — Guardian App prototype (Nov '26)",
+          "category": "enhancement",
+          "createdAt": "2026-06-23T16:00:56.512Z"
+        },
+        {
+          "id": "3c07c5da-607e-4d18-8765-fd5cc8b6ac17",
+          "patch": 16,
+          "message": "Deck: refreshed PDF export with all latest slide changes",
+          "category": "enhancement",
+          "createdAt": "2026-06-24T10:27:49.439Z"
+        },
+        {
+          "id": "f1e2d3c4-b5a6-9788-deck-svg-logo-static-2026",
+          "patch": 16,
+          "message": "Deck PDF: fixed Guardian logo ring not rendering in exported PDF",
+          "category": "bug",
+          "createdAt": "2026-06-24T10:37:00.000Z"
+        },
+        {
+          "id": "a9b8c7d6-e5f4-deck-lucide-icons-replace-emoji-2026",
+          "patch": 16,
+          "message": "Deck PDF: replaced all emoji icons with SVG icons — now render correctly in exported PDF",
+          "category": "bug",
+          "createdAt": "2026-06-24T11:21:00.000Z"
+        },
+        {
+          "id": "c1d2e3f4-a5b6-competitive-report-module-2026",
+          "patch": 16,
+          "message": "Added competitive analysis report (Word) — module-by-module vs Donesafe, T100, HandsHQ; direct download from deck",
+          "category": "feature",
+          "createdAt": "2026-06-24T17:45:00.000Z"
         }
       ],
       "publishedPatch": 15,

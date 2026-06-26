@@ -33,6 +33,7 @@ import Login from "@/pages/login";
 import HomePage from "@/pages/home";
 import NotFound from "@/pages/not-found";
 import SetPassword from "@/pages/set-password";
+import InvestorDeck from "@/pages/investor-deck";
 
 // Lazy pages — downloaded on-demand or via permission-aware background prefetch.
 type Loader<T extends ComponentType<any>> = () => Promise<{ default: T }>;
@@ -1029,6 +1030,7 @@ function PublicRoutes() {
       <CanonicalTag />
       <Switch>
         <Route path="/set-password" component={SetPassword} />
+        <Route path="/portal-deck" component={InvestorDeck} />
       </Switch>
     </>
   );
@@ -1040,7 +1042,7 @@ function AppRouter() {
   // Without this, switching from PublicRoutes to AuthenticatedApp never happens
   // and the browser shows a blank screen.
   const [location] = useLocation();
-  const publicPaths = ['/set-password'];
+  const publicPaths = ['/set-password', '/portal-deck'];
   const isPublicRoute = publicPaths.some(path => location.startsWith(path));
 
   if (isPublicRoute) {

@@ -619,6 +619,36 @@ process.on("uncaughtException", (err) => {
 
   scheduleNextAcceloSync();
 
+  app.get("/downloads/strategic-overview.pptx", async (req, res) => {
+    if (req.query.key !== "GUARDIAN_EXPORT_2026") return res.status(403).end();
+    try {
+      const fs = await import("fs");
+      const buf = fs.readFileSync("/home/runner/workspace/guardian-group-strategic-overview.pptx");
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+      res.setHeader("Content-Disposition", 'attachment; filename="guardian-group-strategic-overview.pptx"');
+      res.setHeader("Content-Length", buf.length);
+      res.end(buf);
+    } catch (e) {
+      console.error("[pptx]", e);
+      res.status(500).end();
+    }
+  });
+
+  app.get("/downloads/competitive-analysis.docx", async (req, res) => {
+    if (req.query.key !== "GUARDIAN_EXPORT_2026") return res.status(403).end();
+    try {
+      const { buildCompetitiveReport } = await import("./competitive-report");
+      const buf = await buildCompetitiveReport();
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", 'attachment; filename="guardian-competitive-analysis.docx"');
+      res.setHeader("Content-Length", buf.length);
+      res.end(buf);
+    } catch (e) {
+      console.error("[report]", e);
+      res.status(500).end();
+    }
+  });
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

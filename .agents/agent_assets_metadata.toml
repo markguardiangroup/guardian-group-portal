@@ -24,3 +24,27 @@ id = "ErhW1dvk0qnnrXSg4bngt"
 uri = "file://documents_export.csv"
 type = "table"
 title = "Documents Export"
+
+[[outputs]]
+id = "zLdXyWOUCnzHa5caDQPs2"
+uri = "file://guardian-group-deck.pdf"
+type = "pdf"
+title = "Guardian Group — Strategic Overview Deck"
+
+[[outputs]]
+id = "K1OlJM-wOf6_Wjw_03o2L"
+uri = "file://guardian-donesafe-comparison.docx"
+type = "word_document"
+title = "Guardian Group vs Donesafe — Competitive Analysis Report"
+
+[[outputs]]
+id = "E6JyHAvfmrD9eg6iWZiDL"
+uri = "file://guardian-competitive-analysis.docx"
+type = "word_document"
+title = "Guardian Group — Competitive Analysis Report (Module-by-Module)"
+
+[[outputs]]
+id = "dTqdPU8mXqUjfVMeGdhFT"
+uri = "file://guardian-group-strategic-overview.pptx"
+type = "slides"
+title = "Guardian Group Strategic Overview — 15 Slides"
