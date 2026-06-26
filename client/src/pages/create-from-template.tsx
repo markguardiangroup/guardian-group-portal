@@ -239,7 +239,7 @@ export default function CreateFromTemplate() {
   const expiryDateRef = useRef<HTMLInputElement>(null);
 
   const [templateSearch, setTemplateSearch] = useState("");
-  const [selectedModule, setSelectedModule] = useState<string>(preselectedModule);
+  const [selectedModule, setSelectedModule] = useState<string>("all");
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   const [siteSearch, setSiteSearch] = useState("");
   const [expandedSitePickerCompanies, setExpandedSitePickerCompanies] = useState<Set<string>>(new Set());

@@ -9813,6 +9813,13 @@
           "message": "Companies now activate when their first client user goes live, not when a contact is set",
           "category": "enhancement",
           "createdAt": "2026-06-25T23:01:27.136Z"
+        },
+        {
+          "id": "5baee5b1-5d8b-4600-b9d3-7676a6e86643",
+          "patch": 16,
+          "message": "Create from Template now defaults to All Modules",
+          "category": "enhancement",
+          "createdAt": "2026-06-26T08:07:44.120Z"
         }
       ],
       "publishedPatch": 15,
