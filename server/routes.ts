@@ -4440,6 +4440,7 @@ export async function registerRoutes(
                 portalUrl: baseUrl,
                 documentUrl,
                 role: "client",
+                changeNote,
               });
               await storage.createAuditLog({
                 action: "email_sent",

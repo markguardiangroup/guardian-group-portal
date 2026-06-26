@@ -4147,6 +4147,26 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       </Badge>
                     )}
                   </div>
+                  {isPending && (() => {
+                    // Surface the comment the consultant/admin attached to the latest
+                    // new version, so the client sees it alongside the sign-off prompt.
+                    const versionEntry = [...(auditLogs ?? [])]
+                      .filter(l => l.action === "document_version_uploaded" || l.action === "version_uploaded")
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+                    if (!versionEntry?.metadata) return null;
+                    let note = "";
+                    try { note = (JSON.parse(versionEntry.metadata)?.changeNote ?? "").trim(); } catch { return null; }
+                    if (!note) return null;
+                    return (
+                      <div className="mt-3 rounded-md border border-amber-300 dark:border-amber-700 bg-white/60 dark:bg-amber-950/30 px-3 py-2.5 space-y-1" data-testid="version-comment-box">
+                        <p className="text-xs font-medium uppercase tracking-wide text-amber-700/70 dark:text-amber-400/70">Consultant Comment</p>
+                        <p className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed whitespace-pre-wrap">{note}</p>
+                        {versionEntry.userName && (
+                          <p className="text-xs text-amber-600/60 dark:text-amber-400/60">{versionEntry.userName} · {format(new Date(versionEntry.createdAt), "d MMM yyyy 'at' HH:mm")}</p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {isSignedOff && (() => {
                     const signOffEntry = [...(auditLogs ?? [])]
                       .filter(l => l.action === "document_signed_off")
@@ -4851,11 +4871,20 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         // Fall back to the plain field-name list only for legacy entries with no before/after metadata.
                         const isUpdateEntry = log.action === 'update_document' && !hasMetadataChanges && updatedFields.length > 0;
 
-                        // For upload entries, parse on-behalf name from metadata
-                        let uploadMeta: { onBehalfUserName?: string | null } = {};
+                        // For upload entries, parse on-behalf name and version change note from metadata
+                        let uploadMeta: { onBehalfUserName?: string | null; changeNote?: string | null } = {};
                         if ((log.action === 'document_uploaded' || log.action === 'document_version_uploaded' || log.action === 'version_uploaded') && log.metadata) {
                           try { uploadMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
                         }
+                        // A new-version upload may carry a consultant/admin comment for the client.
+                        const versionChangeNote =
+                          (log.action === 'document_version_uploaded' || log.action === 'version_uploaded')
+                            ? (uploadMeta.changeNote ?? '').trim()
+                            : '';
+                        const hasVersionComment = !!versionChangeNote;
+                        // The text shown when the entry is expanded (manual comment or version note).
+                        const commentText = hasManualComment ? details : (hasVersionComment ? versionChangeNote : '');
+                        const showCommentExpand = hasManualComment || hasVersionComment;
 
                         // On-behalf name for the byline: prefer metadata (upload entries), fall back to
                         // document-level fields for all other admin-initiated entries.
@@ -4909,15 +4938,15 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                       </div>
                                     )
                                   )}
-                                  {isExpanded && hasManualComment && (
+                                  {isExpanded && showCommentExpand && (
                                     <div className="mt-2 rounded-md bg-muted/60 px-3 py-2">
-                                      <p className="text-xs text-foreground break-words whitespace-pre-wrap">{details}</p>
+                                      <p className="text-xs text-foreground break-words whitespace-pre-wrap">{commentText}</p>
                                     </div>
                                   )}
                                 </div>
                                 <div className="flex flex-col items-end gap-1 shrink-0">
                                   <Badge variant="secondary" className="text-xs whitespace-nowrap">{style.label}</Badge>
-                                  {hasManualComment && (
+                                  {showCommentExpand && (
                                     <button
                                       className="text-xs text-primary hover:underline"
                                       onClick={toggleLog}
@@ -5665,12 +5694,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Change Notes (optional)</label>
+              <label className="text-sm font-medium">Comment for the client (optional)</label>
+              <p className="text-xs text-muted-foreground">Shared with the client in the sign-off box, the approval email, and the audit trail.</p>
               <Textarea
                 placeholder="Describe what changed in this version..."
                 value={changeNote}
                 onChange={(e) => setChangeNote(e.target.value)}
                 rows={3}
+                data-testid="textarea-version-change-note"
               />
             </div>
           </div>

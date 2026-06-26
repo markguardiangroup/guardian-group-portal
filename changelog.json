@@ -9827,6 +9827,13 @@
           "message": "Improved: home page loads faster and skips data for disabled modules",
           "category": "enhancement",
           "createdAt": "2026-06-26T09:04:49.398Z"
+        },
+        {
+          "id": "5edacd20-d8f7-4947-bfde-2473acfd5285",
+          "patch": 16,
+          "message": "New version comments now show in the client sign-off box, approval email, and audit trail",
+          "category": "enhancement",
+          "createdAt": "2026-06-26T09:13:48.843Z"
         }
       ],
       "publishedPatch": 15,

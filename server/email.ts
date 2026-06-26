@@ -280,6 +280,7 @@ export async function sendDocumentApprovalEmail({
   portalUrl,
   documentUrl,
   role,
+  changeNote,
 }: {
   to: string;
   fullName: string;
@@ -289,6 +290,7 @@ export async function sendDocumentApprovalEmail({
   portalUrl: string;
   documentUrl: string;
   role?: string;
+  changeNote?: string | null;
 }) {
   const recipient = await resolveRecipient(to, role);
 
@@ -325,6 +327,13 @@ export async function sendDocumentApprovalEmail({
               </tr>
             </table>
           </div>
+
+          ${changeNote && changeNote.trim() ? `
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="margin: 0 0 6px 0; color: #92400e; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;">Comment from ${escHtml(uploadedBy)}</p>
+            <p style="margin: 0; color: #1e293b; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escHtml(changeNote.trim())}</p>
+          </div>
+          ` : ''}
           
           <div style="text-align: center; padding: 24px 0;">
             <a href="${documentUrl}?email=${encodeURIComponent(to)}" 
