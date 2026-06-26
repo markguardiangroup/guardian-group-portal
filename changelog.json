@@ -9820,6 +9820,13 @@
           "message": "Create from Template now defaults to All Modules",
           "category": "enhancement",
           "createdAt": "2026-06-26T08:07:44.120Z"
+        },
+        {
+          "id": "3bc5c8e3-3b18-4133-805b-ca251462554e",
+          "patch": 16,
+          "message": "Improved: home page loads faster and skips data for disabled modules",
+          "category": "enhancement",
+          "createdAt": "2026-06-26T09:04:49.398Z"
         }
       ],
       "publishedPatch": 15,

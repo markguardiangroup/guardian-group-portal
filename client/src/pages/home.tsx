@@ -677,8 +677,7 @@ function MyActionsPanel({ role }: { role: string }) {
 
   const { data, isLoading } = useQuery<MyActionsData>({
     queryKey: ["/api/my-actions"],
-    staleTime: 0,
-    refetchOnMount: "always",
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 
@@ -794,7 +793,7 @@ function MyActionsPanel({ role }: { role: string }) {
 
   const { data: homeSummary } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
-    staleTime: 0,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 
@@ -2098,7 +2097,7 @@ export default function HomePage() {
 
   const { data, isLoading } = useQuery<HomeSummary>({
     queryKey: ["/api/home-summary"],
-    staleTime: 0,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 

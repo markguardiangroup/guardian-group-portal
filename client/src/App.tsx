@@ -814,40 +814,49 @@ function DataPrefetcher({ userId, isClientUser }: { userId: string; isClientUser
       queryClient.prefetchQuery({ queryKey: key, queryFn: () => f(url), staleTime: Infinity, gcTime: Infinity });
 
     const run = async () => {
-      // Navigation data – used across sidebar/header on every page
+      // Priority 1 — what the Home page (the first landing) actually needs, plus
+      // navigation data used by the sidebar/header on every page. Fire these first
+      // so they aren't stuck behind the heavier, lower-priority calls below.
+      p(["/api/home-summary"], "/api/home-summary");
+      p(["/api/my-actions"], "/api/my-actions");
       p(["/api/sites"], "/api/sites");
       p(["/api/companies"], "/api/companies");
       // Users list – prefetch so user-management page hits cache on first visit
       if (!isClientUser) p(["/api/users"], "/api/users");
-      p(["/api/support-requests/counts"], "/api/support-requests/counts");
 
-      // Home page panels – prefetch so they're instant on first landing
-      p(["/api/home-summary"], "/api/home-summary");
-      p(["/api/my-actions"], "/api/my-actions");
-
-      // Main dashboard – all queries used by the overview page (no site/company filter)
-      p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
-      p(["/api/documents", null, null], "/api/documents");
-      p(["/api/missing-required-templates", null, null], "/api/missing-required-templates");
-
-      // Dashboard widgets
-      p(["/api/support-requests", null], "/api/support-requests");
-      p(["/api/training-bookings"], "/api/training-bookings");
-      p(["/api/incidents"], "/api/incidents");
-      p(["/api/cases"], "/api/cases");
-
-      // Fetch module access first — skip prefetching dashboards for locked modules
+      // Fetch module access before the rest — used to skip prefetching data for
+      // modules the user doesn't have enabled (e.g. no training call if training
+      // is off). Admins/consultants get every module as "active" here.
       let moduleAccess: Record<string, string> = {};
       try {
         moduleAccess = await f("/api/user/module-access");
         queryClient.setQueryData(["/api/user/module-access"], moduleAccess);
       } catch { /* fall through — all modules will be skipped safely */ }
 
-      const unlocked = (module: string) => moduleAccess[module] && moduleAccess[module] !== "locked";
+      const enabled = (module: string) => !!moduleAccess[module] && moduleAccess[module] !== "locked" && moduleAccess[module] !== "hidden";
+      const anyComplianceModule = enabled("health_safety") || enabled("human_resources") || enabled("employment_law");
+
+      // Support widgets — only if the Support module is enabled
+      if (enabled("support")) {
+        p(["/api/support-requests/counts"], "/api/support-requests/counts");
+        p(["/api/support-requests", null], "/api/support-requests");
+      }
+
+      // Compliance dashboard — only if at least one document-bearing module is on
+      if (anyComplianceModule) {
+        p(["/api/modules/summary", null, null, isClientUser], "/api/modules/summary");
+        p(["/api/documents", null, null], "/api/documents");
+        p(["/api/missing-required-templates", null, null], "/api/missing-required-templates");
+      }
+
+      // Module-specific widgets — only prefetch when that module is enabled
+      if (enabled("training")) p(["/api/training-bookings"], "/api/training-bookings");
+      if (enabled("health_safety")) p(["/api/incidents"], "/api/incidents");
+      if (enabled("employment_law")) p(["/api/cases"], "/api/cases");
 
       // Site Documents pages — preload documents and missing-required-templates for each enabled module
       for (const module of ["health_safety", "human_resources", "employment_law"] as const) {
-        if (unlocked(module)) {
+        if (enabled(module)) {
           p(["/api/documents/module", module], `/api/documents/module/${module}`);
           p(["/api/missing-required-templates", module], `/api/missing-required-templates?module=${module}`);
         }

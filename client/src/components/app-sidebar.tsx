@@ -520,6 +520,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const { data: supportCounts } = useQuery<{ openCount: number }>({
     queryKey: ["/api/support-requests/counts"],
     staleTime: 30000,
+    enabled: hasActiveAccess("support"),
   });
   const openSupportCount = supportCounts?.openCount || 0;
 
