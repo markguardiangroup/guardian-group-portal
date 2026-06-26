@@ -598,6 +598,100 @@ export async function sendClientSignOffEmail({
 }
 
 // ---------------------------------------------------------------------------
+// Sign-Off Admin Notice (sent to the admin who initiated an on-behalf upload).
+// Admins cannot give final approval, so this is an FYI: the client has signed
+// off and the document is now with the consultant for their final approval.
+// ---------------------------------------------------------------------------
+export async function sendSignOffAdminNoticeEmail({
+  to,
+  fullName,
+  documentTitle,
+  siteName,
+  clientName,
+  consultantName,
+  documentUrl,
+  comments,
+  role,
+}: {
+  to: string;
+  fullName: string;
+  documentTitle: string;
+  siteName: string;
+  clientName: string;
+  consultantName: string;
+  documentUrl: string;
+  comments?: string | null;
+  role?: string;
+}) {
+  const recipient = await resolveRecipient(to, role);
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [recipient],
+    subject: `Client Sign-Off Complete - ${documentTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+        </div>
+        
+        <div style="padding: 30px 0;">
+          <h2 style="color: #1e293b; font-size: 20px;">Client Sign-Off Complete</h2>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            Hello ${escHtml(fullName)}, a document you uploaded has been signed off by the client and is now with ${escHtml(consultantName)} for their final approval. No action is required from you.
+          </p>
+          ${comments ? `
+          <div style="background-color: #f8fafc; border-left: 4px solid #64748b; border-radius: 4px; padding: 12px 16px; margin: 20px 0;">
+            <p style="color: #475569; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Client comment:</p>
+            <p style="color: #1e293b; font-size: 14px; margin: 0; line-height: 1.6;">${escHtml(comments)}</p>
+          </div>` : ''}
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px; width: 140px;">Document:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${escHtml(documentTitle)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Site:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(siteName)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Signed off by:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(clientName)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Now with:</td>
+                <td style="padding: 6px 0; color: #1e293b; font-size: 14px;">${escHtml(consultantName)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Status:</td>
+                <td style="padding: 6px 0; color: #f59e0b; font-size: 14px; font-weight: 600;">Awaiting Consultant Approval</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group. 
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send sign-off admin notice email:", error);
+    throw new Error(`Failed to send sign-off admin notice email: ${error.message}`);
+  }
+
+  console.log(`Sign-off admin notice email sent to ${to} (delivered to ${recipient}), id: ${data?.id}`);
+  return data;
+}
+
+// ---------------------------------------------------------------------------
 // Auto-Approved Notification (sent to consultant/admin when a document
 // is automatically approved on client sign-off)
 // ---------------------------------------------------------------------------

@@ -9834,6 +9834,13 @@
           "message": "New version comments now show in the client sign-off box, approval email, and audit trail",
           "category": "enhancement",
           "createdAt": "2026-06-26T09:13:48.843Z"
+        },
+        {
+          "id": "306a0b12-ac29-44ba-afce-07a030218616",
+          "patch": 16,
+          "message": "Admins now get an FYI email at sign-off; the consultant gets the approval request",
+          "category": "enhancement",
+          "createdAt": "2026-06-26T09:24:38.215Z"
         }
       ],
       "publishedPatch": 15,

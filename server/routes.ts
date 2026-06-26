@@ -35,7 +35,7 @@ import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
-import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendIShareNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment, invalidateEmailSettingsCache } from "./email";
+import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendSignOffAdminNoticeEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendIShareNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment, invalidateEmailSettingsCache } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
 import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToAll, getOnlineUserIds } from "./sse";
@@ -5576,11 +5576,39 @@ export async function registerRoutes(
               await sendSignOffTo(uploader, "consultant");
             }
 
-            // Step 1b: if an Admin initiated this upload on the consultant's behalf, notify them too.
-            if (existingDoc.initiatedByUserId) {
+            // Step 1b: if an Admin initiated this upload on the consultant's behalf,
+            // send them an FYI only. Admins cannot give final approval, so they get a
+            // notice that the document is now with the consultant to sign — not the
+            // "action required" sign-off email.
+            if (existingDoc.initiatedByUserId && existingDoc.initiatedByUserId !== existingDoc.uploadedBy) {
               const initiator = await storage.getUser(existingDoc.initiatedByUserId);
               if (initiator && initiator.email) {
-                await sendSignOffTo(initiator, "admin");
+                try {
+                  await sendSignOffAdminNoticeEmail({
+                    to: initiator.email,
+                    fullName: initiator.fullName,
+                    documentTitle: existingDoc.title,
+                    siteName: site?.name || "Unknown Site",
+                    clientName: user.fullName,
+                    consultantName: uploader?.fullName || "the assigned consultant",
+                    documentUrl,
+                    comments: feedback || null,
+                    role: initiator.role || "developer",
+                  });
+                  await storage.createAuditLog({
+                    action: "email_sent",
+                    userId: user.id,
+                    userName: user.fullName,
+                    entityId: document.siteId,
+                    documentId: document.id,
+                    supportRequestId: null,
+                    module: existingDoc.module,
+                    details: `Client sign-off notice email sent to admin ${initiator.fullName} (${initiator.email}) — document is now with the consultant for final approval`,
+                    metadata: JSON.stringify({ targetUserId: initiator.id, emailType: "sign_off_admin_notice" }),
+                  });
+                } catch (emailError) {
+                  console.error(`Failed to send sign-off admin notice to initiator ${initiator.id}:`, emailError);
+                }
               }
             }
 
