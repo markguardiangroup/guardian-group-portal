@@ -48,3 +48,9 @@ id = "dTqdPU8mXqUjfVMeGdhFT"
 uri = "file://guardian-group-strategic-overview.pptx"
 type = "slides"
 title = "Guardian Group Strategic Overview — 15 Slides"
+
+[[outputs]]
+id = "alMXU3lV_LpsqN0I3qWut"
+uri = "file://Guardian_Group_AI_Risk_Board_Paper.docx"
+type = "word_document"
+title = "AI Risk & Mitigation — Internal Board Paper"
