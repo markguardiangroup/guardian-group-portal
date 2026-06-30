@@ -311,13 +311,9 @@ function TemplateRow({ template, btnClass, onPreview }: { template: ToolkitTempl
               {template.name}
             </DialogTitle>
           </DialogHeader>
-          {template.synopsis ? (
+          {template.synopsis && (
             <div className="text-sm text-muted-foreground leading-relaxed py-1" data-testid={`text-synopsis-${template.id}`}>
               {template.synopsis}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground py-1 italic">
-              No synopsis available for this template.
             </div>
           )}
           <DialogFooter className="gap-2 sm:gap-0">

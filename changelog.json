@@ -10219,6 +10219,13 @@
           "message": "Approval comment now shown in the Document Approved box and expandable in the audit log",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:22:48.301Z"
+        },
+        {
+          "id": "0a251f91-fc84-4b96-b6af-ea895a31e589",
+          "patch": 16,
+          "message": "Toolkit file view no longer shows \"No synopsis\" text when synopsis is blank",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:27:07.316Z"
         }
       ],
       "publishedPatch": 15,
