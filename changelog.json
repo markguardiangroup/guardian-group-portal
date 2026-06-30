@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "d5f7a9c1-admin-guide-approve-on-behalf-of-2026",
+          "patch": 16,
+          "message": "Admin guide now explains the approve-on-behalf-of-consultant step",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T00:05:00.000Z"
+        },
+        {
           "id": "c4e6a8b0-admin-help-guide-added-2026",
           "patch": 16,
           "message": "Admins now have their own Help & Training Guide",

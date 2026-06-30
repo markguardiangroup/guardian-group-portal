@@ -510,6 +510,32 @@ const sections: GuideSection[] = [
               </div>
             </AccordionContent>
           </AccordionItem>
+
+          <AccordionItem value="on-behalf-of">
+            <AccordionTrigger>Approval on behalf of a consultant</AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-muted-foreground">
+                  Unlike consultants, an Admin is not personally an eligible document approver.
+                  Whenever you upload a document (or a new version) that requires sign-off, you
+                  must name the consultant who actually owns and signs off that document.
+                </p>
+                <StepList
+                  steps={[
+                    "Start the upload as normal and turn on 'Requires Approval'",
+                    "In the 'Approval on behalf of' field, select the consultant who will own and sign off this document",
+                    "Only consultants who already have access to that site or company appear in the list",
+                    "Complete the rest of the upload and click 'Upload' — this field is required and the upload is blocked without it",
+                  ]}
+                />
+                <TipBox type="warning">
+                  You must choose a consultant here — uploads with sign-off required cannot be
+                  saved without one. The chosen consultant becomes the designated approver and is
+                  recorded on the document's activity log as "on behalf of".
+                </TipBox>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
 
         <TipBox type="success">
