@@ -10184,6 +10184,13 @@
           "message": "Changed: status badges on the Users page are left-aligned",
           "category": "enhancement",
           "createdAt": "2026-06-30T17:47:42.505Z"
+        },
+        {
+          "id": "7b58ffac-4824-47d2-8708-ad19e9eb7ce2",
+          "patch": 16,
+          "message": "Changed: moved the Status column further left on the Users page",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T17:49:50.350Z"
         }
       ],
       "publishedPatch": 15,
