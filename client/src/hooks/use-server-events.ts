@@ -148,6 +148,11 @@ export function useServerEvents() {
         queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"] });
         queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"] });
         queryClient.invalidateQueries({ queryKey: ["/api/home-summary"] });
+        // Deleting a company also deletes its client users, so refresh the
+        // Users list (and online presence) too — otherwise deleted clients
+        // keep showing until a manual refresh.
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/users/online"] });
       });
 
       es.addEventListener("company-mandatory-templates-updated", (e) => {

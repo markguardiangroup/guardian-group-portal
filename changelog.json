@@ -10338,6 +10338,13 @@
           "message": "Delete company prompt now warns that client users will be removed too",
           "category": "enhancement",
           "createdAt": "2026-06-30T21:48:25.200Z"
+        },
+        {
+          "id": "23e76cd7-26dd-444d-b676-1f0a87050179",
+          "patch": 17,
+          "message": "Fixed: deleted clients lingered in Users list until manual refresh",
+          "category": "bug",
+          "createdAt": "2026-06-30T21:59:12.754Z"
         }
       ],
       "publishedPatch": 16,
