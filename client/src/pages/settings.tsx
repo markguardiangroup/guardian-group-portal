@@ -859,6 +859,7 @@ export default function Settings() {
                   )}
                   <span className="text-sm text-muted-foreground">
                     {user?.role === "developer" && "Full system access"}
+                    {user?.role === "administrator" && "Manages clients, documents and platform settings"}
                     {user?.role === "consultant" && "Can manage clients and documents"}
                     {user?.role === "client" && "Access to your organisation's content"}
                   </span>
@@ -889,7 +890,7 @@ export default function Settings() {
                   </div>
                 )}
 
-                {user?.role !== "consultant" && (
+                {user?.role === "client" && (
                   <p className="text-sm text-muted-foreground">
                     Contact your administrator if you need different permissions.
                   </p>
@@ -1010,7 +1011,7 @@ export default function Settings() {
         <TabsContent value="legal-client">
           <div className="space-y-6">
             <LegalClientTab />
-            {user?.role === "developer" && <LegalDocumentsTab />}
+            {(user?.role === "developer" || user?.role === "administrator") && <LegalDocumentsTab />}
           </div>
         </TabsContent>
 
@@ -2000,6 +2001,7 @@ function TestingTab() {
   const { toast } = useToast();
   const isDeveloper = user?.role === "developer";
   const isConsultant = user?.role === "consultant";
+  const isAdministrator = user?.role === "administrator";
 
   const [showListForm, setShowListForm] = useState(false);
   const [editingList, setEditingList] = useState<TestingTaskList | null>(null);
@@ -2163,7 +2165,7 @@ function TestingTab() {
   const assignedConsultantIds = new Set(listAssignments.map((a: TestingAssignment) => a.assignedTo));
   const availableToAssign = allConsultants.filter(c => !assignedConsultantIds.has(c.id));
 
-  if (!isDeveloper && !isConsultant) {
+  if (!isDeveloper && !isConsultant && !isAdministrator) {
     return <p className="text-muted-foreground text-sm">You do not have access to this section.</p>;
   }
 
@@ -2398,8 +2400,8 @@ function TestingTab() {
         </>
       )}
 
-      {/* Consultant: My Assigned Task Lists */}
-      {(isConsultant || isDeveloper) && (
+      {/* Consultant/Admin: My Assigned Task Lists */}
+      {(isConsultant || isDeveloper || isAdministrator) && (
         <Card>
           <CardHeader>
             <CardTitle>My Testing Assignments</CardTitle>

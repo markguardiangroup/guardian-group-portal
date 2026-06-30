@@ -10310,6 +10310,13 @@
           "message": "Fixed: \"Other\" now always shows in incident Effect/Affect list",
           "category": "bug",
           "createdAt": "2026-06-30T19:29:33.183Z"
+        },
+        {
+          "id": "a0242100-84e8-4788-8671-d5af4861e366",
+          "patch": 16,
+          "message": "Admins now have proper access to Testing and Legal Documents settings tabs",
+          "category": "bug",
+          "createdAt": "2026-06-30T20:39:54.585Z"
         }
       ],
       "publishedPatch": 15,

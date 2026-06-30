@@ -16710,8 +16710,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Authentication required" });
       }
       const currentUser = await storage.getUser(sessionUserId);
-      if (!currentUser || currentUser.role !== "developer") {
-        return res.status(403).json({ error: "Only developers can manage legal documents" });
+      if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "administrator")) {
+        return res.status(403).json({ error: "Only developers and administrators can manage legal documents" });
       }
 
       const docType = req.params.type;
