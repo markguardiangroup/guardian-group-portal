@@ -2966,7 +2966,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </TableBody>
             </Table>
-          ) : (statusFilter === "missing" ? tableMissingSlots.length > 0 : (missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all")) ? (
+          ) : (statusFilter === "missing" ? (tableMissingSlots.length > 0 && !searchQuery && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all") : (missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all")) ? (
             <Table>
               <TableHeader>
                 <TableRow>

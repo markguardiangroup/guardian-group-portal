@@ -10149,6 +10149,13 @@
           "message": "Added an Expired status filter, split out from Overdue, in table view",
           "category": "enhancement",
           "createdAt": "2026-06-30T16:21:20.135Z"
+        },
+        {
+          "id": "603c32e8-f86b-4ec1-a9ed-9af43fe2c770",
+          "patch": 16,
+          "message": "Fixed: missing documents now hide when you apply other filters",
+          "category": "bug",
+          "createdAt": "2026-06-30T16:56:30.697Z"
         }
       ],
       "publishedPatch": 15,
