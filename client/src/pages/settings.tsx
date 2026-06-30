@@ -922,13 +922,18 @@ export default function Settings() {
                         {[
                           { key: "canView", label: "View Documents" },
                           { key: "canApproveDocuments", label: "Sign Off Documents" },
-                          { key: "canSubmitDocuments", label: "Submit Documents" },
+                          { key: "canSubmitDocuments", label: "Submit Documents", note: "Via iShare only" },
                           { key: "canComment", label: "Add Comments" },
-                          { key: "canRequestSupport", label: "Request Support" },
+                          { key: "canRequestSupport", label: "Request Support", note: "Not active from the start" },
                           { key: "canManageTeam", label: "Manage Team Members" },
-                        ].map(({ key, label }) => (
+                        ].map(({ key, label, note }) => (
                           <tr key={key} className="border-b">
-                            <td className="py-3 px-2">{label}</td>
+                            <td className="py-3 px-2">
+                              {label}
+                              {note && (
+                                <span className="block text-xs text-muted-foreground">{note}</span>
+                              )}
+                            </td>
                             <td className="text-center py-3 px-2">
                               {clientPermissionCapabilities.full[key as keyof ClientCapabilities] ? (
                                 <Check className="h-4 w-4 text-emerald-600 mx-auto" />
@@ -941,6 +946,10 @@ export default function Settings() {
                       </tbody>
                     </table>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Submitting documents is only possible through iShare (the secure client upload area), not via the regular document library.
+                    Requesting support isn't available until a client account is fully active.
+                  </p>
                 </div>
 
                 {user?.role !== "client" && (
