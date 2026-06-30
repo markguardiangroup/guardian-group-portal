@@ -10135,6 +10135,20 @@
           "message": "Expired and Missing header labels now use standard text colour",
           "category": "enhancement",
           "createdAt": "2026-06-30T16:15:00.913Z"
+        },
+        {
+          "id": "291035ab-59e5-4ae0-bcdd-483950727535",
+          "patch": 16,
+          "message": "Fixed: the Missing status filter now shows missing documents in table view",
+          "category": "bug",
+          "createdAt": "2026-06-30T16:21:20.134Z"
+        },
+        {
+          "id": "45327d8c-435c-49b6-b17f-ac3d606bf9ed",
+          "patch": 16,
+          "message": "Added an Expired status filter, split out from Overdue, in table view",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T16:21:20.135Z"
         }
       ],
       "publishedPatch": 15,

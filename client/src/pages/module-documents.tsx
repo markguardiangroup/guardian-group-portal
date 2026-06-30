@@ -1139,7 +1139,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     }
     const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.comments?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || doc.status === statusFilter;
+    const _expiryT = (doc as any).expiryDate ? new Date((doc as any).expiryDate).getTime() : null;
+    const _isExpiredDoc = doc.status === "overdue" && _expiryT !== null && !isNaN(_expiryT) && _expiryT < Date.now();
+    const matchesStatus =
+      statusFilter === "all" ? true
+      : statusFilter === "missing" ? false
+      : statusFilter === "expired" ? _isExpiredDoc
+      : statusFilter === "overdue" ? (doc.status === "overdue" && !_isExpiredDoc)
+      : doc.status === statusFilter;
     const matchesCompliance = complianceFilter === "all" ||
       (complianceFilter === "mandatory" && doc.isMandatory) ||
       (complianceFilter === "not_required" && !doc.isMandatory);
@@ -2638,6 +2645,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <SelectItem value="approved">Approved</SelectItem>
                       <SelectItem value="approval_required">Approval Required</SelectItem>
                       <SelectItem value="overdue">Overdue</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
                       <SelectItem value="missing">Missing</SelectItem>
                     </SelectContent>
                   </Select>
@@ -2958,7 +2966,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 ))}
               </TableBody>
             </Table>
-          ) : missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" ? (
+          ) : (statusFilter === "missing" ? tableMissingSlots.length > 0 : (missingSlots.length > 0 && !searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all")) ? (
             <Table>
               <TableHeader>
                 <TableRow>
