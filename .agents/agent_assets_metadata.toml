@@ -54,3 +54,15 @@ id = "alMXU3lV_LpsqN0I3qWut"
 uri = "file://Guardian_Group_AI_Risk_Board_Paper.docx"
 type = "word_document"
 title = "Guardian Group AI Risk & Mitigation Board Paper"
+
+[[outputs]]
+id = "BH_I3GDwFXQYYFiuN_5Ng"
+uri = "file://guardian-security-overview.pdf"
+type = "pdf"
+title = "Guardian Group Compliance Portal — Security & Production Overview"
+
+[[outputs]]
+id = "7ztFUE-rTXG9r4Pv2c7JR"
+uri = "file://guardian-scalability-costs.pdf"
+type = "pdf"
+title = "Guardian Group — Full Cost Projection (app dev costs clarified)"
