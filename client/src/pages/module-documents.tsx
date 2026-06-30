@@ -1711,13 +1711,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <span>{adjustedHeaderStats.overdueOther} Overdue</span>
                     </div>
                     {adjustedHeaderStats.expired > 0 && (
-                      <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                      <div className="flex items-center gap-2">
                         <CalendarX className="h-4 w-4 text-orange-500" />
                         <span>{adjustedHeaderStats.expired} Expired</span>
                       </div>
                     )}
                     {missingSlots.length > 0 && (
-                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                      <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-amber-500" />
                         <span>{missingSlots.length} Missing</span>
                       </div>
@@ -2137,13 +2137,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <span>{adjustedHeaderStats.overdueOther} Overdue</span>
                     </div>
                     {adjustedHeaderStats.expired > 0 && (
-                      <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                      <div className="flex items-center gap-2">
                         <CalendarX className="h-4 w-4 text-orange-500" />
                         <span>{adjustedHeaderStats.expired} Expired</span>
                       </div>
                     )}
                     {displayedMissingCount > 0 && (
-                      <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                      <div className="flex items-center gap-2">
                         <AlertCircle className="h-4 w-4 text-amber-500" />
                         <span>{displayedMissingCount} Missing</span>
                       </div>
