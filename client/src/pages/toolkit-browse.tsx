@@ -760,7 +760,7 @@ export default function ToolkitBrowse() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
           {visibleFolders.map((folder) => {
             const { color, cardColor } = MODULE_CONFIG[folder.module as ModuleType];
             const FolderIcon = getFolderIcon(folder.name);
@@ -779,13 +779,13 @@ export default function ToolkitBrowse() {
                 type="button"
                 onClick={() => { setSelectedFolder(folder); setSheetSearch(""); }}
                 data-testid={`button-folder-${folder.id}`}
-                className={`group relative flex flex-col items-start gap-4 rounded-xl border bg-card p-5 text-left hover:shadow-lg transition-all duration-200 ${cardColor}`}
+                className={`group relative flex items-start gap-3 rounded-xl border bg-card p-3 text-left hover:shadow-lg transition-all duration-200 ${cardColor}`}
               >
-                <div className={`p-3 rounded-xl ${iconBg} transition-transform group-hover:scale-110 duration-200`}>
-                  <FolderIcon className={`h-7 w-7 ${color}`} />
+                <div className={`shrink-0 p-2 rounded-lg ${iconBg} transition-transform group-hover:scale-110 duration-200`}>
+                  <FolderIcon className={`h-5 w-5 ${color}`} />
                 </div>
-                <div className="flex-1 min-w-0 w-full space-y-1.5">
-                  <p className="font-semibold text-sm leading-snug" data-testid={`text-folder-name-${folder.id}`}>
+                <div className="flex-1 min-w-0 w-full space-y-0.5">
+                  <p className="font-semibold text-sm leading-snug break-words" data-testid={`text-folder-name-${folder.id}`}>
                     {folder.name}
                   </p>
                   <p className={`text-xs font-medium ${color}`}>

@@ -10072,6 +10072,13 @@
           "message": "Added competitive analysis report (Word) — module-by-module vs Donesafe, T100, HandsHQ; direct download from deck",
           "category": "feature",
           "createdAt": "2026-06-24T17:45:00.000Z"
+        },
+        {
+          "id": "275873b1-6eaa-4560-a2b8-671a1bfe82f1",
+          "patch": 16,
+          "message": "Toolkit Browse folders are now more compact, fitting more per row",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T13:50:57.438Z"
         }
       ],
       "publishedPatch": 15,
