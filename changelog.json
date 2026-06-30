@@ -10191,6 +10191,13 @@
           "message": "Changed: moved the Status column further left on the Users page",
           "category": "enhancement",
           "createdAt": "2026-06-30T17:49:50.350Z"
+        },
+        {
+          "id": "ef1b5455-6c34-4d5d-bd17-004a5d75d12b",
+          "patch": 16,
+          "message": "Toolkit overview now shows locked modules as locked",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T17:59:55.112Z"
         }
       ],
       "publishedPatch": 15,

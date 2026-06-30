@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookMarked, DownloadCloud, TrendingUp, Download, FolderOpen, HardHat, Briefcase, Scale, X } from "lucide-react";
+import { BookMarked, DownloadCloud, TrendingUp, Download, FolderOpen, HardHat, Briefcase, Scale, X, Lock } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useModuleAccess } from "@/hooks/use-module-access";
 import { CompanyCombobox } from "@/components/company-combobox";
 
 interface Site {
@@ -53,6 +54,7 @@ export default function ToolkitDashboard() {
 
   const isPrivilegedUser = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
   const isClient = user?.role === "client";
+  const { hasActiveAccess } = useModuleAccess();
   const { hasCoverage, coveringFor, coverageFilter, setCoverageFilter, coverageSitesUrl, coverageQueryKey, isProConsultant, proStaffFilter, setProStaffFilter, myStaff } = useCoverageFilter();
 
   const { data: sites } = useQuery<Site[]>({
@@ -277,26 +279,45 @@ export default function ToolkitDashboard() {
               countColor: "text-pink-700 dark:text-pink-300",
               borderTop: "border-t-pink-500",
             },
-          ].map(({ key, label, Icon, iconBg, iconColor, countColor, borderTop }) => (
-            <Card key={key} className={`border-t-4 ${borderTop}`} data-testid={`card-module-downloads-${key}`}>
+          ].map(({ key, label, Icon, iconBg, iconColor, countColor, borderTop }) => {
+            const locked = !hasActiveAccess(key);
+            return (
+            <Card key={key} className={`border-t-4 ${borderTop} ${locked ? "border-dashed opacity-60" : ""}`} data-testid={`card-module-downloads-${key}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{label}</CardTitle>
-                <div className={`p-1.5 rounded-md ${iconBg}`}>
-                  <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
-                </div>
+                {locked ? (
+                  <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                ) : (
+                  <div className={`p-1.5 rounded-md ${iconBg}`}>
+                    <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${countColor}`} data-testid={`text-module-downloads-${key}`}>
-                  {isLoading ? (
-                    <Skeleton className="h-8 w-12" />
-                  ) : (
-                    <CountUp value={stats?.downloadsByModule?.[key] ?? 0} animate={wasLoadingRef.current} />
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Total downloads</p>
+                {locked ? (
+                  <>
+                    <div className="flex items-center gap-1.5 text-lg font-semibold text-muted-foreground" data-testid={`text-module-locked-${key}`}>
+                      <Lock className="h-4 w-4 shrink-0" />
+                      Locked
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">This module is not enabled</p>
+                  </>
+                ) : (
+                  <>
+                    <div className={`text-2xl font-bold ${countColor}`} data-testid={`text-module-downloads-${key}`}>
+                      {isLoading ? (
+                        <Skeleton className="h-8 w-12" />
+                      ) : (
+                        <CountUp value={stats?.downloadsByModule?.[key] ?? 0} animate={wasLoadingRef.current} />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Total downloads</p>
+                  </>
+                )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
 
         {/* Recently Downloaded — grouped by module, aligned with the breakdown cards above */}
@@ -337,19 +358,29 @@ export default function ToolkitDashboard() {
                 badgeClass: "border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-300",
               },
             ].map(({ key, label, Icon, iconBg, iconColor, borderTop, badgeClass }) => {
+              const locked = !hasActiveAccess(key);
               const moduleItems = (stats?.recentDownloads ?? [])
                 .filter(d => d.module === key)
                 .slice(0, 5);
               return (
-                <Card key={key} className={`border-t-4 ${borderTop}`} data-testid={`card-recent-downloads-${key}`}>
+                <Card key={key} className={`border-t-4 ${borderTop} ${locked ? "border-dashed opacity-60" : ""}`} data-testid={`card-recent-downloads-${key}`}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
                     <CardTitle className="text-sm font-medium">{label}</CardTitle>
-                    <div className={`p-1.5 rounded-md ${iconBg}`}>
-                      <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
-                    </div>
+                    {locked ? (
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <div className={`p-1.5 rounded-md ${iconBg}`}>
+                        <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {isLoading ? (
+                    {locked ? (
+                      <div className="flex flex-col items-center justify-center py-6 text-center" data-testid={`recent-locked-${key}`}>
+                        <Lock className="h-6 w-6 mb-2 text-muted-foreground opacity-50" />
+                        <p className="text-xs text-muted-foreground">This module is not enabled</p>
+                      </div>
+                    ) : isLoading ? (
                       <div className="space-y-2">
                         {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
                       </div>
