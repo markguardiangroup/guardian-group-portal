@@ -49,6 +49,9 @@ interface AcceloIntegrationRow {
   expiresAt?: string | null;
   isActive: boolean;
   createdAt: string;
+  lastCheckOk?: boolean | null;
+  lastCheckedAt?: string | null;
+  lastCheckError?: string | null;
 }
 
 interface Source {
@@ -69,16 +72,20 @@ function IntegrationCard({
   onDisconnect,
   onEdit,
   onDelete,
+  onVerify,
   connectPending,
   disconnectPending,
+  verifyPending,
 }: {
   integration: AcceloIntegrationRow;
   onConnect: () => void;
   onDisconnect: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onVerify: () => void;
   connectPending: boolean;
   disconnectPending: boolean;
+  verifyPending: boolean;
 }) {
   const { toast } = useToast();
   const [secretVisible, setSecretVisible] = useState(false);
@@ -109,7 +116,11 @@ function IntegrationCard({
 
   const expiresAt = integration.expiresAt ? new Date(integration.expiresAt) : null;
   const isExpired = expiresAt ? expiresAt < new Date() : false;
-  const isLive = integration.connected && !isExpired;
+  // lastCheckOk reflects a real call made to Accelo (not just our cached expiry), so it takes
+  // priority — Accelo can revoke a token at any time and that won't show up as "expired" locally
+  // until we actually try to use it.
+  const isLive = integration.connected && !isExpired && integration.lastCheckOk !== false;
+  const lastCheckedAt = integration.lastCheckedAt ? new Date(integration.lastCheckedAt) : null;
 
   const displayTitle = integration.sourceLabel && integration.sourceLabel !== integration.sourceCode
     ? integration.sourceLabel
@@ -145,25 +156,56 @@ function IntegrationCard({
                 <span className="text-sm font-medium text-green-700 dark:text-green-400">Connected</span>
                 {expiresAt && <span className="text-xs text-muted-foreground">· expires {format(expiresAt, "d MMM yyyy HH:mm")}</span>}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDisconnect}
-                disabled={disconnectPending}
-                data-testid={`button-disconnect-${integration.sourceCode}`}
-              >
-                <Link2Off className="h-3.5 w-3.5 mr-1.5" />
-                {disconnectPending ? "Disconnecting…" : "Disconnect"}
-              </Button>
+              {lastCheckedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Last verified with Accelo {format(lastCheckedAt, "d MMM yyyy HH:mm")}
+                </p>
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onDisconnect}
+                  disabled={disconnectPending}
+                  data-testid={`button-disconnect-${integration.sourceCode}`}
+                >
+                  <Link2Off className="h-3.5 w-3.5 mr-1.5" />
+                  {disconnectPending ? "Disconnecting…" : "Disconnect"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onVerify}
+                  disabled={verifyPending}
+                  data-testid={`button-verify-${integration.sourceCode}`}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${verifyPending ? "animate-spin" : ""}`} />
+                  {verifyPending ? "Checking…" : "Verify now"}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <XCircle className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {isExpired ? "Token expired" : "Not connected"}
+                  {integration.connected && integration.lastCheckOk === false
+                    ? "Token invalid — reconnect required"
+                    : isExpired
+                    ? "Token expired"
+                    : "Not connected"}
                 </span>
               </div>
+              {integration.connected && integration.lastCheckOk === false && integration.lastCheckError && (
+                <p className="text-xs text-destructive break-words" data-testid={`text-check-error-${integration.sourceCode}`}>
+                  {integration.lastCheckError}
+                </p>
+              )}
+              {lastCheckedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Last checked {format(lastCheckedAt, "d MMM yyyy HH:mm")}
+                </p>
+              )}
               <Button
                 size="sm"
                 onClick={onConnect}
@@ -347,6 +389,7 @@ export default function AdminAcceloPage() {
   const [deleteTarget, setDeleteTarget] = useState<AcceloIntegrationRow | null>(null);
   const [connectingSource, setConnectingSource] = useState<string | null>(null);
   const [disconnectingSource, setDisconnectingSource] = useState<string | null>(null);
+  const [verifyingSource, setVerifyingSource] = useState<string | null>(null);
 
   const { data: integrations = [], isLoading, refetch } = useQuery<AcceloIntegrationRow[]>({
     queryKey: ["/api/developer/accelo-integrations"],
@@ -453,6 +496,25 @@ export default function AdminAcceloPage() {
     updateMutation.mutate({ sourceCode: integration.sourceCode, data: { isActive: !integration.isActive } });
   }
 
+  async function handleVerify(sourceCode: string) {
+    setVerifyingSource(sourceCode);
+    try {
+      const res = await apiRequest("POST", `/api/developer/accelo-integrations/${sourceCode}/verify`);
+      const result = await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/developer/accelo-integrations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/integrations/accelo/status"] });
+      toast({
+        title: result.ok ? `${sourceCode} is connected` : `${sourceCode} connection failed`,
+        description: result.ok ? undefined : result.error,
+        variant: result.ok ? undefined : "destructive",
+      });
+    } catch {
+      toast({ title: "Failed to verify connection", variant: "destructive" });
+    } finally {
+      setVerifyingSource(null);
+    }
+  }
+
   const emptyForm: IntegrationFormData = { sourceCode: "", deployment: "", clientId: "", clientSecret: "" };
 
   return (
@@ -508,8 +570,10 @@ export default function AdminAcceloPage() {
                 onDisconnect={() => handleDisconnect(integration.sourceCode)}
                 onEdit={() => setEditTarget(integration)}
                 onDelete={() => setDeleteTarget(integration)}
+                onVerify={() => handleVerify(integration.sourceCode)}
                 connectPending={connectingSource === integration.sourceCode}
                 disconnectPending={disconnectingSource === integration.sourceCode}
+                verifyPending={verifyingSource === integration.sourceCode}
               />
             </div>
           ))}

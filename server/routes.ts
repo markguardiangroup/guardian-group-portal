@@ -20,6 +20,7 @@ import {
   deleteIntegration,
   decodeOAuthState,
   getSourceLabels,
+  verifyConnection,
 } from "./accelo";
 import fs from "fs/promises";
 import { createWriteStream, existsSync } from "fs";
@@ -22550,6 +22551,9 @@ export async function registerRoutes(
         connected: !!i.accessToken,
         expiresAt: i.expiresAt ?? null,
         isActive: i.isActive,
+        lastCheckOk: i.lastCheckOk,
+        lastCheckedAt: i.lastCheckedAt,
+        lastCheckError: i.lastCheckError,
       }));
       res.json(result);
     } catch (err) {
@@ -23115,10 +23119,28 @@ export async function registerRoutes(
         expiresAt: i.expiresAt ?? null,
         isActive: i.isActive,
         createdAt: i.createdAt,
+        lastCheckOk: i.lastCheckOk,
+        lastCheckedAt: i.lastCheckedAt,
+        lastCheckError: i.lastCheckError,
       })));
     } catch (err) {
       console.error("Accelo integrations list error:", err);
       res.status(500).json({ error: "Failed to list Accelo integrations" });
+    }
+  });
+
+  // POST /api/developer/accelo-integrations/:sourceCode/verify — force a live check against
+  // Accelo right now (bypasses the cached expires_at) and persists the result.
+  app.post("/api/developer/accelo-integrations/:sourceCode/verify", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
+      const sourceCode = req.params.sourceCode.toUpperCase();
+      const result = await verifyConnection(sourceCode);
+      res.json(result);
+    } catch (err) {
+      console.error("Accelo verify error:", err);
+      res.status(500).json({ error: "Failed to verify Accelo connection" });
     }
   });
 

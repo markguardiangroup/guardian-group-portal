@@ -13,6 +13,9 @@ export interface AcceloIntegration {
   expiresAt: Date | null;
   isActive: boolean;
   createdAt: Date;
+  lastCheckOk: boolean | null;
+  lastCheckedAt: Date | null;
+  lastCheckError: string | null;
 }
 
 export interface AcceloIntegrationPublic {
@@ -23,6 +26,9 @@ export interface AcceloIntegrationPublic {
   connected: boolean;
   expiresAt?: Date | null;
   isActive: boolean;
+  lastCheckOk?: boolean | null;
+  lastCheckedAt?: Date | null;
+  lastCheckError?: string | null;
 }
 
 async function ensureIntegrationsTable(): Promise<void> {
@@ -37,9 +43,16 @@ async function ensureIntegrationsTable(): Promise<void> {
       refresh_token text,
       expires_at timestamptz,
       is_active boolean NOT NULL DEFAULT true,
-      created_at timestamptz NOT NULL DEFAULT now()
+      created_at timestamptz NOT NULL DEFAULT now(),
+      last_check_ok boolean,
+      last_checked_at timestamptz,
+      last_check_error text
     )
   `);
+  // Safe no-ops on every boot for tables created before these columns existed.
+  await pool.query(`ALTER TABLE accelo_integrations ADD COLUMN IF NOT EXISTS last_check_ok boolean`);
+  await pool.query(`ALTER TABLE accelo_integrations ADD COLUMN IF NOT EXISTS last_checked_at timestamptz`);
+  await pool.query(`ALTER TABLE accelo_integrations ADD COLUMN IF NOT EXISTS last_check_error text`);
 
   // One-time migration: copy existing accelo_tokens row into accelo_integrations
   const existing = await pool.query(
@@ -80,7 +93,8 @@ export async function getIntegration(sourceCode: string): Promise<AcceloIntegrat
   await ensureIntegrationsTable();
   const result = await pool.query(
     `SELECT id, source_code, deployment, client_id, client_secret,
-            access_token, refresh_token, expires_at, is_active, created_at
+            access_token, refresh_token, expires_at, is_active, created_at,
+            last_check_ok, last_checked_at, last_check_error
      FROM accelo_integrations WHERE source_code = $1`,
     [sourceCode]
   );
@@ -97,6 +111,9 @@ export async function getIntegration(sourceCode: string): Promise<AcceloIntegrat
     expiresAt:    r.expires_at ? new Date(r.expires_at) : null,
     isActive:     r.is_active,
     createdAt:    new Date(r.created_at),
+    lastCheckOk:    r.last_check_ok,
+    lastCheckedAt:  r.last_checked_at ? new Date(r.last_checked_at) : null,
+    lastCheckError: r.last_check_error,
   };
 }
 
@@ -104,7 +121,8 @@ export async function listIntegrations(): Promise<AcceloIntegration[]> {
   await ensureIntegrationsTable();
   const result = await pool.query(
     `SELECT id, source_code, deployment, client_id, client_secret,
-            access_token, refresh_token, expires_at, is_active, created_at
+            access_token, refresh_token, expires_at, is_active, created_at,
+            last_check_ok, last_checked_at, last_check_error
      FROM accelo_integrations ORDER BY created_at`
   );
   return result.rows.map(r => ({
@@ -118,6 +136,9 @@ export async function listIntegrations(): Promise<AcceloIntegration[]> {
     expiresAt:    r.expires_at ? new Date(r.expires_at) : null,
     isActive:     r.is_active,
     createdAt:    new Date(r.created_at),
+    lastCheckOk:    r.last_check_ok,
+    lastCheckedAt:  r.last_checked_at ? new Date(r.last_checked_at) : null,
+    lastCheckError: r.last_check_error,
   }));
 }
 
@@ -140,6 +161,7 @@ export async function createIntegration(data: {
     id: r.id, sourceCode: r.source_code, deployment: r.deployment,
     clientId: r.client_id, clientSecret: r.client_secret,
     accessToken: null, refreshToken: null, expiresAt: null,
+    lastCheckOk: null, lastCheckedAt: null, lastCheckError: null,
     isActive: r.is_active, createdAt: new Date(r.created_at),
   };
 }
@@ -295,6 +317,54 @@ export async function getValidAccessToken(sourceCode: string): Promise<string> {
   const fresh = await refreshAccessToken(integration);
   await saveTokens(sourceCode, fresh);
   return fresh.accessToken;
+}
+
+export async function recordCheckResult(
+  sourceCode: string,
+  ok: boolean,
+  error: string | null
+): Promise<void> {
+  await ensureIntegrationsTable();
+  await pool.query(
+    `UPDATE accelo_integrations
+     SET last_check_ok = $1, last_checked_at = now(), last_check_error = $2
+     WHERE source_code = $3`,
+    [ok, error, sourceCode]
+  );
+}
+
+// Genuinely verifies the connection by making a real call to Accelo, instead of trusting
+// the locally cached expires_at. Accelo can revoke a refresh token (or an app's access)
+// at any time on their end — our cached expiry is just bookkeeping from the last token
+// we were issued and doesn't reflect that. This is what should be used for health checks
+// and status displays; getValidAccessToken alone is NOT a reliable "is this connected?"
+// signal because it short-circuits without contacting Accelo whenever the cached expiry
+// hasn't passed yet.
+export async function verifyConnection(sourceCode: string): Promise<{ ok: boolean; error?: string }> {
+  const integration = await getIntegration(sourceCode);
+  if (!integration?.accessToken) {
+    await recordCheckResult(sourceCode, false, "Not connected");
+    return { ok: false, error: "Not connected" };
+  }
+  try {
+    const token = await getValidAccessToken(sourceCode);
+    const BASE_URL = `https://${integration.deployment}.api.accelo.com/api/v0`;
+    const res = await fetch(`${BASE_URL}/companies?_limit=1&_fields=id`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      const error = `Accelo API check failed: ${res.status} ${text}`;
+      await recordCheckResult(sourceCode, false, error);
+      return { ok: false, error };
+    }
+    await recordCheckResult(sourceCode, true, null);
+    return { ok: true };
+  } catch (err: any) {
+    const error = err?.message ?? String(err);
+    await recordCheckResult(sourceCode, false, error);
+    return { ok: false, error };
+  }
 }
 
 export async function acceloGet<T = any>(sourceCode: string, path: string): Promise<T> {

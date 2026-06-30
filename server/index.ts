@@ -10,7 +10,7 @@ import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
 import { autoRecordPublishedPatch, autoIncrementPatchIfChanged } from "./changelog";
-import { acceloGet, getConnectionStatus, listIntegrations, getValidAccessToken, getSourceLabels } from "./accelo";
+import { acceloGet, getConnectionStatus, listIntegrations, getValidAccessToken, getSourceLabels, verifyConnection } from "./accelo";
 import { sendAcceloDisconnectAlertEmail } from "./email";
 
 const app = express();
@@ -635,10 +635,13 @@ process.on("uncaughtException", (err) => {
       const integrations = await listIntegrations();
       for (const integration of integrations) {
         if (!integration.refreshToken) continue; // never connected yet — nothing to keep alive
-        try {
-          await getValidAccessToken(integration.sourceCode);
-        } catch (err: any) {
-          console.error(`[scheduler] Accelo keep-alive failed for source ${integration.sourceCode}:`, err.message);
+        // Use verifyConnection (a real call to Accelo) rather than getValidAccessToken alone —
+        // getValidAccessToken short-circuits and skips contacting Accelo whenever our locally
+        // cached expires_at hasn't passed yet, so it can't detect a token Accelo has already
+        // revoked out-of-band. verifyConnection always checks against Accelo for real.
+        const result = await verifyConnection(integration.sourceCode);
+        if (!result.ok) {
+          console.error(`[scheduler] Accelo keep-alive failed for source ${integration.sourceCode}:`, result.error);
           const lastAlert = acceloDisconnectAlertedAt.get(integration.sourceCode) ?? 0;
           if (Date.now() - lastAlert > ACCELO_ALERT_COOLDOWN_MS) {
             acceloDisconnectAlertedAt.set(integration.sourceCode, Date.now());
@@ -647,12 +650,14 @@ process.on("uncaughtException", (err) => {
               await sendAcceloDisconnectAlertEmail({
                 sourceCode: integration.sourceCode,
                 sourceLabel: labels[integration.sourceCode] || integration.sourceCode,
-                errorMessage: err.message,
+                errorMessage: result.error ?? "Unknown error",
               });
             } catch (emailErr) {
               console.error("[scheduler] Failed to send Accelo disconnect alert email:", emailErr);
             }
           }
+        } else {
+          acceloDisconnectAlertedAt.delete(integration.sourceCode);
         }
       }
     } catch (err) {

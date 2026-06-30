@@ -10359,6 +10359,13 @@
           "message": "Accelo connection now auto-refreshes and alerts by email if it disconnects",
           "category": "enhancement",
           "createdAt": "2026-06-30T22:34:54.702Z"
+        },
+        {
+          "id": "934f2517-f7e6-4800-9098-d01aa4f7d636",
+          "patch": 17,
+          "message": "Accelo status now reflects a real live check, not just a cached expiry date",
+          "category": "bug",
+          "createdAt": "2026-06-30T22:45:50.106Z"
         }
       ],
       "publishedPatch": 16,
