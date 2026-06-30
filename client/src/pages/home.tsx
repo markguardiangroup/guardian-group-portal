@@ -545,9 +545,15 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         label: d.title,
         siteLabel: resolveSiteLabel(d.site_id, siteMap),
         subLabel: formatLabel(d.status),
-        badge: d.expiry_date
-          ? (new Date(d.expiry_date).getTime() < Date.now() ? "expired" : "expiring soon")
-          : (d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null),
+        badge: (() => {
+          const exp = d.expiry_date ? new Date(d.expiry_date).getTime() : null;
+          if (exp !== null && !isNaN(exp)) {
+            if (exp < Date.now()) return "expired";
+            const days = Math.ceil((exp - Date.now()) / 86400000);
+            if (days <= 14) return "expiring soon";
+          }
+          return d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null;
+        })(),
         module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
         renewalDate: d.renewal_date ?? null,

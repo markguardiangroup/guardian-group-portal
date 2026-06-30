@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert, CalendarX } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Clock, UserCheck, ShieldCheck, ShieldAlert, CalendarX, CalendarClock } from "lucide-react";
 import type { DocumentStatus, ApprovalStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -68,8 +68,12 @@ export function DocumentStatusBadge({ status, approvalStatus, expiryDate, classN
   let Icon: typeof CheckCircle;
   let statusClassName: string;
 
+  const expiry = expiryDate ? new Date(expiryDate as string) : null;
+  const daysUntilExpiry = expiry ? Math.ceil((expiry.getTime() - now.getTime()) / 86400000) : null;
+  const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry >= 0 && daysUntilExpiry <= 14;
+
   if (status === "overdue") {
-    const isExpired = !!expiryDate && new Date(expiryDate as string) < now;
+    const isExpired = !!expiry && expiry < now;
     if (isExpired) {
       label = "Expired";
       Icon = CalendarX;
@@ -82,6 +86,10 @@ export function DocumentStatusBadge({ status, approvalStatus, expiryDate, classN
   } else if (status === "approval_required") {
     label = "Approval Required";
     Icon = AlertTriangle;
+    statusClassName = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
+  } else if ((status === "compliant" || status === "approved") && isExpiringSoon) {
+    label = "Expiring Soon";
+    Icon = CalendarClock;
     statusClassName = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20";
   } else if (status === "compliant") {
     label = "Compliant";

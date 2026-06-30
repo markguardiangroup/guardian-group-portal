@@ -10107,6 +10107,20 @@
           "message": "Assigned Documents now show Expired or Expiring Soon badges based on expiry date",
           "category": "enhancement",
           "createdAt": "2026-06-30T15:39:24.818Z"
+        },
+        {
+          "id": "b3fd5f90-1f8a-4e66-9ab8-542c28ad81f0",
+          "patch": 16,
+          "message": "Documents folder and table views now show Expired and Expiring Soon badges",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T15:48:33.103Z"
+        },
+        {
+          "id": "d2922663-d680-4023-b2dc-020492802e39",
+          "patch": 16,
+          "message": "Expiring Soon now only flags documents expiring within 14 days",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T15:51:13.866Z"
         }
       ],
       "publishedPatch": 15,

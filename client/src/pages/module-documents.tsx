@@ -984,10 +984,35 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     moveDocumentMutation.mutate({ docId, folderId: targetFolderId });
   };
   
-  // Get folder status badges - returns up to two badges (Overdue + Approval Required) simultaneously
-  const getFolderStatusBadge = (stats: HierarchyFolder["stats"]) => {
+  // Count expired and expiring-soon documents in a folder's document set.
+  // Expired = overdue docs whose expiry date is in the past.
+  // Expiring soon = compliant/approved docs expiring within 14 days (matches doc-level badge).
+  const getFolderExpiry = (docs: any[]) => {
+    const now = Date.now();
+    let expired = 0, expiringSoon = 0;
+    for (const d of docs ?? []) {
+      if (!d || d.isArchived || !d.expiryDate) continue;
+      const t = new Date(d.expiryDate).getTime();
+      if (isNaN(t)) continue;
+      if (d.status === "overdue") {
+        if (t < now) expired++;
+      } else if (d.status === "compliant" || d.status === "approved") {
+        const days = Math.ceil((t - now) / 86400000);
+        if (days >= 0 && days <= 14) expiringSoon++;
+      }
+    }
+    return { expired, expiringSoon };
+  };
+
+  // Get folder status badges - Overdue, Expired, Expiring Soon, Approval Required.
+  // The expired portion is reclassified out of the overdue total to avoid double-counting.
+  const getFolderStatusBadge = (stats: HierarchyFolder["stats"], docs: any[] = []) => {
     const badges: { variant: "outline"; label: string; className: string }[] = [];
-    if (stats.overdue > 0) badges.push({ variant: "outline", label: "Overdue", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" });
+    const { expired, expiringSoon } = getFolderExpiry(docs);
+    const overdueOther = Math.max(0, (stats.overdue ?? 0) - expired);
+    if (overdueOther > 0) badges.push({ variant: "outline", label: "Overdue", className: "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/20" });
+    if (expired > 0) badges.push({ variant: "outline", label: "Expired", className: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/20" });
+    if (expiringSoon > 0) badges.push({ variant: "outline", label: "Expiring Soon", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" });
     if (stats.approvalRequired > 0) badges.push({ variant: "outline", label: "Approval Required", className: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/20" });
     return badges;
   };
@@ -1898,7 +1923,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const renderChildFolder = (childFolder: any) => {
                     const childDocs = docsByFolder.get(childFolder.id) || [];
                     const childMissing = Array.from((missingByFolder.get(childFolder.id) ?? new Map()).values());
-                    const childStatusBadge = getFolderStatusBadge(childFolder.stats ?? computeStats(childDocs));
+                    const childStatusBadge = getFolderStatusBadge(childFolder.stats ?? computeStats(childDocs), childDocs);
                     return (
                       <AccordionItem
                         key={childFolder.id}
@@ -1957,7 +1982,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       ...childFolders.flatMap((c: any) => docsByFolder.get(c.id) || []),
                     ];
                     const stats = computeStats(allDocsInTree);
-                    const statusBadge = getFolderStatusBadge(stats);
+                    const statusBadge = getFolderStatusBadge(stats, allDocsInTree);
                     return (
                       <AccordionItem
                         key={folder.id}
@@ -2126,7 +2151,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       approvalRequired: folder.stats.approvalRequired + folderDelta.approvalRequired,
                       overdue: folder.stats.overdue + folderDelta.overdue,
                     } : folder.stats;
-                    const statusBadge = getFolderStatusBadge(adjustedFolderStats);
+                    const folderTreeDocs = [
+                      ...((folder as any).documents ?? []),
+                      ...(((folder as any).childFolders ?? []).flatMap((cf: any) => cf.documents ?? [])),
+                    ];
+                    const statusBadge = getFolderStatusBadge(adjustedFolderStats, folderTreeDocs);
                     const folderDropId = (folder as any).siteFolder?.id ?? folder.id;
                     const parentMissingCount = (missingByFolderTemplateId.get(folder.id)?.length ?? 0) +
                       ((folder as any).childFolders ?? []).reduce((sum: number, cf: any) => sum + (missingByFolderTemplateId.get(cf.id)?.length ?? 0), 0);
@@ -2169,7 +2198,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     approvalRequired: baseChildStats.approvalRequired + childDelta.approvalRequired,
                                     overdue: baseChildStats.overdue + childDelta.overdue,
                                   } : baseChildStats;
-                                  const childStatusBadge = getFolderStatusBadge(adjustedChildStats);
+                                  const childStatusBadge = getFolderStatusBadge(adjustedChildStats, (childFolder as any).documents ?? []);
                                   const childDropId = (childFolder as any).siteFolder?.id ?? childFolder.id;
                                   return (
                                     <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isDeveloper}>
