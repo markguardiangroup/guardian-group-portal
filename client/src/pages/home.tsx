@@ -546,8 +546,8 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
         module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
-        renewalDate: null,
-        expiryDate: null,
+        renewalDate: d.renewal_date ?? null,
+        expiryDate: d.expiry_date ?? null,
         receivedAt: null,
       }));
     case "pendingApprovals":

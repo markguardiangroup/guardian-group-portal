@@ -10086,6 +10086,13 @@
           "message": "Awaiting Client Approval now shows the client name and email the approval is with",
           "category": "enhancement",
           "createdAt": "2026-06-30T14:02:55.042Z"
+        },
+        {
+          "id": "47d642f0-e4fc-4050-9a07-678cfbf008da",
+          "patch": 16,
+          "message": "Assigned Documents list now shows renewal and expiry dates",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T14:04:06.705Z"
         }
       ],
       "publishedPatch": 15,
