@@ -10345,6 +10345,13 @@
           "message": "Fixed: deleted clients lingered in Users list until manual refresh",
           "category": "bug",
           "createdAt": "2026-06-30T21:59:12.754Z"
+        },
+        {
+          "id": "e958822f-19da-4cc2-97c2-72d799eb3bd7",
+          "patch": 17,
+          "message": "Developers can bulk-delete companies via Admin Mode multi-select",
+          "category": "feature",
+          "createdAt": "2026-06-30T22:14:59.174Z"
         }
       ],
       "publishedPatch": 16,

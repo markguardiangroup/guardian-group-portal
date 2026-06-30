@@ -10040,6 +10040,74 @@ export async function registerRoutes(
     }
   });
 
+  // Cascade-deletes a company and all related data within its own transaction.
+  // Shared by the single-company delete route and the developer-only bulk delete route.
+  const deleteCompanyCascade = async (
+    companyId: string,
+    company: { name: string; groupOwnerId?: string | null },
+  ): Promise<void> => {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const siteRows = await client.query("SELECT id FROM sites WHERE entity_id = $1", [companyId]);
+      const siteIds = siteRows.rows.map((r: any) => r.id);
+
+      if (siteIds.length > 0) {
+        const ph = siteIds.map((_: string, i: number) => `$${i + 1}`).join(",");
+
+        await client.query(`DELETE FROM support_request_reads WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM support_messages WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM support_requests WHERE site_id IN (${ph})`, siteIds);
+
+        await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM documents WHERE site_id IN (${ph})`, siteIds);
+        await client.query(`DELETE FROM document_folders WHERE site_id IN (${ph})`, siteIds);
+        await client.query(`DELETE FROM site_document_type_access WHERE site_id IN (${ph})`, siteIds);
+
+        await client.query(`DELETE FROM case_milestones WHERE case_id IN (SELECT id FROM cases WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM cases WHERE site_id IN (${ph})`, siteIds);
+
+        await client.query(`DELETE FROM training_bookings WHERE site_id IN (${ph})`, siteIds);
+        await client.query(`DELETE FROM training_requests WHERE site_id IN (${ph})`, siteIds);
+
+        await client.query(`DELETE FROM consultant_assignments WHERE entity_id IN (${ph})`, siteIds);
+        await client.query(`DELETE FROM client_site_assignments WHERE site_id IN (${ph})`, siteIds);
+        await client.query(`DELETE FROM site_module_access WHERE site_id IN (${ph})`, siteIds);
+        await client.query(`DELETE FROM module_access_requests WHERE site_id IN (${ph})`, siteIds);
+      }
+
+      await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE entity_id = $1)`, [companyId]);
+      await client.query(`DELETE FROM documents WHERE entity_id = $1`, [companyId]);
+
+      const userRows = await client.query("SELECT id FROM users WHERE entity_id = $1 AND role = 'client'", [companyId]);
+      const userIds = userRows.rows.map((r: any) => r.id);
+      if (userIds.length > 0) {
+        const uph = userIds.map((_: string, i: number) => `$${i + 1}`).join(",");
+        await client.query(`DELETE FROM user_invitations WHERE user_id IN (${uph})`, userIds);
+        await client.query(`DELETE FROM session WHERE sess::text LIKE ANY(ARRAY[${userIds.map((_: string, i: number) => `'%' || $${i + 1} || '%'`).join(",")}])`, userIds);
+      }
+      await client.query("DELETE FROM users WHERE entity_id = $1 AND role = 'client'", [companyId]);
+
+      await client.query("DELETE FROM sites WHERE entity_id = $1", [companyId]);
+      await client.query("DELETE FROM companies WHERE id = $1", [companyId]);
+
+      await client.query("COMMIT");
+    } catch (txError) {
+      await client.query("ROLLBACK");
+      throw txError;
+    } finally {
+      client.release();
+    }
+
+    await emitCompanyScoped("company-updated", companyId, { companyId, deleted: true });
+    // The company row is now gone, so the helper can't resolve its group
+    // owner — notify the captured group owner's clients explicitly.
+    if (company.groupOwnerId) {
+      emitToCompany(company.groupOwnerId, "company-updated", { companyId, deleted: true });
+    }
+  };
+
   app.delete("/api/companies/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -10056,80 +10124,71 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Company not found" });
       }
 
-      const client = await pool.connect();
-      try {
-        await client.query("BEGIN");
+      await deleteCompanyCascade(companyId, company);
 
-        const siteRows = await client.query("SELECT id FROM sites WHERE entity_id = $1", [companyId]);
-        const siteIds = siteRows.rows.map((r: any) => r.id);
+      await storage.createAuditLog({
+        userId: user.id,
+        userName: user.fullName,
+        action: "company_deleted",
+        entityType: "company",
+        entityId: companyId,
+        details: `Deleted company "${company.name}" and all associated data`,
+      });
 
-        if (siteIds.length > 0) {
-          const ph = siteIds.map((_: string, i: number) => `$${i + 1}`).join(",");
-
-          await client.query(`DELETE FROM support_request_reads WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
-          await client.query(`DELETE FROM support_messages WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
-          await client.query(`DELETE FROM support_requests WHERE site_id IN (${ph})`, siteIds);
-
-          await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id IN (${ph}))`, siteIds);
-          await client.query(`DELETE FROM documents WHERE site_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM document_folders WHERE site_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM site_document_type_access WHERE site_id IN (${ph})`, siteIds);
-
-          await client.query(`DELETE FROM case_milestones WHERE case_id IN (SELECT id FROM cases WHERE site_id IN (${ph}))`, siteIds);
-          await client.query(`DELETE FROM cases WHERE site_id IN (${ph})`, siteIds);
-
-          await client.query(`DELETE FROM training_bookings WHERE site_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM training_requests WHERE site_id IN (${ph})`, siteIds);
-
-          await client.query(`DELETE FROM consultant_assignments WHERE entity_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM client_site_assignments WHERE site_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM site_module_access WHERE site_id IN (${ph})`, siteIds);
-          await client.query(`DELETE FROM module_access_requests WHERE site_id IN (${ph})`, siteIds);
-        }
-
-        await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE entity_id = $1)`, [companyId]);
-        await client.query(`DELETE FROM documents WHERE entity_id = $1`, [companyId]);
-
-        const userRows = await client.query("SELECT id FROM users WHERE entity_id = $1 AND role = 'client'", [companyId]);
-        const userIds = userRows.rows.map((r: any) => r.id);
-        if (userIds.length > 0) {
-          const uph = userIds.map((_: string, i: number) => `$${i + 1}`).join(",");
-          await client.query(`DELETE FROM user_invitations WHERE user_id IN (${uph})`, userIds);
-          await client.query(`DELETE FROM session WHERE sess::text LIKE ANY(ARRAY[${userIds.map((_: string, i: number) => `'%' || $${i + 1} || '%'`).join(",")}])`, userIds);
-        }
-        await client.query("DELETE FROM users WHERE entity_id = $1 AND role = 'client'", [companyId]);
-
-        await client.query("DELETE FROM sites WHERE entity_id = $1", [companyId]);
-        await client.query("DELETE FROM companies WHERE id = $1", [companyId]);
-
-        await client.query("COMMIT");
-
-        await emitCompanyScoped("company-updated", companyId, { companyId, deleted: true });
-        // The company row is now gone, so the helper can't resolve its group
-        // owner — notify the captured group owner's clients explicitly.
-        if (company.groupOwnerId) {
-          emitToCompany(company.groupOwnerId, "company-updated", { companyId, deleted: true });
-        }
-
-        await storage.createAuditLog({
-          userId: user.id,
-          userName: user.fullName,
-          action: "company_deleted",
-          entityType: "company",
-          entityId: companyId,
-          details: `Deleted company "${company.name}" and all associated data`,
-        });
-
-        res.json({ success: true, message: `Company "${company.name}" and all associated data deleted` });
-      } catch (txError) {
-        await client.query("ROLLBACK");
-        throw txError;
-      } finally {
-        client.release();
-      }
+      res.json({ success: true, message: `Company "${company.name}" and all associated data deleted` });
     } catch (error) {
       console.error("Delete company error:", error);
       res.status(500).json({ error: "Failed to delete company" });
+    }
+  });
+
+  // Developer-only bulk delete — same cascade as the single-company delete route,
+  // run once per company so one failure doesn't roll back the others.
+  app.post("/api/companies/bulk-delete", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      if (user.role !== "developer") {
+        return res.status(403).json({ error: "Only developers can bulk-delete companies" });
+      }
+
+      const companyIds: string[] = Array.isArray(req.body?.companyIds) ? req.body.companyIds : [];
+      if (companyIds.length === 0) {
+        return res.status(400).json({ error: "No companies specified" });
+      }
+
+      const deleted: { id: string; name: string }[] = [];
+      const failed: { id: string; error: string }[] = [];
+
+      for (const companyId of companyIds) {
+        try {
+          const company = await storage.getCompany(companyId);
+          if (!company) {
+            failed.push({ id: companyId, error: "Company not found" });
+            continue;
+          }
+          await deleteCompanyCascade(companyId, company);
+          await storage.createAuditLog({
+            userId: user.id,
+            userName: user.fullName,
+            action: "company_deleted",
+            entityType: "company",
+            entityId: companyId,
+            details: `Deleted company "${company.name}" and all associated data (bulk delete)`,
+          });
+          deleted.push({ id: companyId, name: company.name });
+        } catch (err: any) {
+          console.error(`Bulk delete failed for company ${companyId}:`, err);
+          failed.push({ id: companyId, error: err?.message || "Unknown error" });
+        }
+      }
+
+      res.json({ success: failed.length === 0, deleted, failed });
+    } catch (error) {
+      console.error("Bulk delete companies error:", error);
+      res.status(500).json({ error: "Failed to bulk-delete companies" });
     }
   });
 

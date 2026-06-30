@@ -84,7 +84,7 @@ import { useSiteFilter } from "@/hooks/use-site-filter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Info, Copy, Hash } from "lucide-react";
+import { FileText, Info, Copy, Hash, ShieldAlert } from "lucide-react";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User, ComplianceSummary } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
@@ -545,6 +545,10 @@ export default function Companies() {
   const [pendingCompanyData, setPendingCompanyData] = useState<typeof formData | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CompanyWithSiteCount | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
   const [isRequiredDocsOpen, setIsRequiredDocsOpen] = useState(false);
   const [reqDocsActiveModule, setReqDocsActiveModule] = useState<string>("");
   const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
@@ -816,6 +820,34 @@ export default function Companies() {
     },
     onError: () => {
       toast({ title: "Failed to delete company", variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (companyIds: string[]) => {
+      const response = await apiRequest("POST", `/api/companies/bulk-delete`, { companyIds });
+      return response.json();
+    },
+    onSuccess: (data: { deleted: { id: string; name: string }[]; failed: { id: string; error: string }[] }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      if (data.failed.length === 0) {
+        toast({ title: `${data.deleted.length} ${data.deleted.length === 1 ? "company" : "companies"} and all associated data deleted successfully` });
+      } else {
+        toast({
+          title: `Deleted ${data.deleted.length} of ${data.deleted.length + data.failed.length} companies`,
+          description: `${data.failed.length} failed: ${data.failed.map(f => f.error).join(", ")}`,
+          variant: "destructive",
+        });
+      }
+      setIsBulkDeleteOpen(false);
+      setBulkDeleteConfirmText("");
+      setSelectedCompanyIds(new Set());
+      setIsAdminMode(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to delete companies", variant: "destructive" });
     },
   });
 
@@ -1363,6 +1395,31 @@ export default function Companies() {
               </Badge>
             </Button>
           ))}
+          {isDeveloper && selectedCompanyIds.size > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => { setIsBulkDeleteOpen(true); setBulkDeleteConfirmText(""); }}
+              data-testid="button-bulk-delete-companies"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete {selectedCompanyIds.size} {selectedCompanyIds.size === 1 ? "Company" : "Companies"}
+            </Button>
+          )}
+          {isDeveloper && (
+            <Button
+              size="sm"
+              variant={isAdminMode ? "default" : "outline"}
+              onClick={() => {
+                setIsAdminMode((prev) => !prev);
+                setSelectedCompanyIds(new Set());
+              }}
+              data-testid="button-toggle-admin-mode"
+            >
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              {isAdminMode ? "Exit Admin Mode" : "Admin Mode"}
+            </Button>
+          )}
           {canCreateCompany && (
             <Button size="sm" className="w-36" onClick={() => setIsAddOpen(true)} data-testid="button-add-company">
               <Plus className="mr-2 h-4 w-4" />
@@ -1455,6 +1512,25 @@ export default function Companies() {
         <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
           <TableHeader>
             <TableRow>
+              {isAdminMode && (
+                <TableHead className="w-[3%]">
+                  <Checkbox
+                    checked={companies.length > 0 && companies.every((c) => selectedCompanyIds.has(c.id))}
+                    onCheckedChange={(checked) => {
+                      setSelectedCompanyIds((prev) => {
+                        const next = new Set(prev);
+                        if (checked) {
+                          companies.forEach((c) => next.add(c.id));
+                        } else {
+                          companies.forEach((c) => next.delete(c.id));
+                        }
+                        return next;
+                      });
+                    }}
+                    data-testid="checkbox-select-all-companies"
+                  />
+                </TableHead>
+              )}
               <TableHead onClick={() => handleSortCompanies("name")} className="cursor-pointer select-none whitespace-nowrap w-[26%]">
                 <div className="flex items-center gap-1">Company {sortBy === "name" ? (sortDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronDown className="h-3 w-3 opacity-30" />}</div>
               </TableHead>
@@ -1480,13 +1556,13 @@ export default function Companies() {
           <TableBody key={isLoading ? "loading" : "loaded"} className={!alreadyShown && !isLoading && companies.length > 0 ? "table-rows-animate" : ""}>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8}>
+                <TableCell colSpan={isAdminMode ? 9 : 8}>
                   <FetchingOverlay />
                 </TableCell>
               </TableRow>
             ) : companies.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={isAdminMode ? 9 : 8} className="h-24 text-center text-muted-foreground">
                   {debouncedSearch || statusFilter !== "all"
                     ? "No companies match your filters."
                     : "No companies found. Add your first company to get started."}
@@ -1500,6 +1576,22 @@ export default function Companies() {
                   onClick={() => handleView(company.id)}
                   data-testid={`row-company-${company.id}`}
                 >
+                  {isAdminMode && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedCompanyIds.has(company.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedCompanyIds((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(company.id);
+                            else next.delete(company.id);
+                            return next;
+                          });
+                        }}
+                        data-testid={`checkbox-select-company-${company.id}`}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
@@ -2393,6 +2485,67 @@ export default function Companies() {
               data-testid="button-confirm-delete"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete Company"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBulkDeleteOpen} onOpenChange={(open) => { if (!open) { setIsBulkDeleteOpen(false); setBulkDeleteConfirmText(""); } }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete {selectedCompanyIds.size} {selectedCompanyIds.size === 1 ? "Company" : "Companies"}
+            </DialogTitle>
+            <DialogDescription>
+              This action is permanent and cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm font-medium mb-2">
+                You are about to permanently delete:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside max-h-32 overflow-y-auto">
+                {companies.filter((c) => selectedCompanyIds.has(c.id)).map((c) => (
+                  <li key={c.id} data-testid={`text-bulk-delete-target-${c.id}`}>
+                    <strong>{c.name}</strong> ({c.siteCount} {c.siteCount === 1 ? "site" : "sites"})
+                  </li>
+                ))}
+              </ul>
+              <p className="text-sm text-muted-foreground mt-3">
+                For each company above, this also deletes all sites and site data, documents, cases, document versions,
+                <strong> all client users belonging to that company</strong>, support requests, training bookings, and audit logs.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bulk-delete-confirm">
+                Type <strong className="text-destructive">DELETE</strong> to confirm
+              </Label>
+              <Input
+                id="bulk-delete-confirm"
+                value={bulkDeleteConfirmText}
+                onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                placeholder="Type DELETE to confirm"
+                data-testid="input-bulk-delete-confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setIsBulkDeleteOpen(false); setBulkDeleteConfirmText(""); }}
+              data-testid="button-cancel-bulk-delete"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => bulkDeleteMutation.mutate(Array.from(selectedCompanyIds))}
+              disabled={bulkDeleteConfirmText !== "DELETE" || bulkDeleteMutation.isPending || selectedCompanyIds.size === 0}
+              data-testid="button-confirm-bulk-delete"
+            >
+              {bulkDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedCompanyIds.size} ${selectedCompanyIds.size === 1 ? "Company" : "Companies"}`}
             </Button>
           </DialogFooter>
         </DialogContent>
