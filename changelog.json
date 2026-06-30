@@ -10198,6 +10198,13 @@
           "message": "Toolkit overview now shows locked modules as locked",
           "category": "enhancement",
           "createdAt": "2026-06-30T17:59:55.112Z"
+        },
+        {
+          "id": "c6494e6e-9365-48a6-9cc0-0a9820f21940",
+          "patch": 16,
+          "message": "Client home cards now match the styling used for admins and consultants",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:02:17.379Z"
         }
       ],
       "publishedPatch": 15,

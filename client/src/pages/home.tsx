@@ -1414,14 +1414,17 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
       : [];
 
   return (
-    <Card data-testid="card-portfolio" className="h-full">
-      <CardHeader className="pb-2">
+    <Card data-testid="card-portfolio" className="h-full border-t-4 border-t-primary overflow-hidden">
+      <CardHeader className="pb-3 bg-gradient-to-br from-primary/5 to-transparent">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
           Your Account
         </CardTitle>
+        <p className="text-xs text-muted-foreground">Your organisation &amp; consultants</p>
       </CardHeader>
-      <CardContent className="space-y-0 divide-y divide-border">
+      <CardContent className="space-y-0 divide-y divide-border pt-4">
         {p.site && (
           <div className="flex items-center gap-3 py-3" data-testid="portfolio-organisation">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -1486,8 +1489,8 @@ function ClientSitesPanel({
   };
 
   return (
-    <Card data-testid="card-client-sites" className="h-full">
-      <CardHeader className="pb-2">
+    <Card data-testid="card-client-sites" className="h-full border-t-4 border-t-primary overflow-hidden">
+      <CardHeader className="pb-3 bg-gradient-to-br from-primary/5 to-transparent">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
             <MapPin className="h-4 w-4 text-primary" />
@@ -1500,7 +1503,7 @@ function ClientSitesPanel({
             : `${sites.length} ${sites.length === 1 ? "site" : "sites"} assigned to you`}
         </p>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-4">
         {isMultiCompany ? (
           <div className="divide-y divide-border">
             {companies.map((company) => {
