@@ -10170,6 +10170,13 @@
           "message": "Improved: Users page columns spaced so the Status badge isn't up against the edge",
           "category": "enhancement",
           "createdAt": "2026-06-30T17:39:08.739Z"
+        },
+        {
+          "id": "5991b1c7-2b9e-40e7-8716-6f8c08ea9471",
+          "patch": 16,
+          "message": "Fixed: status badges on the Users page now line up neatly",
+          "category": "bug",
+          "createdAt": "2026-06-30T17:46:15.195Z"
         }
       ],
       "publishedPatch": 15,
