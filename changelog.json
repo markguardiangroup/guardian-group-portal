@@ -10233,6 +10233,13 @@
           "message": "Locked modules now show as locked in the Browse Templates area",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:37:04.306Z"
+        },
+        {
+          "id": "0bc52433-5997-4bad-a74a-3e3189a21f41",
+          "patch": 16,
+          "message": "Sidebar locked modules now show only the padlock icon, no text",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:38:56.498Z"
         }
       ],
       "publishedPatch": 15,
