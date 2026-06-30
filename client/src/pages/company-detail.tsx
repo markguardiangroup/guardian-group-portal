@@ -1297,16 +1297,6 @@ export default function CompanyDetail() {
     enabled: !!companyId,
   });
 
-  // Fetch company-level stats (document counts by module, cases, incidents)
-  const { data: companyStats } = useQuery<{ documents: Record<string, number>; cases: number; incidents: number }>({
-    queryKey: ["/api/companies", companyId, "stats"],
-    queryFn: async () => {
-      const response = await fetch(`/api/companies/${companyId}/stats`, { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch stats");
-      return response.json();
-    },
-    enabled: !!companyId,
-  });
 
   // Fetch group owner company to know its primary contact (for "Group Primary Contact" badge)
   const { data: groupOwnerCompany } = useQuery<{ id: string; contactUserId?: string | null }>({
