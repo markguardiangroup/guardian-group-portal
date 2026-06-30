@@ -2360,7 +2360,7 @@ export default function Companies() {
                   <li>Company: <strong>{deleteTarget.name}</strong></li>
                   <li>{deleteTarget.siteCount} {deleteTarget.siteCount === 1 ? "site" : "sites"} and all site data</li>
                   <li>All documents, cases, and document versions</li>
-                  <li>All user accounts belonging to this company</li>
+                  <li><strong>All client users belonging to this company will also be permanently deleted</strong></li>
                   <li>All support requests, training bookings, and audit logs</li>
                 </ul>
               </div>
