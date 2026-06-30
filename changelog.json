@@ -10366,6 +10366,13 @@
           "message": "Accelo status now reflects a real live check, not just a cached expiry date",
           "category": "bug",
           "createdAt": "2026-06-30T22:45:50.106Z"
+        },
+        {
+          "id": "4940fa8b-3078-47be-8dd2-88d84b2d4c37",
+          "patch": 17,
+          "message": "Fixed: Active toggle no longer overlaps edit/delete icons on Accelo cards",
+          "category": "bug",
+          "createdAt": "2026-06-30T22:52:12.134Z"
         }
       ],
       "publishedPatch": 16,

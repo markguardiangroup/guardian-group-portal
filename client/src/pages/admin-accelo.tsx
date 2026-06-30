@@ -73,6 +73,7 @@ function IntegrationCard({
   onEdit,
   onDelete,
   onVerify,
+  onToggleActive,
   connectPending,
   disconnectPending,
   verifyPending,
@@ -83,6 +84,7 @@ function IntegrationCard({
   onEdit: () => void;
   onDelete: () => void;
   onVerify: () => void;
+  onToggleActive: () => void;
   connectPending: boolean;
   disconnectPending: boolean;
   verifyPending: boolean;
@@ -137,13 +139,23 @@ function IntegrationCard({
               <Badge variant="secondary" className="text-xs shrink-0">Inactive</Badge>
             )}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-integration-${integration.sourceCode}`}>
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete} data-testid={`button-delete-integration-${integration.sourceCode}`}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">{integration.isActive ? "Active" : "Disabled"}</span>
+              <Switch
+                checked={integration.isActive}
+                onCheckedChange={onToggleActive}
+                data-testid={`switch-active-${integration.sourceCode}`}
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-integration-${integration.sourceCode}`}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete} data-testid={`button-delete-integration-${integration.sourceCode}`}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -555,27 +567,19 @@ export default function AdminAcceloPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {integrations.map(integration => (
-            <div key={integration.sourceCode} className="relative">
-              <div className="absolute top-3 right-16 z-10 flex items-center gap-1.5">
-                <span className="text-xs text-muted-foreground">{integration.isActive ? "Active" : "Disabled"}</span>
-                <Switch
-                  checked={integration.isActive}
-                  onCheckedChange={() => handleToggleActive(integration)}
-                  data-testid={`switch-active-${integration.sourceCode}`}
-                />
-              </div>
-              <IntegrationCard
-                integration={integration}
-                onConnect={() => handleConnect(integration.sourceCode)}
-                onDisconnect={() => handleDisconnect(integration.sourceCode)}
-                onEdit={() => setEditTarget(integration)}
-                onDelete={() => setDeleteTarget(integration)}
-                onVerify={() => handleVerify(integration.sourceCode)}
-                connectPending={connectingSource === integration.sourceCode}
-                disconnectPending={disconnectingSource === integration.sourceCode}
-                verifyPending={verifyingSource === integration.sourceCode}
-              />
-            </div>
+            <IntegrationCard
+              key={integration.sourceCode}
+              integration={integration}
+              onConnect={() => handleConnect(integration.sourceCode)}
+              onDisconnect={() => handleDisconnect(integration.sourceCode)}
+              onEdit={() => setEditTarget(integration)}
+              onDelete={() => setDeleteTarget(integration)}
+              onVerify={() => handleVerify(integration.sourceCode)}
+              onToggleActive={() => handleToggleActive(integration)}
+              connectPending={connectingSource === integration.sourceCode}
+              disconnectPending={disconnectingSource === integration.sourceCode}
+              verifyPending={verifyingSource === integration.sourceCode}
+            />
           ))}
         </div>
       )}
