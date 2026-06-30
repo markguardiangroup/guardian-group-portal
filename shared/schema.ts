@@ -1203,6 +1203,22 @@ export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabi
   },
 };
 
+// Administrator ("Admin") staff role capabilities — mirrors a Pro Consultant for general
+// visibility/create/manage, but is never an eligible document approver (no sign-off rights).
+export const administratorCapabilities: ConsultantCapabilities = {
+  canAccessAllClients: true,
+  canApproveDocuments: false,
+  canCreateClientUsers: true,
+  canCreateCompanies: true,
+  canCreateSites: true,
+  canAssignConsultants: true,
+  canDeleteCompanies: true,
+  canDeleteUsers: true,
+  canDeleteDocuments: true,
+  canEditDocuments: true,
+  canViewDocuments: true,
+};
+
 // Helper to get capabilities
 export function getClientCapabilities(role: ClientPermissionRole | null | undefined): ClientCapabilities {
   return clientPermissionCapabilities.full;

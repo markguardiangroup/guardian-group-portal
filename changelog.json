@@ -10317,6 +10317,13 @@
           "message": "Admins now have proper access to Testing and Legal Documents settings tabs",
           "category": "bug",
           "createdAt": "2026-06-30T20:39:54.585Z"
+        },
+        {
+          "id": "00e3c6f8-c194-408e-8dd9-9f9b10394016",
+          "patch": 16,
+          "message": "Admin role now shown in the Permissions tab's capability table",
+          "category": "bug",
+          "createdAt": "2026-06-30T20:59:17.949Z"
         }
       ],
       "publishedPatch": 15,

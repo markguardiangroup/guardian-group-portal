@@ -93,6 +93,7 @@ import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import {
   clientPermissionCapabilities,
   consultantTierCapabilities,
+  administratorCapabilities,
   type ClientCapabilities,
   type ConsultantCapabilities,
   type ClientPermissionRole,
@@ -955,17 +956,21 @@ export default function Settings() {
                     <Separator />
 
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Consultant Tiers</h3>
+                      <h3 className="text-lg font-medium mb-4">Consultant Tiers & Admin</h3>
                       <p className="text-sm text-muted-foreground mb-4">
-                        These tiers determine what consultants can do across the platform.
+                        These tiers determine what consultants and administrators can do across the platform.
                       </p>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b">
                               <th className="text-left py-3 px-2 font-medium">Capability</th>
-                              {(["pro", "standard"] as ConsultantTier[]).map(tier => (
-                                <th key={tier} className="text-center py-3 px-2 font-medium capitalize">{tier}</th>
+                              {([
+                                { key: "pro", label: "Pro", capabilities: consultantTierCapabilities.pro },
+                                { key: "standard", label: "Standard", capabilities: consultantTierCapabilities.standard },
+                                { key: "administrator", label: "Admin", capabilities: administratorCapabilities },
+                              ] as const).map(col => (
+                                <th key={col.key} className="text-center py-3 px-2 font-medium">{col.label}</th>
                               ))}
                             </tr>
                           </thead>
@@ -974,7 +979,7 @@ export default function Settings() {
                               { key: "canAccessAllClients", label: "See All Clients & Sites" },
                               { key: "canViewDocuments", label: "View Documents" },
                               { key: "canEditDocuments", label: "Upload & Edit Documents" },
-                              { key: "canApproveDocuments", label: "Approve Documents" },
+                              { key: "canApproveDocuments", label: "Approve / Sign Off Documents" },
                               { key: "canCreateClientUsers", label: "Create Client Users" },
                               { key: "canCreateCompanies", label: "Create Companies" },
                               { key: "canCreateSites", label: "Create Sites" },
@@ -985,9 +990,13 @@ export default function Settings() {
                             ].map(({ key, label }) => (
                               <tr key={key} className="border-b">
                                 <td className="py-3 px-2">{label}</td>
-                                {(["pro", "standard"] as ConsultantTier[]).map(tier => (
-                                  <td key={tier} className="text-center py-3 px-2">
-                                    {consultantTierCapabilities[tier][key as keyof ConsultantCapabilities] ? (
+                                {([
+                                  { key: "pro", capabilities: consultantTierCapabilities.pro },
+                                  { key: "standard", capabilities: consultantTierCapabilities.standard },
+                                  { key: "administrator", capabilities: administratorCapabilities },
+                                ] as const).map(col => (
+                                  <td key={col.key} className="text-center py-3 px-2">
+                                    {col.capabilities[key as keyof ConsultantCapabilities] ? (
                                       <Check className="h-4 w-4 text-emerald-600 mx-auto" />
                                     ) : (
                                       <X className="h-4 w-4 text-muted-foreground mx-auto" />
@@ -999,6 +1008,9 @@ export default function Settings() {
                           </tbody>
                         </table>
                       </div>
+                      <p className="text-xs text-muted-foreground mt-3">
+                        Administrators cannot personally approve or sign off documents — uploads requiring approval must be assigned to a consultant.
+                      </p>
                     </div>
                   </>
                 )}
