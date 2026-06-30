@@ -10373,6 +10373,13 @@
           "message": "Fixed: Active toggle no longer overlaps edit/delete icons on Accelo cards",
           "category": "bug",
           "createdAt": "2026-06-30T22:52:12.134Z"
+        },
+        {
+          "id": "920e4418-616b-4132-91cc-4d908a578333",
+          "patch": 17,
+          "message": "Fixed: dev environment Accelo connection restored",
+          "category": "bug",
+          "createdAt": "2026-06-30T23:10:26.276Z"
         }
       ],
       "publishedPatch": 16,
