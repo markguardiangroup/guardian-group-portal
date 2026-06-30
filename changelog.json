@@ -10247,6 +10247,13 @@
           "message": "Locked module screen now says \"consultant\" instead of \"advisor\"",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:41:21.458Z"
+        },
+        {
+          "id": "2c46206d-ccd5-4e07-8251-c38ac90b6506",
+          "patch": 16,
+          "message": "Removed Document Summary section from the company detail page",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:45:24.580Z"
         }
       ],
       "publishedPatch": 15,
