@@ -10261,6 +10261,13 @@
           "message": "Removed unused company stats API call after Document Summary removal",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:47:46.827Z"
+        },
+        {
+          "id": "bf58fe81-95b5-4da4-9a26-a6a773a43ee8",
+          "patch": 16,
+          "message": "Removed Document Summary section and stats call from site page",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T19:23:36.020Z"
         }
       ],
       "publishedPatch": 15,

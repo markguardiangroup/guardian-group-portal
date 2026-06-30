@@ -112,16 +112,6 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
   const isConsultant = authUser?.role === "consultant";
   const isClient = authUser?.role === "client";
 
-  const { data: siteStats } = useQuery<{ documents: Record<string, number>; cases: number; incidents: number }>({
-    queryKey: ["/api/sites", siteId, "stats"],
-    queryFn: async () => {
-      const response = await fetch(`/api/sites/${siteId}/stats`, { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch stats");
-      return response.json();
-    },
-    enabled: !!siteId,
-  });
-
   const { data: siteKeyContacts = [] } = useQuery<{ id: string; userId: string }[]>({
     queryKey: ["/api/key-contacts", "site", siteId],
     queryFn: async () => {
@@ -255,37 +245,6 @@ function OverviewTab({ entity, onEditSite, companyId, companyName, siteId }: { e
           })()}
         </CardContent>
       </Card>
-
-      {/* Module Document Summary */}
-      {siteStats && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Document Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {[
-                { key: "health_safety", label: "Health & Safety", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20", border: "border-emerald-200 dark:border-emerald-800", extra: { label: "Incidents", count: siteStats.incidents } },
-                { key: "human_resources", label: "Human Resources", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-200 dark:border-blue-800" },
-                { key: "employment_law", label: "Employment Law", color: "text-pink-600 dark:text-pink-400", bg: "bg-pink-50 dark:bg-pink-900/20", border: "border-pink-200 dark:border-pink-800", extra: { label: "Cases", count: siteStats.cases } },
-                { key: "training", label: "Training", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20", border: "border-purple-200 dark:border-purple-800" },
-                { key: "support", label: "Support", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20", border: "border-orange-200 dark:border-orange-800" },
-              ].map(({ key, label, color, bg, border, extra }) => (
-                <div key={key} className={`rounded-lg border p-3 ${bg} ${border}`} data-testid={`stat-site-module-${key}`}>
-                  <p className={`text-2xl font-bold ${color}`}>{siteStats.documents[key] ?? 0}</p>
-                  <p className="text-xs font-medium text-foreground mt-0.5">{label}</p>
-                  <p className="text-xs text-muted-foreground">documents</p>
-                  {extra && (
-                    <p className={`text-xs mt-1.5 font-medium ${color}`} data-testid={`stat-site-extra-${key}`}>
-                      {extra.count} {extra.label}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
