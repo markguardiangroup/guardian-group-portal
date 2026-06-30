@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useModuleAccess } from "@/hooks/use-module-access";
 import type { Source } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -547,6 +548,7 @@ function PathwayWizard({
 export default function ToolkitBrowse() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { hasActiveAccess } = useModuleAccess();
   const isDeveloper = user?.role === "developer";
   const hasTemplateLibraryPerm = user?.role === "consultant" && !!(user.consultantPermissions as { templateLibrary?: boolean } | null | undefined)?.templateLibrary;
   const canManageFolders = isDeveloper || hasTemplateLibraryPerm;
@@ -707,19 +709,25 @@ export default function ToolkitBrowse() {
         {MODULES.map((mod) => {
           const { label, Icon, color } = MODULE_CONFIG[mod];
           const isActive = selectedModule === mod;
+          const isLocked = !hasActiveAccess(mod);
           return (
             <button
               key={mod}
               onClick={() => { setSelectedModule(mod); setSearch(""); }}
               data-testid={`tab-module-${mod}`}
-              className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3.5 px-3 rounded-lg font-medium transition-all text-xs sm:text-sm ${
+              className={`relative flex flex-col sm:flex-row items-center justify-center gap-2 py-3.5 px-3 rounded-lg font-medium transition-all text-xs sm:text-sm ${
                 isActive
-                  ? `bg-background border shadow-sm ${color}`
+                  ? `bg-background border shadow-sm ${isLocked ? "text-muted-foreground" : color}`
                   : "text-muted-foreground hover:text-foreground hover:bg-background/60 border border-transparent"
               }`}
             >
-              <Icon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              {isLocked ? <Lock className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" /> : <Icon className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />}
               <span>{label}</span>
+              {isLocked && (
+                <span className="absolute top-1.5 right-1.5 text-[9px] font-semibold uppercase tracking-wide bg-muted text-muted-foreground rounded px-1 py-0.5 leading-none">
+                  Locked
+                </span>
+              )}
             </button>
           );
         })}
@@ -740,6 +748,14 @@ export default function ToolkitBrowse() {
       {/* Content */}
       {isLoading ? (
         <FetchingOverlay />
+      ) : !hasActiveAccess(selectedModule) ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed rounded-xl bg-muted/30">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted mb-4">
+            <Lock className="h-6 w-6 text-muted-foreground opacity-60" />
+          </div>
+          <p className="font-semibold text-muted-foreground">{MODULE_CONFIG[selectedModule].label} is not enabled</p>
+          <p className="text-sm text-muted-foreground mt-1">This module is not part of your current subscription.</p>
+        </div>
       ) : visibleFolders.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <BookMarked className="h-10 w-10 mx-auto mb-3 opacity-30" />

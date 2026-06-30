@@ -10226,6 +10226,13 @@
           "message": "Toolkit file view no longer shows \"No synopsis\" text when synopsis is blank",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:27:07.316Z"
+        },
+        {
+          "id": "278c61f8-4d3f-4b47-aa52-66d5549d8954",
+          "patch": 16,
+          "message": "Locked modules now show as locked in the Browse Templates area",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:37:04.306Z"
         }
       ],
       "publishedPatch": 15,
