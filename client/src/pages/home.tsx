@@ -947,7 +947,7 @@ function MyActionsPanel({ role }: { role: string }) {
                             )}
                             {item.renewalDate && (
                               <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                                Renews: {format(new Date(item.renewalDate), "d MMM yyyy")}
+                                Renewal due: {format(new Date(item.renewalDate), "d MMM yyyy")}
                               </span>
                             )}
                             {item.expiryDate && (

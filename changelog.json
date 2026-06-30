@@ -10093,6 +10093,13 @@
           "message": "Assigned Documents list now shows renewal and expiry dates",
           "category": "enhancement",
           "createdAt": "2026-06-30T14:04:06.705Z"
+        },
+        {
+          "id": "66e56b43-e387-4851-9d90-16260df0ffb1",
+          "patch": 16,
+          "message": "Assigned Documents now says \"Renewal due\" instead of \"Renews\"",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T15:30:51.195Z"
         }
       ],
       "publishedPatch": 15,
