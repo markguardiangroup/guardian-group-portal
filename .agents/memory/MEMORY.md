@@ -7,4 +7,5 @@
 - [Stale server after merge](stale-server-after-merge.md) — merged server code may keep running old process; audit/behaviour looks unchanged until workflow restart.
 - [Filter clear-X pattern](filter-clear-pattern.md) — every filter bar needs one ghost X that resets ALL filters (incl coverage/pro-staff→"my"), shown for ALL roles when any filter active; site-docs is the reference.
 - [Document comments are staff-only](document-comments-surfaces.md) — `documents.comments` is internal staff notes; redact via stripInternalDocFields on every client-facing doc endpoint + block client writes.
+- [Duplicate React keys leave stale rows](duplicate-react-keys-stale-rows.md) — non-unique list keys make correctly-gated rows linger after filter changes; check console "two children with the same key".
 - [Company activation trigger](company-activation-trigger.md) — company goes pending→active when its FIRST client becomes active (not on primary-contact assignment); via idempotent activateCompanyOnFirstActiveClient helper.

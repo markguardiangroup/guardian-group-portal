@@ -2939,7 +2939,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 })}
                 {/* Missing required document slots — shown only when no active search/status/folder/renewal filters */}
                 {!searchQuery && statusFilter === "all" && complianceFilter === "all" && folderFilter === "all" && renewalFilter === "all" && tableMissingSlots.map((slot) => (
-                  <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 border-dashed ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
+                  <TableRow key={`missing-${slot.templateId}-${slot.siteId ?? "all"}`} className={`bg-amber-50/50 dark:bg-amber-950/10 border-dashed ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}-${slot.siteId ?? "all"}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
@@ -2982,7 +2982,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               </TableHeader>
               <TableBody>
                 {tableMissingSlots.map((slot) => (
-                  <TableRow key={slot.templateId} className={`bg-amber-50/50 dark:bg-amber-950/10 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
+                  <TableRow key={`missing-${slot.templateId}-${slot.siteId ?? "all"}`} className={`bg-amber-50/50 dark:bg-amber-950/10 ${isPrivilegedUser ? "cursor-pointer hover:bg-amber-100/70 dark:hover:bg-amber-900/20" : ""}`} data-testid={`row-missing-${slot.templateId}-${slot.siteId ?? "all"}`} onClick={isPrivilegedUser ? () => navigate(getMissingSlotUrl(slot)) : undefined}>
                     <TableCell>
                       <div className="flex items-center gap-2.5">
                         <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />
