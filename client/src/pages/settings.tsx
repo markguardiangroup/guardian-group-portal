@@ -943,54 +943,58 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <Separator />
+                {user?.role !== "client" && (
+                  <>
+                    <Separator />
 
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Consultant Tiers</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    These tiers determine what consultants can do across the platform.
-                  </p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2 font-medium">Capability</th>
-                          {(["pro", "standard"] as ConsultantTier[]).map(tier => (
-                            <th key={tier} className="text-center py-3 px-2 font-medium capitalize">{tier}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { key: "canAccessAllClients", label: "See All Clients & Sites" },
-                          { key: "canViewDocuments", label: "View Documents" },
-                          { key: "canEditDocuments", label: "Upload & Edit Documents" },
-                          { key: "canApproveDocuments", label: "Approve Documents" },
-                          { key: "canCreateClientUsers", label: "Create Client Users" },
-                          { key: "canCreateCompanies", label: "Create Companies" },
-                          { key: "canCreateSites", label: "Create Sites" },
-                          { key: "canAssignConsultants", label: "Assign Consultants to Sites" },
-                          { key: "canDeleteDocuments", label: "Delete Documents" },
-                          { key: "canDeleteCompanies", label: "Delete Companies" },
-                          { key: "canDeleteUsers", label: "Delete Users" },
-                        ].map(({ key, label }) => (
-                          <tr key={key} className="border-b">
-                            <td className="py-3 px-2">{label}</td>
-                            {(["pro", "standard"] as ConsultantTier[]).map(tier => (
-                              <td key={tier} className="text-center py-3 px-2">
-                                {consultantTierCapabilities[tier][key as keyof ConsultantCapabilities] ? (
-                                  <Check className="h-4 w-4 text-emerald-600 mx-auto" />
-                                ) : (
-                                  <X className="h-4 w-4 text-muted-foreground mx-auto" />
-                                )}
-                              </td>
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">Consultant Tiers</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        These tiers determine what consultants can do across the platform.
+                      </p>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-3 px-2 font-medium">Capability</th>
+                              {(["pro", "standard"] as ConsultantTier[]).map(tier => (
+                                <th key={tier} className="text-center py-3 px-2 font-medium capitalize">{tier}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { key: "canAccessAllClients", label: "See All Clients & Sites" },
+                              { key: "canViewDocuments", label: "View Documents" },
+                              { key: "canEditDocuments", label: "Upload & Edit Documents" },
+                              { key: "canApproveDocuments", label: "Approve Documents" },
+                              { key: "canCreateClientUsers", label: "Create Client Users" },
+                              { key: "canCreateCompanies", label: "Create Companies" },
+                              { key: "canCreateSites", label: "Create Sites" },
+                              { key: "canAssignConsultants", label: "Assign Consultants to Sites" },
+                              { key: "canDeleteDocuments", label: "Delete Documents" },
+                              { key: "canDeleteCompanies", label: "Delete Companies" },
+                              { key: "canDeleteUsers", label: "Delete Users" },
+                            ].map(({ key, label }) => (
+                              <tr key={key} className="border-b">
+                                <td className="py-3 px-2">{label}</td>
+                                {(["pro", "standard"] as ConsultantTier[]).map(tier => (
+                                  <td key={tier} className="text-center py-3 px-2">
+                                    {consultantTierCapabilities[tier][key as keyof ConsultantCapabilities] ? (
+                                      <Check className="h-4 w-4 text-emerald-600 mx-auto" />
+                                    ) : (
+                                      <X className="h-4 w-4 text-muted-foreground mx-auto" />
+                                    )}
+                                  </td>
+                                ))}
+                              </tr>
                             ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 

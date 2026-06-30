@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "d61f9ebe-5bb9-445b-8bb3-f737bb585c3a",
+          "patch": 16,
+          "message": "Clients no longer see the irrelevant Consultant Tiers section in Permissions",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T00:10:00.000Z"
+        },
+        {
           "id": "d5f7a9c1-admin-guide-approve-on-behalf-of-2026",
           "patch": 16,
           "message": "Admin guide now explains the approve-on-behalf-of-consultant step",
