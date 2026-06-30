@@ -83,6 +83,7 @@ import {
   Trash2,
   ShieldCheck,
   Calendar,
+  CalendarX,
   Save,
   GripVertical,
   X,
@@ -1451,7 +1452,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Header stats derived from the fully-expanded table list so the folder header,
   // the table header, and the "X Documents" table badge all agree exactly.
   const adjustedHeaderStats = useMemo(
-    () => statusCounts(expandedTableDocuments.map(e => e.doc)),
+    () => {
+      const docs = expandedTableDocuments.map(e => e.doc);
+      const counts = statusCounts(docs);
+      const { expired } = getFolderExpiry(docs);
+      return { ...counts, expired, overdueOther: Math.max(0, counts.overdue - expired) };
+    },
     [expandedTableDocuments],
   );
 
@@ -1683,7 +1689,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       {config.name} Documents
                     </CardTitle>
                   </div>
-                  <div className="flex items-center gap-4 text-sm flex-wrap">
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
                       <span>{adjustedHeaderStats.total} Total</span>
@@ -1702,8 +1708,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{adjustedHeaderStats.overdue} Overdue</span>
+                      <span>{adjustedHeaderStats.overdueOther} Overdue</span>
                     </div>
+                    {adjustedHeaderStats.expired > 0 && (
+                      <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                        <CalendarX className="h-4 w-4 text-orange-500" />
+                        <span>{adjustedHeaderStats.expired} Expired</span>
+                      </div>
+                    )}
                     {missingSlots.length > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4 text-amber-500" />
@@ -2103,7 +2115,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <ModuleIcon className={`h-5 w-5 ${moduleColors[module]}`} />
                     <CardTitle className={`text-lg ${moduleColors[module]}`}>{config.name} Documents</CardTitle>
                   </div>
-                  <div className="flex items-center gap-4 text-sm flex-wrap">
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
                     <div className="flex items-center gap-2">
                       <Files className="h-4 w-4 text-muted-foreground" />
                       <span>{adjustedHeaderStats.total} Total</span>
@@ -2122,8 +2134,14 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <FileWarning className="h-4 w-4 text-red-600" />
-                      <span>{adjustedHeaderStats.overdue} Overdue</span>
+                      <span>{adjustedHeaderStats.overdueOther} Overdue</span>
                     </div>
+                    {adjustedHeaderStats.expired > 0 && (
+                      <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                        <CalendarX className="h-4 w-4 text-orange-500" />
+                        <span>{adjustedHeaderStats.expired} Expired</span>
+                      </div>
+                    )}
                     {displayedMissingCount > 0 && (
                       <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
                         <AlertCircle className="h-4 w-4 text-amber-500" />

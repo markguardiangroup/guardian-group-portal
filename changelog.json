@@ -10121,6 +10121,13 @@
           "message": "Expiring Soon now only flags documents expiring within 14 days",
           "category": "enhancement",
           "createdAt": "2026-06-30T15:51:13.866Z"
+        },
+        {
+          "id": "f7525d15-4cbf-4739-8be8-cf8258ccaaa6",
+          "patch": 16,
+          "message": "Folder view header now shows Expired separately from Overdue",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T16:07:44.454Z"
         }
       ],
       "publishedPatch": 15,
