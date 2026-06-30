@@ -10069,6 +10069,13 @@ export async function registerRoutes(
         await client.query(`DELETE FROM case_milestones WHERE case_id IN (SELECT id FROM cases WHERE site_id IN (${ph}))`, siteIds);
         await client.query(`DELETE FROM cases WHERE site_id IN (${ph})`, siteIds);
 
+        await client.query(`DELETE FROM incident_milestones WHERE incident_id IN (SELECT id FROM incidents WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM incidents WHERE site_id IN (${ph})`, siteIds);
+
+        await client.query(`DELETE FROM client_uploads WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM client_upload_folder_access WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id IN (${ph}))`, siteIds);
+        await client.query(`DELETE FROM client_upload_folders WHERE site_id IN (${ph})`, siteIds);
+
         await client.query(`DELETE FROM training_bookings WHERE site_id IN (${ph})`, siteIds);
         await client.query(`DELETE FROM training_requests WHERE site_id IN (${ph})`, siteIds);
 
