@@ -1497,3 +1497,77 @@ export async function sendBookingEnquiryEmail({
   console.log(`Booking enquiry email sent for course "${courseName}" by ${requestedByEmail}, id: ${data?.id}`);
   return data;
 }
+
+export async function sendAcceloDisconnectAlertEmail({
+  sourceCode,
+  sourceLabel,
+  errorMessage,
+}: {
+  sourceCode: string;
+  sourceLabel: string;
+  errorMessage: string;
+}) {
+  const TO = "mark@guardiangroup.co.uk";
+  const reconnectUrl = `${APP_BASE_URL || "https://guardiangroup.ai"}/admin/integrations/accelo`;
+
+  const { data, error } = await resend.emails.send({
+    from: `${FROM_NAME} <${FROM_EMAIL}>`,
+    to: [TO],
+    subject: `Action Required — Accelo (${escHtml(sourceLabel)}) has disconnected`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1e40af;">
+          <img src="${LOGO_URL}" alt="Guardian Group" style="max-height: 40px; max-width: 180px; width: auto; height: auto; display: block; margin: 0 auto;" />
+          <p style="color: #64748b; margin: 12px 0 0 0; font-size: 14px;">Health & Safety Compliance Portal</p>
+        </div>
+
+        <div style="padding: 30px 0;">
+          <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <p style="color: #991b1b; font-size: 14px; margin: 0; font-weight: 600;">
+              Accelo connection lost — manual reconnect needed
+            </p>
+          </div>
+          <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+            The automatic keep-alive check for the Accelo integration <strong>${escHtml(sourceLabel)}</strong>
+            (source code <strong>${escHtml(sourceCode)}</strong>) has failed. This usually means Accelo has
+            invalidated the stored refresh token, and the connection needs to be re-authorized manually.
+          </p>
+
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <p style="color: #64748b; font-size: 13px; font-weight: 600; margin: 0 0 6px 0;">Error detail:</p>
+            <p style="color: #1e293b; font-size: 13px; margin: 0; font-family: monospace; word-break: break-word;">${escHtml(errorMessage)}</p>
+          </div>
+
+          <div style="text-align: center; padding: 24px 0;">
+            <a href="${reconnectUrl}"
+               style="background-color: #1e40af; color: #ffffff; padding: 12px 32px;
+                      text-decoration: none; border-radius: 6px; font-size: 16px;
+                      font-weight: 600; display: inline-block;">
+              Reconnect Accelo
+            </a>
+          </div>
+
+          <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+            Until this is reconnected, standing/status data for companies linked to this source will stop updating.
+            You will not receive another alert for this source for 24 hours.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #e2e8f0; padding: 16px 0; text-align: center;">
+          <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+            This is an automated message from Guardian Group.
+            Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+
+  if (error) {
+    console.error("Failed to send Accelo disconnect alert email:", error);
+    throw new Error(`Failed to send Accelo disconnect alert email: ${error.message}`);
+  }
+
+  console.log(`Accelo disconnect alert email sent for source ${sourceCode}, id: ${data?.id}`);
+  return data;
+}

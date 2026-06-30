@@ -10352,6 +10352,13 @@
           "message": "Developers can bulk-delete companies via Admin Mode multi-select",
           "category": "feature",
           "createdAt": "2026-06-30T22:14:59.174Z"
+        },
+        {
+          "id": "0885a219-20a3-4399-bc09-7ecaf24841c6",
+          "patch": 17,
+          "message": "Accelo connection now auto-refreshes and alerts by email if it disconnects",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T22:34:54.702Z"
         }
       ],
       "publishedPatch": 16,

@@ -10,7 +10,8 @@ import { createServer } from "http";
 import { pool } from "./db";
 import { storage } from "./storage";
 import { autoRecordPublishedPatch, autoIncrementPatchIfChanged } from "./changelog";
-import { acceloGet, getConnectionStatus } from "./accelo";
+import { acceloGet, getConnectionStatus, listIntegrations, getValidAccessToken, getSourceLabels } from "./accelo";
+import { sendAcceloDisconnectAlertEmail } from "./email";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -618,6 +619,58 @@ process.on("uncaughtException", (err) => {
   }
 
   scheduleNextAcceloSync();
+
+  // Accelo keep-alive: exercises the refresh token regularly (every 6 hours, in every
+  // environment) so it never goes stale from inactivity. This is what makes the Accelo
+  // connection "set and forget" — Accelo access tokens always expire (~1 hour) but as
+  // long as the refresh token is used periodically it keeps renewing itself indefinitely.
+  // If a refresh ever fails (e.g. Accelo revoked the refresh token), alert by email so
+  // someone can manually reconnect via /admin/integrations/accelo — capped to one email
+  // per source per 24 hours to avoid spamming.
+  const acceloDisconnectAlertedAt = new Map<string, number>();
+  const ACCELO_ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+  async function runAcceloKeepAlive() {
+    try {
+      const integrations = await listIntegrations();
+      for (const integration of integrations) {
+        if (!integration.refreshToken) continue; // never connected yet — nothing to keep alive
+        try {
+          await getValidAccessToken(integration.sourceCode);
+        } catch (err: any) {
+          console.error(`[scheduler] Accelo keep-alive failed for source ${integration.sourceCode}:`, err.message);
+          const lastAlert = acceloDisconnectAlertedAt.get(integration.sourceCode) ?? 0;
+          if (Date.now() - lastAlert > ACCELO_ALERT_COOLDOWN_MS) {
+            acceloDisconnectAlertedAt.set(integration.sourceCode, Date.now());
+            try {
+              const labels = await getSourceLabels();
+              await sendAcceloDisconnectAlertEmail({
+                sourceCode: integration.sourceCode,
+                sourceLabel: labels[integration.sourceCode] || integration.sourceCode,
+                errorMessage: err.message,
+              });
+            } catch (emailErr) {
+              console.error("[scheduler] Failed to send Accelo disconnect alert email:", emailErr);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[scheduler] Accelo keep-alive error:", err);
+    }
+  }
+
+  function scheduleNextAcceloKeepAlive() {
+    const INTERVAL_MS = 6 * 60 * 60 * 1000;
+    setTimeout(async () => {
+      await runAcceloKeepAlive();
+      scheduleNextAcceloKeepAlive();
+    }, INTERVAL_MS).unref();
+  }
+
+  // Run once on startup, then every 6 hours, in every environment.
+  runAcceloKeepAlive();
+  scheduleNextAcceloKeepAlive();
 
   app.get("/downloads/strategic-overview.pptx", async (req, res) => {
     if (req.query.key !== "GUARDIAN_EXPORT_2026") return res.status(403).end();
