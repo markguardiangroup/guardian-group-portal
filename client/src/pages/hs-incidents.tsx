@@ -681,6 +681,7 @@ function ReportIncidentDialog({
     selectedCauses.forEach(cause => {
       (CAUSE_EFFECT_MAP[cause] ?? []).forEach(e => linked.add(e));
     });
+    linked.add("Other");
     return INCIDENT_EFFECTS.filter(e => linked.has(e));
   }, [selectedCauses]);
 

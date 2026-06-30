@@ -10268,6 +10268,13 @@
           "message": "Removed Document Summary section and stats call from site page",
           "category": "enhancement",
           "createdAt": "2026-06-30T19:23:36.020Z"
+        },
+        {
+          "id": "cc4ca791-3484-4138-a2c4-eb5e4cc4cb63",
+          "patch": 16,
+          "message": "Fixed: \"Other\" now always shows in incident Effect/Affect list",
+          "category": "bug",
+          "createdAt": "2026-06-30T19:29:33.183Z"
         }
       ],
       "publishedPatch": 15,
