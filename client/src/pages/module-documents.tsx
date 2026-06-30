@@ -4586,6 +4586,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(approvalLog.createdAt), "d MMM yyyy 'at' HH:mm")}
                         </p>
+                        {approvalLog.details && approvalLog.details.toLowerCase() !== "document approved" && (
+                          <p className="text-xs text-muted-foreground mt-1 italic">"{approvalLog.details}"</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -4830,16 +4833,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                         // Auto-generated detail strings (views, downloads, uploads, approvals) don't need it.
                         const AUTO_DETAIL_ACTIONS = new Set([
                           'document_viewed', 'document_downloaded', 'document_uploaded',
-                          'document_approved', 'document_rejected',
+                          'document_rejected',
                           'email_sent', 'document_version_uploaded', 'version_uploaded',
                           'update_document', 'document_renamed',
                         ]);
                         const GENERIC_SIGNED_OFF_TEXT = ['document approved', 'document signed off'];
                         const GENERIC_CHANGES_TEXT = ['changes requested'];
+                        const GENERIC_APPROVED_TEXT = ['document approved'];
                         const hasManualComment = !!details && (
                           !AUTO_DETAIL_ACTIONS.has(log.action) &&
                           !(log.action === 'document_signed_off' && GENERIC_SIGNED_OFF_TEXT.includes(details.toLowerCase())) &&
-                          !(log.action === 'changes_requested' && GENERIC_CHANGES_TEXT.includes(details.toLowerCase()))
+                          !(log.action === 'changes_requested' && GENERIC_CHANGES_TEXT.includes(details.toLowerCase())) &&
+                          !(log.action === 'document_approved' && GENERIC_APPROVED_TEXT.includes(details.toLowerCase()))
                         );
 
                         // For email entries, parse metadata for a friendly type label and show details inline

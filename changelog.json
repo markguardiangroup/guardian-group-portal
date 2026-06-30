@@ -10212,6 +10212,13 @@
           "message": "Renamed client home cards to \"Account\" and \"Portfolio\"",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:06:13.805Z"
+        },
+        {
+          "id": "00fadc9b-0af7-46c9-95ba-d19088e4644e",
+          "patch": 16,
+          "message": "Approval comment now shown in the Document Approved box and expandable in the audit log",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:22:48.301Z"
         }
       ],
       "publishedPatch": 15,
