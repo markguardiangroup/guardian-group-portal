@@ -131,30 +131,34 @@ function IntegrationCard({
   return (
     <Card className={!integration.isActive ? "opacity-60" : ""}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <CardTitle className="text-base truncate">{displayTitle}</CardTitle>
-            <Badge variant="outline" className="text-xs font-mono shrink-0">{integration.sourceCode}</Badge>
-            {!integration.isActive && (
-              <Badge variant="secondary" className="text-xs shrink-0">Inactive</Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">{integration.isActive ? "Active" : "Disabled"}</span>
-              <Switch
-                checked={integration.isActive}
-                onCheckedChange={onToggleActive}
-                data-testid={`switch-active-${integration.sourceCode}`}
-              />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <CardTitle className="text-base truncate" title={displayTitle}>{displayTitle}</CardTitle>
+              <Badge variant="outline" className="text-xs font-mono shrink-0">{integration.sourceCode}</Badge>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-integration-${integration.sourceCode}`}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
               <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete} data-testid={`button-delete-integration-${integration.sourceCode}`}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            {!integration.isActive ? (
+              <Badge variant="secondary" className="text-xs shrink-0">Inactive</Badge>
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs text-muted-foreground">{integration.isActive ? "Active" : "Disabled"}</span>
+              <Switch
+                checked={integration.isActive}
+                onCheckedChange={onToggleActive}
+                data-testid={`switch-active-${integration.sourceCode}`}
+              />
             </div>
           </div>
         </div>
