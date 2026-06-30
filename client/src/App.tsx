@@ -74,6 +74,7 @@ const HelpGuide = lazyPage(() => import("@/pages/help-guide"));
 const HelpGuideClient = lazyPage(() => import("@/pages/help-guide-client"));
 const HelpGuideConsultant = lazyPage(() => import("@/pages/help-guide-consultant"));
 const HelpGuidePro = lazyPage(() => import("@/pages/help-guide-pro"));
+const HelpGuideAdmin = lazyPage(() => import("@/pages/help-guide-admin"));
 const HSIncidents = lazyPage(() => import("@/pages/hs-incidents"));
 const CalendarPage = lazyPage(() => import("@/pages/calendar"));
 const ClientUploads = lazyPage(() => import("@/pages/client-uploads"));
@@ -455,6 +456,7 @@ function Router() {
       <Route path="/help/client" component={HelpGuideClient} />
       <Route path="/help/consultant" component={HelpGuideConsultant} />
       <Route path="/help/pro-consultant" component={HelpGuidePro} />
+      <Route path="/help/admin" component={HelpGuideAdmin} />
       <Route path="/calendar" component={CalendarPage} />
       <Route path="/toolkit">{() => <ModuleGuard module="toolkit"><ToolkitDashboard /></ModuleGuard>}</Route>
       <Route path="/toolkit/browse">{() => <ModuleGuard module="toolkit"><ToolkitBrowse /></ModuleGuard>}</Route>

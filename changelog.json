@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "c4e6a8b0-admin-help-guide-added-2026",
+          "patch": 16,
+          "message": "Admins now have their own Help & Training Guide",
+          "category": "feature",
+          "createdAt": "2026-06-30T00:00:00.000Z"
+        },
+        {
           "id": "b3d5f7a9-strategic-overview-pptx-download-2026",
           "patch": 16,
           "message": "Strategic overview deck available as a downloadable PowerPoint file",

@@ -109,6 +109,7 @@ const ADMIN_VIEWS: AdminView[] = [
   { label: "Client", path: "/help/client", badgeClass: "border-blue-400 text-blue-700 dark:text-blue-300" },
   { label: "Standard Consultant", path: "/help/consultant", badgeClass: "border-violet-400 text-violet-700 dark:text-violet-300" },
   { label: "Pro Consultant", path: "/help/pro-consultant", badgeClass: "border-amber-400 text-amber-700 dark:text-amber-300" },
+  { label: "Admin", path: "/help/admin", badgeClass: "border-indigo-400 text-indigo-700 dark:text-indigo-300" },
 ];
 
 function AdminViewSwitcher({
@@ -268,9 +269,9 @@ export default function HelpGuide() {
   const { user } = useAuth();
   if (!user) return null;
   if (user.role === "client") return <Redirect to="/help/client" />;
+  if (user.role === "administrator") return <Redirect to="/help/admin" />;
   const isProConsultant =
     user.role === "developer" ||
-    user.role === "administrator" ||
     user.consultantPermissions?.templateLibrary === true ||
     user.consultantPermissions?.trainingLibrary === true;
   if (isProConsultant) return <Redirect to="/help/pro-consultant" />;
