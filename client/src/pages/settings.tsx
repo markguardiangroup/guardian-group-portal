@@ -923,9 +923,7 @@ export default function Settings() {
                           { key: "canView", label: "View Documents" },
                           { key: "canApproveDocuments", label: "Sign Off Documents" },
                           { key: "canSubmitDocuments", label: "Submit Documents", note: "Via iShare only" },
-                          { key: "canComment", label: "Add Comments" },
-                          { key: "canRequestSupport", label: "Request Support", note: "Not active from the start" },
-                          { key: "canManageTeam", label: "Manage Team Members" },
+                          { key: "canDownloadToolkit", label: "Download from Toolkit" },
                         ].map(({ key, label, note }) => (
                           <tr key={key} className="border-b">
                             <td className="py-3 px-2">
@@ -935,7 +933,7 @@ export default function Settings() {
                               )}
                             </td>
                             <td className="text-center py-3 px-2">
-                              {clientPermissionCapabilities.full[key as keyof ClientCapabilities] ? (
+                              {key === "canDownloadToolkit" || clientPermissionCapabilities.full[key as keyof ClientCapabilities] ? (
                                 <Check className="h-4 w-4 text-emerald-600 mx-auto" />
                               ) : (
                                 <X className="h-4 w-4 text-muted-foreground mx-auto" />
@@ -948,7 +946,6 @@ export default function Settings() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
                     Submitting documents is only possible through iShare (the secure client upload area), not via the regular document library.
-                    Requesting support isn't available until a client account is fully active.
                   </p>
                 </div>
 

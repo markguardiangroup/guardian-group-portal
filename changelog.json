@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "dcf19715-98fc-4de8-a6b2-3770387b06db",
+          "patch": 16,
+          "message": "Simplified client permissions table, added Download from Toolkit",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T00:20:00.000Z"
+        },
+        {
           "id": "a0505da5-b094-420f-99f7-b7c4329ff3b9",
           "patch": 16,
           "message": "Clarified client permissions: docs submit via iShare only, support not active at start",
