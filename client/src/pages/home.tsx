@@ -1420,7 +1420,7 @@ function PortfolioPanel({ portfolio, role, animate }: { portfolio: HomeSummary["
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
             <Users className="h-4 w-4 text-primary" />
           </div>
-          Your Account
+          Account
         </CardTitle>
         <p className="text-xs text-muted-foreground">Your organisation &amp; consultants</p>
       </CardHeader>
@@ -1495,7 +1495,7 @@ function ClientSitesPanel({
           <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10">
             <MapPin className="h-4 w-4 text-primary" />
           </div>
-          My Portfolio
+          Portfolio
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           {isMultiCompany

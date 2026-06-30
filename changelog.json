@@ -10205,6 +10205,13 @@
           "message": "Client home cards now match the styling used for admins and consultants",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:02:17.379Z"
+        },
+        {
+          "id": "7b79878c-90db-4ea5-9ccc-494b120c2484",
+          "patch": 16,
+          "message": "Renamed client home cards to \"Account\" and \"Portfolio\"",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:06:13.805Z"
         }
       ],
       "publishedPatch": 15,
