@@ -10177,6 +10177,13 @@
           "message": "Fixed: status badges on the Users page now line up neatly",
           "category": "bug",
           "createdAt": "2026-06-30T17:46:15.195Z"
+        },
+        {
+          "id": "01ca98a5-274c-4f0d-8222-b49dbb49d9ed",
+          "patch": 16,
+          "message": "Changed: status badges on the Users page are left-aligned",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T17:47:42.505Z"
         }
       ],
       "publishedPatch": 15,

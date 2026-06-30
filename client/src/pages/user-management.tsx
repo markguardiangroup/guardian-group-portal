@@ -337,7 +337,7 @@ function ClientUsersView() {
                 <TableHead className="w-28">Role</TableHead>
                 <TableHead className="w-[16%]">Company</TableHead>
                 <TableHead>Sites Assigned</TableHead>
-                <TableHead className="w-40 pr-6 text-right">Status</TableHead>
+                <TableHead className="w-40 pr-6">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -402,7 +402,7 @@ function ClientUsersView() {
                           <span className="text-xs text-muted-foreground">None</span>
                         )}
                       </TableCell>
-                      <TableCell className="pr-6 text-right">
+                      <TableCell className="pr-6">
                         {renderStatusBadge(u.status)}
                       </TableCell>
                     </TableRow>,
