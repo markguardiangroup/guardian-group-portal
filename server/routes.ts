@@ -4,9 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { createRequire } from "module";
-const _require = createRequire(import.meta.url);
-const { authenticator: totpAuthenticator } = _require("otplib") as { authenticator: { generateSecret: () => string; keyuri: (user: string, service: string, secret: string) => string; check: (token: string, secret: string) => boolean; } };
+import { authenticator as totpAuthenticator } from "otplib";
 import QRCode from "qrcode";
 import {
   buildAuthUrlFromIntegration,
