@@ -479,7 +479,9 @@ const MODULE_BADGE_CONFIG: Record<string, { label: string; cls: string }> = {
 
 const ACTION_BADGE_CLS: Record<string, string> = {
   overdue:             "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  expired:             "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   "due soon":          "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  "expiring soon":     "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   "pending approval":  "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
   "awaiting client":   "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
   "changes requested": "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
@@ -543,7 +545,9 @@ function getMyActionItems(key: string, data: MyActionsData, siteMap: SiteMap): M
         label: d.title,
         siteLabel: resolveSiteLabel(d.site_id, siteMap),
         subLabel: formatLabel(d.status),
-        badge: d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null,
+        badge: d.expiry_date
+          ? (new Date(d.expiry_date).getTime() < Date.now() ? "expired" : "expiring soon")
+          : (d.status === "overdue" ? "overdue" : d.renewal_date ? "due soon" : null),
         module: d.module ?? null,
         href: docHref(d.module, d.id, d.site_id),
         renewalDate: d.renewal_date ?? null,

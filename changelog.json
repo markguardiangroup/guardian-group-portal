@@ -10100,6 +10100,13 @@
           "message": "Assigned Documents now says \"Renewal due\" instead of \"Renews\"",
           "category": "enhancement",
           "createdAt": "2026-06-30T15:30:51.195Z"
+        },
+        {
+          "id": "5d2590f4-9a22-4053-a1bb-316adc784432",
+          "patch": 16,
+          "message": "Assigned Documents now show Expired or Expiring Soon badges based on expiry date",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T15:39:24.818Z"
         }
       ],
       "publishedPatch": 15,
