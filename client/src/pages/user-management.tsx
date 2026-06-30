@@ -333,11 +333,11 @@ function ClientUsersView() {
           <Table wrapperClassName="overflow-visible" className="sticky-table-header table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[28%]">User</TableHead>
-                <TableHead className="w-32">Role</TableHead>
-                <TableHead className="w-[18%]">Company</TableHead>
+                <TableHead className="w-[26%]">User</TableHead>
+                <TableHead className="w-28">Role</TableHead>
+                <TableHead className="w-[16%]">Company</TableHead>
                 <TableHead>Sites Assigned</TableHead>
-                <TableHead className="w-28">Status</TableHead>
+                <TableHead className="w-40 pr-6">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -402,7 +402,7 @@ function ClientUsersView() {
                           <span className="text-xs text-muted-foreground">None</span>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="pr-6">
                         {renderStatusBadge(u.status)}
                       </TableCell>
                     </TableRow>,

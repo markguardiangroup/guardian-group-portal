@@ -10163,6 +10163,13 @@
           "message": "Fixed: missing document rows no longer linger after changing the Status filter",
           "category": "bug",
           "createdAt": "2026-06-30T17:28:06.817Z"
+        },
+        {
+          "id": "4df39e1d-097e-457a-b1ef-4d883aaf62b7",
+          "patch": 16,
+          "message": "Improved: Users page columns spaced so the Status badge isn't up against the edge",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T17:39:08.739Z"
         }
       ],
       "publishedPatch": 15,
