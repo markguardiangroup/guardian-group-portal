@@ -22157,18 +22157,21 @@ export async function registerRoutes(
       const accessibleScopedPending = async (
         approvalStatus: string,
         applyClientFilters: boolean,
-      ): Promise<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[]> => {
+      ): Promise<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null; approver_name: string | null; approver_email: string | null }[]> => {
         const params: unknown[] = [approvalStatus];
         let extra = "";
         if (applyClientFilters) {
           params.push(userId);
           extra = `AND d.uploaded_by != $2 AND (d.approval_requested_from IS NULL OR d.approval_requested_from = $2)`;
         }
-        const r = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; scope: string | null; entity_id: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; company_name: string | null }>(
+        const r = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; scope: string | null; entity_id: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; company_name: string | null; approver_name: string | null; approver_email: string | null }>(
           `SELECT d.id, d.title, d.site_id, d.module, d.scope, d.entity_id, d.renewal_date, d.expiry_date, d.updated_at,
-                  c.name AS company_name
+                  c.name AS company_name,
+                  au.full_name AS approver_name,
+                  au.email AS approver_email
            FROM documents d
            LEFT JOIN companies c ON c.id = d.entity_id
+           LEFT JOIN users au ON au.id = d.approval_requested_from
            WHERE d.approval_status = $1
              AND d.site_id IS NULL AND d.scope IN ('company','group') AND d.is_archived = false
              AND d.case_id IS NULL AND d.incident_id IS NULL
@@ -22183,7 +22186,7 @@ export async function registerRoutes(
         );
         return r.rows
           .filter((_, i) => access[i])
-          .map((d) => ({ id: d.id, title: d.title, site_id: d.site_id, module: d.module, renewal_date: d.renewal_date, expiry_date: d.expiry_date, updated_at: d.updated_at, site_name: null, company_name: d.company_name }));
+          .map((d) => ({ id: d.id, title: d.title, site_id: d.site_id, module: d.module, renewal_date: d.renewal_date, expiry_date: d.expiry_date, updated_at: d.updated_at, site_name: null, company_name: d.company_name, approver_name: d.approver_name, approver_email: d.approver_email }));
       };
 
       const mergePending = (extra: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[]) => {
@@ -22300,7 +22303,7 @@ export async function registerRoutes(
       //     staff are involved in. Mirrors the client_signed_off block above but for the
       //     'pending' status, so consultants/admins can see approvals they're waiting on
       //     the client to sign off. Not shown to clients (they have their own pending box).
-      let awaitingClientApprovalRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }[] = [];
+      let awaitingClientApprovalRows: { id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null; approver_name: string | null; approver_email: string | null }[] = [];
       if (user.role === "consultant" || user.role === "developer" || user.role === "administrator") {
         let sitesFilter = "";
         const params: unknown[] = ["pending"];
@@ -22314,14 +22317,17 @@ export async function registerRoutes(
             sitesFilter = "AND false";
           }
         }
-        const res2b = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+        const res2b = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null; approver_name: string | null; approver_email: string | null }>(
           `SELECT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
                   s.name AS site_name,
-                  COALESCE(sc.name, ec.name) AS company_name
+                  COALESCE(sc.name, ec.name) AS company_name,
+                   au.full_name AS approver_name,
+                  au.email AS approver_email
            FROM documents d
            LEFT JOIN sites s ON s.id = d.site_id
            LEFT JOIN companies sc ON sc.id = s.entity_id
            LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+           LEFT JOIN users au ON au.id = d.approval_requested_from
            WHERE d.approval_status = $1 AND d.is_archived = false
              AND d.case_id IS NULL AND d.incident_id IS NULL ${sitesFilter} LIMIT 20`,
           params
@@ -22344,14 +22350,17 @@ export async function registerRoutes(
         // Consultants are site-filtered above, so also include pending docs they
         // uploaded or initiated on behalf of — even outside their assigned sites.
         if (user.role === "consultant") {
-          const uploaderRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null }>(
+          const uploaderRes = await pool.query<{ id: string; title: string; site_id: string | null; module: string | null; renewal_date: string | null; expiry_date: string | null; updated_at: string | null; site_name: string | null; company_name: string | null; approver_name: string | null; approver_email: string | null }>(
             `SELECT DISTINCT d.id, d.title, d.site_id, d.module, d.renewal_date, d.expiry_date, d.updated_at,
                     s.name AS site_name,
-                    COALESCE(sc.name, ec.name) AS company_name
+                    COALESCE(sc.name, ec.name) AS company_name,
+                    au.full_name AS approver_name,
+                    au.email AS approver_email
              FROM documents d
              LEFT JOIN sites s ON s.id = d.site_id
              LEFT JOIN companies sc ON sc.id = s.entity_id
              LEFT JOIN companies ec ON ec.id = d.entity_id AND d.site_id IS NULL
+             LEFT JOIN users au ON au.id = d.approval_requested_from
              WHERE d.approval_status = 'pending'
                AND d.is_archived = false
                AND d.case_id IS NULL AND d.incident_id IS NULL

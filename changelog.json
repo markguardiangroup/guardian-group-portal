@@ -10079,6 +10079,13 @@
           "message": "Toolkit Browse folders are now more compact, fitting more per row",
           "category": "enhancement",
           "createdAt": "2026-06-30T13:50:57.438Z"
+        },
+        {
+          "id": "db2fa532-e72d-4fa5-a740-42885a5c9da1",
+          "patch": 16,
+          "message": "Awaiting Client Approval now shows the client name and email the approval is with",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T14:02:55.042Z"
         }
       ],
       "publishedPatch": 15,
