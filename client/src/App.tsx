@@ -381,7 +381,7 @@ function ModuleGuard({ module, children }: { module: ModuleType; children: React
           </div>
           <h2 className="text-xl font-semibold">This module is not enabled</h2>
           <p className="text-muted-foreground max-w-sm">
-            For more information about this service, please contact your advisor.
+            For more information about this service, please contact your consultant.
           </p>
         </div>
       </div>

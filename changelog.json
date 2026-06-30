@@ -10240,6 +10240,13 @@
           "message": "Sidebar locked modules now show only the padlock icon, no text",
           "category": "enhancement",
           "createdAt": "2026-06-30T18:38:56.498Z"
+        },
+        {
+          "id": "22c18973-f90b-4ac9-93c4-53f4c1cb7d2a",
+          "patch": 16,
+          "message": "Locked module screen now says \"consultant\" instead of \"advisor\"",
+          "category": "enhancement",
+          "createdAt": "2026-06-30T18:41:21.458Z"
         }
       ],
       "publishedPatch": 15,
