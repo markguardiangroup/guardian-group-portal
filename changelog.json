@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "a4e7f1c2-storage-dev-prod-split-2026",
+          "patch": 19,
+          "message": "Separated dev and production file storage for safety",
+          "category": "enhancement",
+          "createdAt": "2026-07-01T18:40:00.000Z"
+        },
+        {
           "id": "dcf19715-98fc-4de8-a6b2-3770387b06db",
           "patch": 16,
           "message": "Simplified client permissions table, added Download from Toolkit",

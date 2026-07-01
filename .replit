@@ -60,6 +60,8 @@ NODE_ENV = "production"
 VITE_TURNSTILE_SITE_KEY = "0x4AAAAAADeEkWu_MMfYe3J0"
 TURNSTILE_SECRET_KEY = "0x4AAAAAADeEkbcetAgl32cHEmswQmRSRqY"
 MFA_ENABLED = "true"
+PRIVATE_OBJECT_DIR = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79a7b/.private"
+PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79a7b/public"
 
 [userenv.shared]
 VITE_PROD_URL = "https://www.guardiangroup.ai"
@@ -68,3 +70,5 @@ ACCELO_WEBHOOK_SECRET = "5727b1df2c63ea71e8bb77a76575470c602bc3bb8462e2e64b38405
 [userenv.development]
 VITE_TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
 TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
+PRIVATE_OBJECT_DIR = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79a7b/.private-dev"
+PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79a7b/public-dev"
