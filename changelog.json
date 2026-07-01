@@ -10464,6 +10464,13 @@
           "message": "Template Library folder list now sorted alphabetically",
           "category": "enhancement",
           "createdAt": "2026-07-01T20:27:58.720Z"
+        },
+        {
+          "id": "cc885825-05e8-4448-a1a8-9242d392ce54",
+          "patch": 21,
+          "message": "Removed the Delete All Templates button from Template Library",
+          "category": "other",
+          "createdAt": "2026-07-01T20:46:40.438Z"
         }
       ],
       "publishedPatch": 20,

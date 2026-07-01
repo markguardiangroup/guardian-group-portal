@@ -469,10 +469,6 @@ export default function TemplateLibraryPage() {
   const [templateToPermanentlyDelete, setTemplateToPermanentlyDelete] = useState<DocumentTemplate | null>(null);
   const [permanentDeleteReason, setPermanentDeleteReason] = useState("");
 
-  const [isDeleteAllTemplatesDialogOpen, setIsDeleteAllTemplatesDialogOpen] = useState(false);
-  const [deleteAllTemplatesReason, setDeleteAllTemplatesReason] = useState("");
-  const [deleteAllTemplatesConfirmText, setDeleteAllTemplatesConfirmText] = useState("");
-  
   // Folder delete confirmation
   const [folderToDelete, setFolderToDelete] = useState<FolderTemplate | null>(null);
   
@@ -621,27 +617,6 @@ export default function TemplateLibraryPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to permanently delete template", variant: "destructive" });
-    },
-  });
-
-  const bulkPermanentDeleteAllTemplatesMutation = useMutation({
-    mutationFn: async ({ reason }: { reason: string }) => {
-      return apiRequest("DELETE", "/api/document-templates/bulk-permanent", {
-        reason,
-        confirmation: "DELETE ALL TEMPLATES",
-      });
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/document-templates-archived"] });
-      invalidateDocumentsHierarchy();
-      setIsDeleteAllTemplatesDialogOpen(false);
-      setDeleteAllTemplatesReason("");
-      setDeleteAllTemplatesConfirmText("");
-      toast({ title: "All templates permanently deleted", description: `${data?.deletedCount ?? 0} document template(s) removed. Folders were kept.` });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to delete all templates", variant: "destructive" });
     },
   });
 
@@ -2122,22 +2097,6 @@ export default function TemplateLibraryPage() {
                 </Button>
               )}
 
-              {isDeveloperRole && templates.length > 0 && (
-                <Button
-                  variant="outline"
-                  className="whitespace-nowrap text-destructive hover:text-destructive border-destructive/30"
-                  onClick={() => {
-                    setDeleteAllTemplatesReason("");
-                    setDeleteAllTemplatesConfirmText("");
-                    setIsDeleteAllTemplatesDialogOpen(true);
-                  }}
-                  data-testid="button-delete-all-templates"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete All Templates
-                </Button>
-              )}
-
               {folderTemplates.length > 0 && (
                 <Button 
                   variant="outline" 
@@ -3518,86 +3477,6 @@ export default function TemplateLibraryPage() {
               data-testid="button-confirm-permanent-delete"
             >
               {permanentDeleteTemplateMutation.isPending ? "Deleting..." : "Delete Permanently"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete ALL Templates Confirmation Dialog */}
-      <Dialog open={isDeleteAllTemplatesDialogOpen} onOpenChange={setIsDeleteAllTemplatesDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Delete All Templates
-            </DialogTitle>
-            <DialogDescription>
-              This will <strong>permanently remove every template</strong> in the Template Library ({templates.length} template{templates.length !== 1 ? "s" : ""}) and all their version history. Folders are kept so you can re-upload into them. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="delete-all-templates-reason" className="text-sm font-medium">
-                Reason for deletion <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="delete-all-templates-reason"
-                value={deleteAllTemplatesReason}
-                onChange={(e) => setDeleteAllTemplatesReason(e.target.value)}
-                placeholder="Please provide a reason for permanently deleting all templates (minimum 5 characters)..."
-                className="min-h-[80px]"
-                data-testid="input-delete-all-templates-reason"
-              />
-              {deleteAllTemplatesReason.trim().length > 0 && deleteAllTemplatesReason.trim().length < 5 && (
-                <p className="text-xs text-destructive">Reason must be at least 5 characters</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="delete-all-templates-confirm" className="text-sm font-medium">
-                Type <span className="font-mono text-destructive">DELETE ALL TEMPLATES</span> to confirm
-              </Label>
-              <Input
-                id="delete-all-templates-confirm"
-                value={deleteAllTemplatesConfirmText}
-                onChange={(e) => setDeleteAllTemplatesConfirmText(e.target.value)}
-                placeholder="DELETE ALL TEMPLATES"
-                data-testid="input-delete-all-templates-confirm"
-              />
-            </div>
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md text-sm">
-              <p className="font-medium text-destructive mb-1">Warning — this action is irreversible:</p>
-              <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                <li>Every template and all versions are permanently removed</li>
-                <li>Folders are kept, so you can re-upload into them</li>
-                <li>Any "required template" settings and guided-finder links to these templates are also cleared</li>
-                <li>Documents already generated from these templates are not affected</li>
-                <li>This cannot be recovered</li>
-              </ul>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsDeleteAllTemplatesDialogOpen(false);
-                setDeleteAllTemplatesReason("");
-                setDeleteAllTemplatesConfirmText("");
-              }}
-              data-testid="button-cancel-delete-all-templates"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => bulkPermanentDeleteAllTemplatesMutation.mutate({ reason: deleteAllTemplatesReason.trim() })}
-              disabled={
-                deleteAllTemplatesReason.trim().length < 5 ||
-                deleteAllTemplatesConfirmText !== "DELETE ALL TEMPLATES" ||
-                bulkPermanentDeleteAllTemplatesMutation.isPending
-              }
-              data-testid="button-confirm-delete-all-templates"
-            >
-              {bulkPermanentDeleteAllTemplatesMutation.isPending ? "Deleting All..." : "Delete All Templates"}
             </Button>
           </DialogFooter>
         </DialogContent>
