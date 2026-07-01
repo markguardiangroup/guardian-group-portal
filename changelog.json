@@ -4412,11 +4412,18 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 19,
+      "patch": 20,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
+        {
+          "id": "b8f3c6d9-bulk-delete-templates-route-order-fix-2026",
+          "patch": 20,
+          "message": "Fixed: Delete All Templates failed with a false 'not found' error",
+          "category": "bug",
+          "createdAt": "2026-07-01T19:45:00.000Z"
+        },
         {
           "id": "a4e7f1c2-storage-dev-prod-split-2026",
           "patch": 19,
@@ -10452,8 +10459,9 @@
           "createdAt": "2026-07-01T19:05:43.360Z"
         }
       ],
-      "publishedPatch": 18,
+      "publishedPatch": 19,
       "patchedEntryIds": [
+        "a4e7f1c2-storage-dev-prod-split-2026",
         "dcf19715-98fc-4de8-a6b2-3770387b06db",
         "a0505da5-b094-420f-99f7-b7c4329ff3b9",
         "d61f9ebe-5bb9-445b-8bb3-f737bb585c3a",
@@ -11306,7 +11314,15 @@
         "934f2517-f7e6-4800-9098-d01aa4f7d636",
         "4940fa8b-3078-47be-8dd2-88d84b2d4c37",
         "920e4418-616b-4132-91cc-4d908a578333",
-        "4def0c04-5286-4c02-9ea9-ae035dd8be10"
+        "4def0c04-5286-4c02-9ea9-ae035dd8be10",
+        "0374837d-0fb2-48be-9506-b4dd90868e2f",
+        "031734f5-902a-46db-b970-71b37337c9a6",
+        "bb767d57-6bb6-4ad7-bbf7-d5e7b6ace4e4",
+        "3bee0877-da23-4cf1-aa54-bc838b69f19b",
+        "a7e6365b-3918-419a-8576-c025ec14e927",
+        "6286e9f6-f70d-4a96-b4d7-ee943927f717",
+        "2aa86f3c-6320-4809-b679-20a7e9d24297",
+        "1648a1f3-2727-40fb-a308-bf0914c7645b"
       ]
     }
   ]

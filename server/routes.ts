@@ -7833,6 +7833,38 @@ export async function registerRoutes(
   });
 
   // Delete document template (admin only)
+  // Permanently delete ALL document templates (developer only) - folders are left intact
+  // NOTE: this static route MUST be registered before the "/:id" delete route below,
+  // otherwise Express matches "/:id" first with id="bulk-permanent" and this handler
+  // never runs (surfaces as a misleading "Document template not found" error).
+  app.delete("/api/document-templates/bulk-permanent", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (user.role !== "developer") {
+        return res.status(403).json({ error: "Only developers can permanently delete all templates" });
+      }
+
+      const { reason, confirmation } = req.body || {};
+      if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+        return res.status(400).json({ error: "A deletion reason is required (minimum 5 characters)" });
+      }
+      if (confirmation !== "DELETE ALL TEMPLATES") {
+        return res.status(400).json({ error: "Confirmation phrase did not match" });
+      }
+
+      const deletedCount = await storage.permanentlyDeleteAllDocumentTemplates(user.id, user.fullName, reason.trim());
+
+      res.status(200).json({ message: "All document templates permanently deleted", deletedCount });
+    } catch (error) {
+      console.error("Bulk permanent delete document templates error:", error);
+      res.status(500).json({ error: "Failed to permanently delete document templates" });
+    }
+  });
+
   app.delete("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -7939,35 +7971,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Permanent delete document template error:", error);
       res.status(500).json({ error: "Failed to permanently delete document template" });
-    }
-  });
-
-  // Permanently delete ALL document templates (developer only) - folders are left intact
-  app.delete("/api/document-templates/bulk-permanent", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser((req.session as any).userId);
-      if (!user) {
-        return res.status(401).json({ error: "User not found" });
-      }
-
-      if (user.role !== "developer") {
-        return res.status(403).json({ error: "Only developers can permanently delete all templates" });
-      }
-
-      const { reason, confirmation } = req.body || {};
-      if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
-        return res.status(400).json({ error: "A deletion reason is required (minimum 5 characters)" });
-      }
-      if (confirmation !== "DELETE ALL TEMPLATES") {
-        return res.status(400).json({ error: "Confirmation phrase did not match" });
-      }
-
-      const deletedCount = await storage.permanentlyDeleteAllDocumentTemplates(user.id, user.fullName, reason.trim());
-
-      res.status(200).json({ message: "All document templates permanently deleted", deletedCount });
-    } catch (error) {
-      console.error("Bulk permanent delete document templates error:", error);
-      res.status(500).json({ error: "Failed to permanently delete document templates" });
     }
   });
 
