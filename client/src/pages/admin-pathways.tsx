@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { type ComponentType } from "react";
 import {
   Compass,
@@ -55,6 +56,7 @@ import {
   Tag,
   GraduationCap,
   BookOpen,
+  ClipboardPaste,
 } from "lucide-react";
 
 type PathwayType = "toolkit" | "training";
@@ -664,6 +666,10 @@ export default function AdminPathways() {
   const [formActive, setFormActive] = useState(true);
   const [formSortOrder, setFormSortOrder] = useState(0);
 
+  const [showJsonImport, setShowJsonImport] = useState(false);
+  const [jsonImportText, setJsonImportText] = useState("");
+  const [jsonImportError, setJsonImportError] = useState<string | null>(null);
+
   const apiBase = pathwayType === "training" ? "/api/training/pathways" : "/api/toolkit/pathways";
 
   const { data: pathways, isLoading } = useQuery<DocumentPathway[]>({
@@ -686,6 +692,82 @@ export default function AdminPathways() {
   ];
 
   const allCourses: TrainingCourseRef[] = trainingCourses ?? [];
+
+  const resolvePastedTree = (raw: unknown): PathwayNode => {
+    const templateByName = new Map(allTemplates.map((t) => [t.name.trim().toLowerCase(), t.id]));
+    const templateById = new Set(allTemplates.map((t) => t.id));
+    const courseByName = new Map(allCourses.map((c) => [c.title.trim().toLowerCase(), c.id]));
+    const courseById = new Set(allCourses.map((c) => c.id));
+    const unresolved: string[] = [];
+
+    const resolveIds = (
+      values: unknown,
+      byId: Set<string>,
+      byName: Map<string, string>,
+    ): string[] => {
+      if (!Array.isArray(values)) return [];
+      return values
+        .map((v) => {
+          if (typeof v !== "string") return null;
+          if (byId.has(v)) return v;
+          const match = byName.get(v.trim().toLowerCase());
+          if (match) return match;
+          unresolved.push(v);
+          return null;
+        })
+        .filter((v): v is string => v !== null);
+    };
+
+    const resolveAnswer = (a: any): PathwayAnswer => {
+      if (!a || typeof a !== "object" || typeof a.label !== "string") {
+        throw new Error("Every answer needs a \"label\" string.");
+      }
+      const answer: PathwayAnswer = { label: a.label };
+      if (a.description) answer.description = String(a.description);
+      if (a.next) {
+        answer.next = resolveNode(a.next);
+      } else if (pathwayType === "training") {
+        answer.courseIds = resolveIds(a.courseIds, courseById, courseByName);
+      } else {
+        answer.templateIds = resolveIds(a.templateIds, templateById, templateByName);
+      }
+      return answer;
+    };
+
+    const resolveNode = (n: any): PathwayNode => {
+      if (!n || typeof n !== "object" || typeof n.question !== "string" || !Array.isArray(n.answers)) {
+        throw new Error("Every question needs a \"question\" string and an \"answers\" array.");
+      }
+      return { question: n.question, answers: n.answers.map(resolveAnswer) };
+    };
+
+    const tree = resolveNode(raw);
+    if (unresolved.length > 0) {
+      const label = pathwayType === "training" ? "course(s)" : "template(s)";
+      throw new Error(`Could not match ${unresolved.length} ${label} by name or ID: ${unresolved.slice(0, 5).join(", ")}${unresolved.length > 5 ? "…" : ""}`);
+    }
+    return tree;
+  };
+
+  const handleJsonImport = () => {
+    setJsonImportError(null);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonImportText);
+    } catch {
+      setJsonImportError("That isn't valid JSON. Check for missing commas, quotes, or brackets.");
+      return;
+    }
+    try {
+      const tree = resolvePastedTree(parsed);
+      setFormTree(tree);
+      setShowJsonImport(false);
+      setJsonImportText("");
+      toast({ title: "Tree imported", description: "The pasted JSON has been loaded into the editor below. Review it, then save the pathway." });
+    } catch (err: any) {
+      setJsonImportError(err?.message || "That JSON doesn't match the expected pathway tree shape.");
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: ({ data, base }: { data: PathwayPayload; base: string }) =>
@@ -992,7 +1074,20 @@ export default function AdminPathways() {
 
             {/* Visual tree editor */}
             <div className="space-y-2">
-              <Label>Decision Tree</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Decision Tree</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => { setJsonImportError(null); setJsonImportText(""); setShowJsonImport(true); }}
+                  data-testid="button-paste-json-tree"
+                >
+                  <ClipboardPaste className="h-3.5 w-3.5" />
+                  Paste JSON
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {isToolkit
                   ? "Build the flow below. Each question has answers — an answer can either attach templates (shown to the user as results) or branch into a follow-up question."
@@ -1036,6 +1131,39 @@ export default function AdminPathways() {
                 : editPathway
                 ? "Save Changes"
                 : "Create Pathway"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* JSON Import */}
+      <Dialog open={showJsonImport} onOpenChange={(o) => { setShowJsonImport(o); if (!o) setJsonImportError(null); }}>
+        <DialogContent className="max-w-2xl w-full">
+          <DialogHeader>
+            <DialogTitle>Paste Decision Tree JSON</DialogTitle>
+            <DialogDescription>
+              Paste a full tree to replace the editor below. Shape: <code className="text-xs">{"{ question, answers: [{ label, description?, next? | " + (isToolkit ? "templateIds" : "courseIds") + " }] }"}</code>.
+              {" "}For {isToolkit ? "templateIds" : "courseIds"} you can use either the exact {isToolkit ? "template name" : "course title"} or its ID — names are matched automatically.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={jsonImportText}
+            onChange={(e) => { setJsonImportText(e.target.value); if (jsonImportError) setJsonImportError(null); }}
+            placeholder='{\n  "question": "What do you need?",\n  "answers": [\n    { "label": "COSHH", "templateIds": ["COSHH Register"] }\n  ]\n}'
+            className="min-h-[280px] font-mono text-xs"
+            data-testid="textarea-json-import"
+          />
+          {jsonImportError && (
+            <p className="text-sm text-destructive" data-testid="text-json-import-error">{jsonImportError}</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowJsonImport(false)}>Cancel</Button>
+            <Button
+              onClick={handleJsonImport}
+              disabled={!jsonImportText.trim()}
+              data-testid="button-confirm-json-import"
+            >
+              Import Tree
             </Button>
           </DialogFooter>
         </DialogContent>

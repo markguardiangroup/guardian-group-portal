@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "e2a6b4c8-pathway-json-paste-import-2026",
+          "patch": 21,
+          "message": "Admins can now paste JSON to quickly build guided finder pathways",
+          "category": "enhancement",
+          "createdAt": "2026-07-01T21:30:00.000Z"
+        },
+        {
           "id": "b8f3c6d9-bulk-delete-templates-route-order-fix-2026",
           "patch": 20,
           "message": "Fixed: Delete All Templates failed with a false 'not found' error",
