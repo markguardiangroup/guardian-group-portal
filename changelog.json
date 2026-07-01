@@ -10457,6 +10457,13 @@
           "message": "Fixed: deleting a case, incident, or rejected document draft now also removes files",
           "category": "bug",
           "createdAt": "2026-07-01T19:05:43.360Z"
+        },
+        {
+          "id": "0379d260-d96d-400f-8283-7eb20d63e60e",
+          "patch": 21,
+          "message": "Template Library folder list now sorted alphabetically",
+          "category": "enhancement",
+          "createdAt": "2026-07-01T20:27:58.720Z"
         }
       ],
       "publishedPatch": 20,

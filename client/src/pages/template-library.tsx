@@ -1073,15 +1073,16 @@ export default function TemplateLibraryPage() {
     moveFolderTemplateMutation.mutate({ templateId, folderTemplateId: targetFolderId });
   }, [templates, moveFolderTemplateMutation]);
 
-  // Sort folders hierarchically: parents first, then their children immediately after
+  // Sort folders hierarchically: parents first (alphabetically), then their children immediately after (alphabetically)
   const sortFoldersHierarchically = (folders: FolderTemplate[]) => {
     const result: FolderTemplate[] = [];
-    const parentFolders = folders.filter(f => !f.parentId).sort((a, b) => a.sortOrder - b.sortOrder);
+    const byName = (a: FolderTemplate, b: FolderTemplate) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    const parentFolders = folders.filter(f => !f.parentId).sort(byName);
     
     for (const parent of parentFolders) {
       result.push(parent);
       // Add children of this parent immediately after
-      const children = folders.filter(f => f.parentId === parent.id).sort((a, b) => a.sortOrder - b.sortOrder);
+      const children = folders.filter(f => f.parentId === parent.id).sort(byName);
       result.push(...children);
     }
     
