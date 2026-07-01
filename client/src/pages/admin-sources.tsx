@@ -26,14 +26,7 @@ export default function AdminSources() {
   const [newCode, setNewCode] = useState("");
   const [newLabel, setNewLabel] = useState("");
 
-  if (user?.role !== "developer") {
-    return (
-      <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
-        <ShieldAlert className="h-10 w-10 text-muted-foreground" />
-        <p className="text-muted-foreground">You do not have permission to view this page.</p>
-      </div>
-    );
-  }
+  const isDeveloper = user?.role === "developer";
 
   const { data: sources = [], isLoading } = useQuery<Source[]>({
     queryKey: ["/api/sources", "includeInactive"],
@@ -42,6 +35,7 @@ export default function AdminSources() {
       if (!res.ok) throw new Error("Failed to fetch sources");
       return res.json();
     },
+    enabled: isDeveloper,
   });
 
   const createMutation = useMutation({
@@ -80,6 +74,15 @@ export default function AdminSources() {
     if (!code || !label) return;
     createMutation.mutate({ code, label });
   };
+
+  if (!isDeveloper) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
+        <ShieldAlert className="h-10 w-10 text-muted-foreground" />
+        <p className="text-muted-foreground">You do not have permission to view this page.</p>
+      </div>
+    );
+  }
 
   return (
     <div id="page-content" className="p-6 space-y-6 max-w-3xl dash-animate">

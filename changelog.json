@@ -10380,6 +10380,13 @@
           "message": "Fixed: dev environment Accelo connection restored",
           "category": "bug",
           "createdAt": "2026-06-30T23:10:26.276Z"
+        },
+        {
+          "id": "4def0c04-5286-4c02-9ea9-ae035dd8be10",
+          "patch": 18,
+          "message": "Fixed: Portal Messages and Sources pages could crash with a display error",
+          "category": "bug",
+          "createdAt": "2026-07-01T11:45:57.419Z"
         }
       ],
       "publishedPatch": 17,

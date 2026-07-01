@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -134,13 +134,11 @@ export default function AdminPortalMessages() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<MessageFormData>(emptyForm());
 
-  if (user?.role !== "developer") {
-    setLocation("/home");
-    return null;
-  }
+  const isDeveloper = user?.role === "developer";
 
   const { data: messages = [], isLoading } = useQuery<PortalMessage[]>({
     queryKey: ["/api/portal-messages"],
+    enabled: isDeveloper,
   });
 
   const invalidate = () => {
@@ -173,6 +171,16 @@ export default function AdminPortalMessages() {
       apiRequest("PATCH", `/api/portal-messages/${id}`, data),
     onSuccess: invalidate,
   });
+
+  useEffect(() => {
+    if (user && user.role !== "developer") {
+      setLocation("/home");
+    }
+  }, [user, setLocation]);
+
+  if (!isDeveloper) {
+    return null;
+  }
 
   function openCreate() {
     setEditingId(null);
