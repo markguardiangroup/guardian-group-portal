@@ -12840,12 +12840,22 @@ export async function registerRoutes(
       const existingCase = await storage.getCase(req.params.id);
       if (!existingCase) return res.status(404).json({ error: "Case not found" });
 
+      const fileUrlsToDelete: string[] = [];
+
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
         const caseId = req.params.id;
+        const caseDocVersionUrls = await client.query(`SELECT file_url FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE case_id = $1) AND file_url IS NOT NULL`, [caseId]);
+        fileUrlsToDelete.push(...caseDocVersionUrls.rows.map((r: any) => r.file_url));
+        const caseDocUrls = await client.query(`SELECT file_url FROM documents WHERE case_id = $1 AND file_url IS NOT NULL`, [caseId]);
+        fileUrlsToDelete.push(...caseDocUrls.rows.map((r: any) => r.file_url));
+        const caseBundleUrls = await client.query(`SELECT cached_file_url FROM case_bundles WHERE case_id = $1 AND cached_file_url IS NOT NULL`, [caseId]);
+        fileUrlsToDelete.push(...caseBundleUrls.rows.map((r: any) => r.cached_file_url));
+
         await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE case_id = $1)`, [caseId]);
         await client.query(`DELETE FROM documents WHERE case_id = $1`, [caseId]);
+        await client.query(`DELETE FROM case_bundles WHERE case_id = $1`, [caseId]);
         await client.query(`DELETE FROM case_milestones WHERE case_id = $1`, [caseId]);
         await client.query(`DELETE FROM case_document_checklist WHERE case_id = $1`, [caseId]);
         await client.query(`DELETE FROM case_notes WHERE case_id = $1`, [caseId]);
@@ -12856,6 +12866,17 @@ export async function registerRoutes(
         throw err;
       } finally {
         client.release();
+      }
+
+      if (fileUrlsToDelete.length > 0) {
+        const objectStorageService = new ObjectStorageService();
+        for (const url of Array.from(new Set(fileUrlsToDelete))) {
+          try {
+            await objectStorageService.deleteObjectEntityFile(url);
+          } catch (err) {
+            console.error(`Failed to delete object storage file ${url} during case delete ${req.params.id}:`, err);
+          }
+        }
       }
 
       await storage.createAuditLog({
@@ -18343,10 +18364,17 @@ export async function registerRoutes(
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
 
+      const fileUrlsToDelete: string[] = [];
+
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
         const incidentId = req.params.id;
+        const incidentDocVersionUrls = await client.query(`SELECT file_url FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE incident_id = $1) AND file_url IS NOT NULL`, [incidentId]);
+        fileUrlsToDelete.push(...incidentDocVersionUrls.rows.map((r: any) => r.file_url));
+        const incidentDocUrls = await client.query(`SELECT file_url FROM documents WHERE incident_id = $1 AND file_url IS NOT NULL`, [incidentId]);
+        fileUrlsToDelete.push(...incidentDocUrls.rows.map((r: any) => r.file_url));
+
         await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE incident_id = $1)`, [incidentId]);
         await client.query(`DELETE FROM documents WHERE incident_id = $1`, [incidentId]);
         await client.query(`DELETE FROM incident_milestones WHERE incident_id = $1`, [incidentId]);
@@ -18357,6 +18385,17 @@ export async function registerRoutes(
         throw err;
       } finally {
         client.release();
+      }
+
+      if (fileUrlsToDelete.length > 0) {
+        const objectStorageService = new ObjectStorageService();
+        for (const url of Array.from(new Set(fileUrlsToDelete))) {
+          try {
+            await objectStorageService.deleteObjectEntityFile(url);
+          } catch (err) {
+            console.error(`Failed to delete object storage file ${url} during incident delete ${req.params.id}:`, err);
+          }
+        }
       }
 
       await storage.createAuditLog({

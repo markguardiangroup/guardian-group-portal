@@ -10443,6 +10443,13 @@
           "message": "Deleting documents, uploads, cases, iShares, or a company/site now also removes their files",
           "category": "bug",
           "createdAt": "2026-07-01T18:58:53.271Z"
+        },
+        {
+          "id": "1648a1f3-2727-40fb-a308-bf0914c7645b",
+          "patch": 19,
+          "message": "Fixed: deleting a case, incident, or rejected document draft now also removes files",
+          "category": "bug",
+          "createdAt": "2026-07-01T19:05:43.360Z"
         }
       ],
       "publishedPatch": 18,

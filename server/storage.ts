@@ -2168,6 +2168,23 @@ export class MemStorage implements IStorage {
   }
 
   async deleteDocumentDraftVersions(documentId: string): Promise<void> {
+    const drafts = await db.select().from(documentVersionsTable)
+      .where(and(
+        eq(documentVersionsTable.documentId, documentId),
+        eq(documentVersionsTable.isDraft, true)
+      ));
+    if (drafts.length > 0) {
+      const objectStorageService = new ObjectStorageService();
+      for (const draft of drafts) {
+        if (!draft.fileUrl) continue;
+        try {
+          await objectStorageService.deleteObjectEntityFile(draft.fileUrl);
+        } catch (err) {
+          console.error(`Failed to delete object storage file ${draft.fileUrl} for draft version of document ${documentId}:`, err);
+        }
+      }
+    }
+
     await db.delete(documentVersionsTable)
       .where(and(
         eq(documentVersionsTable.documentId, documentId),
