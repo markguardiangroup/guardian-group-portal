@@ -10408,6 +10408,13 @@
           "message": "Added an approval-required toggle to the upload new version dialog",
           "category": "enhancement",
           "createdAt": "2026-07-01T16:01:14.010030Z"
+        },
+        {
+          "id": "3bee0877-da23-4cf1-aa54-bc838b69f19b",
+          "patch": 19,
+          "message": "Admins can now permanently delete all template documents at once",
+          "category": "feature",
+          "createdAt": "2026-07-01T17:06:33.813081Z"
         }
       ],
       "publishedPatch": 18,
