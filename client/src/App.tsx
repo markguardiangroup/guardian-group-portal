@@ -945,9 +945,9 @@ function AuthenticatedApp() {
           <img
             src={logoIcon}
             alt="Guardian Group"
-            className="h-16 w-16 rounded-full object-cover shadow-md"
+            className="h-16 w-16 rounded-full object-cover shadow-md animate-spin"
+            style={{ animationDuration: "1.5s" }}
           />
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
@@ -979,10 +979,10 @@ function AuthenticatedApp() {
             <img
               src={logoIcon}
               alt="Guardian Group"
-              className="h-16 w-16 rounded-full object-cover shadow-md"
+              className="h-16 w-16 rounded-full object-cover shadow-md animate-spin"
+              style={{ animationDuration: "1.5s" }}
             />
             <p className="text-sm font-medium text-muted-foreground">Signing you in…</p>
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         </div>
       )}
