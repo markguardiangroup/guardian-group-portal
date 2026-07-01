@@ -1840,6 +1840,22 @@ export class MemStorage implements IStorage {
   }
 
   async deleteDocument(id: string): Promise<boolean> {
+    const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
+    const versions = await db.select().from(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));
+    const objectStorageService = new ObjectStorageService();
+    const fileUrls = new Set<string>();
+    if (doc?.fileUrl) fileUrls.add(doc.fileUrl);
+    for (const v of versions) {
+      if (v.fileUrl) fileUrls.add(v.fileUrl);
+    }
+    for (const url of Array.from(fileUrls)) {
+      try {
+        await objectStorageService.deleteObjectEntityFile(url);
+      } catch (err) {
+        console.error(`Failed to delete object storage file ${url} for document ${id}:`, err);
+      }
+    }
+
     await db.delete(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));
     const result = await db.delete(documentsTable).where(eq(documentsTable.id, id)).returning();
     return result.length > 0;
@@ -5309,6 +5325,22 @@ export class MemStorage implements IStorage {
   }
 
   async deleteClientUploadFolder(id: string): Promise<boolean> {
+    const uploads = await db
+      .select()
+      .from(clientUploadsTable)
+      .where(eq(clientUploadsTable.folderId, id));
+    if (uploads.length > 0) {
+      const objectStorageService = new ObjectStorageService();
+      for (const upload of uploads) {
+        if (!upload.fileUrl) continue;
+        try {
+          await objectStorageService.deleteObjectEntityFile(upload.fileUrl);
+        } catch (err) {
+          console.error(`Failed to delete object storage file ${upload.fileUrl} for client upload folder ${id}:`, err);
+        }
+      }
+    }
+
     await db
       .delete(clientUploadFolderAccessTable)
       .where(eq(clientUploadFolderAccessTable.folderId, id));
@@ -5436,6 +5468,19 @@ export class MemStorage implements IStorage {
   }
 
   async deleteClientUpload(id: string): Promise<boolean> {
+    const [upload] = await db
+      .select()
+      .from(clientUploadsTable)
+      .where(eq(clientUploadsTable.id, id));
+    if (upload?.fileUrl) {
+      const objectStorageService = new ObjectStorageService();
+      try {
+        await objectStorageService.deleteObjectEntityFile(upload.fileUrl);
+      } catch (err) {
+        console.error(`Failed to delete object storage file ${upload.fileUrl} for client upload ${id}:`, err);
+      }
+    }
+
     const result = await db
       .delete(clientUploadsTable)
       .where(eq(clientUploadsTable.id, id))
@@ -5581,6 +5626,22 @@ export class MemStorage implements IStorage {
   }
 
   async deleteIshareFolder(id: string): Promise<boolean> {
+    const files = await db
+      .select()
+      .from(isharesTable)
+      .where(eq(isharesTable.folderId, id));
+    if (files.length > 0) {
+      const objectStorageService = new ObjectStorageService();
+      for (const file of files) {
+        if (!file.fileUrl) continue;
+        try {
+          await objectStorageService.deleteObjectEntityFile(file.fileUrl);
+        } catch (err) {
+          console.error(`Failed to delete object storage file ${file.fileUrl} for ishare folder ${id}:`, err);
+        }
+      }
+    }
+
     await db
       .delete(ishareFolderAccessTable)
       .where(eq(ishareFolderAccessTable.folderId, id));
@@ -5704,6 +5765,19 @@ export class MemStorage implements IStorage {
   }
 
   async deleteIshare(id: string): Promise<boolean> {
+    const [ishare] = await db
+      .select()
+      .from(isharesTable)
+      .where(eq(isharesTable.id, id));
+    if (ishare?.fileUrl) {
+      const objectStorageService = new ObjectStorageService();
+      try {
+        await objectStorageService.deleteObjectEntityFile(ishare.fileUrl);
+      } catch (err) {
+        console.error(`Failed to delete object storage file ${ishare.fileUrl} for ishare ${id}:`, err);
+      }
+    }
+
     const result = await db
       .delete(isharesTable)
       .where(eq(isharesTable.id, id))

@@ -10091,6 +10091,8 @@ export async function registerRoutes(
     companyId: string,
     company: { name: string; groupOwnerId?: string | null },
   ): Promise<void> => {
+    const fileUrlsToDelete: string[] = [];
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
@@ -10105,6 +10107,10 @@ export async function registerRoutes(
         await client.query(`DELETE FROM support_messages WHERE request_id IN (SELECT id FROM support_requests WHERE site_id IN (${ph}))`, siteIds);
         await client.query(`DELETE FROM support_requests WHERE site_id IN (${ph})`, siteIds);
 
+        const siteDocVersionUrls = await client.query(`SELECT file_url FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id IN (${ph})) AND file_url IS NOT NULL`, siteIds);
+        fileUrlsToDelete.push(...siteDocVersionUrls.rows.map((r: any) => r.file_url));
+        const siteDocUrls = await client.query(`SELECT file_url FROM documents WHERE site_id IN (${ph}) AND file_url IS NOT NULL`, siteIds);
+        fileUrlsToDelete.push(...siteDocUrls.rows.map((r: any) => r.file_url));
         await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id IN (${ph}))`, siteIds);
         await client.query(`DELETE FROM documents WHERE site_id IN (${ph})`, siteIds);
         await client.query(`DELETE FROM document_folders WHERE site_id IN (${ph})`, siteIds);
@@ -10116,6 +10122,8 @@ export async function registerRoutes(
         await client.query(`DELETE FROM incident_milestones WHERE incident_id IN (SELECT id FROM incidents WHERE site_id IN (${ph}))`, siteIds);
         await client.query(`DELETE FROM incidents WHERE site_id IN (${ph})`, siteIds);
 
+        const siteUploadUrls = await client.query(`SELECT file_url FROM client_uploads WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id IN (${ph})) AND file_url IS NOT NULL`, siteIds);
+        fileUrlsToDelete.push(...siteUploadUrls.rows.map((r: any) => r.file_url));
         await client.query(`DELETE FROM client_uploads WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id IN (${ph}))`, siteIds);
         await client.query(`DELETE FROM client_upload_folder_access WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id IN (${ph}))`, siteIds);
         await client.query(`DELETE FROM client_upload_folders WHERE site_id IN (${ph})`, siteIds);
@@ -10129,6 +10137,10 @@ export async function registerRoutes(
         await client.query(`DELETE FROM module_access_requests WHERE site_id IN (${ph})`, siteIds);
       }
 
+      const companyDocVersionUrls = await client.query(`SELECT file_url FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE entity_id = $1) AND file_url IS NOT NULL`, [companyId]);
+      fileUrlsToDelete.push(...companyDocVersionUrls.rows.map((r: any) => r.file_url));
+      const companyDocUrls = await client.query(`SELECT file_url FROM documents WHERE entity_id = $1 AND file_url IS NOT NULL`, [companyId]);
+      fileUrlsToDelete.push(...companyDocUrls.rows.map((r: any) => r.file_url));
       await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE entity_id = $1)`, [companyId]);
       await client.query(`DELETE FROM documents WHERE entity_id = $1`, [companyId]);
 
@@ -10150,6 +10162,17 @@ export async function registerRoutes(
       throw txError;
     } finally {
       client.release();
+    }
+
+    if (fileUrlsToDelete.length > 0) {
+      const objectStorageService = new ObjectStorageService();
+      for (const url of Array.from(new Set(fileUrlsToDelete))) {
+        try {
+          await objectStorageService.deleteObjectEntityFile(url);
+        } catch (err) {
+          console.error(`Failed to delete object storage file ${url} during company cascade delete ${companyId}:`, err);
+        }
+      }
     }
 
     await emitCompanyScoped("company-updated", companyId, { companyId, deleted: true });
@@ -10834,6 +10857,8 @@ export async function registerRoutes(
 
       const companyId = site.companyId;
 
+      const fileUrlsToDelete: string[] = [];
+
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
@@ -10848,6 +10873,10 @@ export async function registerRoutes(
         await client.query(`DELETE FROM support_requests WHERE site_id = $1`, [siteId]);
 
         // Documents
+        const siteDocVersionUrls = await client.query(`SELECT file_url FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id = $1) AND file_url IS NOT NULL`, [siteId]);
+        fileUrlsToDelete.push(...siteDocVersionUrls.rows.map((r: any) => r.file_url));
+        const siteDocUrls = await client.query(`SELECT file_url FROM documents WHERE site_id = $1 AND file_url IS NOT NULL`, [siteId]);
+        fileUrlsToDelete.push(...siteDocUrls.rows.map((r: any) => r.file_url));
         await client.query(`DELETE FROM document_versions WHERE document_id IN (SELECT id FROM documents WHERE site_id = $1)`, [siteId]);
         await client.query(`DELETE FROM documents WHERE site_id = $1`, [siteId]);
         await client.query(`DELETE FROM document_folders WHERE site_id = $1`, [siteId]);
@@ -10863,6 +10892,8 @@ export async function registerRoutes(
         await client.query(`DELETE FROM training_requests WHERE site_id = $1`, [siteId]);
 
         // Client upload folders
+        const siteUploadUrls = await client.query(`SELECT file_url FROM client_uploads WHERE site_id = $1 AND file_url IS NOT NULL`, [siteId]);
+        fileUrlsToDelete.push(...siteUploadUrls.rows.map((r: any) => r.file_url));
         await client.query(`DELETE FROM client_upload_folder_access WHERE folder_id IN (SELECT id FROM client_upload_folders WHERE site_id = $1)`, [siteId]);
         await client.query(`DELETE FROM client_uploads WHERE site_id = $1`, [siteId]);
         await client.query(`DELETE FROM client_upload_folders WHERE site_id = $1`, [siteId]);
@@ -10883,6 +10914,17 @@ export async function registerRoutes(
         throw err;
       } finally {
         client.release();
+      }
+
+      if (fileUrlsToDelete.length > 0) {
+        const objectStorageService = new ObjectStorageService();
+        for (const url of Array.from(new Set(fileUrlsToDelete))) {
+          try {
+            await objectStorageService.deleteObjectEntityFile(url);
+          } catch (err) {
+            console.error(`Failed to delete object storage file ${url} during site delete ${siteId}:`, err);
+          }
+        }
       }
 
       await storage.createAuditLog({
