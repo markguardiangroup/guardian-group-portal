@@ -10415,6 +10415,13 @@
           "message": "Admins can now permanently delete all template documents at once",
           "category": "feature",
           "createdAt": "2026-07-01T17:06:33.813081Z"
+        },
+        {
+          "id": "a7e6365b-3918-419a-8576-c025ec14e927",
+          "patch": 19,
+          "message": "Delete All Templates button is now restricted to Developer role",
+          "category": "enhancement",
+          "createdAt": "2026-07-01T17:10:22.922050Z"
         }
       ],
       "publishedPatch": 18,

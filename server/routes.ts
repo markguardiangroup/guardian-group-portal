@@ -7942,7 +7942,7 @@ export async function registerRoutes(
     }
   });
 
-  // Permanently delete ALL document templates (admin only) - folders are left intact
+  // Permanently delete ALL document templates (developer only) - folders are left intact
   app.delete("/api/document-templates/bulk-permanent", requireAuth, async (req, res) => {
     try {
       const user = await storage.getUser((req.session as any).userId);
@@ -7950,8 +7950,8 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
-      if (!canManageTemplateLibrary(user)) {
-        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
+      if (user.role !== "developer") {
+        return res.status(403).json({ error: "Only developers can permanently delete all templates" });
       }
 
       const { reason, confirmation } = req.body || {};

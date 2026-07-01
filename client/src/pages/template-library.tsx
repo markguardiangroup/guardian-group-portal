@@ -414,6 +414,7 @@ export default function TemplateLibraryPage() {
   // Anyone who can see the page gets full management access (add/edit/archive/delete/etc.).
   const isDeveloper = !!user;
   const canDelete = !!user;
+  const isDeveloperRole = user?.role === "developer";
   
   const [activeTab, setActiveTab] = useState("templates");
   const [searchQuery, setSearchQuery] = useState("");
@@ -2120,7 +2121,7 @@ export default function TemplateLibraryPage() {
                 </Button>
               )}
 
-              {isDeveloper && templates.length > 0 && (
+              {isDeveloperRole && templates.length > 0 && (
                 <Button
                   variant="outline"
                   className="whitespace-nowrap text-destructive hover:text-destructive border-destructive/30"
