@@ -1497,7 +1497,21 @@ function EmailSettingsTab() {
     }
   }, [data]);
 
-  const saveMutation = useMutation({
+  const saveMfaMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PUT", "/api/email-settings", {
+        mfaRequired,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
+      toast({ title: "MFA settings saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save MFA settings", variant: "destructive" });
+    },
+  });
+
+  const saveEmailMutation = useMutation({
     mutationFn: () =>
       apiRequest("PUT", "/api/email-settings", {
         sendAll,
@@ -1505,7 +1519,6 @@ function EmailSettingsTab() {
         allowedEmails,
         allowedDomains,
         catchAllAddress: catchAllAddress.trim() || null,
-        mfaRequired,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/email-settings"] });
@@ -1555,11 +1568,11 @@ function EmailSettingsTab() {
           </div>
           <div className="flex justify-end mt-4">
             <Button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
+              onClick={() => saveMfaMutation.mutate()}
+              disabled={saveMfaMutation.isPending}
               data-testid="button-save-mfa-settings"
             >
-              {saveMutation.isPending ? (
+              {saveMfaMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
               ) : (
                 <><Save className="h-4 w-4 mr-2" />Save MFA Settings</>
@@ -1691,11 +1704,11 @@ function EmailSettingsTab() {
 
           <div className="flex justify-end">
             <Button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
+              onClick={() => saveEmailMutation.mutate()}
+              disabled={saveEmailMutation.isPending}
               data-testid="button-save-email-settings"
             >
-              {saveMutation.isPending ? (
+              {saveEmailMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</>
               ) : (
                 <><Save className="h-4 w-4 mr-2" />Save Email Settings</>

@@ -10387,6 +10387,13 @@
           "message": "Fixed: Portal Messages and Sources pages could crash with a display error",
           "category": "bug",
           "createdAt": "2026-07-01T11:45:57.419Z"
+        },
+        {
+          "id": "0374837d-0fb2-48be-9506-b4dd90868e2f",
+          "patch": 19,
+          "message": "MFA and Email settings now save independently",
+          "category": "enhancement",
+          "createdAt": "2026-07-01T14:22:38.908Z"
         }
       ],
       "publishedPatch": 18,

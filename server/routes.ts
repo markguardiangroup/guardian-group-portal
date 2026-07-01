@@ -21170,9 +21170,23 @@ export async function registerRoutes(
       if (!user || (user.role !== "developer" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Admin access required" });
       }
-      const { sendAll, allowedRoles, allowedEmails, allowedDomains, catchAllAddress, mfaRequired } = req.body;
 
-      // Singleton row — delete any existing row then insert fresh
+      // Load existing row (if any) so we can merge in only the fields the caller sent.
+      // This lets the MFA and Email Routing sections save independently without one
+      // overwriting the other's current values.
+      const existingResult = await pool.query(
+        "SELECT send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, mfa_required FROM email_settings LIMIT 1"
+      );
+      const existing = existingResult.rows[0];
+
+      const sendAll = req.body.sendAll !== undefined ? req.body.sendAll : (existing?.send_all ?? false);
+      const allowedRoles = req.body.allowedRoles !== undefined ? req.body.allowedRoles : (existing?.allowed_roles ?? []);
+      const allowedEmails = req.body.allowedEmails !== undefined ? req.body.allowedEmails : (existing?.allowed_emails ?? []);
+      const allowedDomains = req.body.allowedDomains !== undefined ? req.body.allowedDomains : (existing?.allowed_domains ?? []);
+      const catchAllAddress = req.body.catchAllAddress !== undefined ? req.body.catchAllAddress : (existing?.catch_all_address ?? null);
+      const mfaRequired = req.body.mfaRequired !== undefined ? req.body.mfaRequired : (existing?.mfa_required ?? false);
+
+      // Singleton row — delete any existing row then insert fresh with the merged values
       await pool.query("DELETE FROM email_settings");
       await pool.query(
         `INSERT INTO email_settings (send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, mfa_required, updated_at, updated_by)
