@@ -10422,6 +10422,13 @@
           "message": "Delete All Templates button is now restricted to Developer role",
           "category": "enhancement",
           "createdAt": "2026-07-01T17:10:22.922050Z"
+        },
+        {
+          "id": "6286e9f6-f70d-4a96-b4d7-ee943927f717",
+          "patch": 19,
+          "message": "Fixed: deleting templates now also removes the file from storage",
+          "category": "bug",
+          "createdAt": "2026-07-01T17:14:08.850497Z"
         }
       ],
       "publishedPatch": 18,

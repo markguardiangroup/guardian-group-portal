@@ -136,6 +136,7 @@ import {
   consultantCoverage as consultantCoverageTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { db, pool } from "./db";
 import { eq, and, or, asc, desc, isNull, isNotNull, gt, gte, lte, count, sql, inArray } from "drizzle-orm";
 
@@ -4180,6 +4181,22 @@ export class MemStorage implements IStorage {
 
   async permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean> {
     const [existing] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
+    const versions = await db.select().from(documentTemplateVersionsTable).where(eq(documentTemplateVersionsTable.templateId, id));
+
+    // Delete the underlying files from object storage (main file + every version's file)
+    const objectStorageService = new ObjectStorageService();
+    const fileUrls = new Set<string>();
+    if (existing?.fileUrl) fileUrls.add(existing.fileUrl);
+    for (const v of versions) {
+      if (v.fileUrl) fileUrls.add(v.fileUrl);
+    }
+    for (const url of Array.from(fileUrls)) {
+      try {
+        await objectStorageService.deleteObjectEntityFile(url);
+      } catch (err) {
+        console.error(`Failed to delete object storage file ${url} for template ${id}:`, err);
+      }
+    }
 
     // Hard delete versions first, then the template
     await db.delete(documentTemplateVersionsTable).where(eq(documentTemplateVersionsTable.templateId, id));
@@ -4237,6 +4254,24 @@ export class MemStorage implements IStorage {
     // that point at the templates being deleted, so nothing is left orphaned.
     await db.delete(companyRequiredTemplatesTable).where(inArray(companyRequiredTemplatesTable.templateId, templateIds));
     await db.delete(companyTemplateOverridesTable).where(inArray(companyTemplateOverridesTable.templateId, templateIds));
+
+    // Delete the underlying files from object storage (main file + every version's file)
+    const allVersions = await db.select().from(documentTemplateVersionsTable).where(inArray(documentTemplateVersionsTable.templateId, templateIds));
+    const objectStorageService = new ObjectStorageService();
+    const fileUrls = new Set<string>();
+    for (const t of allTemplates) {
+      if (t.fileUrl) fileUrls.add(t.fileUrl);
+    }
+    for (const v of allVersions) {
+      if (v.fileUrl) fileUrls.add(v.fileUrl);
+    }
+    for (const url of Array.from(fileUrls)) {
+      try {
+        await objectStorageService.deleteObjectEntityFile(url);
+      } catch (err) {
+        console.error(`Failed to delete object storage file ${url} during bulk template delete:`, err);
+      }
+    }
 
     // Hard delete versions first, then the templates themselves. Folders are untouched.
     await db.delete(documentTemplateVersionsTable).where(inArray(documentTemplateVersionsTable.templateId, templateIds));
