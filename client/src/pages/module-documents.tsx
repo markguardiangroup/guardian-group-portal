@@ -3342,6 +3342,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const [newVersionOnBehalfId, setNewVersionOnBehalfId] = useState("");
   const [newVersionAutoApproval, setNewVersionAutoApproval] = useState(false);
+  const [newVersionRequiresApproval, setNewVersionRequiresApproval] = useState(true);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
   const [draftViewed, setDraftViewed] = useState(false);
@@ -3690,7 +3691,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   };
 
   const uploadVersionMutation = useMutation({
-    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvalRequestedFrom?: string; autoFinalApproval?: boolean; onBehalfOfUserId?: string }) => {
+    mutationFn: async (data: { fileName: string; fileUrl: string; fileSize: number; mimeType: string; changeNote?: string; approvalRequestedFrom?: string; autoFinalApproval?: boolean; onBehalfOfUserId?: string; requiresApproval?: boolean }) => {
       return apiRequest("POST", `/api/documents/${id}/versions`, data);
     },
     onSuccess: () => {
@@ -3724,7 +3725,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const handleUploadVersion = () => {
     if (!newVersionFile) return;
-    if (!newVersionApprover) return;
+    if (newVersionRequiresApproval && !newVersionApprover) return;
     if (user?.role === "administrator" && !newVersionOnBehalfId) return;
     uploadVersionMutation.mutate({
       fileName: newVersionFile.fileName,
@@ -3732,8 +3733,9 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
       fileSize: newVersionFile.fileSize,
       mimeType: newVersionFile.mimeType,
       changeNote: changeNote || undefined,
-      approvalRequestedFrom: newVersionApprover || undefined,
-      autoFinalApproval: newVersionAutoApproval,
+      requiresApproval: newVersionRequiresApproval,
+      approvalRequestedFrom: newVersionRequiresApproval && newVersionApprover ? newVersionApprover : undefined,
+      autoFinalApproval: newVersionRequiresApproval ? newVersionAutoApproval : false,
       onBehalfOfUserId: user?.role === "administrator" && newVersionOnBehalfId ? newVersionOnBehalfId : undefined,
     });
   };
@@ -4491,7 +4493,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                   {isPrivilegedUser && (
                     <Button
                       className="bg-orange-600 hover:bg-orange-700 text-white"
-                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setNewVersionRequiresApproval((document as any).requiresApproval ?? true); setShowUploadVersionDialog(true); }}
                       data-testid="button-upload-version-changes"
                     >
                       <Upload className="mr-2 h-4 w-4" />
@@ -5157,7 +5159,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       variant="outline"
                       className="w-full justify-start"
                       data-testid="button-upload-version"
-                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setShowUploadVersionDialog(true); }}
+                      onClick={() => { setNewVersionApprover((document as any).approvalRequestedFrom ?? ""); setNewVersionAutoApproval((document as any).autoFinalApproval ?? false); setNewVersionOnBehalfId((document as any).uploadedBy ?? ""); setNewVersionRequiresApproval((document as any).requiresApproval ?? true); setShowUploadVersionDialog(true); }}
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload New Version
@@ -5717,42 +5719,61 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 </Select>
               </div>
             )}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Approver <span className="text-destructive">*</span></label>
-              <Select value={newVersionApprover} onValueChange={setNewVersionApprover}>
-                <SelectTrigger data-testid="select-version-approver">
-                  <SelectValue placeholder="Select approver..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {siteClientUsers.map((u) => (
-                    <SelectItem key={u.id} value={u.id} disabled={u.status !== "active"}>
-                      <span className="flex items-center gap-2">
-                        {u.fullName} ({u.email})
-                        {u.status !== "active" && <span className="text-xs text-muted-foreground">Not Active</span>}
-                      </span>
-                    </SelectItem>
-                  ))}
-                  {siteClientUsers.length === 0 && (
-                    <SelectItem value="__none" disabled>No client users found</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
               <div className="space-y-0.5">
-                <label className="text-sm font-medium">Auto Final Approval</label>
+                <label className="text-sm font-medium">Approval Required</label>
                 <p className="text-xs text-muted-foreground">
-                  {newVersionAutoApproval
-                    ? "This document will be approved automatically once the client approves it"
-                    : "A consultant will need to provide final sign-off after the client approves."}
+                  {newVersionRequiresApproval
+                    ? "This version will need client approval before it becomes compliant."
+                    : "This version will be marked compliant/approved immediately — no client approver needed."}
                 </p>
               </div>
               <Switch
-                checked={newVersionAutoApproval}
-                onCheckedChange={setNewVersionAutoApproval}
-                data-testid="toggle-version-auto-final-approval"
+                checked={newVersionRequiresApproval}
+                onCheckedChange={setNewVersionRequiresApproval}
+                data-testid="toggle-version-requires-approval"
               />
             </div>
+            {newVersionRequiresApproval && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Approver <span className="text-destructive">*</span></label>
+                <Select value={newVersionApprover} onValueChange={setNewVersionApprover}>
+                  <SelectTrigger data-testid="select-version-approver">
+                    <SelectValue placeholder="Select approver..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {siteClientUsers.map((u) => (
+                      <SelectItem key={u.id} value={u.id} disabled={u.status !== "active"}>
+                        <span className="flex items-center gap-2">
+                          {u.fullName} ({u.email})
+                          {u.status !== "active" && <span className="text-xs text-muted-foreground">Not Active</span>}
+                        </span>
+                      </SelectItem>
+                    ))}
+                    {siteClientUsers.length === 0 && (
+                      <SelectItem value="__none" disabled>No client users found</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {newVersionRequiresApproval && (
+              <div className="flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium">Auto Final Approval</label>
+                  <p className="text-xs text-muted-foreground">
+                    {newVersionAutoApproval
+                      ? "This document will be approved automatically once the client approves it"
+                      : "A consultant will need to provide final sign-off after the client approves."}
+                  </p>
+                </div>
+                <Switch
+                  checked={newVersionAutoApproval}
+                  onCheckedChange={setNewVersionAutoApproval}
+                  data-testid="toggle-version-auto-final-approval"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Comment for the client (optional)</label>
               <p className="text-xs text-muted-foreground">Shared with the client in the sign-off box, the approval email, and the audit trail.</p>
@@ -5774,13 +5795,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                 setChangeNote("");
                 setNewVersionApprover("");
                 setNewVersionOnBehalfId("");
+                setNewVersionRequiresApproval(true);
               }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleUploadVersion}
-              disabled={!newVersionFile || !newVersionApprover || (user?.role === "administrator" && !newVersionOnBehalfId) || uploadVersionMutation.isPending}
+              disabled={!newVersionFile || (newVersionRequiresApproval && !newVersionApprover) || (user?.role === "administrator" && !newVersionOnBehalfId) || uploadVersionMutation.isPending}
             >
               {uploadVersionMutation.isPending ? "Uploading..." : "Upload Version"}
             </Button>

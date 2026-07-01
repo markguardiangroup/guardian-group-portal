@@ -4289,7 +4289,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only origin users can upload new versions of company or group scoped documents" });
       }
       
-      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom, autoFinalApproval, onBehalfOfUserId, approvers: approversRaw } = req.body;
+      const { fileName, fileUrl, fileSize, mimeType, changeNote, approvalRequestedFrom, autoFinalApproval, onBehalfOfUserId, approvers: approversRaw, requiresApproval } = req.body;
       // Support either a single approvalRequestedFrom or an array of approvers
       const approversArray: string[] = Array.isArray(approversRaw) && approversRaw.length > 0
         ? approversRaw
@@ -4317,14 +4317,23 @@ export async function registerRoutes(
       }
 
       // Determine approval status BEFORE any DB writes so we can validate early.
-      let newStatus: "approval_required" | "compliant" | "approved" = "approval_required";
-      let newApprovalStatus: "pending" | null = "pending";
+      // requiresApproval (if explicitly provided in the request) takes priority — it lets the
+      // uploader override the document/template default from the Upload New Version dialog.
+      const effectiveRequiresApproval: boolean = typeof requiresApproval === "boolean"
+        ? requiresApproval
+        : document.requiresApproval;
 
-      if (document.templateId) {
+      let newStatus: "approval_required" | "compliant" | "approved" = "approval_required";
+      let newApprovalStatus: "pending" | "approved" = "pending";
+
+      if (effectiveRequiresApproval === false) {
+        newStatus = document.isMandatory ? "compliant" : "approved";
+        newApprovalStatus = "approved";
+      } else if (document.templateId) {
         const template = await storage.getDocumentTemplate(document.templateId);
         if (template && template.requiresApproval === false) {
           newStatus = document.isMandatory ? "compliant" : "approved";
-          newApprovalStatus = null;
+          newApprovalStatus = "approved";
         }
       }
 
@@ -4384,6 +4393,7 @@ export async function registerRoutes(
         // otherwise leave the existing value intact so renewals carry the approver forward.
         ...(primaryApprover ? { approvalRequestedFrom: primaryApprover } : {}),
         autoFinalApproval: resolvedAutoFinalApproval,
+        ...(typeof requiresApproval === "boolean" ? { requiresApproval } : {}),
       });
       
       // Log the version upload
@@ -4853,17 +4863,20 @@ export async function registerRoutes(
       let documentStatus: "approval_required" | "compliant" | "approved" = "approval_required";
       let documentApprovalStatus: string = "pending";
       let isAutoApproved = false;
+      let effectiveRequiresApprovalOnCreate = true;
       
       // Training certificates are automatically compliant - they prove completion
       if (body.module === "training") {
         documentStatus = "compliant";
         documentApprovalStatus = "approved";
         isAutoApproved = true;
+        effectiveRequiresApprovalOnCreate = false;
       } else if (body.requiresApproval === false) {
         // Uploader explicitly set no approval required
         documentStatus = body.isMandatory ? "compliant" : "approved";
         documentApprovalStatus = "approved";
         isAutoApproved = true;
+        effectiveRequiresApprovalOnCreate = false;
       } else if (body.templateId) {
         const template = await storage.getDocumentTemplate(body.templateId);
         if (template && template.requiresApproval === false) {
@@ -4872,6 +4885,7 @@ export async function registerRoutes(
           documentStatus = effectiveIsRequired ? "compliant" : "approved";
           documentApprovalStatus = "approved";
           isAutoApproved = true;
+          effectiveRequiresApprovalOnCreate = false;
         }
       }
 
@@ -4962,6 +4976,7 @@ export async function registerRoutes(
         renewalDate: computedRenewalDate,
         renewalPeriodMonths,
         autoFinalApproval: body.autoFinalApproval ?? false,
+        requiresApproval: effectiveRequiresApprovalOnCreate,
       });
 
       await storage.createAuditLog({
@@ -12882,6 +12897,7 @@ export async function registerRoutes(
         status: "compliant",
         approvalStatus: "approved",
         source: "upload",
+        requiresApproval: false,
       });
 
       // Log the upload
@@ -17321,6 +17337,7 @@ export async function registerRoutes(
         status: "compliant",
         approvalStatus: "approved",
         source: "upload",
+        requiresApproval: false,
       });
 
       await storage.createAuditLog({
@@ -18360,6 +18377,7 @@ export async function registerRoutes(
         status: "compliant",
         approvalStatus: "approved",
         source: "upload",
+        requiresApproval: false,
       });
 
       await storage.createAuditLog({
