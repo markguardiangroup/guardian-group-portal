@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 20,
+      "patch": 21,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -10459,8 +10459,9 @@
           "createdAt": "2026-07-01T19:05:43.360Z"
         }
       ],
-      "publishedPatch": 19,
+      "publishedPatch": 20,
       "patchedEntryIds": [
+        "b8f3c6d9-bulk-delete-templates-route-order-fix-2026",
         "a4e7f1c2-storage-dev-prod-split-2026",
         "dcf19715-98fc-4de8-a6b2-3770387b06db",
         "a0505da5-b094-420f-99f7-b7c4329ff3b9",
