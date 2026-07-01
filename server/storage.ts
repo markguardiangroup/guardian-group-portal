@@ -426,6 +426,7 @@ export interface IStorage {
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
   deleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean>;
   permanentlyDeleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean>;
+  permanentlyDeleteAllDocumentTemplates(deletedBy: string, deletedByName: string, reason: string): Promise<number>;
   restoreDocumentTemplate(id: string, restoredBy: string): Promise<boolean>;
   
   // Document Template Versions
@@ -4197,6 +4198,64 @@ export class MemStorage implements IStorage {
     });
 
     return true;
+  }
+
+  async permanentlyDeleteAllDocumentTemplates(deletedBy: string, deletedByName: string, reason: string): Promise<number> {
+    const allTemplates = await db.select().from(documentTemplatesTable);
+    const templateIds = allTemplates.map(t => t.id);
+
+    if (templateIds.length === 0) {
+      return 0;
+    }
+
+    // Strip templateIds from any document pathway decision trees that reference them,
+    // so the guided finder never points at a deleted template. Folders/pathways stay.
+    const templateIdSet = new Set(templateIds);
+    const stripDeletedTemplateIds = (node: any): any => {
+      if (!node || typeof node !== 'object') return node;
+      return {
+        ...node,
+        answers: Array.isArray(node.answers) ? node.answers.map((answer: any) => ({
+          ...answer,
+          templateIds: Array.isArray(answer.templateIds)
+            ? answer.templateIds.filter((tid: string) => !templateIdSet.has(tid))
+            : answer.templateIds,
+          next: answer.next ? stripDeletedTemplateIds(answer.next) : answer.next,
+        })) : node.answers,
+      };
+    };
+
+    const pathways = await db.select().from(documentPathwaysTable);
+    for (const pathway of pathways) {
+      const cleanedTree = stripDeletedTemplateIds(pathway.tree);
+      await db.update(documentPathwaysTable)
+        .set({ tree: cleanedTree, updatedAt: new Date() })
+        .where(eq(documentPathwaysTable.id, pathway.id));
+    }
+
+    // Remove company-level required-template and include/exclude override rows
+    // that point at the templates being deleted, so nothing is left orphaned.
+    await db.delete(companyRequiredTemplatesTable).where(inArray(companyRequiredTemplatesTable.templateId, templateIds));
+    await db.delete(companyTemplateOverridesTable).where(inArray(companyTemplateOverridesTable.templateId, templateIds));
+
+    // Hard delete versions first, then the templates themselves. Folders are untouched.
+    await db.delete(documentTemplateVersionsTable).where(inArray(documentTemplateVersionsTable.templateId, templateIds));
+    await db.delete(documentTemplatesTable).where(inArray(documentTemplatesTable.id, templateIds));
+
+    await this.createAuditLog({
+      userId: deletedBy,
+      userName: deletedByName,
+      action: 'template_permanently_deleted',
+      entityType: 'document_template',
+      entityId: 'bulk',
+      details: JSON.stringify({
+        templateCount: templateIds.length,
+        templateNames: allTemplates.map(t => t.name),
+        reason: reason,
+      }),
+    });
+
+    return templateIds.length;
   }
   
   // Document Template Versions (database-backed)

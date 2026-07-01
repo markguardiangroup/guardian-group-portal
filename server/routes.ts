@@ -7942,6 +7942,35 @@ export async function registerRoutes(
     }
   });
 
+  // Permanently delete ALL document templates (admin only) - folders are left intact
+  app.delete("/api/document-templates/bulk-permanent", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (!canManageTemplateLibrary(user)) {
+        return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
+      }
+
+      const { reason, confirmation } = req.body || {};
+      if (!reason || typeof reason !== 'string' || reason.trim().length < 5) {
+        return res.status(400).json({ error: "A deletion reason is required (minimum 5 characters)" });
+      }
+      if (confirmation !== "DELETE ALL TEMPLATES") {
+        return res.status(400).json({ error: "Confirmation phrase did not match" });
+      }
+
+      const deletedCount = await storage.permanentlyDeleteAllDocumentTemplates(user.id, user.fullName, reason.trim());
+
+      res.status(200).json({ message: "All document templates permanently deleted", deletedCount });
+    } catch (error) {
+      console.error("Bulk permanent delete document templates error:", error);
+      res.status(500).json({ error: "Failed to permanently delete document templates" });
+    }
+  });
+
   // Provision folders from templates for a site
   app.post("/api/sites/:siteId/provision-folders", requireAuth, async (req, res) => {
     try {
