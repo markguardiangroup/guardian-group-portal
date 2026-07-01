@@ -10394,6 +10394,13 @@
           "message": "MFA and Email settings now save independently",
           "category": "enhancement",
           "createdAt": "2026-07-01T14:22:38.908Z"
+        },
+        {
+          "id": "031734f5-902a-46db-b970-71b37337c9a6",
+          "patch": 19,
+          "message": "Fixed: MFA errors showed raw technical text instead of a message",
+          "category": "bug",
+          "createdAt": "2026-07-01T15:21:08.624Z"
         }
       ],
       "publishedPatch": 18,
