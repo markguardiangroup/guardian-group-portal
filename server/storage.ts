@@ -265,8 +265,8 @@ export interface IStorage {
   getUnreadMessageCount(requestId: string, userId: string): Promise<number>;
   
   // Dashboard
-  getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary>;
-  getModuleSummaries(companyId?: string, siteId?: string): Promise<ModuleSummary[]>;
+  getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType, siteIdsFilter?: string[]): Promise<ComplianceSummary>;
+  getModuleSummaries(companyId?: string, siteId?: string, siteIdsFilter?: string[]): Promise<ModuleSummary[]>;
   getModuleSummariesForSites(siteIds: string[]): Promise<ModuleSummary[]>;
   
   // Site Document Type Access
@@ -2369,7 +2369,7 @@ export class MemStorage implements IStorage {
   }
 
   // Dashboard
-  async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType): Promise<ComplianceSummary> {
+  async getComplianceSummary(companyId?: string, siteId?: string, module?: ModuleType, siteIdsFilter?: string[]): Promise<ComplianceSummary> {
     const complianceModules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
 
     // Fetch all non-archived, non-case, non-incident docs and share records in parallel
@@ -2408,7 +2408,12 @@ export class MemStorage implements IStorage {
     let relevantSiteIds: string[];
     // company-scoped docs (siteId=null, entityId=companyId) keyed by companyId for per-site inheritance
     const companyDocsByCompanyId = new Map<string, typeof docs>();
-    if (siteId) {
+    if (siteIdsFilter) {
+      // Explicit tenant-scoped site set (e.g. from an access-control-aware caller).
+      // Final aggregation below already scopes everything by relevantSiteIds membership,
+      // so it is correct to leave `docs` unfiltered here.
+      relevantSiteIds = siteIdsFilter;
+    } else if (siteId) {
       // Look up the site's companyId to include company-scoped inherited docs
       const siteRecord = (await db.select().from(sitesTable).where(eq(sitesTable.id, siteId)))[0];
       const siteCompanyId = siteRecord?.companyId;
@@ -2560,7 +2565,7 @@ export class MemStorage implements IStorage {
     };
   }
 
-  async getModuleSummaries(companyId?: string, siteId?: string): Promise<ModuleSummary[]> {
+  async getModuleSummaries(companyId?: string, siteId?: string, siteIdsFilter?: string[]): Promise<ModuleSummary[]> {
     const modules: ModuleType[] = ["health_safety", "human_resources", "employment_law"];
     const moduleNames: Record<ModuleType, string> = {
       health_safety: "Health & Safety",
@@ -2571,7 +2576,7 @@ export class MemStorage implements IStorage {
     };
     
     return Promise.all(modules.map(async (module) => {
-      const summary = await this.getComplianceSummary(companyId, siteId, module);
+      const summary = await this.getComplianceSummary(companyId, siteId, module, siteIdsFilter);
       return {
         ...summary,
         module,

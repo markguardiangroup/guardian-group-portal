@@ -10487,6 +10487,27 @@
           "createdAt": "2026-07-02T08:37:07.092778Z"
         },
         {
+          "id": "62082186-254a-45a7-bb7e-d122836ab539",
+          "patch": 21,
+          "message": "Fixed: key contact assignments blocked from crossing company/site boundaries",
+          "category": "bug",
+          "createdAt": "2026-07-02T12:08:25.714Z"
+        },
+        {
+          "id": "9f508a91-9d62-473a-8d51-7ee729d08561",
+          "patch": 21,
+          "message": "Fixed: compliance reports now require login and stay within your access",
+          "category": "bug",
+          "createdAt": "2026-07-02T12:08:25.714Z"
+        },
+        {
+          "id": "3d7ad50e-af23-4cc3-88dc-dd9789bb1dd7",
+          "patch": 21,
+          "message": "Fixed: support tickets scoped to staff's assigned sites and companies",
+          "category": "bug",
+          "createdAt": "2026-07-02T12:08:25.714Z"
+        },
+        {
           "id": "46f1c0aa-ff30-4039-a7b7-cbfff6e5d0e2",
           "patch": 21,
           "message": "Hardened Accelo webhook: secret moved to env secrets, query-string auth removed, endpoint closed when unconfigured",
