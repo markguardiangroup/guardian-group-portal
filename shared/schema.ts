@@ -1441,8 +1441,22 @@ export type TrainingBooking = typeof trainingBookings.$inferSelect;
 
 // Account lockout configuration
 export const SECURITY_CONFIG = {
+  // Soft/temporary lockout: blocks login attempts for `lockoutDurationMinutes`
+  // once this many consecutive failures land inside that window. This is
+  // purely time-based and self-clears — it does NOT change the account's
+  // persisted status, so it can't be weaponized to force a victim into the
+  // account-recovery flow.
   maxLoginAttempts: 3,
   lockoutDurationMinutes: 15,
+  // Hard/permanent lockout: only after sustained abuse spanning multiple
+  // soft-lockout cycles do we flip the account to status "locked" (which
+  // requires a password reset or admin unlock). Keeping this threshold well
+  // above `maxLoginAttempts` and its window well above
+  // `lockoutDurationMinutes` means a handful of guesses from an anonymous
+  // attacker can no longer permanently lock an arbitrary known account —
+  // it now takes sustained, patient abuse to trigger.
+  permanentLockAttempts: 10,
+  permanentLockWindowMinutes: 60,
   sessionTimeoutMinutes: 60,
   passwordMinLength: 8,
   requireUppercase: true,

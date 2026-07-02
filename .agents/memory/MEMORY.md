@@ -19,3 +19,5 @@
 - [Presigned upload size enforcement](presigned-upload-size-enforcement.md) — sidecar signed-URL API can't enforce byte size/content-type at signing time; enforce actual size at claim time + sweep unclaimed uploads.
 - [Session revocation coverage](session-revocation-coverage.md) — hardening requireAuth alone misses routes that read req.session.userId directly; must audit and patch every such call site.
 - [Staff scoping coverage](staff-scoping-coverage.md) — canStaffManageUser/canStaffAccessCompany must gate every staff user-management route incl. online/presence id lists, not just hasProPrivileges checks.
+- [Two-tier account lockout](two-tier-lockout.md) — separate a self-clearing short-window soft lock (anti-brute-force) from a much-higher-threshold permanent status lock, or anonymous callers can DoS-lock arbitrary accounts.
+- [PG session-store revocation](pg-session-store-revocation.md) — connect-pg-simple `session` table can be queried/deleted directly (`sess::jsonb->>'userId'`) to kill live sessions on password change/reset or admin disable.

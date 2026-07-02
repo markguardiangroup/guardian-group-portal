@@ -449,6 +449,7 @@ export interface IStorage {
   recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
   getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]>;
   isAccountLocked(username: string): Promise<boolean>;
+  shouldPermanentlyLock(username: string): Promise<boolean>;
   
   // Training Modules (legacy alias for Training Courses)
   getTrainingModules(module?: ModuleType): Promise<TrainingModule[]>;
@@ -4486,20 +4487,41 @@ export class MemStorage implements IStorage {
       .sort((a, b) => b.attemptedAt.getTime() - a.attemptedAt.getTime());
   }
   
-  async isAccountLocked(username: string): Promise<boolean> {
-    const recentAttempts = await this.getRecentLoginAttempts(
-      username, 
-      SECURITY_CONFIG.lockoutDurationMinutes
-    );
-    
-    // Count consecutive failures (until last success)
+  // Counts consecutive failed login attempts within `minutes`, stopping at the
+  // first success. Shared by the soft (temporary) and hard (permanent) lockout
+  // checks below so both use the exact same "consecutive since last success"
+  // semantics.
+  private async countConsecutiveFailures(username: string, minutes: number): Promise<number> {
+    const recentAttempts = await this.getRecentLoginAttempts(username, minutes);
     let failedAttempts = 0;
     for (const attempt of recentAttempts) {
       if (attempt.success) break;
       failedAttempts++;
     }
-    
+    return failedAttempts;
+  }
+
+  async isAccountLocked(username: string): Promise<boolean> {
+    const failedAttempts = await this.countConsecutiveFailures(
+      username,
+      SECURITY_CONFIG.lockoutDurationMinutes
+    );
     return failedAttempts >= SECURITY_CONFIG.maxLoginAttempts;
+  }
+
+  // Hard/permanent lockout check — deliberately uses a much higher threshold
+  // and a much longer window than isAccountLocked(). Escalating an account to
+  // status "locked" (which requires a password reset or admin unlock) after
+  // only a handful of anonymous failed attempts lets any internet caller
+  // force a known user through account recovery. Requiring sustained abuse
+  // across multiple soft-lockout cycles closes that off while still catching
+  // genuine, persistent credential-stuffing attempts.
+  async shouldPermanentlyLock(username: string): Promise<boolean> {
+    const failedAttempts = await this.countConsecutiveFailures(
+      username,
+      SECURITY_CONFIG.permanentLockWindowMinutes
+    );
+    return failedAttempts >= SECURITY_CONFIG.permanentLockAttempts;
   }
 
   // Training Modules

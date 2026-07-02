@@ -1013,10 +1013,15 @@ export async function registerRoutes(
           failureReason: "invalid_password",
         });
         
-        // Check if this failure triggers a lockout — only lock active accounts.
-        // Inactive/invited/etc. users are already blocked above; we never change their status.
-        const nowLocked = await storage.isAccountLocked(loginIdentifier);
-        if (nowLocked && user.status === "active") {
+        // Escalate to a PERMANENT lock only after sustained abuse (see
+        // shouldPermanentlyLock) — only lock active accounts. Inactive/invited/etc.
+        // users are already blocked above; we never change their status. The
+        // short-lived, self-clearing soft lockout (storage.isAccountLocked,
+        // checked earlier in this handler) already blocks rapid-fire guessing
+        // without touching account status, so a handful of wrong passwords from
+        // an anonymous caller can no longer force a victim into account recovery.
+        const nowPermanentlyLocked = await storage.shouldPermanentlyLock(loginIdentifier);
+        if (nowPermanentlyLocked && user.status === "active") {
           // Permanently lock the user account (requires reset or admin unlock)
           await storage.updateUser(user.id, { status: "locked" });
           await storage.createAuditLog({
@@ -1326,6 +1331,33 @@ export async function registerRoutes(
     const user = await storage.getUser(userId);
     if (!user || user.status === "inactive" || user.status === "locked") return null;
     return user;
+  };
+
+  /**
+   * Revoke sessions belonging to a user by deleting their rows straight out of
+   * the PostgreSQL-backed session store (see the `session` table configured in
+   * server/index.ts). Sessions persist for up to 8 hours independent of the
+   * password on file, so without this a stolen/leaked session cookie would
+   * keep working after the legitimate user changes or resets their password.
+   * When `excludeSid` is supplied, that one session is left intact so the
+   * user performing the change isn't logged out of their own request.
+   */
+  const revokeUserSessions = async (userId: string, excludeSid?: string) => {
+    try {
+      if (excludeSid) {
+        await pool.query(
+          `DELETE FROM session WHERE (sess::jsonb->>'userId') = $1 AND sid <> $2`,
+          [userId, excludeSid]
+        );
+      } else {
+        await pool.query(
+          `DELETE FROM session WHERE (sess::jsonb->>'userId') = $1`,
+          [userId]
+        );
+      }
+    } catch (err) {
+      console.error("Failed to revoke sessions for user", userId, err);
+    }
   };
 
   /**
@@ -1894,10 +1926,19 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Guard against using the password-reset flow to silently reactivate an
-      // account an administrator has disabled. A reset token may have been
-      // issued before the account was deactivated, so re-check the CURRENT
-      // status here rather than trusting the token alone.
+      // Guard against using a stale invitation/reset link to silently
+      // reactivate an account an administrator has since disabled. A token
+      // may have been issued (or left unused) before the account was
+      // deactivated/locked, so re-check the CURRENT status here rather than
+      // trusting the token alone. This covers both the first-time "invite"
+      // flow (previously unchecked — a disabled staff/consultant invite could
+      // self-reactivate) and password resets against a deactivated account.
+      // Locked accounts are intentionally still allowed through the
+      // password_reset path below, since resetting the password is the
+      // account's normal recovery route out of a lock.
+      if (invitation.purpose === "invite" && (invitedUser.status === "inactive" || invitedUser.status === "locked")) {
+        return res.status(403).json({ error: "This account has been disabled. Please contact an administrator." });
+      }
       if (invitation.purpose === "password_reset" && invitedUser.status === "inactive") {
         return res.status(403).json({ error: "This account has been disabled. Please contact an administrator." });
       }
@@ -1960,6 +2001,14 @@ export async function registerRoutes(
       
       // Mark the invitation as used
       await storage.markInvitationUsed(invitation.id);
+
+      // Revoke any sessions already tied to this account. This matters most for
+      // password resets (a stolen session cookie must stop working once the
+      // password changes) but is harmless — and cheap defense-in-depth — for
+      // first-time invite activation too, in case a stale session outlived a
+      // prior deactivation and would otherwise start working again now that
+      // the account is active.
+      await revokeUserSessions(invitation.userId);
 
       // Clear the lockout by recording a successful login attempt.
       // isAccountLocked() counts consecutive failures and stops at the first success,
@@ -2125,6 +2174,12 @@ export async function registerRoutes(
 
       const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
       await storage.updateUser(userId, { password: hashedPassword });
+
+      // Revoke every other active session for this account so a previously
+      // stolen/leaked session cookie stops working immediately. The session
+      // making this request is left alone so the user isn't logged out of
+      // their own settings page.
+      await revokeUserSessions(userId, req.sessionID);
 
       await storage.createAuditLog({
         action: "password_changed",
@@ -17576,11 +17631,21 @@ export async function registerRoutes(
         await activateCompanyOnFirstActiveClient(updated.companyId, currentUser.id, currentUser.fullName ?? "System");
       }
       
-      // If account was deactivated or locked, revoke their active SSE session
-      if (status === "inactive" || status === "locked") {
+      // If account was deactivated or locked, revoke their active SSE session,
+      // kill any live login sessions, and invalidate outstanding invitation
+      // links. Without invalidating tokens, a still-valid "invite" or
+      // "password_reset" link sent before this change could later be used to
+      // silently set the account back to "active" and bypass this decision.
+      if (allowFullFieldEdit && (status === "inactive" || status === "locked")) {
         try {
           emitToUser(req.params.id, "session-revoked", { reason: "account_deactivated" });
         } catch { /* non-fatal */ }
+        await revokeUserSessions(req.params.id);
+        try {
+          await storage.invalidateUserInvitations(req.params.id);
+        } catch (err) {
+          console.error("Failed to invalidate invitations for deactivated user:", err);
+        }
       }
 
       // Emit user-updated so admins/consultants see user changes in real time

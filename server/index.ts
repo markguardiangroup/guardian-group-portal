@@ -54,10 +54,14 @@ const apiLimiter = rateLimit({
   skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
-// Auth rate limiting – keyed by username (body) so each account gets its own bucket
+// Auth rate limiting – keyed by username (body) so each account gets its own bucket.
+// Kept tight enough that an anonymous attacker can't rack up the failed attempts
+// needed to trip the account-lockout logic in server/routes.ts through sheer
+// request volume; still generous enough for a legitimate user who mistypes a
+// password a few times.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 20,
   message: { error: "Too many login attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,

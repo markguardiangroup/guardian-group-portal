@@ -4418,6 +4418,27 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "c1a2b3d4-auth-lockout-hardening-2026",
+          "patch": 22,
+          "message": "Fixed: a few bad login attempts could permanently lock any account",
+          "category": "bug",
+          "createdAt": "2026-07-02T17:39:28.730Z"
+        },
+        {
+          "id": "d2b3c4e5-session-revoke-on-password-change-2026",
+          "patch": 22,
+          "message": "Fixed: changing or resetting a password now signs out old sessions",
+          "category": "bug",
+          "createdAt": "2026-07-02T17:39:28.730Z"
+        },
+        {
+          "id": "e3c4d5f6-invite-reactivation-guard-2026",
+          "patch": 22,
+          "message": "Fixed: disabled staff/client accounts could no longer self-reactivate via an old invite link",
+          "category": "bug",
+          "createdAt": "2026-07-02T17:39:28.730Z"
+        },
+        {
           "id": "e2a6b4c8-pathway-json-paste-import-2026",
           "patch": 21,
           "message": "Admins can now paste JSON to quickly build guided finder pathways",
