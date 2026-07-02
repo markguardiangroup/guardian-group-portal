@@ -793,7 +793,7 @@ export async function registerRoutes(
     checkObjectAccess: (objectPath, user) => resolveObjectPathAccess(objectPath, user),
     getUserForSession: async (sessionUserId) => {
       const user = await storage.getUser(sessionUserId);
-      if (!user) return undefined;
+      if (!user || user.status === "inactive" || user.status === "locked") return undefined;
       return {
         id: user.id,
         role: user.role,
@@ -1285,13 +1285,47 @@ export async function registerRoutes(
     }
   });
 
-  // Authentication middleware for protected routes
-  const requireAuth = (req: any, res: any, next: any) => {
+  // Authentication middleware for protected routes.
+  // Reloads the user from the database on every request (rather than trusting
+  // only the presence of a session cookie) so that an account disabled or
+  // locked by an administrator loses access on its very next request instead
+  // of retaining full privileges until the session naturally expires.
+  const requireAuth = async (req: any, res: any, next: any) => {
     const userId = req.session?.userId;
     if (!userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    next();
+    try {
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser || dbUser.status === "inactive" || dbUser.status === "locked") {
+        req.session.destroy(() => {});
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      req.activeUser = dbUser;
+      next();
+    } catch (err) {
+      console.error("requireAuth error:", err);
+      res.status(500).json({ error: "Authentication check failed" });
+    }
+  };
+
+  /**
+   * Reload the current session's user from the database, rejecting the
+   * account if it no longer exists or has been deactivated/locked since
+   * login. This is the drop-in replacement for the old
+   * `storage.getUser((req.session as any).userId)` pattern used throughout
+   * this file — that pattern only checked for user existence, so a session
+   * belonging to a disabled/locked account kept full access until the
+   * cookie expired. Every call site that authorizes a request based on the
+   * session's user MUST route through this helper (or `requireAuth`)
+   * instead of calling `storage.getUser` directly on the session id.
+   */
+  const getSessionUser = async (req: any) => {
+    const userId = req.session?.userId;
+    if (!userId) return null;
+    const user = await storage.getUser(userId);
+    if (!user || user.status === "inactive" || user.status === "locked") return null;
+    return user;
   };
 
   /**
@@ -1708,6 +1742,10 @@ export async function registerRoutes(
     const user = await storage.getUser(userId);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
+    }
+    if (user.status === "inactive" || user.status === "locked") {
+      req.session.destroy(() => {});
+      return res.status(401).json({ error: "Your account is no longer active. Please contact your administrator." });
     }
 
     // Run company lookup and legal-revision check in parallel — saves ~200-300 ms per request
@@ -2632,7 +2670,7 @@ export async function registerRoutes(
 
   // GET /api/users/online — returns IDs of users with an active SSE connection
   app.get("/api/users/online", requireAuth, async (req: any, res) => {
-    const caller = await storage.getUser(req.session?.userId);
+    const caller = await getSessionUser(req);
     if (!caller || (caller.role !== "developer" && caller.role !== "consultant" && caller.role !== "administrator")) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -2645,7 +2683,7 @@ export async function registerRoutes(
   // Admin-initiated password reset — sends the same reset email as "forgot password"
   app.post("/api/users/:userId/reset-password", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Only staff can reset user passwords" });
       }
@@ -2715,7 +2753,7 @@ export async function registerRoutes(
 
   app.post("/api/users/:userId/resend-invite", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Only developers and consultants can send invitations" });
       }
@@ -2829,7 +2867,7 @@ export async function registerRoutes(
   // Get user's current invitation status (admin only)
   app.get("/api/users/:userId/invitation", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || currentUser.role !== "developer") {
         return res.status(403).json({ error: "Only developers can view invitation status" });
       }
@@ -2857,7 +2895,7 @@ export async function registerRoutes(
   // Get user activity log (admin/consultant only)
   app.get("/api/users/:id/activity", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Insufficient permissions" });
       }
@@ -3547,7 +3585,7 @@ export async function registerRoutes(
 
   app.get("/api/required-template-ids", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const allSites = await storage.getSites();
@@ -3583,7 +3621,7 @@ export async function registerRoutes(
   // matching the same rules used by getMissingRequiredTemplateDetails.
   app.get("/api/required-template-ids-by-company", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const moduleParam = req.query.module as ModuleType | undefined;
@@ -3649,7 +3687,7 @@ export async function registerRoutes(
   // active + private + (if `module` is provided) matching module.
   app.get("/api/fulfilled-template-ids", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const scope = (req.query.scope as string) || "";
       const entityId = req.query.entityId as string | undefined;
@@ -3690,7 +3728,7 @@ export async function registerRoutes(
 
   app.get("/api/effective-required-template-ids-by-site", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const moduleParam = req.query.module as ModuleType | undefined;
@@ -3747,7 +3785,7 @@ export async function registerRoutes(
 
   app.get("/api/missing-required-templates", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -3779,7 +3817,7 @@ export async function registerRoutes(
   // Used by module-sites tiles to display a consistent Missing count.
   app.get("/api/missing-required-templates/by-company", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const moduleParam = req.query.module as ModuleType | undefined;
@@ -3808,7 +3846,7 @@ export async function registerRoutes(
   // Module-specific dashboard
   app.get("/api/dashboard/:module", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4018,7 +4056,7 @@ export async function registerRoutes(
   // Main Dashboard (overview of all modules)
   app.get("/api/dashboard", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4136,7 +4174,7 @@ export async function registerRoutes(
   // Module summaries for overview dashboard
   app.get("/api/modules/summary", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4356,7 +4394,7 @@ export async function registerRoutes(
   // Documents by module
   app.get("/api/documents/module/:module", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4496,7 +4534,7 @@ export async function registerRoutes(
   // Documents
   app.get("/api/documents", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4612,7 +4650,7 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4663,7 +4701,7 @@ export async function registerRoutes(
   // so window-focus refetches don't create duplicate "viewed" audit entries.
   app.post("/api/documents/:id/view", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const document = await storage.getDocument(req.params.id);
       if (!document) return res.status(404).json({ error: "Document not found" });
@@ -4691,7 +4729,7 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id/versions", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4718,7 +4756,7 @@ export async function registerRoutes(
   // Upload new version of a document
   app.post("/api/documents/:id/versions", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4955,7 +4993,7 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id/audit", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -4982,7 +5020,7 @@ export async function registerRoutes(
   // Document download endpoint - returns original uploaded file
   app.get("/api/documents/:id/download", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -5058,7 +5096,7 @@ export async function registerRoutes(
 
   app.get("/api/documents/:id/preview", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -5158,7 +5196,7 @@ export async function registerRoutes(
   // ── Document Template Preview ─────────────────────────────────────────────
   app.get("/api/document-templates/:id/preview", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const template = await storage.getDocumentTemplate(req.params.id);
@@ -5223,7 +5261,7 @@ export async function registerRoutes(
 
   app.post("/api/documents", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -5611,7 +5649,7 @@ export async function registerRoutes(
   // Document shares endpoints
   app.get("/api/documents/:id/shares", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
@@ -5646,7 +5684,7 @@ export async function registerRoutes(
 
   app.post("/api/documents/:id/shares", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
@@ -5696,7 +5734,7 @@ export async function registerRoutes(
 
   app.delete("/api/documents/:id/shares/:entityId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
@@ -5733,7 +5771,7 @@ export async function registerRoutes(
 
   app.post("/api/documents/:id/approval", async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -6414,7 +6452,7 @@ export async function registerRoutes(
   // Re-issue a document as reviewed with no content changes
   app.post("/api/documents/:id/reissue", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can re-issue documents" });
@@ -6516,7 +6554,7 @@ export async function registerRoutes(
   // Resend or change approver for a document approval notification
   app.post("/api/documents/:id/approval-notify", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -6604,7 +6642,7 @@ export async function registerRoutes(
   // Archive a document
   app.patch("/api/documents/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Unauthorized" });
       }
@@ -6734,7 +6772,7 @@ export async function registerRoutes(
 
   app.post("/api/documents/:id/archive", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -6798,7 +6836,7 @@ export async function registerRoutes(
   // Restore (unarchive) a document
   app.post("/api/documents/:id/restore", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -6860,7 +6898,7 @@ export async function registerRoutes(
 
   app.delete("/api/documents/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       if (user.role !== "developer" && !hasProPrivileges(user)) {
@@ -6917,7 +6955,7 @@ export async function registerRoutes(
       const entityId = req.query.entityId as string | undefined;
       const module = req.query.module as ModuleType | undefined;
       
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -6963,7 +7001,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Folder not found" });
       }
       
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -6982,7 +7020,7 @@ export async function registerRoutes(
 
   app.post("/api/folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7053,7 +7091,7 @@ export async function registerRoutes(
 
   app.patch("/api/folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7096,7 +7134,7 @@ export async function registerRoutes(
 
   app.delete("/api/folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7132,7 +7170,7 @@ export async function registerRoutes(
   // Provision folders from templates for a site
   app.post("/api/folders/provision", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7250,7 +7288,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Folder not found" });
       }
       
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7270,7 +7308,7 @@ export async function registerRoutes(
 
   app.post("/api/documents/:id/move", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7337,7 +7375,7 @@ export async function registerRoutes(
 
   app.post("/api/folder-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7380,7 +7418,7 @@ export async function registerRoutes(
 
   app.patch("/api/folder-templates/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7421,7 +7459,7 @@ export async function registerRoutes(
 
   app.delete("/api/folder-templates/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7458,7 +7496,7 @@ export async function registerRoutes(
 
   app.post("/api/folder-document-type-rules", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7525,7 +7563,7 @@ export async function registerRoutes(
 
   app.post("/api/folder-templates/:id/rules", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7576,7 +7614,7 @@ export async function registerRoutes(
 
   app.delete("/api/folder-template-rules/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7600,7 +7638,7 @@ export async function registerRoutes(
   // Get all document templates (optionally filtered by module or folder)
   app.get("/api/document-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as ModuleType | undefined;
       const folderTemplateId = req.query.folderTemplateId as string | undefined;
@@ -7631,7 +7669,7 @@ export async function registerRoutes(
   // Get archived document templates (template-library managers only)
   app.get("/api/document-templates-archived", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!canManageTemplateLibrary(user)) {
         return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
@@ -7646,7 +7684,7 @@ export async function registerRoutes(
   // Get single document template
   app.get("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const template = await storage.getDocumentTemplate(req.params.id);
@@ -7666,7 +7704,7 @@ export async function registerRoutes(
   // Get templates for a specific folder template
   app.get("/api/folder-templates/:id/templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folderTemplate = await storage.getFolderTemplate(req.params.id);
       if (!folderTemplate) {
@@ -7684,7 +7722,7 @@ export async function registerRoutes(
   // Create document template (admin only)
   app.post("/api/document-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7781,7 +7819,7 @@ export async function registerRoutes(
   // Bulk assign / clear sources on multiple templates (admin only) — MUST be before /:id
   app.patch("/api/document-templates/bulk-sources", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!canManageTemplateLibrary(user)) {
         return res.status(403).json({ error: "You do not have permission to manage the Template Library" });
       }
@@ -7803,7 +7841,7 @@ export async function registerRoutes(
   // Update document template (admin only, except folder reassignment which consultants can also do)
   app.patch("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7882,7 +7920,7 @@ export async function registerRoutes(
   // Bulk reorder templates within a folder (admin only)
   app.post("/api/document-templates/reorder", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -7963,7 +8001,7 @@ export async function registerRoutes(
   // Upload new version of document template (admin/consultant)
   app.post("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8049,7 +8087,7 @@ export async function registerRoutes(
   // Get template versions
   app.get("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const template = await storage.getDocumentTemplate(req.params.id);
@@ -8071,7 +8109,7 @@ export async function registerRoutes(
   // Toolkit Folder CRUD (admin only)
   app.get("/api/toolkit/folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const module = req.query.module as string | undefined;
       const allFolders = await storage.getToolkitFolders(module as any);
@@ -8104,7 +8142,7 @@ export async function registerRoutes(
 
   app.post("/api/toolkit/folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can create toolkit folders" });
 
@@ -8159,7 +8197,7 @@ export async function registerRoutes(
 
   app.patch("/api/toolkit/folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can update toolkit folders" });
 
@@ -8192,7 +8230,7 @@ export async function registerRoutes(
 
   app.delete("/api/toolkit/folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can delete toolkit folders" });
 
@@ -8235,7 +8273,7 @@ export async function registerRoutes(
   // Toolkit: get all public templates grouped by toolkit folder (all authenticated roles)
   app.get("/api/toolkit", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       // Get all toolkit folders then apply source-based visibility filter.
@@ -8312,7 +8350,7 @@ export async function registerRoutes(
   // Toolkit: replace a template's file (admin or consultant)
   app.post("/api/toolkit/:templateId/replace", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot replace template files" });
 
@@ -8384,7 +8422,7 @@ export async function registerRoutes(
   // never runs (surfaces as a misleading "Document template not found" error).
   app.delete("/api/document-templates/bulk-permanent", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8412,7 +8450,7 @@ export async function registerRoutes(
 
   app.delete("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8456,7 +8494,7 @@ export async function registerRoutes(
   // Restore archived document template (admin only)
   app.post("/api/document-templates/:id/restore", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8487,7 +8525,7 @@ export async function registerRoutes(
   // Permanently delete document template (admin only)
   app.delete("/api/document-templates/:id/permanent", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8522,7 +8560,7 @@ export async function registerRoutes(
   // Provision folders from templates for a site
   app.post("/api/sites/:siteId/provision-folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8590,7 +8628,7 @@ export async function registerRoutes(
 
   app.post("/api/training-modules", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8643,7 +8681,7 @@ export async function registerRoutes(
 
   app.patch("/api/training-modules/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8698,7 +8736,7 @@ export async function registerRoutes(
 
   app.delete("/api/training-modules/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8760,7 +8798,7 @@ export async function registerRoutes(
 
   app.post("/api/training-folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8795,7 +8833,7 @@ export async function registerRoutes(
 
   app.patch("/api/training-folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can update training folders" });
       }
@@ -8827,7 +8865,7 @@ export async function registerRoutes(
 
   app.delete("/api/training-folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can delete training folders" });
       }
@@ -8868,7 +8906,7 @@ export async function registerRoutes(
 
   app.post("/api/training-courses", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -8932,7 +8970,7 @@ export async function registerRoutes(
 
   app.patch("/api/training-courses/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can update training courses" });
       }
@@ -8999,7 +9037,7 @@ export async function registerRoutes(
 
   app.delete("/api/training-courses/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can delete training courses" });
       }
@@ -9030,7 +9068,7 @@ export async function registerRoutes(
 
   app.post("/api/training-requests", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9100,7 +9138,7 @@ export async function registerRoutes(
 
   app.patch("/api/training-requests/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9168,7 +9206,7 @@ export async function registerRoutes(
   // Training Bookings (simplified training management)
   app.get("/api/training-bookings", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9217,7 +9255,7 @@ export async function registerRoutes(
 
   app.post("/api/training-bookings", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9265,7 +9303,7 @@ export async function registerRoutes(
 
   app.patch("/api/training-bookings/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9320,7 +9358,7 @@ export async function registerRoutes(
 
   app.delete("/api/training-bookings/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9433,7 +9471,7 @@ export async function registerRoutes(
   // Companies
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9675,7 +9713,7 @@ export async function registerRoutes(
   // lite (fast) companies list has already rendered.
   app.get("/api/companies/compliance", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const [rawCompanies, allSitesForCompliance, perCompanyModuleScores] = await Promise.all([
@@ -9787,7 +9825,7 @@ export async function registerRoutes(
   // Get single company with sites
   app.get("/api/companies/:companyId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -9874,7 +9912,7 @@ export async function registerRoutes(
   // Company stats: document counts by module, case count, incident count
   app.get("/api/companies/:companyId/stats", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const company = await storage.getCompany(req.params.companyId);
@@ -9956,7 +9994,7 @@ export async function registerRoutes(
   // Admin: unrestricted. Consultant/client: must have access to the GO company itself.
   app.get("/api/companies/:companyId/group", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const company = await storage.getCompany(req.params.companyId);
@@ -10001,7 +10039,7 @@ export async function registerRoutes(
   // GET /api/companies/:companyId/accelo-links — admin (unrestricted) + consultant (company-scoped)
   app.get("/api/companies/:companyId/accelo-links", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") return res.status(403).json({ error: "Forbidden" });
 
@@ -10047,7 +10085,7 @@ export async function registerRoutes(
   // POST /api/companies/:companyId/accelo-link — upsert an Accelo link (admin + pro consultant)
   app.post("/api/companies/:companyId/accelo-link", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Forbidden" });
       const { sourceCode, acceloId, acceloStanding, acceloType, acceloColor } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null };
@@ -10075,7 +10113,7 @@ export async function registerRoutes(
   // POST /api/companies/:companyId/accelo-sync — re-fetch type + standing for all Accelo links (admin + pro consultant)
   app.post("/api/companies/:companyId/accelo-sync", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Forbidden" });
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
@@ -10143,7 +10181,7 @@ export async function registerRoutes(
   // GET /api/developer/accelo-sync-logs — admin only
   app.get("/api/developer/accelo-sync-logs", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Forbidden" });
       const limit = Math.min(parseInt(req.query.limit as string || "200", 10), 500);
       const logs = await storage.getAcceloSyncLogs(limit);
@@ -10157,7 +10195,7 @@ export async function registerRoutes(
   // GET /api/developer/scheduled-tasks — list all server scheduled tasks + current env status
   app.get("/api/developer/scheduled-tasks", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Forbidden" });
       const environment = process.env.NODE_ENV === "production" ? "production" : "development";
 
@@ -10206,7 +10244,7 @@ export async function registerRoutes(
   // PATCH /api/companies/:companyId/group-owner — set or remove a company's group owner (admin + pro consultant)
   app.patch("/api/companies/:companyId/group-owner", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Developers and Pro consultants only" });
 
@@ -10289,7 +10327,7 @@ export async function registerRoutes(
   // Create company
   app.post("/api/companies", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -10401,7 +10439,7 @@ export async function registerRoutes(
   // Update company
   app.patch("/api/companies/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -10621,7 +10659,7 @@ export async function registerRoutes(
   // Update company status only
   app.patch("/api/companies/:id/status", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -10793,7 +10831,7 @@ export async function registerRoutes(
 
   app.delete("/api/companies/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -10829,7 +10867,7 @@ export async function registerRoutes(
   // run once per company so one failure doesn't roll back the others.
   app.post("/api/companies/bulk-delete", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -10880,7 +10918,7 @@ export async function registerRoutes(
   // Eligible covering consultants for a given absent consultant
   app.get("/api/consultant-coverage/eligible-consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
       const absentConsultantId = req.query.absentConsultantId as string;
       if (!absentConsultantId) return res.status(400).json({ error: "absentConsultantId required" });
@@ -10914,7 +10952,7 @@ export async function registerRoutes(
   // Get my active coverage entries (covering for + being covered by)
   app.get("/api/consultant-coverage/my-active", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
 
       // Admins see all active arrangements
@@ -10966,7 +11004,7 @@ export async function registerRoutes(
   // Create coverage entries
   app.post("/api/consultant-coverage", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
       const { absentConsultantId, coveringConsultantIds, startDate, endDate } = req.body;
       if (!absentConsultantId || !Array.isArray(coveringConsultantIds) || coveringConsultantIds.length === 0 || !startDate || !endDate) {
@@ -11025,7 +11063,7 @@ export async function registerRoutes(
   // Admin: get all coverage entries
   app.get("/api/developer/consultant-coverage", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Forbidden" });
       const includeExpired = req.query.includeExpired === "true";
       const entries = await storage.getAllCoverageEntries(includeExpired);
@@ -11056,7 +11094,7 @@ export async function registerRoutes(
   // All consultants — admin-only, used by ArrangeCoverDialog absent picker
   app.get("/api/consultant-coverage/all-consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const consultants = await storage.getConsultants();
       res.json(consultants.map(c => ({ id: c.id, fullName: c.fullName, consultantTier: c.consultantTier })));
@@ -11069,7 +11107,7 @@ export async function registerRoutes(
   // Delete a coverage entry
   app.delete("/api/consultant-coverage/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
       const entry = await storage.getCoverageEntryById(req.params.id);
       if (!entry) return res.status(404).json({ error: "Coverage entry not found" });
@@ -11087,7 +11125,7 @@ export async function registerRoutes(
   // Sites
   app.get("/api/sites", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -11198,7 +11236,7 @@ export async function registerRoutes(
   // Called as the "phase 2" background fetch after the lite (fast) sites list has rendered.
   app.get("/api/sites/compliance", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const allSites = await storage.getSitesWithDetails(false);
@@ -11248,7 +11286,7 @@ export async function registerRoutes(
   // Create entity
   app.post("/api/sites", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -11404,7 +11442,7 @@ export async function registerRoutes(
   // Update entity
   app.patch("/api/sites/:siteId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -11455,7 +11493,7 @@ export async function registerRoutes(
   // Delete a single site — admin only
   app.delete("/api/sites/:siteId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role !== "developer") return res.status(403).json({ error: "Only developers can delete sites" });
 
@@ -11562,7 +11600,7 @@ export async function registerRoutes(
   // Get single entity
   app.get("/api/sites/:siteId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -11589,7 +11627,7 @@ export async function registerRoutes(
   // Site stats: document counts by module, case count, incident count
   app.get("/api/sites/:siteId/stats", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const canAccess = await canUserAccessSite(user, req.params.siteId);
@@ -11627,7 +11665,7 @@ export async function registerRoutes(
   // Get sites for entity
   app.get("/api/sites/:siteId/sites", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -12187,7 +12225,7 @@ export async function registerRoutes(
   // Reports
   app.get("/api/reports", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const companyId = req.query.companyId as string | undefined;
@@ -12291,7 +12329,7 @@ export async function registerRoutes(
   // Admin Report: Private Templates
   app.get("/api/developer/private-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const isProConsultant = user.role === "consultant" && user.consultantTier === "pro";
       if (user.role !== "developer" && !isProConsultant && user.role !== "administrator") {
@@ -12345,7 +12383,7 @@ export async function registerRoutes(
   // Report: Compliance Gap Report
   app.get("/api/reports/gaps", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const allowedSiteIds = await getAllowedSiteIds(user);
@@ -12436,7 +12474,7 @@ export async function registerRoutes(
   // Report: Expiry & Renewal Risk
   app.get("/api/reports/expiry-risk", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const allowedSiteIds = await getAllowedSiteIds(user);
@@ -12519,7 +12557,7 @@ export async function registerRoutes(
   // Report: Site Comparison
   app.get("/api/reports/site-comparison", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const allowedSiteIds = await getAllowedSiteIds(user);
@@ -12583,7 +12621,7 @@ export async function registerRoutes(
   // Report: Approval Pipeline
   app.get("/api/reports/approval-pipeline", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const allowedSiteIds = await getAllowedSiteIds(user);
@@ -12647,7 +12685,7 @@ export async function registerRoutes(
   // Report: Deadline & Milestone Risk
   app.get("/api/reports/deadline-risk", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const allowedSiteIds = await getAllowedSiteIds(user);
@@ -12750,7 +12788,7 @@ export async function registerRoutes(
   // Report: EL Case Status (advocate + admin only)
   app.get("/api/reports/el-cases", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const isDeveloper = user.role === "developer";
@@ -12967,7 +13005,7 @@ export async function registerRoutes(
       }
       
       // Authorization: clients can only view their own entity, consultants/admins can view any
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -12990,7 +13028,7 @@ export async function registerRoutes(
       const module = req.query.module as ModuleType | undefined;
       
       // Authorization check
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13010,7 +13048,7 @@ export async function registerRoutes(
   app.post("/api/entity-access", requireAuth, async (req, res) => {
     try {
       // Only developers can grant access
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can grant document type access" });
       }
@@ -13035,7 +13073,7 @@ export async function registerRoutes(
   app.delete("/api/entity-access/:siteId/:documentTypeId", requireAuth, async (req, res) => {
     try {
       // Only developers can revoke access
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can revoke document type access" });
       }
@@ -13058,7 +13096,7 @@ export async function registerRoutes(
   // Get all cases (with optional filters)
   app.get("/api/cases", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13184,7 +13222,7 @@ export async function registerRoutes(
   // Get single case
   app.get("/api/cases/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13231,7 +13269,7 @@ export async function registerRoutes(
   // Create case
   app.post("/api/cases", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13316,7 +13354,7 @@ export async function registerRoutes(
   // Update case
   app.patch("/api/cases/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13409,7 +13447,7 @@ export async function registerRoutes(
   // Archive a case
   app.post("/api/cases/:id/archive", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13464,7 +13502,7 @@ export async function registerRoutes(
   // Unarchive a case
   app.post("/api/cases/:id/unarchive", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13519,7 +13557,7 @@ export async function registerRoutes(
   // Delete a case (admin only) — cascades all related data
   app.delete("/api/cases/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
       if (user.role !== "developer") return res.status(403).json({ error: "Only developers can delete cases" });
 
@@ -13604,7 +13642,7 @@ export async function registerRoutes(
   // Get case documents
   app.get("/api/cases/:id/documents", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13636,7 +13674,7 @@ export async function registerRoutes(
   // Upload case document (admin/consultant only)
   app.post("/api/cases/:id/documents", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13711,7 +13749,7 @@ export async function registerRoutes(
   // Delete case document (admin/consultant only)
   app.delete("/api/cases/:caseId/documents/:docId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13757,7 +13795,7 @@ export async function registerRoutes(
   // Get case milestones
   app.get("/api/cases/:id/milestones", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13783,7 +13821,7 @@ export async function registerRoutes(
   // Create milestone
   app.post("/api/milestones", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13831,7 +13869,7 @@ export async function registerRoutes(
   // Update milestone (mark complete)
   app.patch("/api/milestones/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13909,7 +13947,7 @@ export async function registerRoutes(
   // Delete milestone
   app.delete("/api/milestones/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -13959,7 +13997,7 @@ export async function registerRoutes(
   // Get checklist items for a case
   app.get("/api/cases/:id/checklist", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const caseData = await storage.getCase(req.params.id);
@@ -13980,7 +14018,7 @@ export async function registerRoutes(
   // Create checklist item
   app.post("/api/checklist", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       if (user.role === "client") {
@@ -14037,7 +14075,7 @@ export async function registerRoutes(
   // Update checklist item (mark complete / edit)
   app.patch("/api/checklist/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const existing = await storage.getCaseDocumentChecklistItem(req.params.id);
@@ -14103,7 +14141,7 @@ export async function registerRoutes(
   // Delete checklist item
   app.delete("/api/checklist/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       if (user.role === "client") {
@@ -14142,7 +14180,7 @@ export async function registerRoutes(
   // List bundles for a case
   app.get("/api/cases/:id/bundles", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
@@ -14163,7 +14201,7 @@ export async function registerRoutes(
   // Create bundle
   app.post("/api/cases/:id/bundles", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot create bundles" });
       const caseData = await storage.getCase(req.params.id);
@@ -14201,7 +14239,7 @@ export async function registerRoutes(
   // Update bundle (rename or change items — also clears cache)
   app.patch("/api/cases/:caseId/bundles/:bundleId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot edit bundles" });
 
@@ -14247,7 +14285,7 @@ export async function registerRoutes(
   // Delete bundle
   app.delete("/api/cases/:caseId/bundles/:bundleId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot delete bundles" });
 
@@ -14281,7 +14319,7 @@ export async function registerRoutes(
 
     let tempDir: string | null = null;
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
       const bundle = await storage.getCaseBundle(req.params.bundleId);
@@ -14445,7 +14483,7 @@ export async function registerRoutes(
   // Case Notes
   app.get("/api/cases/:id/notes", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const notes = await storage.getCaseNotes(req.params.id);
       const allUsers = await storage.getAllUsers();
@@ -14460,7 +14498,7 @@ export async function registerRoutes(
 
   app.post("/api/cases/:id/notes", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot add case notes" });
 
@@ -14483,7 +14521,7 @@ export async function registerRoutes(
 
   app.patch("/api/notes/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot edit case notes" });
 
@@ -14506,7 +14544,7 @@ export async function registerRoutes(
 
   app.delete("/api/notes/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot delete case notes" });
 
@@ -14527,7 +14565,7 @@ export async function registerRoutes(
   // Get case audit logs
   app.get("/api/cases/:id/audit", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -14558,7 +14596,7 @@ export async function registerRoutes(
   // Get module access for current user (based on their company's module access)
   app.get("/api/user/module-access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -14626,7 +14664,7 @@ export async function registerRoutes(
   // Get module access for an entity
   app.get("/api/sites/:siteId/module-access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -14648,7 +14686,7 @@ export async function registerRoutes(
   // Set module access for an entity (admin/consultant only)
   app.post("/api/sites/:siteId/module-access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -14714,7 +14752,7 @@ export async function registerRoutes(
   // Get module access for a company
   app.get("/api/companies/:companyId/module-access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -14750,7 +14788,7 @@ export async function registerRoutes(
   // Set module access for a company (admin only)
   app.post("/api/companies/:companyId/module-access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -14836,7 +14874,7 @@ export async function registerRoutes(
   // Company Required Templates Routes
   app.get("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14864,7 +14902,7 @@ export async function registerRoutes(
 
   app.put("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14903,7 +14941,7 @@ export async function registerRoutes(
 
   app.post("/api/companies/:companyId/required-templates", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14930,7 +14968,7 @@ export async function registerRoutes(
 
   app.delete("/api/companies/:companyId/required-templates/:templateId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14955,7 +14993,7 @@ export async function registerRoutes(
   // Site Template Overrides — per-site required document additions/exclusions
   app.get("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14970,7 +15008,7 @@ export async function registerRoutes(
 
   app.post("/api/sites/:siteId/template-overrides", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14990,7 +15028,7 @@ export async function registerRoutes(
 
   app.delete("/api/sites/:siteId/template-overrides/:templateId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -15008,7 +15046,7 @@ export async function registerRoutes(
   // Get documents hierarchy for a site module (folder-based view with compliance stats)
   app.get("/api/sites/:siteId/modules/:module/documents-hierarchy", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -15662,7 +15700,7 @@ export async function registerRoutes(
   // entity company for company/group scope. Same rule is enforced again on upload.
   app.get("/api/eligible-sign-off-consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -15727,7 +15765,7 @@ export async function registerRoutes(
 
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -15973,7 +16011,7 @@ export async function registerRoutes(
   // Create user (admin only) - creates with invited status and generates invite token
   app.post("/api/users", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16157,7 +16195,7 @@ export async function registerRoutes(
   // Create user for an entity (site) - with invitation flow
   app.post("/api/sites/:siteId/users", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16257,7 +16295,7 @@ export async function registerRoutes(
   // Get users for an entity
   app.get("/api/sites/:siteId/users", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16284,7 +16322,7 @@ export async function registerRoutes(
   // Get all client users belonging to a company (used for scoped/group documents)
   app.get("/api/companies/:companyId/users", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16314,7 +16352,7 @@ export async function registerRoutes(
   // Get all consultants with entity assignments
   app.get("/api/consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16357,7 +16395,7 @@ export async function registerRoutes(
   // Get consultants managed by the current pro consultant
   app.get("/api/consultants/my-staff", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isProConsultant(user) && user.role !== "developer") {
         return res.status(403).json({ error: "Access denied" });
@@ -16374,7 +16412,7 @@ export async function registerRoutes(
   // Create a new consultant
   app.post("/api/consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16420,7 +16458,7 @@ export async function registerRoutes(
   // Get consultant assignments for an entity
   app.get("/api/sites/:siteId/consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16456,7 +16494,7 @@ export async function registerRoutes(
   // Assign consultant to entity
   app.post("/api/sites/:siteId/consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16515,7 +16553,7 @@ export async function registerRoutes(
   // Remove consultant assignment
   app.delete("/api/sites/:siteId/consultants/:consultantId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16560,7 +16598,7 @@ export async function registerRoutes(
   // Update consultant assignment (set primary)
   app.patch("/api/sites/:siteId/consultants/:consultantId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16615,7 +16653,7 @@ export async function registerRoutes(
   // Get client site assignments for a site
   app.get("/api/sites/:siteId/client-assignments", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16663,7 +16701,7 @@ export async function registerRoutes(
   // Assign client to site
   app.post("/api/sites/:siteId/client-assignments", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16734,7 +16772,7 @@ export async function registerRoutes(
   // Remove client site assignment
   app.delete("/api/sites/:siteId/client-assignments/:clientId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16791,7 +16829,7 @@ export async function registerRoutes(
   // Get sites assigned to a specific client
   app.get("/api/users/:clientId/site-assignments", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16852,7 +16890,7 @@ export async function registerRoutes(
   // Get all site assignments for any user (consultants or clients)
   app.get("/api/users/:userId/all-site-assignments", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -16933,7 +16971,7 @@ export async function registerRoutes(
   // Add site assignment to user (admin only)
   app.post("/api/users/:userId/site-assignments/:siteId", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -17042,7 +17080,7 @@ export async function registerRoutes(
   // Remove site assignment from user (admin, pro consultant, or standard consultant for their assigned companies)
   app.delete("/api/users/:userId/site-assignments", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) return res.status(401).json({ error: "Unauthorized" });
       const isStdConsultant = currentUser.role === "consultant" && !isProConsultant(currentUser);
       if (currentUser.role !== "developer" && !hasProPrivileges(currentUser) && !isStdConsultant) {
@@ -17084,7 +17122,7 @@ export async function registerRoutes(
 
   app.delete("/api/users/:userId/site-assignments/:siteId", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -17181,7 +17219,7 @@ export async function registerRoutes(
   // Delete user (admin only) - keeps audit logs
   app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || (currentUser.role !== "developer" && !hasProPrivileges(currentUser))) {
         return res.status(403).json({ error: "Only developers and pro consultants can delete users" });
       }
@@ -17266,7 +17304,7 @@ export async function registerRoutes(
    */
   app.delete("/api/users/:id/mfa", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) return res.status(401).json({ error: "Not authenticated" });
       const canReset = currentUser.role === "developer" || currentUser.role === "administrator" || currentUser.role === "consultant";
       if (!canReset) return res.status(403).json({ error: "Access denied" });
@@ -17303,7 +17341,7 @@ export async function registerRoutes(
   // Update user
   app.patch("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(401).json({ error: "User not found" });
       }
@@ -17463,7 +17501,7 @@ export async function registerRoutes(
   // Update consultant permissions (admin-only)
   app.patch("/api/users/:id/permissions", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || currentUser.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -17533,7 +17571,7 @@ export async function registerRoutes(
   // Get all roadmap items
   app.get("/api/roadmap", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -17549,7 +17587,7 @@ export async function registerRoutes(
   // Create roadmap item
   app.post("/api/roadmap", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -17581,7 +17619,7 @@ export async function registerRoutes(
   // Update roadmap item
   app.patch("/api/roadmap/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -17627,7 +17665,7 @@ export async function registerRoutes(
   // Delete roadmap item
   app.delete("/api/roadmap/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -17692,7 +17730,7 @@ export async function registerRoutes(
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const currentUser = await storage.getUser(sessionUserId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -17725,7 +17763,7 @@ export async function registerRoutes(
       if (!sessionUserId) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const currentUser = await storage.getUser(sessionUserId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Only developers and administrators can manage legal documents" });
       }
@@ -18233,7 +18271,7 @@ export async function registerRoutes(
   // Upload a file (photo or document) attached to an incident
   app.post("/api/incidents/:id/upload", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
@@ -18395,7 +18433,7 @@ export async function registerRoutes(
 
   app.post("/api/incidents", requireAuth, async (req, res) => {
     try {
-      const freshUser = await storage.getUser((req.session as any).userId);
+      const freshUser = await getSessionUser(req);
       if (!freshUser) return res.status(401).json({ error: "User not found" });
       const user = freshUser;
       const body = req.body;
@@ -19213,7 +19251,7 @@ export async function registerRoutes(
   // Delete an incident (admin only) — cascades all related data
   app.delete("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
       if (user.role !== "developer") return res.status(403).json({ error: "Only developers can delete incidents" });
 
@@ -19275,7 +19313,7 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id/audit", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
       const incident = await storage.getIncident(req.params.id);
@@ -19314,7 +19352,7 @@ export async function registerRoutes(
 
   app.post("/api/incidents/:id/documents", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
@@ -19380,7 +19418,7 @@ export async function registerRoutes(
 
   app.patch("/api/incidents/:incidentId/documents/:docId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.incidentId);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
@@ -19405,7 +19443,7 @@ export async function registerRoutes(
 
   app.delete("/api/incidents/:incidentId/documents/:docId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Authentication required" });
       const incident = await storage.getIncident(req.params.incidentId);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
@@ -19648,7 +19686,7 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const { module, siteId } = req.query as { module?: string; siteId?: string };
       if (!module) return res.status(400).json({ error: "module is required" });
@@ -19676,7 +19714,7 @@ export async function registerRoutes(
 
   app.post("/api/client-upload-folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const body = req.body;
       const { name, description, module, siteId, allocatedClientId } = body;
@@ -19789,7 +19827,7 @@ export async function registerRoutes(
 
   app.delete("/api/client-upload-folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -19849,7 +19887,7 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders/:id/access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -19865,7 +19903,7 @@ export async function registerRoutes(
 
   app.post("/api/client-upload-folders/:id/access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -19905,7 +19943,7 @@ export async function registerRoutes(
 
   app.delete("/api/client-upload-folders/:id/access/:userId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -19939,7 +19977,7 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders/:id/grantable-users", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.id);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -19955,7 +19993,7 @@ export async function registerRoutes(
 
   app.get("/api/client-upload-folders/:folderId/files", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.folderId);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -19971,7 +20009,7 @@ export async function registerRoutes(
 
   app.post("/api/client-uploads", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const { folderId, fileName, fileSize, fileUrl, description } = req.body;
       if (!folderId || !fileName || !fileSize || !fileUrl) {
@@ -20149,7 +20187,7 @@ export async function registerRoutes(
 
   app.get("/api/client-uploads/:id/download", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const upload = await storage.getClientUpload(req.params.id);
       if (!upload) return res.status(404).json({ error: "File not found" });
@@ -20182,7 +20220,7 @@ export async function registerRoutes(
 
   app.delete("/api/client-uploads/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const upload = await storage.getClientUpload(req.params.id);
       if (!upload) return res.status(404).json({ error: "File not found" });
@@ -20238,7 +20276,7 @@ export async function registerRoutes(
 
   app.post("/api/client-upload-folders/:folderId/download", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       const folder = await storage.getClientUploadFolder(req.params.folderId);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -20296,7 +20334,7 @@ export async function registerRoutes(
   // ─── Generic file upload to object storage (returns objectPath) ─────────────
   app.post("/api/uploads/file", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Authentication required" });
 
       const rawFileName = req.headers["x-file-name"] as string | undefined;
@@ -20428,7 +20466,7 @@ export async function registerRoutes(
   // Recipient picker — consultants only
   app.get("/api/ishare/consultants", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const consultants = await storage.getIshareRecipients();
@@ -20441,7 +20479,7 @@ export async function registerRoutes(
 
   app.get("/api/ishare-folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
 
@@ -20457,7 +20495,7 @@ export async function registerRoutes(
 
   app.post("/api/ishare-folders", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
 
@@ -20535,7 +20573,7 @@ export async function registerRoutes(
 
   app.delete("/api/ishare-folders/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
 
@@ -20586,7 +20624,7 @@ export async function registerRoutes(
 
   app.get("/api/ishare-folders/:id/access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const folder = await storage.getIshareFolder(req.params.id);
@@ -20603,7 +20641,7 @@ export async function registerRoutes(
 
   app.post("/api/ishare-folders/:id/access", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const folder = await storage.getIshareFolder(req.params.id);
@@ -20644,7 +20682,7 @@ export async function registerRoutes(
 
   app.delete("/api/ishare-folders/:id/access/:userId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const folder = await storage.getIshareFolder(req.params.id);
@@ -20678,7 +20716,7 @@ export async function registerRoutes(
 
   app.get("/api/ishare-folders/:id/grantable-users", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const folder = await storage.getIshareFolder(req.params.id);
@@ -20695,7 +20733,7 @@ export async function registerRoutes(
 
   app.get("/api/ishare-folders/:folderId/files", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const folder = await storage.getIshareFolder(req.params.folderId);
@@ -20712,7 +20750,7 @@ export async function registerRoutes(
 
   app.post("/api/ishares", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const { folderId, fileName, fileSize, fileUrl, description } = req.body;
@@ -20825,7 +20863,7 @@ export async function registerRoutes(
 
   app.get("/api/ishares/:id/download", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const upload = await storage.getIshare(req.params.id);
@@ -20858,7 +20896,7 @@ export async function registerRoutes(
 
   app.delete("/api/ishares/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const upload = await storage.getIshare(req.params.id);
@@ -20914,7 +20952,7 @@ export async function registerRoutes(
 
   app.post("/api/ishare-folders/:folderId/download", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const folder = await storage.getIshareFolder(req.params.folderId);
@@ -20972,7 +21010,7 @@ export async function registerRoutes(
   // Toolkit download tracking
   app.post("/api/toolkit/download", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       
       const { templateId, siteId } = req.body;
@@ -21009,7 +21047,7 @@ export async function registerRoutes(
   // Toolkit stats
   app.get("/api/toolkit/stats", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const { companyName } = req.query;
@@ -21070,7 +21108,7 @@ export async function registerRoutes(
 
   app.post("/api/toolkit/pathways", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       if (!title || !tree) return res.status(400).json({ error: "title and tree are required" });
@@ -21084,7 +21122,7 @@ export async function registerRoutes(
 
   app.patch("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       // Whitelist only mutable fields to prevent unintended overwrites
       const { title, description, module, tree, isActive, sortOrder } = req.body;
@@ -21106,7 +21144,7 @@ export async function registerRoutes(
 
   app.delete("/api/toolkit/pathways/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteDocumentPathway(req.params.id);
       if (!ok) return res.status(404).json({ error: "Pathway not found" });
@@ -21132,7 +21170,7 @@ export async function registerRoutes(
 
   app.post("/api/training/pathways", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       if (!title || !tree) return res.status(400).json({ error: "title and tree are required" });
@@ -21146,7 +21184,7 @@ export async function registerRoutes(
 
   app.patch("/api/training/pathways/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { title, description, module, tree, isActive, sortOrder } = req.body;
       const updates: Record<string, unknown> = {};
@@ -21167,7 +21205,7 @@ export async function registerRoutes(
 
   app.delete("/api/training/pathways/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteTrainingPathway(req.params.id);
       if (!ok) return res.status(404).json({ error: "Pathway not found" });
@@ -21194,7 +21232,7 @@ export async function registerRoutes(
 
   app.get("/api/testing-task-lists", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -21209,7 +21247,7 @@ export async function registerRoutes(
 
   app.post("/api/testing-task-lists", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = taskListSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21229,7 +21267,7 @@ export async function registerRoutes(
 
   app.patch("/api/testing-task-lists/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = taskListSchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21251,7 +21289,7 @@ export async function registerRoutes(
 
   app.delete("/api/testing-task-lists/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteTestingTaskList(req.params.id);
       if (!ok) return res.status(404).json({ error: "Task list not found" });
@@ -21266,7 +21304,7 @@ export async function registerRoutes(
 
   app.get("/api/testing-task-assignments/my", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -21280,7 +21318,7 @@ export async function registerRoutes(
 
   app.get("/api/testing-task-assignments", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const taskListId = typeof req.query.taskListId === "string" ? req.query.taskListId : undefined;
       const assignments = await storage.getTestingTaskAssignments(taskListId);
@@ -21293,7 +21331,7 @@ export async function registerRoutes(
 
   app.post("/api/testing-task-assignments", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ taskListId: z.string(), assignedTo: z.string() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21319,7 +21357,7 @@ export async function registerRoutes(
 
   app.patch("/api/testing-task-assignments/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -21342,7 +21380,7 @@ export async function registerRoutes(
 
   app.delete("/api/testing-task-assignments/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const ok = await storage.deleteTestingTaskAssignment(req.params.id);
       if (!ok) return res.status(404).json({ error: "Assignment not found" });
@@ -21363,7 +21401,7 @@ export async function registerRoutes(
 
   app.get("/api/sources", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const includeInactive = req.query.includeInactive === "true" && user?.role === "developer";
       const sources = await storage.getSources(!includeInactive);
       res.json(sources);
@@ -21375,7 +21413,7 @@ export async function registerRoutes(
 
   app.post("/api/sources", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = createSourceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21415,7 +21453,7 @@ export async function registerRoutes(
 
   app.patch("/api/sources/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ isActive: z.boolean() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21432,7 +21470,7 @@ export async function registerRoutes(
 
   app.get("/api/badge-types", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
       const activeOnly = req.query.activeOnly === "true";
       const types = await storage.getBadgeTypes(activeOnly);
@@ -21445,7 +21483,7 @@ export async function registerRoutes(
 
   app.post("/api/badge-types", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ label: z.string().min(1), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21460,7 +21498,7 @@ export async function registerRoutes(
 
   app.patch("/api/badge-types/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const parsed = z.object({ label: z.string().min(1).optional(), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
@@ -21476,7 +21514,7 @@ export async function registerRoutes(
 
   app.delete("/api/badge-types/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const deleted = await storage.deleteBadgeType(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Badge type not found" });
@@ -21509,7 +21547,7 @@ export async function registerRoutes(
 
   app.get("/api/services", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
       const activeOnly = req.query.activeOnly === "true";
       const validModules = ["health_safety", "human_resources", "employment_law"] as const;
@@ -21528,7 +21566,7 @@ export async function registerRoutes(
 
   app.post("/api/services", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = createServiceSchema.safeParse(req.body);
@@ -21544,7 +21582,7 @@ export async function registerRoutes(
 
   app.patch("/api/services/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = updateServiceSchema.safeParse(req.body);
@@ -21561,7 +21599,7 @@ export async function registerRoutes(
 
   app.delete("/api/services/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const deleted = await storage.deleteService(req.params.id);
@@ -21575,7 +21613,7 @@ export async function registerRoutes(
 
   app.get("/api/services/:id/components", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
       const components = await storage.getServiceComponents(req.params.id);
       res.json(components);
@@ -21587,7 +21625,7 @@ export async function registerRoutes(
 
   app.post("/api/services/:id/components", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = z.object({ componentServiceId: z.string().min(1) }).safeParse(req.body);
@@ -21610,7 +21648,7 @@ export async function registerRoutes(
 
   app.delete("/api/services/:id/components/:componentId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const removed = await storage.removeServiceComponent(req.params.id, req.params.componentId);
@@ -21624,7 +21662,7 @@ export async function registerRoutes(
 
   app.get("/api/companies/:id/services", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
       const assigned = await storage.getCompanyServices(req.params.id);
       res.json(assigned);
@@ -21636,7 +21674,7 @@ export async function registerRoutes(
 
   app.post("/api/companies/:id/services", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = z.object({ serviceId: z.string().min(1) }).safeParse(req.body);
@@ -21683,7 +21721,7 @@ export async function registerRoutes(
 
   app.delete("/api/companies/:id/services/:serviceId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const removed = await storage.removeCompanyService(req.params.id, req.params.serviceId);
@@ -21699,7 +21737,7 @@ export async function registerRoutes(
   // ─── Changelog ────────────────────────────────────────────────────────────
 
   const changelogAdminGuard = async (req: any, res: any) => {
-    const user = await storage.getUser((req.session as any)?.userId);
+    const user = await getSessionUser(req);
     if (!user || user.role !== "developer") {
       res.status(403).json({ error: "Developer only" });
       return null;
@@ -22097,7 +22135,7 @@ export async function registerRoutes(
    */
   app.get("/api/developer/email-logs", requireAuth, async (req: any, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -22182,7 +22220,7 @@ export async function registerRoutes(
    */
   app.get("/api/developer/email-logs/:id", requireAuth, async (req: any, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") {
         return res.status(403).json({ error: "Developer access required" });
       }
@@ -22212,7 +22250,7 @@ export async function registerRoutes(
    */
   app.get("/api/email-settings", requireAuth, async (req: any, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -22253,7 +22291,7 @@ export async function registerRoutes(
    */
   app.put("/api/email-settings", requireAuth, async (req: any, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "administrator")) {
         return res.status(403).json({ error: "Admin access required" });
       }
@@ -22310,7 +22348,7 @@ export async function registerRoutes(
   // ── Home Summary ────────────────────────────────────────────────────────────
   app.get("/api/home-summary", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const isPrivileged = user.role === "developer" || user.role === "consultant" || user.role === "administrator";
@@ -22607,7 +22645,7 @@ export async function registerRoutes(
 
   app.get("/api/alert-counts", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const isPrivileged = user.role === "developer" || user.role === "consultant" || user.role === "administrator";
@@ -22802,7 +22840,7 @@ export async function registerRoutes(
   // Mark a surface as seen ("now"), called when the user opens/views that surface.
   app.post("/api/alert-counts/seen", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       const surface = (req.body?.surface ?? "").toString();
       const valid =
@@ -22821,7 +22859,7 @@ export async function registerRoutes(
   // ── Home Summary Items (modal drill-down) ────────────────────────────────────
   app.get("/api/home-summary/items", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const type = (req.query.type as string) ?? "";
@@ -23019,7 +23057,7 @@ export async function registerRoutes(
   // ── Key Contacts ──────────────────────────────────────────────────────────────
   app.get("/api/key-contacts/user-ids", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
 
       // Developers see the full global set; all other staff are restricted to key contacts
@@ -23050,7 +23088,7 @@ export async function registerRoutes(
 
   app.get("/api/key-contacts", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
 
       const { entityType, entityId } = req.query;
@@ -23077,7 +23115,7 @@ export async function registerRoutes(
 
   app.post("/api/key-contacts", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
 
@@ -23174,7 +23212,7 @@ export async function registerRoutes(
 
   app.delete("/api/key-contacts/:userId/:entityType/:entityId", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Developer or Pro Consultant access required" });
 
@@ -23228,7 +23266,7 @@ export async function registerRoutes(
   // ── Portal Messages ──────────────────────────────────────────────────────────
   app.get("/api/portal-messages", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       if (user.role === "developer") {
@@ -23246,7 +23284,7 @@ export async function registerRoutes(
 
   app.post("/api/portal-messages", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer access required" });
 
       const { insertPortalMessageSchema } = await import("@shared/schema");
@@ -23270,7 +23308,7 @@ export async function registerRoutes(
 
   app.patch("/api/portal-messages/:id", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer access required" });
 
       const existing = await storage.getPortalMessage(req.params.id);
@@ -23303,7 +23341,7 @@ export async function registerRoutes(
 
   app.get("/api/my-actions", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const userId = user.id;
@@ -23686,7 +23724,7 @@ export async function registerRoutes(
 
   app.delete("/api/portal-messages/:id", async (req, res) => {
     try {
-      const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer access required" });
 
       const ok = await storage.deletePortalMessage(req.params.id);
@@ -23723,7 +23761,7 @@ export async function registerRoutes(
   // Accessible to: admin (all sources), pro consultant (their sources only)
   app.get("/api/integrations/accelo/status", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(403).json({ error: "Forbidden" });
       const allowed = allowedAcceloSources(user);
       if (allowed !== "all" && allowed.length === 0) return res.status(403).json({ error: "Forbidden" });
@@ -23754,7 +23792,7 @@ export async function registerRoutes(
   // GET /api/integrations/accelo/connect?source=GS — start OAuth flow (admin only)
   app.get("/api/integrations/accelo/connect", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       const integration = await getIntegration(sourceCode);
@@ -23773,6 +23811,18 @@ export async function registerRoutes(
   // GET /auth/accelo/callback — OAuth callback (public, browser redirect)
   app.get("/auth/accelo/callback", async (req, res) => {
     try {
+      // The nonce alone only proves the browser started the flow — it does not
+      // prove the account is still allowed to manage integrations. Re-verify
+      // the caller is still logged in as an active developer before persisting
+      // any tokens, so a session that was revoked mid-flow can't complete it.
+      const callerId = (req.session as any)?.userId;
+      if (!callerId) {
+        return res.redirect("/admin/integrations/accelo?error=invalid_state");
+      }
+      const caller = await storage.getUser(callerId);
+      if (!caller || caller.role !== "developer" || caller.status === "inactive" || caller.status === "locked") {
+        return res.redirect("/admin/integrations/accelo?error=invalid_state");
+      }
       const { code, state, error } = req.query as Record<string, string>;
       if (error) {
         return res.redirect(`/admin/integrations/accelo?error=${encodeURIComponent(error)}`);
@@ -23797,7 +23847,7 @@ export async function registerRoutes(
   // GET /api/integrations/accelo/webhook-secret?source=GS — webhook secret for display (admin only)
   app.get("/api/integrations/accelo/webhook-secret", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       // Per-source secret env var only — no global fallback (ACCELO_WEBHOOK_SECRET_<SOURCE>)
@@ -23811,7 +23861,7 @@ export async function registerRoutes(
   // DELETE /api/integrations/accelo/disconnect?source=GS — remove stored tokens (admin only)
   app.delete("/api/integrations/accelo/disconnect", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       await clearTokens(sourceCode);
@@ -24097,7 +24147,7 @@ export async function registerRoutes(
   // GET /api/integrations/accelo/search?q=&source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/search", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(403).json({ error: "Forbidden" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
@@ -24116,7 +24166,7 @@ export async function registerRoutes(
   // GET /api/integrations/accelo/companies/:acceloId?source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/companies/:acceloId", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(403).json({ error: "Forbidden" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
@@ -24140,7 +24190,7 @@ export async function registerRoutes(
   // GET /api/integrations/accelo/companies/:acceloId/contacts?source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/companies/:acceloId/contacts", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user) return res.status(403).json({ error: "Forbidden" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
@@ -24166,7 +24216,7 @@ export async function registerRoutes(
   // POST /api/integrations/accelo/import-contacts — admin or pro consultant (source in body)
   app.post("/api/integrations/accelo/import-contacts", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUser((req.session as any).userId);
+      const currentUser = await getSessionUser(req);
       if (!currentUser) return res.status(403).json({ error: "Forbidden" });
       const sourceCode = ((req.body.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(currentUser, sourceCode)) return res.status(403).json({ error: "Forbidden" });
@@ -24304,7 +24354,7 @@ export async function registerRoutes(
   // GET /api/developer/accelo-integrations — list all integrations
   app.get("/api/developer/accelo-integrations", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const [integrations, sourceLabelMap] = await Promise.all([listIntegrations(), getSourceLabels()]);
       res.json(integrations.map(i => ({
@@ -24331,7 +24381,7 @@ export async function registerRoutes(
   // Accelo right now (bypasses the cached expires_at) and persists the result.
   app.post("/api/developer/accelo-integrations/:sourceCode/verify", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = req.params.sourceCode.toUpperCase();
       const result = await verifyConnection(sourceCode);
@@ -24345,7 +24395,7 @@ export async function registerRoutes(
   // POST /api/developer/accelo-integrations — create a new integration
   app.post("/api/developer/accelo-integrations", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const schema = z.object({
         sourceCode: z.string().min(1).max(8).toUpperCase(),
@@ -24369,7 +24419,7 @@ export async function registerRoutes(
   // PATCH /api/developer/accelo-integrations/:sourceCode — update an integration
   app.patch("/api/developer/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const { sourceCode } = req.params;
       const schema = z.object({
@@ -24393,7 +24443,7 @@ export async function registerRoutes(
   // Blocked if the integration still has active tokens (must disconnect first)
   app.delete("/api/developer/accelo-integrations/:sourceCode", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser((req.session as any).userId);
+      const user = await getSessionUser(req);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const code = req.params.sourceCode.toUpperCase();
       const integration = await getIntegration(code);

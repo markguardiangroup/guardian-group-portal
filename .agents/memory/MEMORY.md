@@ -17,3 +17,4 @@
 - [Bundle generation hardening](bundle-generation-hardening.md) — headless-Chromium SSRF needs sanitization + network-isolation flags together; multi-doc merges need item-count + cumulative-byte + per-user concurrency limits.
 - [Upload ownership claim pattern](upload-ownership-claim-pattern.md) — client-supplied fileUrl/objectPath fields must be claimed (owner+not-already-used check) before binding to a record, or files can be rebound/reused.
 - [Presigned upload size enforcement](presigned-upload-size-enforcement.md) — sidecar signed-URL API can't enforce byte size/content-type at signing time; enforce actual size at claim time + sweep unclaimed uploads.
+- [Session revocation coverage](session-revocation-coverage.md) — hardening requireAuth alone misses routes that read req.session.userId directly; must audit and patch every such call site.

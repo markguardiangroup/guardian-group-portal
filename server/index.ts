@@ -95,9 +95,26 @@ const uploadLimiter = rateLimit({
   skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
-// Apply rate limiting
+// Forgot-password rate limiting – keyed by the submitted email so one address
+// can't be used to flood a victim's inbox or repeatedly invalidate their
+// still-valid reset links. Also capped per-IP (via the outer apiLimiter) to
+// blunt scans across many addresses.
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { error: "Too many password reset requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = req.body?.email ?? "anonymous";
+    return String(email).toLowerCase();
+  },
+  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
+  validate: { keyGeneratorIpFallback: false },
+});
+
+// IP-only rate limiters (don't need a parsed body) are applied immediately.
 app.use("/api/", apiLimiter);
-app.use("/api/auth/login", authLimiter);
 app.use("/api/integrations/accelo/push", acceloPushLimiter);
 
 declare module "http" {
@@ -116,6 +133,12 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// Body-keyed rate limiters must be mounted after the body parsers above, or
+// req.body is always undefined and every request collapses into a single
+// shared "anonymous" bucket — defeating the per-account limiting entirely.
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/forgot-password", forgotPasswordLimiter);
 
 // Session configuration with security hardening - using PostgreSQL for persistence
 const PgSession = connectPgSimple(session);
