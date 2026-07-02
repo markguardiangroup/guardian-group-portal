@@ -10604,6 +10604,13 @@
           "message": "Admins now scoped by source like Pro Consultants — no unscoped access",
           "category": "other",
           "createdAt": "2026-07-02T18:49:06.876Z"
+        },
+        {
+          "id": "a5bc58fe-5ded-4c08-97e9-b8dabf90f7ad",
+          "patch": 22,
+          "message": "Fixed: incident reports secured against script injection and access bypass",
+          "category": "bug",
+          "createdAt": "2026-07-02T19:09:54.443Z"
         }
       ],
       "publishedPatch": 21,

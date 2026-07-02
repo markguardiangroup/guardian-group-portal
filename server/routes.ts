@@ -18917,6 +18917,18 @@ export async function registerRoutes(
     }
   });
 
+  // Escapes untrusted values before they are interpolated into the generated
+  // report HTML, preventing stored XSS from incident fields.
+  function escapeHtml(v: unknown): string {
+    if (v === null || v === undefined) return "";
+    return String(v)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   // ─── Investigation Report Download ────────────────────────────────────────────
   app.get("/api/incidents/:id/initial-report", requireAuth, async (req, res) => {
     try {
@@ -18933,8 +18945,8 @@ export async function registerRoutes(
 
       const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
       const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;
-      const siteName = site?.name ?? "—";
-      const companyName = company?.name ?? "—";
+      const siteName = escapeHtml(site?.name ?? "—");
+      const companyName = escapeHtml(company?.name ?? "—");
 
       const fmt = (d: string | Date | null | undefined) =>
         d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
@@ -18942,11 +18954,11 @@ export async function registerRoutes(
         v === null || v === undefined ? '<span class="empty">Not recorded</span>' : v ? "Yes" : "No";
       const textVal = (v: string | null | undefined) =>
         v === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' :
-        v && v.trim() ? v.replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
+        v && v.trim() ? escapeHtml(v).replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
       const field = (label: string, value: string) =>
-        `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`;
+        `<tr><td class="label">${escapeHtml(label)}</td><td class="value">${value}</td></tr>`;
       const nameCell = (n: string | null | undefined) =>
-        n === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' : (n || "—");
+        n === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' : (n ? escapeHtml(n) : "—");
 
       let initialWitnesses: { name: string; jobRole: string; company: string }[] = [];
       try {
@@ -18961,14 +18973,14 @@ export async function registerRoutes(
       try { if (incident.bodyDiagramMarkers) bodyZones = JSON.parse(incident.bodyDiagramMarkers); } catch {}
 
       const causePills = Array.isArray(incident.incidentCause) && incident.incidentCause.length > 0
-        ? incident.incidentCause.map((c: string) => `<span class="pill">${c}</span>`).join("")
+        ? incident.incidentCause.map((c: string) => `<span class="pill">${escapeHtml(c)}</span>`).join("")
         : '<span class="empty">None recorded</span>';
       const effectPills = Array.isArray(incident.incidentEffect) && incident.incidentEffect.length > 0
-        ? incident.incidentEffect.map((e: string) => `<span class="pill">${e}</span>`).join("")
+        ? incident.incidentEffect.map((e: string) => `<span class="pill">${escapeHtml(e)}</span>`).join("")
         : '<span class="empty">None recorded</span>';
 
       const immediateActionsHtml = incident.immediateActions?.trim()
-        ? incident.immediateActions.split("\n").filter(Boolean).map((line: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:3px;color:#111827">${line.trim()}</li>`).join("")
+        ? incident.immediateActions.split("\n").filter(Boolean).map((line: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:3px;color:#111827">${escapeHtml(line.trim())}</li>`).join("")
         : null;
 
       const initialWitnessRows = initialWitnesses.length > 0
@@ -18978,8 +18990,8 @@ export async function registerRoutes(
             </tr></thead>
             <tbody>${initialWitnesses.map(w => `<tr>
               <td class="td">${nameCell(w.name)}</td>
-              <td class="td">${w.jobRole || "—"}</td>
-              <td class="td">${w.company || "—"}</td>
+              <td class="td">${escapeHtml(w.jobRole) || "—"}</td>
+              <td class="td">${escapeHtml(w.company) || "—"}</td>
             </tr>`).join("")}</tbody>
           </table>`
         : '<p class="empty" style="margin-top:6px">No witnesses recorded</p>';
@@ -18989,7 +19001,7 @@ export async function registerRoutes(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Incident Report – ${incident.incidentReference}</title>
+<title>Incident Report – ${escapeHtml(incident.incidentReference)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;color:#111827;background:#f9fafb;padding:24px}
@@ -19032,7 +19044,7 @@ export async function registerRoutes(
     <div>
       <div style="font-size:11px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Guardian Group</div>
       <h1>Incident Report</h1>
-      <div class="ref-badge">${incident.incidentReference}</div>
+      <div class="ref-badge">${escapeHtml(incident.incidentReference)}</div>
     </div>
     <div class="meta">
       <div>${companyName}</div>
@@ -19041,23 +19053,23 @@ export async function registerRoutes(
       <div style="margin-top:4px;font-size:11px;opacity:.65">Generated ${new Date().toLocaleString("en-GB")}</div>
     </div>
   </div>
-  <div class="accent-banner">Initial Incident Report – ${incident.title}</div>
+  <div class="accent-banner">Initial Incident Report – ${escapeHtml(incident.title)}</div>
   <div class="body">
 
     <section>
       <h2>Incident Overview</h2>
       <table>
-        ${field("Incident Type", incident.incidentType || "—")}
-        ${incident.incidentNature ? field("Nature of Incident", incident.incidentNature) : ""}
+        ${field("Incident Type", escapeHtml(incident.incidentType) || "—")}
+        ${incident.incidentNature ? field("Nature of Incident", escapeHtml(incident.incidentNature)) : ""}
         ${field("Date of Incident", fmt(incident.incidentDate))}
-        ${incident.incidentTime ? field("Time of Incident", incident.incidentTime) : ""}
+        ${incident.incidentTime ? field("Time of Incident", escapeHtml(incident.incidentTime)) : ""}
         ${field("Location", textVal(incident.locationDetails))}
       </table>
     </section>
 
     <section>
       <h2>Description of Incident</h2>
-      <p style="font-size:13px;line-height:1.7;color:#111827">${incident.description ? incident.description.replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</p>
+      <p style="font-size:13px;line-height:1.7;color:#111827">${incident.description ? escapeHtml(incident.description).replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</p>
     </section>
 
     <section>
@@ -19074,9 +19086,9 @@ export async function registerRoutes(
       <table>
         ${field("Injuries Reported", boolVal(incident.injuriesReported))}
         ${incident.injuryDetails ? field("Injury Details", textVal(incident.injuryDetails)) : ""}
-        ${bodyZones.length > 0 ? field("Body Areas Affected", bodyZones.join(", ")) : ""}
+        ${bodyZones.length > 0 ? field("Body Areas Affected", escapeHtml(bodyZones.join(", "))) : ""}
         ${field("Name", textVal(incident.affectedPersonName))}
-        ${incident.affectedPersonJobTitle ? field(incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title", incident.affectedPersonJobTitle) : ""}
+        ${incident.affectedPersonJobTitle ? field(incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title", escapeHtml(incident.affectedPersonJobTitle)) : ""}
         ${incident.affectedPersonAddress ? field("Address", textVal(incident.affectedPersonAddress)) : ""}
       </table>
     </section>
@@ -19102,7 +19114,7 @@ export async function registerRoutes(
 
   </div>
   <div class="footer">
-    <span>${incident.incidentReference} — Initial Incident Report</span>
+    <span>${escapeHtml(incident.incidentReference)} — Initial Incident Report</span>
     <span>Generated ${new Date().toLocaleString("en-GB")}</span>
   </div>
 </div>
@@ -19122,6 +19134,10 @@ export async function registerRoutes(
       const user = (req.session as any).user;
       let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
+
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
       // Redact personal names for non-client users unless client has granted full access
       if (user.role !== "client" && !incident.consultantFullAccess) {
         incident = redactIncidentNamesForNonClient(incident);
@@ -19129,8 +19145,8 @@ export async function registerRoutes(
 
       const site = incident.siteId ? await storage.getSite(incident.siteId) : null;
       const company = incident.entityId ? await storage.getCompany(incident.entityId) : null;
-      const siteName = site?.name ?? "—";
-      const companyName = company?.name ?? "—";
+      const siteName = escapeHtml(site?.name ?? "—");
+      const companyName = escapeHtml(company?.name ?? "—");
 
       const fmt = (d: string | Date | null | undefined) =>
         d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "—";
@@ -19138,11 +19154,11 @@ export async function registerRoutes(
         v === null || v === undefined ? '<span class="empty">Not recorded</span>' : v ? "Yes" : "No";
       const textVal = (v: string | null | undefined) =>
         v === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' :
-        v && v.trim() ? v.replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
+        v && v.trim() ? escapeHtml(v).replace(/\n/g, "<br>") : '<span class="empty">Not recorded</span>';
       const field = (label: string, value: string) =>
-        `<tr><td class="label">${label}</td><td class="value">${value}</td></tr>`;
+        `<tr><td class="label">${escapeHtml(label)}</td><td class="value">${value}</td></tr>`;
       const nameCell = (n: string | null | undefined) =>
-        n === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' : (n || "—");
+        n === "[Redacted]" ? '<span class="redacted">[Redacted]</span>' : (n ? escapeHtml(n) : "—");
 
       let invWitnesses: { name: string; jobRole: string; company: string; statementAttached?: boolean | null }[] = [];
       try { if (incident.invWitnesses) invWitnesses = JSON.parse(incident.invWitnesses); } catch {}
@@ -19171,8 +19187,8 @@ export async function registerRoutes(
             </tr></thead>
             <tbody>${invWitnesses.map(w => `<tr>
               <td class="td">${nameCell(w.name)}</td>
-              <td class="td">${w.jobRole || "—"}</td>
-              <td class="td">${w.company || "—"}</td>
+              <td class="td">${escapeHtml(w.jobRole) || "—"}</td>
+              <td class="td">${escapeHtml(w.company) || "—"}</td>
               <td class="td">${w.statementAttached === null || w.statementAttached === undefined ? "—" : w.statementAttached ? "Yes" : "No"}</td>
             </tr>`).join("")}</tbody>
           </table>`
@@ -19185,8 +19201,8 @@ export async function registerRoutes(
             </tr></thead>
             <tbody>${initialWitnesses.map(w => `<tr>
               <td class="td">${nameCell(w.name)}</td>
-              <td class="td">${w.jobRole || "—"}</td>
-              <td class="td">${w.company || "—"}</td>
+              <td class="td">${escapeHtml(w.jobRole) || "—"}</td>
+              <td class="td">${escapeHtml(w.company) || "—"}</td>
             </tr>`).join("")}</tbody>
           </table>`
         : '<p class="empty">No witnesses recorded</p>';
@@ -19197,28 +19213,28 @@ export async function registerRoutes(
               <th class="th">Type</th><th class="th">Make / Model</th><th class="th">Serial / Reg. No.</th><th class="th">Last Inspection</th>
             </tr></thead>
             <tbody>${invEquipment.filter(e => e.type || e.makeModel || e.serialNo || e.lastInspection).map(e => `<tr>
-              <td class="td">${e.type || "—"}</td>
-              <td class="td">${e.makeModel || "—"}</td>
-              <td class="td">${e.serialNo || "—"}</td>
-              <td class="td">${e.lastInspection || "—"}</td>
+              <td class="td">${escapeHtml(e.type) || "—"}</td>
+              <td class="td">${escapeHtml(e.makeModel) || "—"}</td>
+              <td class="td">${escapeHtml(e.serialNo) || "—"}</td>
+              <td class="td">${escapeHtml(e.lastInspection) || "—"}</td>
             </tr>`).join("")}</tbody>
           </table>`
         : "";
 
       const docsReviewed = Array.isArray(incident.invDocumentsReviewed) && incident.invDocumentsReviewed.length > 0
-        ? incident.invDocumentsReviewed.map((d: string) => `<span class="pill">${d}</span>`).join("")
+        ? incident.invDocumentsReviewed.map((d: string) => `<span class="pill">${escapeHtml(d)}</span>`).join("")
         : '<span class="empty">None recorded</span>';
 
       const causePills = Array.isArray(incident.incidentCause) && incident.incidentCause.length > 0
-        ? incident.incidentCause.map((c: string) => `<span class="pill">${c}</span>`).join("")
+        ? incident.incidentCause.map((c: string) => `<span class="pill">${escapeHtml(c)}</span>`).join("")
         : '<span class="empty">None recorded</span>';
 
       const effectPills = Array.isArray(incident.incidentEffect) && incident.incidentEffect.length > 0
-        ? incident.incidentEffect.map((e: string) => `<span class="pill">${e}</span>`).join("")
+        ? incident.incidentEffect.map((e: string) => `<span class="pill">${escapeHtml(e)}</span>`).join("")
         : '<span class="empty">None recorded</span>';
 
       const immediateActionsHtml = incident.immediateActions?.trim()
-        ? incident.immediateActions.split("\n").filter(Boolean).map((line: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:3px;color:#111827">${line.trim()}</li>`).join("")
+        ? incident.immediateActions.split("\n").filter(Boolean).map((line: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:3px;color:#111827">${escapeHtml(line.trim())}</li>`).join("")
         : null;
 
       const html = `<!DOCTYPE html>
@@ -19226,7 +19242,7 @@ export async function registerRoutes(
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Investigation Report – ${incident.incidentReference}</title>
+<title>Investigation Report – ${escapeHtml(incident.incidentReference)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;color:#111827;background:#f9fafb;padding:24px}
@@ -19271,17 +19287,17 @@ export async function registerRoutes(
     <div>
       <div style="font-size:11px;opacity:.7;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Guardian Group</div>
       <h1>Follow Up Investigation Report</h1>
-      <div class="ref-badge">${incident.incidentReference}</div>
+      <div class="ref-badge">${escapeHtml(incident.incidentReference)}</div>
     </div>
     <div class="meta">
       <div>${companyName}</div>
       <div>${siteName}</div>
       ${incident.invCompletedAt ? `<div>Completed: <strong>${fmt(incident.invCompletedAt)}</strong></div>` : ""}
-      ${incident.invCompletedBy ? `<div>Completed by: <strong>${incident.invCompletedBy}</strong></div>` : ""}
+      ${incident.invCompletedBy ? `<div>Completed by: <strong>${escapeHtml(incident.invCompletedBy)}</strong></div>` : ""}
       <div style="margin-top:4px;font-size:11px;opacity:.65">Generated ${new Date().toLocaleString("en-GB")}</div>
     </div>
   </div>
-  <div class="accent-banner">Follow Up Investigation – ${incident.title}</div>
+  <div class="accent-banner">Follow Up Investigation – ${escapeHtml(incident.title)}</div>
   <div class="body">
 
     <div class="part-label">Part 1 — Initial Incident Report</div>
@@ -19289,17 +19305,17 @@ export async function registerRoutes(
     <section>
       <h2>Incident Overview</h2>
       <table>
-        ${field("Incident Type", incident.incidentType || "—")}
-        ${incident.incidentNature ? field("Nature of Incident", incident.incidentNature) : ""}
+        ${field("Incident Type", escapeHtml(incident.incidentType) || "—")}
+        ${incident.incidentNature ? field("Nature of Incident", escapeHtml(incident.incidentNature)) : ""}
         ${field("Date of Incident", fmt(incident.incidentDate))}
-        ${incident.incidentTime ? field("Time of Incident", incident.incidentTime) : ""}
+        ${incident.incidentTime ? field("Time of Incident", escapeHtml(incident.incidentTime)) : ""}
         ${field("Location", textVal(incident.locationDetails))}
       </table>
     </section>
 
     <section>
       <h2>Description of Incident</h2>
-      <p style="font-size:13px;line-height:1.7;color:#111827">${incident.description ? incident.description.replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</p>
+      <p style="font-size:13px;line-height:1.7;color:#111827">${incident.description ? escapeHtml(incident.description).replace(/\n/g, "<br>") : '<span class="empty">Not provided</span>'}</p>
     </section>
 
     <section>
@@ -19318,9 +19334,9 @@ export async function registerRoutes(
         ${field("Hospital Visit Required", boolVal(incident.invHospitalVisit))}
         ${field("Injuries Reported", boolVal(incident.injuriesReported))}
         ${incident.injuryDetails ? field("Injury Details", textVal(incident.injuryDetails)) : ""}
-        ${bodyZones.length > 0 ? field("Body Areas Affected", bodyZones.join(", ")) : ""}
+        ${bodyZones.length > 0 ? field("Body Areas Affected", escapeHtml(bodyZones.join(", "))) : ""}
         ${field("Name", textVal(incident.affectedPersonName))}
-        ${incident.affectedPersonJobTitle ? field(incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title", incident.affectedPersonJobTitle) : ""}
+        ${incident.affectedPersonJobTitle ? field(incident.affectedPersonIsPublic ? "Role / Occupation" : "Job Title", escapeHtml(incident.affectedPersonJobTitle)) : ""}
         ${incident.affectedPersonAddress ? field("Address", textVal(incident.affectedPersonAddress)) : ""}
       </table>
     </section>
@@ -19336,7 +19352,7 @@ export async function registerRoutes(
     </section>
 
     <div class="part-label" style="margin-top:24px">Part 2 — Follow Up Investigation</div>
-    ${incident.invCompletedAt ? `<p style="font-size:12px;color:#6b7280;margin-bottom:16px">Completed ${fmt(incident.invCompletedAt)}${incident.invCompletedBy ? ` by ${incident.invCompletedBy}` : ""}</p>` : ""}
+    ${incident.invCompletedAt ? `<p style="font-size:12px;color:#6b7280;margin-bottom:16px">Completed ${fmt(incident.invCompletedAt)}${incident.invCompletedBy ? ` by ${escapeHtml(incident.invCompletedBy)}` : ""}</p>` : ""}
 
     <section>
       <h2>About the Injured Person</h2>
@@ -19349,7 +19365,7 @@ export async function registerRoutes(
       ${(incident.incidentNature || incident.injuriesReported !== null || incident.injuryDetails) ? `
       <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin:10px 0 4px">From Initial Report</p>
       <table>
-        ${incident.incidentNature ? field("Nature of Incident", incident.incidentNature) : ""}
+        ${incident.incidentNature ? field("Nature of Incident", escapeHtml(incident.incidentNature)) : ""}
         ${field("Injuries Reported", boolVal(incident.injuriesReported))}
         ${incident.injuryDetails ? field("Injury Details", textVal(incident.injuryDetails)) : ""}
       </table>` : ""}
@@ -19369,7 +19385,7 @@ export async function registerRoutes(
         ${field("Equipment Involved", boolVal(incident.invEquipmentInvolved))}
         ${incident.invEquipmentInvolved ? field("Operators", textVal(incident.invOperators)) : ""}
         ${incident.invEquipmentInvolved ? field("Operators Qualified", boolVal(incident.invOperatorsQualified)) : ""}
-        ${incident.invEquipmentInvolved === null && incident.machineryInvolved ? field("Equipment (from initial report)", incident.machineryInvolved) : ""}
+        ${incident.invEquipmentInvolved === null && incident.machineryInvolved ? field("Equipment (from initial report)", escapeHtml(incident.machineryInvolved)) : ""}
       </table>
       ${incident.invEquipmentInvolved ? equipRows : ""}
     </section>
@@ -19398,7 +19414,7 @@ export async function registerRoutes(
         let acts: string[] = [];
         try { if (incident.invActions) acts = JSON.parse(incident.invActions); } catch {}
         return acts.length > 0
-          ? `<ol style="margin:0;padding-left:20px">${acts.map((a: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${a}</li>`).join("")}</ol>`
+          ? `<ol style="margin:0;padding-left:20px">${acts.map((a: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${escapeHtml(a)}</li>`).join("")}</ol>`
           : `<p style="font-size:13px;color:#9ca3af;font-style:italic">None recorded</p>`;
       })()}
     </section>
@@ -19409,7 +19425,7 @@ export async function registerRoutes(
         let recs: string[] = [];
         try { if (incident.invRecommendations) recs = JSON.parse(incident.invRecommendations); } catch {}
         return recs.length > 0
-          ? `<ol style="margin:0;padding-left:20px">${recs.map((r: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${r}</li>`).join("")}</ol>`
+          ? `<ol style="margin:0;padding-left:20px">${recs.map((r: string) => `<li style="font-size:13px;line-height:1.7;margin-bottom:4px;color:#111827">${escapeHtml(r)}</li>`).join("")}</ol>`
           : `<p style="font-size:13px;color:#9ca3af;font-style:italic">None recorded</p>`;
       })()}
     </section>
@@ -19422,7 +19438,7 @@ export async function registerRoutes(
     <section>
       <h2>Amendments / Corrections to Initial Report</h2>
       ${incident.invAmendments
-        ? `<p style="font-size:13px;line-height:1.7;color:#111827;white-space:pre-wrap">${incident.invAmendments}</p>`
+        ? `<p style="font-size:13px;line-height:1.7;color:#111827;white-space:pre-wrap">${escapeHtml(incident.invAmendments)}</p>`
         : `<p style="font-size:13px;color:#9ca3af;font-style:italic">None recorded</p>`}
     </section>
 
@@ -19439,7 +19455,7 @@ export async function registerRoutes(
   </div>
   <div class="footer">
     <span>Follow-up investigation report. Generated ${new Date().toLocaleString("en-GB")}.</span>
-    <span>${incident.incidentReference} &bull; Confidential</span>
+    <span>${escapeHtml(incident.incidentReference)} &bull; Confidential</span>
   </div>
 </div>
 </body>
@@ -19476,6 +19492,9 @@ export async function registerRoutes(
       if (!title) return res.status(400).json({ error: "Title is required" });
 
       const incident = await storage.getIncident(req.params.id);
+      if (!incident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, incident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
 
       const milestone = await storage.createIncidentMilestone({
         incidentId: req.params.id,
@@ -19563,12 +19582,16 @@ export async function registerRoutes(
 
   app.delete("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
+      const user = (req.session as any).user;
       const existingMilestone = await storage.getIncidentMilestone(req.params.id);
+      if (!existingMilestone) return res.status(404).json({ error: "Milestone not found" });
+      const parentIncident = existingMilestone.incidentId ? await storage.getIncident(existingMilestone.incidentId) : null;
+      if (!parentIncident) return res.status(404).json({ error: "Incident not found" });
+      const canAccess = await canUserAccessSite(user, parentIncident.siteId);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
       await storage.deleteIncidentMilestone(req.params.id);
-      if (existingMilestone?.incidentId) {
-        const parentIncident = await storage.getIncident(existingMilestone.incidentId).catch(() => null);
-        if (parentIncident) await emitSiteScoped("incident-updated", parentIncident.siteId, parentIncident.entityId, { incidentId: parentIncident.id });
-      }
+      await emitSiteScoped("incident-updated", parentIncident.siteId, parentIncident.entityId, { incidentId: parentIncident.id });
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting milestone:", error);
