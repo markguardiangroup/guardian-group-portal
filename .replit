@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "pango"]
+packages = ["cargo", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "libiconv", "libxcrypt", "openssl", "pango", "pkg-config", "rustc"]
 
 [[ports]]
 localPort = 5000

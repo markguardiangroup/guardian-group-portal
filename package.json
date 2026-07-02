@@ -129,20 +129,22 @@
     "tailwindcss": "^3.4.17",
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
-    "vite": "^7.3.2"
+    "vite": "^7.3.6"
   },
   "overrides": {
     "drizzle-kit": {
       "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
     },
     "picomatch": "4.0.4",
-    "dompurify": "^3.4.2",
+    "dompurify": "^3.4.11",
     "fast-xml-parser": "^5.7.3",
     "fast-xml-builder": "^1.2.0",
     "ip-address": "^10.2.0",
     "@tootallnate/once": "^3.0.1",
     "uuid": ">=11.1.1",
-    "qs": ">=6.15.2"
+    "qs": ">=6.15.2",
+    "form-data": "^4.0.4",
+    "@babel/core": "^7.28.6"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
