@@ -2172,7 +2172,11 @@ export async function registerRoutes(
       return false;
     }
 
-    // Standard consultants: only clients in companies they are assigned to (via a site assignment).
+    // Standard consultants: only clients in companies they are assigned to (via a site
+    // assignment) AND whose sources currently overlap — mirrors GET /api/users so that a
+    // consultant whose sources have moved on loses management access to the old tenant.
+    const targetCompany = await storage.getCompany(targetUser.companyId);
+    if (!targetCompany || !sourcesOverlap(mySources, targetCompany.sources ?? [])) return false;
     const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
     for (const site of companySites) {
       const assignments = await storage.getConsultantAssignments(site.id);
@@ -9329,6 +9333,10 @@ export async function registerRoutes(
       return false;
     }
     if (user.role === "consultant" && user.id) {
+      // Standard consultants require BOTH a direct site assignment AND source overlap
+      // with the target company — mirrors GET /api/users so access is revoked once the
+      // consultant's sources no longer overlap, even if a stale site assignment remains.
+      if (!sourcesOverlap(user.sources ?? [], company.sources ?? [])) return false;
       const consultantSiteAssignments = await storage.getConsultantSites(user.id);
       const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.siteId));
       const allSites = await storage.getSites();
@@ -10345,7 +10353,8 @@ export async function registerRoutes(
         const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.entityId));
         const allSites = await storage.getSites();
         const assignedCompanyIds = new Set(allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId));
-        if (!assignedCompanyIds.has(req.params.id)) {
+        const targetCompanyForContact = await storage.getCompany(req.params.id);
+        if (!assignedCompanyIds.has(req.params.id) || !sourcesOverlap(user.sources ?? [], targetCompanyForContact?.sources ?? [])) {
           return res.status(403).json({ error: "You can only manage companies you are assigned to" });
         }
       }
@@ -14574,12 +14583,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only staff can manage module access" });
       }
       
-      // Consultants must be assigned to this site
-      if (user.role === "consultant") {
-        const assignments = await storage.getConsultantAssignments(user.id);
-        const siteAssignment = assignments.find(a => a.siteId === req.params.siteId);
-        if (!siteAssignment) {
-          return res.status(403).json({ error: "You are not assigned to this site" });
+      // SECURITY: tenant-scope check — administrators and consultants must be
+      // authorized for this specific site (mirrors the GET route above), not just
+      // hold a staff role. Prevents source-scoped admins / out-of-tenant consultants
+      // from writing module access to arbitrary sites.
+      if (user.role === "administrator" || user.role === "consultant") {
+        const canAccess = await canUserAccessSite(user, req.params.siteId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "You are not authorized to manage this site's module access" });
         }
       }
       
@@ -14637,6 +14648,16 @@ export async function registerRoutes(
       if (user.role === "client" && user.companyId !== req.params.companyId) {
         return res.status(403).json({ error: "Not authorized to view this company's module access" });
       }
+
+      // SECURITY: staff (consultants/administrators) must be tenant-scoped to this
+      // company, mirroring canUserAccessCompany used elsewhere — otherwise any
+      // authenticated staff user could inspect another tenant's module config.
+      if (user.role === "consultant" || user.role === "administrator") {
+        const canAccess = await canUserAccessCompany(user, req.params.companyId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Not authorized to view this company's module access" });
+        }
+      }
       
       const access = await storage.getCompanyModuleAccess(req.params.companyId);
       if (!access) {
@@ -14664,14 +14685,17 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only staff can manage company module access" });
       }
       
-      // Consultants must be assigned to at least one site in this company
-      if (user.role === "consultant") {
-        const consultantSites = await storage.getConsultantSites(user.id);
-        const companySites = await storage.getSitesByCompanyId(req.params.companyId);
-        const companySiteIds = new Set(companySites.map(s => s.id));
-        const hasAccess = consultantSites.some(a => companySiteIds.has(a.entityId));
-        if (!hasAccess) {
-          return res.status(403).json({ error: "You are not assigned to any site in this company" });
+      // SECURITY: company-wide module changes affect every site/user in the tenant, so
+      // only Pro Consultants and Administrators may make them (standard consultants are
+      // limited to their assigned sites via the per-site route above), and staff must be
+      // tenant/source-scoped to this company — mirrors canUserAccessCompany used elsewhere.
+      if (user.role === "consultant" && !hasProPrivileges(user)) {
+        return res.status(403).json({ error: "Only Pro Consultants and Administrators can manage company-wide module access" });
+      }
+      if (user.role === "consultant" || user.role === "administrator") {
+        const canAccess = await canUserAccessCompany(user, req.params.companyId);
+        if (!canAccess) {
+          return res.status(403).json({ error: "You are not authorized to manage this company's module access" });
         }
       }
       
@@ -16863,7 +16887,8 @@ export async function registerRoutes(
         const mySiteIds = new Set(myAssignments.map(a => a.entityId));
         const allSites = await storage.getSites();
         const myCompanyIds = new Set(allSites.filter(s => mySiteIds.has(s.id)).map(s => s.companyId));
-        if (!myCompanyIds.has(site.companyId)) {
+        const siteCompany = await storage.getCompany(site.companyId);
+        if (!myCompanyIds.has(site.companyId) || !sourcesOverlap(currentUser.sources ?? [], siteCompany?.sources ?? [])) {
           return res.status(403).json({ error: "You can only assign users to sites within your assigned companies" });
         }
       }
@@ -16955,7 +16980,8 @@ export async function registerRoutes(
         const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.entityId));
         const allSites = await storage.getSites();
         const assignedCompanyIds = new Set(allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId));
-        if (!assignedCompanyIds.has(targetUser.companyId)) {
+        const targetCompany = await storage.getCompany(targetUser.companyId);
+        if (!assignedCompanyIds.has(targetUser.companyId) || !sourcesOverlap(currentUser.sources ?? [], targetCompany?.sources ?? [])) {
           return res.status(403).json({ error: "You can only manage users in companies you are assigned to" });
         }
       }
@@ -17012,7 +17038,8 @@ export async function registerRoutes(
         const mySiteIds = new Set(myAssignments.map(a => a.entityId));
         const allSites = await storage.getSites();
         const myCompanyIds = new Set(allSites.filter(s => mySiteIds.has(s.id)).map(s => s.companyId));
-        if (!myCompanyIds.has(site.companyId)) {
+        const siteCompany = await storage.getCompany(site.companyId);
+        if (!myCompanyIds.has(site.companyId) || !sourcesOverlap(currentUser.sources ?? [], siteCompany?.sources ?? [])) {
           return res.status(403).json({ error: "You can only manage users in sites within your assigned companies" });
         }
       }
@@ -17222,17 +17249,10 @@ export async function registerRoutes(
           // Standard consultants and clients may update their own profile,
           // but only a limited set of fields (enforced below)
         } else if (currentUser.role === "consultant" && targetUser.companyId) {
-          // Standard consultants can only update users in their assigned companies
-          const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
-          let hasAccess = false;
-          for (const site of companySites) {
-            const assignments = await storage.getConsultantAssignments(site.id);
-            if (assignments.some(a => a.consultantId === currentUser.id)) {
-              hasAccess = true;
-              break;
-            }
-          }
-          if (!hasAccess) {
+          // SECURITY: standard consultants can only update users in companies they are
+          // assigned to AND whose sources currently overlap — use the shared helper so
+          // this stays in sync with GET /api/users and the other staff-management routes.
+          if (!(await canStaffManageUser(currentUser, targetUser))) {
             return res.status(403).json({ error: "Access denied" });
           }
         } else {
