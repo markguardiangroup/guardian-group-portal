@@ -4808,6 +4808,10 @@ export async function registerRoutes(
       const template = await storage.getDocumentTemplate(req.params.id);
       if (!template) return res.status(404).json({ error: "Template not found" });
 
+      if (!canUserAccessTemplateFile(user, template)) {
+        return res.status(403).json({ error: "You do not have permission to access this template" });
+      }
+
       if (!template.fileUrl) {
         return res.status(404).json({ error: "No file available for this template" });
       }
@@ -7271,9 +7275,15 @@ export async function registerRoutes(
   // Get single document template
   app.get("/api/document-templates/:id", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
       const template = await storage.getDocumentTemplate(req.params.id);
       if (!template) {
         return res.status(404).json({ error: "Document template not found" });
+      }
+      if (!canUserAccessTemplateFile(user, template)) {
+        return res.status(403).json({ error: "You do not have permission to access this template" });
       }
       res.json(template);
     } catch (error) {
@@ -7650,9 +7660,15 @@ export async function registerRoutes(
   // Get template versions
   app.get("/api/document-templates/:id/versions", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser((req.session as any).userId);
+      if (!user) return res.status(401).json({ error: "User not found" });
+
       const template = await storage.getDocumentTemplate(req.params.id);
       if (!template) {
         return res.status(404).json({ error: "Document template not found" });
+      }
+      if (!canUserAccessTemplateFile(user, template)) {
+        return res.status(403).json({ error: "You do not have permission to access this template" });
       }
       
       const versions = await storage.getDocumentTemplateVersions(req.params.id);
@@ -19640,8 +19656,10 @@ export async function registerRoutes(
   ): boolean => {
     if (user.role === "developer" || user.role === "administrator" || user.role === "consultant") return true;
     if (template.isActive === false) return false;
-    if (!template.sources || template.sources.length === 0) return true;
-    return sourcesOverlap(user.sources ?? [], template.sources);
+    if (template.visibility === "private") return false;
+    const ts = template.sources ?? [];
+    if (ts.length === 0) return false; // no source set — developer/staff-only
+    return sourcesOverlap(user.sources ?? [], ts);
   };
 
   /**
