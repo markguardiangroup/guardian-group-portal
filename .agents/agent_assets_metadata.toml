@@ -66,3 +66,9 @@ id = "7ztFUE-rTXG9r4Pv2c7JR"
 uri = "file://guardian-scalability-costs.pdf"
 type = "pdf"
 title = "Guardian Group — Full Cost Projection (app dev costs clarified)"
+
+[[outputs]]
+id = "OmMjSCOActxnEVi6MxzwH"
+uri = "file://templates_and_toolkit_export.xlsx"
+type = "table"
+title = "Templates & Toolkit Export (Production)"
