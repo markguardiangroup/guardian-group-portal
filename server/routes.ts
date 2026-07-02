@@ -77,6 +77,29 @@ async function claimUploadedObject(fileUrl: string | null | undefined, userId: s
   if (record.claimedAt) {
     throw new UploadClaimError(409, "This file has already been used elsewhere. Please re-upload the file and try again.");
   }
+
+  // Presigned-URL uploads (request-url flow) go straight to GCS, bypassing the raw-body
+  // 50MB ceiling enforced by /api/uploads/file — the declared size/contentType recorded at
+  // request time is untrusted client input. Re-check the *actual* object size in storage
+  // before letting any business route bind to it, and delete oversized objects outright so
+  // they can never be attached to a record or left around as billable orphaned storage.
+  const objectStorageService = new ObjectStorageService();
+  try {
+    const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+    const [metadata] = await objectFile.getMetadata();
+    const actualSize = metadata.size ? Number(metadata.size) : 0;
+    if (!actualSize || actualSize > MAX_UPLOAD_BYTES) {
+      await objectStorageService.deleteObjectEntityFile(fileUrl).catch(() => {});
+      await storage.deleteUploadedObjectRecord(fileUrl).catch(() => {});
+      throw new UploadClaimError(413, "This file exceeds the maximum allowed size. Please re-upload a smaller file.");
+    }
+  } catch (err) {
+    if (err instanceof UploadClaimError) throw err;
+    // Object missing/inaccessible in storage — the client claimed a fileUrl for something
+    // that was never actually uploaded (or already cleaned up). Fail closed.
+    throw new UploadClaimError(400, "This file was not recognized as a valid upload. Please re-upload the file and try again.");
+  }
+
   await storage.claimUploadedObject(fileUrl, claimedByType);
 }
 
@@ -432,6 +455,48 @@ setInterval(async () => {
   }
 }, 15 * 60 * 1000).unref();
 
+// Presigned uploads (request-url flow) can be abandoned after the URL is issued — the
+// client may never call a business route to claim them. Sweep uploadedObjects rows that
+// were never claimed within a bounded window and delete their backing GCS objects, so
+// abandoned (including maliciously oversized) uploads cannot accumulate indefinitely.
+//
+// This runs on a short cycle (not a once-a-day job) for two reasons:
+// 1. Any unclaimed object still sitting around after a short grace period is deleted —
+//    bounding how long an attacker's oversized/unused upload can occupy storage.
+// 2. On every pass, ALL currently-unclaimed objects (regardless of age) have their *actual*
+//    GCS size checked and are deleted immediately if oversized, rather than waiting out the
+//    grace period — since the presigned PUT itself cannot enforce a byte ceiling, this is the
+//    earliest point after the bytes land that the real size is knowable.
+const STALE_UPLOAD_MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes
+async function sweepUnclaimedUploads(): Promise<void> {
+  const svc = new ObjectStorageService();
+
+  const unclaimed = await storage.getUnclaimedUploadedObjects();
+  for (const row of unclaimed) {
+    try {
+      const objectFile = await svc.getObjectEntityFile(row.objectPath);
+      const [metadata] = await objectFile.getMetadata();
+      const actualSize = metadata.size ? Number(metadata.size) : 0;
+      if (actualSize > MAX_UPLOAD_BYTES) {
+        await svc.deleteObjectEntityFile(row.objectPath).catch(() => {});
+        await storage.deleteUploadedObjectRecord(row.objectPath).catch(() => {});
+      }
+    } catch {
+      // Object not yet uploaded, already deleted, or transiently unreachable — the
+      // age-based pass below still catches anything that never gets claimed.
+    }
+  }
+
+  const stale = await storage.getStaleUnclaimedUploadedObjects(new Date(Date.now() - STALE_UPLOAD_MAX_AGE_MS));
+  for (const row of stale) {
+    try { await svc.deleteObjectEntityFile(row.objectPath); } catch {}
+    try { await storage.deleteUploadedObjectRecord(row.objectPath); } catch {}
+  }
+}
+setInterval(() => {
+  sweepUnclaimedUploads().catch((err) => console.error("[stale-upload-sweep] failed:", err));
+}, 2 * 60 * 1000).unref();
+
 
 // Pre-warm LibreOffice on startup so the first real conversion is faster.
 (async () => {
@@ -739,6 +804,9 @@ export async function registerRoutes(
     },
     recordUpload: async (data) => {
       await storage.createUploadedObject(data);
+    },
+    getRecentUploadBytes: async (userId) => {
+      return storage.getUserUploadedBytesSince(userId, new Date(Date.now() - 24 * 60 * 60 * 1000));
     },
   });
 
@@ -14078,6 +14146,9 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
       if (!canAccessConfidentialCase(caseData, user)) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14097,6 +14168,7 @@ export async function registerRoutes(
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot create bundles" });
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) return res.status(403).json({ error: "Not authorized" });
       if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
 
       const { name, checklistItemIds } = req.body;
@@ -14138,6 +14210,7 @@ export async function registerRoutes(
 
       const caseData = await storage.getCase(req.params.caseId);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) return res.status(403).json({ error: "Not authorized" });
       if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
 
       const updates: Record<string, unknown> = {};
@@ -14183,6 +14256,7 @@ export async function registerRoutes(
 
       const caseData = await storage.getCase(req.params.caseId);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) return res.status(403).json({ error: "Not authorized" });
       if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
 
       // Clean up cached file if present
@@ -14215,6 +14289,7 @@ export async function registerRoutes(
 
       const caseData = await storage.getCase(req.params.caseId);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) return res.status(403).json({ error: "Not authorized" });
       if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
 
       const objectStorageService = new ObjectStorageService();
@@ -20341,7 +20416,8 @@ export async function registerRoutes(
     if (bundle) {
       const caseRecord = await storage.getCase(bundle.caseId);
       if (!caseRecord || !caseRecord.siteId) return false;
-      return canUserAccessSite(user, caseRecord.siteId);
+      if (!(await canUserAccessSite(user, caseRecord.siteId))) return false;
+      return canAccessConfidentialCase(caseRecord, user);
     }
 
     // Unrecognized/orphaned object path — no known business entity references it, so deny

@@ -16,3 +16,4 @@
 - [Template file access policy parity](template-file-access-policy.md) — an ID-based auth predicate must enforce the exact same visibility/active/source rules as the list-endpoint filter it claims to mirror, or leaked IDs bypass listing restrictions.
 - [Bundle generation hardening](bundle-generation-hardening.md) — headless-Chromium SSRF needs sanitization + network-isolation flags together; multi-doc merges need item-count + cumulative-byte + per-user concurrency limits.
 - [Upload ownership claim pattern](upload-ownership-claim-pattern.md) — client-supplied fileUrl/objectPath fields must be claimed (owner+not-already-used check) before binding to a record, or files can be rebound/reused.
+- [Presigned upload size enforcement](presigned-upload-size-enforcement.md) — sidecar signed-URL API can't enforce byte size/content-type at signing time; enforce actual size at claim time + sweep unclaimed uploads.

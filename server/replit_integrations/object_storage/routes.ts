@@ -28,6 +28,13 @@ type ObjectAccessUser = {
 // buffered in memory, preventing memory-exhaustion DoS.
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
 
+// Per-user rolling-24h upload budget for the presigned-URL flow. The signed PUT URL itself
+// can't enforce a byte ceiling (see getObjectEntityUploadURL), so the per-request size cap
+// above only bounds a single upload — without a cumulative budget a user could still request
+// many separate 50MB slots back-to-back. This bounds total declared volume per user per day,
+// independent of the request-count rate limiter (which bounds request frequency, not bytes).
+const DAILY_UPLOAD_BUDGET_BYTES = 500 * 1024 * 1024; // 500MB / user / rolling 24h
+
 class PayloadTooLargeError extends Error {
   constructor() {
     super("Payload too large");
@@ -68,6 +75,13 @@ export function registerObjectStorageRoutes(
      * user could bind/reuse/overwrite an object path belonging to someone else.
      */
     recordUpload?: (data: { objectPath: string; uploadedByUserId: string; fileName: string; fileSize: number; mimeType: string }) => Promise<void>;
+    /**
+     * Returns how many bytes this user has declared across presigned-upload requests in the
+     * trailing 24h window. Used to enforce DAILY_UPLOAD_BUDGET_BYTES — a cumulative bound the
+     * per-request size cap alone can't provide, since the signed PUT URL can't enforce a byte
+     * ceiling and a user could otherwise request unlimited separate upload slots.
+     */
+    getRecentUploadBytes?: (userId: string) => Promise<number>;
   }
 ): void {
   const objectStorageService = new ObjectStorageService();
@@ -128,7 +142,12 @@ export function registerObjectStorageRoutes(
             mimeType: contentType,
           });
         } catch (recordErr) {
+          // Fail closed: without an ownership record, any authenticated user could later
+          // bind/claim this objectPath as if they had uploaded it. Delete the just-uploaded
+          // object rather than leaving an untracked, unclaimable orphan in storage.
           console.error("Error recording uploaded object ownership:", recordErr);
+          await file.delete().catch(() => {});
+          return res.status(500).json({ error: "Failed to record upload. Please try again." });
         }
       }
 
@@ -175,16 +194,63 @@ export function registerObjectStorageRoutes(
 
       const { name, size, contentType } = req.body;
 
-      if (!name) {
+      if (!name || typeof name !== "string" || !name.trim() || name.length > 512) {
         return res.status(400).json({
-          error: "Missing required field: name",
+          error: "Missing or invalid required field: name",
         });
+      }
+
+      // The caller declares size/contentType up front so we can reject obviously abusive
+      // requests early and keep an honest record of what was authorized. The signed PUT URL
+      // itself cannot enforce a byte ceiling, so every business route that later binds an
+      // objectPath must still go through claimUploadedObject()/ownership checks — this is a
+      // defense-in-depth bound, not the sole control.
+      if (typeof size !== "number" || !Number.isFinite(size) || size <= 0 || size > MAX_UPLOAD_BYTES) {
+        return res.status(400).json({
+          error: `size must be a positive number no greater than ${MAX_UPLOAD_BYTES} bytes`,
+        });
+      }
+
+      if (typeof contentType !== "string" || !contentType.trim() || contentType.length > 255 || !/^[\w.+-]+\/[\w.+-]+$/.test(contentType.trim())) {
+        return res.status(400).json({
+          error: "contentType must be a valid MIME type string",
+        });
+      }
+
+      // Cumulative bound: the per-request size cap above only limits a single upload slot.
+      // Without this, a user could still request unlimited separate 50MB slots back-to-back
+      // since the signed PUT URL can't enforce a byte ceiling itself.
+      if (options?.getRecentUploadBytes) {
+        const recentBytes = await options.getRecentUploadBytes(sessionUserId);
+        if (recentBytes + size > DAILY_UPLOAD_BUDGET_BYTES) {
+          return res.status(429).json({
+            error: "Daily upload limit reached. Please try again later.",
+          });
+        }
       }
 
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
 
       // Extract object path from the presigned URL for later reference
       const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+      if (options?.recordUpload) {
+        try {
+          await options.recordUpload({
+            objectPath,
+            uploadedByUserId: sessionUserId,
+            fileName: name.trim(),
+            fileSize: size,
+            mimeType: contentType.trim(),
+          });
+        } catch (recordErr) {
+          // Fail closed: do not hand out a presigned URL we can't attribute to this user.
+          // Without an ownership record, claimUploadedObject() would reject the path anyway
+          // once uploaded, but the client could still push bytes to GCS in the meantime.
+          console.error("Error recording uploaded object ownership:", recordErr);
+          return res.status(500).json({ error: "Failed to prepare upload. Please try again." });
+        }
+      }
 
       res.json({
         uploadURL,

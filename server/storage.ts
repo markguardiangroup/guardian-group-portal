@@ -140,7 +140,7 @@ import {
 import { randomUUID } from "crypto";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { db, pool } from "./db";
-import { eq, and, or, asc, desc, isNull, isNotNull, gt, gte, lte, count, sql, inArray } from "drizzle-orm";
+import { eq, and, or, asc, desc, isNull, isNotNull, gt, gte, lt, lte, count, sql, inArray } from "drizzle-orm";
 
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
@@ -582,6 +582,10 @@ export interface IStorage {
   createUploadedObject(data: InsertUploadedObject): Promise<UploadedObject>;
   getUploadedObjectByPath(objectPath: string): Promise<UploadedObject | undefined>;
   claimUploadedObject(objectPath: string, claimedByType: string): Promise<void>;
+  deleteUploadedObjectRecord(objectPath: string): Promise<void>;
+  getStaleUnclaimedUploadedObjects(olderThan: Date): Promise<UploadedObject[]>;
+  getUnclaimedUploadedObjects(): Promise<UploadedObject[]>;
+  getUserUploadedBytesSince(userId: string, since: Date): Promise<number>;
 
   // Testing Task Lists
   getTestingTaskLists(includeArchived?: boolean): Promise<TestingTaskList[]>;
@@ -5895,6 +5899,34 @@ export class MemStorage implements IStorage {
       .update(uploadedObjectsTable)
       .set({ claimedAt: new Date(), claimedByType })
       .where(eq(uploadedObjectsTable.objectPath, objectPath));
+  }
+
+  async deleteUploadedObjectRecord(objectPath: string): Promise<void> {
+    await db
+      .delete(uploadedObjectsTable)
+      .where(eq(uploadedObjectsTable.objectPath, objectPath));
+  }
+
+  async getStaleUnclaimedUploadedObjects(olderThan: Date): Promise<UploadedObject[]> {
+    return db
+      .select()
+      .from(uploadedObjectsTable)
+      .where(and(isNull(uploadedObjectsTable.claimedAt), lt(uploadedObjectsTable.createdAt, olderThan)));
+  }
+
+  async getUnclaimedUploadedObjects(): Promise<UploadedObject[]> {
+    return db
+      .select()
+      .from(uploadedObjectsTable)
+      .where(isNull(uploadedObjectsTable.claimedAt));
+  }
+
+  async getUserUploadedBytesSince(userId: string, since: Date): Promise<number> {
+    const rows = await db
+      .select({ total: sql<string>`coalesce(sum(${uploadedObjectsTable.fileSize}), 0)` })
+      .from(uploadedObjectsTable)
+      .where(and(eq(uploadedObjectsTable.uploadedByUserId, userId), gte(uploadedObjectsTable.createdAt, since)));
+    return Number(rows[0]?.total ?? 0);
   }
 
   async getIshareActivityForUser(params: { userId: string; userRole: string }): Promise<{ files: { createdAt: Date; uploadedBy: string | null }[] }> {

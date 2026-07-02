@@ -3,7 +3,7 @@ import session from "express-session";
 import cookieParser from "cookie-parser";
 import connectPgSimple from "connect-pg-simple";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -78,6 +78,23 @@ const acceloPushLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Bounds how many direct-to-storage upload slots (raw upload or presigned URL) a single
+// account can request in a window. Without this, a single authenticated user could script
+// unbounded calls to the upload endpoints to fill private object storage with junk data.
+// Keyed by session user id (falls back to IP pre-auth, which will just 401 downstream).
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 60,
+  message: { error: "Too many upload requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const userId = (req.session as any)?.userId;
+    return userId ? String(userId) : ipKeyGenerator(req.ip ?? "");
+  },
+  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
+});
+
 // Apply rate limiting
 app.use("/api/", apiLimiter);
 app.use("/api/auth/login", authLimiter);
@@ -124,6 +141,9 @@ app.use(
     },
   })
 );
+
+// Must be mounted after session middleware so the key generator can read the session user id.
+app.use(["/api/uploads/request-url", "/api/uploads/file"], uploadLimiter);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
