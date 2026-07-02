@@ -10527,6 +10527,13 @@
           "message": "Fixed: login screen no longer re-checks auth every tab switch",
           "category": "bug",
           "createdAt": "2026-07-02T15:16:42.165Z"
+        },
+        {
+          "id": "4a1047d0-1180-4ff5-ac9c-81a4b54c774c",
+          "patch": 22,
+          "message": "Fixed cross-tenant data exposure in cases, companies, and user assignment views",
+          "category": "bug",
+          "createdAt": "2026-07-02T15:35:31.160Z"
         }
       ],
       "publishedPatch": 21,

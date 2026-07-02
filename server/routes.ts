@@ -9050,6 +9050,43 @@ export async function registerRoutes(
     return ids;
   };
 
+  // Tenant-scope check for a company entity. Developers are unrestricted; pro-privileged staff
+  // (admins / pro consultants) are restricted to companies within their source scope (including
+  // GO expansion in both directions); standard consultants are restricted to companies they have
+  // a direct site assignment in. Mirrors canUserAccessSite/canUserAccessKeyContactEntity logic.
+  const canUserAccessCompany = async (
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
+    companyId: string
+  ): Promise<boolean> => {
+    if (user.role === "developer") return true;
+    const company = await storage.getCompany(companyId);
+    if (!company) return false;
+    if (hasProPrivileges(user)) {
+      if (sourcesOverlap(user.sources ?? [], company.sources ?? [])) return true;
+      if (company.groupOwnerId) {
+        const goEffectiveSources = await getEffectiveGoSources(company.groupOwnerId);
+        if (sourcesOverlap(user.sources ?? [], goEffectiveSources)) return true;
+      }
+      // If the company itself is a Group Owner, allow access when any member company overlaps
+      const members = await storage.getGroupMembers(companyId);
+      for (const m of members) {
+        if (sourcesOverlap(user.sources ?? [], m.sources ?? [])) return true;
+      }
+      return false;
+    }
+    if (user.role === "consultant" && user.id) {
+      const consultantSiteAssignments = await storage.getConsultantSites(user.id);
+      const assignedSiteIds = new Set(consultantSiteAssignments.map(a => a.siteId));
+      const allSites = await storage.getSites();
+      const assignedCompanyIds = new Set(allSites.filter(s => assignedSiteIds.has(s.id)).map(s => s.companyId));
+      if (assignedCompanyIds.has(companyId)) return true;
+      // GO member access: consultant assigned to a site in the GO parent company
+      if (company.groupOwnerId && assignedCompanyIds.has(company.groupOwnerId)) return true;
+      return false;
+    }
+    return false;
+  };
+
   // Returns the effective (computed) sources for a GO company: union of its own stored sources
   // and all member company sources. Used to determine consultant access to a GO and its members.
   const getEffectiveGoSources = async (goCompanyId: string): Promise<string[]> => {
@@ -10058,6 +10095,16 @@ export async function registerRoutes(
           return res.status(403).json({ error: "You can only manage companies you are assigned to" });
         }
       }
+
+      // Tenant scope: pro-privileged staff (admins/pro consultants) may only update companies
+      // within their own source scope. Developers are unrestricted; standard consultants are
+      // already scoped above via their direct site assignment check.
+      if (user.role !== "developer" && !isStandardConsultantUser) {
+        const inScope = await canUserAccessCompany(user, req.params.id);
+        if (!inScope) {
+          return res.status(403).json({ error: "You can only manage companies within your assigned scope" });
+        }
+      }
       
       const { name, companyNumber, internalCompanyNumber, website, address, contactEmail, contactPhone, contactName, contactPosition, contactUserId, status, addressLine1, addressLine2, city, county, postalCode, country, searchTag, employeeRange, industry, sources } = req.body;
 
@@ -10250,6 +10297,14 @@ export async function registerRoutes(
       
       if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can update company status" });
+      }
+
+      // Tenant scope: pro-privileged staff may only change status for companies within their scope
+      if (user.role !== "developer") {
+        const inScope = await canUserAccessCompany(user, req.params.id);
+        if (!inScope) {
+          return res.status(403).json({ error: "You can only manage companies within your assigned scope" });
+        }
       }
       
       const { status } = req.body;
@@ -12868,6 +12923,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid case data", details: parseResult.error.format() });
       }
 
+      // Tenant scope: staff may only create cases for sites within their own scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, parseResult.data.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Not authorized to create cases for this site" });
+        }
+      }
+
       // Check for duplicate case number
       const existingByNumber = await storage.getCaseByCaseNumber(parseResult.data.caseNumber);
       if (existingByNumber) {
@@ -12935,6 +12998,22 @@ export async function registerRoutes(
       // Only admins and assigned consultants can update cases
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot update employment law cases" });
+      }
+
+      // Consultants/Admins must have the Case Advocate permission to update cases
+      if (user.role === "consultant" || user.role === "administrator") {
+        const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+        if (!perms?.caseAdvocate) {
+          return res.status(403).json({ error: "Case Advocate permission required to update cases" });
+        }
+      }
+
+      // Tenant scope: staff may only update cases for sites within their own scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, existingCase.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Not authorized to update this case" });
+        }
       }
 
       const parseResult = updateCaseSchema.safeParse(req.body);
@@ -13009,9 +13088,25 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Clients cannot archive cases" });
       }
 
+      // Consultants/Admins must have the Case Advocate permission to archive cases
+      if (user.role === "consultant" || user.role === "administrator") {
+        const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+        if (!perms?.caseAdvocate) {
+          return res.status(403).json({ error: "Case Advocate permission required to archive cases" });
+        }
+      }
+
       const existingCase = await storage.getCase(req.params.id);
       if (!existingCase) {
         return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Tenant scope: staff may only archive cases for sites within their own scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, existingCase.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Not authorized to archive this case" });
+        }
       }
 
       const archivedCase = await storage.archiveCase(req.params.id);
@@ -13048,9 +13143,25 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Clients cannot unarchive cases" });
       }
 
+      // Consultants/Admins must have the Case Advocate permission to unarchive cases
+      if (user.role === "consultant" || user.role === "administrator") {
+        const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+        if (!perms?.caseAdvocate) {
+          return res.status(403).json({ error: "Case Advocate permission required to unarchive cases" });
+        }
+      }
+
       const existingCase = await storage.getCase(req.params.id);
       if (!existingCase) {
         return res.status(404).json({ error: "Case not found" });
+      }
+
+      // Tenant scope: staff may only unarchive cases for sites within their own scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, existingCase.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Not authorized to unarchive this case" });
+        }
       }
 
       const unarchivedCase = await storage.unarchiveCase(req.params.id);
@@ -15818,6 +15929,15 @@ export async function registerRoutes(
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Access denied" });
       }
+
+      // Tenant scope: staff may only view users for companies within their own scope
+      if (user.role !== "developer") {
+        const inScope = await canUserAccessCompany(user, req.params.companyId);
+        if (!inScope) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
       const users = await storage.getUsersByCompany(req.params.companyId);
       const safeUsers = users.map(({ password, ...u }) => u);
       res.json(safeUsers);
@@ -15983,6 +16103,14 @@ export async function registerRoutes(
       if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can assign consultants" });
       }
+
+      // Tenant scope: pro-privileged staff may only assign consultants to sites within their scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, req.params.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Access denied for this site" });
+        }
+      }
       
       const { consultantId, isPrimary } = req.body;
       if (!consultantId) {
@@ -16034,6 +16162,14 @@ export async function registerRoutes(
       if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can remove consultant assignments" });
       }
+
+      // Tenant scope: pro-privileged staff may only manage assignments on sites within their scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, req.params.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Access denied for this site" });
+        }
+      }
       
       const removed = await storage.removeConsultantAssignment(
         req.params.consultantId,
@@ -16070,6 +16206,14 @@ export async function registerRoutes(
       // Only admin or pro consultant can update consultant assignments
       if (user.role !== "developer" && !hasProPrivileges(user)) {
         return res.status(403).json({ error: "Only developers and pro consultants can update consultant assignments" });
+      }
+
+      // Tenant scope: pro-privileged staff may only manage assignments on sites within their scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, req.params.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Access denied for this site" });
+        }
       }
       
       const { isPrimary, canManageModules } = req.body;
@@ -16166,6 +16310,14 @@ export async function registerRoutes(
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can assign clients to sites" });
       }
+
+      // Tenant scope: staff may only manage client access on sites within their own scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, req.params.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Access denied for this site" });
+        }
+      }
       
       const { clientId } = req.body;
       if (!clientId) {
@@ -16229,6 +16381,14 @@ export async function registerRoutes(
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can remove client site assignments" });
       }
+
+      // Tenant scope: staff may only manage client access on sites within their own scope
+      if (user.role !== "developer") {
+        const canAccessTargetSite = await canUserAccessSite(user, req.params.siteId);
+        if (!canAccessTargetSite) {
+          return res.status(403).json({ error: "Access denied for this site" });
+        }
+      }
       
       const clientUser = await storage.getUser(req.params.clientId);
       if (clientUser && clientUser.role === "client") {
@@ -16283,6 +16443,14 @@ export async function registerRoutes(
       if (user.role === "client" && user.id !== req.params.clientId) {
         return res.status(403).json({ error: "Access denied" });
       }
+
+      // Tenant scope: non-client, non-developer staff may only view assignments for clients
+      // whose company is within their own scope
+      if (user.role !== "developer" && user.role !== "client") {
+        if (!targetClient.companyId || !(await canUserAccessCompany(user, targetClient.companyId))) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
       
       const assignments = await storage.getClientSites(req.params.clientId);
       
@@ -16336,6 +16504,15 @@ export async function registerRoutes(
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
+
+      // Tenant scope: for client targets, staff must be able to access the client's company.
+      // For consultant targets, results are filtered per-site below to the caller's own scope
+      // (non-developer staff never see assignment rows for sites outside their tenant scope).
+      if (currentUser.role !== "developer" && targetUser.role === "client") {
+        if (!targetUser.companyId || !(await canUserAccessCompany(currentUser, targetUser.companyId))) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
       
       const allSites = await storage.getSites();
       const companies = await storage.getCompanies();
@@ -16348,6 +16525,10 @@ export async function registerRoutes(
           const siteAssignments = await storage.getConsultantAssignments(site.id);
           const userAssignment = siteAssignments.find(a => a.consultantId === targetUser.id);
           if (userAssignment) {
+            // Tenant scope: non-developer staff only see assignment rows for sites within their scope
+            if (currentUser.role !== "developer" && !(await canUserAccessSite(currentUser, site.id))) {
+              continue;
+            }
             const company = companies.find(c => c.id === site.companyId);
             assignments.push({
               siteId: site.id,
@@ -22448,8 +22629,27 @@ export async function registerRoutes(
     try {
       const user = req.session?.userId ? await storage.getUser(req.session.userId) : null;
       if (!user || user.role === "client") return res.status(403).json({ error: "Forbidden" });
-      const ids = await storage.getAllKeyContactUserIds();
-      return res.json(ids);
+
+      // Developers see the full global set; all other staff are restricted to key contacts
+      // on entities within their own tenant scope (mirrors the write-side tenant check).
+      if (user.role === "developer") {
+        const ids = await storage.getAllKeyContactUserIds();
+        return res.json(ids);
+      }
+
+      const allContacts = await storage.getAllKeyContacts();
+      const entityScopeCache = new Map<string, boolean>();
+      const visibleUserIds = new Set<string>();
+      for (const contact of allContacts) {
+        const cacheKey = `${contact.entityType}:${contact.entityId}`;
+        let inScope = entityScopeCache.get(cacheKey);
+        if (inScope === undefined) {
+          inScope = await canUserAccessKeyContactEntity(user, contact.entityType as "company" | "site", contact.entityId);
+          entityScopeCache.set(cacheKey, inScope);
+        }
+        if (inScope) visibleUserIds.add(contact.userId);
+      }
+      return res.json([...visibleUserIds]);
     } catch (err) {
       console.error("Get key contact user IDs error:", err);
       return res.status(500).json({ error: "Failed to fetch key contact user IDs" });
@@ -22467,6 +22667,12 @@ export async function registerRoutes(
       }
       if (entityType !== "company" && entityType !== "site") {
         return res.status(400).json({ error: "entityType must be 'company' or 'site'" });
+      }
+
+      // Tenant scope: staff may only read key contacts for companies/sites within their own scope
+      if (user.role !== "developer") {
+        const inScope = await canUserAccessKeyContactEntity(user, entityType, entityId);
+        if (!inScope) return res.status(403).json({ error: "Access denied for this entity" });
       }
 
       const contacts = await storage.getKeyContacts(entityType as "company" | "site", entityId);
