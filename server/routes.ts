@@ -22989,10 +22989,8 @@ export async function registerRoutes(
       const user = await storage.getUser((req.session as any).userId);
       if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
-      // Per-source secret env var (ACCELO_WEBHOOK_SECRET_GS) or fallback to generic
-      const secret = process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode}`]
-        ?? process.env.ACCELO_WEBHOOK_SECRET
-        ?? null;
+      // Per-source secret env var only — no global fallback (ACCELO_WEBHOOK_SECRET_<SOURCE>)
+      const secret = process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode}`] ?? null;
       res.json({ secret });
     } catch (err) {
       res.status(500).json({ error: "Failed to retrieve webhook secret" });
@@ -23025,17 +23023,17 @@ export async function registerRoutes(
     res.json({ ok: true, endpoint: "accelo-push", sourceCode: req.params.sourceCode });
   });
 
-  // Validate per-source (or global fallback) webhook secret using constant-time compare.
+  // Validate per-source webhook secret using constant-time compare.
   // Returns true when auth passes, false otherwise.
-  // If no secret is configured for the source the endpoint is considered open (no auth).
+  // Rejects if no per-source secret is configured — the endpoint is never open without a secret.
+  // Secret must be supplied via X-Accelo-Secret header only; query-string is not accepted.
+  // Each source must have its own ACCELO_WEBHOOK_SECRET_<SOURCE> env var; no global fallback.
   function validatePushSecret(req: any, sourceCode: string): boolean {
-    const secret =
-      process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode.toUpperCase()}`] ??
-      process.env.ACCELO_WEBHOOK_SECRET;
-    if (!secret) return true; // no secret configured — open endpoint
-    const provided =
-      (req.query.secret as string | undefined) ??
-      (req.headers["x-accelo-secret"] as string | undefined);
+    const secret = process.env[`ACCELO_WEBHOOK_SECRET_${sourceCode.toUpperCase()}`];
+    // Reject if no secret is configured — endpoint must not be open
+    if (!secret) return false;
+    // Accept secret only from the request header; never from query string
+    const provided = req.headers["x-accelo-secret"] as string | undefined;
     if (!provided) return false;
     try {
       const a = Buffer.from(provided.padEnd(secret.length, "\0"));
@@ -23233,9 +23231,9 @@ export async function registerRoutes(
   }
 
   // POST /api/integrations/accelo/push — legacy/default webhook (source = GS)
-  // Expects body: { id: string } and optional ?secret= or X-Accelo-Secret header
+  // Expects body: { id: string } and X-Accelo-Secret header
   app.post("/api/integrations/accelo/push", async (req, res) => {
-    console.log("[Accelo push] HIT — body:", JSON.stringify(req.body), "query:", JSON.stringify(req.query));
+    console.log("[Accelo push] HIT — body:", JSON.stringify(req.body));
     if (!validatePushSecret(req, "GS")) {
       return res.status(401).json({ error: "Invalid or missing webhook secret" });
     }

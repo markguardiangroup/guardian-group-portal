@@ -69,9 +69,19 @@ const authLimiter = rateLimit({
   validate: { keyGeneratorIpFallback: false },
 });
 
+// Tight rate limiter for Accelo webhook push — sensitive unauthenticated write endpoint
+const acceloPushLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,
+  message: { error: "Too many webhook requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Apply rate limiting
 app.use("/api/", apiLimiter);
 app.use("/api/auth/login", authLimiter);
+app.use("/api/integrations/accelo/push", acceloPushLimiter);
 
 declare module "http" {
   interface IncomingMessage {

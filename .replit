@@ -65,7 +65,6 @@ PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79
 
 [userenv.shared]
 VITE_PROD_URL = "https://www.guardiangroup.ai"
-ACCELO_WEBHOOK_SECRET = "5727b1df2c63ea71e8bb77a76575470c602bc3bb8462e2e64b384050a22dc3d8"
 
 [userenv.development]
 VITE_TURNSTILE_SITE_KEY = "1x00000000000000000000AA"
