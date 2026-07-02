@@ -13369,7 +13369,16 @@ export async function registerRoutes(
         filters.status = status;
       }
 
-      const cases = await storage.getCases(filters);
+      let cases = await storage.getCases(filters);
+
+      // Clients are only assigned to specific sites within their company, so even
+      // without a siteId filter we must restrict the results to the sites they are
+      // actually assigned to (mirrors the per-case check on GET /api/cases/:id).
+      if (user.role === "client") {
+        const clientSiteAssignments = await storage.getClientSites(user.id);
+        const allowedSiteIds = new Set(clientSiteAssignments.map((a: any) => a.siteId));
+        cases = cases.filter(c => allowedSiteIds.has(c.siteId));
+      }
 
       // Source-based filtering for consultants: only show cases from companies whose
       // sources overlap with the consultant's own sources. Standard consultants must
@@ -18639,7 +18648,7 @@ export async function registerRoutes(
 
   app.get("/api/incidents", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const { siteId, entityId, status, includeArchived } = req.query;
       const filters: any = {};
       if (siteId) filters.siteId = siteId as string;
@@ -18757,11 +18766,29 @@ export async function registerRoutes(
     }
   });
 
+  // Compute the incidents a non-privileged user is allowed to see: clients are
+  // scoped to their assigned sites, standard (non-pro) consultants to their
+  // assigned sites, and everyone else is scoped to their own company via
+  // companyId (the session snapshot's `entityId` field does not exist on the
+  // user record, so it must never be used for tenant scoping).
+  const getVisibleIncidentsForUser = async (user: any) => {
+    const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
+    if (isPrivileged) {
+      return storage.getIncidents(undefined);
+    }
+    if (user?.role === "client") {
+      const clientSites = await storage.getClientSites(user.id);
+      const siteIds = new Set(clientSites.map((a: any) => a.siteId));
+      const incidents = await storage.getIncidents({ entityId: user.companyId });
+      return incidents.filter((i: any) => siteIds.has(i.siteId));
+    }
+    return storage.getIncidents({ entityId: user?.companyId });
+  };
+
   app.get("/api/incidents/overdue-actions-count", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
-      const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
-      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
+      const user = req.activeUser;
+      const allIncidents = await getVisibleIncidentsForUser(user);
       let openCount = 0;
       for (const incident of allIncidents) {
         const milestones = await storage.getIncidentMilestones(incident.id);
@@ -18776,9 +18803,8 @@ export async function registerRoutes(
 
   app.get("/api/incidents/open-actions-breakdown", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
-      const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
-      const allIncidents = await storage.getIncidents(isPrivileged ? undefined : { entityId: user.entityId });
+      const user = req.activeUser;
+      const allIncidents = await getVisibleIncidentsForUser(user);
       const breakdown: { incidentId: string; incidentReference: string; title: string; openCount: number }[] = [];
       for (const incident of allIncidents) {
         const milestones = await storage.getIncidentMilestones(incident.id);
@@ -18796,7 +18822,7 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
@@ -18815,7 +18841,7 @@ export async function registerRoutes(
   // ─── Toggle consultant full access (client only) ──────────────────────────
   app.patch("/api/incidents/:id/consultant-access", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       if (user.role !== "client") return res.status(403).json({ error: "Only clients can change consultant access" });
       const existing = await storage.getIncident(req.params.id);
       if (!existing) return res.status(404).json({ error: "Incident not found" });
@@ -18948,7 +18974,7 @@ export async function registerRoutes(
 
   app.patch("/api/incidents/:id", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const { id } = req.params;
       const updates = req.body;
 
@@ -19014,7 +19040,7 @@ export async function registerRoutes(
   // ─── Investigation Report Download ────────────────────────────────────────────
   app.get("/api/incidents/:id/initial-report", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
 
@@ -19213,7 +19239,7 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id/investigation-report", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       let incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
 
@@ -19554,7 +19580,7 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
@@ -19569,7 +19595,7 @@ export async function registerRoutes(
 
   app.post("/api/incidents/:id/milestones", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const { title, description, dueDate } = req.body;
       if (!title) return res.status(400).json({ error: "Title is required" });
 
@@ -19609,7 +19635,7 @@ export async function registerRoutes(
 
   app.patch("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const existing = await storage.getIncidentMilestone(req.params.id);
       if (!existing) return res.status(404).json({ error: "Milestone not found" });
       const parentIncident = await storage.getIncident(existing.incidentId);
@@ -19664,7 +19690,7 @@ export async function registerRoutes(
 
   app.delete("/api/milestones/incident/:id", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const existingMilestone = await storage.getIncidentMilestone(req.params.id);
       if (!existingMilestone) return res.status(404).json({ error: "Milestone not found" });
       const parentIncident = existingMilestone.incidentId ? await storage.getIncident(existingMilestone.incidentId) : null;
@@ -19766,7 +19792,7 @@ export async function registerRoutes(
 
   app.get("/api/incidents/:id/documents", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const incident = await storage.getIncident(req.params.id);
       if (!incident) return res.status(404).json({ error: "Incident not found" });
       const canAccess = await canUserAccessSite(user, incident.siteId);
@@ -19909,7 +19935,7 @@ export async function registerRoutes(
 
   app.get("/api/calendar/events", requireAuth, async (req, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeUser;
       const { start, end, siteId: siteFilter, companyId: companyFilter, module: moduleFilter } = req.query as Record<string, string>;
 
       const startDate = start ? new Date(start) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
