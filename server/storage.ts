@@ -3792,15 +3792,28 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getToolkitStats(filter?: { companyName?: string; userId?: string }) {
+  async getToolkitStats(filter?: { companyName?: string; userId?: string; companyIds?: string[] }) {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const buildWhere = (extra?: any) => {
       const conditions = [];
       if (filter?.userId) {
         conditions.push(eq(toolkitDownloadsTable.userId, filter.userId));
-      } else if (filter?.companyName) {
-        conditions.push(eq(toolkitDownloadsTable.companyName, filter.companyName));
+      } else {
+        if (filter?.companyName) {
+          conditions.push(eq(toolkitDownloadsTable.companyName, filter.companyName));
+        }
+        // SECURITY: restricts staff reporting to companies within their source scope so
+        // cross-tenant download activity is never returned to out-of-scope staff. Guard
+        // against an empty allow-list (inArray([]) is unsafe/ambiguous across drivers) by
+        // forcing a condition that matches nothing.
+        if (filter?.companyIds) {
+          conditions.push(
+            filter.companyIds.length > 0
+              ? inArray(toolkitDownloadsTable.companyId, filter.companyIds)
+              : sql`false`
+          );
+        }
       }
       if (extra) conditions.push(extra);
       return conditions.length > 0 ? and(...conditions) : undefined;
@@ -6890,10 +6903,20 @@ export class MemStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getServices(opts: { activeOnly?: boolean; module?: ServiceModule; companyId?: string } = {}): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]> {
+  async getServices(opts: { activeOnly?: boolean; module?: ServiceModule; companyId?: string; sourceCodes?: string[] } = {}): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]> {
     const conditions = [];
     if (opts.activeOnly) conditions.push(eq(servicesTable.isActive, true));
     if (opts.module) conditions.push(eq(servicesTable.module, opts.module));
+
+    // SECURITY: when the caller is scoped to specific sources (non-developer staff with no
+    // companyId ringfence applied below), restrict the catalog to services in those sources.
+    if (opts.sourceCodes && !opts.companyId) {
+      if (opts.sourceCodes.length === 0) return [];
+      const matchingSources = await db.select({ id: sourcesTable.id }).from(sourcesTable).where(inArray(sourcesTable.code, opts.sourceCodes));
+      const matchingSourceIds = matchingSources.map(s => s.id);
+      if (matchingSourceIds.length === 0) return [];
+      conditions.push(inArray(servicesTable.sourceId, matchingSourceIds));
+    }
 
     // If companyId is provided, ringfence by the company's sources and active modules
     if (opts.companyId) {

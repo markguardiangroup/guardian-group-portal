@@ -21541,11 +21541,31 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "Unauthorized" });
 
       const { companyName } = req.query;
-      const filter: { companyName?: string; userId?: string } = {};
+      const filter: { companyName?: string; userId?: string; companyIds?: string[] } = {};
 
       // Clients only see their own downloads
       if (user.role === "client") {
         filter.userId = user.id;
+      } else if (user.role !== "developer") {
+        // SECURITY: non-developer staff (consultants/administrators) must be scoped to the
+        // companies whose source overlaps their own assigned sources — this reporting surface
+        // must not expose other tenants' download activity/usage intelligence.
+        const allCompanies = await storage.getCompanies();
+        const mySources = user.sources ?? [];
+        const allowedCompanyIds = new Set(
+          allCompanies.filter(c => sourcesOverlap(mySources, c.sources ?? [])).map(c => c.id)
+        );
+        for (const c of allCompanies) {
+          if (c.groupOwnerId && allowedCompanyIds.has(c.groupOwnerId)) allowedCompanyIds.add(c.id);
+        }
+        if (typeof companyName === "string" && companyName) {
+          const targetCompany = allCompanies.find(c => c.name === companyName);
+          if (!targetCompany || !allowedCompanyIds.has(targetCompany.id)) {
+            return res.status(403).json({ error: "Access denied" });
+          }
+          filter.companyName = companyName;
+        }
+        filter.companyIds = Array.from(allowedCompanyIds);
       } else if (typeof companyName === "string" && companyName) {
         filter.companyName = companyName;
       }
@@ -22035,6 +22055,19 @@ export async function registerRoutes(
 
   const updateServiceSchema = createServiceSchema.partial();
 
+  // SECURITY: staff scoping helper for the global service catalog. Developers see everything;
+  // other staff are limited to services whose source overlaps their own assigned sources, so
+  // one tenant's staff cannot enumerate or act on another tenant's commercial configuration.
+  const canStaffAccessServiceSource = async (
+    currentUser: { role: string; sources?: string[] | null },
+    sourceId: string
+  ): Promise<boolean> => {
+    if (currentUser.role === "developer") return true;
+    const source = await storage.getSource(sourceId);
+    if (!source) return false;
+    return sourcesOverlap(currentUser.sources ?? [], [source.code]);
+  };
+
   app.get("/api/services", requireAuth, async (req, res) => {
     try {
       const user = await getSessionUser(req);
@@ -22046,7 +22079,11 @@ export async function registerRoutes(
         ? rawModule as typeof validModules[number]
         : undefined;
       const companyId = req.query.companyId as string | undefined;
-      const svcs = await storage.getServices({ activeOnly, module, companyId });
+      if (companyId && user.role !== "developer" && !(await canStaffAccessCompany(user, companyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const sourceCodes = user.role !== "developer" ? (user.sources ?? []) : undefined;
+      const svcs = await storage.getServices({ activeOnly, module, companyId, sourceCodes });
       res.json(svcs);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -22061,6 +22098,9 @@ export async function registerRoutes(
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = createServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      if (!(await canStaffAccessServiceSource(user, parsed.data.sourceId))) {
+        return res.status(403).json({ error: "Access denied for this source" });
+      }
       const svc = await storage.createService(parsed.data as InsertService);
       res.status(201).json(svc);
     } catch (error: any) {
@@ -22077,6 +22117,14 @@ export async function registerRoutes(
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
       const parsed = updateServiceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const existing = await storage.getService(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Service not found" });
+      if (!(await canStaffAccessServiceSource(user, existing.sourceId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (parsed.data.sourceId && !(await canStaffAccessServiceSource(user, parsed.data.sourceId))) {
+        return res.status(403).json({ error: "Access denied for this source" });
+      }
       const svc = await storage.updateService(req.params.id, parsed.data as Partial<InsertService>);
       if (!svc) return res.status(404).json({ error: "Service not found" });
       res.json(svc);
@@ -22092,6 +22140,11 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
+      const existing = await storage.getService(req.params.id);
+      if (!existing) return res.status(404).json({ error: "Service not found" });
+      if (!(await canStaffAccessServiceSource(user, existing.sourceId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const deleted = await storage.deleteService(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Service not found" });
       res.status(204).end();
@@ -22105,6 +22158,11 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
+      const parent = await storage.getService(req.params.id);
+      if (!parent) return res.status(404).json({ error: "Service not found" });
+      if (!(await canStaffAccessServiceSource(user, parent.sourceId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const components = await storage.getServiceComponents(req.params.id);
       res.json(components);
     } catch (error) {
@@ -22123,6 +22181,9 @@ export async function registerRoutes(
       const parent = await storage.getService(req.params.id);
       const component = await storage.getService(parsed.data.componentServiceId);
       if (!parent || !component) return res.status(404).json({ error: "Service not found" });
+      if (!(await canStaffAccessServiceSource(user, parent.sourceId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       if (!parent.isMultiService) return res.status(400).json({ error: "Parent service is not a multi-service" });
       if (component.isMultiService) return res.status(400).json({ error: "Components must be single services" });
       if (parent.sourceId !== component.sourceId) return res.status(400).json({ error: "Component must have the same source as the parent" });
@@ -22141,6 +22202,11 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
+      const parent = await storage.getService(req.params.id);
+      if (!parent) return res.status(404).json({ error: "Component link not found" });
+      if (!(await canStaffAccessServiceSource(user, parent.sourceId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const removed = await storage.removeServiceComponent(req.params.id, req.params.componentId);
       if (!removed) return res.status(404).json({ error: "Component link not found" });
       res.status(204).end();
@@ -22154,6 +22220,9 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user || user.role === "client") return res.status(403).json({ error: "Access denied" });
+      if (!(await canStaffAccessCompany(user, req.params.id))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const assigned = await storage.getCompanyServices(req.params.id);
       res.json(assigned);
     } catch (error) {
@@ -22167,6 +22236,9 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
+      if (!(await canStaffAccessCompany(user, req.params.id))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const parsed = z.object({ serviceId: z.string().min(1) }).safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid data" });
       const svc = await storage.getService(parsed.data.serviceId);
@@ -22214,6 +22286,9 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       const hasServicesPermission = (user?.role === "consultant" || user?.role === "administrator") && !!(user.consultantPermissions as { services?: boolean } | null)?.services;
       if (!user || (user.role !== "developer" && !hasServicesPermission)) return res.status(403).json({ error: "Access denied" });
+      if (!(await canStaffAccessCompany(user, req.params.id))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const removed = await storage.removeCompanyService(req.params.id, req.params.serviceId);
       if (!removed) return res.status(404).json({ error: "Assignment not found" });
       await emitCompanyScoped("company-updated", req.params.id, { companyId: req.params.id });
