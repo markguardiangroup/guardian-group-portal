@@ -18791,23 +18791,19 @@ export async function registerRoutes(
     }
   });
 
-  // Compute the incidents a non-privileged user is allowed to see: clients are
-  // scoped to their assigned sites, standard (non-pro) consultants to their
-  // assigned sites, and everyone else is scoped to their own company via
-  // companyId (the session snapshot's `entityId` field does not exist on the
-  // user record, so it must never be used for tenant scoping).
+  // Compute the incidents a user is allowed to see, mirroring the same tenant
+  // scoping used elsewhere (canUserAccessSite / getAllowedSiteIds): developers
+  // are unrestricted, administrators and pro consultants are source-scoped
+  // (via getAllowedSiteIds), standard consultants and clients are scoped to
+  // their assigned sites. The session snapshot's `entityId` field does not
+  // exist on the user record, so it must never be used for tenant scoping.
   const getVisibleIncidentsForUser = async (user: any) => {
-    const isPrivileged = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
-    if (isPrivileged) {
+    if (user?.role === "developer") {
       return storage.getIncidents(undefined);
     }
-    if (user?.role === "client") {
-      const clientSites = await storage.getClientSites(user.id);
-      const siteIds = new Set(clientSites.map((a: any) => a.siteId));
-      const incidents = await storage.getIncidents({ entityId: user.companyId });
-      return incidents.filter((i: any) => siteIds.has(i.siteId));
-    }
-    return storage.getIncidents({ entityId: user?.companyId });
+    const allowedSiteIds = await getAllowedSiteIds(user);
+    const incidents = await storage.getIncidents(undefined);
+    return incidents.filter((i: any) => allowedSiteIds.has(i.siteId));
   };
 
   app.get("/api/incidents/overdue-actions-count", requireAuth, async (req, res) => {
