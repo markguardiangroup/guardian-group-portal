@@ -15322,14 +15322,8 @@ export async function registerRoutes(
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
       }
-      if (user.role === "consultant" && !isProConsultant(user)) {
-        const sites = await storage.getSites();
-        const companySites = sites.filter(s => s.companyId === companyId);
-        const assignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        if (!companySites.some(s => assignedSiteIds.has(s.id))) {
-          return res.status(403).json({ error: "Not authorized for this company" });
-        }
+      if (!(await canUserAccessCompany(user, companyId))) {
+        return res.status(403).json({ error: "Not authorized for this company" });
       }
       const requiredTemplates = await storage.getCompanyRequiredTemplates(companyId);
       res.json(requiredTemplates);
@@ -15354,14 +15348,8 @@ export async function registerRoutes(
       if (!company) {
         return res.status(404).json({ error: "Company not found" });
       }
-      if (user.role === "consultant" && !isProConsultant(user)) {
-        const sites = await storage.getSites();
-        const companySites = sites.filter(s => s.companyId === companyId);
-        const assignments = await storage.getConsultantSites(user.id);
-        const assignedSiteIds = new Set(assignments.map(a => a.siteId));
-        if (!companySites.some(s => assignedSiteIds.has(s.id))) {
-          return res.status(403).json({ error: "Not authorized for this company" });
-        }
+      if (!(await canUserAccessCompany(user, companyId))) {
+        return res.status(403).json({ error: "Not authorized for this company" });
       }
       const uniqueIds = [...new Set(templateIds)];
       const allTemplates = await storage.getDocumentTemplates();
@@ -15391,6 +15379,9 @@ export async function registerRoutes(
       }
       const company = await storage.getCompany(companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
+      if (!(await canUserAccessCompany(user, companyId))) {
+        return res.status(403).json({ error: "Not authorized for this company" });
+      }
       const allTemplates = await storage.getDocumentTemplates();
       const template = allTemplates.find(t => t.id === templateId && t.isActive && t.visibility === "private");
       if (!template) return res.status(400).json({ error: "Template not found or not available" });
@@ -15414,6 +15405,9 @@ export async function registerRoutes(
       const { companyId, templateId } = req.params;
       const company = await storage.getCompany(companyId);
       if (!company) return res.status(404).json({ error: "Company not found" });
+      if (!(await canUserAccessCompany(user, companyId))) {
+        return res.status(403).json({ error: "Not authorized for this company" });
+      }
       // Member-level removal of an inherited row is allowed: storage will
       // soft-remove (mark removed_at) on first call so the row stays visible
       // as a struck-through "was required, not anymore" entry, and hard-
@@ -15437,6 +15431,9 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
       const { siteId } = req.params;
+      if (!(await canUserAccessSite(user, siteId))) {
+        return res.status(403).json({ error: "Not authorized for this site" });
+      }
       const overrides = await storage.getSiteTemplateOverrides(siteId);
       res.json(overrides);
     } catch (error) {
@@ -15452,6 +15449,9 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
       const { siteId } = req.params;
+      if (!(await canUserAccessSite(user, siteId))) {
+        return res.status(403).json({ error: "Not authorized for this site" });
+      }
       const { templateId, action } = req.body;
       if (!templateId || !action || (action !== "include" && action !== "exclude")) {
         return res.status(400).json({ error: "templateId and action ('include'|'exclude') are required" });
@@ -15472,6 +15472,9 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
       const { siteId, templateId } = req.params;
+      if (!(await canUserAccessSite(user, siteId))) {
+        return res.status(403).json({ error: "Not authorized for this site" });
+      }
       const removed = await storage.removeSiteTemplateOverride(siteId, templateId);
       if (!removed) return res.status(404).json({ error: "Override not found" });
       await emitSiteScoped("site-updated", siteId, null, { siteId });
