@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 21,
+      "patch": 22,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -10522,8 +10522,9 @@
           "createdAt": "2026-07-02T12:51:19.760Z"
         }
       ],
-      "publishedPatch": 20,
+      "publishedPatch": 21,
       "patchedEntryIds": [
+        "e2a6b4c8-pathway-json-paste-import-2026",
         "b8f3c6d9-bulk-delete-templates-route-order-fix-2026",
         "a4e7f1c2-storage-dev-prod-split-2026",
         "dcf19715-98fc-4de8-a6b2-3770387b06db",
@@ -11386,7 +11387,15 @@
         "a7e6365b-3918-419a-8576-c025ec14e927",
         "6286e9f6-f70d-4a96-b4d7-ee943927f717",
         "2aa86f3c-6320-4809-b679-20a7e9d24297",
-        "1648a1f3-2727-40fb-a308-bf0914c7645b"
+        "1648a1f3-2727-40fb-a308-bf0914c7645b",
+        "0379d260-d96d-400f-8283-7eb20d63e60e",
+        "cc885825-05e8-4448-a1a8-9242d392ce54",
+        "51d7e6a0-feaa-4f67-ad57-8ba72ffb25bb",
+        "36742577-cbc0-449b-a0ea-2f3ac457b01d",
+        "62082186-254a-45a7-bb7e-d122836ab539",
+        "9f508a91-9d62-473a-8d51-7ee729d08561",
+        "3d7ad50e-af23-4cc3-88dc-dd9789bb1dd7",
+        "46f1c0aa-ff30-4039-a7b7-cbfff6e5d0e2"
       ]
     }
   ]
