@@ -9544,6 +9544,38 @@ export async function registerRoutes(
     return false;
   };
 
+  // Returns the set of site IDs within `company` that `user` is allowed to see individually.
+  // Returns null when the user has unrestricted visibility of every site in the company
+  // (developers, and pro-privileged staff who already passed a company-level access check).
+  // Standard consultants/clients are scoped down to their explicit site assignments, mirroring
+  // the visibility rules enforced by GET /api/sites and canUserAccessSite.
+  const getAccessibleSiteIdsInCompany = async (
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null },
+    company: { id: string }
+  ): Promise<Set<string> | null> => {
+    if (user.role === "developer") return null;
+    if (user.role === "consultant" || user.role === "administrator") {
+      if (hasProPrivileges(user)) return null;
+      if (!user.id) return new Set();
+      const assignedSiteIds = await getEffectiveSiteIds(user.id);
+      const companySites = await storage.getSitesByCompanyId(company.id);
+      return new Set(companySites.filter(s => assignedSiteIds.has(s.id)).map(s => s.id));
+    }
+    if (user.role === "client" && user.id) {
+      if (!user.companyId) return new Set();
+      const companySites = await storage.getSitesByCompanyId(company.id);
+      // Member-company (GO) sites are visible in full once company-level access is granted.
+      // Own-company sites require an explicit client site assignment.
+      if (company.id !== user.companyId) {
+        return new Set(companySites.map(s => s.id));
+      }
+      const clientSiteAssignments = await storage.getClientSites(user.id);
+      const assignedSiteIds = new Set(clientSiteAssignments.map(a => a.siteId));
+      return new Set(companySites.filter(s => assignedSiteIds.has(s.id)).map(s => s.id));
+    }
+    return new Set();
+  };
+
   // Returns the effective (computed) sources for a GO company: union of its own stored sources
   // and all member company sources. Used to determine consultant access to a GO and its members.
   const getEffectiveGoSources = async (goCompanyId: string): Promise<string[]> => {
@@ -9971,7 +10003,14 @@ export async function registerRoutes(
       }
       
       // Get sites for this company (optimized - only fetches this company's sites)
-      const companySites = await storage.getSitesWithDetailsByCompanyId(company.id);
+      let companySites = await storage.getSitesWithDetailsByCompanyId(company.id);
+
+      // Scope down to explicitly-assigned sites for standard consultants/clients so users
+      // cannot pivot from one legitimate site assignment into full company site visibility.
+      const accessibleSiteIds = await getAccessibleSiteIdsInCompany(user, company);
+      if (accessibleSiteIds !== null) {
+        companySites = companySites.filter(s => accessibleSiteIds.has(s.id));
+      }
 
       // Fetch GO metadata
       const [groupMembers, groupOwner] = await Promise.all([
@@ -10050,20 +10089,26 @@ export async function registerRoutes(
 
       const companyId = req.params.companyId;
 
+      // Scope down to explicitly-assigned sites for standard consultants/clients so users
+      // cannot infer activity for company sites they are not assigned to.
+      const accessibleSiteIds = await getAccessibleSiteIdsInCompany(user, company);
+      const siteScopeSql = accessibleSiteIds !== null ? `AND site_id = ANY($2::varchar[])` : ``;
+      const siteScopeParams = accessibleSiteIds !== null ? [companyId, Array.from(accessibleSiteIds)] : [companyId];
+
       const docRows = await pool.query(
-        `SELECT module, COUNT(*) as count FROM documents WHERE entity_id = $1 AND is_archived = false GROUP BY module`,
-        [companyId]
+        `SELECT module, COUNT(*) as count FROM documents WHERE entity_id = $1 AND is_archived = false ${accessibleSiteIds !== null ? `AND (site_id = ANY($2::varchar[]) OR (site_id IS NULL AND scope IN ('company','group')))` : ``} GROUP BY module`,
+        siteScopeParams
       );
       const documents: Record<string, number> = {};
       for (const row of docRows.rows) documents[row.module] = parseInt(row.count, 10);
 
       const caseRow = await pool.query(
-        `SELECT COUNT(*) as count FROM cases WHERE entity_id = $1 AND is_archived = false`,
-        [companyId]
+        `SELECT COUNT(*) as count FROM cases WHERE entity_id = $1 AND is_archived = false ${siteScopeSql}`,
+        siteScopeParams
       );
       const incidentRow = await pool.query(
-        `SELECT COUNT(*) as count FROM incidents WHERE entity_id = $1`,
-        [companyId]
+        `SELECT COUNT(*) as count FROM incidents WHERE entity_id = $1 ${siteScopeSql}`,
+        siteScopeParams
       );
 
       res.json({
@@ -11770,7 +11815,15 @@ export async function registerRoutes(
       if (!currentSite) {
         return res.status(404).json({ error: "Site not found" });
       }
-      const sites = await storage.getSitesByCompanyId(currentSite.companyId);
+      let sites = await storage.getSitesByCompanyId(currentSite.companyId);
+
+      // Scope down to explicitly-assigned sites for standard consultants/clients so users
+      // cannot pivot from one legitimate site assignment into full company site visibility.
+      const accessibleSiteIds = await getAccessibleSiteIdsInCompany(user, { id: currentSite.companyId });
+      if (accessibleSiteIds !== null) {
+        sites = sites.filter(s => accessibleSiteIds.has(s.id));
+      }
+
       res.json(sites);
     } catch (error) {
       console.error("Get entity sites error:", error);
@@ -13778,6 +13831,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Case not found" });
       }
 
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       const { title, fileName, fileUrl, fileSize, mimeType } = req.body;
 
       if (!title || !fileName || !fileUrl) {
@@ -13853,6 +13910,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Case not found" });
       }
 
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       const document = await storage.getDocument(req.params.docId);
       if (!document || document.caseId !== caseData.id) {
         return res.status(404).json({ error: "Document not found" });
@@ -13894,6 +13955,10 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Case not found" });
       }
 
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       // Check confidentiality access
       if (!canAccessConfidentialCase(caseData, user)) {
         return res.status(403).json({ error: "Not authorized to access confidential case milestones" });
@@ -13927,6 +13992,10 @@ export async function registerRoutes(
       const caseData = await storage.getCase(parseResult.data.caseId);
       if (!caseData) {
         return res.status(404).json({ error: "Case not found" });
+      }
+
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       const milestone = await storage.createCaseMilestone({
@@ -13963,6 +14032,15 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
+      const existingMilestone = await storage.getCaseMilestone(req.params.id);
+      if (!existingMilestone) {
+        return res.status(404).json({ error: "Milestone not found" });
+      }
+      const milestoneCase = await storage.getCase(existingMilestone.caseId);
+      if (!milestoneCase || !(await canUserAccessSite(user, milestoneCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       const { isCompleted, title, description, dueDate, completedDate, completionNotes } = req.body;
       const updates: any = {};
       
@@ -13980,7 +14058,6 @@ export async function registerRoutes(
       if (description !== undefined) updates.description = description || null;
       if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null;
 
-      const existing = await storage.getCaseMilestone(req.params.id);
       const milestone = await storage.updateCaseMilestone(req.params.id, updates);
       if (!milestone) {
         return res.status(404).json({ error: "Milestone not found" });
@@ -14051,12 +14128,16 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Milestone not found" });
       }
 
+      const caseData = await storage.getCase(milestone.caseId);
+      if (!caseData || !(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       // Response Deadline milestone cannot be deleted
       if (milestone.isResponseDeadline) {
         return res.status(400).json({ error: "The Response Deadline milestone cannot be deleted. Edit the date instead." });
       }
 
-      const caseData = await storage.getCase(milestone.caseId);
       await storage.deleteCaseMilestone(req.params.id);
 
       // Create audit log
@@ -14092,6 +14173,10 @@ export async function registerRoutes(
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
 
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       if (!canAccessConfidentialCase(caseData, user)) {
         return res.status(403).json({ error: "Not authorized" });
       }
@@ -14121,6 +14206,10 @@ export async function registerRoutes(
 
       const caseData = await storage.getCase(parseResult.data.caseId);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
+
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
 
       const { submissionDate, ...rest } = parseResult.data;
       const item = await storage.createCaseDocumentChecklistItem({
@@ -14169,6 +14258,11 @@ export async function registerRoutes(
 
       const existing = await storage.getCaseDocumentChecklistItem(req.params.id);
       if (!existing) return res.status(404).json({ error: "Checklist item not found" });
+
+      const existingChecklistCase = await storage.getCase(existing.caseId);
+      if (!existingChecklistCase || !(await canUserAccessSite(user, existingChecklistCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
 
       const updates: any = { ...req.body };
       if (typeof updates.isCompleted === "boolean") {
@@ -14241,6 +14335,10 @@ export async function registerRoutes(
       if (!existing) return res.status(404).json({ error: "Checklist item not found" });
 
       const caseData = await storage.getCase(existing.caseId);
+      if (!caseData || !(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
       await storage.deleteCaseDocumentChecklistItem(req.params.id);
 
       if (caseData) {
@@ -14574,6 +14672,16 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
+
+      const notesCase = await storage.getCase(req.params.id);
+      if (!notesCase) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, notesCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!canAccessConfidentialCase(notesCase, user)) {
+        return res.status(403).json({ error: "Not authorized to access confidential case notes" });
+      }
+
       const notes = await storage.getCaseNotes(req.params.id);
       const allUsers = await storage.getAllUsers();
       const userMap = Object.fromEntries(allUsers.map(u => [u.id, u.fullName]));
@@ -14590,6 +14698,15 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot add case notes" });
+
+      const targetCase = await storage.getCase(req.params.id);
+      if (!targetCase) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, targetCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!canAccessConfidentialCase(targetCase, user)) {
+        return res.status(403).json({ error: "Not authorized to access confidential case notes" });
+      }
 
       const { content } = req.body;
       if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
@@ -14616,6 +14733,11 @@ export async function registerRoutes(
 
       const existing = await storage.getCaseNote(req.params.id);
       if (!existing) return res.status(404).json({ error: "Note not found" });
+
+      const editNoteCase = await storage.getCase(existing.caseId);
+      if (!editNoteCase || !(await canUserAccessSite(user, editNoteCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
       if (existing.createdBy !== user.id && user.role !== "developer") {
         return res.status(403).json({ error: "You can only edit your own notes" });
       }
@@ -14639,6 +14761,11 @@ export async function registerRoutes(
 
       const existing = await storage.getCaseNote(req.params.id);
       if (!existing) return res.status(404).json({ error: "Note not found" });
+
+      const deleteNoteCase = await storage.getCase(existing.caseId);
+      if (!deleteNoteCase || !(await canUserAccessSite(user, deleteNoteCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
       if (existing.createdBy !== user.id && user.role !== "developer") {
         return res.status(403).json({ error: "You can only delete your own notes" });
       }
@@ -14662,6 +14789,10 @@ export async function registerRoutes(
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) {
         return res.status(404).json({ error: "Case not found" });
+      }
+
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       // Check confidentiality access

@@ -21,3 +21,4 @@
 - [Staff scoping coverage](staff-scoping-coverage.md) — canStaffManageUser/canStaffAccessCompany must gate every staff user-management route incl. online/presence id lists, not just hasProPrivileges checks.
 - [Two-tier account lockout](two-tier-lockout.md) — separate a self-clearing short-window soft lock (anti-brute-force) from a much-higher-threshold permanent status lock, or anonymous callers can DoS-lock arbitrary accounts.
 - [PG session-store revocation](pg-session-store-revocation.md) — connect-pg-simple `session` table can be queried/deleted directly (`sess::jsonb->>'userId'`) to kill live sessions on password change/reset or admin disable.
+- [Sibling subroute authorization parity](subroute-auth-parity.md) — a fixed parent GET route doesn't fix sibling CRUD subroutes for its child entities; each must independently enforce the same tenant/site check.
