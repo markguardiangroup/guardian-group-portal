@@ -1120,6 +1120,39 @@ export async function registerRoutes(
   };
 
   /**
+   * Reload the caller's identity from the database instead of trusting the
+   * privilege-bearing fields cached in `req.session.user` at login time.
+   * The cached session snapshot (role, companyId, clientPermissionRole,
+   * consultantTier, sources) can go stale the moment an administrator edits,
+   * demotes, or deactivates a user — the DB record changes immediately but the
+   * old session cookie keeps working with the original privileges until it
+   * expires. Routes that authorize sensitive actions (e.g. support tickets)
+   * must call this instead of reading `req.session.user` directly so revoked
+   * or downgraded accounts lose access on their very next request.
+   * Returns null if there is no session, the user no longer exists, or the
+   * account has been deactivated/locked since login.
+   */
+  const getActiveSessionUser = async (req: any) => {
+    const userId = req.session?.userId;
+    if (!userId) return null;
+    const dbUser = await storage.getUser(userId);
+    if (!dbUser || dbUser.status === "inactive" || dbUser.status === "locked") {
+      return null;
+    }
+    return {
+      id: dbUser.id,
+      username: dbUser.username,
+      email: dbUser.email,
+      fullName: dbUser.fullName,
+      role: dbUser.role,
+      companyId: dbUser.companyId,
+      clientPermissionRole: dbUser.clientPermissionRole,
+      consultantTier: dbUser.consultantTier,
+      sources: dbUser.sources,
+    };
+  };
+
+  /**
    * GET /api/auth/totp-setup
    * Generates a new TOTP secret + QR code for the authenticated user.
    * The secret is stored in the session (not the DB) until confirmed.
@@ -11235,7 +11268,7 @@ export async function registerRoutes(
   // Support Requests
   app.get("/api/support-requests", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11328,7 +11361,7 @@ export async function registerRoutes(
   // Get support request counts for notifications (must be before :id route)
   app.get("/api/support-requests/counts", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11363,7 +11396,7 @@ export async function registerRoutes(
 
   app.post("/api/support-requests", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11421,7 +11454,7 @@ export async function registerRoutes(
   // Update/respond to support request
   app.patch("/api/support-requests/:id", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11498,7 +11531,7 @@ export async function registerRoutes(
   // Get single support request
   app.get("/api/support-requests/:id", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11529,7 +11562,7 @@ export async function registerRoutes(
   // Clear all support requests (admin only - for testing)
   app.delete("/api/support-requests", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11549,7 +11582,7 @@ export async function registerRoutes(
   // Get messages for a support request
   app.get("/api/support-requests/:id/messages", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -11595,7 +11628,7 @@ export async function registerRoutes(
   // Post a message to a support request
   app.post("/api/support-requests/:id/messages", async (req, res) => {
     try {
-      const user = req.session?.user;
+      const user = await getActiveSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -17158,7 +17191,12 @@ export async function registerRoutes(
       }
 
       const rawFileName = req.headers["x-file-name"] as string;
-      const contentType = req.headers["content-type"] || "application/octet-stream";
+      // Never trust the caller-supplied Content-Type directly: legal documents are served
+      // back inline on the app's own origin, so an unsanitized type (text/html,
+      // image/svg+xml, application/xhtml+xml, etc.) would let an uploader run active
+      // content in every viewer's browser. Coerce through the same safelist used for
+      // regular document uploads/downloads.
+      const contentType = sanitizeMimeType(req.headers["content-type"]);
       if (!rawFileName) {
         return res.status(400).json({ error: "Missing x-file-name header" });
       }
@@ -17290,11 +17328,18 @@ export async function registerRoutes(
       }
 
       const [metadata] = await file.getMetadata();
-      const contentType = metadata.contentType || "application/pdf";
+      // Defense-in-depth: even though uploads are sanitized through sanitizeMimeType(),
+      // re-validate whatever is stored before deciding how to serve it. Only a known
+      // non-executable type may be rendered inline on the app's own origin; anything
+      // else (including legacy/unexpected metadata) is forced to download.
+      const storedContentType = sanitizeMimeType(metadata.contentType);
+      const isInlineSafe = INLINE_SAFE_MIME_TYPES.has(storedContentType);
+      const contentType = isInlineSafe ? storedContentType : "application/octet-stream";
       const fileName = metadata.metadata?.originalName || `${docType}.pdf`;
 
       res.setHeader("Content-Type", contentType);
-      res.setHeader("Content-Disposition", `inline; filename="${fileName}"`);
+      res.setHeader("Content-Disposition", `${isInlineSafe ? "inline" : "attachment"}; filename="${fileName}"`);
+      res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("X-Frame-Options", "SAMEORIGIN");
       res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
 
@@ -17329,11 +17374,14 @@ export async function registerRoutes(
       }
 
       const [metadata] = await file.getMetadata();
-      const contentType = metadata.contentType || "application/pdf";
+      // Defense-in-depth, matching the /view route: re-validate the stored type even
+      // though it's forced to download here (not rendered inline).
+      const contentType = sanitizeMimeType(metadata.contentType);
       const fileName = metadata.metadata?.originalName || `${docType}.pdf`;
 
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+      res.setHeader("X-Content-Type-Options", "nosniff");
 
       const stream = file.createReadStream();
       stream.pipe(res);
