@@ -9340,10 +9340,20 @@ export async function registerRoutes(
 
   app.get("/api/training-bookings/:id", requireAuth, async (req, res) => {
     try {
+      const user = await getSessionUser(req);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
       const booking = await storage.getTrainingBooking(req.params.id);
       if (!booking) {
         return res.status(404).json({ error: "Training booking not found" });
       }
+
+      if (!(await canUserAccessSite(user, booking.siteId))) {
+        return res.status(404).json({ error: "Training booking not found" });
+      }
+
       res.json(booking);
     } catch (error) {
       console.error("Get training booking error:", error);
@@ -9379,7 +9389,11 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
-      
+
+      if (!(await canUserAccessSite(user, parsed.data.siteId))) {
+        return res.status(403).json({ error: "Not authorized to create bookings for this site" });
+      }
+
       const booking = await storage.createTrainingBooking({
         ...parsed.data,
         scheduledDate: parsed.data.scheduledDate ? new Date(parsed.data.scheduledDate) : undefined,
@@ -9427,7 +9441,16 @@ export async function registerRoutes(
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
-      
+
+      const existingBooking = await storage.getTrainingBooking(req.params.id);
+      if (!existingBooking) {
+        return res.status(404).json({ error: "Training booking not found" });
+      }
+
+      if (!(await canUserAccessSite(user, existingBooking.siteId))) {
+        return res.status(404).json({ error: "Training booking not found" });
+      }
+
       const updateData: any = { ...parsed.data };
       
       if (parsed.data.scheduledDate) {
