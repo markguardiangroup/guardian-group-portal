@@ -10303,8 +10303,10 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Forbidden" });
+      if (!(await canUserAccessCompany(user, req.params.companyId))) return res.status(403).json({ error: "Access denied" });
       const { sourceCode, acceloId, acceloStanding, acceloType, acceloColor } = req.body as { sourceCode: string; acceloId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null };
       if (!sourceCode || !acceloId) return res.status(400).json({ error: "Missing sourceCode or acceloId" });
+      if (!canAccessAcceloSource(user, String(sourceCode).toUpperCase())) return res.status(403).json({ error: "Forbidden" });
       await storage.upsertAcceloLink(req.params.companyId, String(sourceCode).toUpperCase(), String(acceloId), acceloStanding ?? null, acceloType ?? null, acceloColor ?? null);
       const importedCompany = await storage.getCompany(req.params.companyId).catch(() => null);
       await storage.createAcceloSyncLog({
@@ -10331,6 +10333,7 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "Unauthorized" });
       if (user.role !== "developer" && !hasProPrivileges(user)) return res.status(403).json({ error: "Forbidden" });
+      if (!(await canUserAccessCompany(user, req.params.companyId))) return res.status(403).json({ error: "Access denied" });
       const links = await storage.getAcceloLinksByCompany(req.params.companyId);
       if (links.length === 0) return res.json({ updated: 0 });
       const company = await storage.getCompany(req.params.companyId);
@@ -24619,7 +24622,16 @@ export async function registerRoutes(
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
       const data = await acceloGet(sourceCode, `/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
-      const results = Array.isArray(data?.response) ? data.response : [];
+      const rawResults = Array.isArray(data?.response) ? data.response : [];
+      // Results already linked to a portal company outside this user's tenant scope must be
+      // dropped here — otherwise a source-scoped consultant could use search to discover/browse
+      // other tenants' linked Accelo records even though they can't manage those companies.
+      const results = [];
+      for (const r of rawResults) {
+        const link = await storage.getAcceloLinkBySourceAndAcceloId(sourceCode, String(r.id)).catch(() => null);
+        if (link && !(await canUserAccessCompany(user, link.companyId))) continue;
+        results.push(r);
+      }
       res.json(results);
     } catch (err: any) {
       if (err.message?.includes("no tokens stored") || err.message?.includes("not connected")) return res.status(503).json({ error: "Accelo not connected" });
@@ -24636,6 +24648,13 @@ export async function registerRoutes(
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
+      // If this Accelo record is already linked to a portal company, only allow the fetch
+      // when the caller can manage that company — prevents a source-scoped consultant from
+      // reading another tenant's linked Accelo record details.
+      const existingLink = await storage.getAcceloLinkBySourceAndAcceloId(sourceCode, acceloId).catch(() => null);
+      if (existingLink && !(await canUserAccessCompany(user, existingLink.companyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const data = await acceloGet(sourceCode, `/companies/${acceloId}?_fields=id,name,phone,website,custom_id,postal_address(city,full,state),standing,type,company_status(id,title,color)`);
       const company = data?.response ?? null;
       if (company?.postal_address?.state && /^\d+$/.test(String(company.postal_address.state))) {
@@ -24660,6 +24679,16 @@ export async function registerRoutes(
       const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
+      // Contact records carry personal PII (name/email/phone) for real people, unlike the
+      // company-level search/detail endpoints. The only legitimate caller (companies.tsx)
+      // always fetches contacts immediately after creating the accelo-link, so require an
+      // existing link to a portal company the caller can access before returning any PII —
+      // this prevents a source-scoped consultant from harvesting another tenant's (or an
+      // unlinked prospect's) contact details just by guessing/enumerating Accelo IDs.
+      const existingLink = await storage.getAcceloLinkBySourceAndAcceloId(sourceCode, acceloId).catch(() => null);
+      if (!existingLink || !(await canUserAccessCompany(user, existingLink.companyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
       const data = await acceloGet(
         sourceCode,
         `/companies/${encodeURIComponent(acceloId)}/contacts?_fields=id,firstname,surname,email,phone,mobile&_limit=100`
@@ -24707,6 +24736,17 @@ export async function registerRoutes(
       if (!parsed.success) return res.status(400).json({ error: "Invalid request body" });
 
       const { companyId, siteId, contacts } = parsed.data;
+
+      if (!(await canUserAccessCompany(currentUser, companyId))) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      if (siteId) {
+        const site = await storage.getSite(siteId);
+        if (!site || site.companyId !== companyId || !(await canUserAccessSite(currentUser, siteId))) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
       const results: Array<{ acceloId: string; userId?: string; success: boolean; error?: string }> = [];
 
       for (const contact of contacts) {

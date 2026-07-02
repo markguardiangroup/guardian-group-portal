@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "f4a5b6c7-accelo-tenant-scope-hardening-2026",
+          "patch": 22,
+          "message": "Fixed: Accelo integration could expose or link data across companies",
+          "category": "bug",
+          "createdAt": "2026-07-02T19:45:00.000Z"
+        },
+        {
           "id": "c1a2b3d4-auth-lockout-hardening-2026",
           "patch": 22,
           "message": "Fixed: a few bad login attempts could permanently lock any account",
