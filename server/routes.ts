@@ -98,8 +98,11 @@ class UploadClaimError extends Error {
   }
 }
 
-async function claimUploadedObject(fileUrl: string | null | undefined, userId: string, claimedByType: string): Promise<void> {
-  if (!fileUrl) return;
+// Returns the *finalized* object path that the calling route must persist into its business
+// record. It will differ from the fileUrl the caller passed in — see finalizeClaimedObject()
+// for why the object is relocated as part of claiming it.
+async function claimUploadedObject(fileUrl: string | null | undefined, userId: string, claimedByType: string): Promise<string | null> {
+  if (!fileUrl) return null;
   const record = await storage.getUploadedObjectByPath(fileUrl);
   if (!record) {
     throw new UploadClaimError(400, "This file was not recognized as a valid upload. Please re-upload the file and try again.");
@@ -117,11 +120,12 @@ async function claimUploadedObject(fileUrl: string | null | undefined, userId: s
   // before letting any business route bind to it, and delete oversized objects outright so
   // they can never be attached to a record or left around as billable orphaned storage.
   const objectStorageService = new ObjectStorageService();
+  let verifiedActualSize: number;
   try {
     const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
     const [metadata] = await objectFile.getMetadata();
-    const actualSize = metadata.size ? Number(metadata.size) : 0;
-    if (!actualSize || actualSize > MAX_UPLOAD_BYTES) {
+    verifiedActualSize = metadata.size ? Number(metadata.size) : 0;
+    if (!verifiedActualSize || verifiedActualSize > MAX_UPLOAD_BYTES) {
       await objectStorageService.deleteObjectEntityFile(fileUrl).catch(() => {});
       await storage.deleteUploadedObjectRecord(fileUrl).catch(() => {});
       throw new UploadClaimError(413, "This file exceeds the maximum allowed size. Please re-upload a smaller file.");
@@ -133,7 +137,23 @@ async function claimUploadedObject(fileUrl: string | null | undefined, userId: s
     throw new UploadClaimError(400, "This file was not recognized as a valid upload. Please re-upload the file and try again.");
   }
 
-  await storage.claimUploadedObject(fileUrl, claimedByType);
+  // Relocate the object to an immutable post-claim path. The presigned PUT URL handed out by
+  // /api/uploads/request-url is signed for the *original* object name and stays live for up
+  // to 15 minutes with no one-time-use control or revocation step — if the business record
+  // kept referencing that original name, whoever still held the signed URL could overwrite the
+  // file's bytes at any point before expiry, even after it had already been attached to a
+  // document/template/case/shared upload and reviewed or approved. Moving it means every
+  // caller must persist the *returned* path, not the one the client supplied.
+  let finalizedPath: string;
+  try {
+    finalizedPath = await objectStorageService.finalizeClaimedObject(fileUrl);
+  } catch (err) {
+    console.error("Error finalizing claimed object:", err);
+    throw new UploadClaimError(400, "This file was not recognized as a valid upload. Please re-upload the file and try again.");
+  }
+
+  await storage.finalizeUploadedObjectClaim(fileUrl, finalizedPath, claimedByType, verifiedActualSize);
+  return finalizedPath;
 }
 
 // ── Bundle PDF Generation ─────────────────────────────────────────────────────
@@ -503,6 +523,29 @@ async function sweepUnclaimedUploads(): Promise<void> {
   for (const row of stale) {
     try { await svc.deleteObjectEntityFile(row.objectPath); } catch {}
     try { await storage.deleteUploadedObjectRecord(row.objectPath); } catch {}
+  }
+
+  // "Superseded" rows mark original object paths vacated by finalizeClaimedObject() when their
+  // content was moved to an immutable post-claim path. The presigned PUT URL issued for that
+  // original path stays valid for the rest of its TTL, so it can still be reused to dump a fresh
+  // (untracked, unverified) blob at the now-empty name. Actively check every superseded path on
+  // every pass and delete anything found there immediately — nothing should ever legitimately
+  // reappear at a superseded path — then drop the tracking row itself once enough time has
+  // passed that the original signed URL is guaranteed to have expired.
+  const superseded = await storage.getSupersededUploadedObjects();
+  for (const row of superseded) {
+    try {
+      const objectFile = await svc.getObjectEntityFile(row.objectPath);
+      const [exists] = await objectFile.exists();
+      if (exists) {
+        await svc.deleteObjectEntityFile(row.objectPath).catch(() => {});
+      }
+    } catch {
+      // Not found / inaccessible — nothing to clean up at this path right now.
+    }
+    if (row.createdAt.getTime() < Date.now() - STALE_UPLOAD_MAX_AGE_MS) {
+      await storage.deleteUploadedObjectRecord(row.objectPath).catch(() => {});
+    }
   }
 }
 setInterval(() => {
@@ -4892,8 +4935,9 @@ export async function registerRoutes(
       }
       const safeMimeType = sanitizeMimeType(mimeType);
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(fileUrl, user.id, "document_version");
+        finalizedFileUrl = await claimUploadedObject(fileUrl, user.id, "document_version");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -4981,7 +5025,7 @@ export async function registerRoutes(
 
       const updatedDocument = await storage.updateDocument(document.id, {
         fileName,
-        fileUrl,
+        fileUrl: finalizedFileUrl,
         fileSize,
         mimeType: safeMimeType,
         version: newVersionNumber,
@@ -5570,8 +5614,9 @@ export async function registerRoutes(
         resolvedInitiatedBy = user.id;
       }
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(body.fileUrl, user.id, "document");
+        finalizedFileUrl = await claimUploadedObject(body.fileUrl, user.id, "document");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -5592,7 +5637,7 @@ export async function registerRoutes(
         folderId: body.folderId || null,
         caseId: body.caseId || null,
         fileName: body.fileName,
-        fileUrl: body.fileUrl || null,
+        fileUrl: finalizedFileUrl,
         fileSize: body.fileSize,
         mimeType: sanitizeMimeType(body.mimeType),
         version: 1,
@@ -7875,8 +7920,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Template module must match folder template module" });
       }
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template");
+        finalizedFileUrl = await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -7886,6 +7932,7 @@ export async function registerRoutes(
 
       const template = await storage.createDocumentTemplate({
         ...parsed.data,
+        fileUrl: finalizedFileUrl ?? parsed.data.fileUrl,
         mimeType: sanitizeMimeType(parsed.data.mimeType),
         folderTemplateId: resolvedFolderTemplateId,
         createdBy: user.id,
@@ -8126,8 +8173,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
       
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template_version");
+        finalizedFileUrl = await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template_version");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -8143,7 +8191,7 @@ export async function registerRoutes(
         templateId: template.id,
         version: newVersion,
         fileName: parsed.data.fileName,
-        fileUrl: parsed.data.fileUrl,
+        fileUrl: finalizedFileUrl ?? parsed.data.fileUrl,
         fileSize: parsed.data.fileSize,
         mimeType: safeMimeType,
         changeNote: parsed.data.changeNote,
@@ -8154,7 +8202,7 @@ export async function registerRoutes(
       await storage.updateDocumentTemplate(template.id, {
         version: newVersion,
         fileName: parsed.data.fileName,
-        fileUrl: parsed.data.fileUrl,
+        fileUrl: finalizedFileUrl ?? parsed.data.fileUrl,
         fileSize: parsed.data.fileSize,
         mimeType: safeMimeType,
       });
@@ -8467,8 +8515,9 @@ export async function registerRoutes(
       if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
       const safeMimeType = sanitizeMimeType(parsed.data.mimeType);
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template_replace");
+        finalizedFileUrl = await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template_replace");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -8490,7 +8539,7 @@ export async function registerRoutes(
 
       // Update template with new file and incremented version
       const updated = await storage.updateDocumentTemplate(template.id, {
-        fileUrl: parsed.data.fileUrl,
+        fileUrl: finalizedFileUrl ?? parsed.data.fileUrl,
         fileName: parsed.data.fileName,
         fileSize: parsed.data.fileSize,
         mimeType: safeMimeType,
@@ -13881,8 +13930,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
       }
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(fileUrl, user.id, "case_document");
+        finalizedFileUrl = await claimUploadedObject(fileUrl, user.id, "case_document");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -13901,7 +13951,7 @@ export async function registerRoutes(
         caseId: caseData.id,
         folderId: caseData.folderId,
         fileName,
-        fileUrl,
+        fileUrl: finalizedFileUrl,
         fileSize: fileSize || 0,
         mimeType: sanitizeMimeType(mimeType),
         uploadedBy: user.id,
@@ -19747,8 +19797,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
       }
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(fileUrl, user.id, "incident_document");
+        finalizedFileUrl = await claimUploadedObject(fileUrl, user.id, "incident_document");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -19766,7 +19817,7 @@ export async function registerRoutes(
         incidentId: incident.id,
         folderId: incident.folderId,
         fileName,
-        fileUrl,
+        fileUrl: finalizedFileUrl,
         fileSize: fileSize || 0,
         mimeType: sanitizeMimeType(mimeType),
         uploadedBy: user.id,
@@ -20409,8 +20460,9 @@ export async function registerRoutes(
       const canAccess = await canUserAccessFolder(user, folder);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(fileUrl, user.id, "client_upload");
+        finalizedFileUrl = await claimUploadedObject(fileUrl, user.id, "client_upload");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -20427,7 +20479,7 @@ export async function registerRoutes(
         uploadedByUserId: user.id,
         fileName,
         fileSize,
-        fileUrl,
+        fileUrl: finalizedFileUrl!,
         description: description ?? null,
         expiresAt: fileExpiresAt,
       });
@@ -21153,8 +21205,9 @@ export async function registerRoutes(
       const canAccess = await canUserAccessIshareFolder(user, folder);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
 
+      let finalizedFileUrl: string | null;
       try {
-        await claimUploadedObject(fileUrl, user.id, "ishare");
+        finalizedFileUrl = await claimUploadedObject(fileUrl, user.id, "ishare");
       } catch (claimErr) {
         if (claimErr instanceof UploadClaimError) {
           return res.status(claimErr.statusCode).json({ error: claimErr.message });
@@ -21169,7 +21222,7 @@ export async function registerRoutes(
         uploadedByUserId: user.id,
         fileName,
         fileSize,
-        fileUrl,
+        fileUrl: finalizedFileUrl!,
         description: description ?? null,
         expiresAt: fileExpiresAt,
       });

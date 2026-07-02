@@ -263,6 +263,40 @@ export class ObjectStorageService {
     });
   }
 
+  /**
+   * Moves a freshly-claimed object to a new, immutable storage location and returns its
+   * normalized path. This closes the "claimed files remain writable" hole: the presigned PUT
+   * URL returned by getObjectEntityUploadURL() is signed for a specific object name and stays
+   * live for up to 15 minutes with no one-time-use control, generation lock, or revocation
+   * step. If a business record kept referencing the original object name, an attacker who
+   * still held that signed URL could overwrite the file's bytes at any point before expiry —
+   * even after the file had already been attached to a document, template, case, or shared
+   * upload and reviewed/approved.
+   *
+   * By relocating the object to a brand-new, unguessable object name at claim time, any later
+   * PUT against the original signed URL either fails (object no longer exists there) or, if
+   * PUT recreates a blob at the old name, produces an orphaned object that no business record
+   * ever points to — readers always resolve the new, moved-to path, so approved/attached
+   * content can no longer be swapped out after the fact.
+   */
+  async finalizeClaimedObject(objectPath: string): Promise<string> {
+    const sourceFile = await this.getObjectEntityFile(objectPath);
+
+    let privateObjectDir = this.getPrivateObjectDir();
+    if (!privateObjectDir.endsWith("/")) {
+      privateObjectDir = `${privateObjectDir}/`;
+    }
+    const destinationId = randomUUID();
+    const destinationFullPath = `${privateObjectDir}claimed/${destinationId}`;
+    const { bucketName, objectName } = parseObjectPath(destinationFullPath);
+    const destinationBucket = objectStorageClient.bucket(bucketName);
+    const destinationFile = destinationBucket.file(objectName);
+
+    await sourceFile.move(destinationFile);
+
+    return `/objects/claimed/${destinationId}`;
+  }
+
   // Gets the object entity file from the object path.
   async getObjectEntityFile(objectPath: string): Promise<File> {
     if (!objectPath.startsWith("/objects/")) {

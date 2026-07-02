@@ -142,6 +142,11 @@ import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { db, pool } from "./db";
 import { eq, and, or, asc, desc, isNull, isNotNull, gt, gte, lt, lte, count, sql, inArray } from "drizzle-orm";
 
+// Must match MAX_UPLOAD_BYTES in server/routes.ts (the per-object cap enforced at claim time).
+// Duplicated locally rather than imported to avoid a routes.ts -> storage.ts -> routes.ts cycle;
+// used only for conservative unclaimed-upload budget accounting (see getUserUploadedBytesSince).
+const MAX_UPLOAD_BYTES_FOR_BUDGET = 50 * 1024 * 1024; // 50MB
+
 // Reference number generation helpers
 type ReferencePrefix = 'CMP' | 'STE' | 'ADM' | 'CON' | 'CLI' | 'USR';
 
@@ -583,9 +588,11 @@ export interface IStorage {
   createUploadedObject(data: InsertUploadedObject): Promise<UploadedObject>;
   getUploadedObjectByPath(objectPath: string): Promise<UploadedObject | undefined>;
   claimUploadedObject(objectPath: string, claimedByType: string): Promise<void>;
+  finalizeUploadedObjectClaim(oldObjectPath: string, newObjectPath: string, claimedByType: string, actualFileSize: number): Promise<void>;
   deleteUploadedObjectRecord(objectPath: string): Promise<void>;
   getStaleUnclaimedUploadedObjects(olderThan: Date): Promise<UploadedObject[]>;
   getUnclaimedUploadedObjects(): Promise<UploadedObject[]>;
+  getSupersededUploadedObjects(): Promise<UploadedObject[]>;
   getUserUploadedBytesSince(userId: string, since: Date): Promise<number>;
 
   // Testing Task Lists
@@ -5923,6 +5930,57 @@ export class MemStorage implements IStorage {
       .where(eq(uploadedObjectsTable.objectPath, objectPath));
   }
 
+  // Records the claim against a *new* row at the immutable post-claim object path (see
+  // ObjectStorageService.finalizeClaimedObject), while keeping the ORIGINAL row in the table —
+  // marked "superseded" rather than deleted/renamed away.
+  //
+  // Why keep the old row at all: finalizeClaimedObject() moves the underlying GCS object, but the
+  // presigned PUT URL originally issued for the old object name stays valid for the rest of its
+  // TTL (up to ~15 minutes) and GCS will happily recreate a fresh blob at that now-vacated name if
+  // the URL is reused. If we simply renamed this row away, that name would have zero DB tracking
+  // and the periodic sweep would never see (or delete) whatever gets dumped there — a storage-cost
+  // abuse path that survives even though the *live* business record can no longer be overwritten.
+  // Keeping a "superseded" row lets the sweep keep actively checking/deleting anything that
+  // reappears at the old path until its signed URL is guaranteed to have expired.
+  //
+  // The new row's fileSize is the *actual* verified byte size measured in storage at claim time
+  // (not the client-declared value recorded at request-url time). Daily upload-budget accounting
+  // sums this column, so leaving the declared value in place would let a caller declare a tiny
+  // size while actually uploading up to the per-object cap, silently evading the cumulative
+  // budget check for every claimed object.
+  async finalizeUploadedObjectClaim(oldObjectPath: string, newObjectPath: string, claimedByType: string, actualFileSize: number): Promise<void> {
+    await db.transaction(async (tx) => {
+      const [oldRow] = await tx
+        .select()
+        .from(uploadedObjectsTable)
+        .where(eq(uploadedObjectsTable.objectPath, oldObjectPath))
+        .limit(1);
+      if (!oldRow) return;
+
+      await tx.insert(uploadedObjectsTable).values({
+        objectPath: newObjectPath,
+        uploadedByUserId: oldRow.uploadedByUserId,
+        fileName: oldRow.fileName,
+        fileSize: actualFileSize,
+        mimeType: oldRow.mimeType,
+        claimedAt: new Date(),
+        claimedByType,
+      });
+
+      await tx
+        .update(uploadedObjectsTable)
+        .set({ claimedAt: new Date(), claimedByType: "superseded" })
+        .where(eq(uploadedObjectsTable.objectPath, oldObjectPath));
+    });
+  }
+
+  async getSupersededUploadedObjects(): Promise<UploadedObject[]> {
+    return db
+      .select()
+      .from(uploadedObjectsTable)
+      .where(eq(uploadedObjectsTable.claimedByType, "superseded"));
+  }
+
   async deleteUploadedObjectRecord(objectPath: string): Promise<void> {
     await db
       .delete(uploadedObjectsTable)
@@ -5943,9 +6001,21 @@ export class MemStorage implements IStorage {
       .where(isNull(uploadedObjectsTable.claimedAt));
   }
 
+  // Sums bytes for the daily upload-budget check. A row is only trusted at its stored fileSize
+  // when it has been finalized into a *real* business claim (claimedByType set, and not the
+  // internal "superseded" marker left behind at a since-vacated original path — see
+  // finalizeUploadedObjectClaim) — that's the point where fileSize was overwritten with the
+  // actual verified byte size. Every other row (still unclaimed, or superseded/vacated but not
+  // yet confirmed empty by the sweep) has an unverified real size: a live signed PUT URL could
+  // still be filled with up to MAX_UPLOAD_BYTES regardless of what was declared, so those rows
+  // are counted at the worst case (MAX_UPLOAD_BYTES) rather than their declared value. Otherwise
+  // an attacker could declare a tiny size on every request-url call to stay under budget while
+  // actually uploading up to the per-object cap each time, defeating the cumulative daily quota.
   async getUserUploadedBytesSince(userId: string, since: Date): Promise<number> {
     const rows = await db
-      .select({ total: sql<string>`coalesce(sum(${uploadedObjectsTable.fileSize}), 0)` })
+      .select({
+        total: sql<string>`coalesce(sum(case when ${uploadedObjectsTable.claimedAt} is not null and ${uploadedObjectsTable.claimedByType} is distinct from 'superseded' then ${uploadedObjectsTable.fileSize} else greatest(${uploadedObjectsTable.fileSize}, ${MAX_UPLOAD_BYTES_FOR_BUDGET}) end), 0)`,
+      })
       .from(uploadedObjectsTable)
       .where(and(eq(uploadedObjectsTable.uploadedByUserId, userId), gte(uploadedObjectsTable.createdAt, since)));
     return Number(rows[0]?.total ?? 0);
