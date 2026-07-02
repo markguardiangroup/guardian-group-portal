@@ -26,9 +26,9 @@ The scan scope is production only. Mockup/sandbox-only code should be ignored un
 ## Scan Anchors
 
 - **Production entry points**: `server/index.ts`, `server/routes.ts`, `server/replit_integrations/object_storage/routes.ts`, `server/accelo.ts`.
-- **Highest-risk code areas**: authentication/MFA flows in `server/routes.ts`; invitation acceptance and password-reset lifecycle; object storage helpers; document preview/download/upload flows; employment-law case subroutes that must repeat site/confidential-case checks; case bundle and DOCX/PDF conversion code; public integration callbacks/webhooks; staff-only `/api/users/**` routes that must enforce the same source/company/site scoping as the main user-directory endpoints.
+- **Highest-risk code areas**: authentication/MFA flows in `server/routes.ts`; invitation acceptance and password-reset lifecycle; object storage helpers; document preview/download/upload flows; health-and-safety incident report HTML routes and incident milestone subroutes; training booking routes that expose third-party access details; employment-law case subroutes that must repeat site/confidential-case and permission checks; case bundle and DOCX/PDF conversion code; public integration callbacks/webhooks; staff-only `/api/users/**` routes that must enforce the same source/company/site scoping as the main user-directory endpoints.
 - **Public surfaces**: login, forgot-password, invitation validation/acceptance, OAuth callback, public download/object routes, any webhook-like endpoints.
-- **Authenticated/admin surfaces**: most `/api/**` business routes in `server/routes.ts`; role checks rely heavily on `requireAuth`, `canUserAccessSite`, and document/case access helpers.
+- **Authenticated/admin surfaces**: most `/api/**` business routes in `server/routes.ts`; role checks rely heavily on `requireAuth`, `getSessionUser`, `canUserAccessSite`, and document/case access helpers. Any route still reading privilege-bearing fields from cached `req.session.user` snapshots should be treated as high-risk and re-checked for post-demotion or post-rescoping access.
 - **Usually ignore unless proven reachable**: local scripts, static assets, and mock/sandbox-only paths outside the production server/client flow.
 
 ## Threat Categories
@@ -42,6 +42,8 @@ The portal relies on session cookies plus optional MFA. All protected routes mus
 Clients and lower-privilege staff can submit document metadata, uploads, approvals, and integration-triggered changes. The server must treat all file metadata, MIME types, IDs, and workflow state transitions as untrusted, and must not let attackers alter records or generated outputs outside the rules enforced by role/site checks.
 
 Shared-folder bulk download features also create files for other users to open locally. Archive entry names must be sanitized so attacker-controlled filenames cannot turn ZIP exports into path-traversal payloads against recipients.
+
+HTML report generators are also sensitive tampering sinks. Any user-controlled incident or case content interpolated into same-origin `text/html` responses must be escaped or rendered as inert text, especially because the app CSP currently permits inline scripts.
 
 ### Information Disclosure
 
