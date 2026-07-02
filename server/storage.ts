@@ -5564,7 +5564,7 @@ export class MemStorage implements IStorage {
     const files = await db
       .select()
       .from(clientUploadsTable)
-      .where(eq(clientUploadsTable.folderId, folderId))
+      .where(and(eq(clientUploadsTable.folderId, folderId), gt(clientUploadsTable.expiresAt, new Date())))
       .orderBy(desc(clientUploadsTable.createdAt));
 
     const results: ClientUploadWithUploader[] = [];
@@ -5870,7 +5870,7 @@ export class MemStorage implements IStorage {
     const files = await db
       .select()
       .from(isharesTable)
-      .where(eq(isharesTable.folderId, folderId))
+      .where(and(eq(isharesTable.folderId, folderId), gt(isharesTable.expiresAt, new Date())))
       .orderBy(desc(isharesTable.createdAt));
 
     const results: IshareWithUploader[] = [];

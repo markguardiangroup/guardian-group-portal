@@ -20759,6 +20759,7 @@ export async function registerRoutes(
       if (!user) return res.status(401).json({ error: "User not found" });
       const upload = await storage.getClientUpload(req.params.id);
       if (!upload) return res.status(404).json({ error: "File not found" });
+      if (upload.expiresAt < new Date()) return res.status(404).json({ error: "File not found" });
 
       const folder = await storage.getClientUploadFolder(upload.folderId);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
@@ -21007,6 +21008,7 @@ export async function registerRoutes(
 
     const clientUpload = await storage.getClientUploadByFileUrl(objectPath);
     if (clientUpload) {
+      if (clientUpload.expiresAt < new Date()) return false;
       const folder = await storage.getClientUploadFolder(clientUpload.folderId);
       if (!folder) return false;
       return canUserAccessFolder(user, folder);
@@ -21015,6 +21017,7 @@ export async function registerRoutes(
     const ishare = await storage.getIshareByFileUrl(objectPath);
     if (ishare) {
       if (!user.id) return false;
+      if (ishare.expiresAt < new Date()) return false;
       const folder = await storage.getIshareFolder(ishare.folderId);
       if (!folder) return false;
       return canUserAccessIshareFolder({ id: user.id, role: user.role }, folder);
@@ -21439,6 +21442,7 @@ export async function registerRoutes(
       if (!isNonClient(user.role)) return res.status(403).json({ error: "Access denied" });
       const upload = await storage.getIshare(req.params.id);
       if (!upload) return res.status(404).json({ error: "File not found" });
+      if (upload.expiresAt < new Date()) return res.status(404).json({ error: "File not found" });
 
       const folder = await storage.getIshareFolder(upload.folderId);
       if (!folder) return res.status(404).json({ error: "Folder not found" });
