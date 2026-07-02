@@ -71,6 +71,45 @@ function withBundleGeneration<T>(fn: () => Promise<T>): Promise<T> {
   return p;
 }
 
+// Maximum size (in bytes) accepted for any single raw-body file upload endpoint.
+// Applied while streaming the request body so oversized uploads are rejected before
+// the full payload is buffered in memory, preventing memory-exhaustion DoS.
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
+
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super("Payload too large");
+  }
+}
+
+/** Buffers a request body while enforcing a byte ceiling, aborting early on overflow. */
+async function readRequestBodyWithLimit(req: AsyncIterable<Buffer | string>, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > maxBytes) {
+      throw new PayloadTooLargeError();
+    }
+    chunks.push(buf);
+  }
+  return Buffer.concat(chunks);
+}
+
+// Maximum number of documents (checklist items + directly-added documents combined)
+// that may be included in a single case bundle, and the maximum combined size of the
+// raw source files fed into the conversion pipeline. Without these caps, one staff
+// user could force unbounded memory/CPU/disk usage and monopolize the global bundle
+// generation queue for every tenant.
+const MAX_BUNDLE_ITEMS = 40;
+const MAX_BUNDLE_SOURCE_BYTES = 200 * 1024 * 1024; // 200MB combined raw input
+
+// Tracks which users currently have a bundle generation in flight so a single user
+// cannot queue up multiple heavyweight jobs back-to-back and starve the (globally
+// serialized) bundle generation pipeline for everyone else.
+const usersGeneratingBundles = new Set<string>();
+
 // MIME types that are safe to store and, when appropriate, render inline in a browser.
 // Anything not on this list is either coerced to a generic binary type on write
 // (defense-in-depth) or forced to download (not inline) at preview/serve time.
@@ -13652,6 +13691,9 @@ export async function registerRoutes(
       if (!Array.isArray(checklistItemIds)) {
         return res.status(400).json({ error: "checklistItemIds must be an array" });
       }
+      if (checklistItemIds.length + documentIds.length > MAX_BUNDLE_ITEMS) {
+        return res.status(400).json({ error: `A bundle can include at most ${MAX_BUNDLE_ITEMS} documents` });
+      }
 
       const bundle = await storage.createCaseBundle({
         caseId: req.params.id,
@@ -13689,6 +13731,11 @@ export async function registerRoutes(
       }
       if (Array.isArray(req.body.documentIds)) {
         updates.documentIds = req.body.documentIds;
+      }
+      const nextChecklistCount = Array.isArray(updates.checklistItemIds) ? (updates.checklistItemIds as unknown[]).length : bundle.checklistItemIds.length;
+      const nextDocumentCount = Array.isArray(updates.documentIds) ? (updates.documentIds as unknown[]).length : (bundle.documentIds?.length ?? 0);
+      if (nextChecklistCount + nextDocumentCount > MAX_BUNDLE_ITEMS) {
+        return res.status(400).json({ error: `A bundle can include at most ${MAX_BUNDLE_ITEMS} documents` });
       }
 
       // Invalidate + delete cached PDF on any change
@@ -13776,9 +13823,21 @@ export async function registerRoutes(
       if (bundle.checklistItemIds.length === 0 && documentIds.length === 0) {
         return res.status(400).json({ error: "Bundle has no documents" });
       }
+      if (bundle.checklistItemIds.length + documentIds.length > MAX_BUNDLE_ITEMS) {
+        return res.status(400).json({ error: `A bundle can include at most ${MAX_BUNDLE_ITEMS} documents` });
+      }
+
+      // Guard against one user monopolizing the globally-serialized generation queue by
+      // repeatedly triggering large jobs back-to-back — only one generation per user at a time.
+      if (usersGeneratingBundles.has(user.id)) {
+        return res.status(429).json({ error: "A bundle is already being generated for your account — please wait for it to finish" });
+      }
+      usersGeneratingBundles.add(user.id);
 
       // Serialize the entire generation pipeline so only one bundle is generated at a time
-      const finalBuffer = await withBundleGeneration(async () => {
+      let finalBuffer: Buffer;
+      try {
+      finalBuffer = await withBundleGeneration(async () => {
         // Load checklist items — preserve bundle's custom ordering via checklistItemIds
         const allChecklist = await storage.getCaseDocumentChecklist(req.params.caseId);
         const checklistMap = new Map(allChecklist.map(item => [item.id, item]));
@@ -13810,6 +13869,7 @@ export async function registerRoutes(
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bundle_"));
 
         const pdfPaths: string[] = [];
+        let totalSourceBytes = 0;
 
         for (let i = 0; i < docsToMerge.length; i++) {
           const entry = docsToMerge[i];
@@ -13818,10 +13878,19 @@ export async function registerRoutes(
           try {
             const objectFile = await objectStorageService.getObjectEntityFile(entry.fileUrl);
             const [fileBuffer] = await objectFile.download();
+            totalSourceBytes += fileBuffer.length;
+            // Hard stop (not a per-item skip) — a single abusive bundle must not be able to
+            // buffer unbounded amounts of source data in memory during conversion.
+            if (totalSourceBytes > MAX_BUNDLE_SOURCE_BYTES) {
+              throw new Error(`Combined bundle source size exceeds the ${MAX_BUNDLE_SOURCE_BYTES / (1024 * 1024)}MB limit`);
+            }
             const mimeType = entry.mimeType || "application/octet-stream";
             const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i, entry.fileName ?? undefined);
             pdfPaths.push(pdfPath);
           } catch (fileError) {
+            if (totalSourceBytes > MAX_BUNDLE_SOURCE_BYTES) {
+              throw fileError;
+            }
             console.warn(`Bundle: skipping item ${entry.id} due to error:`, fileError);
           }
         }
@@ -13859,6 +13928,9 @@ export async function registerRoutes(
 
         return buf;
       });
+      } finally {
+        usersGeneratingBundles.delete(user.id);
+      }
 
       // Stream the PDF to the client
       res.set({
@@ -17112,11 +17184,7 @@ export async function registerRoutes(
         revisionNumber = existing + 1;
       }
 
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
-      }
-      const buffer = Buffer.concat(chunks);
+      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
 
       const revisionDate = new Date().toISOString();
       const revisionDateShort = revisionDate.slice(0, 10); // YYYY-MM-DD
@@ -17148,6 +17216,9 @@ export async function registerRoutes(
         revisionNumber,
       });
     } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        return res.status(413).json({ error: "File exceeds maximum allowed size" });
+      }
       console.error("Error uploading legal document:", error);
       res.status(500).json({ error: "Failed to upload legal document" });
     }
@@ -17586,11 +17657,7 @@ export async function registerRoutes(
       const comments = rawComments ? decodeURIComponent(rawComments) : null;
       const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
 
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      }
-      const buffer = Buffer.concat(chunks);
+      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
       if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
 
       const objectStorageService = new ObjectStorageService();
@@ -17641,6 +17708,9 @@ export async function registerRoutes(
 
       res.json(doc);
     } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        return res.status(413).json({ error: "File exceeds maximum allowed size" });
+      }
       console.error("Error uploading incident file:", error);
       res.status(500).json({ error: "Upload failed" });
     }
@@ -19625,11 +19695,7 @@ export async function registerRoutes(
 
       console.log(`[uploads/file] receiving: fileName=${fileName} contentType=${contentType} bodyConsumed=${(req as any)._body !== undefined}`);
 
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-      }
-      const buffer = Buffer.concat(chunks);
+      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
       console.log(`[uploads/file] buffer size: ${buffer.length} bytes`);
       if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
 
@@ -19647,6 +19713,9 @@ export async function registerRoutes(
 
       res.json({ objectPath });
     } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        return res.status(413).json({ error: "File exceeds maximum allowed size" });
+      }
       console.error("Error uploading file:", error);
       res.status(500).json({ error: "Upload failed" });
     }

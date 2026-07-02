@@ -74,6 +74,40 @@ def extract_clean_body_html(html_src: str) -> str:
     for tag in soup.find_all(re.compile(r'^w:')):
         tag.decompose()
 
+    # ── SSRF hardening ──
+    # This HTML is opened directly in headless Chromium. Any element that can trigger an
+    # outbound network fetch (images, iframes, embedded objects, stylesheets, media, forms,
+    # base-href rewrites, meta-refresh redirects) must be neutralised so a malicious .msg
+    # cannot make the server fetch attacker-chosen or internal URLs during conversion.
+    for tag in soup.find_all(["iframe", "object", "embed", "link", "base", "meta",
+                               "frame", "frameset", "applet", "form", "video",
+                               "audio", "source", "track", "portal"]):
+        tag.decompose()
+
+    # Images: only allow inline data: URIs. Anything else (http/https/ftp/file/unknown
+    # scheme, or protocol-relative //host URLs) is stripped so Chromium never issues a
+    # real network request for it.
+    for img in soup.find_all("img"):
+        src = (img.get("src") or "").strip().lower()
+        if not src.startswith("data:"):
+            img.decompose()
+            continue
+        # data: URIs can't be network fetches, but drop any lingering srcset/loading hints.
+        for attr in ("srcset", "longdesc"):
+            if attr in img.attrs:
+                del img[attr]
+
+    # Strip attributes that can carry a URL and trigger a fetch (background images,
+    # CSS url(...) references, form actions, anchors that could auto-navigate, etc.)
+    URL_ATTRS = ("background", "poster", "formaction", "ping", "lowsrc")
+    for tag in soup.find_all(True):
+        for attr in URL_ATTRS:
+            if attr in tag.attrs:
+                del tag[attr]
+        style_val = tag.get("style")
+        if style_val and "url(" in style_val.lower():
+            del tag["style"]
+
     # Get body content, or fallback to everything
     body = soup.find("body")
     if body:
@@ -326,6 +360,20 @@ def _render_pdf(html_src: str, pdf_path: str) -> None:
                 "--disable-setuid-sandbox",
                 "--run-all-compositor-stages-before-draw",
                 "--print-to-pdf-no-header",
+                # ── Network isolation (defense-in-depth against SSRF) ──
+                # The document being rendered is a local file:// page that should never need
+                # to reach the network. Even if HTML sanitization misses an attacker-controlled
+                # URL (img/iframe/css/etc.), these flags force every outbound connection —
+                # including ones targeting raw IPs like cloud metadata endpoints — to fail,
+                # since file:// requests aren't proxied but http(s)/ftp ones are routed
+                # through a proxy address nothing is listening on.
+                "--proxy-server=127.0.0.1:1",
+                "--host-resolver-rules=MAP * 0.0.0.0",
+                "--disable-background-networking",
+                "--disable-sync",
+                "--disable-extensions",
+                "--disable-notifications",
+                "--no-pings",
                 f"--print-to-pdf={pdf_path}",
                 f"file://{tmp_html}",
             ],

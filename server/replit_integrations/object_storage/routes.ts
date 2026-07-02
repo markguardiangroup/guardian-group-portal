@@ -23,6 +23,31 @@ type ObjectAccessUser = {
   sources?: string[] | null;
 };
 
+// Maximum size (in bytes) accepted for a single raw-body file upload. Enforced while
+// streaming the request body so oversized uploads are rejected before being fully
+// buffered in memory, preventing memory-exhaustion DoS.
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
+
+class PayloadTooLargeError extends Error {
+  constructor() {
+    super("Payload too large");
+  }
+}
+
+async function readRequestBodyWithLimit(req: AsyncIterable<Buffer | string>, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (total > maxBytes) {
+      throw new PayloadTooLargeError();
+    }
+    chunks.push(buf);
+  }
+  return Buffer.concat(chunks);
+}
+
 export function registerObjectStorageRoutes(
   app: Express,
   options?: {
@@ -73,12 +98,8 @@ export function registerObjectStorageRoutes(
       const bucket = objectStorageClient.bucket(bucketName);
       const file = bucket.file(objectName);
       
-      // Collect request body chunks
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(chunk);
-      }
-      const buffer = Buffer.concat(chunks);
+      // Collect request body chunks, enforcing a max size while streaming
+      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
       
       // Upload to GCS
       await file.save(buffer, {
@@ -97,6 +118,9 @@ export function registerObjectStorageRoutes(
         mimeType: contentType,
       });
     } catch (error) {
+      if (error instanceof PayloadTooLargeError) {
+        return res.status(413).json({ error: "File exceeds maximum allowed size" });
+      }
       console.error("Error uploading file:", error);
       res.status(500).json({ error: "Failed to upload file" });
     }
