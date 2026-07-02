@@ -2291,6 +2291,28 @@ export async function registerRoutes(
     return false;
   };
 
+  // SECURITY: shared scoping check for staff actions that target a *company* rather than a
+  // specific user (e.g. creating a new client user in a given company, or reassigning an
+  // existing user to a different company). Mirrors the company-visibility rules inside
+  // canStaffManageUser above so pro consultants/administrators cannot act on companies
+  // outside their source scope (including via the Group Owner expansion).
+  const canStaffAccessCompany = async (
+    currentUser: { role: string; sources?: string[] | null },
+    companyId: string
+  ): Promise<boolean> => {
+    if (currentUser.role === "developer") return true;
+    const mySources = currentUser.sources ?? [];
+    if (currentUser.role === "administrator" && mySources.length === 0) return true;
+    const company = await storage.getCompany(companyId);
+    if (!company) return false;
+    if (sourcesOverlap(mySources, company.sources ?? [])) return true;
+    if (company.groupOwnerId) {
+      const goCompany = await storage.getCompany(company.groupOwnerId);
+      if (sourcesOverlap(mySources, goCompany?.sources ?? [])) return true;
+    }
+    return false;
+  };
+
   // Document "Comments" are internal/staff-only — never expose them to client users.
   const stripInternalDocFields = <T extends { comments?: string | null }>(doc: T, role: string): T => {
     if (role === "client") {
@@ -2674,7 +2696,30 @@ export async function registerRoutes(
     if (!caller || (caller.role !== "developer" && caller.role !== "consultant" && caller.role !== "administrator")) {
       return res.status(403).json({ error: "Forbidden" });
     }
-    res.json({ userIds: getOnlineUserIds() });
+
+    const onlineIds = getOnlineUserIds();
+
+    // SECURITY: developers see everyone; consultants/administrators must only learn about
+    // presence for users within their own tenant/source scope — reuse the same scoping
+    // helper as the other staff user-management routes to avoid a cross-tenant user-ID
+    // enumeration oracle.
+    if (caller.role === "developer") {
+      return res.json({ userIds: onlineIds });
+    }
+
+    const scopedIds: string[] = [];
+    for (const id of onlineIds) {
+      if (id === caller.id) {
+        scopedIds.push(id);
+        continue;
+      }
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) continue;
+      if (await canStaffManageUser(caller, targetUser)) {
+        scopedIds.push(id);
+      }
+    }
+    res.json({ userIds: scopedIds });
   });
 
   // ==================== AUTHENTICATED INVITATION ENDPOINTS ====================
@@ -2763,24 +2808,13 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
 
-      // SECURITY: standard consultants may only send invitations to client users in
-      // companies they are assigned to — they must not be able to invite (and thereby
-      // obtain the raw activation link for) staff accounts or clients outside their scope.
-      if (currentUser.role === "consultant" && !isProConsultant(currentUser)) {
-        if (targetUser.role !== "client" || !targetUser.companyId) {
-          return res.status(403).json({ error: "You can only send invitations to your assigned clients" });
-        }
-        const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
-        let hasAccess = false;
-        for (const site of companySites) {
-          const assignments = await storage.getConsultantAssignments(site.id);
-          if (assignments.some(a => a.consultantId === currentUser.id)) {
-            hasAccess = true;
-            break;
-          }
-        }
-        if (!hasAccess) {
-          return res.status(403).json({ error: "You can only send invitations to your assigned clients" });
+      // SECURITY: non-developer staff (standard consultants, pro consultants, and
+      // administrators alike) may only send invitations — and thereby obtain the raw
+      // activation link — for users within their own tenant/source scope. Use the shared
+      // helper so pro consultants/administrators can no longer bypass this check.
+      if (currentUser.role !== "developer") {
+        if (!(await canStaffManageUser(currentUser, targetUser))) {
+          return res.status(403).json({ error: "You can only send invitations to users within your scope" });
         }
       }
 
@@ -16046,6 +16080,15 @@ export async function registerRoutes(
           return res.status(403).json({ error: "You can only create users for companies you are assigned to" });
         }
       }
+
+      // SECURITY: pro consultants and administrators may only create users for companies
+      // within their own source scope — previously this only applied to standard
+      // consultants, letting source-scoped pro staff plant accounts in other tenants.
+      if (hasProPrivileges(currentUser) && currentUser.role !== "developer" && companyId) {
+        if (!(await canStaffAccessCompany(currentUser, companyId))) {
+          return res.status(403).json({ error: "You can only create users for companies within your scope" });
+        }
+      }
       
       if (!username || !email) {
         return res.status(400).json({ error: "Username and email are required" });
@@ -17004,6 +17047,17 @@ export async function registerRoutes(
         if (!myCompanyIds.has(site.companyId) || !sourcesOverlap(currentUser.sources ?? [], siteCompany?.sources ?? [])) {
           return res.status(403).json({ error: "You can only assign users to sites within your assigned companies" });
         }
+      } else if (currentUser.role !== "developer") {
+        // SECURITY: pro consultants and administrators must also stay within their own
+        // tenant/source scope for both the target user AND the target site — previously
+        // unrestricted, letting source-scoped staff assign out-of-scope users to (or into)
+        // sites belonging to other tenants.
+        if (!(await canStaffManageUser(currentUser, targetUser))) {
+          return res.status(403).json({ error: "You do not have access to this user" });
+        }
+        if (!(await canStaffAccessCompany(currentUser, site.companyId))) {
+          return res.status(403).json({ error: "You do not have access to this site" });
+        }
       }
 
       const { isPrimary } = req.body;
@@ -17087,6 +17141,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only developers and consultants can manage site assignments" });
       }
       const targetUser = await storage.getUser(req.params.userId);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
       // Standard consultants may only clear assignments for users in companies they are assigned to
       if (isStdConsultant && targetUser?.companyId) {
         const consultantSiteAssignments = await storage.getConsultantSites(currentUser.id);
@@ -17097,8 +17152,14 @@ export async function registerRoutes(
         if (!assignedCompanyIds.has(targetUser.companyId) || !sourcesOverlap(currentUser.sources ?? [], targetCompany?.sources ?? [])) {
           return res.status(403).json({ error: "You can only manage users in companies you are assigned to" });
         }
+      } else if (currentUser.role !== "developer") {
+        // SECURITY: pro consultants and administrators must also stay within their own
+        // tenant/source scope — previously unrestricted, letting source-scoped staff wipe
+        // all site assignments for users belonging to other tenants.
+        if (!(await canStaffManageUser(currentUser, targetUser))) {
+          return res.status(403).json({ error: "You do not have access to this user" });
+        }
       }
-      if (!targetUser) return res.status(404).json({ error: "User not found" });
       if (targetUser.role === "client") {
         await storage.clearClientSiteAssignments(targetUser.id);
         await storage.createAuditLog({
@@ -17154,6 +17215,17 @@ export async function registerRoutes(
         const siteCompany = await storage.getCompany(site.companyId);
         if (!myCompanyIds.has(site.companyId) || !sourcesOverlap(currentUser.sources ?? [], siteCompany?.sources ?? [])) {
           return res.status(403).json({ error: "You can only manage users in sites within your assigned companies" });
+        }
+      } else if (currentUser.role !== "developer") {
+        // SECURITY: pro consultants and administrators must also stay within their own
+        // tenant/source scope for both the target user AND the target site — previously
+        // unrestricted, letting source-scoped staff remove out-of-scope users' assignments
+        // to sites belonging to other tenants.
+        if (!(await canStaffManageUser(currentUser, targetUser))) {
+          return res.status(403).json({ error: "You do not have access to this user" });
+        }
+        if (!(await canStaffAccessCompany(currentUser, site.companyId))) {
+          return res.status(403).json({ error: "You do not have access to this site" });
         }
       }
 
@@ -17240,6 +17312,15 @@ export async function registerRoutes(
       // Pro consultants and Admins cannot delete other consultant or admin accounts
       if (hasProPrivileges(currentUser) && currentUser.role !== "developer" && (targetUser.role === "consultant" || targetUser.role === "administrator")) {
         return res.status(403).json({ error: "You cannot delete consultant or admin accounts" });
+      }
+
+      // SECURITY: pro consultants/administrators may only delete users within their own
+      // tenant/source scope — this was previously unrestricted, letting source-scoped
+      // staff delete arbitrary client accounts belonging to other tenants.
+      if (currentUser.role !== "developer") {
+        if (!(await canStaffManageUser(currentUser, targetUser))) {
+          return res.status(403).json({ error: "You do not have access to this user" });
+        }
       }
 
       // Remove related records but keep audit logs
@@ -17357,7 +17438,12 @@ export async function registerRoutes(
 
       if (currentUser.role !== "developer") {
         if (hasProPrivileges(currentUser)) {
-          // Pro consultants and Admins have full access to update users
+          // SECURITY: pro consultants and admins have full field access, but still must
+          // stay within their own tenant/source scope — previously unrestricted, letting
+          // source-scoped staff edit arbitrary users belonging to other tenants.
+          if (!(await canStaffManageUser(currentUser, targetUser))) {
+            return res.status(403).json({ error: "You do not have access to this user" });
+          }
         } else if (isSelfEdit && isRestrictedRole) {
           // Standard consultants and clients may update their own profile,
           // but only a limited set of fields (enforced below)
@@ -17418,6 +17504,20 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only developers can assign or change developer/administrator roles" });
       }
       const allowRoleEdit = allowPrivilegedFieldEdit;
+
+      // SECURITY: reassigning a user to a different company is a privilege-bearing change —
+      // a source-scoped pro consultant/administrator must not be able to move a user into
+      // (or use this to affect) a company outside their own source scope.
+      if (
+        allowPrivilegedFieldEdit &&
+        companyId !== undefined &&
+        companyId !== targetUser.companyId &&
+        currentUser.role !== "developer"
+      ) {
+        if (!companyId || !(await canStaffAccessCompany(currentUser, companyId))) {
+          return res.status(403).json({ error: "You do not have access to that company" });
+        }
+      }
 
       // Guard: only admins may assign/edit sources for consultant and admin users.
       // Use the effective target role (post-update) so that a role change from client
