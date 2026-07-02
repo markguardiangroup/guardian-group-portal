@@ -413,6 +413,18 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+// Trusted application base URL used for any link embedded in outgoing email
+// (password reset, invitation, etc). This MUST NOT be derived from
+// attacker-controllable request headers (Origin/Host), since those can be
+// forged by non-browser clients to redirect victims to a malicious domain
+// while still receiving a legitimate email from the app.
+const TRUSTED_APP_BASE_URL = process.env.APP_BASE_URL ||
+  (process.env.REPLIT_DOMAINS ? `https://${process.env.REPLIT_DOMAINS.split(",")[0].trim()}` : "https://portal.guardiangroup.co.uk");
+
+function getTrustedBaseUrl(): string {
+  return TRUSTED_APP_BASE_URL;
+}
+
 // Returns true if the user is allowed to manage the Template Library
 // (admins, plus consultants whose `templateLibrary` permission toggle is on).
 // Anyone who can see the page gets full add/edit/archive/delete access.
@@ -684,6 +696,14 @@ export async function registerRoutes(
       }
       const userAgent = req.get("User-Agent") || "unknown";
 
+      // All pre-authentication failure paths below intentionally return the
+      // SAME generic 401 response body (status code + message, no extra
+      // fields). This prevents an unauthenticated caller from distinguishing
+      // "unknown username" from "locked", "inactive", or "wrong password" by
+      // response shape/status code — that distinction previously let
+      // attackers enumerate valid usernames and infer account/company state.
+      const GENERIC_AUTH_FAILURE = { error: "Invalid username or password" };
+
       // Check if account is locked due to too many failed attempts
       const isLocked = await storage.isAccountLocked(loginIdentifier);
       if (isLocked) {
@@ -708,9 +728,7 @@ export async function registerRoutes(
           });
         }
         
-        return res.status(423).json({ 
-          error: `Account temporarily locked. Please try again in ${SECURITY_CONFIG.lockoutDurationMinutes} minutes.` 
-        });
+        return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
       const user = loginIdentifier.includes("@") 
@@ -726,7 +744,7 @@ export async function registerRoutes(
           success: false,
           failureReason: "user_not_found",
         });
-        return res.status(401).json({ error: "Invalid username or password" });
+        return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
       // Check if user account is locked by status (permanent lock requiring reset or admin unlock)
@@ -738,23 +756,22 @@ export async function registerRoutes(
           success: false,
           failureReason: "account_locked",
         });
-        return res.status(423).json({ 
-          error: "Your account has been locked due to too many failed login attempts. Please reset your password using the Forgot Password link, or contact an administrator.",
-          code: "account_locked",
-        });
+        return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
       // Inactive users are blocked by an administrator — only an admin/consultant can re-activate them.
       // Return a generic 401 so the reason isn't revealed; do not count this toward lockout.
       if (user.status === "inactive") {
-        return res.status(401).json({ error: "Invalid username or password" });
+        return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
-      // Block client users whose company is On Hold or Inactive
+      // Block client users whose company is On Hold or Inactive.
+      // Response is generic to avoid revealing account/company state to an
+      // unauthenticated caller.
       if (user.role === "client" && user.companyId) {
         const userCompany = await storage.getCompany(user.companyId);
         if (userCompany && (userCompany.status === "on_hold" || userCompany.status === "cancelled")) {
-          return res.status(403).json({ error: "Your account is currently unavailable. Please contact your Consultant." });
+          return res.status(401).json(GENERIC_AUTH_FAILURE);
         }
       }
 
@@ -794,25 +811,14 @@ export async function registerRoutes(
             userName: user.fullName,
             details: `Account locked after ${SECURITY_CONFIG.maxLoginAttempts} failed attempts from IP ${ipAddress}`,
           });
-          return res.status(423).json({ 
-            error: "Your account has been locked due to too many failed login attempts. Please reset your password using the Forgot Password link, or contact an administrator.",
-            code: "account_locked",
-          });
+          return res.status(401).json(GENERIC_AUTH_FAILURE);
         }
         
-        // Calculate remaining attempts before lockout
-        const recentAttempts = await storage.getRecentLoginAttempts(loginIdentifier, SECURITY_CONFIG.lockoutDurationMinutes);
-        let consecutiveFailed = 0;
-        for (const attempt of recentAttempts) {
-          if (attempt.success) break;
-          consecutiveFailed++;
-        }
-        const remaining = SECURITY_CONFIG.maxLoginAttempts - consecutiveFailed;
-        
-        return res.status(401).json({ 
-          error: "Invalid username or password",
-          attemptsRemaining: remaining > 0 ? remaining : 0,
-        });
+        // Note: we intentionally do NOT report attempts-remaining to the
+        // client. Doing so would let an unauthenticated caller confirm a
+        // username is real (only genuine accounts accrue a countdown) and
+        // would help time password-spraying attempts against the lockout.
+        return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
       // Successful login - record attempt
@@ -1599,6 +1605,18 @@ export async function registerRoutes(
 
       // For all new user invitations, enforce legal document acceptance server-side
       const invitedUser = await storage.getUser(invitation.userId);
+      if (!invitedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Guard against using the password-reset flow to silently reactivate an
+      // account an administrator has disabled. A reset token may have been
+      // issued before the account was deactivated, so re-check the CURRENT
+      // status here rather than trusting the token alone.
+      if (invitation.purpose === "password_reset" && invitedUser.status === "inactive") {
+        return res.status(403).json({ error: "This account has been disabled. Please contact an administrator." });
+      }
+
       if (invitation.purpose === "invite") {
         const objectStorageService = new ObjectStorageService();
         const privateObjectDir = objectStorageService.getPrivateObjectDir();
@@ -1722,8 +1740,13 @@ export async function registerRoutes(
         });
       }
       
-      // User must be active to reset password
-      if (user.status === "invited") {
+      // Only active or locked accounts may request a password reset.
+      // "invited" users haven't set a password yet (use the invite flow),
+      // and "inactive" accounts have been deliberately disabled by an
+      // administrator — the forgot-password flow must NOT be usable to
+      // silently reactivate them. Respond identically to the "no such
+      // account" case so this state is never revealed externally.
+      if (user.status !== "active" && user.status !== "locked") {
         return res.json({ 
           success: true, 
           message: "If an account exists with this email, a password reset link will be sent." 
@@ -1747,8 +1770,11 @@ export async function registerRoutes(
         createdBy: null,
       });
       
-      // Build the reset URL
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      // Build the reset URL using a trusted, server-controlled base URL —
+      // never derived from the request's Origin/Host headers, which are
+      // attacker-controllable and would let a forged header redirect the
+      // victim to a malicious domain from within a legitimate email.
+      const baseUrl = getTrustedBaseUrl();
       const resetUrl = `${baseUrl}/set-password?token=${token}`;
       
       // Send the password reset email
@@ -2347,7 +2373,7 @@ export async function registerRoutes(
         createdBy: currentUser.id,
       });
 
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
+      const baseUrl = getTrustedBaseUrl();
       const resetUrl = `${baseUrl}/set-password?token=${token}`;
 
       let emailSent = false;
@@ -2443,8 +2469,8 @@ export async function registerRoutes(
         createdBy: currentUser.id,
       });
       
-      // Build the invite URL
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      // Build the invite URL using the trusted, server-controlled base URL
+      const baseUrl = getTrustedBaseUrl();
       const inviteUrl = `${baseUrl}/set-password?token=${token}`;
       
       // Try to send the email
@@ -15469,7 +15495,7 @@ export async function registerRoutes(
           await storage.updateUser(newUser.id, { status: "invite_required" });
         }
         
-        const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+        const baseUrl = getTrustedBaseUrl();
         const inviteUrl = `${baseUrl}/set-password?token=${token}`;
         
         let emailSent = false;
@@ -15593,8 +15619,8 @@ export async function registerRoutes(
         createdBy: currentUser.id,
       });
       
-      // Build the invite URL
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      // Build the invite URL using the trusted, server-controlled base URL
+      const baseUrl = getTrustedBaseUrl();
       const inviteUrl = `${baseUrl}/set-password?token=${token}`;
       
       emitUserUpdated(newUser.id);

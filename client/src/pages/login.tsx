@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import {
-  Eye, EyeOff, Loader2, ArrowRight, LockKeyhole, AlertTriangle,
+  Eye, EyeOff, Loader2, ArrowRight, AlertTriangle,
   Shield, Users, Scale, GraduationCap, FileCheck, BarChart3, CheckCircle2,
   LayoutDashboard, CalendarDays, BellRing, ExternalLink,
   Smartphone, KeyRound,
@@ -115,8 +115,6 @@ export default function Login() {
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetUrl, setResetUrl] = useState<string | null>(null);
-  const [isAccountLocked, setIsAccountLocked] = useState(false);
-  const [attemptsRemaining, setAttemptsRemaining] = useState<number | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [capsLockOn, setCapsLockOn] = useState(false);
   // MFA flow state
@@ -226,9 +224,6 @@ export default function Login() {
       return res.json();
     },
     onSuccess: (userData) => {
-      setIsAccountLocked(false);
-      setAttemptsRemaining(null);
-
       // Handle MFA pause states
       if (userData.status === "mfa_required") {
         setMfaStep("mfa_required");
@@ -260,25 +255,17 @@ export default function Login() {
       setLocation(target);
     },
     onError: async (error: Error) => {
-      setIsAccountLocked(false);
-      setAttemptsRemaining(null);
       setLoginError(null);
       resetTurnstile();
       const msg = error.message || "";
-      const statusCode = parseInt(msg.split(":")[0], 10);
       try {
         const jsonStr = msg.substring(msg.indexOf(":") + 1).trim();
         const body = JSON.parse(jsonStr);
-        if (statusCode === 423 || body.code === "account_locked") {
-          setIsAccountLocked(true);
-          return;
-        }
-        if (typeof body.attemptsRemaining === "number") {
-          setAttemptsRemaining(body.attemptsRemaining);
-          setLoginError("Incorrect username or password.");
-          return;
-        }
-        // Surface any explicit error message from the server (e.g. account inactive)
+        // Surface any explicit non-authentication error from the server
+        // (e.g. Turnstile/validation failures). Authentication failures
+        // (unknown user, wrong password, locked, inactive, etc.) are all
+        // returned as an identical generic message by design, so the UI
+        // never distinguishes between account states here.
         if (body.error) {
           setLoginError(body.error);
           return;
@@ -733,36 +720,13 @@ export default function Login() {
               </div>
             ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(d => { setIsAccountLocked(false); setAttemptsRemaining(null); setLoginError(null); loginMutation.mutate(d); })} className="space-y-4">
+              <form onSubmit={form.handleSubmit(d => { setLoginError(null); loginMutation.mutate(d); })} className="space-y-4">
 
-                {isAccountLocked && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4" data-testid="alert-account-locked">
-                    <div className="flex items-start gap-3">
-                      <LockKeyhole className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-red-800">Account locked</p>
-                        <p className="text-sm text-red-700 mt-0.5">Too many failed login attempts.</p>
-                        <button
-                          type="button"
-                          className="mt-2 text-sm font-medium text-red-700 underline underline-offset-2 hover:text-red-900"
-                          onClick={() => { setIsAccountLocked(false); setShowForgotPassword(true); }}
-                          data-testid="button-locked-reset-password"
-                        >
-                          Reset your password to unlock
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {loginError && !isAccountLocked && (
+                {loginError && (
                   <div className="rounded-lg border border-red-200 bg-red-50 p-3 flex items-center gap-2.5" data-testid="alert-login-error">
                     <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
                     <p className="text-sm text-red-800">
                       {loginError}
-                      {attemptsRemaining !== null && attemptsRemaining > 0 && (
-                        <>{" "}<span className="font-semibold">{attemptsRemaining} attempt{attemptsRemaining !== 1 ? "s" : ""} remaining.</span></>
-                      )}
                     </p>
                   </div>
                 )}
