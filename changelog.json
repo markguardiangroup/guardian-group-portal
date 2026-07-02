@@ -10534,6 +10534,34 @@
           "message": "Fixed cross-tenant data exposure in cases, companies, and user assignment views",
           "category": "bug",
           "createdAt": "2026-07-02T15:35:31.160Z"
+        },
+        {
+          "id": "b0273dd6-da5c-40e4-8610-64fc64bc2cc6",
+          "patch": 22,
+          "message": "Fixed: uploaded legal documents can no longer store unsafe file types",
+          "category": "bug",
+          "createdAt": "2026-07-02T15:44:14.274Z"
+        },
+        {
+          "id": "472adc44-e41a-4aca-b5dd-b8a8a658ffdc",
+          "patch": 22,
+          "message": "Fixed: revoked or downgraded staff lose support ticket access immediately",
+          "category": "bug",
+          "createdAt": "2026-07-02T15:44:14.274Z"
+        },
+        {
+          "id": "38b96fe8-78a0-47d3-9c95-5442279d9fda",
+          "patch": 22,
+          "message": "Fixed: Accelo sync could overwrite the wrong company by name match",
+          "category": "bug",
+          "createdAt": "2026-07-02T15:44:14.274Z"
+        },
+        {
+          "id": "4c98b3ae-244d-4151-b285-3a1e837c18c8",
+          "patch": 22,
+          "message": "Fixed: Accelo webhook secret no longer exposed in API logs",
+          "category": "bug",
+          "createdAt": "2026-07-02T15:44:14.274Z"
         }
       ],
       "publishedPatch": 21,
