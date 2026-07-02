@@ -965,6 +965,18 @@ export async function registerRoutes(
       }
       const userAgent = req.get("User-Agent") || "unknown";
 
+      // NOTE: every code path below this point — including the soft/hard
+      // lockout checks and recordLoginAttempt() calls that feed
+      // storage.shouldPermanentlyLock() — is only reachable after the
+      // Turnstile human-verification check above has already passed (when
+      // TURNSTILE_SECRET_KEY is configured, which it is in this
+      // deployment). This is the "stronger signal" gate on permanent lock:
+      // an attacker cannot grind through consecutive failed attempts —
+      // whether from one IP or many — without solving a fresh CAPTCHA
+      // challenge for each one, which defeats the scripted/distributed
+      // request volume that made the original identifier-only limiter (and
+      // the original unbounded lockout thresholds) exploitable.
+      //
       // All pre-authentication failure paths below intentionally return the
       // SAME generic 401 response body (status code + message, no extra
       // fields). This prevents an unauthenticated caller from distinguishing
@@ -973,8 +985,11 @@ export async function registerRoutes(
       // attackers enumerate valid usernames and infer account/company state.
       const GENERIC_AUTH_FAILURE = { error: "Invalid username or password" };
 
-      // Check if account is locked due to too many failed attempts
-      const isLocked = await storage.isAccountLocked(loginIdentifier);
+      // Check if account is locked due to too many failed attempts. Scoped to
+      // (identifier, ipAddress) — see storage.isAccountLocked — so an
+      // unauthenticated caller who only knows this identifier cannot deny the
+      // real account owner's login from their own device/IP.
+      const isLocked = await storage.isAccountLocked(loginIdentifier, ipAddress);
       if (isLocked) {
         await storage.recordLoginAttempt({
           username: loginIdentifier,
@@ -1105,7 +1120,15 @@ export async function registerRoutes(
 
       // Check if MFA is required for this deployment
       const settingsResult = await pool.query("SELECT mfa_required FROM email_settings LIMIT 1");
-      const mfaRequired: boolean = settingsResult.rows[0]?.mfa_required ?? false;
+      const portalMfaRequired: boolean = settingsResult.rows[0]?.mfa_required ?? false;
+
+      // A user's own TOTP enrollment must ALWAYS be enforced, independent of the
+      // portal-wide toggle. Otherwise a user who has set up an authenticator app
+      // (advertised in Settings as protecting their account) can still be logged
+      // into with password alone whenever the global flag happens to be off —
+      // silently bypassing the only second factor they believe is active.
+      const userHasTotpEnabled = !!(user as any).totpEnabled && !!(user as any).totpSecret;
+      const mfaRequired = portalMfaRequired || userHasTotpEnabled;
 
       // Check trusted-device cookie — a valid cookie bypasses MFA
       let isTrustedDevice = false;
@@ -1125,8 +1148,7 @@ export async function registerRoutes(
       if (mfaRequired && !isTrustedDevice) {
         // Pause login — store pending user ID and return status
         (req.session as any).pendingMfaUserId = user.id;
-        const totpEnabled = !!(user as any).totpEnabled && !!(user as any).totpSecret;
-        return res.json({ status: totpEnabled ? "mfa_required" : "setup_required" });
+        return res.json({ status: userHasTotpEnabled ? "mfa_required" : "setup_required" });
       }
 
       // Create audit log for successful login
@@ -22713,14 +22735,22 @@ export async function registerRoutes(
 
   /**
    * GET /api/email-settings
-   * Returns the current email routing settings (developer + administrator only).
+   * Returns the current email routing settings (developer only — this is a
+   * global, cross-tenant security control, not source-scoped like other
+   * "administrator" endpoints).
    * If no row exists, returns sensible defaults.
    */
   app.get("/api/email-settings", requireAuth, async (req: any, res) => {
     try {
       const user = await getSessionUser(req);
-      if (!user || (user.role !== "developer" && user.role !== "administrator")) {
-        return res.status(403).json({ error: "Admin access required" });
+      // This is a GLOBAL, cross-tenant control (email routing + portal-wide MFA
+      // enforcement). "administrator" accounts are source-scoped exactly like pro
+      // consultants (see canStaffAccessCompany / canStaffManageUser) — allowing them
+      // to read or change a setting that applies to every tenant would let a
+      // tenant-scoped admin see/weaken security policy far outside their scope.
+      // Only the unrestricted `developer` super-admin role may touch this.
+      if (!user || user.role !== "developer") {
+        return res.status(403).json({ error: "Developer access required" });
       }
       const result = await pool.query(
         "SELECT id, send_all, allowed_roles, allowed_emails, allowed_domains, catch_all_address, mfa_required, updated_at, updated_by FROM email_settings LIMIT 1"
@@ -22760,8 +22790,11 @@ export async function registerRoutes(
   app.put("/api/email-settings", requireAuth, async (req: any, res) => {
     try {
       const user = await getSessionUser(req);
-      if (!user || (user.role !== "developer" && user.role !== "administrator")) {
-        return res.status(403).json({ error: "Admin access required" });
+      // Same reasoning as GET above: this is a global, cross-tenant security control
+      // (email routing catch-all + portal-wide MFA requirement). Restrict writes to
+      // the unrestricted `developer` role only — never a source-scoped "administrator".
+      if (!user || user.role !== "developer") {
+        return res.status(403).json({ error: "Developer access required" });
       }
 
       // Load existing row (if any) so we can merge in only the fields the caller sent.

@@ -377,7 +377,7 @@ export default function Settings() {
               Testing
             </TabsTrigger>
           )}
-          {(user?.role === "developer" || user?.role === "administrator") && (
+          {user?.role === "developer" && (
             <TabsTrigger value="email" className="gap-2" data-testid="tab-email">
               <Mail className="h-4 w-4" />
               Email &amp; MFA

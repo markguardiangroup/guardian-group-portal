@@ -24,3 +24,6 @@
 - [Sibling subroute authorization parity](subroute-auth-parity.md) — a fixed parent GET route doesn't fix sibling CRUD subroutes for its child entities; each must independently enforce the same tenant/site check.
 - [Raw-body upload streaming](raw-body-upload-streaming.md) — buffering a whole upload into a Buffer before saving lets concurrent requests exhaust RAM; stream into GCS write stream and enforce the byte cap as chunks arrive.
 - [Zip Slip in archive builders](zip-slip-archive-builders.md) — never use a stored/user-controlled filename verbatim as an archiver entry name; sanitize to basename + dedupe before adding to the zip.
+- [Global settings scoping](global-settings-scoping.md) — portal-wide singleton settings (e.g. email routing, MFA-required flag) must be developer-only, not the usual source-scoped "administrator" gate.
+- [TOTP enrollment must self-enforce](totp-self-enforcement.md) — a user's own MFA enrollment must be checked at login independent of any global "MFA required" toggle, or enrolling is cosmetic.
+- [Auth rate limit ↔ lockout alignment](auth-rate-limit-lockout-alignment.md) — a per-identifier login rate limiter must derive its max/window from the permanent-lockout threshold, or it doesn't actually bound the attack.

@@ -5,6 +5,7 @@ import connectPgSimple from "connect-pg-simple";
 import helmet from "helmet";
 import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { registerRoutes } from "./routes";
+import { SECURITY_CONFIG } from "@shared/schema";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
@@ -55,22 +56,75 @@ const apiLimiter = rateLimit({
 });
 
 // Auth rate limiting – keyed by username (body) so each account gets its own bucket.
-// Kept tight enough that an anonymous attacker can't rack up the failed attempts
-// needed to trip the account-lockout logic in server/routes.ts through sheer
-// request volume; still generous enough for a legitimate user who mistypes a
-// password a few times.
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
+//
+// The windows/max here are deliberately derived from SECURITY_CONFIG's own
+// lockout thresholds, not chosen independently. An earlier version of this
+// limiter allowed far more requests per identifier (20 per 15 minutes = up to
+// 80/hour) than either the soft lockout (3 failures/15min) or the
+// hard/permanent lockout (10 failures/60min) thresholds — so an
+// unauthenticated caller could freely rack up enough failed attempts to force
+// a victim account through both the temporary AND the permanent lock, purely
+// through login request volume.
+//
+// IMPORTANT: neither limiter below is keyed by identifier ALONE. A limiter
+// (or the underlying lockout check) that shares one bucket across all
+// requests bearing a given username/email is itself an attacker tool: an
+// anonymous caller who only knows a victim's identifier can deliberately
+// exhaust that shared bucket and get every subsequent request for that
+// identifier — including the real owner's own correct-password login —
+// rejected with 429/401 for the rest of the window. That is the same
+// "anyone can deny a known victim's login" bug this hardening exists to fix,
+// just moved from storage-side lockout into the rate limiter. So:
+//   - authSoftLimiter is keyed by (identifier + source IP), matching the
+//     now IP-scoped storage.isAccountLocked() soft lock (see
+//     server/storage.ts). An attacker can only ever throttle/soft-lock
+//     THEIR OWN IP's attempts against a victim account; the real owner
+//     logging in from their own device/IP is unaffected.
+//   - authIpLimiter is keyed by source IP ALONE (no identifier), as a
+//     general anti-automation backstop on the login route. Because it does
+//     not key on identifier, it cannot be weaponized to target one victim's
+//     login — it only throttles a single misbehaving IP's total request
+//     volume, capping how fast any one source can grind through consecutive
+//     failures against storage.shouldPermanentlyLock() (identifier-only,
+//     `permanentLockAttempts` over `permanentLockWindowMinutes`), without
+//     ever putting a single victim identifier behind a shared 429 bucket.
+// Canonicalize exactly like the login route does (`rawIdentifier.toLowerCase().trim()`
+// in server/routes.ts) — a limiter keyed on a different normalization than the
+// lockout accounting it's meant to protect can be trivially bypassed by
+// submitting whitespace/case variants of the same identifier that all still
+// land on the same account in storage.
+const authIdentifier = (req: Request) => {
+  const username = req.body?.username ?? "anonymous";
+  return String(username).toLowerCase().trim();
+};
+
+// Set BELOW the soft-lockout threshold (not merely equal to it) so an
+// anonymous caller is rate-limited before they can ever complete enough
+// requests, from their own IP, to trip the storage-side soft lock at all.
+const authSoftLimiter = rateLimit({
+  windowMs: SECURITY_CONFIG.lockoutDurationMinutes * 60 * 1000,
+  max: SECURITY_CONFIG.maxLoginAttempts - 1,
   message: { error: "Too many login attempts, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => {
-    const username = req.body?.username ?? "anonymous";
-    return String(username).toLowerCase();
-  },
+  keyGenerator: (req) => `${authIdentifier(req)}:${ipKeyGenerator(req.ip ?? "unknown")}`,
   skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
   validate: { keyGeneratorIpFallback: false },
+});
+
+// General per-IP backstop for the login route — deliberately NOT keyed by
+// identifier (see comment above). Bounds how many login requests a single
+// source IP can make within the permanent-lock window, well below
+// `permanentLockAttempts`, so grinding through many different candidate
+// identifiers from one IP is also throttled.
+const authIpLimiter = rateLimit({
+  windowMs: SECURITY_CONFIG.permanentLockWindowMinutes * 60 * 1000,
+  max: SECURITY_CONFIG.permanentLockAttempts - 1,
+  message: { error: "Too many login attempts, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? "unknown"),
+  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
 // Tight rate limiter for Accelo webhook push — sensitive unauthenticated write endpoint
@@ -141,7 +195,7 @@ app.use(cookieParser());
 // Body-keyed rate limiters must be mounted after the body parsers above, or
 // req.body is always undefined and every request collapses into a single
 // shared "anonymous" bucket — defeating the per-account limiting entirely.
-app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/login", authSoftLimiter, authIpLimiter);
 app.use("/api/auth/forgot-password", forgotPasswordLimiter);
 
 // Session configuration with security hardening - using PostgreSQL for persistence

@@ -10627,6 +10627,20 @@
           "createdAt": "2026-07-02T19:09:54.443Z"
         },
         {
+          "id": "abc108a8-9f89-4a43-9f09-61646af000e5",
+          "patch": 22,
+          "message": "Fixed: users with an authenticator app set up now always require it",
+          "category": "bug",
+          "createdAt": "2026-07-02T19:32:16.450Z"
+        },
+        {
+          "id": "ea7b2957-8e09-497e-88f5-bd8dc4507770",
+          "patch": 22,
+          "message": "Fixed: email routing and MFA settings restricted to developers only",
+          "category": "bug",
+          "createdAt": "2026-07-02T19:32:16.450Z"
+        },
+        {
           "id": "ea784547-e18d-4957-872b-294b62d718c8",
           "patch": 22,
           "message": "Fixed: uploaded files could be overwritten after being attached to a record",
@@ -10639,6 +10653,13 @@
           "message": "Fixed: upload size limits could be bypassed by under-declaring file size",
           "category": "bug",
           "createdAt": "2026-07-02T19:38:15.071Z"
+        },
+        {
+          "id": "f4a2b8e1-9c31-4d76-8f42-3a1e5c9b0d67",
+          "patch": 22,
+          "message": "Fixed: unauthenticated login attempts could no longer lock out arbitrary accounts",
+          "category": "bug",
+          "createdAt": "2026-07-02T19:55:00.000Z"
         }
       ],
       "publishedPatch": 21,

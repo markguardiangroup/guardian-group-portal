@@ -453,7 +453,7 @@ export interface IStorage {
   // Security - Login Attempts
   recordLoginAttempt(attempt: InsertLoginAttempt): Promise<LoginAttempt>;
   getRecentLoginAttempts(username: string, minutes: number): Promise<LoginAttempt[]>;
-  isAccountLocked(username: string): Promise<boolean>;
+  isAccountLocked(username: string, ipAddress?: string): Promise<boolean>;
   shouldPermanentlyLock(username: string): Promise<boolean>;
   
   // Training Modules (legacy alias for Training Courses)
@@ -4498,31 +4498,50 @@ export class MemStorage implements IStorage {
   // first success. Shared by the soft (temporary) and hard (permanent) lockout
   // checks below so both use the exact same "consecutive since last success"
   // semantics.
-  private async countConsecutiveFailures(username: string, minutes: number): Promise<number> {
+  //
+  // `ipAddress`, when provided, further restricts the count to failures that
+  // came from that same IP. This is what makes the SOFT (temporary) lock
+  // per-attacker rather than per-account: an anonymous caller who only knows
+  // a victim's username/email can still get their OWN IP soft-locked out of
+  // guessing that account, but cannot use that same failure count to block
+  // the real account owner's login attempts from their own device/IP. The
+  // HARD (permanent) lock intentionally omits ipAddress so it still catches
+  // sustained abuse spread across many source IPs.
+  private async countConsecutiveFailures(username: string, minutes: number, ipAddress?: string): Promise<number> {
     const recentAttempts = await this.getRecentLoginAttempts(username, minutes);
     let failedAttempts = 0;
     for (const attempt of recentAttempts) {
       if (attempt.success) break;
+      if (ipAddress && (attempt.ipAddress ?? null) !== ipAddress) continue;
       failedAttempts++;
     }
     return failedAttempts;
   }
 
-  async isAccountLocked(username: string): Promise<boolean> {
+  // Soft/temporary lockout check — scoped to (username, ipAddress) so an
+  // unauthenticated caller who merely knows a victim's identifier cannot deny
+  // the real owner's login from their own device: only requests from the
+  // same source IP that produced the failures are blocked, and the block
+  // self-clears after `lockoutDurationMinutes`.
+  async isAccountLocked(username: string, ipAddress?: string): Promise<boolean> {
     const failedAttempts = await this.countConsecutiveFailures(
       username,
-      SECURITY_CONFIG.lockoutDurationMinutes
+      SECURITY_CONFIG.lockoutDurationMinutes,
+      ipAddress
     );
     return failedAttempts >= SECURITY_CONFIG.maxLoginAttempts;
   }
 
   // Hard/permanent lockout check — deliberately uses a much higher threshold
-  // and a much longer window than isAccountLocked(). Escalating an account to
-  // status "locked" (which requires a password reset or admin unlock) after
-  // only a handful of anonymous failed attempts lets any internet caller
-  // force a known user through account recovery. Requiring sustained abuse
-  // across multiple soft-lockout cycles closes that off while still catching
-  // genuine, persistent credential-stuffing attempts.
+  // and a much longer window than isAccountLocked(), and deliberately counts
+  // failures from ANY source IP (not just one attacker's), so it still
+  // catches genuine, persistent/distributed credential-stuffing attempts.
+  // Escalating an account to status "locked" (which requires a password
+  // reset or admin unlock) after only a handful of anonymous failed attempts
+  // lets any internet caller force a known user through account recovery, so
+  // this uses a much higher bar than the per-IP soft lock above, and the
+  // login route's rate limiter independently caps total attempts per
+  // identifier well below this threshold regardless of source IP.
   async shouldPermanentlyLock(username: string): Promise<boolean> {
     const failedAttempts = await this.countConsecutiveFailures(
       username,
