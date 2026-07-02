@@ -2323,16 +2323,14 @@ export async function registerRoutes(
     const mySources = currentUser.sources ?? [];
 
     // Staff-to-staff: only pro consultants/administrators sharing a source may manage other staff.
+    // Sources are mandatory for every non-developer role — there is no "empty sources = sees all"
+    // bypass for administrators; the source gate applies uniformly to everyone except developer.
     if (targetUser.role === "consultant" || targetUser.role === "administrator") {
       if (!hasProPrivileges(currentUser)) return false;
-      if (currentUser.role === "administrator" && mySources.length === 0) return true;
       return sourcesOverlap(mySources, targetUser.sources ?? []);
     }
 
     if (targetUser.role !== "client" || !targetUser.companyId) return false;
-
-    // Administrators with no configured sources manage every non-developer user (mirrors GET /api/users).
-    if (currentUser.role === "administrator" && mySources.length === 0) return true;
 
     if (hasProPrivileges(currentUser)) {
       const company = await storage.getCompany(targetUser.companyId);
@@ -2369,7 +2367,6 @@ export async function registerRoutes(
   ): Promise<boolean> => {
     if (currentUser.role === "developer") return true;
     const mySources = currentUser.sources ?? [];
-    if (currentUser.role === "administrator" && mySources.length === 0) return true;
     const company = await storage.getCompany(companyId);
     if (!company) return false;
     if (sourcesOverlap(mySources, company.sources ?? [])) return true;
@@ -16087,31 +16084,29 @@ export async function registerRoutes(
       if (isStandardConsultant) {
         visibleUsers = allUsers.filter(u => u.role === "client" && allowedClientIds!.has(u.id));
       } else if (hasProPrivileges(user)) {
-        // Administrators with no sources configured: see all non-developer users (same as developer)
-        if (user.role === "administrator" && mySources.length === 0) {
-          visibleUsers = allUsers.filter(u => u.role !== "developer");
-        } else {
-          visibleUsers = allUsers.filter(u => {
-            if (u.role === "developer") return false;
-            if (u.role === "consultant" || u.role === "administrator") {
-              // See other staff (consultants / admins) that share at least one source
-              return sourcesOverlap(mySources, u.sources ?? []);
-            }
-            if (u.role === "client") {
-              // See clients whose company shares at least one source
-              if (!u.companyId) return false;
-              const clientCompany = allCompanies.find(c => c.id === u.companyId);
-              if (sourcesOverlap(mySources, clientCompany?.sources ?? [])) return true;
-              // GO expansion: if client's company is a GO member of a company the consultant can see
-              if (clientCompany?.groupOwnerId) {
-                const goCompany = allCompanies.find(c => c.id === clientCompany.groupOwnerId);
-                return sourcesOverlap(mySources, goCompany?.sources ?? []);
-              }
-              return false;
+        // Sources are mandatory for every non-developer role — administrators have no
+        // "empty sources = see everyone" bypass; the source gate applies uniformly here
+        // exactly as it does for pro consultants.
+        visibleUsers = allUsers.filter(u => {
+          if (u.role === "developer") return false;
+          if (u.role === "consultant" || u.role === "administrator") {
+            // See other staff (consultants / admins) that share at least one source
+            return sourcesOverlap(mySources, u.sources ?? []);
+          }
+          if (u.role === "client") {
+            // See clients whose company shares at least one source
+            if (!u.companyId) return false;
+            const clientCompany = allCompanies.find(c => c.id === u.companyId);
+            if (sourcesOverlap(mySources, clientCompany?.sources ?? [])) return true;
+            // GO expansion: if client's company is a GO member of a company the consultant can see
+            if (clientCompany?.groupOwnerId) {
+              const goCompany = allCompanies.find(c => c.id === clientCompany.groupOwnerId);
+              return sourcesOverlap(mySources, goCompany?.sources ?? []);
             }
             return false;
-          });
-        }
+          }
+          return false;
+        });
       } else if (user.role === "client") {
         // Clients only see fellow client users within their own + group-member
         // companies. Consultants/administrators (Guardian Group staff) and developers

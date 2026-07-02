@@ -25,3 +25,7 @@ Internal `UserRole` values (shared/schema.ts) — display names differ from stor
 
 ## isProConsultant helper architecture
 The canonical `isProConsultant` is a non-hoisted `const` arrow defined late inside `registerRoutes`, yet called from route-handler closures defined earlier. This works only because those closures run at request time, after all `const`s are assigned. Do not convert these into eagerly-invoked code. A few handlers locally shadow it with the boolean form.
+
+## Sources are mandatory; no empty-sources bypass for anyone but developer
+**Why:** user directive — the multi-brand `sources` gate must apply uniformly to every non-developer role (consultant, pro consultant, administrator). An earlier "administrator with empty `sources` array sees/manages everything" escape hatch was removed from `canStaffManageUser`, `canStaffAccessCompany`, and the `GET /api/users` visibility filter in `server/routes.ts` — administrators are now source-scoped exactly like pro consultants (`canUserAccessSite` already worked this way and needed no change).
+**How to apply:** never reintroduce an `if (role === "administrator" && sources.length === 0) return true`-style bypass in access-control helpers. If a staff account needs unrestricted visibility, that is what the `developer` role is for — not an admin with unset sources. Sources should be treated as required data for every consultant/administrator account.

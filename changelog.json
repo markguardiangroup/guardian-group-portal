@@ -10597,6 +10597,13 @@
           "message": "Fixed: compliance fulfilment status no longer leaks across companies/sites",
           "category": "bug",
           "createdAt": "2026-07-02T16:13:36.038Z"
+        },
+        {
+          "id": "57879386-4938-4249-9345-e070eeb64487",
+          "patch": 22,
+          "message": "Admins now scoped by source like Pro Consultants — no unscoped access",
+          "category": "other",
+          "createdAt": "2026-07-02T18:49:06.876Z"
         }
       ],
       "publishedPatch": 21,
