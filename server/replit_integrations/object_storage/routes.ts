@@ -1,5 +1,11 @@
 import type { Express } from "express";
-import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
+import {
+  ObjectStorageService,
+  ObjectNotFoundError,
+  PayloadTooLargeError,
+  streamRequestToObjectStorage,
+  objectStorageClient,
+} from "./objectStorage";
 import { ObjectPermission, getObjectAclPolicy } from "./objectAcl";
 import { randomUUID } from "crypto";
 
@@ -34,26 +40,6 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
 // many separate 50MB slots back-to-back. This bounds total declared volume per user per day,
 // independent of the request-count rate limiter (which bounds request frequency, not bytes).
 const DAILY_UPLOAD_BUDGET_BYTES = 500 * 1024 * 1024; // 500MB / user / rolling 24h
-
-class PayloadTooLargeError extends Error {
-  constructor() {
-    super("Payload too large");
-  }
-}
-
-async function readRequestBodyWithLimit(req: AsyncIterable<Buffer | string>, maxBytes: number): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const chunk of req) {
-    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    total += buf.length;
-    if (total > maxBytes) {
-      throw new PayloadTooLargeError();
-    }
-    chunks.push(buf);
-  }
-  return Buffer.concat(chunks);
-}
 
 export function registerObjectStorageRoutes(
   app: Express,
@@ -119,12 +105,10 @@ export function registerObjectStorageRoutes(
       const bucket = objectStorageClient.bucket(bucketName);
       const file = bucket.file(objectName);
       
-      // Collect request body chunks, enforcing a max size while streaming
-      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
-      
-      // Upload to GCS
-      await file.save(buffer, {
-        contentType: contentType,
+      // Stream the request body directly into GCS, enforcing a max size as bytes
+      // arrive, instead of buffering the whole file in process memory first.
+      const fileSize = await streamRequestToObjectStorage(req, file, MAX_UPLOAD_BYTES, {
+        contentType: contentType as string,
         metadata: {
           originalName: fileName,
         },
@@ -138,8 +122,8 @@ export function registerObjectStorageRoutes(
             objectPath,
             uploadedByUserId: sessionUserId,
             fileName,
-            fileSize: buffer.length,
-            mimeType: contentType,
+            fileSize,
+            mimeType: contentType as string,
           });
         } catch (recordErr) {
           // Fail closed: without an ownership record, any authenticated user could later
@@ -154,7 +138,7 @@ export function registerObjectStorageRoutes(
       res.json({
         objectPath,
         fileName,
-        fileSize: buffer.length,
+        fileSize,
         mimeType: contentType,
       });
     } catch (error) {

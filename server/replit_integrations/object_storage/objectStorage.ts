@@ -38,6 +38,79 @@ export class ObjectNotFoundError extends Error {
   }
 }
 
+export class PayloadTooLargeError extends Error {
+  constructor() {
+    super("Payload too large");
+    this.name = "PayloadTooLargeError";
+    Object.setPrototypeOf(this, PayloadTooLargeError.prototype);
+  }
+}
+
+/**
+ * Streams a raw request body directly into GCS instead of buffering it in process
+ * memory. The previous approach (Buffer.concat over every chunk) meant a single
+ * in-flight upload held its entire declared size in RAM, and multiple concurrent
+ * uploads from one account could exhaust server memory before the size cap ever
+ * rejected anything. This enforces `maxBytes` as bytes arrive, aborting the GCS
+ * write and deleting the partial object as soon as the ceiling is crossed, so
+ * memory usage per request stays bounded to the streaming buffer size rather than
+ * the full file size.
+ */
+export async function streamRequestToObjectStorage(
+  req: AsyncIterable<Buffer | string>,
+  file: File,
+  maxBytes: number,
+  saveOptions: { contentType?: string; metadata?: Record<string, string> } = {}
+): Promise<number> {
+  const writeStream = file.createWriteStream({
+    contentType: saveOptions.contentType,
+    metadata: saveOptions.metadata,
+    resumable: false,
+  });
+
+  let total = 0;
+  let aborted = false;
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      writeStream.once("error", (err) => {
+        if (aborted) return; // we already rejected with PayloadTooLargeError
+        reject(err);
+      });
+      writeStream.once("finish", resolve);
+
+      (async () => {
+        try {
+          for await (const chunk of req) {
+            const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            total += buf.length;
+            if (total > maxBytes) {
+              aborted = true;
+              writeStream.destroy(new Error("Payload too large"));
+              reject(new PayloadTooLargeError());
+              return;
+            }
+            if (!writeStream.write(buf)) {
+              await new Promise<void>((r) => writeStream.once("drain", r));
+            }
+          }
+          writeStream.end();
+        } catch (err) {
+          aborted = true;
+          writeStream.destroy(err instanceof Error ? err : new Error(String(err)));
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
+      })();
+    });
+  } catch (err) {
+    // Clean up whatever partial/oversized object made it to GCS before failing.
+    await file.delete().catch(() => {});
+    throw err;
+  }
+
+  return total;
+}
+
 // MIME types that are safe to render with Content-Disposition: inline in a browser
 // (i.e. cannot execute script or otherwise act as active content on our origin).
 // Anything else is forced to download so an uploaded HTML/SVG/XML file can never be

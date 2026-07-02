@@ -33,7 +33,7 @@ import { pool } from "./db";
 import { SECURITY_CONFIG, getClientCapabilities } from "@shared/schema";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
-import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient } from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes, ObjectStorageService, objectStorageClient, streamRequestToObjectStorage, PayloadTooLargeError } from "./replit_integrations/object_storage";
 import { sendInvitationEmail, sendPasswordResetEmail, sendDocumentApprovalEmail, sendClientSignOffEmail, sendSignOffAdminNoticeEmail, sendAutoApprovedNotificationEmail, sendDocumentApprovedEmail, sendChangesRequestedEmail, sendCloudUploadNotificationEmail, sendIShareNotificationEmail, sendBookingEnquiryEmail, sendIncidentNotificationEmail, listResendEmails, getResendEmail, getResendEnvironment, invalidateEmailSettingsCache } from "./email";
 import type { ResendEmailSummary } from "./email";
 import { readChangelog, writeChangelog, generateChangelogId, bumpDevPatchAfterPublish, type ChangelogCategory, type ChangelogEntry } from "./changelog";
@@ -59,6 +59,39 @@ const execAsync = promisify(exec);
 // Internal fileUrl copies the server makes itself (document reissue, template-replace archival,
 // bundle merge output, same-request server-generated uploads like incident photo capture) are
 // never routed through this helper — they don't originate from untrusted client input.
+// ── Zip Slip protection for shared-folder bulk downloads ──────────────────────
+//
+// Folder bulk-download endpoints (client-upload-folders, iShare-folders) build a ZIP
+// archive using each file's stored fileName as the archive entry name. That fileName is
+// attacker-controlled at upload time (e.g. "../../../.ssh/authorized_keys" or an absolute
+// path), so using it verbatim as an archive entry can let a vulnerable extractor on the
+// recipient's machine write outside the intended extraction folder ("Zip Slip"). Strip any
+// directory component, traversal segments, drive prefixes, and control characters, then
+// dedupe within a single archive so two sanitized names never collide and silently overwrite
+// each other's content.
+function safeZipEntryName(rawName: string, usedNames: Set<string>): string {
+  let base = path.basename(String(rawName || "file").replace(/\\/g, "/"));
+  base = base.replace(/[\x00-\x1f\x7f]/g, "").replace(/^\.+/, "").trim();
+  if (!base) base = "file";
+
+  if (!usedNames.has(base)) {
+    usedNames.add(base);
+    return base;
+  }
+
+  const lastDot = base.lastIndexOf(".");
+  const stem = lastDot > 0 ? base.slice(0, lastDot) : base;
+  const ext = lastDot > 0 ? base.slice(lastDot) : "";
+  let candidate = base;
+  let i = 1;
+  while (usedNames.has(candidate)) {
+    candidate = `${stem}_${i}${ext}`;
+    i++;
+  }
+  usedNames.add(candidate);
+  return candidate;
+}
+
 class UploadClaimError extends Error {
   constructor(public statusCode: number, message: string) {
     super(message);
@@ -137,27 +170,6 @@ function withBundleGeneration<T>(fn: () => Promise<T>): Promise<T> {
 // Applied while streaming the request body so oversized uploads are rejected before
 // the full payload is buffered in memory, preventing memory-exhaustion DoS.
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50MB
-
-class PayloadTooLargeError extends Error {
-  constructor() {
-    super("Payload too large");
-  }
-}
-
-/** Buffers a request body while enforcing a byte ceiling, aborting early on overflow. */
-async function readRequestBodyWithLimit(req: AsyncIterable<Buffer | string>, maxBytes: number): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  let total = 0;
-  for await (const chunk of req) {
-    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    total += buf.length;
-    if (total > maxBytes) {
-      throw new PayloadTooLargeError();
-    }
-    chunks.push(buf);
-  }
-  return Buffer.concat(chunks);
-}
 
 // Maximum number of documents (checklist items + directly-added documents combined)
 // that may be included in a single case bundle, and the maximum combined size of the
@@ -18101,8 +18113,6 @@ export async function registerRoutes(
         revisionNumber = existing + 1;
       }
 
-      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
-
       const revisionDate = new Date().toISOString();
       const revisionDateShort = revisionDate.slice(0, 10); // YYYY-MM-DD
 
@@ -18112,7 +18122,7 @@ export async function registerRoutes(
       const ext = lastDot !== -1 ? fileName.slice(lastDot) : "";
       const versionedFileName = `${baseName}_v${revisionNumber}_${revisionDateShort}${ext}`;
 
-      await file.save(buffer, {
+      const fileSize = await streamRequestToObjectStorage(req, file, MAX_UPLOAD_BYTES, {
         contentType: contentType,
         metadata: {
           originalName: versionedFileName,
@@ -18127,7 +18137,7 @@ export async function registerRoutes(
         success: true,
         type: docType,
         fileName: versionedFileName,
-        fileSize: buffer.length,
+        fileSize,
         mimeType: contentType,
         revisionDate,
         revisionNumber,
@@ -18584,9 +18594,6 @@ export async function registerRoutes(
       const comments = rawComments ? decodeURIComponent(rawComments) : null;
       const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
 
-      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
-      if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
-
       const objectStorageService = new ObjectStorageService();
       const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = crypto.randomUUID();
@@ -18596,7 +18603,14 @@ export async function registerRoutes(
       const objectName = pathParts.slice(1).join("/");
       const bucket = objectStorageClient.bucket(bucketName);
       const file = bucket.file(objectName);
-      await file.save(buffer, { contentType, metadata: { originalName: fileName } });
+      const fileSize = await streamRequestToObjectStorage(req, file, MAX_UPLOAD_BYTES, {
+        contentType,
+        metadata: { originalName: fileName },
+      });
+      if (fileSize === 0) {
+        await file.delete().catch(() => {});
+        return res.status(400).json({ error: "Empty file body" });
+      }
       const objectPath = `/objects/uploads/${objectId}`;
 
       const doc = await storage.createDocument({
@@ -18610,7 +18624,7 @@ export async function registerRoutes(
         folderId: incident.folderId || null,
         fileName,
         fileUrl: objectPath,
-        fileSize: buffer.length,
+        fileSize,
         mimeType: contentType,
         uploadedBy: user.id,
         status: "compliant",
@@ -20600,11 +20614,12 @@ export async function registerRoutes(
       const archive = archiver("zip", { zlib: { level: 6 } });
       archive.pipe(res);
 
+      const usedZipEntryNames = new Set<string>();
       for (const file of filesToDownload) {
         try {
           const objectFile = await objectStorageService.getObjectEntityFile(file.fileUrl);
           const stream = objectFile.createReadStream();
-          archive.append(stream, { name: file.fileName });
+          archive.append(stream, { name: safeZipEntryName(file.fileName, usedZipEntryNames) });
 
           await storage.createAuditLog({
             userId: user.id,
@@ -20638,12 +20653,6 @@ export async function registerRoutes(
       const fileName = decodeURIComponent(rawFileName);
       const contentType = (req.headers["content-type"] || "application/octet-stream").split(";")[0].trim();
 
-      console.log(`[uploads/file] receiving: fileName=${fileName} contentType=${contentType} bodyConsumed=${(req as any)._body !== undefined}`);
-
-      const buffer = await readRequestBodyWithLimit(req, MAX_UPLOAD_BYTES);
-      console.log(`[uploads/file] buffer size: ${buffer.length} bytes`);
-      if (buffer.length === 0) return res.status(400).json({ error: "Empty file body" });
-
       const objectStorageService = new ObjectStorageService();
       const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = crypto.randomUUID();
@@ -20653,7 +20662,14 @@ export async function registerRoutes(
       const objectName = pathParts.slice(1).join("/");
       const bucket = objectStorageClient.bucket(bucketName);
       const file = bucket.file(objectName);
-      await file.save(buffer, { contentType, metadata: { originalName: fileName } });
+      const fileSize = await streamRequestToObjectStorage(req, file, MAX_UPLOAD_BYTES, {
+        contentType,
+        metadata: { originalName: fileName },
+      });
+      if (fileSize === 0) {
+        await file.delete().catch(() => {});
+        return res.status(400).json({ error: "Empty file body" });
+      }
       const objectPath = `/objects/uploads/${objectId}`;
 
       res.json({ objectPath });
@@ -21277,11 +21293,12 @@ export async function registerRoutes(
       const archive = archiver("zip", { zlib: { level: 6 } });
       archive.pipe(res);
 
+      const usedZipEntryNames = new Set<string>();
       for (const file of filesToDownload) {
         try {
           const objectFile = await objectStorageService.getObjectEntityFile(file.fileUrl);
           const stream = objectFile.createReadStream();
-          archive.append(stream, { name: file.fileName });
+          archive.append(stream, { name: safeZipEntryName(file.fileName, usedZipEntryNames) });
 
           await storage.createAuditLog({
             userId: user.id,

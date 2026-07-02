@@ -22,3 +22,5 @@
 - [Two-tier account lockout](two-tier-lockout.md) — separate a self-clearing short-window soft lock (anti-brute-force) from a much-higher-threshold permanent status lock, or anonymous callers can DoS-lock arbitrary accounts.
 - [PG session-store revocation](pg-session-store-revocation.md) — connect-pg-simple `session` table can be queried/deleted directly (`sess::jsonb->>'userId'`) to kill live sessions on password change/reset or admin disable.
 - [Sibling subroute authorization parity](subroute-auth-parity.md) — a fixed parent GET route doesn't fix sibling CRUD subroutes for its child entities; each must independently enforce the same tenant/site check.
+- [Raw-body upload streaming](raw-body-upload-streaming.md) — buffering a whole upload into a Buffer before saving lets concurrent requests exhaust RAM; stream into GCS write stream and enforce the byte cap as chunks arrive.
+- [Zip Slip in archive builders](zip-slip-archive-builders.md) — never use a stored/user-controlled filename verbatim as an archiver entry name; sanitize to basename + dedupe before adding to the zip.

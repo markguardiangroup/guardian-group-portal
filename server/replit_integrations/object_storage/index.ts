@@ -1,6 +1,8 @@
 export {
   ObjectStorageService,
   ObjectNotFoundError,
+  PayloadTooLargeError,
+  streamRequestToObjectStorage,
   objectStorageClient,
 } from "./objectStorage";
 

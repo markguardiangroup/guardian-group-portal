@@ -170,7 +170,14 @@ app.use(
 );
 
 // Must be mounted after session middleware so the key generator can read the session user id.
-app.use(["/api/uploads/request-url", "/api/uploads/file"], uploadLimiter);
+// Covers every raw-body upload route (direct-to-storage and business-specific), not just the
+// generic ones — a route missing from this list has no bound on concurrent/repeated uploads
+// beyond the per-request byte cap, which only limits a single request's size, not how many an
+// account can fire off in a window.
+app.use(
+  ["/api/uploads/request-url", "/api/uploads/file", "/api/incidents/:id/upload", "/api/legal-documents/:type"],
+  uploadLimiter
+);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
