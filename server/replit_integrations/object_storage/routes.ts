@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError, objectStorageClient } from "./objectStorage";
+import { ObjectPermission, getObjectAclPolicy } from "./objectAcl";
 import { randomUUID } from "crypto";
 
 /**
@@ -14,7 +15,29 @@ import { randomUUID } from "crypto";
  * - Add file metadata storage (save to database after upload)
  * - Add ACL policies for access control
  */
-export function registerObjectStorageRoutes(app: Express): void {
+type ObjectAccessUser = {
+  id?: string;
+  role: string;
+  companyId: string | null;
+  consultantTier?: string | null;
+  sources?: string[] | null;
+};
+
+export function registerObjectStorageRoutes(
+  app: Express,
+  options?: {
+    /**
+     * Business-level authorization check for a raw object path (e.g. "/objects/uploads/abc").
+     * When provided, this is the source of truth for whether the requesting user may read the
+     * object — it resolves the path back to its owning document/template/folder/case and re-runs
+     * that entity's real access rule. When omitted, the route falls back to requiring only a
+     * valid session (should only happen in environments that don't wire up business ACL checks).
+     */
+    checkObjectAccess?: (objectPath: string, user: ObjectAccessUser) => Promise<boolean>;
+    /** Resolves the authenticated user for a session id, used to build the ObjectAccessUser. */
+    getUserForSession?: (sessionUserId: string) => Promise<ObjectAccessUser | undefined>;
+  }
+): void {
   const objectStorageService = new ObjectStorageService();
 
   /**
@@ -100,6 +123,11 @@ export function registerObjectStorageRoutes(app: Express): void {
    */
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
+      const sessionUserId = (req.session as any)?.userId;
+      if (!sessionUserId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const { name, size, contentType } = req.body;
 
       if (!name) {
@@ -138,7 +166,45 @@ export function registerObjectStorageRoutes(app: Express): void {
    */
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
+      const sessionUserId = (req.session as any)?.userId;
+      if (!sessionUserId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+
+      // Primary authorization: resolve the object path back to the business entity that
+      // owns it (document, document version, template, client upload, iShare, case bundle)
+      // and re-run that entity's real access rule. This is the only check that actually
+      // enforces tenant/site/role scoping for this route.
+      if (options?.checkObjectAccess && options?.getUserForSession) {
+        const user = await options.getUserForSession(sessionUserId);
+        if (!user) {
+          return res.status(401).json({ error: "Authentication required" });
+        }
+        const canAccess = await options.checkObjectAccess(req.path, user);
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      } else {
+        // No business ACL resolver was wired up by the caller. Fall back to the object's own
+        // ACL policy metadata (set via trySetObjectEntityAclPolicy) as a hard requirement —
+        // without a resolver we cannot re-check business rules, so an object with no policy
+        // is denied rather than allowed.
+        const existingAclPolicy = await getObjectAclPolicy(objectFile);
+        if (!existingAclPolicy) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+        const canAccess = await objectStorageService.canAccessObjectEntity({
+          userId: sessionUserId,
+          objectFile,
+          requestedPermission: ObjectPermission.READ,
+        });
+        if (!canAccess) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      }
+
       const downloadFilename = req.query.download as string | undefined;
       await objectStorageService.downloadObject(objectFile, res, 3600, downloadFilename);
     } catch (error) {

@@ -222,6 +222,8 @@ export interface IStorage {
   getDocuments(module?: ModuleType, includeArchived?: boolean): Promise<Document[]>;
   getFulfilledTemplateIds(scope: string, entityId?: string, siteId?: string): Promise<string[]>;
   getDocument(id: string): Promise<DocumentWithDetails | undefined>;
+  getDocumentByFileUrl(fileUrl: string): Promise<Document | undefined>;
+  getDocumentVersionByFileUrl(fileUrl: string): Promise<DocumentVersion | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<Document | undefined>;
   deleteDocument(id: string): Promise<boolean>;
@@ -301,6 +303,7 @@ export interface IStorage {
   // Case Bundles
   getCaseBundles(caseId: string): Promise<CaseBundle[]>;
   getCaseBundle(id: string): Promise<CaseBundle | undefined>;
+  getCaseBundleByFileUrl(fileUrl: string): Promise<CaseBundle | undefined>;
   createCaseBundle(bundle: InsertCaseBundle): Promise<CaseBundle>;
   updateCaseBundle(id: string, updates: Partial<CaseBundle>): Promise<CaseBundle | undefined>;
   deleteCaseBundle(id: string): Promise<void>;
@@ -423,6 +426,8 @@ export interface IStorage {
   getDocumentTemplatesByToolkitFolderId(toolkitFolderId: string): Promise<DocumentTemplate[]>;
   getArchivedDocumentTemplates(): Promise<DocumentTemplate[]>;
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
+  getDocumentTemplateByFileUrl(fileUrl: string): Promise<DocumentTemplate | undefined>;
+  getDocumentTemplateVersionByFileUrl(fileUrl: string): Promise<DocumentTemplateVersion | undefined>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<DocumentTemplate | undefined>;
   deleteDocumentTemplate(id: string, deletedBy: string, deletedByName: string, reason: string): Promise<boolean>;
@@ -539,6 +544,7 @@ export interface IStorage {
   getGrantableUsers(folderId: string): Promise<User[]>;
   getClientUploads(folderId: string): Promise<ClientUploadWithUploader[]>;
   getClientUpload(id: string): Promise<ClientUpload | undefined>;
+  getClientUploadByFileUrl(fileUrl: string): Promise<ClientUpload | undefined>;
   createClientUpload(data: InsertClientUpload): Promise<ClientUpload>;
   deleteClientUpload(id: string): Promise<boolean>;
   cleanupExpiredFolders(): Promise<number>;
@@ -559,6 +565,7 @@ export interface IStorage {
   getIshareRecipients(): Promise<User[]>;
   getIshares(folderId: string): Promise<IshareWithUploader[]>;
   getIshare(id: string): Promise<Ishare | undefined>;
+  getIshareByFileUrl(fileUrl: string): Promise<Ishare | undefined>;
   createIshare(data: InsertIshare): Promise<Ishare>;
   deleteIshare(id: string): Promise<boolean>;
   cleanupExpiredIshares(): Promise<number>;
@@ -1767,6 +1774,16 @@ export class MemStorage implements IStorage {
     return rows.map(r => r.templateId).filter(Boolean) as string[];
   }
 
+  async getDocumentByFileUrl(fileUrl: string): Promise<Document | undefined> {
+    const [doc] = await db.select().from(documentsTable).where(eq(documentsTable.fileUrl, fileUrl));
+    return doc;
+  }
+
+  async getDocumentVersionByFileUrl(fileUrl: string): Promise<DocumentVersion | undefined> {
+    const [version] = await db.select().from(documentVersionsTable).where(eq(documentVersionsTable.fileUrl, fileUrl));
+    return version;
+  }
+
   async getDocument(id: string): Promise<DocumentWithDetails | undefined> {
     const docs = await db.select().from(documentsTable).where(eq(documentsTable.id, id));
     const doc = docs[0];
@@ -2889,6 +2906,11 @@ export class MemStorage implements IStorage {
 
   async getCaseBundle(id: string): Promise<CaseBundle | undefined> {
     const [result] = await db.select().from(caseBundlesTable).where(eq(caseBundlesTable.id, id));
+    return result;
+  }
+
+  async getCaseBundleByFileUrl(fileUrl: string): Promise<CaseBundle | undefined> {
+    const [result] = await db.select().from(caseBundlesTable).where(eq(caseBundlesTable.cachedFileUrl, fileUrl));
     return result;
   }
 
@@ -4089,6 +4111,16 @@ export class MemStorage implements IStorage {
     return true;
   }
   
+  async getDocumentTemplateByFileUrl(fileUrl: string): Promise<DocumentTemplate | undefined> {
+    const [template] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.fileUrl, fileUrl));
+    return template;
+  }
+
+  async getDocumentTemplateVersionByFileUrl(fileUrl: string): Promise<DocumentTemplateVersion | undefined> {
+    const [version] = await db.select().from(documentTemplateVersionsTable).where(eq(documentTemplateVersionsTable.fileUrl, fileUrl));
+    return version;
+  }
+
   async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
     const [template] = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.id, id));
     return template;
@@ -5476,6 +5508,15 @@ export class MemStorage implements IStorage {
     return rows[0];
   }
 
+  async getClientUploadByFileUrl(fileUrl: string): Promise<ClientUpload | undefined> {
+    const rows = await db
+      .select()
+      .from(clientUploadsTable)
+      .where(eq(clientUploadsTable.fileUrl, fileUrl))
+      .limit(1);
+    return rows[0];
+  }
+
   async createClientUpload(data: InsertClientUpload): Promise<ClientUpload> {
     const rows = await db
       .insert(clientUploadsTable)
@@ -5769,6 +5810,15 @@ export class MemStorage implements IStorage {
       .select()
       .from(isharesTable)
       .where(eq(isharesTable.id, id))
+      .limit(1);
+    return rows[0];
+  }
+
+  async getIshareByFileUrl(fileUrl: string): Promise<Ishare | undefined> {
+    const rows = await db
+      .select()
+      .from(isharesTable)
+      .where(eq(isharesTable.fileUrl, fileUrl))
       .limit(1);
     return rows[0];
   }

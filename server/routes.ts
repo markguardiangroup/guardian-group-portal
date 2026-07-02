@@ -71,6 +71,60 @@ function withBundleGeneration<T>(fn: () => Promise<T>): Promise<T> {
   return p;
 }
 
+// MIME types that are safe to store and, when appropriate, render inline in a browser.
+// Anything not on this list is either coerced to a generic binary type on write
+// (defense-in-depth) or forced to download (not inline) at preview/serve time.
+const SAFE_DOCUMENT_MIME_TYPES = new Set<string>([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-outlook",
+  "application/rtf",
+  "application/vnd.oasis.opendocument.text",
+  "application/vnd.oasis.opendocument.spreadsheet",
+  "application/vnd.oasis.opendocument.presentation",
+  "application/vnd.oasis.opendocument.graphics",
+  "text/plain",
+  "text/csv",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/bmp",
+  "image/tiff",
+  "application/zip",
+  "application/octet-stream",
+]);
+
+// MIME types that are safe to render with Content-Disposition: inline in the browser
+// (i.e. cannot execute script or otherwise act as active content on our origin).
+const INLINE_SAFE_MIME_TYPES = new Set<string>([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/bmp",
+  "image/tiff",
+]);
+
+/**
+ * Coerce a client-supplied MIME type to a known-safe value. Rejects any browser-active
+ * content type (text/html, image/svg+xml, application/xhtml+xml, javascript, etc.) so
+ * uploaded/replaced documents can never later be served as executable/renderable HTML.
+ */
+function sanitizeMimeType(mimeType: unknown): string {
+  if (typeof mimeType !== "string") return "application/octet-stream";
+  const normalized = mimeType.trim().toLowerCase();
+  return SAFE_DOCUMENT_MIME_TYPES.has(normalized) ? normalized : "application/octet-stream";
+}
+
 function mimeToExtension(mimeType: string): string {
   const map: Record<string, string> = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
@@ -515,7 +569,20 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // Register object storage routes for file uploads
-  registerObjectStorageRoutes(app);
+  registerObjectStorageRoutes(app, {
+    checkObjectAccess: (objectPath, user) => resolveObjectPathAccess(objectPath, user),
+    getUserForSession: async (sessionUserId) => {
+      const user = await storage.getUser(sessionUserId);
+      if (!user) return undefined;
+      return {
+        id: user.id,
+        role: user.role,
+        companyId: user.companyId ?? null,
+        consultantTier: user.consultantTier ?? null,
+        sources: user.sources ?? null,
+      };
+    },
+  });
 
   // Health check endpoint — no auth, no DB queries, responds immediately.
   // Used by uptime monitors and load balancers to confirm the process is alive.
@@ -4320,6 +4387,7 @@ export async function registerRoutes(
       if (!fileName || !fileUrl || !fileSize || !mimeType) {
         return res.status(400).json({ error: "Missing required file information" });
       }
+      const safeMimeType = sanitizeMimeType(mimeType);
 
       // Admin on-behalf validation — mirrors the main document upload route
       let versionOnBehalfConsultant: { id: string; fullName: string } | null = null;
@@ -4403,7 +4471,7 @@ export async function registerRoutes(
         fileName,
         fileUrl,
         fileSize,
-        mimeType,
+        mimeType: safeMimeType,
         version: newVersionNumber,
         status: newStatus,
         approvalStatus: newApprovalStatus,
@@ -4676,9 +4744,15 @@ export async function registerRoutes(
       
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
-        
-        res.setHeader("Content-Type", mimeType || "application/octet-stream");
-        res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(fileName)}"`);
+        const safeMimeType = sanitizeMimeType(mimeType);
+        const canRenderInline = INLINE_SAFE_MIME_TYPES.has(safeMimeType);
+
+        res.setHeader("Content-Type", safeMimeType);
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader(
+          "Content-Disposition",
+          `${canRenderInline ? "inline" : "attachment"}; filename="${encodeURIComponent(fileName)}"`
+        );
         
         const [metadata] = await objectFile.getMetadata();
         if (metadata.size) {
@@ -4731,8 +4805,15 @@ export async function registerRoutes(
 
       try {
         const objectFile = await objectStorageService.getObjectEntityFile(template.fileUrl);
-        res.setHeader("Content-Type", mimeType || "application/octet-stream");
-        res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(template.fileName)}"`);
+        const safeMimeType = sanitizeMimeType(mimeType);
+        const canRenderInline = INLINE_SAFE_MIME_TYPES.has(safeMimeType);
+
+        res.setHeader("Content-Type", safeMimeType);
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader(
+          "Content-Disposition",
+          `${canRenderInline ? "inline" : "attachment"}; filename="${encodeURIComponent(template.fileName)}"`
+        );
         const [metadata] = await objectFile.getMetadata();
         if (metadata.size) res.setHeader("Content-Length", metadata.size.toString());
         objectFile.createReadStream().pipe(res);
@@ -4976,7 +5057,7 @@ export async function registerRoutes(
         fileName: body.fileName,
         fileUrl: body.fileUrl || null,
         fileSize: body.fileSize,
-        mimeType: body.mimeType,
+        mimeType: sanitizeMimeType(body.mimeType),
         version: 1,
         status: documentStatus,
         approvalStatus: documentApprovalStatus,
@@ -7253,6 +7334,7 @@ export async function registerRoutes(
       
       const template = await storage.createDocumentTemplate({
         ...parsed.data,
+        mimeType: sanitizeMimeType(parsed.data.mimeType),
         folderTemplateId: resolvedFolderTemplateId,
         createdBy: user.id,
       });
@@ -7493,6 +7575,7 @@ export async function registerRoutes(
       }
       
       const newVersion = template.version + 1;
+      const safeMimeType = sanitizeMimeType(parsed.data.mimeType);
       
       // Create new version record
       const version = await storage.createDocumentTemplateVersion({
@@ -7501,7 +7584,7 @@ export async function registerRoutes(
         fileName: parsed.data.fileName,
         fileUrl: parsed.data.fileUrl,
         fileSize: parsed.data.fileSize,
-        mimeType: parsed.data.mimeType,
+        mimeType: safeMimeType,
         changeNote: parsed.data.changeNote,
         uploadedBy: user.id,
       });
@@ -7512,7 +7595,7 @@ export async function registerRoutes(
         fileName: parsed.data.fileName,
         fileUrl: parsed.data.fileUrl,
         fileSize: parsed.data.fileSize,
-        mimeType: parsed.data.mimeType,
+        mimeType: safeMimeType,
       });
       
       // Create audit log
@@ -7815,6 +7898,7 @@ export async function registerRoutes(
 
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      const safeMimeType = sanitizeMimeType(parsed.data.mimeType);
 
       // Archive current file as a new version entry
       await storage.createDocumentTemplateVersion({
@@ -7833,7 +7917,7 @@ export async function registerRoutes(
         fileUrl: parsed.data.fileUrl,
         fileName: parsed.data.fileName,
         fileSize: parsed.data.fileSize,
-        mimeType: parsed.data.mimeType,
+        mimeType: safeMimeType,
         version: template.version + 1,
       });
 
@@ -13008,7 +13092,7 @@ export async function registerRoutes(
         fileName,
         fileUrl,
         fileSize: fileSize || 0,
-        mimeType: mimeType || "application/octet-stream",
+        mimeType: sanitizeMimeType(mimeType),
         uploadedBy: user.id,
         status: "compliant",
         approvalStatus: "approved",
@@ -18527,7 +18611,7 @@ export async function registerRoutes(
         fileName,
         fileUrl,
         fileSize: fileSize || 0,
-        mimeType: mimeType || "application/octet-stream",
+        mimeType: sanitizeMimeType(mimeType),
         uploadedBy: user.id,
         status: "compliant",
         approvalStatus: "approved",
@@ -19518,6 +19602,80 @@ export async function registerRoutes(
     if (folder.recipientUserId === user.id) return true;
     const grants = await storage.getIshareFolderAccess(folder.id);
     return grants.some((g) => g.userId === user.id);
+  };
+
+  // Staff (developer/administrator/consultant) manage every template's contents directly, so
+  // they can always open the underlying file. Clients only ever see templates through the
+  // Toolkit/Template Library, which already filters by visibility + sources — mirror that
+  // same rule here for the raw file route.
+  const canUserAccessTemplateFile = (
+    user: { role: string; sources?: string[] | null },
+    template: { visibility?: string | null; sources?: string[] | null; isActive?: boolean | null }
+  ): boolean => {
+    if (user.role === "developer" || user.role === "administrator" || user.role === "consultant") return true;
+    if (template.isActive === false) return false;
+    if (!template.sources || template.sources.length === 0) return true;
+    return sourcesOverlap(user.sources ?? [], template.sources);
+  };
+
+  /**
+   * Resolves the business entity that owns a raw object-storage path (documents, document
+   * versions, templates, template versions, client uploads, iShares, case bundles) and applies
+   * that entity's real authorization rule. Used by the generic /objects/:objectPath(*) route so
+   * it can no longer be used to bypass per-document/per-template/per-folder access control.
+   * Any path that doesn't match a known, currently-referenced entity is denied by default.
+   */
+  const resolveObjectPathAccess = async (
+    objectPath: string,
+    user: { id?: string; role: string; companyId: string | null; consultantTier?: string | null; sources?: string[] | null }
+  ): Promise<boolean> => {
+    if (user.role === "developer") return true;
+
+    const doc = await storage.getDocumentByFileUrl(objectPath);
+    if (doc) return canUserAccessDocument(user, doc);
+
+    const docVersion = await storage.getDocumentVersionByFileUrl(objectPath);
+    if (docVersion) {
+      const parentDoc = await storage.getDocument(docVersion.documentId);
+      if (!parentDoc) return false;
+      return canUserAccessDocument(user, parentDoc);
+    }
+
+    const template = await storage.getDocumentTemplateByFileUrl(objectPath);
+    if (template) return canUserAccessTemplateFile(user, template);
+
+    const templateVersion = await storage.getDocumentTemplateVersionByFileUrl(objectPath);
+    if (templateVersion) {
+      const parentTemplate = await storage.getDocumentTemplate(templateVersion.templateId);
+      if (!parentTemplate) return false;
+      return canUserAccessTemplateFile(user, parentTemplate);
+    }
+
+    const clientUpload = await storage.getClientUploadByFileUrl(objectPath);
+    if (clientUpload) {
+      const folder = await storage.getClientUploadFolder(clientUpload.folderId);
+      if (!folder) return false;
+      return canUserAccessFolder(user, folder);
+    }
+
+    const ishare = await storage.getIshareByFileUrl(objectPath);
+    if (ishare) {
+      if (!user.id) return false;
+      const folder = await storage.getIshareFolder(ishare.folderId);
+      if (!folder) return false;
+      return canUserAccessIshareFolder({ id: user.id, role: user.role }, folder);
+    }
+
+    const bundle = await storage.getCaseBundleByFileUrl(objectPath);
+    if (bundle) {
+      const caseRecord = await storage.getCase(bundle.caseId);
+      if (!caseRecord || !caseRecord.siteId) return false;
+      return canUserAccessSite(user, caseRecord.siteId);
+    }
+
+    // Unrecognized/orphaned object path — no known business entity references it, so deny
+    // rather than allow blind access to anything that happens to exist in the bucket.
+    return false;
   };
 
   // Recipient picker — consultants only

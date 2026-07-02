@@ -38,6 +38,21 @@ export class ObjectNotFoundError extends Error {
   }
 }
 
+// MIME types that are safe to render with Content-Disposition: inline in a browser
+// (i.e. cannot execute script or otherwise act as active content on our origin).
+// Anything else is forced to download so an uploaded HTML/SVG/XML file can never be
+// rendered as a page on the application's own origin.
+const INLINE_SAFE_CONTENT_TYPES = new Set<string>([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/bmp",
+  "image/tiff",
+]);
+
 // The object storage service is used to interact with the object storage service.
 export class ObjectStorageService {
   constructor() {}
@@ -103,9 +118,14 @@ export class ObjectStorageService {
       const aclPolicy = await getObjectAclPolicy(file);
       const isPublic = aclPolicy?.visibility === "public";
       
-      // Build headers
+      // Build headers. Only a small allowlist of MIME types is ever allowed to render
+      // inline in the browser — everything else is forced to download so an uploaded
+      // HTML/SVG/script-bearing file can never execute as a page on our origin.
+      const contentType = metadata.contentType || "application/octet-stream";
+      const canRenderInline = INLINE_SAFE_CONTENT_TYPES.has(contentType.toLowerCase());
       const headers: Record<string, string | number> = {
-        "Content-Type": metadata.contentType || "application/octet-stream",
+        "Content-Type": contentType,
+        "X-Content-Type-Options": "nosniff",
         "Cache-Control": `${
           isPublic ? "public" : "private"
         }, max-age=${cacheTtlSec}`,
@@ -115,11 +135,13 @@ export class ObjectStorageService {
         headers["Content-Length"] = metadata.size;
       }
       
-      // Add Content-Disposition for downloads
+      // Add Content-Disposition. Force "attachment" for any type that isn't known-safe
+      // to render inline, regardless of whether a download filename was requested.
       if (downloadFilename) {
-        // Sanitize filename for header
         const safeName = downloadFilename.replace(/[^\w\s.-]/g, '_');
         headers["Content-Disposition"] = `attachment; filename="${safeName}"`;
+      } else if (!canRenderInline) {
+        headers["Content-Disposition"] = "attachment";
       }
       
       // Set appropriate headers
