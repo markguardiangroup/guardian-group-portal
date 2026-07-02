@@ -12955,13 +12955,28 @@ export async function registerRoutes(
       const soonThreshold = 14 * 24 * 60 * 60 * 1000; // 14 days
       const incidentResolutionDays = 30;
 
+      // Consultants/Admins must have the Case Advocate permission to see any
+      // employment-law case data, matching the main /api/cases endpoints.
+      const canViewCases = user.role !== "consultant" && user.role !== "administrator"
+        ? true
+        : ((user.consultantPermissions as { caseAdvocate?: boolean } | null)?.caseAdvocate === true);
+
+      // Clients only see cases for sites they are explicitly assigned to.
+      let clientAllowedSiteIds: Set<string> | null = null;
+      if (user.role === "client") {
+        const clientSiteAssignments = await storage.getClientSites(user.id);
+        clientAllowedSiteIds = new Set(clientSiteAssignments.map((a: any) => a.siteId));
+      }
+
       // Cases with risky milestones
-      const openCases = await storage.getCases({ includeArchived: false });
+      const openCases = canViewCases ? await storage.getCases({ includeArchived: false }) : [];
       const accessibleCases = openCases.filter((c: any) =>
         !c.isArchived &&
         c.status !== "closed" &&
         c.status !== "resolved" &&
-        allowedSet.has(c.siteId)
+        allowedSet.has(c.siteId) &&
+        (!clientAllowedSiteIds || clientAllowedSiteIds.has(c.siteId)) &&
+        canAccessConfidentialCase(c, user)
       );
 
       const milestoneRisks: any[] = [];
@@ -13912,6 +13927,10 @@ export async function registerRoutes(
         return res.status(401).json({ error: "User not found" });
       }
 
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
+
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) {
         return res.status(404).json({ error: "Case not found" });
@@ -13947,6 +13966,9 @@ export async function registerRoutes(
       // Only admin/consultant can upload case documents
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can upload case documents" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
       }
 
       const caseData = await storage.getCase(req.params.id);
@@ -14028,6 +14050,9 @@ export async function registerRoutes(
       if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
         return res.status(403).json({ error: "Only developers and consultants can delete case documents" });
       }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
 
       const caseData = await storage.getCase(req.params.caseId);
       if (!caseData) {
@@ -14072,6 +14097,10 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
+      }
+
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
       }
 
       const caseData = await storage.getCase(req.params.id);
@@ -14303,6 +14332,10 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
+
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
 
@@ -14511,6 +14544,9 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
       if (!(await canUserAccessSite(user, caseData.siteId))) {
@@ -14533,6 +14569,7 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot create bundles" });
+      if (!hasCaseAdvocatePermission(user)) return res.status(403).json({ error: "Case Advocate permission required" });
       const caseData = await storage.getCase(req.params.id);
       if (!caseData) return res.status(404).json({ error: "Case not found" });
       if (!(await canUserAccessSite(user, caseData.siteId))) return res.status(403).json({ error: "Not authorized" });
@@ -14571,6 +14608,7 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot edit bundles" });
+      if (!hasCaseAdvocatePermission(user)) return res.status(403).json({ error: "Case Advocate permission required" });
 
       const bundle = await storage.getCaseBundle(req.params.bundleId);
       if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
@@ -14617,6 +14655,7 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot delete bundles" });
+      if (!hasCaseAdvocatePermission(user)) return res.status(403).json({ error: "Case Advocate permission required" });
 
       const bundle = await storage.getCaseBundle(req.params.bundleId);
       if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
@@ -14650,6 +14689,7 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
+      if (!hasCaseAdvocatePermission(user)) return res.status(403).json({ error: "Case Advocate permission required" });
 
       const bundle = await storage.getCaseBundle(req.params.bundleId);
       if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
@@ -14814,6 +14854,9 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
 
       const notesCase = await storage.getCase(req.params.id);
       if (!notesCase) return res.status(404).json({ error: "Case not found" });
@@ -14840,6 +14883,9 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
       if (user.role === "client") return res.status(403).json({ error: "Clients cannot add case notes" });
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
 
       const targetCase = await storage.getCase(req.params.id);
       if (!targetCase) return res.status(404).json({ error: "Case not found" });
@@ -14932,6 +14978,10 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) {
         return res.status(401).json({ error: "User not found" });
+      }
+
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
       }
 
       const caseData = await storage.getCase(req.params.id);
