@@ -2076,3 +2076,32 @@ export const mfaRecoveryCodes = pgTable("mfa_recovery_codes", {
 export const insertMfaRecoveryCodeSchema = createInsertSchema(mfaRecoveryCodes).omit({ id: true, createdAt: true });
 export type InsertMfaRecoveryCode = z.infer<typeof insertMfaRecoveryCodeSchema>;
 export type MfaRecoveryCode = typeof mfaRecoveryCodes.$inferSelect;
+
+// ==================== UPLOADED OBJECT OWNERSHIP / CLAIM TRACKING ====================
+// Every raw file uploaded through the generic upload endpoints gets one row here, recording
+// who actually uploaded it. Any later route that accepts a client-supplied fileUrl and wants to
+// bind it to a privileged record (document, document version, template, template version, client
+// upload, iShare) must "claim" the row first: verify it exists, was uploaded by the current user,
+// and has not already been claimed by another record. This prevents a caller from fabricating or
+// reusing someone else's/an already-used object path to hijack or destroy unrelated files —
+// object paths returned by the app can otherwise be lifted straight out of API responses.
+export const uploadedObjects = pgTable("uploaded_objects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  objectPath: text("object_path").notNull().unique(),
+  uploadedByUserId: varchar("uploaded_by_user_id").notNull(),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  mimeType: text("mime_type"),
+  claimedAt: timestamp("claimed_at"),
+  claimedByType: text("claimed_by_type"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUploadedObjectSchema = createInsertSchema(uploadedObjects).omit({
+  id: true,
+  createdAt: true,
+  claimedAt: true,
+  claimedByType: true,
+});
+export type InsertUploadedObject = z.infer<typeof insertUploadedObjectSchema>;
+export type UploadedObject = typeof uploadedObjects.$inferSelect;

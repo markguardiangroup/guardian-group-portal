@@ -61,6 +61,13 @@ export function registerObjectStorageRoutes(
     checkObjectAccess?: (objectPath: string, user: ObjectAccessUser) => Promise<boolean>;
     /** Resolves the authenticated user for a session id, used to build the ObjectAccessUser. */
     getUserForSession?: (sessionUserId: string) => Promise<ObjectAccessUser | undefined>;
+    /**
+     * Records ownership of a freshly-uploaded object so a later route can verify the caller who
+     * supplies this objectPath in a fileUrl field is actually the person who uploaded it (see
+     * uploadedObjects table). Without this, fileUrl is trusted client input and any authenticated
+     * user could bind/reuse/overwrite an object path belonging to someone else.
+     */
+    recordUpload?: (data: { objectPath: string; uploadedByUserId: string; fileName: string; fileSize: number; mimeType: string }) => Promise<void>;
   }
 ): void {
   const objectStorageService = new ObjectStorageService();
@@ -110,7 +117,21 @@ export function registerObjectStorageRoutes(
       });
       
       const objectPath = `/objects/uploads/${objectId}`;
-      
+
+      if (options?.recordUpload) {
+        try {
+          await options.recordUpload({
+            objectPath,
+            uploadedByUserId: sessionUserId,
+            fileName,
+            fileSize: buffer.length,
+            mimeType: contentType,
+          });
+        } catch (recordErr) {
+          console.error("Error recording uploaded object ownership:", recordErr);
+        }
+      }
+
       res.json({
         objectPath,
         fileName,

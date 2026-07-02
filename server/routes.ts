@@ -41,6 +41,45 @@ import { addClient, removeClient, emitToUser, emitToRole, emitToCompany, emitToA
 
 const execAsync = promisify(exec);
 
+// ── Uploaded object ownership / claim tracking ────────────────────────────────
+//
+// fileUrl fields accepted from the client (on document/template create-or-version, case/incident
+// document attach, client-upload, iShare, etc.) are otherwise trusted verbatim and persisted into
+// privileged records. Because object paths are visible in API responses (and are guessable UUIDs
+// in a flat namespace), any authenticated user could supply someone else's object path — or an
+// already-used one — to rebind, "steal", or force deletion/overwrite of a file they never
+// uploaded. Every such write must call claimUploadedObject() first, which:
+//   - 400s if fileUrl doesn't look like a real object path recorded by our upload endpoint
+//     (default-deny — this also blocks reuse of paths that were never tracked, e.g. anything not
+//     produced by POST /api/uploads/file)
+//   - 403s if the uploader on record isn't the current user
+//   - 409s if the object has already been claimed by an earlier record
+//   - otherwise marks it claimed and lets the caller proceed
+//
+// Internal fileUrl copies the server makes itself (document reissue, template-replace archival,
+// bundle merge output, same-request server-generated uploads like incident photo capture) are
+// never routed through this helper — they don't originate from untrusted client input.
+class UploadClaimError extends Error {
+  constructor(public statusCode: number, message: string) {
+    super(message);
+  }
+}
+
+async function claimUploadedObject(fileUrl: string | null | undefined, userId: string, claimedByType: string): Promise<void> {
+  if (!fileUrl) return;
+  const record = await storage.getUploadedObjectByPath(fileUrl);
+  if (!record) {
+    throw new UploadClaimError(400, "This file was not recognized as a valid upload. Please re-upload the file and try again.");
+  }
+  if (record.uploadedByUserId !== userId) {
+    throw new UploadClaimError(403, "You do not have permission to use this file.");
+  }
+  if (record.claimedAt) {
+    throw new UploadClaimError(409, "This file has already been used elsewhere. Please re-upload the file and try again.");
+  }
+  await storage.claimUploadedObject(fileUrl, claimedByType);
+}
+
 // ── Bundle PDF Generation ─────────────────────────────────────────────────────
 
 // Serial queue: only one LibreOffice conversion at a time globally
@@ -109,6 +148,15 @@ const MAX_BUNDLE_SOURCE_BYTES = 200 * 1024 * 1024; // 200MB combined raw input
 // cannot queue up multiple heavyweight jobs back-to-back and starve the (globally
 // serialized) bundle generation pipeline for everyone else.
 const usersGeneratingBundles = new Set<string>();
+
+// Same rationale as usersGeneratingBundles, applied to the document/template DOCX-preview
+// pipeline: LibreOffice conversion is globally serialized (withLibreOffice), so without a
+// per-user guard a single user could fire off many uncached preview requests back-to-back
+// (each a cache miss) and monopolize the queue, starving previews for every other tenant.
+const usersGeneratingPreviews = new Set<string>();
+// Cap the raw source file size fed into the preview conversion pipeline — an oversized
+// office document could otherwise tie up LibreOffice/disk for a disproportionate time.
+const MAX_PREVIEW_SOURCE_BYTES = 50 * 1024 * 1024; // 50MB
 
 // MIME types that are safe to store and, when appropriate, render inline in a browser.
 // Anything not on this list is either coerced to a generic binary type on write
@@ -186,11 +234,17 @@ function mimeToExtension(mimeType: string): string {
   return map[mimeType] ?? "bin";
 }
 
-/** Derive file extension from filename when MIME type is generic (e.g. application/octet-stream). */
+/**
+ * Derive file extension from filename when MIME type is generic (e.g. application/octet-stream).
+ * Deliberately excludes "html"/"xhtml": LibreOffice's HTML import filter can fetch remote
+ * resources (images, stylesheets, external entities) referenced inside the document, which would
+ * let an attacker upload an octet-stream file named "x.html" containing SSRF payloads and have the
+ * server-side converter fetch attacker-controlled URLs. Plain HTML has no legitimate use case here.
+ */
 function extensionFromFileName(fileName: string | null | undefined): string | null {
   if (!fileName) return null;
   const ext = fileName.split(".").pop()?.toLowerCase();
-  const allowed = new Set(["docx","doc","xlsx","xls","pptx","ppt","msg","rtf","txt","csv","odt","ods","odp","odg","html","xhtml","pdf"]);
+  const allowed = new Set(["docx","doc","xlsx","xls","pptx","ppt","msg","rtf","txt","csv","odt","ods","odp","odg","pdf"]);
   return ext && allowed.has(ext) ? ext : null;
 }
 
@@ -219,6 +273,30 @@ function getImageDimensions(buffer: Buffer, mimeType: string): { width: number; 
     // fall through
   }
   return { width: 800, height: 600 };
+}
+
+/**
+ * Write a LibreOffice user profile that forces a manual (unreachable) proxy for HTTP/HTTPS/FTP.
+ * LibreOffice's own network stack does not always honor process env proxy vars, so this must be
+ * set directly in its registrymodifications.xcu profile (created fresh per-conversion since HOME
+ * is pointed at a throwaway outDir for every job) to reliably block outbound fetches triggered by
+ * remote references embedded in an untrusted uploaded document.
+ */
+async function isolateLibreOfficeNetwork(outDir: string): Promise<void> {
+  const profileDir = path.join(outDir, ".config", "libreoffice", "4", "user");
+  await fs.mkdir(profileDir, { recursive: true });
+  const xcu = `<?xml version="1.0" encoding="UTF-8"?>
+<oor:items xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetProxyType" oor:op="fuse"><value>1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetHTTPProxyName" oor:op="fuse"><value>127.0.0.1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetHTTPProxyPort" oor:op="fuse"><value>1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetHTTPSProxyName" oor:op="fuse"><value>127.0.0.1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetHTTPSProxyPort" oor:op="fuse"><value>1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetFTPProxyName" oor:op="fuse"><value>127.0.0.1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetFTPProxyPort" oor:op="fuse"><value>1</value></prop></item>
+ <item oor:path="/org.openoffice.Inet/Settings"><prop oor:name="ooInetNoProxy" oor:op="fuse"><value></value></prop></item>
+</oor:items>`;
+  await fs.writeFile(path.join(profileDir, "registrymodifications.xcu"), xcu, "utf-8");
 }
 
 async function convertFileToPdf(
@@ -293,9 +371,28 @@ async function convertFileToPdf(
     const inputPath = path.join(tempDir, `${index}_src.${ext}`);
     await fs.writeFile(inputPath, fileBuffer);
 
+    // Network-isolate LibreOffice before conversion: uploaded office documents (docx/xlsx/odt/etc.)
+    // can embed remote references (linked OLE objects, external data ranges, remote images/fields)
+    // that LibreOffice will otherwise try to fetch, which is an SSRF vector against internal/cloud
+    // network targets. Point LO's own proxy settings at an unreachable blackhole host so any such
+    // fetch fails closed, mirroring the same isolation used for headless-Chromium rendering elsewhere.
+    await isolateLibreOfficeNetwork(outDir);
+
     await execAsync(
       `soffice --headless --norestore --nologo --nolockcheck --convert-to pdf --outdir "${outDir}" "${inputPath}"`,
-      { timeout: 60_000, env: { ...process.env, HOME: outDir } },
+      {
+        timeout: 60_000,
+        env: {
+          ...process.env,
+          HOME: outDir,
+          http_proxy: "http://127.0.0.1:1",
+          https_proxy: "http://127.0.0.1:1",
+          HTTP_PROXY: "http://127.0.0.1:1",
+          HTTPS_PROXY: "http://127.0.0.1:1",
+          no_proxy: "",
+          NO_PROXY: "",
+        },
+      },
     );
     const outFiles = await fs.readdir(outDir);
     const pdfFile = outFiles.find(f => f.endsWith(".pdf"));
@@ -369,6 +466,13 @@ async function getOrConvertDocxPreview(fileUrl: string, mimeType: string): Promi
   }
 
   const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+
+  const [metadata] = await objectFile.getMetadata().catch(() => [null] as const);
+  const sourceSize = metadata?.size ? Number(metadata.size) : 0;
+  if (sourceSize > MAX_PREVIEW_SOURCE_BYTES) {
+    throw new Error(`Source file exceeds the ${MAX_PREVIEW_SOURCE_BYTES / (1024 * 1024)}MB preview conversion limit`);
+  }
+
   const [docxBuf] = await objectFile.download();
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "docxprev_"));
@@ -632,6 +736,9 @@ export async function registerRoutes(
         consultantTier: user.consultantTier ?? null,
         sources: user.sources ?? null,
       };
+    },
+    recordUpload: async (data) => {
+      await storage.createUploadedObject(data);
     },
   });
 
@@ -4487,6 +4594,15 @@ export async function registerRoutes(
       }
       const safeMimeType = sanitizeMimeType(mimeType);
 
+      try {
+        await claimUploadedObject(fileUrl, user.id, "document_version");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
+
       // Admin on-behalf validation — mirrors the main document upload route
       let versionOnBehalfConsultant: { id: string; fullName: string } | null = null;
       if (user.role === "administrator") {
@@ -4827,6 +4943,10 @@ export async function registerRoutes(
 
       // DOCX — convert via LibreOffice and stream as PDF
       if (mimeType && DOCX_PREVIEW_MIME_TYPES.has(mimeType)) {
+        if (usersGeneratingPreviews.has(user.id)) {
+          return res.status(429).json({ error: "A document preview is already being generated for your account — please wait for it to finish" });
+        }
+        usersGeneratingPreviews.add(user.id);
         try {
           const pdfBuffer = await getOrConvertDocxPreview(fileUrl, mimeType);
           const pdfName = fileName.replace(/\.(docx?|doc)$/i, ".pdf");
@@ -4837,6 +4957,8 @@ export async function registerRoutes(
         } catch (convErr) {
           console.error("DOCX conversion error:", convErr);
           return res.status(422).json({ error: "Unable to convert document to PDF for preview" });
+        } finally {
+          usersGeneratingPreviews.delete(user.id);
         }
       }
       
@@ -4892,6 +5014,10 @@ export async function registerRoutes(
       const objectStorageService = new ObjectStorageService();
 
       if (DOCX_PREVIEW_MIME_TYPES.has(mimeType)) {
+        if (usersGeneratingPreviews.has(user.id)) {
+          return res.status(429).json({ error: "A document preview is already being generated for your account — please wait for it to finish" });
+        }
+        usersGeneratingPreviews.add(user.id);
         try {
           const pdfBuffer = await getOrConvertDocxPreview(template.fileUrl, mimeType);
           const pdfName = template.fileName.replace(/\.(docx?|doc)$/i, ".pdf");
@@ -4902,6 +5028,8 @@ export async function registerRoutes(
         } catch (convErr) {
           console.error("Template DOCX conversion error:", convErr);
           return res.status(422).json({ error: "Unable to convert template to PDF for preview" });
+        } finally {
+          usersGeneratingPreviews.delete(user.id);
         }
       }
 
@@ -5142,6 +5270,15 @@ export async function registerRoutes(
         }
         resolvedUploadedBy = onBehalfConsultant.id;
         resolvedInitiatedBy = user.id;
+      }
+
+      try {
+        await claimUploadedObject(body.fileUrl, user.id, "document");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
       }
 
       const document = await storage.createDocument({
@@ -7439,7 +7576,16 @@ export async function registerRoutes(
       if (folderTemplate.module !== parsed.data.module) {
         return res.status(400).json({ error: "Template module must match folder template module" });
       }
-      
+
+      try {
+        await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
+
       const template = await storage.createDocumentTemplate({
         ...parsed.data,
         mimeType: sanitizeMimeType(parsed.data.mimeType),
@@ -7682,6 +7828,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
       }
       
+      try {
+        await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template_version");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
+
       const newVersion = template.version + 1;
       const safeMimeType = sanitizeMimeType(parsed.data.mimeType);
       
@@ -8013,6 +8168,15 @@ export async function registerRoutes(
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
       const safeMimeType = sanitizeMimeType(parsed.data.mimeType);
+
+      try {
+        await claimUploadedObject(parsed.data.fileUrl, user.id, "document_template_replace");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
 
       // Archive current file as a new version entry
       await storage.createDocumentTemplateVersion({
@@ -13324,6 +13488,15 @@ export async function registerRoutes(
 
       if (!title || !fileName || !fileUrl) {
         return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
+      }
+
+      try {
+        await claimUploadedObject(fileUrl, user.id, "case_document");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
       }
 
       // Create the document linked to the case
@@ -18962,6 +19135,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
       }
 
+      try {
+        await claimUploadedObject(fileUrl, user.id, "incident_document");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
+
       const document = await storage.createDocument({
         title,
         comments: user.role === "client" ? null : (req.body.comments ?? null),
@@ -19614,6 +19796,15 @@ export async function registerRoutes(
 
       const canAccess = await canUserAccessFolder(user, folder);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      try {
+        await claimUploadedObject(fileUrl, user.id, "client_upload");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
 
       const fileExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
@@ -20346,6 +20537,15 @@ export async function registerRoutes(
 
       const canAccess = await canUserAccessIshareFolder(user, folder);
       if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      try {
+        await claimUploadedObject(fileUrl, user.id, "ishare");
+      } catch (claimErr) {
+        if (claimErr instanceof UploadClaimError) {
+          return res.status(claimErr.statusCode).json({ error: claimErr.message });
+        }
+        throw claimErr;
+      }
 
       const fileExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 

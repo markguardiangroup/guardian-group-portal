@@ -15,3 +15,4 @@
 - [Object storage /objects/ needs entity ACL resolution](object-storage-acl-not-populated.md) — ACL policy metadata is never set; resolve raw object paths back to their owning document/template/folder/case and reuse that entity's real access check instead.
 - [Template file access policy parity](template-file-access-policy.md) — an ID-based auth predicate must enforce the exact same visibility/active/source rules as the list-endpoint filter it claims to mirror, or leaked IDs bypass listing restrictions.
 - [Bundle generation hardening](bundle-generation-hardening.md) — headless-Chromium SSRF needs sanitization + network-isolation flags together; multi-doc merges need item-count + cumulative-byte + per-user concurrency limits.
+- [Upload ownership claim pattern](upload-ownership-claim-pattern.md) — client-supplied fileUrl/objectPath fields must be claimed (owner+not-already-used check) before binding to a record, or files can be rebound/reused.

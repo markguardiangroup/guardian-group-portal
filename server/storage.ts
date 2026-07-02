@@ -134,6 +134,8 @@ import {
   type AcceloSyncLog,
   type ConsultantCoverage, type InsertConsultantCoverage,
   consultantCoverage as consultantCoverageTable,
+  type UploadedObject, type InsertUploadedObject,
+  uploadedObjects as uploadedObjectsTable,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { ObjectStorageService } from "./replit_integrations/object_storage";
@@ -575,6 +577,11 @@ export interface IStorage {
   // Alert-count "last seen" markers (sidebar badges)
   getAlertSeen(userId: string): Promise<Record<string, Date>>;
   markAlertSeen(userId: string, surface: string): Promise<void>;
+
+  // Uploaded object ownership / claim tracking (see uploadedObjects table for rationale)
+  createUploadedObject(data: InsertUploadedObject): Promise<UploadedObject>;
+  getUploadedObjectByPath(objectPath: string): Promise<UploadedObject | undefined>;
+  claimUploadedObject(objectPath: string, claimedByType: string): Promise<void>;
 
   // Testing Task Lists
   getTestingTaskLists(includeArchived?: boolean): Promise<TestingTaskList[]>;
@@ -5858,6 +5865,36 @@ export class MemStorage implements IStorage {
       .where(eq(isharesTable.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async createUploadedObject(data: InsertUploadedObject): Promise<UploadedObject> {
+    const rows = await db
+      .insert(uploadedObjectsTable)
+      .values(data)
+      .onConflictDoNothing({ target: uploadedObjectsTable.objectPath })
+      .returning();
+    if (rows[0]) return rows[0];
+    // Path already had a row (shouldn't normally happen — object ids are random UUIDs) —
+    // return the existing row rather than throwing, so uploads never hard-fail.
+    const existing = await this.getUploadedObjectByPath(data.objectPath);
+    if (existing) return existing;
+    throw new Error("Failed to record uploaded object");
+  }
+
+  async getUploadedObjectByPath(objectPath: string): Promise<UploadedObject | undefined> {
+    const rows = await db
+      .select()
+      .from(uploadedObjectsTable)
+      .where(eq(uploadedObjectsTable.objectPath, objectPath))
+      .limit(1);
+    return rows[0];
+  }
+
+  async claimUploadedObject(objectPath: string, claimedByType: string): Promise<void> {
+    await db
+      .update(uploadedObjectsTable)
+      .set({ claimedAt: new Date(), claimedByType })
+      .where(eq(uploadedObjectsTable.objectPath, objectPath));
   }
 
   async getIshareActivityForUser(params: { userId: string; userRole: string }): Promise<{ files: { createdAt: Date; uploadedBy: string | null }[] }> {

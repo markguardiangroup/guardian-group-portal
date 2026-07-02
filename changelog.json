@@ -10562,6 +10562,13 @@
           "message": "Fixed: Accelo webhook secret no longer exposed in API logs",
           "category": "bug",
           "createdAt": "2026-07-02T15:44:14.274Z"
+        },
+        {
+          "id": "63c8614b-36f9-456e-817c-91fb35e79097",
+          "patch": 22,
+          "message": "Hardened file uploads, previews, and document conversion against abuse",
+          "category": "other",
+          "createdAt": "2026-07-02T15:45:42.537Z"
         }
       ],
       "publishedPatch": 21,
