@@ -2133,6 +2133,54 @@ export async function registerRoutes(
     return false;
   };
 
+  // SECURITY: shared scoping check for staff-only user-management helper routes
+  // (password reset, MFA reset, activity log, etc). Mirrors the visibility rules
+  // enforced by GET /api/users and canUserAccessSite so that consultants/administrators
+  // cannot act on accounts outside their tenant/source scope. Developers may manage anyone;
+  // everyone may always act on their own account (route-level checks still apply on top).
+  const canStaffManageUser = async (
+    currentUser: { id: string; role: string; sources?: string[] | null; consultantTier?: string | null },
+    targetUser: { id: string; role: string; companyId: string | null; sources?: string[] | null }
+  ): Promise<boolean> => {
+    if (currentUser.role === "developer") return true;
+    if (currentUser.role !== "consultant" && currentUser.role !== "administrator") return false;
+    if (targetUser.id === currentUser.id) return true;
+    if (targetUser.role === "developer") return false;
+
+    const mySources = currentUser.sources ?? [];
+
+    // Staff-to-staff: only pro consultants/administrators sharing a source may manage other staff.
+    if (targetUser.role === "consultant" || targetUser.role === "administrator") {
+      if (!hasProPrivileges(currentUser)) return false;
+      if (currentUser.role === "administrator" && mySources.length === 0) return true;
+      return sourcesOverlap(mySources, targetUser.sources ?? []);
+    }
+
+    if (targetUser.role !== "client" || !targetUser.companyId) return false;
+
+    // Administrators with no configured sources manage every non-developer user (mirrors GET /api/users).
+    if (currentUser.role === "administrator" && mySources.length === 0) return true;
+
+    if (hasProPrivileges(currentUser)) {
+      const company = await storage.getCompany(targetUser.companyId);
+      if (!company) return false;
+      if (sourcesOverlap(mySources, company.sources ?? [])) return true;
+      if (company.groupOwnerId) {
+        const goCompany = await storage.getCompany(company.groupOwnerId);
+        if (sourcesOverlap(mySources, goCompany?.sources ?? [])) return true;
+      }
+      return false;
+    }
+
+    // Standard consultants: only clients in companies they are assigned to (via a site assignment).
+    const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
+    for (const site of companySites) {
+      const assignments = await storage.getConsultantAssignments(site.id);
+      if (assignments.some(a => a.consultantId === currentUser.id)) return true;
+    }
+    return false;
+  };
+
   // Document "Comments" are internal/staff-only — never expose them to client users.
   const stripInternalDocFields = <T extends { comments?: string | null }>(doc: T, role: string): T => {
     if (role === "client") {
@@ -2533,6 +2581,12 @@ export async function registerRoutes(
       const targetUser = await storage.getUser(req.params.userId);
       if (!targetUser) return res.status(404).json({ error: "User not found" });
 
+      // SECURITY: consultants/administrators may only reset passwords for users within
+      // their tenant/source scope — never arbitrary out-of-scope accounts.
+      if (!(await canStaffManageUser(currentUser, targetUser))) {
+        return res.status(403).json({ error: "You do not have access to this user" });
+      }
+
       if (targetUser.status !== "active" && targetUser.status !== "locked") {
         return res.status(400).json({ error: "Password reset is only available for active or locked accounts" });
       }
@@ -2735,6 +2789,16 @@ export async function registerRoutes(
       if (!currentUser || (currentUser.role !== "developer" && currentUser.role !== "consultant" && currentUser.role !== "administrator")) {
         return res.status(403).json({ error: "Insufficient permissions" });
       }
+
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+      // SECURITY: consultants/administrators may only view activity for users within
+      // their tenant/source scope — never arbitrary out-of-scope accounts.
+      if (!(await canStaffManageUser(currentUser, targetUser))) {
+        return res.status(403).json({ error: "You do not have access to this user" });
+      }
+
       const logs = await storage.getUserActivityLogs(req.params.id);
       res.json(logs);
     } catch (error) {
@@ -17107,6 +17171,12 @@ export async function registerRoutes(
 
       const targetUser = await storage.getUser(req.params.id);
       if (!targetUser) return res.status(404).json({ error: "User not found" });
+
+      // SECURITY: consultants/administrators may only reset MFA for users within
+      // their tenant/source scope — never arbitrary out-of-scope accounts.
+      if (!(await canStaffManageUser(currentUser, targetUser))) {
+        return res.status(403).json({ error: "You do not have access to this user" });
+      }
 
       await pool.query("UPDATE users SET totp_secret = NULL, totp_enabled = FALSE WHERE id = $1", [targetUser.id]);
       await pool.query("DELETE FROM mfa_recovery_codes WHERE user_id = $1", [targetUser.id]);
