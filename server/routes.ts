@@ -1122,13 +1122,12 @@ export async function registerRoutes(
       const settingsResult = await pool.query("SELECT mfa_required FROM email_settings LIMIT 1");
       const portalMfaRequired: boolean = settingsResult.rows[0]?.mfa_required ?? false;
 
-      // A user's own TOTP enrollment must ALWAYS be enforced, independent of the
-      // portal-wide toggle. Otherwise a user who has set up an authenticator app
-      // (advertised in Settings as protecting their account) can still be logged
-      // into with password alone whenever the global flag happens to be off —
-      // silently bypassing the only second factor they believe is active.
+      // When the portal-wide MFA toggle is off, MFA is fully off for everyone —
+      // even users who have personally enrolled in an authenticator app. A user's
+      // own TOTP enrollment only matters while the global toggle is on (it decides
+      // whether they get the "mfa_required" or "setup_required" prompt below).
       const userHasTotpEnabled = !!(user as any).totpEnabled && !!(user as any).totpSecret;
-      const mfaRequired = portalMfaRequired || userHasTotpEnabled;
+      const mfaRequired = portalMfaRequired;
 
       // Check trusted-device cookie — a valid cookie bypasses MFA
       let isTrustedDevice = false;
