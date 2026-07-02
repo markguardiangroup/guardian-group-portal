@@ -26,7 +26,7 @@ The scan scope is production only. Mockup/sandbox-only code should be ignored un
 ## Scan Anchors
 
 - **Production entry points**: `server/index.ts`, `server/routes.ts`, `server/replit_integrations/object_storage/routes.ts`, `server/accelo.ts`.
-- **Highest-risk code areas**: authentication/MFA flows in `server/routes.ts`; object storage helpers; document preview/download/upload flows; case bundle and DOCX/PDF conversion code; public integration callbacks/webhooks; staff-only `/api/users/**` helper routes that must enforce the same source/company/site scoping as the main user-directory endpoints.
+- **Highest-risk code areas**: authentication/MFA flows in `server/routes.ts`; invitation acceptance and password-reset lifecycle; object storage helpers; document preview/download/upload flows; employment-law case subroutes that must repeat site/confidential-case checks; case bundle and DOCX/PDF conversion code; public integration callbacks/webhooks; staff-only `/api/users/**` routes that must enforce the same source/company/site scoping as the main user-directory endpoints.
 - **Public surfaces**: login, forgot-password, invitation validation/acceptance, OAuth callback, public download/object routes, any webhook-like endpoints.
 - **Authenticated/admin surfaces**: most `/api/**` business routes in `server/routes.ts`; role checks rely heavily on `requireAuth`, `canUserAccessSite`, and document/case access helpers.
 - **Usually ignore unless proven reachable**: local scripts, static assets, and mock/sandbox-only paths outside the production server/client flow.
@@ -41,6 +41,8 @@ The portal relies on session cookies plus optional MFA. All protected routes mus
 
 Clients and lower-privilege staff can submit document metadata, uploads, approvals, and integration-triggered changes. The server must treat all file metadata, MIME types, IDs, and workflow state transitions as untrusted, and must not let attackers alter records or generated outputs outside the rules enforced by role/site checks.
 
+Shared-folder bulk download features also create files for other users to open locally. Archive entry names must be sanitized so attacker-controlled filenames cannot turn ZIP exports into path-traversal payloads against recipients.
+
 ### Information Disclosure
 
 This app stores sensitive documents and tenant-scoped records. File URLs, previews, downloads, report exports, logs, and API responses must be authorization-checked server-side. Private object-storage paths must never become a backdoor around normal document access checks.
@@ -49,8 +51,12 @@ This app stores sensitive documents and tenant-scoped records. File URLs, previe
 
 The public deployment includes login, reset, upload, preview, and document-conversion paths. Public or low-friction endpoints must be rate-limited and bounded so attackers cannot exhaust storage, CPU, or external conversion tools with oversized or repeated requests.
 
+Raw-body upload endpoints are especially sensitive because buffering large files in process memory can turn a normal authenticated account into a service-wide memory exhaustion vector unless uploads are streamed or tightly concurrency-bounded.
+
 ### Elevation of Privilege
 
 The biggest risks are broken access control across companies/sites, public endpoints that write or expose private data, and active content rendered on the application origin. A lower-privilege user or unauthenticated attacker must not be able to turn file handling, previews, uploads, or integration endpoints into same-origin script execution or cross-tenant data access.
 
 Staff convenience endpoints are part of the same privilege boundary. A consultant or source-scoped administrator must not be able to manage, weaken authentication for, or inspect activity for users outside the companies/sites/sources they are allowed to administer.
+
+Case subroutes inherit the same tenant boundary as the main case detail route. Milestones, notes, checklist items, case documents, and case audit trails must all re-check both site access and confidential-case restrictions instead of assuming a case ID is safe to trust on its own.
