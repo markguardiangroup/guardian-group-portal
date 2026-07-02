@@ -688,8 +688,31 @@ process.on("uncaughtException", (err) => {
   runAcceloKeepAlive();
   scheduleNextAcceloKeepAlive();
 
+  // These downloads expose internal, commercially sensitive Guardian Group
+  // material (strategic overview / competitive analysis). Access requires an
+  // authenticated staff session — a live DB lookup is used (rather than the
+  // cached session snapshot) so a deactivated/demoted account loses access
+  // immediately, matching the pattern used for other sensitive-data routes.
+  const requireInternalStaffSession = async (req: Request, res: Response): Promise<boolean> => {
+    const userId = (req.session as any)?.userId;
+    if (!userId) {
+      res.status(401).json({ error: "Authentication required" });
+      return false;
+    }
+    const user = await storage.getUser(userId);
+    if (!user || user.status === "inactive" || user.status === "locked") {
+      res.status(401).json({ error: "Authentication required" });
+      return false;
+    }
+    if (user.role !== "developer" && user.role !== "administrator" && user.role !== "consultant") {
+      res.status(403).json({ error: "Forbidden" });
+      return false;
+    }
+    return true;
+  };
+
   app.get("/downloads/strategic-overview.pptx", async (req, res) => {
-    if (req.query.key !== "GUARDIAN_EXPORT_2026") return res.status(403).end();
+    if (!(await requireInternalStaffSession(req, res))) return;
     try {
       const fs = await import("fs");
       const buf = fs.readFileSync("/home/runner/workspace/guardian-group-strategic-overview.pptx");
@@ -704,7 +727,7 @@ process.on("uncaughtException", (err) => {
   });
 
   app.get("/downloads/competitive-analysis.docx", async (req, res) => {
-    if (req.query.key !== "GUARDIAN_EXPORT_2026") return res.status(403).end();
+    if (!(await requireInternalStaffSession(req, res))) return;
     try {
       const { buildCompetitiveReport } = await import("./competitive-report");
       const buf = await buildCompetitiveReport();
