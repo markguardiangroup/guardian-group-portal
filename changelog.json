@@ -10569,6 +10569,13 @@
           "message": "Hardened file uploads, previews, and document conversion against abuse",
           "category": "other",
           "createdAt": "2026-07-02T15:45:42.537Z"
+        },
+        {
+          "id": "10273935-bb62-4fcd-ae52-4d93a29668a4",
+          "patch": 22,
+          "message": "Fixed: compliance fulfilment status no longer leaks across companies/sites",
+          "category": "bug",
+          "createdAt": "2026-07-02T16:13:36.038Z"
         }
       ],
       "publishedPatch": 21,

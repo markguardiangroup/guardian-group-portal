@@ -3518,6 +3518,32 @@ export async function registerRoutes(
       const scope = (req.query.scope as string) || "";
       const entityId = req.query.entityId as string | undefined;
       const siteId = req.query.siteId as string | undefined;
+
+      // Re-check that the requesting user is actually allowed to see compliance/
+      // document-fulfilment metadata for the requested target before querying.
+      let authorized = false;
+      if (scope === "site" && siteId) {
+        authorized = await canUserAccessSite(user, siteId);
+      } else if (scope === "company" && entityId) {
+        authorized = await canUserAccessCompany(user, entityId);
+      } else if (scope === "group" && entityId) {
+        if (user.role === "developer") {
+          authorized = true;
+        } else if (user.role === "client" && user.companyId) {
+          if (user.companyId === entityId) {
+            authorized = true;
+          } else {
+            const userCompany = await storage.getCompany(user.companyId);
+            authorized = userCompany?.groupOwnerId === entityId;
+          }
+        } else {
+          // Consultants / pro-consultants: source-overlap based company access check
+          // (entityId is the group owner company for group-scoped documents).
+          authorized = await canUserAccessCompany(user, entityId);
+        }
+      }
+      if (!authorized) return res.status(403).json({ error: "Forbidden" });
+
       const templateIds = await storage.getFulfilledTemplateIds(scope, entityId, siteId);
       res.json({ templateIds });
     } catch (error) {
