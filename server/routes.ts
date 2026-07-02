@@ -13813,6 +13813,14 @@ export async function registerRoutes(
     return false;
   };
 
+  // Consultants/Admins must hold the Case Advocate permission to create/modify
+  // Employment Law case workflow records (milestones, checklist items, notes).
+  const hasCaseAdvocatePermission = (user: any): boolean => {
+    if (user.role !== "consultant" && user.role !== "administrator") return true;
+    const perms = user.consultantPermissions as { caseAdvocate?: boolean } | null;
+    return perms?.caseAdvocate === true;
+  };
+
   // Get case documents
   app.get("/api/cases/:id/documents", requireAuth, async (req, res) => {
     try {
@@ -14015,6 +14023,9 @@ export async function registerRoutes(
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot create milestones" });
       }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
 
       const parseResult = createMilestoneSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -14070,6 +14081,9 @@ export async function registerRoutes(
       }
       const milestoneCase = await storage.getCase(existingMilestone.caseId);
       if (!milestoneCase || !(await canUserAccessSite(user, milestoneCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -14154,6 +14168,9 @@ export async function registerRoutes(
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot delete milestones" });
       }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
 
       const milestone = await storage.getCaseMilestone(req.params.id);
       if (!milestone) {
@@ -14230,6 +14247,9 @@ export async function registerRoutes(
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot manage the document checklist" });
       }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
 
       const parseResult = createChecklistItemSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -14293,6 +14313,9 @@ export async function registerRoutes(
 
       const existingChecklistCase = await storage.getCase(existing.caseId);
       if (!existingChecklistCase || !(await canUserAccessSite(user, existingChecklistCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -14361,6 +14384,9 @@ export async function registerRoutes(
 
       if (user.role === "client") {
         return res.status(403).json({ error: "Clients cannot delete checklist items" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       const existing = await storage.getCaseDocumentChecklistItem(req.params.id);
@@ -14770,6 +14796,9 @@ export async function registerRoutes(
       if (!editNoteCase || !(await canUserAccessSite(user, editNoteCase.siteId))) {
         return res.status(403).json({ error: "Not authorized" });
       }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
       if (existing.createdBy !== user.id && user.role !== "developer") {
         return res.status(403).json({ error: "You can only edit your own notes" });
       }
@@ -14796,6 +14825,9 @@ export async function registerRoutes(
 
       const deleteNoteCase = await storage.getCase(existing.caseId);
       if (!deleteNoteCase || !(await canUserAccessSite(user, deleteNoteCase.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
         return res.status(403).json({ error: "Not authorized" });
       }
       if (existing.createdBy !== user.id && user.role !== "developer") {

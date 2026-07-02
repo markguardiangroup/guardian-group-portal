@@ -10606,6 +10606,13 @@
           "createdAt": "2026-07-02T18:49:06.876Z"
         },
         {
+          "id": "182590d7-56a3-4d17-bb6a-ca45cfe7334c",
+          "patch": 22,
+          "message": "Fixed: consultants without case permission could edit case data",
+          "category": "bug",
+          "createdAt": "2026-07-02T19:06:33.579Z"
+        },
+        {
           "id": "a5bc58fe-5ded-4c08-97e9-b8dabf90f7ad",
           "patch": 22,
           "message": "Fixed: incident reports secured against script injection and access bypass",
