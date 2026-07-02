@@ -23343,10 +23343,21 @@ export async function registerRoutes(
     const contactEmail = primaryContact?.email || null;
     const contactPhone = acceloCompany.phone || primaryContact?.phone || primaryContact?.mobile || null;
 
-    const existingCompanies = await storage.getCompanies();
-    const existing = existingCompanies.find(
-      (c) => c.name.trim().toLowerCase() === companyName.toLowerCase()
-    );
+    // Resolve the target company using the stable Accelo link only — this is the only
+    // trustworthy identifier tying an upstream Accelo record to a portal company. A
+    // previously-established (sourceCode, acceloCompanyId) link always wins.
+    //
+    // We deliberately do NOT match/update an existing local company by name. Company
+    // names are attacker-influenceable on the upstream Accelo system and are not unique,
+    // so trusting a name match would let anyone able to trigger a webhook (e.g. by naming
+    // an Accelo company after an existing portal customer) overwrite that customer's
+    // contact/address details and rebind its Accelo link. If no verified link exists yet,
+    // the push always creates a brand-new company — it never mutates an existing one.
+    const existingLink = await storage.getAcceloLinkBySourceAndAcceloId(sourceCode, String(acceloCompanyId));
+    const existingCompanies = existingLink ? await storage.getCompanies() : [];
+    const existing: any = existingLink
+      ? existingCompanies.find((c) => c.id === existingLink.companyId) ?? null
+      : null;
 
     let company: any;
     let action: "created" | "updated";

@@ -154,6 +154,7 @@ app.use((req, res, next) => {
     "/api/auth/totp-regenerate-codes",
     "/api/auth/login",
     "/api/auth/change-password",
+    "/api/integrations/accelo/webhook-secret",
   ]);
 
   res.on("finish", () => {

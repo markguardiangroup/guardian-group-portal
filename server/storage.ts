@@ -641,6 +641,7 @@ export interface IStorage {
   upsertAcceloLink(companyId: string, sourceCode: string, acceloId: string, acceloStanding?: string | null, acceloType?: string | null, acceloColor?: string | null): Promise<void>;
   getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]>;
   getAcceloLinksForSync(): Promise<CompanyAcceloLink[]>;
+  getAcceloLinkBySourceAndAcceloId(sourceCode: string, acceloId: string): Promise<CompanyAcceloLink | null>;
   bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void>;
 
   // Accelo Sync Logs
@@ -7045,6 +7046,18 @@ export class MemStorage implements IStorage {
        FROM company_accelo_links`
     );
     return r.rows;
+  }
+
+  async getAcceloLinkBySourceAndAcceloId(sourceCode: string, acceloId: string): Promise<CompanyAcceloLink | null> {
+    const r = await pool.query(
+      `SELECT id, company_id AS "companyId", source_code AS "sourceCode", accelo_id AS "acceloId",
+              accelo_standing AS "acceloStanding", accelo_type AS "acceloType",
+              accelo_color AS "acceloColor", last_checked_at AS "lastCheckedAt",
+              created_at AS "createdAt"
+       FROM company_accelo_links WHERE source_code = $1 AND accelo_id = $2 LIMIT 1`,
+      [sourceCode, acceloId]
+    );
+    return r.rows[0] ?? null;
   }
 
   async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void> {
