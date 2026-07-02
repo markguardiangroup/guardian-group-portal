@@ -4418,6 +4418,27 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "a5b6c7d8-mfa-lockout-timing-gap-2026",
+          "patch": 22,
+          "message": "Fixed: a locked/disabled account could still finish signing in via MFA",
+          "category": "bug",
+          "createdAt": "2026-07-02T20:30:00.000Z"
+        },
+        {
+          "id": "b6c7d8e9-feedback-stale-role-access-2026",
+          "patch": 22,
+          "message": "Fixed: demoted staff kept feedback admin access until they logged out",
+          "category": "bug",
+          "createdAt": "2026-07-02T20:30:00.000Z"
+        },
+        {
+          "id": "c7d8e9f0-forgot-password-limiter-hardening-2026",
+          "patch": 22,
+          "message": "Fixed: an attacker could exhaust someone else's password reset attempts",
+          "category": "bug",
+          "createdAt": "2026-07-02T20:30:00.000Z"
+        },
+        {
           "id": "f4a5b6c7-accelo-tenant-scope-hardening-2026",
           "patch": 22,
           "message": "Fixed: Accelo integration could expose or link data across companies",

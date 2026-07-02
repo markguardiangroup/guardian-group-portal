@@ -1243,6 +1243,11 @@ export async function registerRoutes(
 
       const user = await storage.getUser(pendingUserId);
       if (!user) return res.status(404).json({ error: "User not found" });
+      if (user.status === "inactive" || user.status === "locked") {
+        delete req.session.pendingMfaUserId;
+        mfaLoginAttempts.delete(pendingUserId);
+        return res.status(401).json({ error: "Account is not active" });
+      }
 
       const totpEnabled = !!(user as any).totpEnabled;
       const totpSecret = (user as any).totpSecret as string | null;
@@ -1481,6 +1486,10 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ error: "Authentication required" });
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
+      if (user.status === "inactive" || user.status === "locked") {
+        delete req.session.pendingMfaUserId;
+        return res.status(401).json({ error: "Account is not active" });
+      }
 
       const secret = totpAuthenticator.generateSecret();
       const otpauthUrl = totpAuthenticator.keyuri(user.email, "Guardian Group Portal", secret);
@@ -1506,6 +1515,18 @@ export async function registerRoutes(
       const userId = req.session?.userId ?? req.session?.pendingMfaUserId;
       if (!userId) return res.status(401).json({ error: "Authentication required" });
       const isMandatorySetupFlow = !req.session?.userId && !!req.session?.pendingMfaUserId;
+
+      // Re-check the account is still active before enrolling a new
+      // authenticator or completing a paused login. Without this, an
+      // account locked/deactivated mid-flow could still be used to enroll
+      // a brand-new TOTP secret and finish the mandatory-setup login.
+      const preCheckUser = await storage.getUser(userId);
+      if (!preCheckUser || preCheckUser.status === "inactive" || preCheckUser.status === "locked") {
+        delete req.session.pendingMfaUserId;
+        delete req.session.pendingTotpSecret;
+        return res.status(401).json({ error: "Account is not active" });
+      }
+
       const { code } = req.body;
       const pendingSecret = req.session?.pendingTotpSecret as string | undefined;
 
@@ -18465,18 +18486,28 @@ export async function registerRoutes(
   });
 
   // ==================== FEEDBACK ENDPOINTS ====================
-  // All feedback endpoints are for admin/consultant only
-  const requirePrivileged = (req: any, res: any, next: any) => {
-    const user = (req.session as any)?.user;
-    if (user?.role !== "developer" && user?.role !== "consultant" && user?.role !== "administrator") {
+  // All feedback endpoints are for admin/consultant only.
+  //
+  // requirePrivileged (and every handler below) must authorize from a
+  // freshly-loaded user, not the cached (req.session as any).user snapshot
+  // set at login time. That snapshot goes stale the instant an
+  // administrator demotes/deactivates a staff account — the DB role
+  // changes immediately, but the old cookie kept full feedback-admin
+  // access until it expired. Route through getActiveSessionUser (see
+  // definition near requireAuth) exactly like every other privilege-
+  // sensitive endpoint in this file.
+  const requirePrivileged = async (req: any, res: any, next: any) => {
+    const user = await getActiveSessionUser(req);
+    if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
       return res.status(403).json({ error: "Access denied" });
     }
+    req.activeSessionUser = user;
     next();
   };
 
-  app.get("/api/feedback", requireAuth, requirePrivileged, async (req, res) => {
+  app.get("/api/feedback", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       const feedback = await storage.getFeedbackWithMetadata(user.id);
       res.json(feedback);
     } catch (error) {
@@ -18485,9 +18516,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/feedback/:id/read", requireAuth, requirePrivileged, async (req, res) => {
+  app.post("/api/feedback/:id/read", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       await storage.markFeedbackRead(req.params.id, user.id);
       res.json({ success: true });
     } catch (error) {
@@ -18496,9 +18527,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/feedback", requireAuth, requirePrivileged, async (req, res) => {
+  app.post("/api/feedback", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       const parseResult = createFeedbackSchema.safeParse(req.body);
       if (!parseResult.success) {
         return res.status(400).json({ error: "Invalid feedback data" });
@@ -18529,9 +18560,10 @@ export async function registerRoutes(
     status: z.enum(["open", "resolved"]).optional(),
   });
 
-  app.patch("/api/feedback/:id", requireAuth, async (req, res) => {
+  app.patch("/api/feedback/:id", requireAuth, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = await getActiveSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
 
       const parseResult = updateFeedbackSchema.safeParse(req.body);
       if (!parseResult.success) {
@@ -18572,9 +18604,9 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/feedback/comments/:id", requireAuth, requirePrivileged, async (req, res) => {
+  app.patch("/api/feedback/comments/:id", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       const { content } = req.body;
       if (!content || typeof content !== "string" || !content.trim()) {
         return res.status(400).json({ error: "Comment content is required" });
@@ -18600,9 +18632,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/feedback/:id/upvote", requireAuth, requirePrivileged, async (req, res) => {
+  app.post("/api/feedback/:id/upvote", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       const updated = await storage.toggleFeedbackUpvote(req.params.id, user.id);
       if (!updated) {
         return res.status(404).json({ error: "Feedback not found" });
@@ -18624,9 +18656,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/feedback/:id/comments", requireAuth, requirePrivileged, async (req, res) => {
+  app.post("/api/feedback/:id/comments", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       const { content } = req.body;
       if (!content || typeof content !== "string") {
         return res.status(400).json({ error: "Comment content is required" });
@@ -18646,9 +18678,9 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/feedback/comments/:id/like", requireAuth, requirePrivileged, async (req, res) => {
+  app.post("/api/feedback/comments/:id/like", requireAuth, requirePrivileged, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = req.activeSessionUser;
       const updated = await storage.toggleCommentLike(req.params.id, user.id);
       if (!updated) {
         return res.status(404).json({ error: "Comment not found" });
@@ -18660,9 +18692,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/feedback/:id", requireAuth, async (req, res) => {
+  app.delete("/api/feedback/:id", requireAuth, async (req: any, res) => {
     try {
-      const user = (req.session as any).user;
+      const user = await getActiveSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Authentication required" });
       if (user.role !== "developer") {
         return res.status(403).json({ error: "Only developers can delete feedback" });
       }

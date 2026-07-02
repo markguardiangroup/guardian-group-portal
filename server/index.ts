@@ -153,22 +153,47 @@ const uploadLimiter = rateLimit({
   skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
-// Forgot-password rate limiting – keyed by the submitted email so one address
-// can't be used to flood a victim's inbox or repeatedly invalidate their
-// still-valid reset links. Also capped per-IP (via the outer apiLimiter) to
-// blunt scans across many addresses.
-const forgotPasswordLimiter = rateLimit({
+// Forgot-password rate limiting.
+//
+// IMPORTANT: this must NOT be keyed by the submitted email alone. A bucket
+// shared across every caller who types a given address is itself an attack
+// tool — anyone who merely knows a victim's email can send 5 anonymous
+// requests from anywhere and (a) burn the victim's entire quota, locking
+// them out of their own recovery flow for the rest of the window, and
+// (b) immediately invalidate any reset link the victim already had in
+// their inbox (the handler revokes prior tokens before issuing a new one).
+// That mirrors the same "shared identifier bucket = victim-controlled DoS"
+// problem solved for login via authSoftLimiter/authIpLimiter above, so the
+// fix follows the same shape:
+//   - forgotPasswordSoftLimiter is keyed by (email + source IP). An
+//     attacker can only exhaust the slice of the victim's quota tied to
+//     the attacker's own IP; the legitimate user requesting a reset from
+//     their own device/IP still has their full 5-request allowance.
+//   - forgotPasswordIpLimiter is keyed by source IP alone, as a general
+//     backstop against one source spraying reset requests across many
+//     different email addresses.
+const forgotPasswordSoftLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5,
   message: { error: "Too many password reset requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const email = req.body?.email ?? "anonymous";
-    return String(email).toLowerCase();
+    const email = String(req.body?.email ?? "anonymous").toLowerCase().trim();
+    return `${email}:${ipKeyGenerator(req.ip ?? "unknown")}`;
   },
   skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
   validate: { keyGeneratorIpFallback: false },
+});
+
+const forgotPasswordIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15,
+  message: { error: "Too many password reset requests, please try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip ?? "unknown"),
+  skip: (req) => req.ip === "127.0.0.1" || req.ip === "::1",
 });
 
 // IP-only rate limiters (don't need a parsed body) are applied immediately.
@@ -196,7 +221,7 @@ app.use(cookieParser());
 // req.body is always undefined and every request collapses into a single
 // shared "anonymous" bucket — defeating the per-account limiting entirely.
 app.use("/api/auth/login", authSoftLimiter, authIpLimiter);
-app.use("/api/auth/forgot-password", forgotPasswordLimiter);
+app.use("/api/auth/forgot-password", forgotPasswordSoftLimiter, forgotPasswordIpLimiter);
 
 // Session configuration with security hardening - using PostgreSQL for persistence
 const PgSession = connectPgSimple(session);
