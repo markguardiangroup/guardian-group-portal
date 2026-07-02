@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -252,6 +252,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Only refetch on window focus once we've actually seen an authenticated
+  // session — otherwise switching tabs back and forth on the login screen
+  // fires a pointless "am I logged in?" check every time.
+  const hasAuthenticatedRef = useRef(false);
+
   const { data: user, isLoading, isError } = useQuery<AuthUser>({
     queryKey: ["/api/auth/me"],
     retry: (failureCount, error) => {
@@ -261,8 +266,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),
     staleTime: 0,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: () => hasAuthenticatedRef.current,
   });
+
+  useEffect(() => {
+    if (user) {
+      hasAuthenticatedRef.current = true;
+    }
+  }, [user]);
 
   const effectiveUser = user ?? (isError || !isLoading ? devUser : null);
   const isAuthenticated = !!effectiveUser;

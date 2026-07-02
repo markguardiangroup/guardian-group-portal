@@ -10520,6 +10520,13 @@
           "message": "Hardened Accelo webhook: secret moved to env secrets, query-string auth removed, endpoint closed when unconfigured",
           "category": "other",
           "createdAt": "2026-07-02T12:51:19.760Z"
+        },
+        {
+          "id": "653a6c0f-201a-438f-8aad-f515f367f02a",
+          "patch": 22,
+          "message": "Fixed: login screen no longer re-checks auth every tab switch",
+          "category": "bug",
+          "createdAt": "2026-07-02T15:16:42.165Z"
         }
       ],
       "publishedPatch": 21,
