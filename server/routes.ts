@@ -2326,7 +2326,28 @@ export async function registerRoutes(
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
+      // SECURITY: standard consultants may only send invitations to client users in
+      // companies they are assigned to — they must not be able to invite (and thereby
+      // obtain the raw activation link for) staff accounts or clients outside their scope.
+      if (currentUser.role === "consultant" && !isProConsultant(currentUser)) {
+        if (targetUser.role !== "client" || !targetUser.companyId) {
+          return res.status(403).json({ error: "You can only send invitations to your assigned clients" });
+        }
+        const companySites = await storage.getSitesByCompanyId(targetUser.companyId);
+        let hasAccess = false;
+        for (const site of companySites) {
+          const assignments = await storage.getConsultantAssignments(site.id);
+          if (assignments.some(a => a.consultantId === currentUser.id)) {
+            hasAccess = true;
+            break;
+          }
+        }
+        if (!hasAccess) {
+          return res.status(403).json({ error: "You can only send invitations to your assigned clients" });
+        }
+      }
+
       if (targetUser.status !== "invited" && targetUser.status !== "invite_required") {
         return res.status(400).json({ error: "User has already activated their account or is not ready for an invitation" });
       }
@@ -16541,10 +16562,31 @@ export async function registerRoutes(
       // a limited set of contact/preference fields. This flag gates those fields below.
       const allowFullFieldEdit = !(isSelfEdit && isRestrictedRole);
 
+      // SECURITY: role/companyId/consultantTier are privilege-bearing fields. Only developers
+      // and pro-privileged staff (pro consultants / admins) may touch them at all — a standard
+      // consultant's "full access" to users in an assigned company must stop short of these.
+      const allowPrivilegedFieldEdit = allowFullFieldEdit && (currentUser.role === "developer" || hasProPrivileges(currentUser));
+
+      // SECURITY: no one below a developer may assign — or modify away from — the "developer"
+      // or "administrator" role. This blocks self-promotion by pro consultants/admins and
+      // prevents a consultant from escalating any user (including ones they created) into a
+      // developer/administrator account.
+      const requestedRole = role as string | undefined;
+      const isPrivilegedRoleValue = (r?: string) => r === "developer" || r === "administrator";
+      if (
+        currentUser.role !== "developer" &&
+        requestedRole !== undefined &&
+        requestedRole !== targetUser.role &&
+        (isPrivilegedRoleValue(requestedRole) || isPrivilegedRoleValue(targetUser.role))
+      ) {
+        return res.status(403).json({ error: "Only developers can assign or change developer/administrator roles" });
+      }
+      const allowRoleEdit = allowPrivilegedFieldEdit;
+
       // Guard: only admins may assign/edit sources for consultant and admin users.
       // Use the effective target role (post-update) so that a role change from client
       // to consultant/admin is also covered.
-      const effectiveTargetRole = (role ?? targetUser.role) as string;
+      const effectiveTargetRole = (allowRoleEdit && role !== undefined ? role : targetUser.role) as string;
       const targetIsConsultantOrAdmin = effectiveTargetRole === "consultant" || effectiveTargetRole === "developer" || effectiveTargetRole === "administrator";
       const sourcesPayload: string[] | undefined =
         (currentUser.role !== "developer" && targetIsConsultantOrAdmin)
@@ -16567,9 +16609,9 @@ export async function registerRoutes(
         ...(allowFullFieldEdit && firstName !== undefined && { firstName }),
         ...(allowFullFieldEdit && lastName !== undefined && { lastName }),
         ...(allowFullFieldEdit && notes !== undefined && { notes }),
-        ...(allowFullFieldEdit && role !== undefined && { role }),
-        ...(allowFullFieldEdit && companyId !== undefined && { companyId }),
-        ...(allowFullFieldEdit && consultantTier !== undefined && { consultantTier }),
+        ...(allowRoleEdit && role !== undefined && { role }),
+        ...(allowPrivilegedFieldEdit && companyId !== undefined && { companyId }),
+        ...(allowPrivilegedFieldEdit && consultantTier !== undefined && { consultantTier }),
         ...(allowFullFieldEdit && sourcesPayload !== undefined && { sources: Array.isArray(sourcesPayload) ? sourcesPayload : null }),
         // Manager allocation: only privileged users (developer / pro consultant) may set it.
         // Administrators never have a manager, so when the (effective) role is administrator we
