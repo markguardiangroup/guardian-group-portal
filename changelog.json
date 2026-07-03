@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "a1b2c3e4-checklist-item-background-writes-2026",
+          "patch": 25,
+          "message": "Adding an essential document item to a case is now faster",
+          "category": "enhancement",
+          "createdAt": "2026-07-03T00:00:00.000Z"
+        },
+        {
           "id": "e1f2a3b4-invite-link-domain-fix-2026",
           "patch": 25,
           "message": "Fixed: client invite links pointed to the wrong domain",

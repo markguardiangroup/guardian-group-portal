@@ -14411,32 +14411,43 @@ export async function registerRoutes(
         createdBy: user.id,
       });
 
-      // Auto-create a linked milestone if a submission date was provided
-      let finalItem = item;
-      if (submissionDate) {
-        const milestone = await storage.createCaseMilestone({
-          caseId: item.caseId,
-          title: `Submit: ${item.title}`,
-          dueDate: new Date(submissionDate),
-          checklistItemId: item.id,
-          createdBy: user.id,
-        });
-        finalItem = await storage.updateCaseDocumentChecklistItem(item.id, { linkedMilestoneId: milestone.id }) ?? item;
-      }
+      // Respond as soon as the item itself exists — the client only needs the item's id/fields
+      // to render it. The linked milestone, audit log, and real-time broadcast are secondary
+      // side effects that don't gate the UI, so they run in the background after the response
+      // instead of adding sequential round-trips to this request. Errors here are logged, not
+      // surfaced to the requester, since the primary record was already created successfully;
+      // the SSE "case-updated" event (fired once this background work finishes) is what syncs
+      // the milestone/audit views for anyone watching the case.
+      res.status(201).json(item);
 
-      await storage.createAuditLog({
-        action: "checklist_item_added",
-        userId: user.id,
-        userName: user.fullName,
-        entityId: caseData.siteId,
-        caseId: caseData.id,
-        module: "employment_law",
-        details: `Document checklist item "${item.title}" added to case ${caseData.caseReference}`,
-      });
+      (async () => {
+        try {
+          if (submissionDate) {
+            const milestone = await storage.createCaseMilestone({
+              caseId: item.caseId,
+              title: `Submit: ${item.title}`,
+              dueDate: new Date(submissionDate),
+              checklistItemId: item.id,
+              createdBy: user.id,
+            });
+            await storage.updateCaseDocumentChecklistItem(item.id, { linkedMilestoneId: milestone.id });
+          }
 
-      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
+          await storage.createAuditLog({
+            action: "checklist_item_added",
+            userId: user.id,
+            userName: user.fullName,
+            entityId: caseData.siteId,
+            caseId: caseData.id,
+            module: "employment_law",
+            details: `Document checklist item "${item.title}" added to case ${caseData.caseReference}`,
+          });
 
-      res.status(201).json(finalItem);
+          await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
+        } catch (bgError) {
+          console.error("Create checklist item background work error:", bgError);
+        }
+      })();
     } catch (error) {
       console.error("Create checklist item error:", error);
       res.status(500).json({ error: "Failed to create checklist item" });
