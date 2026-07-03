@@ -7830,7 +7830,11 @@ export async function registerRoutes(
       // Admins see all templates; others only see source-matched templates
       const userSources: string[] | undefined =
         user.role === "developer" ? undefined : (user.sources ?? []);
-      let result = await storage.getDocumentTemplates(module, folderTemplateId, userSources);
+      // Staff (developer/administrator/consultant) manage company-required templates,
+      // which are private — they need private templates included alongside public ones.
+      // Clients never see private templates.
+      const includePrivate = user.role === "developer" || user.role === "administrator" || user.role === "consultant";
+      let result = await storage.getDocumentTemplates(module, folderTemplateId, userSources, includePrivate);
       // Allow an optional ?source=<code> param for UI-driven strict source filtering
       const sourceParam = req.query.source as string | undefined;
       if (sourceParam) {

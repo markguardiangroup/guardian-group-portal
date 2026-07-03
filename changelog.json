@@ -10702,6 +10702,13 @@
           "message": "Admins/consultants can now import client contacts from Accelo on the Users page",
           "category": "feature",
           "createdAt": "2026-07-03T09:40:00.000Z"
+        },
+        {
+          "id": "56452a0e-a0c5-4caf-b443-c7bd185f8458",
+          "patch": 24,
+          "message": "Fixed: consultants/admins could not select mandatory documents",
+          "category": "bug",
+          "createdAt": "2026-07-03T12:11:29.783Z"
         }
       ],
       "publishedPatch": 23,

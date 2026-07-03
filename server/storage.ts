@@ -4068,7 +4068,7 @@ export class MemStorage implements IStorage {
   // DOCUMENT TEMPLATES (The "Document Bible")
   // ============================================
   
-  async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string, userSources?: string[]): Promise<DocumentTemplate[]> {
+  async getDocumentTemplates(module?: ModuleType, folderTemplateId?: string, userSources?: string[], includePrivate?: boolean): Promise<DocumentTemplate[]> {
     let query = db.select().from(documentTemplatesTable);
     const conditions: ReturnType<typeof eq>[] = [];
     if (module) {
@@ -4087,10 +4087,12 @@ export class MemStorage implements IStorage {
     // Source filtering: if userSources provided (non-developer), hide templates that
     // have no sources set — those are only visible to the developer role.
     // Templates with sources are shown only if the user shares at least one source.
-    // Private templates are staff-only regardless of source overlap.
+    // Private templates are hidden unless the caller explicitly opts in via
+    // includePrivate (staff who manage company-required templates), and are still
+    // subject to the same source-matching rules as public templates.
     if (userSources !== undefined) {
       return templates.filter(t => {
-        if (t.visibility === "private") return false;
+        if (t.visibility === "private" && !includePrivate) return false;
         const ts = t.sources ?? [];
         if (ts.length === 0) return false; // no source set — developer-only
         return userSources.some(s => ts.includes(s));
