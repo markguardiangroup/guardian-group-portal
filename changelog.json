@@ -4425,13 +4425,6 @@
           "createdAt": "2026-07-03T00:00:00.000Z"
         },
         {
-          "id": "f2a3b4c5-site-module-access-manage-page-2026",
-          "patch": 25,
-          "message": "Admins can now manage which modules are visible per site",
-          "category": "feature",
-          "createdAt": "2026-07-03T00:00:00.000Z"
-        },
-        {
           "id": "a5b6c7d8-mfa-lockout-timing-gap-2026",
           "patch": 22,
           "message": "Fixed: a locked/disabled account could still finish signing in via MFA",

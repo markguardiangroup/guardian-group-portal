@@ -52,7 +52,6 @@ const Documents = lazyPage(() => import("@/pages/documents"));
 const DocumentUpload = lazyPage(() => import("@/pages/document-upload"));
 const Sites = lazyPage(() => import("@/pages/sites"));
 const SiteDetail = lazyPage(() => import("@/pages/site-detail"));
-const SiteModuleAccess = lazyPage(() => import("@/pages/site-module-access"));
 const Companies = lazyPage(() => import("@/pages/companies"));
 const CompanyDetail = lazyPage(() => import("@/pages/company-detail"));
 const Reports = lazyPage(() => import("@/pages/reports"));
@@ -435,7 +434,6 @@ function Router() {
       <Route path="/companies">{() => <Suspense fallback={<TablePageSkeleton title="Companies" columns={8} />}><AccessGuard component={Companies} allow={ORG_VIEW} /></Suspense>}</Route>
       <Route path="/companies/:companyId">{() => <AccessGuard component={CompanyDetail} allow={ORG_VIEW} />}</Route>
       <Route path="/sites">{() => <Suspense fallback={<TablePageSkeleton title="Sites" columns={6} />}><AccessGuard component={Sites} allow={ORG_VIEW} /></Suspense>}</Route>
-      <Route path="/sites/module-access/manage">{() => <AccessGuard component={SiteModuleAccess} allow={NOT_CLIENT} />}</Route>
       <Route path="/sites/:siteId">{() => <AccessGuard component={SiteDetail} allow={ORG_VIEW} />}</Route>
       <Route path="/reports">{() => <ModuleGuard module="reports"><Reports /></ModuleGuard>}</Route>
       <Route path="/developer-reports">{() => <AccessGuard component={AdminReports} allow={ADMIN_ONLY} />}</Route>
