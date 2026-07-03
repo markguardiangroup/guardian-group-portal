@@ -24864,6 +24864,34 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/integrations/accelo/linked-companies?source=GS — developer or pro consultant.
+  // Lists portal companies already linked to Accelo for this source, so the Users-page
+  // "Import from Accelo" flow can offer a company picker without exposing raw Accelo search
+  // (which is company-creation-focused and returns unlinked prospects too).
+  app.get("/api/integrations/accelo/linked-companies", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(403).json({ error: "Forbidden" });
+      const sourceCode = ((req.query.source as string) ?? "GS").toUpperCase();
+      if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
+
+      const allLinks = await storage.getAcceloLinksForSync();
+      const sourceLinks = allLinks.filter(l => l.sourceCode === sourceCode);
+      const results: Array<{ companyId: string; companyName: string; acceloId: string }> = [];
+      for (const link of sourceLinks) {
+        const company = await storage.getCompany(link.companyId);
+        if (!company) continue;
+        if (!(await canUserAccessCompany(user, company.id))) continue;
+        results.push({ companyId: company.id, companyName: company.name, acceloId: link.acceloId });
+      }
+      results.sort((a, b) => a.companyName.localeCompare(b.companyName));
+      res.json(results);
+    } catch (err: any) {
+      console.error("Accelo linked-companies error:", err);
+      res.status(500).json({ error: "Failed to fetch linked companies" });
+    }
+  });
+
   // GET /api/integrations/accelo/companies/:acceloId/contacts?source=GS — admin or pro consultant
   app.get("/api/integrations/accelo/companies/:acceloId/contacts", requireAuth, async (req, res) => {
     try {
@@ -24888,9 +24916,14 @@ export async function registerRoutes(
       );
       const contacts = Array.isArray(data?.response) ? data.response : [];
       console.log(`[Accelo contacts] source=${sourceCode} acceloId=${acceloId} count=${contacts.length}`);
-      const normalised = contacts.map((c: any) => ({
-        ...c,
-        lastname: c.surname ?? c.lastname ?? c.last_name ?? "",
+      const normalised = await Promise.all(contacts.map(async (c: any) => {
+        const email = typeof c.email === "string" ? c.email.trim() : "";
+        const existingUser = email ? await storage.getUserByEmail(email).catch(() => null) : null;
+        return {
+          ...c,
+          lastname: c.surname ?? c.lastname ?? c.last_name ?? "",
+          alreadyInPortal: !!existingUser,
+        };
       }));
       res.json(normalised);
     } catch (err: any) {

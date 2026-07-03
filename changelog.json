@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 23,
+      "patch": 24,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -10695,9 +10695,16 @@
           "message": "Fixed: document and template uploads failing with an error",
           "category": "bug",
           "createdAt": "2026-07-03T08:36:49.219Z"
+        },
+        {
+          "id": "d7e8f9a0-users-import-from-accelo-2026",
+          "patch": 24,
+          "message": "Admins/consultants can now import client contacts from Accelo on the Users page",
+          "category": "feature",
+          "createdAt": "2026-07-03T09:40:00.000Z"
         }
       ],
-      "publishedPatch": 22,
+      "publishedPatch": 23,
       "patchedEntryIds": [
         "a5b6c7d8-mfa-lockout-timing-gap-2026",
         "b6c7d8e9-feedback-stale-role-access-2026",
@@ -11594,7 +11601,8 @@
         "ea784547-e18d-4957-872b-294b62d718c8",
         "83f42cdf-4550-40d3-aac3-86003ad05ffb",
         "f4a2b8e1-9c31-4d76-8f42-3a1e5c9b0d67",
-        "67a6680e-b9a0-4a2f-83ef-1b5ea1af2107"
+        "67a6680e-b9a0-4a2f-83ef-1b5ea1af2107",
+        "6e3cf6ac-2714-4a5b-8a38-882a822cbef8"
       ]
     }
   ]

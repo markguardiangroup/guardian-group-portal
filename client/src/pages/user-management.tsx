@@ -98,6 +98,8 @@ import {
   UserPlus,
   Star,
   KeyRound,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -495,6 +497,128 @@ export default function UserManagement() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [lockedClientCompanyId, setLockedClientCompanyId] = useState<string | null>(null);
   const [showLockedClientDialog, setShowLockedClientDialog] = useState(false);
+
+  interface AcceloIntegrationStatus { sourceCode: string; sourceLabel: string; deployment: string; connected: boolean; expiresAt?: string | null; isActive: boolean; }
+  interface AcceloLinkedCompany { companyId: string; companyName: string; acceloId: string; }
+  interface AcceloContactRow { id: string | number; firstname: string; lastname: string; email: string; phone?: string; mobile?: string; alreadyInPortal?: boolean; }
+  const isProConsultant = isPro;
+  const { data: acceloIntegrations } = useQuery<AcceloIntegrationStatus[]>({
+    queryKey: ["/api/integrations/accelo/status"],
+    queryFn: async () => {
+      const res = await fetch("/api/integrations/accelo/status", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: isDeveloper || isProConsultant,
+  });
+  const connectedAcceloIntegrations = (acceloIntegrations ?? []).filter(i => i.connected && i.isActive);
+  const [acceloActiveSource, setAcceloActiveSource] = useState<string>("GS");
+  const [isAcceloCompanyPickerOpen, setIsAcceloCompanyPickerOpen] = useState(false);
+  const [acceloCompanySearch, setAcceloCompanySearch] = useState("");
+  const [acceloLinkedCompanies, setAcceloLinkedCompanies] = useState<AcceloLinkedCompany[]>([]);
+  const [isLoadingAcceloCompanies, setIsLoadingAcceloCompanies] = useState(false);
+  const [acceloCompaniesError, setAcceloCompaniesError] = useState<string | null>(null);
+  const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
+  const [acceloSelectedCompany, setAcceloSelectedCompany] = useState<AcceloLinkedCompany | null>(null);
+  const [acceloContacts, setAcceloContacts] = useState<AcceloContactRow[]>([]);
+  const [isLoadingAcceloContacts, setIsLoadingAcceloContacts] = useState(false);
+  const [acceloContactsError, setAcceloContactsError] = useState<string | null>(null);
+  const [selectedAcceloContactIds, setSelectedAcceloContactIds] = useState<Set<string>>(new Set());
+  const [isImportingAcceloContacts, setIsImportingAcceloContacts] = useState(false);
+  const [acceloCompanySiteId, setAcceloCompanySiteId] = useState<string | null>(null);
+
+  const { data: acceloCompanySites = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ["/api/sites", "byCompany", acceloSelectedCompany?.companyId],
+    queryFn: async () => {
+      if (!acceloSelectedCompany?.companyId) return [];
+      const res = await fetch(`/api/sites?companyId=${encodeURIComponent(acceloSelectedCompany.companyId)}`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!acceloSelectedCompany?.companyId && isAcceloContactsOpen,
+  });
+  useEffect(() => {
+    if (acceloCompanySites.length > 0) {
+      setAcceloCompanySiteId(prev => prev && acceloCompanySites.some(s => s.id === prev) ? prev : acceloCompanySites[0].id);
+    } else {
+      setAcceloCompanySiteId(null);
+    }
+  }, [acceloCompanySites]);
+
+  const openAcceloCompanyPicker = (sourceCode: string) => {
+    setAcceloActiveSource(sourceCode);
+    setAcceloCompanySearch("");
+    setAcceloCompaniesError(null);
+    setIsAcceloCompanyPickerOpen(true);
+    setIsLoadingAcceloCompanies(true);
+    fetch(`/api/integrations/accelo/linked-companies?source=${encodeURIComponent(sourceCode)}`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) setAcceloLinkedCompanies(d);
+        else setAcceloCompaniesError(d?.error || "Failed to load companies");
+      })
+      .catch(() => setAcceloCompaniesError("Failed to load companies"))
+      .finally(() => setIsLoadingAcceloCompanies(false));
+  };
+
+  const selectAcceloCompany = (company: AcceloLinkedCompany) => {
+    setAcceloSelectedCompany(company);
+    setIsAcceloCompanyPickerOpen(false);
+    setIsAcceloContactsOpen(true);
+    setAcceloContactsError(null);
+    setSelectedAcceloContactIds(new Set());
+    setIsLoadingAcceloContacts(true);
+    fetch(`/api/integrations/accelo/companies/${encodeURIComponent(company.acceloId)}/contacts?source=${encodeURIComponent(acceloActiveSource)}`, { credentials: "include" })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d)) setAcceloContacts(d);
+        else setAcceloContactsError(d?.error || "Failed to load contacts");
+      })
+      .catch(() => setAcceloContactsError("Failed to load contacts"))
+      .finally(() => setIsLoadingAcceloContacts(false));
+  };
+
+  const handleImportAcceloContacts = async () => {
+    if (!acceloSelectedCompany || selectedAcceloContactIds.size === 0) return;
+    setIsImportingAcceloContacts(true);
+    try {
+      const contactsToImport = acceloContacts
+        .filter(c => selectedAcceloContactIds.has(String(c.id)))
+        .map(c => ({
+          acceloId: String(c.id),
+          firstname: c.firstname || "",
+          lastname: c.lastname || "",
+          email: c.email,
+          phone: c.phone || "",
+          mobile: c.mobile || "",
+          setAsPrimary: false,
+          setAsKeyContact: false,
+          addToSite: !!acceloCompanySiteId,
+        }));
+      const res = await apiRequest("POST", "/api/integrations/accelo/import-contacts", {
+        source: acceloActiveSource,
+        companyId: acceloSelectedCompany.companyId,
+        siteId: acceloCompanySiteId,
+        contacts: contactsToImport,
+      });
+      const data = await res.json();
+      const successCount = Array.isArray(data?.results) ? data.results.filter((r: any) => r.success).length : 0;
+      const failCount = Array.isArray(data?.results) ? data.results.filter((r: any) => !r.success).length : 0;
+      toast({
+        title: "Import complete",
+        description: `${successCount} user${successCount === 1 ? "" : "s"} imported${failCount > 0 ? `, ${failCount} skipped` : ""}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      setIsAcceloContactsOpen(false);
+      setAcceloSelectedCompany(null);
+      setAcceloContacts([]);
+      setSelectedAcceloContactIds(new Set());
+    } catch (err: any) {
+      toast({ title: "Import failed", description: err?.message || "Could not import contacts", variant: "destructive" });
+    } finally {
+      setIsImportingAcceloContacts(false);
+    }
+  };
   const [showDomainConfirmDialog, setShowDomainConfirmDialog] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -1747,6 +1871,21 @@ export default function UserManagement() {
               </Button>
             ) : null;
           })()}
+          {(isDeveloper || isProConsultant) && connectedAcceloIntegrations.map(integration => (
+            <Button
+              key={integration.sourceCode}
+              size="sm"
+              variant="outline"
+              onClick={() => openAcceloCompanyPicker(integration.sourceCode)}
+              data-testid={`button-import-from-accelo-${integration.sourceCode}`}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Import from Accelo
+              <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0 h-4">
+                {integration.sourceLabel && integration.sourceLabel !== integration.sourceCode ? integration.sourceLabel : integration.sourceCode}
+              </Badge>
+            </Button>
+          ))}
           {canAddUser && (
             <Button size="sm" className="w-32" onClick={() => setIsAddUserOpen(true)} data-testid="button-add-user">
               <Plus className="h-4 w-4 mr-2" />
@@ -3581,6 +3720,197 @@ export default function UserManagement() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Accelo Company Picker Dialog ─────────────────────────────────── */}
+      <Dialog open={isAcceloCompanyPickerOpen} onOpenChange={(open) => { if (!open) { setIsAcceloCompanyPickerOpen(false); setAcceloCompanySearch(""); } }}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-primary" />
+                Import from Accelo
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+                  {(connectedAcceloIntegrations.find(i => i.sourceCode === acceloActiveSource)?.sourceLabel ?? acceloActiveSource)}
+                </Badge>
+              </DialogTitle>
+              <DialogDescription>
+                Pick a company already linked to Accelo, then choose which of its contacts to import as portal users.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search companies…"
+                value={acceloCompanySearch}
+                onChange={(e) => setAcceloCompanySearch(e.target.value)}
+                data-testid="input-accelo-company-search"
+              />
+            </div>
+
+            {isLoadingAcceloCompanies && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {acceloCompaniesError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" data-testid="error-accelo-companies">
+                {acceloCompaniesError}
+              </div>
+            )}
+
+            {!isLoadingAcceloCompanies && !acceloCompaniesError && acceloLinkedCompanies.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-accelo-no-linked-companies">
+                No companies are linked to Accelo yet. Link a company from the Companies page first.
+              </p>
+            )}
+
+            {!isLoadingAcceloCompanies && acceloLinkedCompanies.length > 0 && (
+              <div className="space-y-2" data-testid="list-accelo-linked-companies">
+                {acceloLinkedCompanies
+                  .filter(c => c.companyName.toLowerCase().includes(acceloCompanySearch.trim().toLowerCase()))
+                  .map(company => (
+                    <button
+                      key={company.companyId}
+                      type="button"
+                      className="w-full text-left rounded-md border px-4 py-3 hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                      onClick={() => selectAcceloCompany(company)}
+                      data-testid={`button-accelo-linked-company-${company.companyId}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                          <Building2 className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate">{company.companyName}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+          <div className="px-6 py-4 shrink-0 border-t">
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAcceloCompanyPickerOpen(false)} data-testid="button-accelo-company-cancel">
+                Cancel
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Accelo Contacts Import Dialog ────────────────────────────────── */}
+      <Dialog open={isAcceloContactsOpen} onOpenChange={(open) => { if (!open) { setIsAcceloContactsOpen(false); setAcceloSelectedCompany(null); setAcceloContacts([]); setSelectedAcceloContactIds(new Set()); } }}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Download className="h-5 w-5 text-primary" />
+                Import Contacts
+              </DialogTitle>
+              <DialogDescription>
+                Contacts from {acceloSelectedCompany?.companyName ?? "this company"} in Accelo. Contacts already in the portal are greyed out and can't be re-imported.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {acceloCompanySites.length > 1 && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="accelo-import-site">Add imported users to site</Label>
+                <Select value={acceloCompanySiteId ?? undefined} onValueChange={setAcceloCompanySiteId}>
+                  <SelectTrigger id="accelo-import-site" data-testid="select-accelo-import-site">
+                    <SelectValue placeholder="Select a site" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {acceloCompanySites.map(site => (
+                      <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {isLoadingAcceloContacts && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {acceloContactsError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" data-testid="error-accelo-contacts">
+                {acceloContactsError}
+              </div>
+            )}
+
+            {!isLoadingAcceloContacts && !acceloContactsError && acceloContacts.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-accelo-no-contacts">
+                No contacts found for this company in Accelo.
+              </p>
+            )}
+
+            {!isLoadingAcceloContacts && acceloContacts.length > 0 && (
+              <div className="space-y-2" data-testid="list-accelo-contacts">
+                {acceloContacts.map(contact => {
+                  const idStr = String(contact.id);
+                  const disabled = contact.alreadyInPortal || !contact.email;
+                  const checked = selectedAcceloContactIds.has(idStr);
+                  return (
+                    <label
+                      key={idStr}
+                      className={`flex items-center gap-3 rounded-md border px-4 py-3 ${disabled ? "opacity-50 bg-muted/40" : "hover:bg-muted transition-colors cursor-pointer"}`}
+                      data-testid={`row-accelo-contact-${idStr}`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        disabled={disabled}
+                        onCheckedChange={(v) => {
+                          setSelectedAcceloContactIds(prev => {
+                            const next = new Set(prev);
+                            if (v) next.add(idStr); else next.delete(idStr);
+                            return next;
+                          });
+                        }}
+                        data-testid={`checkbox-accelo-contact-${idStr}`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">
+                          {[contact.firstname, contact.lastname].filter(Boolean).join(" ") || "Unnamed contact"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{contact.email || "No email"}</p>
+                      </div>
+                      {contact.alreadyInPortal && (
+                        <Badge variant="secondary" className="text-[10px] shrink-0">Already in portal</Badge>
+                      )}
+                      {!contact.email && !contact.alreadyInPortal && (
+                        <Badge variant="secondary" className="text-[10px] shrink-0">No email</Badge>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div className="px-6 py-4 shrink-0 border-t">
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAcceloContactsOpen(false)} data-testid="button-accelo-contacts-cancel">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleImportAcceloContacts}
+                disabled={selectedAcceloContactIds.size === 0 || isImportingAcceloContacts}
+                data-testid="button-accelo-contacts-import"
+              >
+                {isImportingAcceloContacts
+                  ? "Importing..."
+                  : `Import ${selectedAcceloContactIds.size > 0 ? selectedAcceloContactIds.size : ""} Contact${selectedAcceloContactIds.size === 1 ? "" : "s"}`}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Send Invite Confirmation Dialog */}
       <Dialog open={!!inviteConfirmUser} onOpenChange={(open) => { if (!open) setInviteConfirmUser(null); }}>
