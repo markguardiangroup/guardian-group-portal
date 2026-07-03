@@ -62,6 +62,7 @@ TURNSTILE_SECRET_KEY = "0x4AAAAAADeEkbcetAgl32cHEmswQmRSRqY"
 MFA_ENABLED = "true"
 PRIVATE_OBJECT_DIR = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79a7b/.private"
 PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore-bc65a353-16ed-4797-a34b-9c6ecbb79a7b/public"
+APP_BASE_URL = "https://www.guardiangroup.ai"
 
 [userenv.shared]
 VITE_PROD_URL = "https://www.guardiangroup.ai"
