@@ -2894,34 +2894,36 @@ function LegalDocumentsTab() {
       )}
 
       <AlertDialog open={!!replaceConfirmType} onOpenChange={(open) => !open && setReplaceConfirmType(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 sm:mx-0">
+              <Download className="h-5 w-5 text-primary" />
+            </div>
             <AlertDialogTitle>Download documents before replacing?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block">
-                Replacing a document overwrites the current version. To preserve a full version history, we recommend downloading both the Terms & Conditions and Privacy Policy before continuing.
-              </span>
-              <span className="block text-sm font-medium text-foreground">
-                Would you like to download both files first?
-              </span>
+            <AlertDialogDescription>
+              Replacing overwrites the current version, so we recommend downloading the current Terms &amp; Conditions and Privacy Policy first to keep a copy for your records.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <AlertDialogCancel data-testid="button-replace-cancel">Cancel</AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={handleContinueWithoutDownloading}
-              data-testid="button-replace-without-download"
-            >
-              Continue Without Downloading
-            </Button>
-            <AlertDialogAction
-              onClick={handleDownloadBothAndContinue}
-              data-testid="button-download-both-and-replace"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download Both & Continue
-            </AlertDialogAction>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <AlertDialogCancel data-testid="button-replace-cancel" className="sm:mr-auto">
+              Cancel
+            </AlertDialogCancel>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={handleContinueWithoutDownloading}
+                data-testid="button-replace-without-download"
+              >
+                Continue Without Downloading
+              </Button>
+              <AlertDialogAction
+                onClick={handleDownloadBothAndContinue}
+                data-testid="button-download-both-and-replace"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download Both &amp; Continue
+              </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
