@@ -4412,11 +4412,25 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 24,
+      "patch": 25,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
+        {
+          "id": "e1f2a3b4-invite-link-domain-fix-2026",
+          "patch": 25,
+          "message": "Fixed: client invite links pointed to the wrong domain",
+          "category": "bug",
+          "createdAt": "2026-07-03T00:00:00.000Z"
+        },
+        {
+          "id": "f2a3b4c5-site-module-access-manage-page-2026",
+          "patch": 25,
+          "message": "Admins can now manage which modules are visible per site",
+          "category": "feature",
+          "createdAt": "2026-07-03T00:00:00.000Z"
+        },
         {
           "id": "a5b6c7d8-mfa-lockout-timing-gap-2026",
           "patch": 22,
@@ -10718,7 +10732,7 @@
           "createdAt": "2026-07-03T12:22:14.743Z"
         }
       ],
-      "publishedPatch": 23,
+      "publishedPatch": 24,
       "patchedEntryIds": [
         "a5b6c7d8-mfa-lockout-timing-gap-2026",
         "b6c7d8e9-feedback-stale-role-access-2026",
@@ -11616,7 +11630,10 @@
         "83f42cdf-4550-40d3-aac3-86003ad05ffb",
         "f4a2b8e1-9c31-4d76-8f42-3a1e5c9b0d67",
         "67a6680e-b9a0-4a2f-83ef-1b5ea1af2107",
-        "6e3cf6ac-2714-4a5b-8a38-882a822cbef8"
+        "6e3cf6ac-2714-4a5b-8a38-882a822cbef8",
+        "d7e8f9a0-users-import-from-accelo-2026",
+        "56452a0e-a0c5-4caf-b443-c7bd185f8458",
+        "227ac79a-9999-4889-ae23-87015722ee3c"
       ]
     }
   ]

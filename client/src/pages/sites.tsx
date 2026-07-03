@@ -582,6 +582,12 @@ export default function Sites() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {user?.role !== "client" && (
+            <Button size="sm" variant="outline" onClick={() => navigate("/sites/module-access/manage")} data-testid="button-manage-module-access">
+              <Settings className="mr-2 h-4 w-4" />
+              Module Access
+            </Button>
+          )}
           {canCreateSite && (
             <Button size="sm" className="w-32" onClick={() => setIsAddSiteOpen(true)} data-testid="button-add-site">
               <Plus className="mr-2 h-4 w-4" />
