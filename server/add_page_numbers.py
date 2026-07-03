@@ -17,16 +17,37 @@ from reportlab.lib.pagesizes import A4
 
 
 def make_number_overlay(page_num: int, width: float, height: float) -> bytes:
-    """Create a single-page PDF containing just the page number."""
+    """Create a single-page PDF containing a white cover box plus the page number.
+
+    The white box masks any pre-existing page number (or stray marks) that may
+    already be printed in the same bottom-right corner of the original page,
+    before our own number is drawn on top of it.
+    """
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(width, height))
-    c.setFont("Helvetica", 9)
-    c.setFillColorRGB(0, 0, 0)
-    # Bottom-right: 30pt from right edge, 15pt from bottom
+
+    # Bottom-right: 30pt from right edge, 15pt from bottom (matches text position below)
     text = str(page_num)
-    text_width = c.stringWidth(text, "Helvetica", 9)
+    font_name = "Helvetica"
+    font_size = 9
+    text_width = c.stringWidth(text, font_name, font_size)
     x = width - 30 - text_width
     y = 15
+
+    # White cover box sized to fully mask a typical existing page number/footer
+    # in the bottom-right area of the page — wide/tall enough to cover common
+    # Word/LibreOffice footer placements (which are often ~0.5-1in from the
+    # bottom/right margins), not just our own text's exact position.
+    box_width = 130
+    box_height = 45
+    box_x = width - box_width
+    box_y = 0
+    c.setFillColorRGB(1, 1, 1)
+    c.setStrokeColorRGB(1, 1, 1)
+    c.rect(box_x, box_y, box_width, box_height, fill=1, stroke=0)
+
+    c.setFont(font_name, font_size)
+    c.setFillColorRGB(0, 0, 0)
     c.drawString(x, y, text)
     c.save()
     buf.seek(0)

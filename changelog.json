@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "d4e9f6b7-pdf-page-number-mask-2026",
+          "patch": 25,
+          "message": "Bundle PDFs now mask any existing page numbers underneath ours",
+          "category": "enhancement",
+          "createdAt": "2026-07-03T00:00:00.000Z"
+        },
+        {
           "id": "c3d8e5a6-case-document-edit-2026",
           "patch": 25,
           "message": "Case documents can now be renamed and their date edited",
