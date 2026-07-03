@@ -5386,7 +5386,7 @@ export async function registerRoutes(
       const template = await storage.getDocumentTemplate(req.params.id);
       if (!template) return res.status(404).json({ error: "Template not found" });
 
-      if (!canUserAccessTemplateFile(user, template)) {
+      if (!(await canUserAccessTemplateFile(user, template))) {
         return res.status(403).json({ error: "You do not have permission to access this template" });
       }
 
@@ -7880,7 +7880,7 @@ export async function registerRoutes(
       if (!template) {
         return res.status(404).json({ error: "Document template not found" });
       }
-      if (!canUserAccessTemplateFile(user, template)) {
+      if (!(await canUserAccessTemplateFile(user, template))) {
         return res.status(403).json({ error: "You do not have permission to access this template" });
       }
       res.json(template);
@@ -8286,7 +8286,7 @@ export async function registerRoutes(
       if (!template) {
         return res.status(404).json({ error: "Document template not found" });
       }
-      if (!canUserAccessTemplateFile(user, template)) {
+      if (!(await canUserAccessTemplateFile(user, template))) {
         return res.status(403).json({ error: "You do not have permission to access this template" });
       }
       
@@ -20964,16 +20964,24 @@ export async function registerRoutes(
   // they can always open the underlying file. Clients only ever see templates through the
   // Toolkit/Template Library, which already filters by visibility + sources — mirror that
   // same rule here for the raw file route.
-  const canUserAccessTemplateFile = (
-    user: { role: string; sources?: string[] | null },
+  // Clients are source-scoped via their COMPANY's sources (not their own user.sources, which
+  // is normally empty for client accounts) — mirror the same effective-sources resolution
+  // used by /api/toolkit and /api/toolkit/folders, or client downloads are wrongly denied.
+  const canUserAccessTemplateFile = async (
+    user: { role: string; sources?: string[] | null; companyId?: string | null },
     template: { visibility?: string | null; sources?: string[] | null; isActive?: boolean | null }
-  ): boolean => {
+  ): Promise<boolean> => {
     if (user.role === "developer" || user.role === "administrator" || user.role === "consultant") return true;
     if (template.isActive === false) return false;
     if (template.visibility === "private") return false;
     const ts = template.sources ?? [];
     if (ts.length === 0) return false; // no source set — developer/staff-only
-    return sourcesOverlap(user.sources ?? [], ts);
+    let effectiveSources: string[] = (user.sources ?? []) as string[];
+    if (user.role === "client" && user.companyId) {
+      const company = await storage.getCompany(user.companyId);
+      effectiveSources = (company?.sources ?? []) as string[];
+    }
+    return sourcesOverlap(effectiveSources, ts);
   };
 
   /**
@@ -21000,13 +21008,13 @@ export async function registerRoutes(
     }
 
     const template = await storage.getDocumentTemplateByFileUrl(objectPath);
-    if (template) return canUserAccessTemplateFile(user, template);
+    if (template) return await canUserAccessTemplateFile(user, template);
 
     const templateVersion = await storage.getDocumentTemplateVersionByFileUrl(objectPath);
     if (templateVersion) {
       const parentTemplate = await storage.getDocumentTemplate(templateVersion.templateId);
       if (!parentTemplate) return false;
-      return canUserAccessTemplateFile(user, parentTemplate);
+      return await canUserAccessTemplateFile(user, parentTemplate);
     }
 
     const clientUpload = await storage.getClientUploadByFileUrl(objectPath);

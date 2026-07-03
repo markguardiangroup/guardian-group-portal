@@ -10709,6 +10709,13 @@
           "message": "Fixed: consultants/admins could not select mandatory documents",
           "category": "bug",
           "createdAt": "2026-07-03T12:11:29.783Z"
+        },
+        {
+          "id": "227ac79a-9999-4889-ae23-87015722ee3c",
+          "patch": 24,
+          "message": "Fixed: clients could not download toolkit files shared via company access",
+          "category": "bug",
+          "createdAt": "2026-07-03T12:22:14.743Z"
         }
       ],
       "publishedPatch": 23,
