@@ -10688,6 +10688,13 @@
           "message": "Fixed: turning off MFA now fully disables it, even for enrolled users",
           "category": "bug",
           "createdAt": "2026-07-02T21:30:28.234156Z"
+        },
+        {
+          "id": "6e3cf6ac-2714-4a5b-8a38-882a822cbef8",
+          "patch": 23,
+          "message": "Fixed: document and template uploads failing with an error",
+          "category": "bug",
+          "createdAt": "2026-07-03T08:36:49.219Z"
         }
       ],
       "publishedPatch": 22,
