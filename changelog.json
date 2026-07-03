@@ -10758,6 +10758,13 @@
           "message": "Case bundles can now set a custom starting page number",
           "category": "feature",
           "createdAt": "2026-07-03T19:58:48.407Z"
+        },
+        {
+          "id": "f9f00f75-6b25-40c3-8e43-1f2f047731fa",
+          "patch": 25,
+          "message": "Case bundles can now export a page index spreadsheet (No./Date/Document/Pages)",
+          "category": "feature",
+          "createdAt": "2026-07-03T20:24:32.426Z"
         }
       ],
       "publishedPatch": 24,

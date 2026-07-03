@@ -1838,6 +1838,14 @@ export const caseBundles = pgTable("case_bundles", {
   checklistItemIds: text("checklist_item_ids").array().notNull().default(sql`ARRAY[]::text[]`),
   documentIds: text("document_ids").array().notNull().default(sql`ARRAY[]::text[]`),
   startPageNumber: integer("start_page_number").notNull().default(1),
+  documentPageInfo: jsonb("document_page_info").$type<{
+    id: string;
+    name: string;
+    documentDate: string | null;
+    pageCount: number;
+    startPage: number;
+    endPage: number;
+  }[]>(),
   cachedFileUrl: text("cached_file_url"),
   cachedAt: timestamp("cached_at"),
   fileSizeBytes: bigint("file_size_bytes", { mode: "number" }),
@@ -1851,6 +1859,7 @@ export const insertCaseBundleSchema = createInsertSchema(caseBundles).omit({
   id: true,
   cachedFileUrl: true,
   cachedAt: true,
+  documentPageInfo: true,
   createdAt: true,
   updatedAt: true,
 });

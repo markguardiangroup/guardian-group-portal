@@ -114,6 +114,7 @@ import {
   Loader2,
   GripVertical,
   FileDown,
+  FileSpreadsheet,
   Link as LinkIcon,
   LayoutGrid,
   LayoutList,
@@ -1821,6 +1822,7 @@ function CaseDetailView({ id }: { id: string }) {
   // bundleDocOrder: case document IDs (not linked to a checklist item) in user's drag order
   const [bundleDocOrder, setBundleDocOrder] = useState<string[]>([]);
   const [downloadingBundleId, setDownloadingBundleId] = useState<string | null>(null);
+  const [exportingBundleId, setExportingBundleId] = useState<string | null>(null);
   const [bundleToDelete, setBundleToDelete] = useState<CaseBundle | null>(null);
   const [bundleEditConfirmPending, setBundleEditConfirmPending] = useState(false);
 
@@ -1986,6 +1988,36 @@ function CaseDetailView({ id }: { id: string }) {
       toast({ title: "Failed to download bundle", description: String(err), variant: "destructive" });
     } finally {
       setDownloadingBundleId(null);
+    }
+  };
+
+  const handleExportBundleIndex = async (bundle: CaseBundle) => {
+    setExportingBundleId(bundle.id);
+    try {
+      const res = await fetch(`/api/cases/${id}/bundles/${bundle.id}/export-index`, {
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({})) as Record<string, unknown>;
+        throw new Error(typeof errBody.error === "string" ? errBody.error : "Failed to export bundle index");
+      }
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const filenameMatch = disposition.match(/filename="([^"]+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `${bundle.name}-index.csv`;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "Index exported" });
+    } catch (err) {
+      toast({ title: "Failed to export index", description: String(err), variant: "destructive" });
+    } finally {
+      setExportingBundleId(null);
     }
   };
 
@@ -3251,6 +3283,23 @@ function CaseDetailView({ id }: { id: string }) {
                             <FileDown className="h-4 w-4" />
                           )}
                         </Button>
+                        {bundle.cachedFileUrl && (bundle.documentPageInfo?.length ?? 0) > 0 && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            disabled={exportingBundleId === bundle.id}
+                            onClick={() => handleExportBundleIndex(bundle)}
+                            data-testid={`button-export-bundle-index-${bundle.id}`}
+                            title="Export document index (CSV)"
+                          >
+                            {exportingBundleId === bundle.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <FileSpreadsheet className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                         {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                           <>
                             <Button

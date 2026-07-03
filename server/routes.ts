@@ -14696,6 +14696,7 @@ export async function registerRoutes(
       }
       updates.cachedFileUrl = null;
       updates.cachedAt = null;
+      updates.documentPageInfo = null;
 
       const updated = await storage.updateCaseBundle(req.params.bundleId, updates);
       await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
@@ -14802,17 +14803,17 @@ export async function registerRoutes(
 
         // Resolve the documents to merge, in order: essential (checklist-linked) first,
         // then the additional case documents added directly to the bundle.
-        const docsToMerge: { id: string; fileUrl: string | null; fileName: string | null; mimeType: string | null }[] = [];
+        const docsToMerge: { id: string; fileUrl: string | null; fileName: string | null; mimeType: string | null; documentDate: Date | null; title: string | null }[] = [];
         for (const item of selectedItems) {
           if (!item.linkedDocumentId) continue;
           const doc = await storage.getDocument(item.linkedDocumentId);
-          if (doc) docsToMerge.push({ id: item.id, fileUrl: doc.fileUrl, fileName: doc.fileName, mimeType: doc.mimeType });
+          if (doc) docsToMerge.push({ id: item.id, fileUrl: doc.fileUrl, fileName: doc.fileName, mimeType: doc.mimeType, documentDate: doc.documentDate ?? null, title: doc.title ?? doc.fileName });
         }
         for (const docId of documentIds) {
           const doc = await storage.getDocument(docId);
           // Only include documents that actually belong to this case
           if (doc && doc.caseId === req.params.caseId) {
-            docsToMerge.push({ id: docId, fileUrl: doc.fileUrl, fileName: doc.fileName, mimeType: doc.mimeType });
+            docsToMerge.push({ id: docId, fileUrl: doc.fileUrl, fileName: doc.fileName, mimeType: doc.mimeType, documentDate: doc.documentDate ?? null, title: doc.title ?? doc.fileName });
           }
         }
 
@@ -14824,6 +14825,7 @@ export async function registerRoutes(
         tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "bundle_"));
 
         const pdfPaths: string[] = [];
+        const convertedEntries: (typeof docsToMerge)[number][] = [];
         let totalSourceBytes = 0;
 
         for (let i = 0; i < docsToMerge.length; i++) {
@@ -14842,6 +14844,7 @@ export async function registerRoutes(
             const mimeType = entry.mimeType || "application/octet-stream";
             const pdfPath = await convertFileToPdf(Buffer.from(fileBuffer), mimeType, tempDir, i, entry.fileName ?? undefined);
             pdfPaths.push(pdfPath);
+            convertedEntries.push(entry);
           } catch (fileError) {
             if (totalSourceBytes > MAX_BUNDLE_SOURCE_BYTES) {
               throw fileError;
@@ -14854,13 +14857,36 @@ export async function registerRoutes(
           throw new Error("No documents could be converted to PDF");
         }
 
+        // Count pages in each individual converted document (pre-merge) so we can build
+        // a per-document page index once the final numbering offset is applied.
+        const startPageNumber = bundle.startPageNumber ?? 1;
+        const documentPageInfo: {
+          id: string; name: string; documentDate: string | null; pageCount: number; startPage: number; endPage: number;
+        }[] = [];
+        let cursor = startPageNumber;
+        for (let i = 0; i < pdfPaths.length; i++) {
+          const entry = convertedEntries[i];
+          const count = (await countPdfPages(pdfPaths[i])) || 1;
+          const startPage = cursor;
+          const endPage = cursor + count - 1;
+          documentPageInfo.push({
+            id: entry.id,
+            name: entry.title || entry.fileName || "Untitled document",
+            documentDate: entry.documentDate ? entry.documentDate.toISOString() : null,
+            pageCount: count,
+            startPage,
+            endPage,
+          });
+          cursor = endPage + 1;
+        }
+
         // Merge all PDFs
         const mergedPath = path.join(tempDir, "merged.pdf");
         await mergePdfs(pdfPaths, mergedPath);
 
         // Add page numbers
         const numberedPath = path.join(tempDir, "final.pdf");
-        await addPageNumbers(mergedPath, numberedPath, bundle.startPageNumber ?? 1);
+        await addPageNumbers(mergedPath, numberedPath, startPageNumber);
 
         // Read the final PDF
         const buf = await fs.readFile(numberedPath);
@@ -14876,6 +14902,7 @@ export async function registerRoutes(
             cachedAt: new Date(),
             fileSizeBytes: buf.length,
             pageCount: pageCount || null,
+            documentPageInfo,
           });
         } catch (cacheErr) {
           console.warn("Bundle: failed to cache PDF in GCS:", cacheErr);
@@ -14903,6 +14930,56 @@ export async function registerRoutes(
       if (tempDir) {
         fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
+    }
+  });
+
+  // Export a bundle's document index (No., Date, Document, Pages) as a CSV spreadsheet.
+  // Requires the bundle PDF to have been generated at least once (documentPageInfo is
+  // computed during generation), since the page ranges depend on the merged PDF.
+  app.get("/api/cases/:caseId/bundles/:bundleId/export-index", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!hasCaseAdvocatePermission(user)) return res.status(403).json({ error: "Case Advocate permission required" });
+
+      const bundle = await storage.getCaseBundle(req.params.bundleId);
+      if (!bundle || bundle.caseId !== req.params.caseId) return res.status(404).json({ error: "Bundle not found" });
+
+      const caseData = await storage.getCase(req.params.caseId);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) return res.status(403).json({ error: "Not authorized" });
+      if (!canAccessConfidentialCase(caseData, user)) return res.status(403).json({ error: "Not authorized" });
+
+      const pageInfo = bundle.documentPageInfo ?? [];
+      if (pageInfo.length === 0) {
+        return res.status(400).json({ error: "This bundle hasn't been generated yet — download the PDF first, then export the index" });
+      }
+
+      const escape = (value: string) => {
+        if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
+        return value;
+      };
+
+      const rows = pageInfo.map((doc, idx) => {
+        const dateStr = doc.documentDate ? new Date(doc.documentDate).toLocaleDateString("en-GB") : "";
+        const pagesStr = doc.startPage === doc.endPage ? `${doc.startPage}` : `${doc.startPage}-${doc.endPage}`;
+        return [String(idx + 1), dateStr, doc.name, pagesStr];
+      });
+
+      const header = ["No.", "Date", "Document", "Pages"];
+      const csv = [header, ...rows].map(row => row.map(escape).join(",")).join("\n");
+
+      const bundleSlug = bundle.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const filename = `${caseData.caseReference}-${bundleSlug}-index.csv`;
+
+      res.set({
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      });
+      res.send(csv);
+    } catch (error) {
+      console.error("Bundle export index error:", error);
+      res.status(500).json({ error: "Failed to export bundle index" });
     }
   });
 
