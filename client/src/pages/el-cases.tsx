@@ -1710,8 +1710,9 @@ function CaseDetailView({ id }: { id: string }) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [selectedChecklistItemId, setSelectedChecklistItemId] = useState<string | null>(null);
   const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
+  const [pendingDocumentDate, setPendingDocumentDate] = useState<string>("");
 
-  const doUpload = async (file: File, checklistItemId?: string | null) => {
+  const doUpload = async (file: File, checklistItemId?: string | null, documentDate?: string | null) => {
     setIsUploading(true);
     try {
       const buffer = await file.arrayBuffer();
@@ -1735,6 +1736,7 @@ function CaseDetailView({ id }: { id: string }) {
         fileUrl: objectPath,
         fileSize: file.size,
         mimeType: file.type,
+        documentDate: documentDate || null,
       });
       const createdDoc = await docRecord.json().catch(() => null);
 
@@ -1759,6 +1761,7 @@ function CaseDetailView({ id }: { id: string }) {
       setIsUploading(false);
       setPendingFile(null);
       setSelectedChecklistItemId(null);
+      setPendingDocumentDate("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -1767,16 +1770,13 @@ function CaseDetailView({ id }: { id: string }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const incompleteItems = (checklistItems ?? []).filter(i => !i.isCompleted);
-    if (incompleteItems.length > 0) {
-      // Intercept — show dialog before uploading
-      setPendingFile(file);
-      setSelectedChecklistItemId(null);
-      setShowEssentialDocDialog(true);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } else {
-      doUpload(file);
-    }
+    // Always intercept with a dialog so the user can optionally set a document date,
+    // and (when applicable) match it to an outstanding essential document.
+    setPendingFile(file);
+    setSelectedChecklistItemId(null);
+    setPendingDocumentDate("");
+    setShowEssentialDocDialog(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const [checklistReopenDialog, setChecklistReopenDialog] = useState<{ item: CaseDocumentChecklist; linkedDoc?: { title: string; fileName: string } } | null>(null);
@@ -2806,7 +2806,12 @@ function CaseDetailView({ id }: { id: string }) {
                       <FileText className="h-5 w-5 text-pink-600 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{doc.title}</p>
-                        <p className="text-xs text-muted-foreground">{doc.fileName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.fileName}
+                          {doc.documentDate && (
+                            <span> · Document date: {format(new Date(doc.documentDate), "d MMM yyyy")}</span>
+                          )}
+                        </p>
                         {linkedChecklistItem && (
                           <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300">
                             <CheckSquare className="h-3 w-3" />
@@ -3301,6 +3306,7 @@ function CaseDetailView({ id }: { id: string }) {
                               title={item.title}
                               fileName={linkedDoc?.fileName}
                               mimeType={linkedDoc?.mimeType}
+                              documentDate={linkedDoc?.documentDate}
                               checked={bundleCheckedIds.has(itemId)}
                               onCheckedChange={(checked) => {
                                 setBundleCheckedIds(prev => {
@@ -3337,6 +3343,7 @@ function CaseDetailView({ id }: { id: string }) {
                               title={doc.title || doc.fileName || "Document"}
                               fileName={doc.fileName}
                               mimeType={doc.mimeType}
+                              documentDate={doc.documentDate}
                               checked={bundleCheckedIds.has(docId)}
                               onCheckedChange={(checked) => {
                                 setBundleCheckedIds(prev => {
@@ -3908,6 +3915,7 @@ function CaseDetailView({ id }: { id: string }) {
             setShowEssentialDocDialog(false);
             setPendingFile(null);
             setSelectedChecklistItemId(null);
+            setPendingDocumentDate("");
           }
         }}
       >
@@ -3915,44 +3923,60 @@ function CaseDetailView({ id }: { id: string }) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ListChecks className="h-5 w-5 text-pink-600" />
-              Does this fulfil an essential document?
+              {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0
+                ? "Does this fulfil an essential document?"
+                : "Upload document"}
             </DialogTitle>
             <DialogDescription>
               {pendingFile && (
                 <>
-                  Uploading <span className="font-medium text-foreground">"{pendingFile.name.replace(/\.[^/.]+$/, "")}"</span>. Select which essential document this satisfies, or upload without linking.
+                  Uploading <span className="font-medium text-foreground">"{pendingFile.name.replace(/\.[^/.]+$/, "")}"</span>.{" "}
+                  {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0
+                    ? "Select which essential document this satisfies, or upload without linking."
+                    : "Optionally set a document date."}
                 </>
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 max-h-64 overflow-y-auto py-1">
-            {(checklistItems ?? []).filter(i => !i.isCompleted).map(item => {
-              const isSelected = selectedChecklistItemId === item.id;
-              return (
-                <button
-                  key={item.id}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg border transition-colors text-left ${
-                    isSelected
-                      ? "bg-pink-50 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600"
-                      : "bg-card hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:border-pink-300 dark:hover:border-pink-700"
-                  }`}
-                  onClick={() => setSelectedChecklistItemId(isSelected ? null : item.id)}
-                  data-testid={`button-link-checklist-${item.id}`}
-                >
-                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-sm border-2 flex items-center justify-center transition-colors ${
-                    isSelected ? "bg-pink-600 border-pink-600" : "border-muted-foreground"
-                  }`}>
-                    {isSelected && <Check className="h-3 w-3 text-white" />}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium">{item.title}</p>
-                    {item.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+          {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 && (
+            <div className="space-y-2 max-h-64 overflow-y-auto py-1">
+              {(checklistItems ?? []).filter(i => !i.isCompleted).map(item => {
+                const isSelected = selectedChecklistItemId === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    className={`w-full flex items-start gap-3 p-3 rounded-lg border transition-colors text-left ${
+                      isSelected
+                        ? "bg-pink-50 dark:bg-pink-900/30 border-pink-400 dark:border-pink-600"
+                        : "bg-card hover:bg-pink-50 dark:hover:bg-pink-900/20 hover:border-pink-300 dark:hover:border-pink-700"
+                    }`}
+                    onClick={() => setSelectedChecklistItemId(isSelected ? null : item.id)}
+                    data-testid={`button-link-checklist-${item.id}`}
+                  >
+                    <div className={`mt-0.5 h-4 w-4 shrink-0 rounded-sm border-2 flex items-center justify-center transition-colors ${
+                      isSelected ? "bg-pink-600 border-pink-600" : "border-muted-foreground"
+                    }`}>
+                      {isSelected && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{item.title}</p>
+                      {item.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className="space-y-1.5 pt-1">
+            <label className="text-sm font-medium">Document date <span className="text-muted-foreground text-xs font-normal">(optional)</span></label>
+            <Input
+              type="date"
+              value={pendingDocumentDate}
+              onChange={(e) => setPendingDocumentDate(e.target.value)}
+              data-testid="input-document-date"
+            />
           </div>
           <div className="flex justify-between items-center pt-2 border-t gap-2">
             <Button
@@ -3960,24 +3984,39 @@ function CaseDetailView({ id }: { id: string }) {
               size="sm"
               onClick={() => {
                 setShowEssentialDocDialog(false);
-                if (pendingFile) doUpload(pendingFile, null);
+                if (pendingFile) doUpload(pendingFile, null, pendingDocumentDate || null);
               }}
               data-testid="button-upload-without-linking"
             >
-              Upload without linking
+              {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 ? "Upload without linking" : "Cancel"}
             </Button>
-            <Button
-              size="sm"
-              className="bg-pink-600 hover:bg-pink-700 text-white"
-              disabled={!selectedChecklistItemId || isUploading}
-              onClick={() => {
-                setShowEssentialDocDialog(false);
-                if (pendingFile) doUpload(pendingFile, selectedChecklistItemId);
-              }}
-              data-testid="button-upload-and-complete"
-            >
-              {isUploading ? "Uploading…" : selectedChecklistItemId ? "Upload & Mark Complete" : "Select one above"}
-            </Button>
+            {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 ? (
+              <Button
+                size="sm"
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+                disabled={!selectedChecklistItemId || isUploading}
+                onClick={() => {
+                  setShowEssentialDocDialog(false);
+                  if (pendingFile) doUpload(pendingFile, selectedChecklistItemId, pendingDocumentDate || null);
+                }}
+                data-testid="button-upload-and-complete"
+              >
+                {isUploading ? "Uploading…" : selectedChecklistItemId ? "Upload & Mark Complete" : "Select one above"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+                disabled={isUploading}
+                onClick={() => {
+                  setShowEssentialDocDialog(false);
+                  if (pendingFile) doUpload(pendingFile, null, pendingDocumentDate || null);
+                }}
+                data-testid="button-confirm-upload"
+              >
+                {isUploading ? "Uploading…" : "Upload"}
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -4446,6 +4485,7 @@ function SortableBundleItem({
   title,
   fileName,
   mimeType,
+  documentDate,
   checked,
   onCheckedChange,
 }: {
@@ -4453,6 +4493,7 @@ function SortableBundleItem({
   title: string;
   fileName?: string | null;
   mimeType?: string | null;
+  documentDate?: string | Date | null;
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
@@ -4489,11 +4530,13 @@ function SortableBundleItem({
       />
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-snug truncate text-foreground">{title}</p>
-        {(fileName || fileTypeLabel) && (
+        {(fileName || fileTypeLabel || documentDate) && (
           <p className="text-xs text-muted-foreground truncate mt-0.5">
             {fileName && <span>{fileName}</span>}
             {fileName && fileTypeLabel && <span className="mx-1">·</span>}
             {fileTypeLabel && <span>{fileTypeLabel}</span>}
+            {(fileName || fileTypeLabel) && documentDate && <span className="mx-1">·</span>}
+            {documentDate && <span>{format(new Date(documentDate), "d MMM yyyy")}</span>}
           </p>
         )}
       </div>

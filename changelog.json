@@ -4418,6 +4418,13 @@
       "createdAt": "2026-05-14T18:51:27.375Z",
       "entries": [
         {
+          "id": "b7c9d1f2-case-document-date-2026",
+          "patch": 25,
+          "message": "Case documents can now have an optional document date",
+          "category": "feature",
+          "createdAt": "2026-07-03T00:00:00.000Z"
+        },
+        {
           "id": "a1b2c3e4-checklist-item-background-writes-2026",
           "patch": 25,
           "message": "Adding an essential document item to a case is now faster",

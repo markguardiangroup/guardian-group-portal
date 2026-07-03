@@ -803,6 +803,7 @@ export const documents = pgTable("documents", {
   approvedVersion: integer("approved_version").notNull().default(0), // Increments on each final approval (0 = never approved)
   autoFinalApproval: boolean("auto_final_approval").notNull().default(false), // When true, document auto-approves on client sign-off
   requiresApproval: boolean("requires_approval").notNull().default(true), // Does this document need client approval workflow? Overridable per-document (defaults from template/upload choice)
+  documentDate: timestamp("document_date"), // Optional user-entered date the document itself relates to (e.g. a case document's date), distinct from createdAt/uploadedAt
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

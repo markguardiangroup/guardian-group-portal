@@ -6850,6 +6850,9 @@ export async function registerRoutes(
       if ("renewalDate" in body) {
         body.renewalDate = body.renewalDate ? new Date(body.renewalDate) : null;
       }
+      if ("documentDate" in body) {
+        body.documentDate = body.documentDate ? new Date(body.documentDate) : null;
+      }
       // When renewalPeriodMonths is being updated, recalculate renewalDate server-side.
       // Renewal date only exists when the document is approved.
       if ("renewalPeriodMonths" in body) {
@@ -14004,7 +14007,7 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const { title, fileName, fileUrl, fileSize, mimeType } = req.body;
+      const { title, fileName, fileUrl, fileSize, mimeType, documentDate } = req.body;
 
       if (!title || !fileName || !fileUrl) {
         return res.status(400).json({ error: "Missing required fields: title, fileName, fileUrl" });
@@ -14039,6 +14042,7 @@ export async function registerRoutes(
         approvalStatus: "approved",
         source: "upload",
         requiresApproval: false,
+        documentDate: documentDate ? new Date(documentDate) : null,
       });
 
       // Log the upload
