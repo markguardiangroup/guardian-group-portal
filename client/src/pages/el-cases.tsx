@@ -8,6 +8,7 @@ import { useLocation, Link, useRoute, useSearch } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -1712,6 +1713,25 @@ function CaseDetailView({ id }: { id: string }) {
   const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
   const [pendingDocumentDate, setPendingDocumentDate] = useState<string>("");
 
+  const [docToEdit, setDocToEdit] = useState<Document | null>(null);
+  const [editDocTitle, setEditDocTitle] = useState("");
+  const [editDocDate, setEditDocDate] = useState("");
+
+  const updateDocumentMutation = useMutation({
+    mutationFn: async ({ docId, data }: { docId: string; data: { title?: string; documentDate?: string | null } }) => {
+      return apiRequest("PATCH", `/api/documents/${docId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
+      toast({ title: "Document updated" });
+      setDocToEdit(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to update document", description: error?.message, variant: "destructive" });
+    },
+  });
+
   const doUpload = async (file: File, checklistItemId?: string | null, documentDate?: string | null) => {
     setIsUploading(true);
     try {
@@ -2837,6 +2857,22 @@ function CaseDetailView({ id }: { id: string }) {
                         </Button>
                       </a>
                       {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setDocToEdit(doc);
+                            setEditDocTitle(doc.title);
+                            setEditDocDate(doc.documentDate ? format(new Date(doc.documentDate), "yyyy-MM-dd") : "");
+                          }}
+                          data-testid={`button-edit-doc-${doc.id}`}
+                          title="Edit document"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                         <Button 
                           size="icon" 
                           variant="ghost" 
@@ -3902,6 +3938,69 @@ function CaseDetailView({ id }: { id: string }) {
               data-testid="button-confirm-delete-doc"
             >
               {deleteDocumentMutation.isPending ? "Deleting…" : "Delete document"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit document dialog */}
+      <Dialog open={!!docToEdit} onOpenChange={(open) => { if (!open) setDocToEdit(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Edit document
+            </DialogTitle>
+            <DialogDescription>
+              Update the name and document date for "{docToEdit?.fileName}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-1">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-doc-title">Document name</Label>
+              <Input
+                id="edit-doc-title"
+                value={editDocTitle}
+                onChange={(e) => setEditDocTitle(e.target.value)}
+                data-testid="input-edit-doc-title"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-doc-date">Document date (optional)</Label>
+              <Input
+                id="edit-doc-date"
+                type="date"
+                value={editDocDate}
+                onChange={(e) => setEditDocDate(e.target.value)}
+                data-testid="input-edit-doc-date"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setDocToEdit(null)}
+              data-testid="button-cancel-edit-doc"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              disabled={updateDocumentMutation.isPending || !editDocTitle.trim()}
+              onClick={() => {
+                if (!docToEdit) return;
+                updateDocumentMutation.mutate({
+                  docId: docToEdit.id,
+                  data: {
+                    title: editDocTitle.trim(),
+                    documentDate: editDocDate || null,
+                  },
+                });
+              }}
+              data-testid="button-confirm-edit-doc"
+            >
+              {updateDocumentMutation.isPending ? "Saving…" : "Save changes"}
             </Button>
           </div>
         </DialogContent>
