@@ -10751,6 +10751,13 @@
           "message": "Fixed: clients could not download toolkit files shared via company access",
           "category": "bug",
           "createdAt": "2026-07-03T12:22:14.743Z"
+        },
+        {
+          "id": "fc5fd89f-ae5a-4348-b84c-291b58398061",
+          "patch": 25,
+          "message": "Case bundles can now set a custom starting page number",
+          "category": "feature",
+          "createdAt": "2026-07-03T19:58:48.407Z"
         }
       ],
       "publishedPatch": 24,

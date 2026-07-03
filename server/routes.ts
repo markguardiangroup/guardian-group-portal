@@ -645,15 +645,16 @@ async function countPdfPages(pdfPath: string): Promise<number> {
   }
 }
 
-async function addPageNumbers(inputPath: string, outputPath: string): Promise<void> {
+async function addPageNumbers(inputPath: string, outputPath: string, startPageNumber = 1): Promise<void> {
   // Uses a Python script (pypdf + reportlab) to stamp page numbers.
   // The old Ghostscript BeginPage/EndPage hook approach misfired on Chromium-generated
   // PDFs (transparency layers cause BeginPage to fire 3× per page → numbers 3, 6, 9 …).
   const scriptPath = path.join(process.cwd(), "server", "add_page_numbers.py");
   const libBin = path.join(process.cwd(), ".pythonlibs", "bin", "python3");
   const pythonBin = existsSync(libBin) ? libBin : "python3";
-  console.log(`[addPageNumbers] using pythonBin=${pythonBin}`);
-  const { stdout, stderr } = await execAsync(`"${pythonBin}" "${scriptPath}" "${inputPath}" "${outputPath}"`, {
+  const safeStart = Number.isFinite(startPageNumber) && startPageNumber >= 1 ? Math.floor(startPageNumber) : 1;
+  console.log(`[addPageNumbers] using pythonBin=${pythonBin}, startPageNumber=${safeStart}`);
+  const { stdout, stderr } = await execAsync(`"${pythonBin}" "${scriptPath}" "${inputPath}" "${outputPath}" "${safeStart}"`, {
     timeout: 120_000,
   });
   if (stdout) console.log("[addPageNumbers] stdout:", stdout.trim());
@@ -14626,11 +14627,21 @@ export async function registerRoutes(
         return res.status(400).json({ error: `A bundle can include at most ${MAX_BUNDLE_ITEMS} documents` });
       }
 
+      let startPageNumber = 1;
+      if (req.body.startPageNumber !== undefined) {
+        const parsed = Number(req.body.startPageNumber);
+        if (!Number.isInteger(parsed) || parsed < 1) {
+          return res.status(400).json({ error: "Start page number must be a positive whole number" });
+        }
+        startPageNumber = parsed;
+      }
+
       const bundle = await storage.createCaseBundle({
         caseId: req.params.id,
         name: name.trim(),
         checklistItemIds,
         documentIds,
+        startPageNumber,
         createdBy: user.id,
       });
       await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
@@ -14664,6 +14675,13 @@ export async function registerRoutes(
       }
       if (Array.isArray(req.body.documentIds)) {
         updates.documentIds = req.body.documentIds;
+      }
+      if (req.body.startPageNumber !== undefined) {
+        const parsed = Number(req.body.startPageNumber);
+        if (!Number.isInteger(parsed) || parsed < 1) {
+          return res.status(400).json({ error: "Start page number must be a positive whole number" });
+        }
+        updates.startPageNumber = parsed;
       }
       const nextChecklistCount = Array.isArray(updates.checklistItemIds) ? (updates.checklistItemIds as unknown[]).length : bundle.checklistItemIds.length;
       const nextDocumentCount = Array.isArray(updates.documentIds) ? (updates.documentIds as unknown[]).length : (bundle.documentIds?.length ?? 0);
@@ -14842,7 +14860,7 @@ export async function registerRoutes(
 
         // Add page numbers
         const numberedPath = path.join(tempDir, "final.pdf");
-        await addPageNumbers(mergedPath, numberedPath);
+        await addPageNumbers(mergedPath, numberedPath, bundle.startPageNumber ?? 1);
 
         // Read the final PDF
         const buf = await fs.readFile(numberedPath);

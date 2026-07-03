@@ -2,7 +2,7 @@
 """
 Add sequential page numbers to a PDF using reportlab + pypdf.
 This is reliable across all PDF types (Chromium, LibreOffice, etc.)
-Usage: python3 add_page_numbers.py <input.pdf> <output.pdf>
+Usage: python3 add_page_numbers.py <input.pdf> <output.pdf> [start_page_number]
 """
 import sys
 import os
@@ -54,12 +54,12 @@ def make_number_overlay(page_num: int, width: float, height: float) -> bytes:
     return buf.read()
 
 
-def add_page_numbers(input_path: str, output_path: str) -> None:
+def add_page_numbers(input_path: str, output_path: str, start_page_number: int = 1) -> None:
     reader = PdfReader(input_path)
     writer = PdfWriter()
 
     for i, page in enumerate(reader.pages):
-        page_num = i + 1
+        page_num = start_page_number + i
         # Get actual page dimensions
         box = page.mediabox
         width = float(box.width)
@@ -79,8 +79,16 @@ def add_page_numbers(input_path: str, output_path: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: add_page_numbers.py <input.pdf> <output.pdf>", file=sys.stderr)
+    if len(sys.argv) not in (3, 4):
+        print("Usage: add_page_numbers.py <input.pdf> <output.pdf> [start_page_number]", file=sys.stderr)
         sys.exit(1)
-    add_page_numbers(sys.argv[1], sys.argv[2])
+    start_num = 1
+    if len(sys.argv) == 4:
+        try:
+            start_num = int(sys.argv[3])
+        except ValueError:
+            start_num = 1
+        if start_num < 1:
+            start_num = 1
+    add_page_numbers(sys.argv[1], sys.argv[2], start_num)
     print(f"OK: {sys.argv[2]}")

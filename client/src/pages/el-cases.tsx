@@ -1813,6 +1813,7 @@ function CaseDetailView({ id }: { id: string }) {
   const [showBundleDialog, setShowBundleDialog] = useState(false);
   const [editingBundle, setEditingBundle] = useState<CaseBundle | null>(null);
   const [bundleName, setBundleName] = useState("");
+  const [bundleStartPageNumber, setBundleStartPageNumber] = useState("1");
   // bundleItemOrder: all linked item IDs in user's drag order (determines PDF order)
   const [bundleItemOrder, setBundleItemOrder] = useState<string[]>([]);
   // bundleCheckedIds: which of the above are selected/included (holds checklist item IDs and document IDs)
@@ -1867,6 +1868,7 @@ function CaseDetailView({ id }: { id: string }) {
   const openNewBundleDialog = () => {
     setEditingBundle(null);
     setBundleName("");
+    setBundleStartPageNumber("1");
     const ids = linkedChecklistItems.map(item => item.id);
     setBundleItemOrder(ids);
     setBundleDocOrder(unlinkedCaseDocuments.map(doc => doc.id));
@@ -1877,6 +1879,7 @@ function CaseDetailView({ id }: { id: string }) {
   const openEditBundleDialog = (bundle: CaseBundle) => {
     setEditingBundle(bundle);
     setBundleName(bundle.name);
+    setBundleStartPageNumber(String(bundle.startPageNumber ?? 1));
     const linkedIds = new Set(linkedChecklistItems.map(item => item.id));
     const savedIds = (bundle.checklistItemIds ?? []).filter(id => linkedIds.has(id));
     const savedIdsSet = new Set(savedIds);
@@ -1893,7 +1896,7 @@ function CaseDetailView({ id }: { id: string }) {
     setShowBundleDialog(true);
   };
 
-  const createBundleMutation = useMutation<CaseBundle, Error, { name: string; checklistItemIds: string[]; documentIds: string[] }>({
+  const createBundleMutation = useMutation<CaseBundle, Error, { name: string; checklistItemIds: string[]; documentIds: string[]; startPageNumber: number }>({
     mutationFn: (data) =>
       apiRequest("POST", `/api/cases/${id}/bundles`, data).then(r => r.json()),
     onSuccess: () => {
@@ -1902,7 +1905,7 @@ function CaseDetailView({ id }: { id: string }) {
     onError: (err) => toast({ title: "Failed to save bundle", description: String(err), variant: "destructive" }),
   });
 
-  const updateBundleMutation = useMutation<CaseBundle, Error, { bundleId: string; data: { name?: string; checklistItemIds?: string[]; documentIds?: string[] } }>({
+  const updateBundleMutation = useMutation<CaseBundle, Error, { bundleId: string; data: { name?: string; checklistItemIds?: string[]; documentIds?: string[]; startPageNumber?: number } }>({
     mutationFn: ({ bundleId, data }) =>
       apiRequest("PATCH", `/api/cases/${id}/bundles/${bundleId}`, data).then(r => r.json()),
     onSuccess: () => {
@@ -1925,9 +1928,11 @@ function CaseDetailView({ id }: { id: string }) {
     try {
       const checklistItemIds = bundleItemOrder.filter(id => bundleCheckedIds.has(id));
       const documentIds = bundleDocOrder.filter(id => bundleCheckedIds.has(id));
+      const parsedStart = parseInt(bundleStartPageNumber, 10);
+      const startPageNumber = Number.isInteger(parsedStart) && parsedStart >= 1 ? parsedStart : 1;
       editingBundle
-        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds, documentIds } })
-        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds, documentIds });
+        ? await updateBundleMutation.mutateAsync({ bundleId: editingBundle.id, data: { name: bundleName, checklistItemIds, documentIds, startPageNumber } })
+        : await createBundleMutation.mutateAsync({ name: bundleName, checklistItemIds, documentIds, startPageNumber });
       setShowBundleDialog(false);
       setBundleEditConfirmPending(false);
       toast({
@@ -3212,6 +3217,7 @@ function CaseDetailView({ id }: { id: string }) {
                         <p className="text-sm font-medium truncate">{bundle.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {((bundle.checklistItemIds?.length ?? 0) + (bundle.documentIds?.length ?? 0))} document{((bundle.checklistItemIds?.length ?? 0) + (bundle.documentIds?.length ?? 0)) === 1 ? "" : "s"}
+                          {bundle.startPageNumber && bundle.startPageNumber !== 1 ? ` · starts at page ${bundle.startPageNumber}` : ""}
                         </p>
                         {bundle.cachedFileUrl && (
                           <>
@@ -3297,6 +3303,20 @@ function CaseDetailView({ id }: { id: string }) {
                 placeholder="e.g. Claimant Documents"
                 data-testid="input-bundle-name"
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block text-foreground">Starting Page Number</label>
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                value={bundleStartPageNumber}
+                onChange={(e) => setBundleStartPageNumber(e.target.value)}
+                placeholder="1"
+                className="max-w-[120px]"
+                data-testid="input-bundle-start-page-number"
+              />
+              <p className="text-xs text-muted-foreground mt-1">The generated PDF's page numbers will begin counting from this number.</p>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -3401,7 +3421,7 @@ function CaseDetailView({ id }: { id: string }) {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowBundleDialog(false)}>Cancel</Button>
             <Button
-              disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || createBundleMutation.isPending || updateBundleMutation.isPending}
+              disabled={!bundleName.trim() || bundleCheckedIds.size === 0 || !Number.isInteger(parseInt(bundleStartPageNumber, 10)) || parseInt(bundleStartPageNumber, 10) < 1 || createBundleMutation.isPending || updateBundleMutation.isPending}
               onClick={editingBundle ? handleSaveBundleWithCheck : handleSaveBundle}
               data-testid="button-save-bundle"
             >
