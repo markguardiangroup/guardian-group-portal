@@ -1080,24 +1080,54 @@ function AppRouter() {
   );
 }
 
-function App() {
-  const [devServerDown, setDevServerDown] = useState(false);
+function DevServerMonitor() {
+  const { toast } = useToast();
 
   useEffect(() => {
-    const el = document.getElementById("nav-loader");
-    if (el) el.classList.remove("visible");
+    // On mount: if the page was reloaded after a server restart, show a toast
+    const flag = sessionStorage.getItem("__server_restarting");
+    if (flag) {
+      sessionStorage.removeItem("__server_restarting");
+      toast({
+        title: "Server restarted",
+        description: "Reconnected successfully — all data refreshed.",
+        duration: 4000,
+      });
+    }
   }, []);
 
   useEffect(() => {
     if (!import.meta.hot) return;
-    const handleDown = () => setDevServerDown(true);
-    const handleUp = () => setDevServerDown(false);
+    const handleDown = () => {
+      sessionStorage.setItem("__server_restarting", "1");
+    };
+    const handleUp = () => {
+      // If page wasn't reloaded, clear the flag and show the toast directly
+      const flag = sessionStorage.getItem("__server_restarting");
+      if (flag) {
+        sessionStorage.removeItem("__server_restarting");
+        toast({
+          title: "Server restarted",
+          description: "Reconnected successfully — all data refreshed.",
+          duration: 4000,
+        });
+      }
+    };
     import.meta.hot.on("vite:ws:disconnect", handleDown);
     import.meta.hot.on("vite:ws:connect", handleUp);
     return () => {
       import.meta.hot?.off("vite:ws:disconnect", handleDown);
       import.meta.hot?.off("vite:ws:connect", handleUp);
     };
+  }, []);
+
+  return null;
+}
+
+function App() {
+  useEffect(() => {
+    const el = document.getElementById("nav-loader");
+    if (el) el.classList.remove("visible");
   }, []);
 
   return (
@@ -1107,7 +1137,7 @@ function App() {
           <TooltipProvider>
             <AppRouter />
             <Toaster />
-            <ServerRestartOverlay visible={devServerDown} />
+            <DevServerMonitor />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>
