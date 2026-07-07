@@ -10786,6 +10786,13 @@
           "message": "Fixed: Move Document dialog now correctly shows available sites",
           "category": "bug",
           "createdAt": "2026-07-07T14:30:00.000Z"
+        },
+        {
+          "id": "c4f2e8b1-shared-badge-only-when-shared-2026",
+          "patch": 25,
+          "message": "Fixed: 'Shared from Company' badge only shows when actually shared to a site",
+          "category": "bug",
+          "createdAt": "2026-07-07T15:00:00.000Z"
         }
       ],
       "publishedPatch": 24,

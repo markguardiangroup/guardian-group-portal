@@ -4648,15 +4648,17 @@ export async function registerRoutes(
             const docTemplate = docTemplates.find(dt => dt.id === doc.templateId);
             // Compute shared-link metadata for destination users (mirror /api/documents logic)
             const isOrigin = await isDocumentOriginUser(user, doc);
-            const isSharedLink = !isOrigin;
+            // Surface explicit share assignments so company/site tiles can include
+            // group/company-scoped documents in their compliance counts.
+            const shareRecords = await storage.getDocumentShares(doc.id);
+            // Only mark as a shared link when shares actually exist — matches folder-view behaviour
+            // where company/group docs only appear as "Shared from …" when explicitly shared to a site.
+            const isSharedLink = !isOrigin && shareRecords.length > 0;
             let sharedFromEntityName: string | null = null;
             if (isSharedLink && doc.entityId) {
               const entityCompany = await storage.getCompany(doc.entityId);
               sharedFromEntityName = entityCompany?.name ?? null;
             }
-            // Surface explicit share assignments so company/site tiles can include
-            // group/company-scoped documents in their compliance counts.
-            const shareRecords = await storage.getDocumentShares(doc.id);
             const sharedWithCompanyIds = shareRecords
               .filter(s => s.entityType === "company")
               .map(s => s.entityId);
@@ -4773,7 +4775,11 @@ export async function registerRoutes(
             : false;
           // Site-scoped docs are always origin-side; skip the async check for them
           const isOrigin = doc.siteId ? true : await isDocumentOriginUser(user, doc);
-          const isSharedLink = !doc.siteId && (doc.scope === "company" || doc.scope === "group") && !isOrigin;
+          const isCompanyOrGroupScoped = !doc.siteId && (doc.scope === "company" || doc.scope === "group");
+          // Only fetch shares for scoped docs — avoids extra DB calls on site-scoped docs
+          const scopedShareRecords = isCompanyOrGroupScoped ? await storage.getDocumentShares(doc.id) : [];
+          // Only mark as a shared link when shares actually exist — matches folder-view behaviour
+          const isSharedLink = isCompanyOrGroupScoped && !isOrigin && scopedShareRecords.length > 0;
           // Company name resolved from pre-fetched map — no extra DB call
           const sharedFromEntityName = isSharedLink && doc.entityId
             ? (companyNameMap.get(doc.entityId) ?? null)

@@ -3052,7 +3052,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             return (
                               <div className="flex items-center gap-1.5 flex-wrap leading-snug">
                                 {parts.length > 0 && <span className="text-xs text-muted-foreground">{parts.join(" · ")}</span>}
-                                {isLinkedRow && (
+                                {!!doc.isSharedLink && (
                                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
                                     <LinkIcon className="h-2.5 w-2.5" />
                                     Shared{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ` from ${linkedFromScope === "group" ? "Group" : "Company"}`}
