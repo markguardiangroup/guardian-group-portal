@@ -933,7 +933,16 @@ function ServerRestartOverlay({ visible }: { visible: boolean }) {
 
 function SseConnector({ onServerDown }: { onServerDown: (down: boolean) => void }) {
   const { serverDown } = useServerEvents();
-  useEffect(() => { onServerDown(serverDown); }, [serverDown, onServerDown]);
+  const { toast } = useToast();
+  const prevDown = useRef(false);
+  useEffect(() => {
+    const wasDown = prevDown.current;
+    prevDown.current = serverDown;
+    onServerDown(serverDown);
+    if (wasDown && !serverDown) {
+      toast({ title: "Server restarted", description: "Reconnected — data refreshed.", duration: 4000 });
+    }
+  }, [serverDown, onServerDown, toast]);
   return null;
 }
 
@@ -1080,49 +1089,6 @@ function AppRouter() {
   );
 }
 
-function DevServerMonitor() {
-  const { toast } = useToast();
-
-  useEffect(() => {
-    // On mount: if the page was reloaded after a server restart, show a toast
-    const flag = sessionStorage.getItem("__server_restarting");
-    if (flag) {
-      sessionStorage.removeItem("__server_restarting");
-      toast({
-        title: "Server restarted",
-        description: "Reconnected successfully — all data refreshed.",
-        duration: 4000,
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!import.meta.hot) return;
-    const handleDown = () => {
-      sessionStorage.setItem("__server_restarting", "1");
-    };
-    const handleUp = () => {
-      // If page wasn't reloaded, clear the flag and show the toast directly
-      const flag = sessionStorage.getItem("__server_restarting");
-      if (flag) {
-        sessionStorage.removeItem("__server_restarting");
-        toast({
-          title: "Server restarted",
-          description: "Reconnected successfully — all data refreshed.",
-          duration: 4000,
-        });
-      }
-    };
-    import.meta.hot.on("vite:ws:disconnect", handleDown);
-    import.meta.hot.on("vite:ws:connect", handleUp);
-    return () => {
-      import.meta.hot?.off("vite:ws:disconnect", handleDown);
-      import.meta.hot?.off("vite:ws:connect", handleUp);
-    };
-  }, []);
-
-  return null;
-}
 
 function App() {
   useEffect(() => {
@@ -1137,7 +1103,6 @@ function App() {
           <TooltipProvider>
             <AppRouter />
             <Toaster />
-            <DevServerMonitor />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>
