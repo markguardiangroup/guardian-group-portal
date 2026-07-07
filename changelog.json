@@ -10765,6 +10765,13 @@
           "message": "Case bundles can now export a page index spreadsheet (No./Date/Document/Pages)",
           "category": "feature",
           "createdAt": "2026-07-03T20:24:32.426Z"
+        },
+        {
+          "id": "fdb75830-cf32-4823-a5a5-94ba4005cff7",
+          "patch": 25,
+          "message": "Fixed: company/group documents with no site shares now appear in the Documents area",
+          "category": "bug",
+          "createdAt": "2026-07-07T12:38:42.264Z"
         }
       ],
       "publishedPatch": 24,

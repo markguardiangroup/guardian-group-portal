@@ -1086,13 +1086,19 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     
 
   const filteredDocuments = documents?.filter((doc) => {
-    // Universal gate: company/group scoped docs (siteId=null) must have at least
-    // one explicit share record to be visible anywhere. Zero-share scoped docs are
-    // hidden in all views — folder and table must match exactly.
+    // Universal gate: company/group scoped docs (siteId=null) must either be
+    // owned by the entity currently in view OR have at least one explicit share
+    // record. Zero-share scoped docs are hidden in the "all sites" view but
+    // MUST be visible when the user navigates directly to that company/group's
+    // document space — that is the whole point of the Company/Group Documents view.
     if (doc.siteId === null) {
       const swsi = (doc as any).sharedWithSiteIds as string[] | undefined;
       const swci = (doc as any).sharedWithCompanyIds as string[] | undefined;
-      if (!swsi?.length && !swci?.length) return false;
+      const ownedByCurrentScope =
+        urlScope && urlEntityId &&
+        (doc as any).scope === urlScope &&
+        (doc as any).entityId === urlEntityId;
+      if (!ownedByCurrentScope && !swsi?.length && !swci?.length) return false;
     }
 
     // Scope filter — when navigating from a Group/Company card, show docs that are
