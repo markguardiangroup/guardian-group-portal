@@ -106,6 +106,7 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   useDraggable,
@@ -1929,7 +1930,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       {/* Folder View */}
       {viewMode === "folder" && (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="space-y-4">
           {/* Scoped folder view — when navigated from a Group/Company tile,
               the per-site folder hierarchy doesn't apply; render the scoped

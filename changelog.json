@@ -10842,6 +10842,13 @@
           "message": "Fixed: dragging a document no longer creates a double shadow effect",
           "category": "bug",
           "createdAt": "2026-07-07T18:00:29.760Z"
+        },
+        {
+          "id": "b7e4a1d2-drag-collision-fix-2026",
+          "patch": 25,
+          "message": "Fixed: dragging documents between folders now drops correctly",
+          "category": "bug",
+          "createdAt": "2026-07-07T18:27:38.342Z"
         }
       ],
       "publishedPatch": 24,
