@@ -797,7 +797,7 @@ export const documents = pgTable("documents", {
   trainingCourseCode: text("training_course_code"), // Course code for training certificates
   trainingDate: timestamp("training_date"), // Date of training/certification
   // Scope: 'site' = traditional site-level document; 'company' = company-level (visible to all sites in company);
-  // 'group' = group-level (visible to all companies in the group).
+  // 'group' = group-level (visible to the group owner company only).
   // Company/group scoped docs have siteId = null.
   scope: text("scope").$type<DocumentScope>().notNull().default("site"),
   approvedVersion: integer("approved_version").notNull().default(0), // Increments on each final approval (0 = never approved)

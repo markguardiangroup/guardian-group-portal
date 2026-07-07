@@ -10814,6 +10814,13 @@
           "message": "Fixed: company card now always shows for client users on the Site Documents page",
           "category": "bug",
           "createdAt": "2026-07-07T16:00:40.369Z"
+        },
+        {
+          "id": "a2c4e6b8-group-move-doc-text-fix-2026",
+          "patch": 25,
+          "message": "Fixed: Move Document dialog now correctly describes group level as group owner only",
+          "category": "bug",
+          "createdAt": "2026-07-07T16:06:30.626Z"
         }
       ],
       "publishedPatch": 24,

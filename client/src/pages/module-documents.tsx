@@ -499,7 +499,7 @@ function TransferScopeDialog({
               {/* Company-scoped → group: just confirm */}
               {targetScope === "group" && docCompany?.groupOwnerId && (
                 <p className="text-sm text-muted-foreground">
-                  Document will be moved to group level (visible to all companies in the group).
+                  Document will be moved to group level (visible to the group owner only).
                 </p>
               )}
             </>
