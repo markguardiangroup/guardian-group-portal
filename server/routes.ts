@@ -15449,13 +15449,14 @@ export async function registerRoutes(
       });
 
       const header = ["No.", "Date", "Document", "Pages"];
-      const csv = [header, ...rows].map(row => row.map(escape).join(",")).join("\n");
+      // BOM (\uFEFF) tells Excel to open as UTF-8, preventing en-dash from mangling
+      const csv = "\uFEFF" + [header, ...rows].map(row => row.map(escape).join(",")).join("\n");
 
       const bundleSlug = bundle.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const filename = `${caseData.caseReference}-${bundleSlug}-index.csv`;
 
       res.set({
-        "Content-Type": "text/csv",
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="${filename}"`,
       });
       res.send(csv);

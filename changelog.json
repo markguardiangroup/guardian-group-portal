@@ -11010,6 +11010,13 @@
           "message": "Fixed: bundle index CSV page ranges no longer shown as dates in Excel",
           "category": "bug",
           "createdAt": "2026-07-07T22:52:18.628Z"
+        },
+        {
+          "id": "155f0720-f286-4636-85f9-e6bce05f6320",
+          "patch": 25,
+          "message": "Fixed: bundle index CSV now opens correctly in Excel with proper character encoding",
+          "category": "bug",
+          "createdAt": "2026-07-07T22:57:07.778Z"
         }
       ],
       "publishedPatch": 24,
