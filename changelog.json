@@ -10996,6 +10996,13 @@
           "message": "Bundle PDF page number box slightly wider for better readability",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:48:26.068Z"
+        },
+        {
+          "id": "c1034d39-9a91-476a-99f5-ac5b28934e0d",
+          "patch": 25,
+          "message": "Reverted: PDF page number box padding back to 4pt",
+          "category": "other",
+          "createdAt": "2026-07-07T22:49:18.558Z"
         }
       ],
       "publishedPatch": 24,
