@@ -10919,6 +10919,13 @@
           "message": "Fixed: Create Case form now clears when cancelled or closed",
           "category": "bug",
           "createdAt": "2026-07-07T21:55:00.000Z"
+        },
+        {
+          "id": "f7a8b9c0-create-case-no-outside-close-2026",
+          "patch": 25,
+          "message": "Create Case form no longer closes when clicking outside it",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:05:00.000Z"
         }
       ],
       "publishedPatch": 24,

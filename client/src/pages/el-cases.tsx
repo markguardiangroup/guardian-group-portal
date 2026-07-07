@@ -1285,7 +1285,7 @@ function CreateCaseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Scale className="h-5 w-5 text-pink-600" />
