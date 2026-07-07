@@ -10975,6 +10975,13 @@
           "message": "Upload dialog: renamed button to \"Upload as Case Document\" with improved wording",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:36:03.753Z"
+        },
+        {
+          "id": "9a629d89-1f31-4032-88f8-82c84a3e0f12",
+          "patch": 25,
+          "message": "Bundle PDF page numbers: white cover box now tight around the digit only",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:42:07.069Z"
         }
       ],
       "publishedPatch": 24,

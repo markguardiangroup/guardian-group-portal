@@ -34,14 +34,12 @@ def make_number_overlay(page_num: int, width: float, height: float) -> bytes:
     x = width - 30 - text_width
     y = 15
 
-    # White cover box sized to fully mask a typical existing page number/footer
-    # in the bottom-right area of the page — wide/tall enough to cover common
-    # Word/LibreOffice footer placements (which are often ~0.5-1in from the
-    # bottom/right margins), not just our own text's exact position.
-    box_width = 130
-    box_height = 45
-    box_x = width - box_width
-    box_y = 0
+    # White cover box sized just to mask the digit(s) plus a small margin.
+    padding = 4
+    box_width = text_width + padding * 2
+    box_height = font_size + padding * 2
+    box_x = x - padding
+    box_y = y - padding
     c.setFillColorRGB(1, 1, 1)
     c.setStrokeColorRGB(1, 1, 1)
     c.rect(box_x, box_y, box_width, box_height, fill=1, stroke=0)
