@@ -4652,12 +4652,16 @@ export async function registerRoutes(
         scopedDocs.map(d => d.folderId).filter((v): v is string => !!v)
       ));
       const scopedFolderTemplateMap = new Map<string, string | null>();
+      const scopedFolderNameMap = new Map<string, string>();
       if (scopedFolderIds.length > 0) {
         const scopedFolderRows = await Promise.all(
           scopedFolderIds.map(fid => storage.getDocumentFolder(fid))
         );
         for (const f of scopedFolderRows) {
-          if (f) scopedFolderTemplateMap.set(f.id, f.templateId ?? null);
+          if (f) {
+            scopedFolderTemplateMap.set(f.id, f.templateId ?? null);
+            scopedFolderNameMap.set(f.id, f.name);
+          }
         }
       }
       const accessibleScopedDocs = await Promise.all(
@@ -4712,6 +4716,7 @@ export async function registerRoutes(
               isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaScope,
               renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
               folderTemplateId: doc.folderId ? (scopedFolderTemplateMap.get(doc.folderId) ?? null) : null,
+              folderName: doc.folderId ? (scopedFolderNameMap.get(doc.folderId) ?? null) : null,
               isSharedLink,
               sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
               sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
