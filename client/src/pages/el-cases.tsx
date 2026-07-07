@@ -3480,7 +3480,7 @@ function CaseDetailView({ id }: { id: string }) {
 
       {/* Bundle Dialog */}
       <Dialog open={showBundleDialog} onOpenChange={setShowBundleDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editingBundle ? "Edit Bundle" : "New Document Bundle"}</DialogTitle>
             <DialogDescription>

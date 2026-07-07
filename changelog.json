@@ -10961,6 +10961,13 @@
           "message": "Bundle creator now opens in the same order as the case view for both sections",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:28:23.674Z"
+        },
+        {
+          "id": "3d210f60-5533-40ef-9c28-e2e8692ec3ce",
+          "patch": 25,
+          "message": "Bundle dialog is wider and stays open when clicking outside",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:29:51.843Z"
         }
       ],
       "publishedPatch": 24,
