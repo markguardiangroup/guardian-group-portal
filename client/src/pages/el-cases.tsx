@@ -1260,7 +1260,7 @@ function CreateCaseDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.entityId || !formData.siteId || !formData.caseName || !formData.responseDeadline) {
+    if (!formData.entityId || !formData.siteId || !formData.caseName || (formData.caseType === "tribunal_claim" && !formData.responseDeadline)) {
       return;
     }
     onSubmit(formData);
