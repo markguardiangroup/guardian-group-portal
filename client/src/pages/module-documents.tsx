@@ -380,7 +380,7 @@ function TransferScopeDialog({
 
   const transferMutation = useMutation({
     mutationFn: async (body: { targetScope: string; targetSiteId?: string | null; targetEntityId: string }) =>
-      apiRequest(`/api/documents/${doc.id}/transfer-scope`, { method: "POST", body: JSON.stringify(body) }),
+      apiRequest("POST", `/api/documents/${doc.id}/transfer-scope`, body),
     onSuccess: () => {
       toast({ title: "Document moved successfully" });
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
