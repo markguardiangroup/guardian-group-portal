@@ -1081,9 +1081,23 @@ function AppRouter() {
 }
 
 function App() {
+  const [devServerDown, setDevServerDown] = useState(false);
+
   useEffect(() => {
     const el = document.getElementById("nav-loader");
     if (el) el.classList.remove("visible");
+  }, []);
+
+  useEffect(() => {
+    if (!import.meta.hot) return;
+    const handleDown = () => setDevServerDown(true);
+    const handleUp = () => setDevServerDown(false);
+    import.meta.hot.on("vite:ws:disconnect", handleDown);
+    import.meta.hot.on("vite:ws:connect", handleUp);
+    return () => {
+      import.meta.hot?.off("vite:ws:disconnect", handleDown);
+      import.meta.hot?.off("vite:ws:connect", handleUp);
+    };
   }, []);
 
   return (
@@ -1093,6 +1107,7 @@ function App() {
           <TooltipProvider>
             <AppRouter />
             <Toaster />
+            <ServerRestartOverlay visible={devServerDown} />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>
