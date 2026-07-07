@@ -1352,7 +1352,7 @@ function CreateCaseDialog({
             <label className="text-sm font-medium">Case Type</label>
             <Select
               value={formData.caseType}
-              onValueChange={(v) => setFormData({ ...formData, caseType: v as CaseType })}
+              onValueChange={(v) => setFormData({ ...formData, caseType: v as CaseType, responseDeadline: v === "tribunal_claim" ? formData.responseDeadline : "" })}
             >
               <SelectTrigger data-testid="select-case-type">
                 <SelectValue />
@@ -1384,17 +1384,19 @@ function CreateCaseDialog({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">ET3 Response Deadline <span className="text-destructive">*</span></label>
-            <Input
-              type="date"
-              value={formData.responseDeadline}
-              onChange={(e) => setFormData({ ...formData, responseDeadline: e.target.value })}
-              required
-              data-testid="input-response-deadline"
-            />
-            <p className="text-xs text-muted-foreground">Required — will be tracked as a milestone on this case</p>
-          </div>
+          {formData.caseType === "tribunal_claim" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">ET3 Response Deadline <span className="text-destructive">*</span></label>
+              <Input
+                type="date"
+                value={formData.responseDeadline}
+                onChange={(e) => setFormData({ ...formData, responseDeadline: e.target.value })}
+                required
+                data-testid="input-response-deadline"
+              />
+              <p className="text-xs text-muted-foreground">Required — will be tracked as a milestone on this case</p>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium">Source <span className="text-muted-foreground text-xs font-normal">(select all that apply)</span></label>
             <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
@@ -2474,7 +2476,7 @@ function CaseDetailView({ id }: { id: string }) {
                       </p>
                     </div>
                   )}
-                  {caseData.responseDeadline && (
+                  {caseData.responseDeadline && caseData.caseType === "tribunal_claim" && (
                     <div>
                       <p className="text-xs text-muted-foreground">ET3 Response Deadline</p>
                       <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${isPast(new Date(caseData.responseDeadline)) ? "text-red-600" : ""}`}>

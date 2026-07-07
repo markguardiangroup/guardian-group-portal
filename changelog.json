@@ -10877,6 +10877,13 @@
           "message": "Drag and drop folder assignment now works in module document views",
           "category": "feature",
           "createdAt": "2026-07-07T19:56:00.000Z"
+        },
+        {
+          "id": "f2d4a8b6-et3-tribunal-only-checklist-link-2026",
+          "patch": 25,
+          "message": "ET3 Response Deadline and linked checklist items now only apply to Tribunal cases",
+          "category": "feature",
+          "createdAt": "2026-07-07T20:10:00.000Z"
         }
       ],
       "publishedPatch": 24,

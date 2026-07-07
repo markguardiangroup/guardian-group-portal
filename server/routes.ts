@@ -755,7 +755,11 @@ const createCaseSchema = z.object({
   sources: z.array(z.string()).optional(),
   restrictedToUsers: z.array(z.string()).optional(),
   hearingDate: z.string().optional(),
-  responseDeadline: z.string().min(1, "Response deadline is required"),
+  responseDeadline: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.caseType === "tribunal_claim" && (!data.responseDeadline || data.responseDeadline.trim() === "")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Response deadline is required for Tribunal Cases", path: ["responseDeadline"] });
+  }
 });
 
 const updateCaseSchema = z.object({
@@ -13851,7 +13855,7 @@ export async function registerRoutes(
 
       // Auto-create the mandatory Response Deadline milestone
       if (parseResult.data.responseDeadline) {
-        await storage.createCaseMilestone({
+        const responseDeadlineMilestone = await storage.createCaseMilestone({
           caseId: caseData.id,
           title: "Response Deadline",
           description: "Mandatory response deadline for this case",
@@ -13860,6 +13864,28 @@ export async function registerRoutes(
           isResponseDeadline: true,
           createdBy: user.id,
         });
+
+        // For tribunal cases, auto-create ET1 and ET3 checklist items
+        if (parseResult.data.caseType === "tribunal_claim") {
+          await storage.createCaseDocumentChecklistItem({
+            caseId: caseData.id,
+            title: "ET1 Claim Form",
+            isCompleted: false,
+            createdBy: user.id,
+          });
+
+          const et3Item = await storage.createCaseDocumentChecklistItem({
+            caseId: caseData.id,
+            title: "ET3 Response Form",
+            submissionDate: new Date(parseResult.data.responseDeadline),
+            isCompleted: false,
+            linkedMilestoneId: responseDeadlineMilestone.id,
+            createdBy: user.id,
+          });
+
+          // Bidirectionally link: milestone → checklist item
+          await storage.updateCaseMilestone(responseDeadlineMilestone.id, { checklistItemId: et3Item.id });
+        }
       }
 
       // Create audit log
@@ -14744,6 +14770,14 @@ export async function registerRoutes(
       }
 
       if (typeof req.body.isCompleted === "boolean") {
+        // If completing an item that is bidirectionally linked to a Response Deadline milestone, auto-complete that milestone too
+        if (req.body.isCompleted === true && existing.linkedMilestoneId) {
+          const linkedMilestone = await storage.getCaseMilestone(existing.linkedMilestoneId);
+          if (linkedMilestone && linkedMilestone.isResponseDeadline && !linkedMilestone.isCompleted) {
+            await storage.updateCaseMilestone(linkedMilestone.id, { isCompleted: true, completedDate: new Date() });
+          }
+        }
+
         const caseData = await storage.getCase(existing.caseId);
         await storage.createAuditLog({
           action: req.body.isCompleted ? "checklist_item_completed" : "checklist_item_reopened",
@@ -20484,19 +20518,19 @@ export async function registerRoutes(
         for (const c of allCases) {
           if (!canAccess(c.siteId)) continue;
           if (companySiteIds && (!c.siteId || !companySiteIds.includes(c.siteId))) continue;
-          if (c.responseDeadline && inDateRange(new Date(c.responseDeadline))) {
+
+          // Fetch milestones once per case — needed for both deadline suppression and milestone events
+          const milestones = await storage.getCaseMilestones(c.id);
+          const responseDeadlineMilestone = milestones.find(m => m.isResponseDeadline);
+
+          if (c.responseDeadline && inDateRange(new Date(c.responseDeadline)) && !responseDeadlineMilestone?.isCompleted) {
             events.push({ id: `case-deadline-${c.id}`, title: `Deadline: ${c.caseReference} – ${c.employeeName}`, date: c.responseDeadline, type: "case_deadline", module: "employment_law", siteId: c.siteId, url: `/employment-law/cases/${c.id}`, isOverdue: new Date(c.responseDeadline) < now });
           }
           if (c.hearingDate && inDateRange(new Date(c.hearingDate))) {
             events.push({ id: `case-hearing-${c.id}`, title: `Hearing: ${c.caseReference} – ${c.employeeName}`, date: c.hearingDate, type: "case_deadline", module: "employment_law", siteId: c.siteId, url: `/employment-law/cases/${c.id}`, isOverdue: new Date(c.hearingDate) < now });
           }
-        }
 
-        // Case milestones — load all cases first, then their milestones
-        for (const c of allCases) {
-          if (!canAccess(c.siteId)) continue;
-          if (companySiteIds && (!c.siteId || !companySiteIds.includes(c.siteId))) continue;
-          const milestones = await storage.getCaseMilestones(c.id);
+          // Case milestones
           for (const m of milestones) {
             if (m.isCompleted) continue;
             if (m.dueDate && inDateRange(new Date(m.dueDate))) {
