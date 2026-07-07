@@ -912,8 +912,28 @@ function SidebarExpandHint() {
   );
 }
 
-function SseConnector() {
-  useServerEvents();
+function ServerRestartOverlay({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-5"
+      style={{ background: "rgba(15, 23, 42, 0.82)", backdropFilter: "blur(6px)" }}>
+      <img
+        src={logoIcon}
+        alt="Guardian Group"
+        className="h-16 w-16 rounded-full object-cover shadow-2xl animate-spin"
+        style={{ animationDuration: "1.5s" }}
+      />
+      <div className="text-center">
+        <p className="text-white font-semibold text-base tracking-tight">Server restarting…</p>
+        <p className="text-white/50 text-sm mt-1">Reconnecting automatically, please wait</p>
+      </div>
+    </div>
+  );
+}
+
+function SseConnector({ onServerDown }: { onServerDown: (down: boolean) => void }) {
+  const { serverDown } = useServerEvents();
+  useEffect(() => { onServerDown(serverDown); }, [serverDown, onServerDown]);
   return null;
 }
 
@@ -921,6 +941,7 @@ function AuthenticatedApp() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const [splashFading, setSplashFading] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const [serverDown, setServerDown] = useState(false);
   const transitionStarted = useRef(false);
   // Only show splash when navigating here immediately after a successful login
   const isFreshLogin = useRef(sessionStorage.getItem("freshLogin") === "1");
@@ -998,7 +1019,8 @@ function AuthenticatedApp() {
               role={user!.role}
               consultantPermissions={user!.consultantPermissions}
             />
-            <SseConnector />
+            <SseConnector onServerDown={setServerDown} />
+            <ServerRestartOverlay visible={serverDown} />
             <SidebarProvider defaultOpen={false} style={sidebarStyle as React.CSSProperties}>
               <div className="flex h-screen w-full">
                 <AppSidebar user={user} />

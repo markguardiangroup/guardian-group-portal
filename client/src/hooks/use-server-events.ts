@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "./use-auth";
 
@@ -11,6 +11,8 @@ export function useServerEvents() {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
   const isFirstConnectRef = useRef(true);
+  const [serverDown, setServerDown] = useState(false);
+  const downTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -24,6 +26,12 @@ export function useServerEvents() {
 
       es.addEventListener("connected", () => {
         backoffMs = 1_000;
+        // Clear any pending "server down" timer and hide the overlay
+        if (downTimerRef.current) {
+          clearTimeout(downTimerRef.current);
+          downTimerRef.current = null;
+        }
+        setServerDown(false);
         if (!isFirstConnectRef.current) {
           // Reconnect after a drop — flush everything to catch missed events
           queryClient.invalidateQueries();
@@ -292,6 +300,13 @@ export function useServerEvents() {
         es.close();
         esRef.current = null;
         if (!unmountedRef.current) {
+          // Show the overlay after 800ms — avoids a flash on very brief drops
+          if (!downTimerRef.current) {
+            downTimerRef.current = setTimeout(() => {
+              downTimerRef.current = null;
+              setServerDown(true);
+            }, 800);
+          }
           reconnectTimer.current = setTimeout(() => {
             backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF);
             connect();
@@ -304,6 +319,7 @@ export function useServerEvents() {
 
     return () => {
       unmountedRef.current = true;
+      if (downTimerRef.current) clearTimeout(downTimerRef.current);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       if (esRef.current) {
         esRef.current.close();
@@ -311,4 +327,6 @@ export function useServerEvents() {
       }
     };
   }, [isAuthenticated, logout]);
+
+  return { serverDown };
 }

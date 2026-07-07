@@ -10891,6 +10891,13 @@
           "message": "Fixed: table view folder column now shows folder name in all site views including All Sites",
           "category": "bug",
           "createdAt": "2026-07-07T20:33:00.000Z"
+        },
+        {
+          "id": "b9f3e2a1-server-restart-overlay-2026",
+          "patch": 25,
+          "message": "Server restart overlay now appears with spinning logo when connection drops",
+          "category": "feature",
+          "createdAt": "2026-07-07T21:00:00.000Z"
         }
       ],
       "publishedPatch": 24,
