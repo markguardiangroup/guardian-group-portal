@@ -10856,6 +10856,13 @@
           "message": "Fixed: documents now stay in their new folder after being dragged",
           "category": "bug",
           "createdAt": "2026-07-07T18:40:12.564Z"
+        },
+        {
+          "id": "e1a7f3b5-drag-invisible-source-2026",
+          "patch": 25,
+          "message": "Fixed: drag and drop now moves documents correctly with clean visual feedback",
+          "category": "bug",
+          "createdAt": "2026-07-07T18:51:40.643Z"
         }
       ],
       "publishedPatch": 24,

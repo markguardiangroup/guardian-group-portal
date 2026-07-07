@@ -106,7 +106,6 @@ import {
   DndContext,
   DragOverlay,
   PointerSensor,
-  pointerWithin,
   useSensor,
   useSensors,
   useDraggable,
@@ -551,16 +550,23 @@ function DraggableDocRow({ id, title, sourceFolderId, isDragEnabled, children }:
   isDragEnabled: boolean;
   children: React.ReactNode;
 }) {
-  const { listeners, setNodeRef, isDragging } = useDraggable({
+  const { listeners, setNodeRef, transform, isDragging } = useDraggable({
     id,
     data: { sourceFolderId, title },
     disabled: !isDragEnabled,
   });
+  // Apply the transform so dnd-kit's rect-intersection collision detection
+  // tracks the dragged element's position correctly. Make the element itself
+  // invisible during drag — the DragOverlay provides the visual cursor card.
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined;
   return (
     <div
       ref={setNodeRef}
+      style={style}
       {...(isDragEnabled ? listeners : {})}
-      className={isDragging ? "opacity-30" : undefined}
+      className={isDragging ? "opacity-0" : undefined}
     >
       {children}
     </div>
@@ -1934,7 +1940,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
       {/* Folder View */}
       {viewMode === "folder" && (
-        <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="space-y-4">
           {/* Scoped folder view — when navigated from a Group/Company tile,
               the per-site folder hierarchy doesn't apply; render the scoped
