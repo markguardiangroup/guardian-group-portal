@@ -7678,27 +7678,18 @@ export async function registerRoutes(
         toDesc = `${targetScope} scope (company: ${toCompany?.name ?? targetEntityId})`;
       }
 
-      // Strip all existing share records — always, regardless of direction
-      await storage.deleteAllDocumentSharesForDocument(documentId);
-
-      // Update the document atomically
-      const updatedDoc = await storage.updateDocument(documentId, {
-        scope: targetScope,
-        entityId: targetEntityId,
-        siteId: targetScope === "site" ? targetSiteId! : null,
-      });
-      if (!updatedDoc) return res.status(404).json({ error: "Document not found after update" });
-
-      await storage.createAuditLog({
-        action: "document_scope_transferred",
-        userId: user.id,
-        userName: user.fullName,
-        entityId: updatedDoc.siteId ?? updatedDoc.entityId,
-        documentId: updatedDoc.id,
-        supportRequestId: null,
-        module: doc.module,
-        details: `Document moved from ${fromDesc} to ${toDesc}`,
-        metadata: null,
+      // Atomically: delete all shares, update scope, write audit log — all inside one DB transaction.
+      // If any step fails the entire transfer is rolled back and the document is left unchanged.
+      const updatedDoc = await storage.transferDocumentScope({
+        documentId,
+        targetScope,
+        targetEntityId,
+        targetSiteId: targetScope === "site" ? targetSiteId! : null,
+        auditUserId: user.id,
+        auditUserName: user.fullName,
+        auditModule: doc.module,
+        auditDetails: `Document moved from ${fromDesc} to ${toDesc}`,
+        auditEntityId: (targetScope === "site" ? targetSiteId! : targetEntityId),
       });
 
       try {

@@ -241,6 +241,17 @@ export interface IStorage {
   createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare>;
   deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
   deleteAllDocumentSharesForDocument(documentId: string): Promise<number>;
+  transferDocumentScope(params: {
+    documentId: string;
+    targetScope: "site" | "company" | "group";
+    targetEntityId: string;
+    targetSiteId: string | null;
+    auditUserId: string;
+    auditUserName: string;
+    auditModule: string | null;
+    auditDetails: string;
+    auditEntityId: string;
+  }): Promise<Document>;
   autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number>;
   autoShareGroupDocumentsToCompany(groupOwnerId: string, memberCompanyId: string): Promise<number>;
   cascadeGroupRequiredsToMember(groupOwnerId: string, memberCompanyId: string): Promise<void>;
@@ -2178,6 +2189,50 @@ export class MemStorage implements IStorage {
       eq(documentSharesTable.documentId, documentId)
     ).returning();
     return result.length;
+  }
+
+  async transferDocumentScope(params: {
+    documentId: string;
+    targetScope: "site" | "company" | "group";
+    targetEntityId: string;
+    targetSiteId: string | null;
+    auditUserId: string;
+    auditUserName: string;
+    auditModule: string | null;
+    auditDetails: string;
+    auditEntityId: string;
+  }): Promise<Document> {
+    const { documentId, targetScope, targetEntityId, targetSiteId,
+      auditUserId, auditUserName, auditModule, auditDetails, auditEntityId } = params;
+    return await db.transaction(async (tx) => {
+      // 1. Strip all share records
+      await tx.delete(documentSharesTable).where(eq(documentSharesTable.documentId, documentId));
+      // 2. Update scope/entityId/siteId
+      const [updatedDoc] = await tx.update(documentsTable)
+        .set({ scope: targetScope as any, entityId: targetEntityId, siteId: targetSiteId, updatedAt: new Date() })
+        .where(eq(documentsTable.id, documentId))
+        .returning();
+      if (!updatedDoc) throw new Error("Document not found during transfer");
+      // 3. Write audit log
+      await tx.insert(auditLogsTable).values({
+        id: randomUUID(),
+        action: "document_scope_transferred" as any,
+        userId: auditUserId,
+        userName: auditUserName,
+        entityId: auditEntityId,
+        documentId,
+        caseId: null,
+        incidentId: null,
+        supportRequestId: null,
+        module: (auditModule ?? null) as any,
+        details: auditDetails,
+        metadata: null,
+        ipAddress: null,
+        userAgent: null,
+        createdAt: new Date(),
+      });
+      return updatedDoc;
+    });
   }
 
   async getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived = false): Promise<Document[]> {
