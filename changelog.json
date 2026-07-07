@@ -10807,6 +10807,13 @@
           "message": "Fixed: member-company client users can no longer see group-level documents or the Group card",
           "category": "bug",
           "createdAt": "2026-07-07T15:55:43.943Z"
+        },
+        {
+          "id": "f4b2a1c3-company-card-regular-client-2026",
+          "patch": 25,
+          "message": "Fixed: company card now always shows for client users on the Site Documents page",
+          "category": "bug",
+          "createdAt": "2026-07-07T16:00:40.369Z"
         }
       ],
       "publishedPatch": 24,

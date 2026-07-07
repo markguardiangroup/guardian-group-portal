@@ -399,7 +399,10 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
   // How many summary cards (group + company) will be rendered above the site tiles.
   // They count toward the 21-tile-per-page budget on page 1.
+  const isRegularClient = !isPrivilegedUser && !isGoClient && user?.role === "client";
   const summaryCardCount = useMemo(() => {
+    // Regular clients always see their own company card even without a filter selection
+    if (isRegularClient && selectedGroup === "all") return 1;
     if (selectedGroup === "all" && (!selectedCompany || selectedCompany === "all")) return 0;
     let count = 0;
     if (selectedGroup !== "all") count++; // group card
@@ -412,7 +415,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
     );
     count += companyCards.length;
     return count;
-  }, [selectedGroup, selectedCompany, selectedGroupCompanies, companies]);
+  }, [selectedGroup, selectedCompany, selectedGroupCompanies, companies, isRegularClient]);
 
   // "All Sites" aggregate tile appears whenever there are 2+ filtered sites.
   const allSitesCardCount = filteredSites.length > 1 ? 1 : 0;
@@ -635,15 +638,19 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Group + Company cards */}
             {(selectedGroup !== "all" ||
-              (selectedCompany && selectedCompany !== "all")) && (() => {
+              (selectedCompany && selectedCompany !== "all") ||
+              isRegularClient) && (() => {
               // Companies to render company cards for:
               // - If a group is selected: members of that group (excluding the group-owner itself),
               //   optionally narrowed to the selected company.
+              // - Regular clients (non-GO, non-privileged): always show their own company card.
               // - If no group but a company is selected: just that company.
               const companyCardSource: CompanyListItem[] =
                 selectedGroup !== "all"
                   ? selectedGroupCompanies.filter((c) => c.id !== selectedGroup)
-                  : companies.filter((c) => c.name === selectedCompany);
+                  : isRegularClient
+                    ? companies.filter((c) => c.id === user?.companyId)
+                    : companies.filter((c) => c.name === selectedCompany);
               const companyCards = companyCardSource.filter((c) =>
                 !selectedCompany || selectedCompany === "all"
                   ? true
