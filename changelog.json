@@ -10779,6 +10779,13 @@
           "message": "Privileged users can move a document to a different scope level (site, company, or group)",
           "category": "feature",
           "createdAt": "2026-07-07T14:11:01.028Z"
+        },
+        {
+          "id": "b1e3f7a2-move-doc-site-list-empty-fix-2026",
+          "patch": 25,
+          "message": "Fixed: Move Document dialog now correctly shows available sites",
+          "category": "bug",
+          "createdAt": "2026-07-07T14:30:00.000Z"
         }
       ],
       "publishedPatch": 24,

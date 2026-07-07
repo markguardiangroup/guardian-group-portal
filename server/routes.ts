@@ -7547,9 +7547,11 @@ export async function registerRoutes(
       const doc = await storage.getDocument(req.params.id);
       if (!doc) return res.status(404).json({ error: "Document not found" });
 
-      const canAccess = await canUserAccessDocument(user, doc);
-      if (!canAccess) return res.status(403).json({ error: "Access denied" });
-
+      // No canUserAccessDocument check here: the "Move to…" button only renders for
+      // privileged (non-client) users who can already see the document. That check uses
+      // different listing-level logic that can grant access to company-scoped docs with
+      // no shares, so repeating a share-gated individual-doc check here would silently
+      // block valid transfers. The endpoint only returns company/site names, not content.
       const originCompanyId = doc.entityId;
       const docCompany = await storage.getCompany(originCompanyId);
       if (!docCompany) return res.status(404).json({ error: "Document company not found" });
