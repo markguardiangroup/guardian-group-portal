@@ -4651,9 +4651,9 @@ export async function registerRoutes(
             // Surface explicit share assignments so company/site tiles can include
             // group/company-scoped documents in their compliance counts.
             const shareRecords = await storage.getDocumentShares(doc.id);
-            // Only mark as a shared link when shares actually exist — matches folder-view behaviour
-            // where company/group docs only appear as "Shared from …" when explicitly shared to a site.
-            const isSharedLink = !isOrigin && shareRecords.length > 0;
+            // Mark as a shared link whenever shares exist — origin users also need to see
+            // the badge so they know their doc is shared out to sites/companies.
+            const isSharedLink = shareRecords.length > 0;
             let sharedFromEntityName: string | null = null;
             if (isSharedLink && doc.entityId) {
               const entityCompany = await storage.getCompany(doc.entityId);
@@ -4778,18 +4778,23 @@ export async function registerRoutes(
           const isCompanyOrGroupScoped = !doc.siteId && (doc.scope === "company" || doc.scope === "group");
           // Only fetch shares for scoped docs — avoids extra DB calls on site-scoped docs
           const scopedShareRecords = isCompanyOrGroupScoped ? await storage.getDocumentShares(doc.id) : [];
-          // Only mark as a shared link when shares actually exist — matches folder-view behaviour
-          const isSharedLink = isCompanyOrGroupScoped && !isOrigin && scopedShareRecords.length > 0;
+          // Mark as a shared link whenever shares exist — origin users also need to
+          // see the badge so they know their doc is shared out to sites/companies.
+          const isSharedLink = isCompanyOrGroupScoped && scopedShareRecords.length > 0;
           // Company name resolved from pre-fetched map — no extra DB call
           const sharedFromEntityName = isSharedLink && doc.entityId
             ? (companyNameMap.get(doc.entityId) ?? null)
             : null;
+          const sharedWithSiteIds = scopedShareRecords.filter(s => s.entityType === "site").map(s => s.entityId);
+          const sharedWithCompanyIds = scopedShareRecords.filter(s => s.entityType === "company").map(s => s.entityId);
           return {
             ...doc,
             isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate,
             isSharedLink,
             sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
             sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
+            sharedWithSiteIds: isSharedLink ? sharedWithSiteIds : undefined,
+            sharedWithCompanyIds: isSharedLink ? sharedWithCompanyIds : undefined,
           };
         })
       );

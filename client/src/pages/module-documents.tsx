@@ -3052,12 +3052,30 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             return (
                               <div className="flex items-center gap-1.5 flex-wrap leading-snug">
                                 {parts.length > 0 && <span className="text-xs text-muted-foreground">{parts.join(" · ")}</span>}
-                                {!!doc.isSharedLink && (
-                                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 gap-1 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
-                                    <LinkIcon className="h-2.5 w-2.5" />
-                                    Shared{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ` from ${linkedFromScope === "group" ? "Group" : "Company"}`}
-                                  </Badge>
-                                )}
+                                {!!doc.isSharedLink && (() => {
+                                  const siteShareCount = ((doc as any).sharedWithSiteIds?.length ?? 0) as number;
+                                  const companyShareCount = ((doc as any).sharedWithCompanyIds?.length ?? 0) as number;
+                                  // Origin perspective: the doc belongs to the entity we're currently viewing → show outbound share count
+                                  const isOutbound = urlEntityId && (doc as any).entityId === urlEntityId;
+                                  const badgeClass = `text-[10px] px-1.5 py-0 gap-1 ${linkedFromScope === "group" ? "border-purple-400 text-purple-600 dark:text-purple-400" : "border-blue-400 text-blue-600 dark:text-blue-400"}`;
+                                  if (isOutbound && (siteShareCount + companyShareCount) > 0) {
+                                    const label = siteShareCount > 0
+                                      ? `Shared to ${siteShareCount} ${siteShareCount === 1 ? "site" : "sites"}`
+                                      : `Shared to ${companyShareCount} ${companyShareCount === 1 ? "company" : "companies"}`;
+                                    return (
+                                      <Badge variant="outline" className={badgeClass} data-testid={`badge-linked-${doc.id}`}>
+                                        <LinkIcon className="h-2.5 w-2.5" />
+                                        {label}
+                                      </Badge>
+                                    );
+                                  }
+                                  return (
+                                    <Badge variant="outline" className={badgeClass} title={doc.sharedFromEntityName ? `Source: ${doc.sharedFromEntityName}` : undefined} data-testid={`badge-linked-${doc.id}`}>
+                                      <LinkIcon className="h-2.5 w-2.5" />
+                                      Shared{doc.sharedFromEntityName ? `: ${doc.sharedFromEntityName}` : ` from ${linkedFromScope === "group" ? "Group" : "Company"}`}
+                                    </Badge>
+                                  );
+                                })()}
                                 {doc.isArchived && (
                                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1 bg-muted">
                                     <Archive className="h-2.5 w-2.5" />

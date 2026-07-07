@@ -10793,6 +10793,13 @@
           "message": "Fixed: 'Shared from Company' badge only shows when actually shared to a site",
           "category": "bug",
           "createdAt": "2026-07-07T15:00:00.000Z"
+        },
+        {
+          "id": "d5a3b9c2-shared-badge-table-view-correct-2026",
+          "patch": 25,
+          "message": "Fixed: shared document badges now show correctly in table view for all users",
+          "category": "bug",
+          "createdAt": "2026-07-07T15:30:00.000Z"
         }
       ],
       "publishedPatch": 24,
