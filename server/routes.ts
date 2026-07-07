@@ -4602,9 +4602,25 @@ export async function registerRoutes(
         companyReqCacheModule.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
       }));
       
+      // Pre-resolve folderTemplateId for site-scoped docs so the table-view
+      // FOLDER column can show the folder name after drag-and-drop assignment.
+      const siteScopedDocs = allDocuments.filter(d => d.siteId != null);
+      const siteFolderIds = Array.from(new Set(
+        siteScopedDocs.map(d => d.folderId).filter((v): v is string => !!v)
+      ));
+      const siteFolderTemplateMap = new Map<string, string | null>();
+      if (siteFolderIds.length > 0) {
+        const siteFolderRows = await Promise.all(
+          siteFolderIds.map(fid => storage.getDocumentFolder(fid))
+        );
+        for (const f of siteFolderRows) {
+          if (f) siteFolderTemplateMap.set(f.id, f.templateId ?? null);
+        }
+      }
+
       // Filter documents by sites the user can access (site-scoped docs)
       const accessibleDocuments = await Promise.all(
-        allDocuments.filter(d => d.siteId != null).map(async (doc) => {
+        siteScopedDocs.map(async (doc) => {
           const canAccess = await canUserAccessSite(user, doc.siteId!);
           if (!canAccess) return null;
           
@@ -4618,6 +4634,7 @@ export async function registerRoutes(
             ...doc,
             isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate,
             renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
+            folderTemplateId: doc.folderId ? (siteFolderTemplateMap.get(doc.folderId) ?? null) : null,
           };
         })
       );

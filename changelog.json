@@ -10884,6 +10884,13 @@
           "message": "ET3 Response Deadline and linked checklist items now only apply to Tribunal cases",
           "category": "feature",
           "createdAt": "2026-07-07T20:10:00.000Z"
+        },
+        {
+          "id": "a3c7e1b9-table-folder-column-site-docs-2026",
+          "patch": 25,
+          "message": "Fixed: Folder column now shows correct name for site documents in table view",
+          "category": "bug",
+          "createdAt": "2026-07-07T20:22:00.000Z"
         }
       ],
       "publishedPatch": 24,
