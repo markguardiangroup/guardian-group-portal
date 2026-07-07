@@ -1216,6 +1216,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [hierarchyUrlRef.current] });
       queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/folders"], refetchType: "all" });
       toast({ title: "Document moved" });
     },
     onError: (err: any) => {
@@ -1533,11 +1534,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           bVal = b.title.toLowerCase();
           break;
         case "folder": {
-          const getFolderName = (d: any) => {
-            if (d.folderTemplateId) return folderTemplateIdToName.get(d.folderTemplateId) ?? "";
-            if (d.documentTypeId) return docTypeToFolderName.get(d.documentTypeId) ?? "";
-            return "";
-          };
+          const getFolderName = (d: any) =>
+            (d.folderTemplateId && folderTemplateIdToName.get(d.folderTemplateId)) ||
+            (d.folderId && folderPathMap.get(d.folderId)) ||
+            (d.documentTypeId && docTypeToFolderName.get(d.documentTypeId)) ||
+            "";
           aVal = getFolderName(a).toLowerCase();
           bVal = getFolderName(b).toLowerCase();
           break;
@@ -3099,9 +3100,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     </TableCell>
                     <TableCell>
                       {(() => {
-                        const name = (doc as any).folderTemplateId
-                          ? (folderTemplateIdToName.get((doc as any).folderTemplateId) ?? null)
-                          : ((doc as any).documentTypeId ? (docTypeToFolderName.get((doc as any).documentTypeId) ?? null) : null);
+                        const name =
+                          ((doc as any).folderTemplateId && folderTemplateIdToName.get((doc as any).folderTemplateId)) ||
+                          ((doc as any).folderId && folderPathMap.get((doc as any).folderId)) ||
+                          ((doc as any).documentTypeId && docTypeToFolderName.get((doc as any).documentTypeId)) ||
+                          null;
                         return name
                           ? <span className="text-xs text-muted-foreground truncate block max-w-full" title={name}>{name}</span>
                           : <span className="text-muted-foreground text-xs">—</span>;

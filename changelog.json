@@ -10888,9 +10888,9 @@
         {
           "id": "a3c7e1b9-table-folder-column-site-docs-2026",
           "patch": 25,
-          "message": "Fixed: table view folder column updates immediately after dragging a document to a folder",
+          "message": "Fixed: table view folder column now shows folder name for all filed documents",
           "category": "bug",
-          "createdAt": "2026-07-07T20:22:00.000Z"
+          "createdAt": "2026-07-07T20:33:00.000Z"
         }
       ],
       "publishedPatch": 24,
