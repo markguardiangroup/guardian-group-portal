@@ -10835,6 +10835,13 @@
           "message": "Fixed: admins and consultants can now drag documents between folders",
           "category": "bug",
           "createdAt": "2026-07-07T16:25:03.384Z"
+        },
+        {
+          "id": "a3d8c2f1-drag-shadow-fix-2026",
+          "patch": 25,
+          "message": "Fixed: dragging a document no longer creates a double shadow effect",
+          "category": "bug",
+          "createdAt": "2026-07-07T18:00:29.760Z"
         }
       ],
       "publishedPatch": 24,

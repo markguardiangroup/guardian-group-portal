@@ -550,20 +550,16 @@ function DraggableDocRow({ id, title, sourceFolderId, isDragEnabled, children }:
   isDragEnabled: boolean;
   children: React.ReactNode;
 }) {
-  const { listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { listeners, setNodeRef, isDragging } = useDraggable({
     id,
     data: { sourceFolderId, title },
     disabled: !isDragEnabled,
   });
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined;
   return (
     <div
       ref={setNodeRef}
-      style={style}
       {...(isDragEnabled ? listeners : {})}
-      className={isDragging ? "opacity-40 relative z-50" : undefined}
+      className={isDragging ? "opacity-30" : undefined}
     >
       {children}
     </div>
