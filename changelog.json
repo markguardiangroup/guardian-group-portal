@@ -10982,6 +10982,13 @@
           "message": "Bundle PDF page numbers: white cover box now tight around the digit only",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:42:07.069Z"
+        },
+        {
+          "id": "a4013011-450b-4fae-a019-6bca4ebcac15",
+          "patch": 25,
+          "message": "Fixed: bundle index CSV page numbers no longer show as dates in Excel",
+          "category": "bug",
+          "createdAt": "2026-07-07T22:47:49.062Z"
         }
       ],
       "publishedPatch": 24,
