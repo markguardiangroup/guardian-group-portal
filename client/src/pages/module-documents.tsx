@@ -301,54 +301,33 @@ function TransferScopeDialog({
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
   const [selectedGroupCompanyId, setSelectedGroupCompanyId] = useState<string>("");
 
-  // Fetch the document's company (to know if there's a groupOwnerId)
-  const { data: docCompany } = useQuery<{ id: string; name: string; groupOwnerId?: string | null }>({
-    queryKey: ["/api/companies", doc.entityId, "lite-for-transfer"],
+  // Single authoritative query: returns all valid destinations without role-filtered /api/sites.
+  // The backend resolves the full hierarchy (company sites or all group company sites) regardless of consultant assignment.
+  const { data: candidates, isLoading: isLoadingCandidates } = useQuery<{
+    docCompany: { id: string; name: string; groupOwnerId?: string | null };
+    companies: { id: string; name: string }[];
+    sites: TransferScopeSite[];
+  }>({
+    queryKey: ["/api/documents", doc.id, "transfer-candidates"],
     queryFn: async () => {
-      const res = await fetch(`/api/companies/${doc.entityId}`, { credentials: "include" });
+      const res = await fetch(`/api/documents/${doc.id}/transfer-candidates`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load destinations");
       return res.json();
     },
     enabled: open,
   });
 
-  // Fetch sites in the document's company (site or company scoped)
-  const { data: companySites } = useQuery<TransferScopeSite[]>({
-    queryKey: ["/api/sites", "companyId", doc.entityId, "transfer"],
-    queryFn: async () => {
-      const res = await fetch(`/api/sites?companyId=${encodeURIComponent(doc.entityId)}&lite=true`, { credentials: "include" });
-      return res.json();
-    },
-    enabled: open && doc.scope !== "group",
-  });
+  const docCompany = candidates?.docCompany;
+  const allCandidateSites = candidates?.sites ?? [];
+  const groupCompanies = candidates?.companies ?? [];
 
-  // Fetch member companies (group scoped only)
-  const { data: groupCompaniesResp } = useQuery<{ companies: CompanyListItem[] }>({
-    queryKey: ["/api/companies", "group-members", doc.entityId, "transfer"],
-    queryFn: async () => {
-      const res = await fetch(`/api/companies?groupOwnerId=${encodeURIComponent(doc.entityId)}&limit=1000&lite=true`, { credentials: "include" });
-      return res.json();
-    },
-    enabled: open && doc.scope === "group",
-  });
-  const groupCompanies = useMemo(() => {
-    if (!groupCompaniesResp?.companies) return [];
-    // Include the group owner itself as a destination option
-    const members = groupCompaniesResp.companies;
-    if (docCompany && !members.find(c => c.id === docCompany.id)) {
-      return [{ id: docCompany.id, name: docCompany.name } as CompanyListItem, ...members];
+  // For group-scoped + site target: filter all group sites to the selected company
+  const visibleSites = useMemo(() => {
+    if (doc.scope === "group" && targetScope === "site" && selectedGroupCompanyId) {
+      return allCandidateSites.filter(s => s.companyId === selectedGroupCompanyId);
     }
-    return members;
-  }, [groupCompaniesResp, docCompany]);
-
-  // If group-scoped and target is site: fetch sites in selected group company
-  const { data: groupCompanySites } = useQuery<TransferScopeSite[]>({
-    queryKey: ["/api/sites", "companyId", selectedGroupCompanyId, "transfer"],
-    queryFn: async () => {
-      const res = await fetch(`/api/sites?companyId=${encodeURIComponent(selectedGroupCompanyId)}&lite=true`, { credentials: "include" });
-      return res.json();
-    },
-    enabled: open && doc.scope === "group" && targetScope === "site" && !!selectedGroupCompanyId,
-  });
+    return allCandidateSites;
+  }, [doc.scope, targetScope, selectedGroupCompanyId, allCandidateSites]);
 
   // Determine valid target scope options based on current doc scope
   const validTargetScopes = useMemo<("site" | "company" | "group")[]>(() => {
@@ -398,8 +377,7 @@ function TransferScopeDialog({
         toast({ title: "Please select a destination site", variant: "destructive" });
         return;
       }
-      const sites = doc.scope === "group" ? groupCompanySites : companySites;
-      const site = sites?.find(s => s.id === selectedSiteId);
+      const site = visibleSites.find(s => s.id === selectedSiteId);
       if (!site?.companyId) {
         toast({ title: "Selected site has no company — please re-select", variant: "destructive" });
         return;
@@ -433,8 +411,6 @@ function TransferScopeDialog({
   const currentScopeLabel =
     doc.scope === "site" ? "Site level" : doc.scope === "company" ? "Company level" : "Group level";
 
-  const sites = doc.scope === "group" ? groupCompanySites : companySites;
-
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="sm:max-w-md">
@@ -456,71 +432,77 @@ function TransferScopeDialog({
             <span>All existing sharing rules for this document will be permanently removed when it is moved.</span>
           </div>
 
-          {/* Target scope picker */}
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Move to</label>
-            <Select value={targetScope} onValueChange={v => setTargetScope(v as "site" | "company" | "group")}>
-              <SelectTrigger data-testid="select-transfer-scope">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {validTargetScopes.map(s => (
-                  <SelectItem key={s} value={s}>{scopeLabel(s)} level</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isLoadingCandidates ? (
+            <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">Loading destinations…</div>
+          ) : (
+            <>
+              {/* Target scope picker */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Move to</label>
+                <Select value={targetScope} onValueChange={v => setTargetScope(v as "site" | "company" | "group")}>
+                  <SelectTrigger data-testid="select-transfer-scope">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {validTargetScopes.map(s => (
+                      <SelectItem key={s} value={s}>{scopeLabel(s)} level</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Group company picker (group-scoped only, for Site or Company target) */}
-          {doc.scope === "group" && (targetScope === "site" || targetScope === "company") && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Company</label>
-              <Select value={selectedGroupCompanyId} onValueChange={setSelectedGroupCompanyId}>
-                <SelectTrigger data-testid="select-transfer-group-company">
-                  <SelectValue placeholder="Select company…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {groupCompanies.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+              {/* Group company picker (group-scoped only, for Site or Company target) */}
+              {doc.scope === "group" && (targetScope === "site" || targetScope === "company") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Company</label>
+                  <Select value={selectedGroupCompanyId} onValueChange={v => { setSelectedGroupCompanyId(v); setSelectedSiteId(""); }}>
+                    <SelectTrigger data-testid="select-transfer-group-company">
+                      <SelectValue placeholder="Select company…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groupCompanies.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-          {/* Site picker */}
-          {targetScope === "site" && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Site</label>
-              <Select
-                value={selectedSiteId}
-                onValueChange={setSelectedSiteId}
-                disabled={doc.scope === "group" && !selectedGroupCompanyId}
-              >
-                <SelectTrigger data-testid="select-transfer-site">
-                  <SelectValue placeholder={doc.scope === "group" && !selectedGroupCompanyId ? "Select a company first…" : "Select site…"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {(sites ?? []).map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+              {/* Site picker */}
+              {targetScope === "site" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Site</label>
+                  <Select
+                    value={selectedSiteId}
+                    onValueChange={setSelectedSiteId}
+                    disabled={doc.scope === "group" && !selectedGroupCompanyId}
+                  >
+                    <SelectTrigger data-testid="select-transfer-site">
+                      <SelectValue placeholder={doc.scope === "group" && !selectedGroupCompanyId ? "Select a company first…" : "Select site…"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {visibleSites.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-          {/* Company-scoped → company: just confirm */}
-          {doc.scope !== "group" && targetScope === "company" && docCompany && (
-            <p className="text-sm text-muted-foreground">
-              Document will be moved to company level for <span className="font-medium">{docCompany.name}</span>.
-            </p>
-          )}
+              {/* Site-scoped → company: just confirm */}
+              {doc.scope !== "group" && targetScope === "company" && docCompany && (
+                <p className="text-sm text-muted-foreground">
+                  Document will be moved to company level for <span className="font-medium">{docCompany.name}</span>.
+                </p>
+              )}
 
-          {/* Company-scoped → group: just confirm */}
-          {targetScope === "group" && docCompany?.groupOwnerId && (
-            <p className="text-sm text-muted-foreground">
-              Document will be moved to group level (visible to all companies in the group).
-            </p>
+              {/* Company-scoped → group: just confirm */}
+              {targetScope === "group" && docCompany?.groupOwnerId && (
+                <p className="text-sm text-muted-foreground">
+                  Document will be moved to group level (visible to all companies in the group).
+                </p>
+              )}
+            </>
           )}
         </div>
 

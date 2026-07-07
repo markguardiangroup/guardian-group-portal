@@ -907,7 +907,8 @@ export type AuditAction =
   | "primary_contact_auto_assigned"
   | "company_suspended"
   | "company_reactivated"
-  | "document_reissued";
+  | "document_reissued"
+  | "document_scope_transferred";
 
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {

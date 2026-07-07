@@ -7537,6 +7537,50 @@ export async function registerRoutes(
     }
   });
 
+  // Return all valid transfer destinations for a document (bypasses role-based site filtering)
+  app.get("/api/documents/:id/transfer-candidates", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Access denied" });
+
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+
+      const canAccess = await canUserAccessDocument(user, doc);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      const originCompanyId = doc.entityId;
+      const docCompany = await storage.getCompany(originCompanyId);
+      if (!docCompany) return res.status(404).json({ error: "Document company not found" });
+
+      if (doc.scope === "group") {
+        // group-scoped: return owner company + all member companies, and all their sites
+        const members = await storage.getGroupMembers(originCompanyId);
+        const allCompanies = [
+          { id: docCompany.id, name: docCompany.name },
+          ...members.map(c => ({ id: c.id, name: c.name })),
+        ];
+        const allSitesNested = await Promise.all(
+          allCompanies.map(c => storage.getSitesByCompanyId(c.id))
+        );
+        const allSites = allSitesNested.flat().map(s => ({ id: s.id, name: s.name, companyId: s.companyId }));
+        return res.json({ docCompany: { id: docCompany.id, name: docCompany.name, groupOwnerId: docCompany.groupOwnerId }, companies: allCompanies, sites: allSites });
+      } else {
+        // site/company-scoped: sites in this company only
+        const companySites = await storage.getSitesByCompanyId(originCompanyId);
+        return res.json({
+          docCompany: { id: docCompany.id, name: docCompany.name, groupOwnerId: docCompany.groupOwnerId },
+          companies: [],
+          sites: companySites.map(s => ({ id: s.id, name: s.name, companyId: s.companyId })),
+        });
+      }
+    } catch (error) {
+      console.error("Transfer candidates error:", error);
+      res.status(500).json({ error: "Failed to fetch transfer candidates" });
+    }
+  });
+
   // Transfer a document to a different scope level (site → company, company → group, etc.)
   app.post("/api/documents/:id/transfer-scope", requireAuth, async (req, res) => {
     try {
