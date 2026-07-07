@@ -1217,8 +1217,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       queryClient.invalidateQueries({ queryKey: [hierarchyUrlRef.current] });
       toast({ title: "Document moved" });
     },
-    onError: () => {
-      toast({ title: "Could not move document", variant: "destructive" });
+    onError: (err: any) => {
+      toast({ title: "Could not move document", description: err?.message ?? "Unknown error", variant: "destructive" });
     },
   });
 
@@ -1230,11 +1230,13 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDoc(null);
     const { active, over } = event;
+    console.log("[dragEnd] active.id:", active.id, "over:", over?.id, "data:", JSON.stringify(active.data.current));
     if (!over) return;
     const docId = active.id as string;
     // over.id is always a template folder ID (or "__unfiled__")
     const templateFolderId: string | null = over.id === "__unfiled__" ? null : (over.id as string);
     const sourceTemplateId: string | null = (active.data.current as any)?.sourceFolderId ?? null;
+    console.log("[dragEnd] docId:", docId, "templateFolderId:", templateFolderId, "sourceTemplateId:", sourceTemplateId);
     if (templateFolderId === sourceTemplateId) return;
     moveDocumentMutation.mutate({ docId, templateFolderId });
   };
