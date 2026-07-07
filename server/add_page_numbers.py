@@ -35,7 +35,7 @@ def make_number_overlay(page_num: int, width: float, height: float) -> bytes:
     y = 15
 
     # White cover box sized just to mask the digit(s) plus a small margin.
-    padding = 4
+    padding = 8
     box_width = text_width + padding * 2
     box_height = font_size + padding * 2
     box_x = x - padding

@@ -10989,6 +10989,13 @@
           "message": "Fixed: bundle index CSV page numbers no longer show as dates in Excel",
           "category": "bug",
           "createdAt": "2026-07-07T22:47:49.062Z"
+        },
+        {
+          "id": "794cbb0c-2b55-432e-8269-26031b394611",
+          "patch": 25,
+          "message": "Bundle PDF page number box slightly wider for better readability",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:48:26.068Z"
         }
       ],
       "publishedPatch": 24,
