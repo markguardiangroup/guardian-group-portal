@@ -10912,6 +10912,13 @@
           "message": "Source is now required when creating a new case",
           "category": "enhancement",
           "createdAt": "2026-07-07T21:45:00.000Z"
+        },
+        {
+          "id": "e6f7a8b9-create-case-form-reset-on-cancel-2026",
+          "patch": 25,
+          "message": "Fixed: Create Case form now clears when cancelled or closed",
+          "category": "bug",
+          "createdAt": "2026-07-07T21:55:00.000Z"
         }
       ],
       "publishedPatch": 24,

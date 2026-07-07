@@ -1219,7 +1219,7 @@ function CreateCaseDialog({
   onSubmit: (data: any) => void;
   isLoading: boolean;
 }) {
-  const [formData, setFormData] = useState({
+  const blankForm = {
     entityId: "",
     siteId: "",
     caseNumber: "",
@@ -1231,7 +1231,12 @@ function CreateCaseDialog({
     isConfidential: true,
     responseDeadline: "",
     sources: [] as string[],
-  });
+  };
+  const [formData, setFormData] = useState(blankForm);
+
+  useEffect(() => {
+    if (!open) setFormData(blankForm);
+  }, [open]);
 
   const toggleSource = (code: string) => {
     setFormData(prev => ({
