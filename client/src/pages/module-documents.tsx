@@ -1199,12 +1199,16 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   // Drag-and-drop for folder view (privileged staff — individual items use disabled:!isPrivilegedUser)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeDoc, setActiveDoc] = useState<{ id: string; title: string } | null>(null);
+  // Keep a ref so the mutation's onSuccess always invalidates the *current* hierarchy URL,
+  // not the one captured in the closure when useMutation was first initialised.
+  const hierarchyUrlRef = useRef(hierarchyUrl);
+  useEffect(() => { hierarchyUrlRef.current = hierarchyUrl; }, [hierarchyUrl]);
 
   const moveDocumentMutation = useMutation({
     mutationFn: ({ docId, folderId }: { docId: string; folderId: string | null }) =>
       apiRequest("PATCH", `/api/documents/${docId}`, { folderId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [hierarchyUrl] });
+      queryClient.invalidateQueries({ queryKey: [hierarchyUrlRef.current] });
       toast({ title: "Document moved" });
     },
     onError: () => {
@@ -2430,11 +2434,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       ...(((folder as any).childFolders ?? []).flatMap((cf: any) => cf.documents ?? [])),
                     ];
                     const statusBadge = getFolderStatusBadge(adjustedFolderStats, folderTreeDocs);
-                    const folderDropId = (folder as any).siteFolder?.id ?? folder.id;
+                    const folderDropId = (folder as any).siteFolder?.id ?? null;
                     const parentMissingCount = (missingByFolderTemplateId.get(folder.id)?.length ?? 0) +
                       ((folder as any).childFolders ?? []).reduce((sum: number, cf: any) => sum + (missingByFolderTemplateId.get(cf.id)?.length ?? 0), 0);
                     return (
-                      <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isPrivilegedUser}>
+                      <DroppableFolderZone key={folder.id} folderId={folderDropId ?? folder.id} isDragEnabled={isPrivilegedUser && !!folderDropId}>
                       <AccordionItem value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
                         <AccordionTrigger className="hover:no-underline px-2">
                           <div className="flex items-center justify-between w-full pr-4">
@@ -2473,9 +2477,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     overdue: baseChildStats.overdue + childDelta.overdue,
                                   } : baseChildStats;
                                   const childStatusBadge = getFolderStatusBadge(adjustedChildStats, (childFolder as any).documents ?? []);
-                                  const childDropId = (childFolder as any).siteFolder?.id ?? childFolder.id;
+                                  const childDropId = (childFolder as any).siteFolder?.id ?? null;
                                   return (
-                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isPrivilegedUser}>
+                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId ?? childFolder.id} isDragEnabled={isPrivilegedUser && !!childDropId}>
                                     <AccordionItem value={childFolder.id} className={`border rounded-lg ${moduleBorderColors[module]} overflow-hidden`}>
                                       <AccordionTrigger className="hover:no-underline px-3 py-2 bg-muted/30">
                                         <div className="flex items-center justify-between w-full pr-2">
