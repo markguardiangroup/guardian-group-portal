@@ -7537,6 +7537,141 @@ export async function registerRoutes(
     }
   });
 
+  // Transfer a document to a different scope level (site → company, company → group, etc.)
+  app.post("/api/documents/:id/transfer-scope", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot move documents" });
+
+      const documentId = req.params.id;
+      const doc = await storage.getDocument(documentId);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+      if (doc.isArchived) return res.status(400).json({ error: "Cannot move an archived document" });
+
+      const canAccess = await canUserAccessDocument(user, doc);
+      if (!canAccess) return res.status(403).json({ error: "Access denied" });
+
+      // For company/group scoped docs: only origin users can transfer
+      if ((doc.scope === "company" || doc.scope === "group") && !(await isDocumentOriginUser(user, doc))) {
+        return res.status(403).json({ error: "Only origin users can move company or group scoped documents" });
+      }
+
+      const schema = z.object({
+        targetScope: z.enum(["site", "company", "group"]),
+        targetSiteId: z.string().nullish(),
+        targetEntityId: z.string().min(1),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.errors });
+      const { targetScope, targetSiteId, targetEntityId } = parsed.data;
+
+      // originCompanyId: the company that owns this document's scope
+      // For site/company scope: doc.entityId is the company
+      // For group scope: doc.entityId is the group-owner company
+      const originCompanyId = doc.entityId;
+
+      // Validate that the target is within the same hierarchy
+      if (targetScope === "site") {
+        if (!targetSiteId) return res.status(400).json({ error: "targetSiteId is required when targetScope is 'site'" });
+        const targetSite = await storage.getSite(targetSiteId);
+        if (!targetSite) return res.status(404).json({ error: "Target site not found" });
+        const sitesCompanyId = targetSite.companyId;
+        if (!sitesCompanyId) return res.status(400).json({ error: "Target site has no associated company" });
+
+        if (doc.scope === "site" || doc.scope === "company") {
+          if (sitesCompanyId !== originCompanyId) {
+            return res.status(400).json({ error: "Target site must belong to the same company as the document" });
+          }
+        } else {
+          // group-scoped: target site's company must be a member of this group (or the owner itself)
+          const siteCompanyObj = await storage.getCompany(sitesCompanyId);
+          if (!siteCompanyObj) return res.status(404).json({ error: "Target site's company not found" });
+          const isMember = siteCompanyObj.groupOwnerId === originCompanyId || sitesCompanyId === originCompanyId;
+          if (!isMember) return res.status(400).json({ error: "Target site must be within the group" });
+        }
+        if (targetEntityId !== sitesCompanyId) {
+          return res.status(400).json({ error: "targetEntityId must match the target site's company" });
+        }
+      } else if (targetScope === "company") {
+        if (doc.scope === "site" || doc.scope === "company") {
+          if (targetEntityId !== originCompanyId) {
+            return res.status(400).json({ error: "Target company must be the same as the document's current company" });
+          }
+        } else {
+          // group-scoped: target company must be the group owner or a member
+          const targetCompanyObj = await storage.getCompany(targetEntityId);
+          if (!targetCompanyObj) return res.status(404).json({ error: "Target company not found" });
+          const isMember = targetCompanyObj.groupOwnerId === originCompanyId || targetEntityId === originCompanyId;
+          if (!isMember) return res.status(400).json({ error: "Target company must be within the group" });
+        }
+      } else {
+        // targetScope === "group"
+        if (doc.scope === "group") return res.status(400).json({ error: "Document is already at group scope" });
+        const docCompanyObj = await storage.getCompany(originCompanyId);
+        if (!docCompanyObj) return res.status(404).json({ error: "Document company not found" });
+        if (!docCompanyObj.groupOwnerId) return res.status(400).json({ error: "Document's company is not part of a group" });
+        if (targetEntityId !== docCompanyObj.groupOwnerId) {
+          return res.status(400).json({ error: "Target must be the group owner of the document's company" });
+        }
+      }
+
+      // Build audit description before any mutation
+      let fromDesc: string;
+      if (doc.scope === "site") {
+        const fromSite = doc.siteId ? await storage.getSite(doc.siteId) : null;
+        fromDesc = `site scope (site: ${fromSite?.name ?? doc.siteId})`;
+      } else {
+        const fromCompany = await storage.getCompany(originCompanyId);
+        fromDesc = `${doc.scope} scope (company: ${fromCompany?.name ?? originCompanyId})`;
+      }
+      let toDesc: string;
+      if (targetScope === "site") {
+        const toSite = await storage.getSite(targetSiteId!);
+        toDesc = `site scope (site: ${toSite?.name ?? targetSiteId})`;
+      } else {
+        const toCompany = await storage.getCompany(targetEntityId);
+        toDesc = `${targetScope} scope (company: ${toCompany?.name ?? targetEntityId})`;
+      }
+
+      // Strip all existing share records — always, regardless of direction
+      await storage.deleteAllDocumentSharesForDocument(documentId);
+
+      // Update the document atomically
+      const updatedDoc = await storage.updateDocument(documentId, {
+        scope: targetScope,
+        entityId: targetEntityId,
+        siteId: targetScope === "site" ? targetSiteId! : null,
+      });
+      if (!updatedDoc) return res.status(404).json({ error: "Document not found after update" });
+
+      await storage.createAuditLog({
+        action: "document_scope_transferred",
+        userId: user.id,
+        userName: user.fullName,
+        entityId: updatedDoc.siteId ?? updatedDoc.entityId,
+        documentId: updatedDoc.id,
+        supportRequestId: null,
+        module: doc.module,
+        details: `Document moved from ${fromDesc} to ${toDesc}`,
+        metadata: null,
+      });
+
+      try {
+        const payload = { documentId: updatedDoc.id, siteId: updatedDoc.siteId };
+        await emitDocumentUpdated(updatedDoc, payload);
+        if (doc.entityId !== updatedDoc.entityId) {
+          emitToCompany(doc.entityId, "document-updated", payload);
+        }
+      } catch { /* non-fatal */ }
+
+      res.json({ message: "Document moved successfully", document: updatedDoc });
+    } catch (error) {
+      console.error("Transfer scope error:", error);
+      res.status(500).json({ error: "Failed to move document" });
+    }
+  });
+
   // Folder Templates (Admin-managed master folder structure)
   app.get("/api/folder-templates", requireAuth, async (req, res) => {
     try {

@@ -240,6 +240,7 @@ export interface IStorage {
   getAllDocumentSharesRaw(): Promise<DocumentShare[]>;
   createDocumentShare(share: InsertDocumentShare): Promise<DocumentShare>;
   deleteDocumentShare(documentId: string, entityType: string, entityId: string): Promise<boolean>;
+  deleteAllDocumentSharesForDocument(documentId: string): Promise<number>;
   autoShareCompanyDocumentsToSite(companyId: string, siteId: string): Promise<number>;
   autoShareGroupDocumentsToCompany(groupOwnerId: string, memberCompanyId: string): Promise<number>;
   cascadeGroupRequiredsToMember(groupOwnerId: string, memberCompanyId: string): Promise<void>;
@@ -2170,6 +2171,13 @@ export class MemStorage implements IStorage {
       )
     ).returning();
     return result.length > 0;
+  }
+
+  async deleteAllDocumentSharesForDocument(documentId: string): Promise<number> {
+    const result = await db.delete(documentSharesTable).where(
+      eq(documentSharesTable.documentId, documentId)
+    ).returning();
+    return result.length;
   }
 
   async getCompanyScopedDocuments(companyId: string, module?: ModuleType, includeArchived = false): Promise<Document[]> {

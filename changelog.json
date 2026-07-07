@@ -10772,6 +10772,13 @@
           "message": "Fixed: company/group documents with no site shares now appear in the Documents area",
           "category": "bug",
           "createdAt": "2026-07-07T12:38:42.264Z"
+        },
+        {
+          "id": "482f0ca6-97fe-459b-a4e6-72bbbe4512ab",
+          "patch": 25,
+          "message": "Privileged users can move a document to a different scope level (site, company, or group)",
+          "category": "feature",
+          "createdAt": "2026-07-07T14:11:01.028Z"
         }
       ],
       "publishedPatch": 24,
