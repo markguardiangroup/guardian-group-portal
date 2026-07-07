@@ -11017,6 +11017,13 @@
           "message": "Fixed: bundle index CSV now opens correctly in Excel with proper character encoding",
           "category": "bug",
           "createdAt": "2026-07-07T22:57:07.778Z"
+        },
+        {
+          "id": "8cd09d79-b86d-452a-9bfd-b60d082baa31",
+          "patch": 25,
+          "message": "Removed keyboard shortcut hint from Case Notes input",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T23:00:24.900Z"
         }
       ],
       "publishedPatch": 24,

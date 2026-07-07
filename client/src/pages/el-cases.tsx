@@ -2760,7 +2760,6 @@ function CaseDetailView({ id }: { id: string }) {
                       data-testid="input-new-note"
                     />
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter to save</span>
                       <Button
                         size="sm"
                         className="bg-pink-600 hover:bg-pink-700 text-white"
