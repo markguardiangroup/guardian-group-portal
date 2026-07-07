@@ -11024,6 +11024,13 @@
           "message": "Removed keyboard shortcut hint from Case Notes input",
           "category": "enhancement",
           "createdAt": "2026-07-07T23:00:24.900Z"
+        },
+        {
+          "id": "32bae028-985a-49f3-a745-7ffff533b9c8",
+          "patch": 25,
+          "message": "Case Notes: per-note client visibility toggle and Show all to client switch added",
+          "category": "feature",
+          "createdAt": "2026-07-07T23:12:17.156Z"
         }
       ],
       "publishedPatch": 24,

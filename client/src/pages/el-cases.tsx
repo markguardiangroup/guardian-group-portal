@@ -118,7 +118,9 @@ import {
   Link as LinkIcon,
   LayoutGrid,
   LayoutList,
+  EyeOff,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   DndContext,
   closestCenter,
@@ -2189,6 +2191,28 @@ function CaseDetailView({ id }: { id: string }) {
     },
   });
 
+  const toggleNoteVisibilityMutation = useMutation({
+    mutationFn: ({ noteId, visibleToClient }: { noteId: string; visibleToClient: boolean }) =>
+      apiRequest("PATCH", `/api/notes/${noteId}`, { visibleToClient }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "notes"] });
+    },
+    onError: (err) => {
+      toast({ title: "Failed to update visibility", description: String(err), variant: "destructive" });
+    },
+  });
+
+  const toggleShowAllNotesMutation = useMutation({
+    mutationFn: (notesVisibleToClient: boolean) =>
+      apiRequest("PATCH", `/api/cases/${id}/notes-show-all`, { notesVisibleToClient }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id] });
+    },
+    onError: (err) => {
+      toast({ title: "Failed to update notes visibility", description: String(err), variant: "destructive" });
+    },
+  });
+
   const [editingMilestone, setEditingMilestone] = useState<CaseMilestone | null>(null);
   const [showCompletedMilestones, setShowCompletedMilestones] = useState(false);
   const [completingMilestone, setCompletingMilestone] = useState<CaseMilestone | null>(null);
@@ -2636,7 +2660,13 @@ function CaseDetailView({ id }: { id: string }) {
                     <StickyNote className="h-5 w-5 text-pink-500 shrink-0" />
                     <div>
                       <CardTitle className="text-lg">Case Notes</CardTitle>
-                      <CardDescription className="text-xs mt-0.5">Internal — not visible to clients</CardDescription>
+                      <CardDescription className="text-xs mt-0.5">
+                        {caseData?.notesVisibleToClient
+                          ? "All notes visible to client"
+                          : caseNotes.some(n => n.visibleToClient)
+                          ? "Some notes visible to client"
+                          : "Not visible to clients"}
+                      </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -2645,6 +2675,19 @@ function CaseDetailView({ id }: { id: string }) {
                         {caseNotes.length} {caseNotes.length === 1 ? "note" : "notes"}
                       </Badge>
                     )}
+                    {/* Show all to client toggle — stop propagation so it doesn't collapse the card */}
+                    <div
+                      className="flex items-center gap-1.5"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">Show all to client</span>
+                      <Switch
+                        checked={!!caseData?.notesVisibleToClient}
+                        onCheckedChange={val => toggleShowAllNotesMutation.mutate(val)}
+                        data-testid="switch-notes-show-all"
+                        className="scale-75"
+                      />
+                    </div>
                     {caseNotes.length === 0 && !caseNotesExpanded && (
                       <span className="text-xs text-muted-foreground">No notes yet</span>
                     )}
@@ -2663,6 +2706,7 @@ function CaseDetailView({ id }: { id: string }) {
                   )}
                   {caseNotes.map((note) => {
                     const isTicked = tickedNotes.has(note.id);
+                    const showAllToClient = !!caseData?.notesVisibleToClient;
                     return (
                     <div key={note.id} className={`flex items-start gap-2 group rounded-md transition-colors ${isTicked ? "bg-green-50/60 dark:bg-green-900/10" : ""}`} data-testid={`note-item-${note.id}`}>
                       <button
@@ -2719,27 +2763,42 @@ function CaseDetailView({ id }: { id: string }) {
                         )}
                       </div>
                       {editingNote?.id !== note.id && (
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
-                            data-testid={`button-edit-note-${note.id}`}
-                            title="Edit note"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 text-destructive hover:text-destructive"
-                            onClick={() => setNoteToDelete(note)}
-                            data-testid={`button-delete-note-${note.id}`}
-                            title="Delete note"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                        <div className="flex gap-1 shrink-0">
+                          {/* Per-note client visibility toggle — hidden when "show all" is on */}
+                          {!showAllToClient && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={`h-6 w-6 transition-colors ${note.visibleToClient ? "text-pink-600 hover:text-pink-700" : "text-muted-foreground/40 hover:text-muted-foreground"}`}
+                              onClick={() => toggleNoteVisibilityMutation.mutate({ noteId: note.id, visibleToClient: !note.visibleToClient })}
+                              data-testid={`button-note-visibility-${note.id}`}
+                              title={note.visibleToClient ? "Visible to client — click to hide" : "Hidden from client — click to show"}
+                            >
+                              {note.visibleToClient ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                            </Button>
+                          )}
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => { setEditingNote(note); setEditNoteText(note.content); }}
+                              data-testid={`button-edit-note-${note.id}`}
+                              title="Edit note"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                              onClick={() => setNoteToDelete(note)}
+                              data-testid={`button-delete-note-${note.id}`}
+                              title="Delete note"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2771,6 +2830,48 @@ function CaseDetailView({ id }: { id: string }) {
                       </Button>
                     </div>
                   </div>
+                </CardContent>
+              )}
+            </Card>
+          )}
+
+          {/* ── Case Notes (client view) ──────────────────────────────────── */}
+          {isClientUser && caseNotes.length > 0 && (
+            <Card>
+              <button
+                className="w-full text-left"
+                onClick={() => setCaseNotesExpanded(v => !v)}
+                data-testid="button-toggle-case-notes-client"
+              >
+                <CardHeader className={`flex flex-row items-center justify-between gap-4 ${caseNotesExpanded ? "border-b pb-4" : "pb-4"}`}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <StickyNote className="h-5 w-5 text-pink-500 shrink-0" />
+                    <CardTitle className="text-lg">Case Notes</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300 border-0 font-semibold tabular-nums">
+                      {caseNotes.length} {caseNotes.length === 1 ? "note" : "notes"}
+                    </Badge>
+                    {caseNotesExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardHeader>
+              </button>
+              {caseNotesExpanded && (
+                <CardContent className="pt-4 space-y-3">
+                  {caseNotes.map((note) => (
+                    <div key={note.id} className="flex items-start gap-2 rounded-md" data-testid={`client-note-item-${note.id}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {note.createdByName} · {format(new Date(note.createdAt), "d MMM yyyy")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               )}
             </Card>

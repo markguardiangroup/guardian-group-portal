@@ -15471,7 +15471,8 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (!hasCaseAdvocatePermission(user)) {
+      const isClient = user.role === "client";
+      if (!isClient && !hasCaseAdvocatePermission(user)) {
         return res.status(403).json({ error: "Case Advocate permission required" });
       }
 
@@ -15484,7 +15485,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized to access confidential case notes" });
       }
 
-      const notes = await storage.getCaseNotes(req.params.id);
+      const allNotes = await storage.getCaseNotes(req.params.id);
+      // Clients only see notes that are individually visible or the case "show all" flag is on
+      const notes = isClient
+        ? allNotes.filter(n => notesCase.notesVisibleToClient || n.visibleToClient)
+        : allNotes;
       const allUsers = await storage.getAllUsers();
       const userMap = Object.fromEntries(allUsers.map(u => [u.id, u.fullName]));
       const enriched = notes.map(n => ({ ...n, createdByName: userMap[n.createdBy] ?? "Unknown" }));
@@ -15492,6 +15497,28 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get case notes error:", error);
       res.status(500).json({ error: "Failed to get case notes" });
+    }
+  });
+
+  app.patch("/api/cases/:id/notes-show-all", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role === "client") return res.status(403).json({ error: "Clients cannot change note visibility" });
+      if (!hasCaseAdvocatePermission(user)) return res.status(403).json({ error: "Case Advocate permission required" });
+
+      const targetCase = await storage.getCase(req.params.id);
+      if (!targetCase) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, targetCase.siteId))) return res.status(403).json({ error: "Not authorized" });
+
+      const { notesVisibleToClient } = req.body;
+      if (typeof notesVisibleToClient !== "boolean") return res.status(400).json({ error: "notesVisibleToClient must be a boolean" });
+
+      const updated = await storage.updateCase(req.params.id, { notesVisibleToClient });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update notes visibility error:", error);
+      res.status(500).json({ error: "Failed to update notes visibility" });
     }
   });
 
@@ -15546,14 +15573,23 @@ export async function registerRoutes(
       if (!hasCaseAdvocatePermission(user)) {
         return res.status(403).json({ error: "Not authorized" });
       }
-      if (existing.createdBy !== user.id && user.role !== "developer") {
-        return res.status(403).json({ error: "You can only edit your own notes" });
+      const { content, visibleToClient } = req.body;
+
+      // Toggling client visibility is allowed for any staff with site access
+      // Editing content still requires authorship (or developer)
+      if (content !== undefined) {
+        if (existing.createdBy !== user.id && user.role !== "developer") {
+          return res.status(403).json({ error: "You can only edit your own notes" });
+        }
+        if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
       }
 
-      const { content } = req.body;
-      if (!content?.trim()) return res.status(400).json({ error: "Content is required" });
+      const updates: Record<string, unknown> = {};
+      if (content !== undefined) updates.content = content.trim();
+      if (typeof visibleToClient === "boolean") updates.visibleToClient = visibleToClient;
+      if (Object.keys(updates).length === 0) return res.status(400).json({ error: "Nothing to update" });
 
-      const note = await storage.updateCaseNote(req.params.id, { content: content.trim() });
+      const note = await storage.updateCaseNote(req.params.id, updates as Parameters<typeof storage.updateCaseNote>[1]);
       res.json(note);
     } catch (error) {
       console.error("Update case note error:", error);
