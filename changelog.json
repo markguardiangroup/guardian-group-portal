@@ -10888,7 +10888,7 @@
         {
           "id": "a3c7e1b9-table-folder-column-site-docs-2026",
           "patch": 25,
-          "message": "Fixed: table view folder column now shows folder name for all filed documents",
+          "message": "Fixed: table view folder column now shows folder name in all site views including All Sites",
           "category": "bug",
           "createdAt": "2026-07-07T20:33:00.000Z"
         }

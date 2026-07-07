@@ -4602,19 +4602,20 @@ export async function registerRoutes(
         companyReqCacheModule.set(companyId, await storage.getEffectiveCompanyRequiredTemplateIds(companyId));
       }));
       
-      // Pre-resolve folderTemplateId for site-scoped docs so the table-view
-      // FOLDER column can show the folder name after drag-and-drop assignment.
+      // Pre-resolve folder info for site-scoped docs so the table-view FOLDER
+      // column can show the folder name regardless of view scope (site or all-sites).
       const siteScopedDocs = allDocuments.filter(d => d.siteId != null);
       const siteFolderIds = Array.from(new Set(
         siteScopedDocs.map(d => d.folderId).filter((v): v is string => !!v)
       ));
-      const siteFolderTemplateMap = new Map<string, string | null>();
+      // Maps folderId → { name, templateId }
+      const siteFolderInfoMap = new Map<string, { name: string; templateId: string | null }>();
       if (siteFolderIds.length > 0) {
         const siteFolderRows = await Promise.all(
           siteFolderIds.map(fid => storage.getDocumentFolder(fid))
         );
         for (const f of siteFolderRows) {
-          if (f) siteFolderTemplateMap.set(f.id, f.templateId ?? null);
+          if (f) siteFolderInfoMap.set(f.id, { name: f.name, templateId: f.templateId ?? null });
         }
       }
 
@@ -4630,11 +4631,13 @@ export async function registerRoutes(
           const isRequiredViaCompanyTemplate = companyId && doc.templateId
             ? (companyReqCacheModule.get(companyId)?.has(doc.templateId) ?? false)
             : false;
+          const folderInfo = doc.folderId ? siteFolderInfoMap.get(doc.folderId) : undefined;
           return {
             ...doc,
             isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate,
             renewalPeriodMonths: doc.renewalPeriodMonths ?? docTemplate?.renewalPeriodMonths ?? null,
-            folderTemplateId: doc.folderId ? (siteFolderTemplateMap.get(doc.folderId) ?? null) : null,
+            folderTemplateId: folderInfo?.templateId ?? null,
+            folderName: folderInfo?.name ?? null,
           };
         })
       );

@@ -1535,6 +1535,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
           break;
         case "folder": {
           const getFolderName = (d: any) =>
+            d.folderName ||
             (d.folderTemplateId && folderTemplateIdToName.get(d.folderTemplateId)) ||
             (d.folderId && folderPathMap.get(d.folderId)) ||
             (d.documentTypeId && docTypeToFolderName.get(d.documentTypeId)) ||
@@ -3101,6 +3102,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     <TableCell>
                       {(() => {
                         const name =
+                          (doc as any).folderName ||
                           ((doc as any).folderTemplateId && folderTemplateIdToName.get((doc as any).folderTemplateId)) ||
                           ((doc as any).folderId && folderPathMap.get((doc as any).folderId)) ||
                           ((doc as any).documentTypeId && docTypeToFolderName.get((doc as any).documentTypeId)) ||
