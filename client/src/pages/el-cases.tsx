@@ -1267,7 +1267,7 @@ function CreateCaseDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.entityId || !formData.siteId || !formData.caseName || (formData.caseType === "tribunal_claim" && !formData.responseDeadline)) {
+    if (!formData.entityId || !formData.siteId || !formData.caseName || formData.sources.length === 0 || (formData.caseType === "tribunal_claim" && !formData.responseDeadline)) {
       return;
     }
     onSubmit(formData);
@@ -1412,7 +1412,7 @@ function CreateCaseDialog({
             </div>
           )}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Source <span className="text-muted-foreground text-xs font-normal">(select all that apply)</span></label>
+            <label className="text-sm font-medium">Source <span className="text-destructive">*</span> <span className="text-muted-foreground text-xs font-normal">(select all that apply)</span></label>
             <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
               {availableSources.length === 0 && (
                 <p className="col-span-2 text-xs text-muted-foreground text-center py-2">No sources configured — add them in Developer → Sources</p>

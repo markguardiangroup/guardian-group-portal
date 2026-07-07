@@ -10905,6 +10905,13 @@
           "message": "Fixed: case creation now works for all case types including ACAS Conciliation",
           "category": "bug",
           "createdAt": "2026-07-07T21:30:00.000Z"
+        },
+        {
+          "id": "d5e6f7a8-source-mandatory-create-case-2026",
+          "patch": 25,
+          "message": "Source is now required when creating a new case",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T21:45:00.000Z"
         }
       ],
       "publishedPatch": 24,
