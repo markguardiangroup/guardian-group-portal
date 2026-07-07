@@ -1890,6 +1890,90 @@ function CaseDetailView({ id }: { id: string }) {
     }
   };
 
+  // Sensors for main-view DnD (distance constraint prevents accidental drags on button clicks)
+  const mainSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor),
+  );
+
+  // Ordered state for checklist items
+  const [checklistOrder, setChecklistOrder] = useState<string[]>([]);
+  useEffect(() => {
+    setChecklistOrder(prev => {
+      if (!checklistItems) return prev;
+      const serverIds = checklistItems.map(i => i.id);
+      if (prev.length === 0) return serverIds;
+      const prevFiltered = prev.filter(id => serverIds.includes(id));
+      const newIds = serverIds.filter(id => !prev.includes(id));
+      return [...prevFiltered, ...newIds];
+    });
+  }, [checklistItems]);
+
+  const orderedChecklistItems = useMemo(() => {
+    if (!checklistItems) return [];
+    const map = new Map(checklistItems.map(i => [i.id, i]));
+    return checklistOrder.map(id => map.get(id)).filter(Boolean) as typeof checklistItems;
+  }, [checklistItems, checklistOrder]);
+
+  // Ordered state for case documents
+  const [documentsOrder, setDocumentsOrder] = useState<string[]>([]);
+  useEffect(() => {
+    setDocumentsOrder(prev => {
+      if (!documents) return prev;
+      const serverIds = documents.map(d => d.id);
+      if (prev.length === 0) return serverIds;
+      const prevFiltered = prev.filter(id => serverIds.includes(id));
+      const newIds = serverIds.filter(id => !prev.includes(id));
+      return [...prevFiltered, ...newIds];
+    });
+  }, [documents]);
+
+  const orderedDocuments = useMemo(() => {
+    if (!documents) return [];
+    const map = new Map(documents.map(d => [d.id, d]));
+    return documentsOrder.map(id => map.get(id)).filter(Boolean) as typeof documents;
+  }, [documents, documentsOrder]);
+
+  // Reorder mutations
+  const reorderChecklistMutation = useMutation({
+    mutationFn: (orderedIds: string[]) =>
+      apiRequest("PATCH", `/api/cases/${id}/checklist/reorder`, { orderedIds }),
+    onError: () => toast({ title: "Failed to reorder", variant: "destructive" }),
+  });
+
+  const reorderDocsMutation = useMutation({
+    mutationFn: (orderedIds: string[]) =>
+      apiRequest("PATCH", `/api/cases/${id}/documents/reorder`, { orderedIds }),
+    onError: () => toast({ title: "Failed to reorder", variant: "destructive" }),
+  });
+
+  // Drag end handlers for main sections
+  const handleChecklistDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setChecklistOrder(prev => {
+        const oldIndex = prev.indexOf(String(active.id));
+        const newIndex = prev.indexOf(String(over.id));
+        const newOrder = arrayMove(prev, oldIndex, newIndex);
+        reorderChecklistMutation.mutate(newOrder);
+        return newOrder;
+      });
+    }
+  };
+
+  const handleDocsDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setDocumentsOrder(prev => {
+        const oldIndex = prev.indexOf(String(active.id));
+        const newIndex = prev.indexOf(String(over.id));
+        const newOrder = arrayMove(prev, oldIndex, newIndex);
+        reorderDocsMutation.mutate(newOrder);
+        return newOrder;
+      });
+    }
+  };
+
   const openNewBundleDialog = () => {
     setEditingBundle(null);
     setBundleName("");
@@ -2716,7 +2800,7 @@ function CaseDetailView({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="pt-4">
               {(() => {
-                const items = checklistItems ?? [];
+                const items = orderedChecklistItems;
                 const completedCount = items.filter(i => i.isCompleted).length;
                 const totalCount = items.length;
                 const progressPct = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
@@ -2732,13 +2816,15 @@ function CaseDetailView({ id }: { id: string }) {
                         <Progress value={progressPct} className="h-2" />
                       </div>
                     )}
-                    <div className="space-y-2">
+                    <DndContext sensors={mainSensors} collisionDetection={closestCenter} onDragEnd={handleChecklistDragEnd}>
+                      <SortableContext items={checklistOrder} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-2">
                       {items.length === 0 && (
                         <p className="text-center text-muted-foreground py-4">No essential documents listed yet</p>
                       )}
                       {items.map(item => (
+                        <SortableRow key={item.id} id={item.id} isStaff={user?.role !== "client"}>
                         <div
-                          key={item.id}
                           className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
                             item.isCompleted ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-card hover:bg-muted/30"
                           }`}
@@ -2851,8 +2937,11 @@ function CaseDetailView({ id }: { id: string }) {
                             </DropdownMenu>
                           )}
                         </div>
+                        </SortableRow>
                       ))}
-                    </div>
+                      </div>
+                      </SortableContext>
+                    </DndContext>
                   </>
                 );
               })()}
@@ -2891,12 +2980,15 @@ function CaseDetailView({ id }: { id: string }) {
               )}
             </CardHeader>
             <CardContent className="pt-4">
-              {documents && documents.length > 0 ? (
-                <div className="space-y-2">
-                  {documents.map((doc) => {
+              {orderedDocuments.length > 0 ? (
+                <DndContext sensors={mainSensors} collisionDetection={closestCenter} onDragEnd={handleDocsDragEnd}>
+                  <SortableContext items={documentsOrder} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                  {orderedDocuments.map((doc) => {
                     const linkedChecklistItem = (checklistItems ?? []).find(i => i.linkedDocumentId === doc.id);
                     return (
-                    <div key={doc.id} className="flex items-center gap-3 p-3 rounded-lg border hover-elevate">
+                    <SortableRow key={doc.id} id={doc.id} isStaff={user?.role !== "client"}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border hover-elevate">
                       <FileText className="h-5 w-5 text-pink-600 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{doc.title}</p>
@@ -2962,9 +3054,12 @@ function CaseDetailView({ id }: { id: string }) {
                         </Button>
                       )}
                     </div>
+                    </SortableRow>
                   );
                   })}
-                </div>
+                  </div>
+                  </SortableContext>
+                </DndContext>
               ) : (
                 <p className="text-center text-muted-foreground py-4">No documents uploaded yet</p>
               )}
@@ -4690,6 +4785,29 @@ function getBundleFileTypeLabel(mimeType?: string | null, fileName?: string | nu
     if (ext) return ext;
   }
   return "";
+}
+
+// Generic sortable row wrapper for main-view drag-and-drop reordering
+function SortableRow({ id, isStaff, children }: { id: string; isStaff: boolean; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+  return (
+    <div ref={setNodeRef} style={style} className={`relative group${isDragging ? " opacity-50 z-50" : ""}`}>
+      {isStaff && (
+        <button
+          type="button"
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 touch-none cursor-grab opacity-0 group-hover:opacity-40 hover:!opacity-80 active:cursor-grabbing z-10"
+          {...attributes}
+          {...listeners}
+          tabIndex={-1}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+      )}
+      <div className={isStaff ? "pl-5" : ""}>{children}</div>
+    </div>
+  );
 }
 
 // Sortable item for bundle document list

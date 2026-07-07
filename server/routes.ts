@@ -14351,6 +14351,34 @@ export async function registerRoutes(
     }
   });
 
+  // Reorder case documents (staff only)
+  app.patch("/api/cases/:id/documents/reorder", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ error: "orderedIds must be an array" });
+      }
+      await storage.reorderCaseDocuments(req.params.id, orderedIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reorder case documents error:", error);
+      res.status(500).json({ error: "Failed to reorder documents" });
+    }
+  });
+
   // Delete case document (admin/consultant only)
   app.delete("/api/cases/:caseId/documents/:docId", requireAuth, async (req, res) => {
     try {
@@ -14665,6 +14693,34 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get checklist error:", error);
       res.status(500).json({ error: "Failed to fetch checklist" });
+    }
+  });
+
+  // Reorder checklist items (staff only)
+  app.patch("/api/cases/:id/checklist/reorder", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator") {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      if (!hasCaseAdvocatePermission(user)) {
+        return res.status(403).json({ error: "Case Advocate permission required" });
+      }
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData) return res.status(404).json({ error: "Case not found" });
+      if (!(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds)) {
+        return res.status(400).json({ error: "orderedIds must be an array" });
+      }
+      await storage.reorderCaseDocumentChecklist(req.params.id, orderedIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Reorder checklist error:", error);
+      res.status(500).json({ error: "Failed to reorder checklist" });
     }
   });
 

@@ -10947,6 +10947,13 @@
           "message": "Template management (create, edit, delete items) now done inline via the Templates button on a case",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:50:00.000Z"
+        },
+        {
+          "id": "5f71dc32-9459-4bef-8259-54822f375c9b",
+          "patch": 25,
+          "message": "Staff can drag to reorder Essential Documents and Case Documents on case detail",
+          "category": "feature",
+          "createdAt": "2026-07-07T22:16:19.526Z"
         }
       ],
       "publishedPatch": 24,

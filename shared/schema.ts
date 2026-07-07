@@ -437,6 +437,7 @@ export const caseDocumentChecklist = pgTable("case_document_checklist", {
   linkedDocumentId: varchar("linked_document_id"),
   submissionDate: timestamp("submission_date"),
   linkedMilestoneId: varchar("linked_milestone_id"),
+  sortOrder: integer("sort_order").notNull().default(0),
   createdBy: varchar("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -835,6 +836,7 @@ export const documents = pgTable("documents", {
   autoFinalApproval: boolean("auto_final_approval").notNull().default(false), // When true, document auto-approves on client sign-off
   requiresApproval: boolean("requires_approval").notNull().default(true), // Does this document need client approval workflow? Overridable per-document (defaults from template/upload choice)
   documentDate: timestamp("document_date"), // Optional user-entered date the document itself relates to (e.g. a case document's date), distinct from createdAt/uploadedAt
+  sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

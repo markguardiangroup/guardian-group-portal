@@ -307,6 +307,7 @@ export interface IStorage {
   archiveCase(id: string): Promise<Case | undefined>;
   unarchiveCase(id: string): Promise<Case | undefined>;
   getCaseDocuments(caseId: string): Promise<Document[]>;
+  reorderCaseDocuments(caseId: string, orderedIds: string[]): Promise<void>;
   
   // Case Milestones
   getCaseMilestones(caseId: string): Promise<CaseMilestone[]>;
@@ -318,6 +319,7 @@ export interface IStorage {
 
   // Case Document Checklist
   getCaseDocumentChecklist(caseId: string): Promise<CaseDocumentChecklist[]>;
+  reorderCaseDocumentChecklist(caseId: string, orderedIds: string[]): Promise<void>;
   getCaseDocumentChecklistItem(id: string): Promise<CaseDocumentChecklist | undefined>;
   createCaseDocumentChecklistItem(item: InsertCaseDocumentChecklist): Promise<CaseDocumentChecklist>;
   updateCaseDocumentChecklistItem(id: string, updates: Partial<CaseDocumentChecklist>): Promise<CaseDocumentChecklist | undefined>;
@@ -2953,8 +2955,18 @@ export class MemStorage implements IStorage {
   async getCaseDocuments(caseId: string): Promise<Document[]> {
     const docs = await db.select().from(documentsTable)
       .where(and(eq(documentsTable.caseId, caseId), eq(documentsTable.isArchived, false)))
-      .orderBy(desc(documentsTable.createdAt));
+      .orderBy(asc(documentsTable.sortOrder), desc(documentsTable.createdAt));
     return docs;
+  }
+
+  async reorderCaseDocuments(caseId: string, orderedIds: string[]): Promise<void> {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        db.update(documentsTable)
+          .set({ sortOrder: index })
+          .where(and(eq(documentsTable.id, id), eq(documentsTable.caseId, caseId)))
+      )
+    );
   }
 
   // Case Milestones - Database backed
@@ -3007,7 +3019,17 @@ export class MemStorage implements IStorage {
   async getCaseDocumentChecklist(caseId: string): Promise<CaseDocumentChecklist[]> {
     return db.select().from(caseDocumentChecklistTable)
       .where(eq(caseDocumentChecklistTable.caseId, caseId))
-      .orderBy(caseDocumentChecklistTable.createdAt);
+      .orderBy(asc(caseDocumentChecklistTable.sortOrder), asc(caseDocumentChecklistTable.createdAt));
+  }
+
+  async reorderCaseDocumentChecklist(caseId: string, orderedIds: string[]): Promise<void> {
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        db.update(caseDocumentChecklistTable)
+          .set({ sortOrder: index })
+          .where(and(eq(caseDocumentChecklistTable.id, id), eq(caseDocumentChecklistTable.caseId, caseId)))
+      )
+    );
   }
 
   async getCaseDocumentChecklistItem(id: string): Promise<CaseDocumentChecklist | undefined> {
