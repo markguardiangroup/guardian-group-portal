@@ -1215,6 +1215,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
       apiRequest("PATCH", `/api/documents/${docId}/move-folder`, { templateFolderId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [hierarchyUrlRef.current] });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
       toast({ title: "Document moved" });
     },
     onError: (err: any) => {
