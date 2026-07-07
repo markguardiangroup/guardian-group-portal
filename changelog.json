@@ -10821,6 +10821,13 @@
           "message": "Fixed: Move Document dialog now correctly describes group level as group owner only",
           "category": "bug",
           "createdAt": "2026-07-07T16:06:30.626Z"
+        },
+        {
+          "id": "b3d5e7a9-transfer-folder-preserve-2026",
+          "patch": 25,
+          "message": "Fixed: moved documents now land in the matching folder at the new scope level",
+          "category": "bug",
+          "createdAt": "2026-07-07T16:09:21.427Z"
         }
       ],
       "publishedPatch": 24,

@@ -2205,11 +2205,47 @@ export class MemStorage implements IStorage {
     const { documentId, targetScope, targetEntityId, targetSiteId,
       auditUserId, auditUserName, auditModule, auditDetails, auditEntityId } = params;
     return await db.transaction(async (tx) => {
+      // 0. Resolve the destination folderId by matching the source folder at the target scope.
+      //    Read the current document inside the transaction to get folderId.
+      const [currentDoc] = await tx.select().from(documentsTable).where(eq(documentsTable.id, documentId));
+      if (!currentDoc) throw new Error("Document not found during transfer");
+      let resolvedFolderId: string | null = currentDoc.folderId ?? null;
+      if (resolvedFolderId) {
+        // Load source folder to get its templateId and name for matching.
+        const [srcFolder] = await tx.select().from(documentFoldersTable)
+          .where(eq(documentFoldersTable.id, resolvedFolderId));
+        resolvedFolderId = null; // default to unfiled unless we find a match
+        if (srcFolder) {
+          // Try to find a folder at the target scope/entity with the same templateId.
+          // For site scope: siteId matches; for company/group: scope+entityId match.
+          let candidates;
+          if (targetScope === "site" && targetSiteId) {
+            candidates = await tx.select().from(documentFoldersTable)
+              .where(and(
+                eq(documentFoldersTable.siteId, targetSiteId),
+                eq(documentFoldersTable.module, srcFolder.module),
+              ));
+          } else {
+            candidates = await tx.select().from(documentFoldersTable)
+              .where(and(
+                eq(documentFoldersTable.scope, targetScope),
+                eq(documentFoldersTable.entityId, targetEntityId),
+                eq(documentFoldersTable.module, srcFolder.module),
+              ));
+          }
+          // First preference: same templateId; second preference: same name.
+          const byTemplate = srcFolder.templateId
+            ? candidates.find(f => f.templateId === srcFolder.templateId)
+            : null;
+          const byName = candidates.find(f => f.name === srcFolder.name);
+          resolvedFolderId = (byTemplate ?? byName)?.id ?? null;
+        }
+      }
       // 1. Strip all share records
       await tx.delete(documentSharesTable).where(eq(documentSharesTable.documentId, documentId));
-      // 2. Update scope/entityId/siteId
+      // 2. Update scope/entityId/siteId/folderId
       const [updatedDoc] = await tx.update(documentsTable)
-        .set({ scope: targetScope as any, entityId: targetEntityId, siteId: targetSiteId, updatedAt: new Date() })
+        .set({ scope: targetScope as any, entityId: targetEntityId, siteId: targetSiteId, folderId: resolvedFolderId, updatedAt: new Date() })
         .where(eq(documentsTable.id, documentId))
         .returning();
       if (!updatedDoc) throw new Error("Document not found during transfer");
