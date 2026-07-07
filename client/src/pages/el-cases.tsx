@@ -2118,6 +2118,7 @@ function CaseDetailView({ id }: { id: string }) {
   const completedMilestones = milestones?.filter(m => m.isCompleted).length || 0;
   const totalMilestones = milestones?.length || 0;
   const milestoneProgress = totalMilestones > 0 ? (completedMilestones / totalMilestones) * 100 : 0;
+  const responseDeadlineMilestone = milestones?.find(m => m.isResponseDeadline);
 
   const INITIAL_DISPLAY_COUNT = 3;
   const displayedLogs = showAllAuditLogs ? auditLogs : auditLogs?.slice(0, INITIAL_DISPLAY_COUNT);
@@ -2498,12 +2499,14 @@ function CaseDetailView({ id }: { id: string }) {
                   {caseData.responseDeadline && caseData.caseType === "tribunal_claim" && (
                     <div>
                       <p className="text-xs text-muted-foreground">ET3 Response Deadline</p>
-                      <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${isPast(new Date(caseData.responseDeadline)) ? "text-red-600" : ""}`}>
-                        <Clock className="h-4 w-4" />
+                      <p className={`mt-0.5 flex items-center gap-1.5 text-sm ${responseDeadlineMilestone?.isCompleted ? "text-green-600" : isPast(new Date(caseData.responseDeadline)) ? "text-red-600" : ""}`}>
+                        {responseDeadlineMilestone?.isCompleted ? <CheckCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                         {format(new Date(caseData.responseDeadline), "d MMM yyyy")}
-                        {isPast(new Date(caseData.responseDeadline)) && (
+                        {responseDeadlineMilestone?.isCompleted ? (
+                          <Badge className="ml-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-0">Responded</Badge>
+                        ) : isPast(new Date(caseData.responseDeadline)) ? (
                           <Badge variant="destructive" className="ml-1">Overdue</Badge>
-                        )}
+                        ) : null}
                       </p>
                     </div>
                   )}

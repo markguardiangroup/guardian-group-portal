@@ -10926,6 +10926,13 @@
           "message": "Create Case form no longer closes when clicking outside it",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:05:00.000Z"
+        },
+        {
+          "id": "a1b2c3d4-et3-responded-badge-top-card-2026",
+          "patch": 25,
+          "message": "ET3 Response Deadline now shows 'Responded' once the ET3 form is submitted",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:15:00.000Z"
         }
       ],
       "publishedPatch": 24,
