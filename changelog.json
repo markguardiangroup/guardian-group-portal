@@ -10870,6 +10870,13 @@
           "message": "Fixed: dragging documents to folders now works even when folders have not been provisioned yet",
           "category": "bug",
           "createdAt": "2026-07-07T19:01:32.118Z"
+        },
+        {
+          "id": "e1c5f3a7-drag-drop-folder-assignment-2026",
+          "patch": 25,
+          "message": "Drag and drop folder assignment now works in module document views",
+          "category": "feature",
+          "createdAt": "2026-07-07T19:56:00.000Z"
         }
       ],
       "publishedPatch": 24,

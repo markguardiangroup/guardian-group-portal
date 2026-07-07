@@ -6969,7 +6969,6 @@ export async function registerRoutes(
   // folder exists for that template+site yet, one is automatically created.
   // Pass templateFolderId: null to move to "Unfiled".
   app.patch("/api/documents/:id/move-folder", requireAuth, async (req, res) => {
-    console.log("[move-folder] hit — id:", req.params.id, "body:", JSON.stringify(req.body));
     try {
       const user = await getSessionUser(req);
       if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
