@@ -452,6 +452,37 @@ export const insertCaseDocumentChecklistSchema = createInsertSchema(caseDocument
 export type InsertCaseDocumentChecklist = z.infer<typeof insertCaseDocumentChecklistSchema>;
 export type CaseDocumentChecklist = typeof caseDocumentChecklist.$inferSelect;
 
+// Case Checklist Templates (reusable named lists that can be applied to a case)
+export const caseChecklistTemplates = pgTable("case_checklist_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  notes: text("notes"),
+  createdBy: varchar("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCaseChecklistTemplateSchema = createInsertSchema(caseChecklistTemplates).omit({
+  id: true, createdAt: true, updatedAt: true,
+});
+export type InsertCaseChecklistTemplate = z.infer<typeof insertCaseChecklistTemplateSchema>;
+export type CaseChecklistTemplate = typeof caseChecklistTemplates.$inferSelect;
+
+export const caseChecklistTemplateItems = pgTable("case_checklist_template_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCaseChecklistTemplateItemSchema = createInsertSchema(caseChecklistTemplateItems).omit({
+  id: true, createdAt: true,
+});
+export type InsertCaseChecklistTemplateItem = z.infer<typeof insertCaseChecklistTemplateItemSchema>;
+export type CaseChecklistTemplateItem = typeof caseChecklistTemplateItems.$inferSelect;
+
 // Case Notes
 export const caseNotes = pgTable("case_notes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

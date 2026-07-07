@@ -117,6 +117,10 @@ import {
   cases as casesTable,
   caseMilestones as caseMilestonesTable,
   caseDocumentChecklist as caseDocumentChecklistTable,
+  caseChecklistTemplates as caseChecklistTemplatesTable,
+  caseChecklistTemplateItems as caseChecklistTemplateItemsTable,
+  type CaseChecklistTemplate, type InsertCaseChecklistTemplate,
+  type CaseChecklistTemplateItem, type InsertCaseChecklistTemplateItem,
   caseNotes as caseNotesTable,
   incidents as incidentsTable,
   incidentMilestones as incidentMilestonesTable,
@@ -318,6 +322,17 @@ export interface IStorage {
   createCaseDocumentChecklistItem(item: InsertCaseDocumentChecklist): Promise<CaseDocumentChecklist>;
   updateCaseDocumentChecklistItem(id: string, updates: Partial<CaseDocumentChecklist>): Promise<CaseDocumentChecklist | undefined>;
   deleteCaseDocumentChecklistItem(id: string): Promise<void>;
+
+  // Case Checklist Templates
+  getCaseChecklistTemplates(): Promise<CaseChecklistTemplate[]>;
+  getCaseChecklistTemplate(id: string): Promise<CaseChecklistTemplate | undefined>;
+  createCaseChecklistTemplate(data: InsertCaseChecklistTemplate): Promise<CaseChecklistTemplate>;
+  updateCaseChecklistTemplate(id: string, updates: Partial<CaseChecklistTemplate>): Promise<CaseChecklistTemplate | undefined>;
+  deleteCaseChecklistTemplate(id: string): Promise<void>;
+  getCaseChecklistTemplateItems(templateId: string): Promise<CaseChecklistTemplateItem[]>;
+  createCaseChecklistTemplateItem(item: InsertCaseChecklistTemplateItem): Promise<CaseChecklistTemplateItem>;
+  updateCaseChecklistTemplateItem(id: string, updates: Partial<CaseChecklistTemplateItem>): Promise<CaseChecklistTemplateItem | undefined>;
+  deleteCaseChecklistTemplateItem(id: string): Promise<void>;
 
   // Case Bundles
   getCaseBundles(caseId: string): Promise<CaseBundle[]>;
@@ -3019,6 +3034,57 @@ export class MemStorage implements IStorage {
 
   async deleteCaseDocumentChecklistItem(id: string): Promise<void> {
     await db.delete(caseDocumentChecklistTable).where(eq(caseDocumentChecklistTable.id, id));
+  }
+
+  // Case Checklist Templates
+  async getCaseChecklistTemplates(): Promise<CaseChecklistTemplate[]> {
+    return db.select().from(caseChecklistTemplatesTable).orderBy(caseChecklistTemplatesTable.name);
+  }
+
+  async getCaseChecklistTemplate(id: string): Promise<CaseChecklistTemplate | undefined> {
+    const [result] = await db.select().from(caseChecklistTemplatesTable).where(eq(caseChecklistTemplatesTable.id, id));
+    return result;
+  }
+
+  async createCaseChecklistTemplate(data: InsertCaseChecklistTemplate): Promise<CaseChecklistTemplate> {
+    const [result] = await db.insert(caseChecklistTemplatesTable).values(data).returning();
+    return result;
+  }
+
+  async updateCaseChecklistTemplate(id: string, updates: Partial<CaseChecklistTemplate>): Promise<CaseChecklistTemplate | undefined> {
+    const [result] = await db.update(caseChecklistTemplatesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(caseChecklistTemplatesTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCaseChecklistTemplate(id: string): Promise<void> {
+    await db.delete(caseChecklistTemplateItemsTable).where(eq(caseChecklistTemplateItemsTable.templateId, id));
+    await db.delete(caseChecklistTemplatesTable).where(eq(caseChecklistTemplatesTable.id, id));
+  }
+
+  async getCaseChecklistTemplateItems(templateId: string): Promise<CaseChecklistTemplateItem[]> {
+    return db.select().from(caseChecklistTemplateItemsTable)
+      .where(eq(caseChecklistTemplateItemsTable.templateId, templateId))
+      .orderBy(caseChecklistTemplateItemsTable.sortOrder, caseChecklistTemplateItemsTable.createdAt);
+  }
+
+  async createCaseChecklistTemplateItem(item: InsertCaseChecklistTemplateItem): Promise<CaseChecklistTemplateItem> {
+    const [result] = await db.insert(caseChecklistTemplateItemsTable).values(item).returning();
+    return result;
+  }
+
+  async updateCaseChecklistTemplateItem(id: string, updates: Partial<CaseChecklistTemplateItem>): Promise<CaseChecklistTemplateItem | undefined> {
+    const [result] = await db.update(caseChecklistTemplateItemsTable)
+      .set(updates)
+      .where(eq(caseChecklistTemplateItemsTable.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteCaseChecklistTemplateItem(id: string): Promise<void> {
+    await db.delete(caseChecklistTemplateItemsTable).where(eq(caseChecklistTemplateItemsTable.id, id));
   }
 
   // Case Bundles

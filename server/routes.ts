@@ -14869,6 +14869,137 @@ export async function registerRoutes(
     }
   });
 
+  // ── Case Checklist Templates ──────────────────────────────────────────────
+
+  app.get("/api/case-checklist-templates", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const templates = await storage.getCaseChecklistTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch templates" });
+    }
+  });
+
+  app.post("/api/case-checklist-templates", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const { name, notes } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: "Name is required" });
+      const template = await storage.createCaseChecklistTemplate({ name: name.trim(), notes: notes ?? null, createdBy: user.id });
+      res.status(201).json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create template" });
+    }
+  });
+
+  app.patch("/api/case-checklist-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const template = await storage.updateCaseChecklistTemplate(req.params.id, { name: req.body.name, notes: req.body.notes ?? null });
+      if (!template) return res.status(404).json({ error: "Template not found" });
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update template" });
+    }
+  });
+
+  app.delete("/api/case-checklist-templates/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      await storage.deleteCaseChecklistTemplate(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete template" });
+    }
+  });
+
+  app.get("/api/case-checklist-templates/:id/items", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const items = await storage.getCaseChecklistTemplateItems(req.params.id);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch template items" });
+    }
+  });
+
+  app.post("/api/case-checklist-templates/:id/items", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const { title, description, sortOrder } = req.body;
+      if (!title?.trim()) return res.status(400).json({ error: "Title is required" });
+      const item = await storage.createCaseChecklistTemplateItem({ templateId: req.params.id, title: title.trim(), description: description ?? null, sortOrder: sortOrder ?? 0 });
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create template item" });
+    }
+  });
+
+  app.patch("/api/case-checklist-template-items/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const item = await storage.updateCaseChecklistTemplateItem(req.params.id, { title: req.body.title, description: req.body.description ?? null, sortOrder: req.body.sortOrder });
+      if (!item) return res.status(404).json({ error: "Item not found" });
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update template item" });
+    }
+  });
+
+  app.delete("/api/case-checklist-template-items/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      await storage.deleteCaseChecklistTemplateItem(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete template item" });
+    }
+  });
+
+  // Apply a checklist template to a case (adds all template items to the case checklist)
+  app.post("/api/cases/:id/apply-checklist-template/:templateId", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      if (user.role === "client") return res.status(403).json({ error: "Not authorized" });
+      const caseData = await storage.getCase(req.params.id);
+      if (!caseData || !(await canUserAccessSite(user, caseData.siteId))) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      const items = await storage.getCaseChecklistTemplateItems(req.params.templateId);
+      const created = await Promise.all(
+        items.map(item => storage.createCaseDocumentChecklistItem({
+          caseId: caseData.id,
+          title: item.title,
+          description: item.description ?? undefined,
+          isCompleted: false,
+          createdBy: user.id,
+        }))
+      );
+      await emitSiteScoped("case-updated", caseData.siteId, caseData.entityId, { caseId: caseData.id });
+      res.json(created);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to apply template" });
+    }
+  });
+
   // ── Case Document Bundles ─────────────────────────────────────────────────
 
   // List bundles for a case

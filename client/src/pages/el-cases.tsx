@@ -136,7 +136,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { format, formatDistanceToNow, isPast, isFuture, differenceInDays } from "date-fns";
-import type { Case, CaseMilestone, CaseDocumentChecklist, CaseNote, CaseBundle, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
+import type { Case, CaseMilestone, CaseDocumentChecklist, CaseChecklistTemplate, CaseNote, CaseBundle, Document, AuditLog, CaseStatus, CaseType, SiteWithDetails, ComplianceSummary, Company, Site, User as UserType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
@@ -1735,6 +1735,21 @@ function CaseDetailView({ id }: { id: string }) {
   const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
   const [pendingDocumentDate, setPendingDocumentDate] = useState<string>("");
 
+  const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+
+  const applyTemplateMutation = useMutation({
+    mutationFn: (templateId: string) =>
+      apiRequest("POST", `/api/cases/${id}/apply-checklist-template/${templateId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "checklist"] });
+      setShowLoadTemplateDialog(false);
+      setSelectedTemplateId("");
+      toast({ title: "Template loaded", description: "Essential document items have been added to this case." });
+    },
+    onError: () => toast({ title: "Failed to load template", variant: "destructive" }),
+  });
+
   const [docToEdit, setDocToEdit] = useState<Document | null>(null);
   const [editDocTitle, setEditDocTitle] = useState("");
   const [editDocDate, setEditDocDate] = useState("");
@@ -2690,15 +2705,26 @@ function CaseDetailView({ id }: { id: string }) {
                 <CardDescription>Key documents required for this case</CardDescription>
               </div>
               {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
-                <Button
-                  size="sm"
-                  onClick={() => { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "" }); setShowChecklistDialog(true); }}
-                  className="bg-pink-600 hover:bg-pink-700"
-                  data-testid="button-add-checklist-item"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Item
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { setSelectedTemplateId(""); setShowLoadTemplateDialog(true); }}
+                    data-testid="button-load-template"
+                  >
+                    <ListChecks className="mr-2 h-4 w-4" />
+                    Load Template
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => { setEditingChecklistItem(null); setChecklistForm({ title: "", description: "" }); setShowChecklistDialog(true); }}
+                    className="bg-pink-600 hover:bg-pink-700"
+                    data-testid="button-add-checklist-item"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Item
+                  </Button>
+                </div>
               )}
             </CardHeader>
             <CardContent className="pt-4">
@@ -4099,6 +4125,16 @@ function CaseDetailView({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
+      {/* Load Template dialog */}
+      <LoadTemplateDialog
+        open={showLoadTemplateDialog}
+        selectedTemplateId={selectedTemplateId}
+        onSelectTemplate={setSelectedTemplateId}
+        onClose={() => { setShowLoadTemplateDialog(false); setSelectedTemplateId(""); }}
+        onApply={() => selectedTemplateId && applyTemplateMutation.mutate(selectedTemplateId)}
+        isPending={applyTemplateMutation.isPending}
+      />
+
       {/* Pre-upload essential document matching dialog */}
       <Dialog
         open={showEssentialDocDialog}
@@ -4733,6 +4769,95 @@ function SortableBundleItem({
         )}
       </div>
     </div>
+  );
+}
+
+function LoadTemplateDialog({
+  open, selectedTemplateId, onSelectTemplate, onClose, onApply, isPending,
+}: {
+  open: boolean;
+  selectedTemplateId: string;
+  onSelectTemplate: (id: string) => void;
+  onClose: () => void;
+  onApply: () => void;
+  isPending: boolean;
+}) {
+  const { data: templates = [], isLoading } = useQuery<CaseChecklistTemplate[]>({
+    queryKey: ["/api/case-checklist-templates"],
+    enabled: open,
+  });
+
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+
+  const { data: previewItems = [] } = useQuery({
+    queryKey: ["/api/case-checklist-templates", selectedTemplateId, "items"],
+    queryFn: () => fetch(`/api/case-checklist-templates/${selectedTemplateId}/items`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!selectedTemplateId,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent onInteractOutside={(e) => e.preventDefault()} className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-pink-600" />
+            Load Template
+          </DialogTitle>
+          <DialogDescription>
+            Choose a template to add its document items to this case's Essential Documents list.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {isLoading && <p className="text-sm text-muted-foreground">Loading templates…</p>}
+          {!isLoading && templates.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No templates found. Create templates via Employment Law → Checklist Templates.
+            </p>
+          )}
+          {!isLoading && templates.length > 0 && (
+            <Select value={selectedTemplateId} onValueChange={onSelectTemplate}>
+              <SelectTrigger data-testid="select-template">
+                <SelectValue placeholder="Select a template…" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {selectedTemplate?.notes && (
+            <p className="text-sm text-muted-foreground border-l-2 pl-3">{selectedTemplate.notes}</p>
+          )}
+          {selectedTemplateId && previewItems.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Items to be added ({previewItems.length})
+              </p>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {previewItems.map((item: { id: string; title: string; description?: string }) => (
+                  <div key={item.id} className="flex items-start gap-2 text-sm p-1.5 rounded bg-muted/40">
+                    <span className="mt-0.5 text-muted-foreground">•</span>
+                    <span>{item.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={onApply}
+            disabled={!selectedTemplateId || isPending}
+            className="bg-pink-600 hover:bg-pink-700"
+            data-testid="button-apply-template"
+          >
+            {isPending ? "Applying…" : "Add to Case"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -24,6 +24,7 @@ import {
   Compass,
   Briefcase,
   Cloud,
+  ListChecks,
   Award,
   Tag,
   Home,
@@ -87,7 +88,7 @@ const moduleNavItems: {
   module: ModuleType;
   noColor?: boolean;
   directLink?: boolean;
-  subItems: { title: string; url: string; icon?: LucideIcon; adminOnly?: boolean; clientOnly?: boolean }[];
+  subItems: { title: string; url: string; icon?: LucideIcon; adminOnly?: boolean; clientOnly?: boolean; staffOnly?: boolean }[];
 }[] = [
   {
     title: "Health & Safety",
@@ -125,6 +126,7 @@ const moduleNavItems: {
       { title: "Site Documents", url: "/employment-law/sites", icon: MapPin },
       { title: "Cases", url: "/employment-law/cases", icon: Briefcase },
       { title: "Cloud Share", url: "/employment-law/cloud-share", icon: Cloud },
+      { title: "Checklist Templates", url: "/employment-law/checklist-templates", icon: ListChecks, staffOnly: true },
     ],
   },
   {
@@ -361,6 +363,7 @@ function NavItemWithFlyout({
   const filteredSubItems = item.subItems.filter((subItem) => {
     if (subItem.adminOnly && user?.role === "client") return false;
     if (subItem.clientOnly && (user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator")) return false;
+    if (subItem.staffOnly && user?.role === "client") return false;
     return true;
   });
 

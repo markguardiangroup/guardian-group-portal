@@ -10933,6 +10933,13 @@
           "message": "ET3 Response Deadline now shows 'Responded' once the ET3 form is submitted",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:15:00.000Z"
+        },
+        {
+          "id": "b2c3d4e5-essential-doc-templates-2026",
+          "patch": 25,
+          "message": "Staff can create reusable Essential Document templates and load them into any case",
+          "category": "feature",
+          "createdAt": "2026-07-07T22:30:00.000Z"
         }
       ],
       "publishedPatch": 24,
