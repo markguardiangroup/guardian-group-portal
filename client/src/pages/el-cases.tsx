@@ -4252,7 +4252,7 @@ function CaseDetailView({ id }: { id: string }) {
                 <>
                   Uploading <span className="font-medium text-foreground">"{pendingFile.name.replace(/\.[^/.]+$/, "")}"</span>.{" "}
                   {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0
-                    ? "Select which essential document this satisfies, or upload without linking."
+                    ? "Select which essential document this satisfies, or upload it as a standalone case document."
                     : "Optionally set a document date."}
                 </>
               )}
@@ -4300,7 +4300,7 @@ function CaseDetailView({ id }: { id: string }) {
           </div>
           <div className="flex justify-between items-center pt-2 border-t gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => {
                 setShowEssentialDocDialog(false);
@@ -4308,7 +4308,7 @@ function CaseDetailView({ id }: { id: string }) {
               }}
               data-testid="button-upload-without-linking"
             >
-              {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 ? "Upload without linking" : "Cancel"}
+              {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 ? "Upload as Case Document" : "Cancel"}
             </Button>
             {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 ? (
               <Button

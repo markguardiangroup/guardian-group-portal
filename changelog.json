@@ -10968,6 +10968,13 @@
           "message": "Bundle dialog is wider and stays open when clicking outside",
           "category": "enhancement",
           "createdAt": "2026-07-07T22:29:51.843Z"
+        },
+        {
+          "id": "80c1e65b-fc01-44f1-8ce2-30906717a35a",
+          "patch": 25,
+          "message": "Upload dialog: renamed button to \"Upload as Case Document\" with improved wording",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:36:03.753Z"
         }
       ],
       "publishedPatch": 24,
