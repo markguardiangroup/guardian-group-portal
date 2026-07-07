@@ -10800,6 +10800,13 @@
           "message": "Fixed: shared document badges now show correctly in table view for all users",
           "category": "bug",
           "createdAt": "2026-07-07T15:30:00.000Z"
+        },
+        {
+          "id": "e3a1b2c4-group-docs-member-client-hidden-2026",
+          "patch": 25,
+          "message": "Fixed: member-company client users can no longer see group-level documents or the Group card",
+          "category": "bug",
+          "createdAt": "2026-07-07T15:55:43.943Z"
         }
       ],
       "publishedPatch": 24,

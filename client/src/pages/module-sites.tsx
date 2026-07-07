@@ -234,8 +234,9 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   });
   const companies = companiesResp?.companies ?? [];
 
-  // GO client users can see multiple companies and should get the company combobox
-  const isGoClient = user?.role === "client" && companies.length > 1;
+  // GO client users are those whose OWN company is the group owner (not member-company clients
+  // who merely belong to a group — those should not see the GROUP card or group documents).
+  const isGoClient = user?.role === "client" && companies.some(c => c.id === user?.companyId && c.isGroupOwner);
 
   // IDs of companies visible in the current staff-filtered site list
   const visibleCompanyIds = useMemo(() => new Set((sites ?? []).map(s => s.companyId)), [sites]);
@@ -560,7 +561,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                 </SelectContent>
               </Select>
             )}
-            {!isGoClient && groupOwners.length > 0 && (
+            {isPrivilegedUser && groupOwners.length > 0 && (
               <Select
                 value={selectedGroup}
                 onValueChange={(v) => {
@@ -727,8 +728,8 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
 
               return (
                 <>
-                  {/* Group card — group-scoped docs (only when a group is selected) */}
-                  {selectedGroup !== "all" && (
+                  {/* Group card — group-scoped docs (only when a group is selected, privileged or GO client only) */}
+                  {selectedGroup !== "all" && (isPrivilegedUser || isGoClient) && (
                   <Card
                     className={`overflow-hidden transition-all hover:shadow-md border-2 border-solid ${moduleBorderDashedColors[module]}`}
                     data-testid={`card-group-${selectedGroup}`}

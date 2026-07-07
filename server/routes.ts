@@ -2566,18 +2566,9 @@ export async function registerRoutes(
       // Origin consultant: has direct source overlap with the group-owner company
       const originConsultant = await isOriginConsultant();
       if (originConsultant) return true;
-      // Destination access: must have an explicit share to the user's company (client)
-      // or to a company the consultant is assigned to (consultant)
-      if (user.role === "client" && user.companyId) {
-        // Must be in a shared destination company AND have site-level access within it
-        const companyShare = shares.find(s => s.entityType === "company" && s.entityId === user.companyId);
-        if (!companyShare) return false;
-        const companySites = await storage.getSitesByCompanyId(user.companyId);
-        for (const site of companySites) {
-          if (await canUserAccessSite(user, site.id)) return true;
-        }
-        return false;
-      }
+      // Client users from member companies cannot access group-level documents.
+      // Only the group-owner company's own clients (already handled above) may read group docs.
+      if (user.role === "client") return false;
       // For standard consultants (non-pro): must be assigned to a site in one of the share-destination companies + source overlap
       if (user.role === "consultant" && user.id && !isProConsultant(user)) {
         const goEffectiveSources = await getEffectiveGoSources(entityId);
@@ -3191,7 +3182,9 @@ export async function registerRoutes(
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
           }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+          // Only admins/consultants see group-level docs when browsing a member company.
+          // Client users from member companies are restricted to their own company's docs.
+          if (user.role !== "client" && shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             const goCompany = companyMap.get(company.groupOwnerId);
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
@@ -3434,7 +3427,8 @@ export async function registerRoutes(
         } else if (doc.scope === "group" && doc.entityId === site.companyId) {
           if (shares.length > 0) { seenIds.add(doc.id); results.push(doc); }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+          // Client users from member companies cannot see group-level docs.
+          if (user.role !== "client" && shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             seenIds.add(doc.id); results.push(doc);
           }
         }
@@ -3704,7 +3698,8 @@ export async function registerRoutes(
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: company.name });
           }
         } else if (doc.scope === "group" && company.groupOwnerId && doc.entityId === company.groupOwnerId) {
-          if (shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
+          // Client users from member companies cannot see group-level docs.
+          if (user.role !== "client" && shares.some(s => s.entityType === "company" && s.entityId === site.companyId)) {
             const goCompany = companyMap.get(company.groupOwnerId);
             seenIds.add(doc.id);
             results.push({ ...doc, sharedScope: "group", sharedFromEntityName: goCompany?.name ?? null });
