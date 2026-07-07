@@ -749,7 +749,7 @@ const createCaseSchema = z.object({
   caseName: z.string().min(1, "Case name is required"),
   employeeName: z.string().min(1),
   employeeId: z.string().optional(),
-  caseType: z.enum(["disciplinary", "grievance", "tupe", "redundancy", "tribunal_claim", "settlement", "appeal", "investigation"]),
+  caseType: z.enum(["tribunal_claim", "acas_conciliation", "disciplinary", "grievance", "tupe", "redundancy", "settlement", "appeal", "investigation"]),
   description: z.string().optional(),
   isConfidential: z.boolean().optional(),
   sources: z.array(z.string()).optional(),

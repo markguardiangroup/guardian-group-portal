@@ -364,7 +364,7 @@ export type DocumentType = HSDocumentType | HRDocumentType | ELDocumentType | Tr
 export type CaseStatus = "open" | "under_investigation" | "hearing_scheduled" | "resolved" | "closed";
 
 // Case type for Employment Law
-export type CaseType = "tribunal_claim" | "acas_conciliation";
+export type CaseType = "tribunal_claim" | "acas_conciliation" | "disciplinary" | "grievance" | "tupe" | "redundancy" | "settlement" | "appeal" | "investigation";
 
 // Employment Law Cases (Individual files linked to specific people)
 export const cases = pgTable("cases", {

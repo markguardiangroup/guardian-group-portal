@@ -10902,7 +10902,7 @@
         {
           "id": "c4d5e6f7-create-case-acas-submit-fix-2026",
           "patch": 25,
-          "message": "Fixed: Create Case button now works when ACAS Conciliation type is selected",
+          "message": "Fixed: case creation now works for all case types including ACAS Conciliation",
           "category": "bug",
           "createdAt": "2026-07-07T21:30:00.000Z"
         }

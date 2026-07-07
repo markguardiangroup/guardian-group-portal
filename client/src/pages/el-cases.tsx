@@ -150,6 +150,13 @@ const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgCol
 const caseTypeConfig: Record<CaseType, { label: string; icon: typeof Briefcase }> = {
   tribunal_claim: { label: "Tribunal Case", icon: Scale },
   acas_conciliation: { label: "ACAS Conciliation", icon: Handshake },
+  disciplinary: { label: "Disciplinary", icon: Briefcase },
+  grievance: { label: "Grievance", icon: Briefcase },
+  tupe: { label: "TUPE", icon: Briefcase },
+  redundancy: { label: "Redundancy", icon: Briefcase },
+  settlement: { label: "Settlement", icon: Briefcase },
+  appeal: { label: "Appeal", icon: Briefcase },
+  investigation: { label: "Investigation", icon: Briefcase },
 };
 
 function CaseStatusBadge({ status }: { status: CaseStatus }) {
@@ -1360,6 +1367,13 @@ function CreateCaseDialog({
               <SelectContent>
                 <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
                 <SelectItem value="acas_conciliation">ACAS Conciliation</SelectItem>
+                <SelectItem value="disciplinary">Disciplinary</SelectItem>
+                <SelectItem value="grievance">Grievance</SelectItem>
+                <SelectItem value="tupe">TUPE</SelectItem>
+                <SelectItem value="redundancy">Redundancy</SelectItem>
+                <SelectItem value="settlement">Settlement</SelectItem>
+                <SelectItem value="appeal">Appeal</SelectItem>
+                <SelectItem value="investigation">Investigation</SelectItem>
               </SelectContent>
             </Select>
           </div>
