@@ -10954,6 +10954,13 @@
           "message": "Staff can drag to reorder Essential Documents and Case Documents on case detail",
           "category": "feature",
           "createdAt": "2026-07-07T22:16:19.526Z"
+        },
+        {
+          "id": "60d1e4ca-e57b-4fab-bb3d-fcf4f65edbc7",
+          "patch": 25,
+          "message": "Bundle creator now opens in the same order as the case view for both sections",
+          "category": "enhancement",
+          "createdAt": "2026-07-07T22:28:23.674Z"
         }
       ],
       "publishedPatch": 24,

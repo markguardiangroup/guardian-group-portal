@@ -1978,9 +1978,15 @@ function CaseDetailView({ id }: { id: string }) {
     setEditingBundle(null);
     setBundleName("");
     setBundleStartPageNumber("1");
-    const ids = linkedChecklistItems.map(item => item.id);
+    // Use ordered lists so bundle opens in the same order as the case view
+    const ids = orderedChecklistItems.filter(i => i.linkedDocumentId).map(i => i.id);
     setBundleItemOrder(ids);
-    setBundleDocOrder(unlinkedCaseDocuments.map(doc => doc.id));
+    const linkedDocIds = new Set(
+      (checklistItems ?? []).map(i => i.linkedDocumentId).filter(Boolean) as string[],
+    );
+    setBundleDocOrder(
+      orderedDocuments.filter(doc => doc.fileUrl && !linkedDocIds.has(doc.id)).map(doc => doc.id),
+    );
     setBundleCheckedIds(new Set(ids)); // all essential documents selected by default
     setShowBundleDialog(true);
   };
@@ -1989,16 +1995,22 @@ function CaseDetailView({ id }: { id: string }) {
     setEditingBundle(bundle);
     setBundleName(bundle.name);
     setBundleStartPageNumber(String(bundle.startPageNumber ?? 1));
-    const linkedIds = new Set(linkedChecklistItems.map(item => item.id));
+    // Saved IDs first (preserving bundle-specific order), then remaining in case order
+    const orderedLinkedItems = orderedChecklistItems.filter(i => i.linkedDocumentId);
+    const linkedIds = new Set(orderedLinkedItems.map(item => item.id));
     const savedIds = (bundle.checklistItemIds ?? []).filter(id => linkedIds.has(id));
     const savedIdsSet = new Set(savedIds);
-    const remainingIds = linkedChecklistItems.map(item => item.id).filter(id => !savedIdsSet.has(id));
+    const remainingIds = orderedLinkedItems.map(item => item.id).filter(id => !savedIdsSet.has(id));
     setBundleItemOrder([...savedIds, ...remainingIds]);
 
-    const docIds = new Set(unlinkedCaseDocuments.map(doc => doc.id));
+    const linkedDocIds = new Set(
+      (checklistItems ?? []).map(i => i.linkedDocumentId).filter(Boolean) as string[],
+    );
+    const orderedUnlinkedDocs = orderedDocuments.filter(doc => doc.fileUrl && !linkedDocIds.has(doc.id));
+    const docIds = new Set(orderedUnlinkedDocs.map(doc => doc.id));
     const savedDocIds = (bundle.documentIds ?? []).filter(docId => docIds.has(docId));
     const savedDocSet = new Set(savedDocIds);
-    const remainingDocIds = unlinkedCaseDocuments.map(doc => doc.id).filter(docId => !savedDocSet.has(docId));
+    const remainingDocIds = orderedUnlinkedDocs.map(doc => doc.id).filter(docId => !savedDocSet.has(docId));
     setBundleDocOrder([...savedDocIds, ...remainingDocIds]);
 
     setBundleCheckedIds(new Set([...savedIds, ...savedDocIds]));
