@@ -1736,19 +1736,6 @@ function CaseDetailView({ id }: { id: string }) {
   const [pendingDocumentDate, setPendingDocumentDate] = useState<string>("");
 
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-
-  const applyTemplateMutation = useMutation({
-    mutationFn: (templateId: string) =>
-      apiRequest("POST", `/api/cases/${id}/apply-checklist-template/${templateId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "checklist"] });
-      setShowLoadTemplateDialog(false);
-      setSelectedTemplateId("");
-      toast({ title: "Template loaded", description: "Essential document items have been added to this case." });
-    },
-    onError: () => toast({ title: "Failed to load template", variant: "destructive" }),
-  });
 
   const [docToEdit, setDocToEdit] = useState<Document | null>(null);
   const [editDocTitle, setEditDocTitle] = useState("");
@@ -2709,11 +2696,11 @@ function CaseDetailView({ id }: { id: string }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => { setSelectedTemplateId(""); setShowLoadTemplateDialog(true); }}
+                    onClick={() => setShowLoadTemplateDialog(true)}
                     data-testid="button-load-template"
                   >
                     <ListChecks className="mr-2 h-4 w-4" />
-                    Load Template
+                    Templates
                   </Button>
                   <Button
                     size="sm"
@@ -4125,14 +4112,12 @@ function CaseDetailView({ id }: { id: string }) {
         </DialogContent>
       </Dialog>
 
-      {/* Load Template dialog */}
-      <LoadTemplateDialog
+      {/* Templates management + load dialog */}
+      <TemplatesDialog
         open={showLoadTemplateDialog}
-        selectedTemplateId={selectedTemplateId}
-        onSelectTemplate={setSelectedTemplateId}
-        onClose={() => { setShowLoadTemplateDialog(false); setSelectedTemplateId(""); }}
-        onApply={() => selectedTemplateId && applyTemplateMutation.mutate(selectedTemplateId)}
-        isPending={applyTemplateMutation.isPending}
+        caseId={id}
+        onClose={() => setShowLoadTemplateDialog(false)}
+        onApplied={() => queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "checklist"] })}
       />
 
       {/* Pre-upload essential document matching dialog */}
@@ -4772,92 +4757,415 @@ function SortableBundleItem({
   );
 }
 
-function LoadTemplateDialog({
-  open, selectedTemplateId, onSelectTemplate, onClose, onApply, isPending,
+type TemplateView = "list" | "edit";
+
+function TemplatesDialog({
+  open, caseId, onClose, onApplied,
 }: {
   open: boolean;
-  selectedTemplateId: string;
-  onSelectTemplate: (id: string) => void;
+  caseId: string;
   onClose: () => void;
-  onApply: () => void;
-  isPending: boolean;
+  onApplied: () => void;
 }) {
+  const { toast } = useToast();
+  const [view, setView] = useState<TemplateView>("list");
+  const [editingTemplate, setEditingTemplate] = useState<CaseChecklistTemplate | null>(null);
+  const [templateForm, setTemplateForm] = useState({ name: "", notes: "" });
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [itemForm, setItemForm] = useState({ title: "", description: "" });
+  const [addingItemForId, setAddingItemForId] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<{ id: string; templateId: string; title: string; description: string } | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ type: "template"; id: string; name: string } | { type: "item"; id: string; templateId: string; name: string } | null>(null);
+  const [applyingId, setApplyingId] = useState<string | null>(null);
+
   const { data: templates = [], isLoading } = useQuery<CaseChecklistTemplate[]>({
     queryKey: ["/api/case-checklist-templates"],
     enabled: open,
   });
 
-  const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
+  function resetAndClose() {
+    setView("list");
+    setEditingTemplate(null);
+    setExpandedId(null);
+    setAddingItemForId(null);
+    setEditingItem(null);
+    onClose();
+  }
 
-  const { data: previewItems = [] } = useQuery({
-    queryKey: ["/api/case-checklist-templates", selectedTemplateId, "items"],
-    queryFn: () => fetch(`/api/case-checklist-templates/${selectedTemplateId}/items`, { credentials: "include" }).then(r => r.json()),
-    enabled: !!selectedTemplateId,
+  // ── Template mutations ────────────────────────────────────────────────────
+  const saveTemplate = useMutation({
+    mutationFn: () => editingTemplate
+      ? apiRequest("PATCH", `/api/case-checklist-templates/${editingTemplate.id}`, templateForm)
+      : apiRequest("POST", "/api/case-checklist-templates", templateForm),
+    onSuccess: async (res: any) => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/case-checklist-templates"] });
+      if (!editingTemplate) {
+        const created = await res.json();
+        setEditingTemplate(created);
+        setExpandedId(created.id);
+      }
+      setView("list");
+      setEditingTemplate(null);
+      toast({ title: editingTemplate ? "Template updated" : "Template created" });
+    },
+    onError: () => toast({ title: "Failed to save template", variant: "destructive" }),
   });
 
+  const deleteTemplate = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/case-checklist-templates/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/case-checklist-templates"] });
+      setConfirmDelete(null);
+      toast({ title: "Template deleted" });
+    },
+    onError: () => toast({ title: "Failed to delete template", variant: "destructive" }),
+  });
+
+  // ── Item mutations ────────────────────────────────────────────────────────
+  const saveItem = useMutation({
+    mutationFn: () => editingItem
+      ? apiRequest("PATCH", `/api/case-checklist-template-items/${editingItem.id}`, { title: itemForm.title, description: itemForm.description })
+      : apiRequest("POST", `/api/case-checklist-templates/${addingItemForId}/items`, { title: itemForm.title, description: itemForm.description }),
+    onSuccess: () => {
+      const tid = editingItem?.templateId ?? addingItemForId;
+      queryClient.invalidateQueries({ queryKey: ["/api/case-checklist-templates", tid, "items"] });
+      setAddingItemForId(null);
+      setEditingItem(null);
+      setItemForm({ title: "", description: "" });
+      toast({ title: editingItem ? "Item updated" : "Item added" });
+    },
+    onError: () => toast({ title: "Failed to save item", variant: "destructive" }),
+  });
+
+  const deleteItem = useMutation({
+    mutationFn: ({ id }: { id: string; templateId: string }) => apiRequest("DELETE", `/api/case-checklist-template-items/${id}`),
+    onSuccess: (_, { templateId }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/case-checklist-templates", templateId, "items"] });
+      setConfirmDelete(null);
+      toast({ title: "Item removed" });
+    },
+    onError: () => toast({ title: "Failed to remove item", variant: "destructive" }),
+  });
+
+  // ── Apply to case ─────────────────────────────────────────────────────────
+  const applyTemplate = useMutation({
+    mutationFn: (templateId: string) => apiRequest("POST", `/api/cases/${caseId}/apply-checklist-template/${templateId}`),
+    onSuccess: (_, templateId) => {
+      onApplied();
+      setApplyingId(null);
+      toast({ title: "Template loaded", description: "Document items added to this case." });
+    },
+    onError: () => { setApplyingId(null); toast({ title: "Failed to apply template", variant: "destructive" }); },
+  });
+
+  // ── Edit view ─────────────────────────────────────────────────────────────
+  if (view === "edit") {
+    return (
+      <Dialog open={open} onOpenChange={(o) => !o && resetAndClose()}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="max-w-lg max-h-[85vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-pink-600" />
+              {editingTemplate ? "Edit Template" : "New Template"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTemplate ? "Update the template name and notes." : "Give this template a name, then add document items to it."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Template Name <span className="text-destructive">*</span></label>
+              <Input
+                value={templateForm.name}
+                onChange={e => setTemplateForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. Tribunal Claim — Standard"
+                data-testid="input-template-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Notes <span className="text-muted-foreground text-xs">(optional)</span></label>
+              <Textarea
+                value={templateForm.notes}
+                onChange={e => setTemplateForm(p => ({ ...p, notes: e.target.value }))}
+                placeholder="When to use this template…"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter className="shrink-0 border-t pt-4">
+            <Button variant="outline" onClick={() => { setView("list"); setEditingTemplate(null); }}>Back</Button>
+            <Button
+              onClick={() => saveTemplate.mutate()}
+              disabled={!templateForm.name.trim() || saveTemplate.isPending}
+              className="bg-pink-600 hover:bg-pink-700"
+              data-testid="button-save-template"
+            >
+              {saveTemplate.isPending ? "Saving…" : editingTemplate ? "Save Changes" : "Create Template"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // ── List view ─────────────────────────────────────────────────────────────
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()} className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-pink-600" />
-            Load Template
-          </DialogTitle>
-          <DialogDescription>
-            Choose a template to add its document items to this case's Essential Documents list.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          {isLoading && <p className="text-sm text-muted-foreground">Loading templates…</p>}
-          {!isLoading && templates.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No templates found. Create templates via Employment Law → Checklist Templates.
-            </p>
+    <>
+      <Dialog open={open} onOpenChange={(o) => !o && resetAndClose()}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="max-w-lg max-h-[85vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-pink-600" />
+                  Essential Document Templates
+                </DialogTitle>
+                <DialogDescription className="mt-1">
+                  Apply a template to this case, or manage your templates below.
+                </DialogDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0"
+                onClick={() => { setTemplateForm({ name: "", notes: "" }); setEditingTemplate(null); setView("edit"); }}
+                data-testid="button-new-template"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                New
+              </Button>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-2 py-2 pr-1">
+            {isLoading && <p className="text-sm text-muted-foreground py-4 text-center">Loading…</p>}
+            {!isLoading && templates.length === 0 && (
+              <div className="text-center py-10">
+                <ListChecks className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm font-medium">No templates yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Click <strong>New</strong> to create your first template.</p>
+              </div>
+            )}
+            {templates.map(template => (
+              <TemplateRow
+                key={template.id}
+                template={template}
+                expanded={expandedId === template.id}
+                onToggle={() => setExpandedId(p => p === template.id ? null : template.id)}
+                onEdit={() => { setTemplateForm({ name: template.name, notes: template.notes ?? "" }); setEditingTemplate(template); setView("edit"); }}
+                onDelete={() => setConfirmDelete({ type: "template", id: template.id, name: template.name })}
+                onApply={() => { setApplyingId(template.id); applyTemplate.mutate(template.id); }}
+                isApplying={applyingId === template.id && applyTemplate.isPending}
+                addingItemForId={addingItemForId}
+                onStartAddItem={() => { setItemForm({ title: "", description: "" }); setAddingItemForId(template.id); setEditingItem(null); }}
+                onCancelAddItem={() => setAddingItemForId(null)}
+                itemForm={itemForm}
+                onItemFormChange={setItemForm}
+                onSaveItem={() => saveItem.mutate()}
+                isSavingItem={saveItem.isPending}
+                editingItem={editingItem}
+                onStartEditItem={(item) => { setItemForm({ title: item.title, description: item.description ?? "" }); setEditingItem({ id: item.id, templateId: template.id, title: item.title, description: item.description ?? "" }); setAddingItemForId(null); }}
+                onCancelEditItem={() => setEditingItem(null)}
+                onDeleteItem={(item) => setConfirmDelete({ type: "item", id: item.id, templateId: template.id, name: item.title })}
+              />
+            ))}
+          </div>
+
+          <DialogFooter className="shrink-0 border-t pt-3">
+            <Button variant="outline" onClick={resetAndClose}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm delete */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDelete?.type === "template" ? "Delete Template?" : "Remove Item?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDelete?.type === "template"
+                ? <>Permanently delete <strong>{confirmDelete.name}</strong> and all its items?</>
+                : <>Remove <strong>{confirmDelete?.name}</strong> from this template?</>}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (!confirmDelete) return;
+                if (confirmDelete.type === "template") deleteTemplate.mutate(confirmDelete.id);
+                else deleteItem.mutate({ id: confirmDelete.id, templateId: confirmDelete.templateId });
+              }}
+            >
+              {confirmDelete?.type === "template" ? "Delete" : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+type TemplateItemShape = { id: string; title: string; description?: string | null; templateId: string };
+
+function TemplateRow({
+  template, expanded, onToggle, onEdit, onDelete, onApply, isApplying,
+  addingItemForId, onStartAddItem, onCancelAddItem,
+  itemForm, onItemFormChange, onSaveItem, isSavingItem,
+  editingItem, onStartEditItem, onCancelEditItem, onDeleteItem,
+}: {
+  template: CaseChecklistTemplate;
+  expanded: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onApply: () => void;
+  isApplying: boolean;
+  addingItemForId: string | null;
+  onStartAddItem: () => void;
+  onCancelAddItem: () => void;
+  itemForm: { title: string; description: string };
+  onItemFormChange: (f: { title: string; description: string }) => void;
+  onSaveItem: () => void;
+  isSavingItem: boolean;
+  editingItem: { id: string; templateId: string; title: string; description: string } | null;
+  onStartEditItem: (item: TemplateItemShape) => void;
+  onCancelEditItem: () => void;
+  onDeleteItem: (item: TemplateItemShape) => void;
+}) {
+  const { data: items = [] } = useQuery<TemplateItemShape[]>({
+    queryKey: ["/api/case-checklist-templates", template.id, "items"],
+    queryFn: () => fetch(`/api/case-checklist-templates/${template.id}/items`, { credentials: "include" }).then(r => r.json()),
+    enabled: expanded,
+  });
+
+  const isAddingForThis = addingItemForId === template.id;
+  const isEditingItemForThis = editingItem?.templateId === template.id;
+
+  return (
+    <div className="rounded-lg border bg-card">
+      {/* Header row */}
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <button className="flex-1 text-left min-w-0" onClick={onToggle}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-medium text-sm truncate">{template.name}</span>
+            <Badge variant="secondary" className="text-xs shrink-0">{expanded ? `${items.length} items` : "…"}</Badge>
+          </div>
+          {template.notes && !expanded && (
+            <p className="text-xs text-muted-foreground truncate mt-0.5">{template.notes}</p>
           )}
-          {!isLoading && templates.length > 0 && (
-            <Select value={selectedTemplateId} onValueChange={onSelectTemplate}>
-              <SelectTrigger data-testid="select-template">
-                <SelectValue placeholder="Select a template…" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-xs"
+            onClick={onApply}
+            disabled={isApplying}
+            data-testid={`button-apply-template-${template.id}`}
+          >
+            {isApplying ? "Adding…" : "Add to Case"}
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} data-testid={`button-edit-template-${template.id}`}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete} data-testid={`button-delete-template-${template.id}`}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          <button onClick={onToggle} className="text-muted-foreground p-1">
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded items */}
+      {expanded && (
+        <div className="border-t px-3 pb-3 pt-2 space-y-1.5">
+          {template.notes && (
+            <p className="text-xs text-muted-foreground border-l-2 pl-2 mb-2">{template.notes}</p>
           )}
-          {selectedTemplate?.notes && (
-            <p className="text-sm text-muted-foreground border-l-2 pl-3">{selectedTemplate.notes}</p>
+          {items.length === 0 && !isAddingForThis && (
+            <p className="text-xs text-muted-foreground text-center py-2">No items — add some below.</p>
           )}
-          {selectedTemplateId && previewItems.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                Items to be added ({previewItems.length})
-              </p>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {previewItems.map((item: { id: string; title: string; description?: string }) => (
-                  <div key={item.id} className="flex items-start gap-2 text-sm p-1.5 rounded bg-muted/40">
-                    <span className="mt-0.5 text-muted-foreground">•</span>
-                    <span>{item.title}</span>
+          {items.map(item => (
+            <div key={item.id}>
+              {isEditingItemForThis && editingItem?.id === item.id ? (
+                <div className="space-y-1.5 p-2 rounded border bg-muted/40">
+                  <Input
+                    value={itemForm.title}
+                    onChange={e => onItemFormChange({ ...itemForm, title: e.target.value })}
+                    placeholder="Document title"
+                    className="h-7 text-sm"
+                    autoFocus
+                    data-testid="input-item-title-edit"
+                  />
+                  <Input
+                    value={itemForm.description}
+                    onChange={e => onItemFormChange({ ...itemForm, description: e.target.value })}
+                    placeholder="Description (optional)"
+                    className="h-7 text-sm"
+                  />
+                  <div className="flex gap-1.5 justify-end">
+                    <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={onCancelEditItem}>Cancel</Button>
+                    <Button size="sm" className="h-6 text-xs bg-pink-600 hover:bg-pink-700" onClick={onSaveItem} disabled={!itemForm.title.trim() || isSavingItem}>
+                      Save
+                    </Button>
                   </div>
-                ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/40 group">
+                  <span className="text-muted-foreground text-xs">•</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">{item.title}</p>
+                    {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                  </div>
+                  <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onStartEditItem(item)}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => onDeleteItem(item)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Add item inline form */}
+          {isAddingForThis ? (
+            <div className="space-y-1.5 p-2 rounded border bg-muted/40 mt-1">
+              <Input
+                value={itemForm.title}
+                onChange={e => onItemFormChange({ ...itemForm, title: e.target.value })}
+                placeholder="Document title *"
+                className="h-7 text-sm"
+                autoFocus
+                data-testid="input-item-title"
+              />
+              <Input
+                value={itemForm.description}
+                onChange={e => onItemFormChange({ ...itemForm, description: e.target.value })}
+                placeholder="Description (optional)"
+                className="h-7 text-sm"
+              />
+              <div className="flex gap-1.5 justify-end">
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={onCancelAddItem}>Cancel</Button>
+                <Button size="sm" className="h-6 text-xs bg-pink-600 hover:bg-pink-700" onClick={onSaveItem} disabled={!itemForm.title.trim() || isSavingItem}>
+                  Add
+                </Button>
               </div>
             </div>
+          ) : (
+            <Button variant="ghost" size="sm" className="w-full h-7 text-xs text-muted-foreground hover:text-foreground mt-1" onClick={onStartAddItem} data-testid={`button-add-item-${template.id}`}>
+              <Plus className="mr-1 h-3 w-3" />
+              Add item
+            </Button>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={onApply}
-            disabled={!selectedTemplateId || isPending}
-            className="bg-pink-600 hover:bg-pink-700"
-            data-testid="button-apply-template"
-          >
-            {isPending ? "Applying…" : "Add to Case"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      )}
+    </div>
   );
 }
 

@@ -59,7 +59,6 @@ const AdminReports = lazyPage(() => import("@/pages/developer-reports"));
 const AdminChangelog = lazyPage(() => import("@/pages/admin-changelog"));
 const Support = lazyPage(() => import("@/pages/support"));
 const Settings = lazyPage(() => import("@/pages/settings"));
-const ElChecklistTemplates = lazyPage(() => import("@/pages/el-checklist-templates"));
 const UserManagement = lazyPage(() => import("@/pages/user-management"));
 const TemplateLibrary = lazyPage(() => import("@/pages/template-library"));
 const TrainingLibrary = lazyPage(() => import("@/pages/training-library"));
@@ -427,7 +426,6 @@ function Router() {
       <Route path="/employment-law/cases" component={ElCasesGuarded} />
       <Route path="/employment-law/cases/:id" component={ElCasesGuarded} />
       <Route path="/employment-law/cloud-share" component={ELClientUploads} />
-      <Route path="/employment-law/checklist-templates">{() => <AccessGuard component={ElChecklistTemplates} allow={NOT_CLIENT} />}</Route>
       <Route path="/ishare">{() => <AccessGuard component={IShare} allow={NOT_CLIENT} />}</Route>
       
       <Route path="/documents" component={Documents} />

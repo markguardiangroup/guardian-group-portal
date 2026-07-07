@@ -126,7 +126,6 @@ const moduleNavItems: {
       { title: "Site Documents", url: "/employment-law/sites", icon: MapPin },
       { title: "Cases", url: "/employment-law/cases", icon: Briefcase },
       { title: "Cloud Share", url: "/employment-law/cloud-share", icon: Cloud },
-      { title: "Checklist Templates", url: "/employment-law/checklist-templates", icon: ListChecks, staffOnly: true },
     ],
   },
   {
