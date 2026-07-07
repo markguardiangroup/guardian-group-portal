@@ -10828,6 +10828,13 @@
           "message": "Fixed: moved documents now land in the matching folder at the new scope level",
           "category": "bug",
           "createdAt": "2026-07-07T16:09:21.427Z"
+        },
+        {
+          "id": "c5e7b9a1-folder-drag-admin-consultant-2026",
+          "patch": 25,
+          "message": "Fixed: admins and consultants can now drag documents between folders",
+          "category": "bug",
+          "createdAt": "2026-07-07T16:25:03.384Z"
         }
       ],
       "publishedPatch": 24,
