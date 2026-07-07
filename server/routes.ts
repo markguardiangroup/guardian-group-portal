@@ -6965,6 +6965,61 @@ export async function registerRoutes(
     }
   });
 
+  // Move a document into a folder. Accepts a templateFolderId — if no real site
+  // folder exists for that template+site yet, one is automatically created.
+  // Pass templateFolderId: null to move to "Unfiled".
+  app.patch("/api/documents/:id/move-folder", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user || (user.role !== "developer" && user.role !== "consultant" && user.role !== "administrator")) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      const doc = await storage.getDocument(req.params.id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+
+      const { templateFolderId } = req.body as { templateFolderId: string | null };
+
+      let targetFolderId: string | null = null;
+
+      if (templateFolderId) {
+        // Look up the folder template so we can create the site folder if needed
+        const tmpl = await storage.getFolderTemplate(templateFolderId);
+        if (!tmpl) return res.status(404).json({ error: "Folder template not found" });
+
+        // Find an existing site folder for this template + site
+        const siteFolders = doc.siteId
+          ? await storage.getDocumentFolders(doc.siteId, tmpl.module)
+          : [];
+        const existing = siteFolders.find(f => f.templateId === templateFolderId);
+
+        if (existing) {
+          targetFolderId = existing.id;
+        } else if (doc.siteId) {
+          // Auto-provision the site folder from the template
+          const created = await storage.createDocumentFolder({
+            name: tmpl.name,
+            description: tmpl.description ?? undefined,
+            module: tmpl.module,
+            siteId: doc.siteId,
+            scope: "site",
+            templateId: tmpl.id,
+            sortOrder: tmpl.sortOrder,
+            createdBy: user.id,
+          } as any);
+          targetFolderId = created.id;
+        } else {
+          return res.status(400).json({ error: "Document has no site; cannot auto-create folder" });
+        }
+      }
+
+      const updated = await storage.updateDocument(req.params.id, { folderId: targetFolderId });
+      res.json(updated);
+    } catch (error) {
+      console.error("Move folder error:", error);
+      res.status(500).json({ error: "Failed to move document" });
+    }
+  });
+
   app.post("/api/documents/:id/archive", requireAuth, async (req, res) => {
     try {
       const user = await getSessionUser(req);

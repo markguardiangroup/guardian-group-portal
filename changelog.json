@@ -10863,6 +10863,13 @@
           "message": "Fixed: drag and drop now moves documents correctly with clean visual feedback",
           "category": "bug",
           "createdAt": "2026-07-07T18:51:40.643Z"
+        },
+        {
+          "id": "d9b2e6a4-drag-auto-provision-folder-2026",
+          "patch": 25,
+          "message": "Fixed: dragging documents to folders now works even when folders have not been provisioned yet",
+          "category": "bug",
+          "createdAt": "2026-07-07T19:01:32.118Z"
         }
       ],
       "publishedPatch": 24,

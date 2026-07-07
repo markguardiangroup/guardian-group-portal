@@ -1211,8 +1211,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   useEffect(() => { hierarchyUrlRef.current = hierarchyUrl; }, [hierarchyUrl]);
 
   const moveDocumentMutation = useMutation({
-    mutationFn: ({ docId, folderId }: { docId: string; folderId: string | null }) =>
-      apiRequest("PATCH", `/api/documents/${docId}`, { folderId }),
+    mutationFn: ({ docId, templateFolderId }: { docId: string; templateFolderId: string | null }) =>
+      apiRequest("PATCH", `/api/documents/${docId}/move-folder`, { templateFolderId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [hierarchyUrlRef.current] });
       toast({ title: "Document moved" });
@@ -1232,10 +1232,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
     const { active, over } = event;
     if (!over) return;
     const docId = active.id as string;
-    const targetFolderId = over.id === "__unfiled__" ? null : (over.id as string);
-    const sourceFolderId: string | null = (active.data.current as any)?.sourceFolderId ?? null;
-    if (targetFolderId === sourceFolderId) return;
-    moveDocumentMutation.mutate({ docId, folderId: targetFolderId });
+    // over.id is always a template folder ID (or "__unfiled__")
+    const templateFolderId: string | null = over.id === "__unfiled__" ? null : (over.id as string);
+    const sourceTemplateId: string | null = (active.data.current as any)?.sourceFolderId ?? null;
+    if (templateFolderId === sourceTemplateId) return;
+    moveDocumentMutation.mutate({ docId, templateFolderId });
   };
   
   // Count expired and expiring-soon documents in a folder's document set.
@@ -2440,11 +2441,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       ...(((folder as any).childFolders ?? []).flatMap((cf: any) => cf.documents ?? [])),
                     ];
                     const statusBadge = getFolderStatusBadge(adjustedFolderStats, folderTreeDocs);
-                    const folderDropId = (folder as any).siteFolder?.id ?? null;
+                    const folderDropId = folder.id; // always the template folder ID — server auto-provisions site folder on drop
                     const parentMissingCount = (missingByFolderTemplateId.get(folder.id)?.length ?? 0) +
                       ((folder as any).childFolders ?? []).reduce((sum: number, cf: any) => sum + (missingByFolderTemplateId.get(cf.id)?.length ?? 0), 0);
                     return (
-                      <DroppableFolderZone key={folder.id} folderId={folderDropId ?? folder.id} isDragEnabled={isPrivilegedUser && !!folderDropId}>
+                      <DroppableFolderZone key={folder.id} folderId={folderDropId} isDragEnabled={isPrivilegedUser}>
                       <AccordionItem value={folder.id} data-testid={`accordion-folder-${folder.id}`} className={`border-b ${moduleBorderColors[module]}`}>
                         <AccordionTrigger className="hover:no-underline px-2">
                           <div className="flex items-center justify-between w-full pr-4">
@@ -2483,9 +2484,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                     overdue: baseChildStats.overdue + childDelta.overdue,
                                   } : baseChildStats;
                                   const childStatusBadge = getFolderStatusBadge(adjustedChildStats, (childFolder as any).documents ?? []);
-                                  const childDropId = (childFolder as any).siteFolder?.id ?? null;
+                                  const childDropId = childFolder.id; // always template folder ID
                                   return (
-                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId ?? childFolder.id} isDragEnabled={isPrivilegedUser && !!childDropId}>
+                                    <DroppableFolderZone key={childFolder.id} folderId={childDropId} isDragEnabled={isPrivilegedUser}>
                                     <AccordionItem value={childFolder.id} className={`border rounded-lg ${moduleBorderColors[module]} overflow-hidden`}>
                                       <AccordionTrigger className="hover:no-underline px-3 py-2 bg-muted/30">
                                         <div className="flex items-center justify-between w-full pr-2">
