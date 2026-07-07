@@ -11003,6 +11003,13 @@
           "message": "Reverted: PDF page number box padding back to 4pt",
           "category": "other",
           "createdAt": "2026-07-07T22:49:18.558Z"
+        },
+        {
+          "id": "a8063523-4c99-4d47-87cf-2807393ec55d",
+          "patch": 25,
+          "message": "Fixed: bundle index CSV page ranges no longer shown as dates in Excel",
+          "category": "bug",
+          "createdAt": "2026-07-07T22:52:18.628Z"
         }
       ],
       "publishedPatch": 24,

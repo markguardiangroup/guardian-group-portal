@@ -15441,9 +15441,10 @@ export async function registerRoutes(
 
       const rows = pageInfo.map((doc, idx) => {
         const dateStr = doc.documentDate ? new Date(doc.documentDate).toLocaleDateString("en-GB") : "";
-        // Wrap in Excel text-formula to prevent "5-6" being parsed as a date
-        const pagesRaw = doc.startPage === doc.endPage ? `${doc.startPage}` : `${doc.startPage}-${doc.endPage}`;
-        const pagesStr = `="${pagesRaw}"`;
+        // Use en-dash for ranges so Excel never auto-parses "5–6" as a date
+        const pagesStr = doc.startPage === doc.endPage
+          ? `${doc.startPage}`
+          : `${doc.startPage}\u2013${doc.endPage}`;
         return [String(idx + 1), dateStr, doc.name, pagesStr];
       });
 
