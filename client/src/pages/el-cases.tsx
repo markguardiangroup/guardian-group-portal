@@ -199,7 +199,7 @@ function CasesList() {
   const urlCompany = urlParams.get("company");
   
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("open");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // Cases keeps its own remembered company/site filter ("cases" scope) so it
@@ -807,8 +807,8 @@ function CasesList() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => { setSearchQuery(""); setStatusFilter("all"); setTypeFilter("all"); resetFilters(); }}
-                disabled={!(!!searchQuery || statusFilter !== "all" || typeFilter !== "all" || (selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all"))}
+                onClick={() => { setSearchQuery(""); setStatusFilter("open"); setTypeFilter("all"); resetFilters(); }}
+                disabled={!(!!searchQuery || statusFilter !== "open" || typeFilter !== "all" || (selectedCompany && selectedCompany !== "all") || (selectedSiteId && selectedSiteId !== "all"))}
                 className="h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
                 data-testid="button-clear-filters-cases"
                 title="Clear filters"
@@ -1110,7 +1110,7 @@ function CasesList() {
               <Briefcase className="h-12 w-12 text-muted-foreground/50" />
               <h3 className="mt-4 text-lg font-medium">No cases found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || statusFilter !== "all" || typeFilter !== "all"
+                {searchQuery || statusFilter !== "open" || typeFilter !== "all"
                   ? "Try adjusting your search or filters"
                   : "Create your first employment law case to get started"}
               </p>

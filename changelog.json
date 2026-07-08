@@ -11220,6 +11220,13 @@
           "message": "Admins can bulk-create Toolkit folders from a pasted list of names",
           "category": "feature",
           "createdAt": "2026-07-08T14:03:24.979Z"
+        },
+        {
+          "id": "f41a935f-80b2-428f-9d99-0bd5ede795da",
+          "patch": 28,
+          "message": "Case Files now defaults the status filter to Open",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T14:37:17.561Z"
         }
       ],
       "publishedPatch": 27,
