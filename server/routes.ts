@@ -98,6 +98,70 @@ class UploadClaimError extends Error {
   }
 }
 
+// Assigns a company's (newly set) primary contact to every site in that company —
+// and, if the company is a Group Owner, to every site of its member companies too.
+// Shared by the manual "set primary contact" flow (PATCH /api/companies/:id) and the
+// Accelo contact-import flow so both paths get identical auto-assignment behavior.
+async function autoAssignPrimaryContactToSites(
+  companyId: string,
+  contactUserId: string,
+  actorId: string,
+  actorName: string,
+): Promise<void> {
+  const contactUser = await storage.getUser(contactUserId);
+  if (!contactUser || contactUser.role !== "client" || contactUser.companyId !== companyId) return;
+
+  const companySites = await storage.getSitesByCompanyId(companyId);
+  for (const site of companySites) {
+    await storage.assignClientToSite({
+      clientId: contactUserId,
+      siteId: site.id,
+      assignedBy: actorId,
+    });
+  }
+
+  if (contactUser.status === "site_required") {
+    await storage.updateUser(contactUserId, { status: "invite_required" });
+  }
+
+  await storage.createAuditLog({
+    action: "primary_contact_auto_assigned",
+    entityType: "company",
+    entityId: companyId,
+    userId: actorId,
+    userName: actorName,
+    details: `Primary contact ${contactUser.fullName} auto-assigned to all ${companySites.length} company sites`,
+    metadata: { contactUserId, siteCount: companySites.length },
+  });
+
+  const groupMembers = await storage.getGroupMembers(companyId);
+  if (groupMembers.length > 0) {
+    let totalMemberSites = 0;
+    for (const member of groupMembers) {
+      const memberSites = await storage.getSitesByCompanyId(member.id);
+      for (const site of memberSites) {
+        await storage.assignClientToSite({
+          clientId: contactUserId,
+          siteId: site.id,
+          assignedBy: actorId,
+        });
+      }
+      totalMemberSites += memberSites.length;
+    }
+    if (totalMemberSites > 0) {
+      await storage.createAuditLog({
+        action: "primary_contact_auto_assigned",
+        entityType: "company",
+        entityId: companyId,
+        userId: actorId,
+        userName: actorName,
+        details: `Group Owner primary contact ${contactUser.fullName} auto-assigned to ${totalMemberSites} site(s) across ${groupMembers.length} member company(ies)`,
+        metadata: { contactUserId, totalMemberSites, memberCount: groupMembers.length },
+      });
+    }
+  }
+}
+
 // Returns the *finalized* object path that the calling route must persist into its business
 // record. It will differ from the fileUrl the caller passed in — see finalizeClaimedObject()
 // for why the object is relocated as part of claiming it.
@@ -11119,60 +11183,7 @@ export async function registerRoutes(
 
       // Auto-assign primary contact user to all company sites
       if (contactUserId) {
-        if (!contactUser) contactUser = await storage.getUser(contactUserId);
-        if (contactUser && contactUser.role === "client" && contactUser.companyId === req.params.id) {
-          const companySites = await storage.getSitesByCompanyId(req.params.id);
-          for (const site of companySites) {
-            await storage.assignClientToSite({
-              clientId: contactUserId,
-              siteId: site.id,
-              assignedBy: user.id,
-            });
-          }
-          
-          // Auto-transition client from site_required to invite_required
-          if (contactUser.status === "site_required") {
-            await storage.updateUser(contactUserId, { status: "invite_required" });
-          }
-          
-          await storage.createAuditLog({
-            action: "primary_contact_auto_assigned",
-            entityType: "company",
-            entityId: req.params.id,
-            userId: user.id,
-            userName: user.fullName,
-            details: `Primary contact ${contactUser.fullName} auto-assigned to all ${companySites.length} company sites`,
-            metadata: { contactUserId, siteCount: companySites.length },
-          });
-
-          // If this company is a Group Owner, also assign the new primary contact to all member company sites
-          const groupMembers = await storage.getGroupMembers(req.params.id);
-          if (groupMembers.length > 0) {
-            let totalMemberSites = 0;
-            for (const member of groupMembers) {
-              const memberSites = await storage.getSitesByCompanyId(member.id);
-              for (const site of memberSites) {
-                await storage.assignClientToSite({
-                  clientId: contactUserId,
-                  siteId: site.id,
-                  assignedBy: user.id,
-                });
-              }
-              totalMemberSites += memberSites.length;
-            }
-            if (totalMemberSites > 0) {
-              await storage.createAuditLog({
-                action: "primary_contact_auto_assigned",
-                entityType: "company",
-                entityId: req.params.id,
-                userId: user.id,
-                userName: user.fullName,
-                details: `Group Owner primary contact ${contactUser.fullName} auto-assigned to ${totalMemberSites} site(s) across ${groupMembers.length} member company(ies)`,
-                metadata: { contactUserId, totalMemberSites, memberCount: groupMembers.length },
-              });
-            }
-          }
-        }
+        await autoAssignPrimaryContactToSites(req.params.id, contactUserId, user.id, user.fullName);
       }
       
       // Emit company-updated so admins/consultants see company changes in real time
@@ -25789,6 +25800,7 @@ export async function registerRoutes(
 
           if (contact.setAsPrimary) {
             await storage.updateCompany(companyId, { contactUserId: newUser.id });
+            await autoAssignPrimaryContactToSites(companyId, newUser.id, currentUser.id, currentUser.fullName);
           }
 
           if (contact.setAsKeyContact) {

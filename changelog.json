@@ -11206,6 +11206,13 @@
           "message": "Fixed: primary contact could show as unset right after Accelo import",
           "category": "bug",
           "createdAt": "2026-07-08T13:30:29.299Z"
+        },
+        {
+          "id": "0ac92b2d-971b-43ed-b599-b0758ad1cbd8",
+          "patch": 26,
+          "message": "Fixed: primary contact from Accelo import wasn't auto-added to sites",
+          "category": "bug",
+          "createdAt": "2026-07-08T13:36:42.426Z"
         }
       ],
       "publishedPatch": 25,
