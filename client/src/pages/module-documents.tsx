@@ -3390,7 +3390,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                     >
                       Restore
                     </Button>
-                    {user?.role === "developer" && (
+                    {isPrivilegedUser && (
                       <Button
                         variant="destructive"
                         size="sm"
@@ -5498,7 +5498,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       </Button>
                     )
                   )}
-                  {user?.role === "developer" && (
+                  {isPrivilegedUser && (
                     <Button
                       variant="outline"
                       className="w-full justify-start text-destructive hover:text-destructive"

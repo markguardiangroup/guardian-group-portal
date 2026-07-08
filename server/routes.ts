@@ -7291,16 +7291,16 @@ export async function registerRoutes(
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
 
-      if (user.role !== "developer" && !hasProPrivileges(user)) {
-        return res.status(403).json({ error: "Only developers and pro consultants can delete documents" });
+      if (user.role === "client") {
+        return res.status(403).json({ error: "Clients cannot delete documents" });
       }
 
       const documentId = req.params.id;
       const existingDoc = await storage.getDocument(documentId);
       if (!existingDoc) return res.status(404).json({ error: "Document not found" });
 
-      // Pro consultants / Admins must have access to the document's site
-      if (hasProPrivileges(user)) {
+      // Non-developer staff (admins / pro or standard consultants) must have access to the document
+      if (user.role !== "developer") {
         const canAccess = await canUserAccessDocument(user, existingDoc);
         if (!canAccess) return res.status(403).json({ error: "Access denied to this document" });
       }

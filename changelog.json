@@ -11234,6 +11234,13 @@
           "message": "Create Case now only offers Tribunal Case and ACAS Conciliation types",
           "category": "bug",
           "createdAt": "2026-07-08T14:42:46.086Z"
+        },
+        {
+          "id": "a2abd62a-302a-4552-983a-4ccdf3238c3d",
+          "patch": 28,
+          "message": "All staff (consultants and admins) can now delete documents",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T14:49:41.802Z"
         }
       ],
       "publishedPatch": 27,

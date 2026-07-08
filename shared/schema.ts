@@ -1236,7 +1236,7 @@ export const consultantTierCapabilities: Record<ConsultantTier, ConsultantCapabi
     canAssignConsultants: false,
     canDeleteCompanies: false,
     canDeleteUsers: false,
-    canDeleteDocuments: false,
+    canDeleteDocuments: true,
     canEditDocuments: true,
     canViewDocuments: true,
   },
