@@ -11435,7 +11435,17 @@ export async function registerRoutes(
             createdSiteIds,
             user,
           );
+          if (!result.success) {
+            const status = result.error === "Email already registered" ? 409 : 400;
+            return res.status(status).json({ error: `Contact import failed for ${c.email || c.acceloId}: ${result.error}` });
+          }
           if (result.userId) contactIds.push(result.userId);
+        }
+
+        // Post-import invariant: verify primary contact was actually set
+        const refreshedCompany = await storage.getCompany(createdCompany.id);
+        if (!refreshedCompany?.contactUserId) {
+          return res.status(400).json({ error: "No primary contact was established — ensure one selected contact is marked as primary" });
         }
       }
 
