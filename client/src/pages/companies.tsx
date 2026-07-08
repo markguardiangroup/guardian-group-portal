@@ -914,6 +914,12 @@ export default function Companies() {
     if (companyId) navigate(`/companies/${companyId}`);
   };
 
+  const handleSwitchToManualContact = () => {
+    setIsAcceloContactsOpen(false);
+    setWizardIsAcceloFlow(false);
+    setWizardStep("contact");
+  };
+
   // ── Add another site (subsequent sites in the wizard) ─────────────────────
 
   const addSiteToWizardMutation = useMutation({
@@ -3171,9 +3177,10 @@ export default function Companies() {
             )}
             {/* Empty state */}
             {!acceloContactsLoading && !acceloImportResults && acceloContacts.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="empty-accelo-contacts">
+              <div className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground" data-testid="empty-accelo-contacts">
                 <UserX className="h-8 w-8 opacity-40" />
                 <p className="text-sm">No contacts found in Accelo for this company.</p>
+                <p className="text-xs text-center max-w-xs">You can create a primary contact manually instead.</p>
               </div>
             )}
             {/* Selection phase */}
@@ -3377,16 +3384,21 @@ export default function Companies() {
                 >
                   Done
                 </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleWizardNavigateToCompany()}
-                    disabled={acceloImportingContacts}
-                    data-testid="button-skip-contacts"
-                  >
-                    Skip
-                  </Button>
+              ) : (() => {
+                const hasImportable = acceloContacts.some(c => c.email);
+                if (!hasImportable) {
+                  return (
+                    <Button
+                      onClick={handleSwitchToManualContact}
+                      disabled={acceloContactsLoading}
+                      data-testid="button-create-contact-manually"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Create Contact Manually
+                    </Button>
+                  );
+                }
+                return (
                   <Button
                     onClick={handleImportAcceloContacts}
                     disabled={!Object.values(contactRows).some(r => r.selected) || acceloImportingContacts || acceloContactsLoading}
@@ -3399,8 +3411,8 @@ export default function Companies() {
                       return <>Import {n > 0 ? `${n} ` : ""}Contact{n !== 1 ? "s" : ""}</>;
                     })()}
                   </Button>
-                </>
-              )}
+                );
+              })()}
             </DialogFooter>
           </div>
         </DialogContent>

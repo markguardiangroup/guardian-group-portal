@@ -11297,6 +11297,13 @@
           "message": "Primary contact is now required when creating a company — Skip removed",
           "category": "enhancement",
           "createdAt": "2026-07-08T20:49:15.520Z"
+        },
+        {
+          "id": "30cbd9b1-7958-4496-81c2-0b09264e125a",
+          "patch": 29,
+          "message": "Accelo import: Skip removed; falls back to manual contact form when no contacts are importable",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T20:56:23.105Z"
         }
       ],
       "publishedPatch": 28,
