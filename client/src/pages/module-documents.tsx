@@ -2441,7 +2441,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             <Card className={`border ${moduleBorderColors[module]}`}>
               <CardContent className="p-4">
                 <Accordion type="multiple" className="w-full">
-                  {hierarchy.folders.map((folder) => {
+                  {[...hierarchy.folders].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((folder) => {
                     const folderDelta = sharedExpansionDeltas.byFolder.get(folder.id);
                     const adjustedFolderStats = folderDelta ? {
                       totalDocuments: folder.stats.totalDocuments + folderDelta.totalDocuments,
@@ -2487,7 +2487,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {/* Child Folders */}
                             {(folder as any).childFolders && (folder as any).childFolders.length > 0 && (
                               <Accordion type="multiple" className="space-y-2 mb-4">
-                                {(folder as any).childFolders.map((childFolder: any) => {
+                                {[...(folder as any).childFolders].sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((childFolder: any) => {
                                   const childDelta = sharedExpansionDeltas.byFolder.get(childFolder.id);
                                   const baseChildStats = childFolder.stats || { totalDocuments: 0, compliant: 0, approvalRequired: 0, overdue: 0 };
                                   const adjustedChildStats = childDelta ? {
@@ -2528,7 +2528,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                       </AccordionTrigger>
                                       <AccordionContent>
                                         <div className="p-3 pl-10 space-y-2">
-                                          {childFolder.documents && childFolder.documents.filter((doc: any) => !doc.isArchived).map((doc: any) => (
+                                          {childFolder.documents && [...childFolder.documents].sort((a: any, b: any) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })).filter((doc: any) => !doc.isArchived).map((doc: any) => (
                                             <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={childDropId} isDragEnabled={isPrivilegedUser}>
                                             <Link
                                               href={`${basePath}/documents/${doc.id}`}
@@ -2634,7 +2634,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             {/* Parent Folder Documents */}
                             {folder.documents.filter(doc => !doc.isArchived).length > 0 && (
                               <div className="space-y-2">
-                                {folder.documents.filter(doc => !doc.isArchived).map((doc) => (
+                                {[...folder.documents].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })).filter(doc => !doc.isArchived).map((doc) => (
                                   <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={folderDropId} isDragEnabled={isPrivilegedUser}>
                                   <Link
                                     href={`${basePath}/documents/${doc.id}`}
@@ -2792,7 +2792,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
-                {(hierarchy?.unfiledDocuments ?? []).map((doc) => (
+                {[...(hierarchy?.unfiledDocuments ?? [])].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })).map((doc) => (
                   <DraggableDocRow key={doc.id} id={doc.id} title={doc.title} sourceFolderId={null} isDragEnabled={isPrivilegedUser}>
                   <Link
                     href={`${basePath}/documents/${doc.id}`}

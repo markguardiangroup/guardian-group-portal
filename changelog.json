@@ -11269,6 +11269,13 @@
           "message": "Folders and documents in site document views now sort alphabetically",
           "category": "enhancement",
           "createdAt": "2026-07-08T19:13:08.734Z"
+        },
+        {
+          "id": "fa23a815-84f7-4206-834f-25d4b90a8071",
+          "patch": 29,
+          "message": "Folders and documents in site document views now sort alphabetically",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T19:19:25.031Z"
         }
       ],
       "publishedPatch": 28,

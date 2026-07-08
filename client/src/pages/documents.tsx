@@ -747,7 +747,7 @@ function DocumentsListView() {
             <Card>
               <CardContent className="p-0">
                 <Accordion type="multiple" className="w-full" defaultValue={hierarchy.folders.map(f => f.id)}>
-                  {hierarchy.folders.map((folder) => (
+                  {[...hierarchy.folders].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((folder) => (
                     <AccordionItem key={folder.id} value={folder.id} className="border-b last:border-b-0">
                       <AccordionTrigger className="px-4 py-3 hover:no-underline" data-testid={`accordion-folder-${folder.id}`}>
                         <div className="flex flex-1 items-center justify-between pr-4">
@@ -815,7 +815,7 @@ function DocumentsListView() {
                         {/* Documents list */}
                         {folder.documents.length > 0 ? (
                           <div className="space-y-2">
-                            {folder.documents.map((doc) => (
+                            {[...folder.documents].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })).map((doc) => (
                               <Link 
                                 key={doc.id} 
                                 href={`/documents/${doc.id}`}
@@ -881,7 +881,7 @@ function DocumentsListView() {
                           <div className="mt-4 border-t pt-4">
                             <h4 className="mb-3 text-sm font-medium">Sub-folders ({folder.childFolders.length})</h4>
                             <div className="space-y-2">
-                              {folder.childFolders.map((child) => (
+                              {[...folder.childFolders].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((child) => (
                                 <div key={child.id} className="rounded-md border bg-muted/30 p-3">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -897,7 +897,7 @@ function DocumentsListView() {
                                   </div>
                                   {child.documents.length > 0 ? (
                                     <div className="mt-2 space-y-1 pl-6">
-                                      {child.documents.map((doc) => (
+                                      {[...child.documents].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })).map((doc) => (
                                         <Link
                                           key={doc.id}
                                           href={`/documents/${doc.id}`}
@@ -960,7 +960,7 @@ function DocumentsListView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {hierarchy.unfiledDocuments.map((doc) => (
+                  {[...hierarchy.unfiledDocuments].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })).map((doc) => (
                     <Link
                       key={doc.id}
                       href={`/documents/${doc.id}`}
