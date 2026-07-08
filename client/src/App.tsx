@@ -968,21 +968,6 @@ function AuthenticatedApp() {
     }
   }, [isLoading, isAuthenticated]);
 
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <img
-            src={logoIcon}
-            alt="Guardian Group"
-            className="h-16 w-16 rounded-full object-cover shadow-md animate-spin"
-            style={{ animationDuration: "1.5s" }}
-          />
-        </div>
-      </div>
-    );
-  }
-
   if (!isAuthenticated) {
     return <Login />;
   }

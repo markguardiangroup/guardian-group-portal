@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { queryClient } from "@/lib/queryClient";
-import { useAuth } from "./use-auth";
+import { useAuth, clearAuthCache } from "./use-auth";
 
 let backoffMs = 1_000;
 const MAX_BACKOFF = 5_000;
@@ -41,8 +41,20 @@ export function useServerEvents() {
       });
 
       es.addEventListener("session-revoked", () => {
+        clearAuthCache();
         es.close();
         logout();
+      });
+
+      es.addEventListener("user-updated", (e) => {
+        try {
+          const data = JSON.parse((e as MessageEvent).data ?? "{}") as { userId?: string };
+          const currentUser = queryClient.getQueryData<{ id: string }>(["/api/auth/me"]);
+          if (data.userId && currentUser?.id && data.userId === currentUser.id) {
+            clearAuthCache();
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          }
+        } catch { /* non-fatal */ }
       });
 
       es.addEventListener("module-access-changed", () => {

@@ -19130,10 +19130,12 @@ export async function registerRoutes(
         }
       }
 
-      // Emit user-updated so admins/consultants see user changes in real time
+      // Emit user-updated so admins/consultants see user changes in real time,
+      // and to the user themselves so their auth cache is invalidated immediately.
       try {
         emitToRole("developer", "user-updated", { userId: req.params.id });
         emitToRole("consultant", "user-updated", { userId: req.params.id });
+        emitToUser(req.params.id, "user-updated", { userId: req.params.id });
       } catch { /* non-fatal */ }
 
       // Remove password from response
@@ -19174,10 +19176,12 @@ export async function registerRoutes(
       const updated = await storage.updateUser(req.params.id, {
         consultantPermissions: { ...existing, ...parsed.data },
       });
-      // Emit user-updated so admins see permission changes in real time
+      // Emit user-updated so admins see permission changes in real time,
+      // and to the user themselves so their auth cache is invalidated immediately.
       try {
         emitToRole("developer", "user-updated", { userId: req.params.id });
         emitToRole("consultant", "user-updated", { userId: req.params.id });
+        emitToUser(req.params.id, "user-updated", { userId: req.params.id });
       } catch { /* non-fatal */ }
 
       const { password: _pw, ...safeUser } = updated as Record<string, unknown>;

@@ -5,6 +5,36 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserRole } from "@shared/schema";
 import { useIdleTimeout } from "./use-idle-timeout";
 
+export const AUTH_CACHE_KEY = "gg_auth_v1";
+const AUTH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function readAuthCache(): { user: AuthUser; ts: number } | undefined {
+  try {
+    const raw = sessionStorage.getItem(AUTH_CACHE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as { user: AuthUser; ts: number };
+    if (Date.now() - parsed.ts > AUTH_CACHE_TTL) {
+      sessionStorage.removeItem(AUTH_CACHE_KEY);
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeAuthCache(user: AuthUser): void {
+  try {
+    sessionStorage.setItem(AUTH_CACHE_KEY, JSON.stringify({ user, ts: Date.now() }));
+  } catch { /* non-fatal */ }
+}
+
+export function clearAuthCache(): void {
+  try {
+    sessionStorage.removeItem(AUTH_CACHE_KEY);
+  } catch { /* non-fatal */ }
+}
+
 interface AuthUser {
   id: string;
   username: string;
@@ -257,21 +287,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // fires a pointless "am I logged in?" check every time.
   const hasAuthenticatedRef = useRef(false);
 
+  const cached = readAuthCache();
+
   const { data: user, isLoading, isError } = useQuery<AuthUser>({
     queryKey: ["/api/auth/me"],
+    initialData: cached?.user,
+    initialDataUpdatedAt: cached?.ts ?? 0,
     retry: (failureCount, error) => {
       const msg = (error as Error)?.message ?? "";
       if (msg.startsWith("401") || msg.startsWith("403")) return false;
       return failureCount < 3;
     },
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),
-    staleTime: 0,
+    staleTime: AUTH_CACHE_TTL,
     refetchOnWindowFocus: () => hasAuthenticatedRef.current,
   });
 
   useEffect(() => {
     if (user) {
       hasAuthenticatedRef.current = true;
+      writeAuthCache(user);
     }
   }, [user]);
 
@@ -283,11 +318,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      clearAuthCache();
       localStorage.removeItem("dev_user");
       localStorage.removeItem("sidebar_hint_seen");
       window.location.replace("/");
     },
     onError: () => {
+      clearAuthCache();
       localStorage.removeItem("dev_user");
       localStorage.removeItem("sidebar_hint_seen");
       window.location.replace("/");
@@ -295,6 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const logout = () => {
+    clearAuthCache();
     setIsSigningOut(true);
     logoutMutation.mutate();
   };

@@ -11346,6 +11346,13 @@
           "message": "Wizard contact: shows \"no website on file\" note when company has no website",
           "category": "enhancement",
           "createdAt": "2026-07-08T22:35:00.000Z"
+        },
+        {
+          "id": "b3d72f15-4a18-4e62-c8f3-2e9a5g731d69",
+          "patch": 29,
+          "message": "Improved: app loads instantly for returning users — no more loading spinner on page refresh",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T22:46:35.292Z"
         }
       ],
       "publishedPatch": 28,
