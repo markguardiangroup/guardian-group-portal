@@ -1481,14 +1481,14 @@ function CaseDetailView({ id }: { id: string }) {
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<CaseStatus>("open");
-  const [editingDescription, setEditingDescription] = useState(false);
-  const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [editingSources, setEditingSources] = useState(false);
-  const [sourcesDraft, setSourcesDraft] = useState<string[]>([]);
-  const [editingCaseNumber, setEditingCaseNumber] = useState(false);
-  const [caseNumberDraft, setCaseNumberDraft] = useState("");
-  const [editingCaseName, setEditingCaseName] = useState(false);
-  const [caseNameDraft, setCaseNameDraft] = useState("");
+  const [showEditCaseDialog, setShowEditCaseDialog] = useState(false);
+  const [editCaseForm, setEditCaseForm] = useState({
+    caseNumber: "",
+    caseName: "",
+    description: "",
+    sources: [] as string[],
+    responseDeadline: "",
+  });
   const [caseNotesExpanded, setCaseNotesExpanded] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
@@ -2284,118 +2284,16 @@ function CaseDetailView({ id }: { id: string }) {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 {caseData.isConfidential && <Lock className="h-5 w-5 text-pink-600" />}
-                {editingCaseNumber ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      className="text-2xl font-bold border-b-2 border-pink-500 bg-transparent focus:outline-none w-48"
-                      value={caseNumberDraft}
-                      onChange={e => setCaseNumberDraft(e.target.value)}
-                      autoFocus
-                      data-testid="input-case-number-edit"
-                    />
-                    <Button
-                      size="sm"
-                      className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
-                      onClick={() => {
-                        if (!caseNumberDraft.trim()) return;
-                        updateCaseMutation.mutate(
-                          { caseNumber: caseNumberDraft.trim() } as any,
-                          { onSuccess: () => setEditingCaseNumber(false) }
-                        );
-                      }}
-                      disabled={updateCaseMutation.isPending || !caseNumberDraft.trim()}
-                      data-testid="button-save-case-number"
-                    >
-                      {updateCaseMutation.isPending ? "Saving…" : "Save"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs"
-                      onClick={() => setEditingCaseNumber(false)}
-                      data-testid="button-cancel-case-number"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <div className="flex items-center gap-1">
-                        <h1 className="text-2xl font-bold">
-                          {caseData.caseNumber || caseData.caseReference}
-                        </h1>
-                        {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5 shrink-0"
-                            onClick={() => { setCaseNumberDraft(caseData.caseNumber || ""); setEditingCaseNumber(true); }}
-                            data-testid="button-edit-case-number"
-                            title="Edit case number"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                      {editingCaseName ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <input
-                            className="text-sm border-b-2 border-pink-500 bg-transparent focus:outline-none w-56"
-                            value={caseNameDraft}
-                            onChange={e => setCaseNameDraft(e.target.value)}
-                            placeholder="e.g. Smith v Acme Ltd"
-                            autoFocus
-                            data-testid="input-case-name-edit"
-                          />
-                          <Button
-                            size="sm"
-                            className="bg-pink-600 hover:bg-pink-700 text-white h-6 text-xs"
-                            onClick={() => {
-                              updateCaseMutation.mutate(
-                                { caseName: caseNameDraft.trim() } as any,
-                                { onSuccess: () => setEditingCaseName(false) }
-                              );
-                            }}
-                            disabled={updateCaseMutation.isPending}
-                            data-testid="button-save-case-name"
-                          >
-                            {updateCaseMutation.isPending ? "Saving…" : "Save"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-6 text-xs"
-                            onClick={() => setEditingCaseName(false)}
-                            data-testid="button-cancel-case-name"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          {caseData.caseName ? (
-                            <p className="text-sm text-muted-foreground">{caseData.caseName}</p>
-                          ) : (user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") ? (
-                            <p className="text-sm text-muted-foreground/50 italic">No case name set</p>
-                          ) : null}
-                          {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-5 w-5"
-                              onClick={() => { setCaseNameDraft(caseData.caseName || ""); setEditingCaseName(true); }}
-                              data-testid="button-edit-case-name"
-                              title="Edit case name"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <h1 className="text-2xl font-bold">
+                    {caseData.caseNumber || caseData.caseReference}
+                  </h1>
+                  {caseData.caseName ? (
+                    <p className="text-sm text-muted-foreground mt-0.5">{caseData.caseName}</p>
+                  ) : (user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") ? (
+                    <p className="text-sm text-muted-foreground/50 italic mt-0.5">No case name set</p>
+                  ) : null}
+                </div>
               </div>
               <CaseStatusBadge status={caseData.status as CaseStatus} />
               <CaseTypeBadge type={caseData.caseType as CaseType} />
@@ -2422,6 +2320,23 @@ function CaseDetailView({ id }: { id: string }) {
           </div>
           {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
             <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditCaseForm({
+                    caseNumber: caseData.caseNumber || "",
+                    caseName: caseData.caseName || "",
+                    description: caseData.description || "",
+                    sources: (caseData as any).sources ?? [],
+                    responseDeadline: caseData.responseDeadline ? format(new Date(caseData.responseDeadline), "yyyy-MM-dd") : "",
+                  });
+                  setShowEditCaseDialog(true);
+                }}
+                data-testid="button-edit-case"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Case
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowAccessDialog(true)}
@@ -2465,137 +2380,15 @@ function CaseDetailView({ id }: { id: string }) {
                 <div>
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">Description</p>
-                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && !editingDescription && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        onClick={() => { setDescriptionDraft(caseData.description ?? ""); setEditingDescription(true); }}
-                        data-testid="button-edit-description"
-                        title="Edit description"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    )}
                   </div>
-                  {editingDescription ? (
-                    <div className="mt-1 space-y-2">
-                      <Textarea
-                        value={descriptionDraft}
-                        onChange={e => setDescriptionDraft(e.target.value)}
-                        className="text-sm min-h-[80px] resize-none"
-                        placeholder="Add a description…"
-                        autoFocus
-                        data-testid="input-description-edit"
-                      />
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
-                          onClick={() => {
-                            updateCaseMutation.mutate(
-                              { description: descriptionDraft },
-                              { onSuccess: () => setEditingDescription(false) }
-                            );
-                          }}
-                          disabled={updateCaseMutation.isPending}
-                          data-testid="button-save-description"
-                        >
-                          {updateCaseMutation.isPending ? "Saving…" : "Save"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => setEditingDescription(false)}
-                          data-testid="button-cancel-description"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="mt-1 text-sm">{caseData.description || <span className="text-muted-foreground italic">No description provided</span>}</p>
-                  )}
+                  <p className="mt-1 text-sm">{caseData.description || <span className="text-muted-foreground italic">No description provided</span>}</p>
                 </div>
                 {/* Sources */}
                 <div className="border-t pt-3">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-muted-foreground">Source</p>
-                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && !editingSources && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        onClick={() => {
-                          setSourcesDraft((caseData as any).sources ?? []);
-                          setEditingSources(true);
-                        }}
-                        data-testid="button-edit-sources"
-                        title="Edit sources"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    )}
                   </div>
-                  {editingSources ? (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
-                        {allSources.length === 0 && (
-                          <p className="col-span-2 text-xs text-muted-foreground text-center py-2">No sources configured — add them in Developer → Sources</p>
-                        )}
-                        {allSources.map((src) => {
-                          const checked = sourcesDraft.includes(src.code);
-                          return (
-                            <button
-                              key={src.code}
-                              type="button"
-                              onClick={() =>
-                                setSourcesDraft(prev =>
-                                  prev.includes(src.code)
-                                    ? prev.filter(s => s !== src.code)
-                                    : [...prev, src.code]
-                                )
-                              }
-                              data-testid={`toggle-source-edit-${src.code}`}
-                              className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-sm text-left transition-colors ${checked ? "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
-                            >
-                              <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px] ${checked ? "bg-pink-600 border-pink-600 text-white" : "border-input"}`}>
-                                {checked && "✓"}
-                              </span>
-                              {src.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-pink-600 hover:bg-pink-700 text-white h-7 text-xs"
-                          onClick={() =>
-                            updateCaseMutation.mutate(
-                              { sources: sourcesDraft } as any,
-                              { onSuccess: () => setEditingSources(false) }
-                            )
-                          }
-                          disabled={updateCaseMutation.isPending}
-                          data-testid="button-save-sources"
-                        >
-                          {updateCaseMutation.isPending ? "Saving…" : "Save"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => setEditingSources(false)}
-                          data-testid="button-cancel-sources"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5">
                       {((caseData as any).sources ?? []).length > 0
                         ? ((caseData as any).sources as string[]).map((s: string) => (
                             <span key={s} className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
@@ -2604,8 +2397,7 @@ function CaseDetailView({ id }: { id: string }) {
                           ))
                         : <span className="text-sm text-muted-foreground italic">No sources set</span>
                       }
-                    </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Date fields — inline row, only rendered when values exist */}
@@ -3848,6 +3640,121 @@ function CaseDetailView({ id }: { id: string }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showEditCaseDialog} onOpenChange={setShowEditCaseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Case</DialogTitle>
+            <DialogDescription>Update the core details for this case</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Case Number <span className="text-destructive">*</span></label>
+              <Input
+                value={editCaseForm.caseNumber}
+                onChange={(e) => setEditCaseForm(f => ({ ...f, caseNumber: e.target.value }))}
+                data-testid="input-edit-case-number"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Case Name <span className="text-destructive">*</span></label>
+              <Input
+                value={editCaseForm.caseName}
+                onChange={(e) => setEditCaseForm(f => ({ ...f, caseName: e.target.value }))}
+                placeholder="e.g. Smith v Acme Ltd"
+                data-testid="input-edit-case-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description <span className="text-muted-foreground text-xs font-normal">(optional)</span></label>
+              <Textarea
+                value={editCaseForm.description}
+                onChange={(e) => setEditCaseForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Add a description…"
+                className="min-h-[80px] resize-none"
+                data-testid="input-edit-case-description"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Source <span className="text-destructive">*</span></label>
+              <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
+                {allSources.length === 0 && (
+                  <p className="col-span-2 text-xs text-muted-foreground text-center py-2">No sources configured — add them in Developer → Sources</p>
+                )}
+                {allSources.map((src) => {
+                  const checked = editCaseForm.sources.includes(src.code);
+                  return (
+                    <button
+                      key={src.code}
+                      type="button"
+                      onClick={() =>
+                        setEditCaseForm(f => ({
+                          ...f,
+                          sources: f.sources.includes(src.code)
+                            ? f.sources.filter(s => s !== src.code)
+                            : [...f.sources, src.code],
+                        }))
+                      }
+                      data-testid={`toggle-edit-case-source-${src.code}`}
+                      className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-sm text-left transition-colors ${checked ? "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
+                    >
+                      <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px] ${checked ? "bg-pink-600 border-pink-600 text-white" : "border-input"}`}>
+                        {checked && "✓"}
+                      </span>
+                      {src.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {caseData.caseType === "tribunal_claim" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">ET3 Response Deadline <span className="text-destructive">*</span></label>
+                <Input
+                  type="date"
+                  value={editCaseForm.responseDeadline}
+                  onChange={(e) => setEditCaseForm(f => ({ ...f, responseDeadline: e.target.value }))}
+                  data-testid="input-edit-case-response-deadline"
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setShowEditCaseDialog(false)} data-testid="button-cancel-edit-case">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const isTribunal = caseData.caseType === "tribunal_claim";
+                  if (
+                    !editCaseForm.caseNumber.trim() ||
+                    !editCaseForm.caseName.trim() ||
+                    editCaseForm.sources.length === 0 ||
+                    (isTribunal && !editCaseForm.responseDeadline)
+                  ) {
+                    toast({ title: "Please fill in all required fields", variant: "destructive" });
+                    return;
+                  }
+                  updateCaseMutation.mutate(
+                    {
+                      caseNumber: editCaseForm.caseNumber.trim(),
+                      caseName: editCaseForm.caseName.trim(),
+                      description: editCaseForm.description.trim(),
+                      sources: editCaseForm.sources,
+                      ...(isTribunal ? { responseDeadline: editCaseForm.responseDeadline } : {}),
+                    } as any,
+                    { onSuccess: () => setShowEditCaseDialog(false) }
+                  );
+                }}
+                disabled={updateCaseMutation.isPending}
+                className="bg-pink-600 hover:bg-pink-700 text-white"
+                data-testid="button-save-edit-case"
+              >
+                {updateCaseMutation.isPending ? "Saving…" : "Save Changes"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showMilestoneDialog} onOpenChange={setShowMilestoneDialog}>
         <DialogContent>

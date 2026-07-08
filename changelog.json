@@ -542,7 +542,7 @@
           "id": "a7c3e9f1-tdz-scan-all-pages-2026",
           "patch": 8,
           "category": "other",
-          "message": "Verified: all pages scanned for variable ordering crashes — none found",
+          "message": "Verified: all pages scanned for variable ordering crashes \u2014 none found",
           "createdAt": "2026-05-12T15:00:00.000Z",
           "createdBy": "System"
         },
@@ -774,7 +774,7 @@
           "id": "h8i9j0k1-sites-pagination-2026",
           "patch": 8,
           "category": "feature",
-          "message": "Site pages paginate at 21 tiles total — All Sites, group, company and site cards all counted",
+          "message": "Site pages paginate at 21 tiles total \u2014 All Sites, group, company and site cards all counted",
           "createdAt": "2026-05-11T13:50:00.000Z",
           "createdBy": "System"
         },
@@ -790,7 +790,7 @@
           "id": "f6g7h8i9-early-preload-2026",
           "patch": 8,
           "category": "enhancement",
-          "message": "Pages like Documents and Sites now load faster — JS bundles preload immediately after sign-in",
+          "message": "Pages like Documents and Sites now load faster \u2014 JS bundles preload immediately after sign-in",
           "createdAt": "2026-05-11T13:20:00.000Z",
           "createdBy": "System"
         },
@@ -814,7 +814,7 @@
           "id": "c3d4e5f6-route-fallback-2026",
           "patch": 8,
           "category": "enhancement",
-          "message": "Fixed: pages no longer show a plain spinning circle while loading — now shows branded overlay",
+          "message": "Fixed: pages no longer show a plain spinning circle while loading \u2014 now shows branded overlay",
           "createdAt": "2026-05-11T12:15:00.000Z",
           "createdBy": "System"
         },
@@ -1053,7 +1053,7 @@
         {
           "id": "d1b62y30-6f3c-1g0h-8e71-2i4d6e8f9h53",
           "patch": 6,
-          "message": "Case notes: clickable tick icon added to each note — toggles green completed state (strikethrough text, green background tint) with no persistence required",
+          "message": "Case notes: clickable tick icon added to each note \u2014 toggles green completed state (strikethrough text, green background tint) with no persistence required",
           "category": "enhancement",
           "createdAt": "2026-05-05T11:37:00.000Z",
           "createdBy": "System"
@@ -1429,7 +1429,7 @@
         {
           "id": "a3b4c5d6-e7f8-9012-abcd-123456789012",
           "patch": 2,
-          "message": "Redesigned Template Library header — icon badge and action buttons always visible at top",
+          "message": "Redesigned Template Library header \u2014 icon badge and action buttons always visible at top",
           "category": "enhancement",
           "createdAt": "2026-04-13T17:30:00.000Z",
           "createdBy": "System"
@@ -1613,7 +1613,7 @@
         {
           "id": "f3c910ab7d82",
           "patch": 4,
-          "message": "Users Report now distinguishes between Consultants and Pro Consultants — each shown with a distinct badge, colour, and separate summary count",
+          "message": "Users Report now distinguishes between Consultants and Pro Consultants \u2014 each shown with a distinct badge, colour, and separate summary count",
           "category": "enhancement",
           "createdAt": "2026-04-17T18:28:00.000Z",
           "createdBy": "System"
@@ -1637,7 +1637,7 @@
         {
           "id": "d4a78e21c903",
           "patch": 4,
-          "message": "Added ACAS Conciliation as a case type in Employment Law — available in the new case form and case type filter",
+          "message": "Added ACAS Conciliation as a case type in Employment Law \u2014 available in the new case form and case type filter",
           "category": "feature",
           "createdAt": "2026-04-19T13:55:00.000Z",
           "createdBy": "System"
@@ -1645,7 +1645,7 @@
         {
           "id": "e8b2f94d1c37",
           "patch": 4,
-          "message": "Admins can grant Case Advocate permission to consultants — only Case Advocates can view and manage Employment Law cases",
+          "message": "Admins can grant Case Advocate permission to consultants \u2014 only Case Advocates can view and manage Employment Law cases",
           "category": "feature",
           "createdAt": "2026-04-19T14:50:00.000Z",
           "createdBy": "System"
@@ -1797,7 +1797,7 @@
         {
           "id": "2bba2d84-4ef8-45cf-80b2-7dafb0c12e40",
           "patch": 5,
-          "message": "Group Owner moved into Linked Companies panel — single unified section",
+          "message": "Group Owner moved into Linked Companies panel \u2014 single unified section",
           "category": "enhancement",
           "createdAt": "2026-04-20T15:23:13.023Z",
           "createdBy": "user-admin"
@@ -2989,7 +2989,7 @@
         {
           "id": "e9f0a1b2-c3d4-5678-efab-901234567890",
           "patch": 6,
-          "message": "Improved: roadmap filters laid out in a tidy 2×4 grid; search spans two columns",
+          "message": "Improved: roadmap filters laid out in a tidy 2\u00d74 grid; search spans two columns",
           "category": "enhancement",
           "createdAt": "2026-05-08T16:10:00.000Z",
           "createdBy": "System"
@@ -3117,7 +3117,7 @@
         {
           "id": "b4c5d6e7-f8a9-0123-cdef-789012345678",
           "patch": 6,
-          "message": "Improved: Site Documents filters are now uniform — no icons, consistent size",
+          "message": "Improved: Site Documents filters are now uniform \u2014 no icons, consistent size",
           "category": "enhancement",
           "createdAt": "2026-05-08T20:00:00.000Z",
           "createdBy": "System"
@@ -3141,7 +3141,7 @@
         {
           "id": "e7f8a9b0-c1d2-3456-fabc-012345678901",
           "patch": 6,
-          "message": "Improved: dashboard overview — removed 'Need Support?' button; added staff filter for pro consultants; dropdowns match site documents style",
+          "message": "Improved: dashboard overview \u2014 removed 'Need Support?' button; added staff filter for pro consultants; dropdowns match site documents style",
           "category": "enhancement",
           "createdAt": "2026-05-08T20:45:00.000Z",
           "createdBy": "System"
@@ -3261,7 +3261,7 @@
         {
           "id": "b4c5d6e7-f8a9-0123-cdef-567890123b45",
           "patch": 6,
-          "message": "Fixed: All Sites documents — folder view, table view and summary missing count now align",
+          "message": "Fixed: All Sites documents \u2014 folder view, table view and summary missing count now align",
           "category": "bug",
           "createdAt": "2026-05-08T23:20:00.000Z",
           "createdBy": "System"
@@ -3469,7 +3469,7 @@
         {
           "id": "d88511cc-584b-43b5-a92d-a7a3fc1e814d",
           "patch": 8,
-          "message": "Fixed: patch numbering corrected — dev shows patch 8, prod shows patch 7",
+          "message": "Fixed: patch numbering corrected \u2014 dev shows patch 8, prod shows patch 7",
           "category": "bug",
           "createdAt": "2026-05-11T09:37:31.037Z",
           "createdBy": "System"
@@ -3709,7 +3709,7 @@
         {
           "id": "b1d23e45-0f56-7a89-bc01-2d3e4f5a6b7c",
           "patch": 8,
-          "message": "DOCX preview now shows 'Converting document, please wait…' on first open",
+          "message": "DOCX preview now shows 'Converting document, please wait\u2026' on first open",
           "category": "enhancement",
           "createdAt": "2026-05-12T10:50:00.000Z",
           "createdBy": "System"
@@ -3749,7 +3749,7 @@
         {
           "id": "f45dbcc2-4f1a-4d33-8d59-4f8459977b8f",
           "patch": 10,
-          "message": "Added Dashboard 2 — an exact copy of the main dashboard at /dashboard-2",
+          "message": "Added Dashboard 2 \u2014 an exact copy of the main dashboard at /dashboard-2",
           "category": "feature",
           "createdAt": "2026-05-12T20:00:33.675Z",
           "createdBy": "System"
@@ -3925,7 +3925,7 @@
         {
           "id": "m0i2n741-3j56-2klm-j102-7p4o1m8l0n33",
           "patch": 10,
-          "message": "My Actions tiles with 0 items are now non-interactive — no navigation on click",
+          "message": "My Actions tiles with 0 items are now non-interactive \u2014 no navigation on click",
           "category": "enhancement",
           "createdAt": "2026-05-12T22:05:00.000Z",
           "createdBy": "System"
@@ -4388,7 +4388,7 @@
         {
           "id": "b7e3d2f1-remove-site-manager-col-2026",
           "patch": 12,
-          "message": "Removed unused site_manager field — contact_name covers the same purpose",
+          "message": "Removed unused site_manager field \u2014 contact_name covers the same purpose",
           "category": "other",
           "createdAt": "2026-05-14T16:05:00.000Z"
         },
@@ -4749,7 +4749,7 @@
         {
           "id": "f0d60ebb-f96f-4198-969b-03a725900088",
           "patch": 6,
-          "message": "Improved: home page data loads up to 10× faster on first visit",
+          "message": "Improved: home page data loads up to 10\u00d7 faster on first visit",
           "category": "enhancement",
           "createdAt": "2026-05-19T12:39:08.482Z"
         },
@@ -4791,7 +4791,7 @@
         {
           "id": "a1c3e5f7-vm-deployment-always-on-2026",
           "patch": 6,
-          "message": "Fixed: app no longer restarts unexpectedly — switched to always-on deployment",
+          "message": "Fixed: app no longer restarts unexpectedly \u2014 switched to always-on deployment",
           "category": "bug",
           "createdAt": "2026-05-19T15:30:00.000Z"
         },
@@ -4812,7 +4812,7 @@
         {
           "id": "h8j0l2n4-create-client-user-shared-component-2026",
           "patch": 6,
-          "message": "Create Client User dialog is now a shared component — company page and user management stay in sync automatically",
+          "message": "Create Client User dialog is now a shared component \u2014 company page and user management stay in sync automatically",
           "category": "enhancement",
           "createdAt": "2026-05-19T20:10:00.000Z"
         },
@@ -5134,7 +5134,7 @@
         {
           "id": "f6g7h8i9-accelo-integration-2026",
           "patch": 8,
-          "message": "Accelo CRM integration — connect Accelo and push clients directly into the portal",
+          "message": "Accelo CRM integration \u2014 connect Accelo and push clients directly into the portal",
           "category": "feature",
           "createdAt": "2026-05-22T16:00:00.000Z"
         },
@@ -5260,7 +5260,7 @@
         {
           "id": "e1f2a3b4-key-contact-all-levels-2026",
           "patch": 8,
-          "message": "Key contact status now applies at all levels — setting at site updates company and vice versa",
+          "message": "Key contact status now applies at all levels \u2014 setting at site updates company and vice versa",
           "category": "enhancement",
           "createdAt": "2026-05-24T16:00:00.000Z"
         },
@@ -5309,7 +5309,7 @@
         {
           "id": "d4e5f6a7-accelo-type-only-badge-2026",
           "patch": 8,
-          "message": "Accelo badges now show type only (e.g. 'Accelo: Internal') — standing removed from all views",
+          "message": "Accelo badges now show type only (e.g. 'Accelo: Internal') \u2014 standing removed from all views",
           "category": "enhancement",
           "createdAt": "2026-05-24T20:40:00.000Z"
         },
@@ -5456,7 +5456,7 @@
         {
           "id": "d4e5f6a7-missing-doc-banners-clickable-2026",
           "patch": 8,
-          "message": "Missing required document banners are now clickable — opens the upload wizard with the template pre-selected",
+          "message": "Missing required document banners are now clickable \u2014 opens the upload wizard with the template pre-selected",
           "category": "enhancement",
           "createdAt": "2026-05-24T23:55:00.000Z"
         },
@@ -5477,7 +5477,7 @@
         {
           "id": "a7b8c9d0-scheduled-tasks-report-2026",
           "patch": 8,
-          "message": "New report: Scheduled Tasks — shows all background jobs, their schedule, live/paused status, and last run",
+          "message": "New report: Scheduled Tasks \u2014 shows all background jobs, their schedule, live/paused status, and last run",
           "category": "feature",
           "createdAt": "2026-05-25T21:15:00.000Z"
         },
@@ -5505,7 +5505,7 @@
         {
           "id": "e1f2a3b4-consultant-temporary-coverage-2026",
           "patch": 8,
-          "message": "Consultants can now arrange temporary client cover — delegates client access to covering consultants for a date range",
+          "message": "Consultants can now arrange temporary client cover \u2014 delegates client access to covering consultants for a date range",
           "category": "feature",
           "createdAt": "2026-05-25T23:20:00.000Z"
         },
@@ -5610,7 +5610,7 @@
         {
           "id": "875195af-3f70-47f0-a332-25178ae276d0",
           "patch": 8,
-          "message": "Fixed: covering consultants now get full access to covered clients’ documents and sites",
+          "message": "Fixed: covering consultants now get full access to covered clients\u2019 documents and sites",
           "category": "bug",
           "createdAt": "2026-05-26T08:58:36.843Z"
         },
@@ -6177,7 +6177,7 @@
         {
           "id": "b2d4f6a8-private-templates-report-admin-2026",
           "patch": 11,
-          "message": "New report: Private Templates — lists all source-restricted templates with folder, required and approval flags",
+          "message": "New report: Private Templates \u2014 lists all source-restricted templates with folder, required and approval flags",
           "category": "feature",
           "createdAt": "2026-05-28T13:30:00.000Z"
         },
@@ -6254,7 +6254,7 @@
         {
           "id": "m5h7i9j1-toolkit-folder-source-ringfencing-2026",
           "patch": 11,
-          "message": "Toolkit folders are now ringfenced by source — clients only see folders matching their company's source, consultants see folders matching their own source",
+          "message": "Toolkit folders are now ringfenced by source \u2014 clients only see folders matching their company's source, consultants see folders matching their own source",
           "category": "feature",
           "createdAt": "2026-05-28T19:50:00.000Z"
         },
@@ -6352,7 +6352,7 @@
         {
           "id": "a1b2c3d4-remove-unused-recent-activity-2026",
           "patch": 11,
-          "message": "Removed unused audit log fetch from dashboard — reduces DB load on every page load",
+          "message": "Removed unused audit log fetch from dashboard \u2014 reduces DB load on every page load",
           "category": "enhancement",
           "createdAt": "2026-05-29T07:35:00.000Z"
         },
@@ -6457,7 +6457,7 @@
         {
           "id": "31f5d0fc-0ae5-4533-ae7b-7ede9aa09a28",
           "patch": 13,
-          "message": "Improved: module summary loads faster — DB calls now run in parallel",
+          "message": "Improved: module summary loads faster \u2014 DB calls now run in parallel",
           "category": "enhancement",
           "createdAt": "2026-05-31T10:49:29.943934+00:00"
         },
@@ -6597,7 +6597,7 @@
         {
           "id": "a1f2b3c4-d5e6-7890-abcd-ef1234567891",
           "patch": 13,
-          "message": "Renamed isRequired → isMandatory in DB schema and all code identifiers",
+          "message": "Renamed isRequired \u2192 isMandatory in DB schema and all code identifiers",
           "category": "enhancement",
           "createdAt": "2026-05-31T17:47:33.403Z"
         },
@@ -6709,7 +6709,7 @@
         {
           "id": "e7f8a9b0-c1d2-3456-ef01-456789012346",
           "patch": 13,
-          "message": "Removed: documents can no longer be rejected — use Request Changes instead",
+          "message": "Removed: documents can no longer be rejected \u2014 use Request Changes instead",
           "category": "feature",
           "createdAt": "2026-05-31T20:15:00.000Z"
         },
@@ -6926,7 +6926,7 @@
         {
           "id": "a4b5c6d7-e8f9-abcd-a4b5-c6d7e8f9abcd",
           "patch": 14,
-          "message": "Removed unnecessary background refetch on tab focus — live updates handle this",
+          "message": "Removed unnecessary background refetch on tab focus \u2014 live updates handle this",
           "category": "enhancement",
           "createdAt": "2026-06-02T23:35:00.000Z"
         },
@@ -6947,7 +6947,7 @@
         {
           "id": "d7e8f9ab-cdef-0123-d7e8-f9abcdef0123",
           "patch": 14,
-          "message": "Approval status panel now fixed in sidebar — always visible while scrolling",
+          "message": "Approval status panel now fixed in sidebar \u2014 always visible while scrolling",
           "category": "feature",
           "createdAt": "2026-06-03T06:30:00.000Z"
         },
@@ -7031,14 +7031,14 @@
         {
           "id": "c3d4e5f6-a7b8-9012-c3d4-e5f6a7b89012",
           "patch": 14,
-          "message": "Request Changes button hidden on final approval stage — not needed after client sign-off",
+          "message": "Request Changes button hidden on final approval stage \u2014 not needed after client sign-off",
           "category": "enhancement",
           "createdAt": "2026-06-03T07:45:00.000Z"
         },
         {
           "id": "d4e5f6a7-b8c9-0123-d4e5-f6a7b8c90123",
           "patch": 14,
-          "message": "Versions now show as 0.1, 0.2… during approval; draft history cleared on final approval",
+          "message": "Versions now show as 0.1, 0.2\u2026 during approval; draft history cleared on final approval",
           "category": "feature",
           "createdAt": "2026-06-03T08:10:00.000Z"
         },
@@ -7073,21 +7073,21 @@
         {
           "id": "c4d5e6f7-a8b9-0123-c4d5-e6f7a8b90123",
           "patch": 14,
-          "message": "Fixed: only the designated approver can sign off — others see a 'sent to a specific person' notice",
+          "message": "Fixed: only the designated approver can sign off \u2014 others see a 'sent to a specific person' notice",
           "category": "bug",
           "createdAt": "2026-06-03T12:15:00.000Z"
         },
         {
           "id": "d5e6f7a8-b9c0-1234-d5e6-f7a8b9c01234",
           "patch": 14,
-          "message": "Quick Actions renamed to Current Document Version — always shows the latest approved file",
+          "message": "Quick Actions renamed to Current Document Version \u2014 always shows the latest approved file",
           "category": "enhancement",
           "createdAt": "2026-06-03T12:32:00.000Z"
         },
         {
           "id": "e6f7a8b9-c0d1-2345-e6f7-a8b9c0d12345",
           "patch": 14,
-          "message": "Previous Versions renamed to Version History — shows all versions including drafts",
+          "message": "Previous Versions renamed to Version History \u2014 shows all versions including drafts",
           "category": "enhancement",
           "createdAt": "2026-06-03T12:32:00.000Z"
         },
@@ -7108,7 +7108,7 @@
         {
           "id": "b9d2f4a6-audit-log-details-collapsible-2026",
           "patch": 14,
-          "message": "Audit trail entries now show a clean summary by default — expand to see full details",
+          "message": "Audit trail entries now show a clean summary by default \u2014 expand to see full details",
           "category": "enhancement",
           "createdAt": "2026-06-03T12:50:00.000Z"
         },
@@ -7178,7 +7178,7 @@
         {
           "id": "f2b4d6e8-inv-section-edit-buttons-removed-2026",
           "patch": 14,
-          "message": "Removed per-section Edit buttons from investigation report — Edit All is the single entry point",
+          "message": "Removed per-section Edit buttons from investigation report \u2014 Edit All is the single entry point",
           "category": "enhancement",
           "createdAt": "2026-06-03T16:54:00.000Z"
         },
@@ -7213,7 +7213,7 @@
         {
           "id": "e7a9c1d3-inv-pdf-complete-fields-2026",
           "patch": 14,
-          "message": "Export Report now includes all fields: first aid, hospital visit, RIDDOR, actions, recommendations, amendments — always shown",
+          "message": "Export Report now includes all fields: first aid, hospital visit, RIDDOR, actions, recommendations, amendments \u2014 always shown",
           "category": "enhancement",
           "createdAt": "2026-06-03T17:28:00.000Z"
         },
@@ -7276,7 +7276,7 @@
         {
           "id": "b8d0f2ae-riddor-removed-from-incident-details-2026",
           "patch": 14,
-          "message": "RIDDOR section removed from Incident Details card and initial report export — it now only appears in Follow Up Investigation",
+          "message": "RIDDOR section removed from Incident Details card and initial report export \u2014 it now only appears in Follow Up Investigation",
           "category": "enhancement",
           "createdAt": "2026-06-03T18:50:00.000Z"
         },
@@ -7584,7 +7584,7 @@
         {
           "id": "b2c3d4e5-doc-details-layout-polish-2026",
           "patch": 14,
-          "message": "Improved Document Details layout — cleaner rows with dividers and labelled fields",
+          "message": "Improved Document Details layout \u2014 cleaner rows with dividers and labelled fields",
           "category": "enhancement",
           "createdAt": "2026-06-03T23:00:00.000Z"
         },
@@ -7773,7 +7773,7 @@
         {
           "id": "q7s9u1w3-group-company-card-name-height-2026",
           "patch": 14,
-          "message": "Fixed: Group and Company cards now align with Site cards — compliance bar at the same height",
+          "message": "Fixed: Group and Company cards now align with Site cards \u2014 compliance bar at the same height",
           "category": "bug",
           "createdAt": "2026-06-04T20:10:00.000Z"
         },
@@ -7927,7 +7927,7 @@
         {
           "id": "b1c2d3e4-f5a6-7890-bcde-f01234567890",
           "patch": 14,
-          "message": "Home: 'See what's new' hint stays visible — click to scroll, × to close; updated to 'the Guardian Group'",
+          "message": "Home: 'See what's new' hint stays visible \u2014 click to scroll, \u00d7 to close; updated to 'the Guardian Group'",
           "category": "enhancement",
           "createdAt": "2026-06-04T23:20:00.000Z"
         },
@@ -8039,14 +8039,14 @@
         {
           "id": "e6f7a8b9-c0d1-2345-efab-345678901235",
           "patch": 14,
-          "message": "Removed fallback to all site clients on approval emails — only the approving client is notified",
+          "message": "Removed fallback to all site clients on approval emails \u2014 only the approving client is notified",
           "category": "enhancement",
           "createdAt": "2026-06-05T07:40:00.000Z"
         },
         {
           "id": "f7a8b9c0-d1e2-3456-fabc-456789012346",
           "patch": 14,
-          "message": "Cloud share: email notifications sent when files are uploaded (consultant ↔ client)",
+          "message": "Cloud share: email notifications sent when files are uploaded (consultant \u2194 client)",
           "category": "feature",
           "createdAt": "2026-06-05T08:15:00.000Z"
         },
@@ -8298,7 +8298,7 @@
         {
           "id": "246aca18-fbe6-493f-ba9b-cd8abc993b8e",
           "patch": 15,
-          "message": "Fixed: user list now updates a member’s status and last seen live when they sign in",
+          "message": "Fixed: user list now updates a member\u2019s status and last seen live when they sign in",
           "category": "bug",
           "createdAt": "2026-06-08T15:45:43.733Z"
         },
@@ -8536,7 +8536,7 @@
         {
           "id": "3c3ef680-194a-4565-8aa0-5cf42e7c7282",
           "patch": 15,
-          "message": "New Admin staff role — Pro-level access, never an approver; on-behalf-of flow for document uploads",
+          "message": "New Admin staff role \u2014 Pro-level access, never an approver; on-behalf-of flow for document uploads",
           "category": "feature",
           "createdAt": "2026-06-09T16:49:32.063Z"
         },
@@ -8690,7 +8690,7 @@
         {
           "id": "f3c5d7e9-ishare-upload-folder-deleted-before-upload-2026",
           "patch": 15,
-          "message": "Fixed: iShare file uploads now work — folder was being auto-deleted before files could be added",
+          "message": "Fixed: iShare file uploads now work \u2014 folder was being auto-deleted before files could be added",
           "category": "bug",
           "createdAt": "2026-06-09T21:24:00.000Z"
         },
@@ -8704,7 +8704,7 @@
         {
           "id": "b2c4e6f8-ishare-cloudshare-cleanup-parity-2026",
           "patch": 15,
-          "message": "Improved: iShare folder cleanup now matches cloud share — nightly sweep and 7-day grace for new empty folders",
+          "message": "Improved: iShare folder cleanup now matches cloud share \u2014 nightly sweep and 7-day grace for new empty folders",
           "category": "enhancement",
           "createdAt": "2026-06-09T21:45:00.000Z"
         },
@@ -8718,14 +8718,14 @@
         {
           "id": "d4e6f8a0-templates-sourceless-hidden-non-dev-2026",
           "patch": 15,
-          "message": "Templates with no source are now hidden from consultants and clients — developer only",
+          "message": "Templates with no source are now hidden from consultants and clients \u2014 developer only",
           "category": "feature",
           "createdAt": "2026-06-09T22:05:00.000Z"
         },
         {
           "id": "e5f7a9b1-admin-on-behalf-create-from-template-2026",
           "patch": 15,
-          "message": "Fixed: Admin can now upload via the template flow — on-behalf consultant picker was missing",
+          "message": "Fixed: Admin can now upload via the template flow \u2014 on-behalf consultant picker was missing",
           "category": "bug",
           "createdAt": "2026-06-09T22:20:00.000Z"
         },
@@ -8823,7 +8823,7 @@
         {
           "id": "a1c3e5f7-two-phase-loading-companies-sites-2026",
           "patch": 16,
-          "message": "Improved: Companies and Sites lists now load instantly — compliance scores appear in the background with a spinning logo",
+          "message": "Improved: Companies and Sites lists now load instantly \u2014 compliance scores appear in the background with a spinning logo",
           "category": "enhancement",
           "createdAt": "2026-06-16T15:28:10.000Z"
         },
@@ -8837,7 +8837,7 @@
         {
           "id": "c3e5f7a9-audit-email-two-line-format-2026",
           "patch": 16,
-          "message": "Improved: Email audit entries now show type in the title and recipient on the second line — no expand needed",
+          "message": "Improved: Email audit entries now show type in the title and recipient on the second line \u2014 no expand needed",
           "category": "enhancement",
           "createdAt": "2026-06-16T15:44:00.000Z"
         },
@@ -8991,7 +8991,7 @@
         {
           "id": "f6b9d2e5-multi-approver-upload-version-2026",
           "patch": 16,
-          "message": "Upload new version now supports multiple approvers — add or remove from a list before submitting",
+          "message": "Upload new version now supports multiple approvers \u2014 add or remove from a list before submitting",
           "category": "enhancement",
           "createdAt": "2026-06-16T20:30:00.000Z"
         },
@@ -9082,14 +9082,14 @@
         {
           "id": "a1b2c3d4-email-settings-ui-2026",
           "patch": 16,
-          "message": "New: Email Settings tab — control email routing per environment with send-all mode, role/address/domain allow-lists, and a catch-all address",
+          "message": "New: Email Settings tab \u2014 control email routing per environment with send-all mode, role/address/domain allow-lists, and a catch-all address",
           "category": "feature",
           "createdAt": "2026-06-18T10:00:00.000Z"
         },
         {
           "id": "e7f8a9b0-totp-mfa-authenticator-2026",
           "patch": 16,
-          "message": "New: TOTP authenticator app MFA — set up via QR code, backup codes, trusted devices, admin reset, and portal-wide enforcement toggle",
+          "message": "New: TOTP authenticator app MFA \u2014 set up via QR code, backup codes, trusted devices, admin reset, and portal-wide enforcement toggle",
           "category": "feature",
           "createdAt": "2026-06-18T12:07:25.612Z"
         },
@@ -9103,7 +9103,7 @@
         {
           "id": "a1c3e5f7-tile-tooltip-overdue-vs-expired-split-2026",
           "patch": 16,
-          "message": "Fixed: tile tooltips now correctly separate overdue (renewal) from expired (expiry date) — no more double-counting",
+          "message": "Fixed: tile tooltips now correctly separate overdue (renewal) from expired (expiry date) \u2014 no more double-counting",
           "category": "bug",
           "createdAt": "2026-06-18T22:00:00.000Z"
         },
@@ -9229,7 +9229,7 @@
         {
           "id": "05e965cd-c6be-4a93-b942-ba28ce128f48",
           "patch": 16,
-          "message": "Table view: renewal and expiry dates highlighted red (past), amber (≤30 days), yellow (≤60 days)",
+          "message": "Table view: renewal and expiry dates highlighted red (past), amber (\u226430 days), yellow (\u226460 days)",
           "category": "enhancement",
           "createdAt": "2026-06-19T15:09:31.836Z"
         },
@@ -9341,7 +9341,7 @@
         {
           "id": "97958967-82f8-4983-bac4-daa2e8883084",
           "patch": 16,
-          "message": "Table view: columns now fit on one screen — Document fixed width, narrower Folder/Compliance/Status",
+          "message": "Table view: columns now fit on one screen \u2014 Document fixed width, narrower Folder/Compliance/Status",
           "category": "enhancement",
           "createdAt": "2026-06-19T16:17:38.475Z"
         },
@@ -9383,7 +9383,7 @@
         {
           "id": "7a379a94-10be-4c87-8649-ca22c20ae1d2",
           "patch": 16,
-          "message": "Fixed: document table columns now use percentage widths — no horizontal scrollbar on any screen size",
+          "message": "Fixed: document table columns now use percentage widths \u2014 no horizontal scrollbar on any screen size",
           "category": "bug",
           "createdAt": "2026-06-19T18:05:13.415Z"
         },
@@ -9460,14 +9460,14 @@
         {
           "id": "a2c1e4f6-site-card-company-docs-match-docs-page-2026",
           "patch": 16,
-          "message": "Fixed: individual site compliance cards now match the Documents page — company-owned docs always visible at their own sites",
+          "message": "Fixed: individual site compliance cards now match the Documents page \u2014 company-owned docs always visible at their own sites",
           "category": "bug",
           "createdAt": "2026-06-19T21:45:00.000Z"
         },
         {
           "id": "b3d2f5a7-unified-compliance-count-site-level-only-2026",
           "patch": 16,
-          "message": "Fixed: All Sites card, site cards, and Documents page now show the same mandatory compliant count — only docs explicitly shared to site level are counted",
+          "message": "Fixed: All Sites card, site cards, and Documents page now show the same mandatory compliant count \u2014 only docs explicitly shared to site level are counted",
           "category": "bug",
           "createdAt": "2026-06-19T22:10:00.000Z"
         },
@@ -9754,7 +9754,7 @@
         {
           "id": "53d8e5b1-75c6-4453-9c6a-3749fea81b44",
           "patch": 16,
-          "message": "Covering consultants now see the covered person’s documents in Awaiting My Approval",
+          "message": "Covering consultants now see the covered person\u2019s documents in Awaiting My Approval",
           "category": "enhancement",
           "createdAt": "2026-06-25T08:29:23.773Z"
         },
@@ -9992,7 +9992,7 @@
         {
           "id": "f3a1c8e2-investor-deck-slides-2026",
           "patch": 16,
-          "message": "Investor presentation deck added — navigable slide deck at /investor-deck",
+          "message": "Investor presentation deck added \u2014 navigable slide deck at /investor-deck",
           "category": "feature",
           "createdAt": "2026-06-21T12:18:34.132Z"
         },
@@ -10020,7 +10020,7 @@
         {
           "id": "d2e4f6a8-investor-deck-form-slide-simplified-2026",
           "patch": 16,
-          "message": "Investor deck: simplified form builder slide — less text, more visual",
+          "message": "Investor deck: simplified form builder slide \u2014 less text, more visual",
           "category": "enhancement",
           "createdAt": "2026-06-21T12:49:57.019Z"
         },
@@ -10062,7 +10062,7 @@
         {
           "id": "a1b0bddd-5bb7-4281-9d41-36d934935cb9",
           "patch": 16,
-          "message": "Deck: Guardian App named and elevated throughout — headline slide updated",
+          "message": "Deck: Guardian App named and elevated throughout \u2014 headline slide updated",
           "category": "enhancement",
           "createdAt": "2026-06-22T15:46:02.336Z"
         },
@@ -10076,7 +10076,7 @@
         {
           "id": "47ca7cce-b7ba-4dd8-b11a-7f056b34d8d8",
           "patch": 16,
-          "message": "Deck: removed AI auto-reports from 0–12 month milestone timeline",
+          "message": "Deck: removed AI auto-reports from 0\u201312 month milestone timeline",
           "category": "enhancement",
           "createdAt": "2026-06-22T15:54:06.781Z"
         },
@@ -10139,7 +10139,7 @@
         {
           "id": "582cf828-175e-409e-929a-43553345bf74",
           "patch": 16,
-          "message": "Deck: logo ring redrawn as crisp SVG — no background artefact",
+          "message": "Deck: logo ring redrawn as crisp SVG \u2014 no background artefact",
           "category": "enhancement",
           "createdAt": "2026-06-23T09:04:55.874Z"
         },
@@ -10153,21 +10153,21 @@
         {
           "id": "635b130f-d090-4e89-b20a-8648dfe637aa",
           "patch": 16,
-          "message": "Deck: removed \"First AI milestone\" banner from 18–24 month slide",
+          "message": "Deck: removed \"First AI milestone\" banner from 18\u201324 month slide",
           "category": "enhancement",
           "createdAt": "2026-06-23T09:16:22.521Z"
         },
         {
           "id": "28ed0a6a-8d2b-497d-a5b1-ae1cd91c4383",
           "patch": 16,
-          "message": "Deck: milestone badges changed from \"IN PROGRESS\" to \"✓ LIVE\" for completed items",
+          "message": "Deck: milestone badges changed from \"IN PROGRESS\" to \"\u2713 LIVE\" for completed items",
           "category": "enhancement",
           "createdAt": "2026-06-23T09:18:06.665Z"
         },
         {
           "id": "1970d2a1-48f2-4bcd-b818-f47f4309e0c4",
           "patch": 16,
-          "message": "Deck: Download PDF button added — opens browser print dialog with all slides as landscape pages",
+          "message": "Deck: Download PDF button added \u2014 opens browser print dialog with all slides as landscape pages",
           "category": "feature",
           "createdAt": "2026-06-23T13:23:22.843Z"
         },
@@ -10181,7 +10181,7 @@
         {
           "id": "822bb915-8479-4623-b31e-1129a2515c4d",
           "patch": 16,
-          "message": "Deck: added Month 5 milestone — Guardian App prototype (Nov '26)",
+          "message": "Deck: added Month 5 milestone \u2014 Guardian App prototype (Nov '26)",
           "category": "enhancement",
           "createdAt": "2026-06-23T16:00:56.512Z"
         },
@@ -10202,14 +10202,14 @@
         {
           "id": "a9b8c7d6-e5f4-deck-lucide-icons-replace-emoji-2026",
           "patch": 16,
-          "message": "Deck PDF: replaced all emoji icons with SVG icons — now render correctly in exported PDF",
+          "message": "Deck PDF: replaced all emoji icons with SVG icons \u2014 now render correctly in exported PDF",
           "category": "bug",
           "createdAt": "2026-06-24T11:21:00.000Z"
         },
         {
           "id": "c1d2e3f4-a5b6-competitive-report-module-2026",
           "patch": 16,
-          "message": "Added competitive analysis report (Word) — module-by-module vs Donesafe, T100, HandsHQ; direct download from deck",
+          "message": "Added competitive analysis report (Word) \u2014 module-by-module vs Donesafe, T100, HandsHQ; direct download from deck",
           "category": "feature",
           "createdAt": "2026-06-24T17:45:00.000Z"
         },
@@ -10664,7 +10664,7 @@
         {
           "id": "57879386-4938-4249-9345-e070eeb64487",
           "patch": 22,
-          "message": "Admins now scoped by source like Pro Consultants — no unscoped access",
+          "message": "Admins now scoped by source like Pro Consultants \u2014 no unscoped access",
           "category": "other",
           "createdAt": "2026-07-02T18:49:06.876Z"
         },
@@ -11045,6 +11045,13 @@
           "message": "Fixed: edit pencil icons on case header now sized and aligned correctly",
           "category": "bug",
           "createdAt": "2026-07-08T08:02:41.078Z"
+        },
+        {
+          "id": "f956fa9c-0d87-4e0b-8c31-cd3019137c8e",
+          "patch": 25,
+          "message": "Case header now has a single Edit Case button for all core fields",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T08:19:59.349Z"
         }
       ],
       "publishedPatch": 24,
