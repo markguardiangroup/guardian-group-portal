@@ -2827,7 +2827,7 @@ function CaseDetailView({ id }: { id: string }) {
                                 value={linkedDoc?.documentDate}
                                 disabled={!linkedDoc}
                                 disabledReason="Link a document first to set its date"
-                                activeClassName="bg-muted text-foreground border-transparent"
+                                activeClassName="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-transparent"
                                 onSave={(date) => { if (linkedDoc) updateDocumentMutation.mutate({ docId: linkedDoc.id, data: { documentDate: date } }); }}
                                 testId={`tag-document-date-${item.id}`}
                               />

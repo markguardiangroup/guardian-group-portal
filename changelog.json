@@ -11136,6 +11136,13 @@
           "message": "Response Deadline tag now turns green once a response is logged",
           "category": "enhancement",
           "createdAt": "2026-07-08T12:01:55.899Z"
+        },
+        {
+          "id": "67b19914-dfd9-4537-92f6-4faf7af4206c",
+          "patch": 25,
+          "message": "Document Date tag now turns green once a date is set",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T12:16:16.403Z"
         }
       ],
       "publishedPatch": 24,
