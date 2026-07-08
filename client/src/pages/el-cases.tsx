@@ -1736,6 +1736,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [selectedChecklistItemId, setSelectedChecklistItemId] = useState<string | null>(null);
   const [showEssentialDocDialog, setShowEssentialDocDialog] = useState(false);
   const [pendingDocumentDate, setPendingDocumentDate] = useState<string>("");
+  const [pendingResponseDeadline, setPendingResponseDeadline] = useState<string>("");
+  const [showResponseDeadlineWarning, setShowResponseDeadlineWarning] = useState(false);
 
   const [showLoadTemplateDialog, setShowLoadTemplateDialog] = useState(false);
 
@@ -1758,7 +1760,7 @@ function CaseDetailView({ id }: { id: string }) {
     },
   });
 
-  const doUpload = async (file: File, checklistItemId?: string | null, documentDate?: string | null) => {
+  const doUpload = async (file: File, checklistItemId?: string | null, documentDate?: string | null, responseDeadline?: string | null) => {
     setIsUploading(true);
     try {
       const buffer = await file.arrayBuffer();
@@ -1790,8 +1792,12 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
 
       if (checklistItemId) {
+        const checklistUpdateData: any = { isCompleted: true, linkedDocumentId: createdDoc?.id ?? null };
+        if (responseDeadline) {
+          checklistUpdateData.submissionDate = responseDeadline;
+        }
         updateChecklistItemMutation.mutate(
-          { itemId: checklistItemId, data: { isCompleted: true, linkedDocumentId: createdDoc?.id ?? null } },
+          { itemId: checklistItemId, data: checklistUpdateData },
           {
             onSuccess: () => {
               toast({ title: "Document uploaded & essential document marked complete" });
@@ -1808,6 +1814,7 @@ function CaseDetailView({ id }: { id: string }) {
       setPendingFile(null);
       setSelectedChecklistItemId(null);
       setPendingDocumentDate("");
+      setPendingResponseDeadline("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -1821,6 +1828,7 @@ function CaseDetailView({ id }: { id: string }) {
     setPendingFile(file);
     setSelectedChecklistItemId(null);
     setPendingDocumentDate("");
+    setPendingResponseDeadline("");
     setShowEssentialDocDialog(true);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -4243,6 +4251,7 @@ function CaseDetailView({ id }: { id: string }) {
             setPendingFile(null);
             setSelectedChecklistItemId(null);
             setPendingDocumentDate("");
+            setPendingResponseDeadline("");
           }
         }}
       >
@@ -4305,11 +4314,32 @@ function CaseDetailView({ id }: { id: string }) {
               data-testid="input-document-date"
             />
           </div>
+          {(checklistItems ?? []).filter(i => !i.isCompleted).length > 0 && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Response Deadline <span className="text-muted-foreground text-xs font-normal">(optional)</span>
+              </label>
+              <Input
+                type="date"
+                value={pendingResponseDeadline}
+                onChange={(e) => setPendingResponseDeadline(e.target.value)}
+                disabled={!selectedChecklistItemId}
+                data-testid="input-response-deadline"
+              />
+              {!selectedChecklistItemId && (
+                <p className="text-xs text-muted-foreground">Select an essential document above to set a response deadline.</p>
+              )}
+            </div>
+          )}
           <div className="flex justify-between items-center pt-2 border-t gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
+                if (pendingResponseDeadline) {
+                  setShowResponseDeadlineWarning(true);
+                  return;
+                }
                 setShowEssentialDocDialog(false);
                 if (pendingFile) doUpload(pendingFile, null, pendingDocumentDate || null);
               }}
@@ -4324,7 +4354,7 @@ function CaseDetailView({ id }: { id: string }) {
                 disabled={!selectedChecklistItemId || isUploading}
                 onClick={() => {
                   setShowEssentialDocDialog(false);
-                  if (pendingFile) doUpload(pendingFile, selectedChecklistItemId, pendingDocumentDate || null);
+                  if (pendingFile) doUpload(pendingFile, selectedChecklistItemId, pendingDocumentDate || null, pendingResponseDeadline || null);
                 }}
                 data-testid="button-upload-and-complete"
               >
@@ -4347,6 +4377,31 @@ function CaseDetailView({ id }: { id: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation when leaving a set Response Deadline off an unlinked upload */}
+      <AlertDialog open={showResponseDeadlineWarning} onOpenChange={setShowResponseDeadlineWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Response Deadline will be lost</AlertDialogTitle>
+            <AlertDialogDescription>
+              You've entered a Response Deadline, but it will only be saved if this document is added as an essential document. Uploading it as a standalone case document will discard the Response Deadline. Continue anyway?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-discard-deadline">Go back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowResponseDeadlineWarning(false);
+                setShowEssentialDocDialog(false);
+                if (pendingFile) doUpload(pendingFile, null, pendingDocumentDate || null);
+              }}
+              data-testid="button-confirm-discard-deadline"
+            >
+              Upload as Case Document
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showAccessDialog} onOpenChange={setShowAccessDialog}>
         <DialogContent className="sm:max-w-md">

@@ -11073,6 +11073,13 @@
           "message": "Editing the ET3 essential document date now also updates the case deadline",
           "category": "bug",
           "createdAt": "2026-07-08T09:07:48.857Z"
+        },
+        {
+          "id": "79dcdb41-c31b-4673-8d22-ac9c594a9eef",
+          "patch": 25,
+          "message": "Essential document uploads can now set a Response Deadline",
+          "category": "feature",
+          "createdAt": "2026-07-08T09:32:15.289Z"
         }
       ],
       "publishedPatch": 24,

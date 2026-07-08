@@ -22,3 +22,11 @@ and `case_document_checklist`), look up the case's `isResponseDeadline`
 milestone and its `checklistItemId` and push the same value through, guarding
 for older cases where `checklistItemId` may be null (pre-dates the ET3
 checklist auto-creation feature).
+
+A fourth entry point exists client-side: the "essential document" upload
+dialog lets staff set the deadline at upload time via a `submissionDate` field
+sent in the same PATCH `/api/checklist/:id` call that marks the item complete
+— it reuses the same server-side sync, so no separate backend path was needed.
+The dialog only enables that date field once an essential-document checklist
+item is selected, and warns (via confirm dialog) that the entered date is
+discarded if the user instead uploads as a standalone case document.
