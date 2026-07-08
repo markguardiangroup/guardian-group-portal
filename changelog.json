@@ -11129,6 +11129,13 @@
           "message": "Fixed: essential documents no longer show complete before a response is logged",
           "category": "bug",
           "createdAt": "2026-07-08T11:58:10.686Z"
+        },
+        {
+          "id": "2061b3e6-1c81-491a-bcec-6429629c29e7",
+          "patch": 25,
+          "message": "Response Deadline tag now turns green once a response is logged",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T12:01:55.899Z"
         }
       ],
       "publishedPatch": 24,

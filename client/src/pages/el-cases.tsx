@@ -2835,7 +2835,7 @@ function CaseDetailView({ id }: { id: string }) {
                                 label="Response Deadline"
                                 icon={<Calendar className="h-3 w-3" />}
                                 value={item.submissionDate}
-                                activeClassName={overdue ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-transparent" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-transparent"}
+                                activeClassName={item.respondedDate ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-transparent" : overdue ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-transparent" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-transparent"}
                                 onSave={(date) => updateChecklistItemMutation.mutate({ itemId: item.id, data: { submissionDate: date } })}
                                 testId={`tag-response-deadline-${item.id}`}
                               />
