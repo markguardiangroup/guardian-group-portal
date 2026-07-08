@@ -14849,6 +14849,11 @@ export async function registerRoutes(
         // corrects items that were already marked complete (e.g. from a linked document) before
         // a Response Deadline was added, since a deadline makes "Date Responded" the sole driver.
         updates.isCompleted = !!effectiveRespondedDate;
+      } else if (!hasDeadline && "submissionDate" in updates) {
+        // Response Deadline was removed — a linked document once again completes the item on its
+        // own (mirroring upload behaviour), and any stale response date no longer applies.
+        updates.respondedDate = null;
+        updates.isCompleted = !!existing.linkedDocumentId;
       }
 
       if (typeof updates.isCompleted === "boolean") {

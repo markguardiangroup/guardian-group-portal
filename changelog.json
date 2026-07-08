@@ -11157,6 +11157,13 @@
           "message": "Case status simplified to Open, Closed - Won/Settled/Lost",
           "category": "enhancement",
           "createdAt": "2026-07-08T12:29:48.531Z"
+        },
+        {
+          "id": "52e2a026-72fa-49b6-9a86-8c0cb45c0846",
+          "patch": 25,
+          "message": "Fixed: removing a Response Deadline now re-completes linked documents",
+          "category": "bug",
+          "createdAt": "2026-07-08T12:31:11.299Z"
         }
       ],
       "publishedPatch": 24,
