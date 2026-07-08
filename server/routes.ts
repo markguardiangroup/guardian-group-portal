@@ -11205,9 +11205,7 @@ export async function registerRoutes(
 
       // ── 2. Module access ──────────────────────────────────────────────────
       if (company.moduleAccess && typeof company.moduleAccess === "object") {
-        try {
-          await storage.setCompanyModuleAccess(createdCompany.id, company.moduleAccess);
-        } catch { /* non-fatal */ }
+        await storage.setCompanyModuleAccess(createdCompany.id, company.moduleAccess);
       }
 
       // ── 3. Accelo link ────────────────────────────────────────────────────
@@ -11245,9 +11243,7 @@ export async function registerRoutes(
         createdSiteIds.push(createdSite.id);
 
         for (const templateId of (site.mandatoryTemplateIds || [])) {
-          try {
-            await storage.setSiteTemplateOverride(createdSite.id, String(templateId), "include", user.id);
-          } catch { /* non-fatal */ }
+          await storage.setSiteTemplateOverride(createdSite.id, String(templateId), "include", user.id);
         }
       }
 
@@ -11304,8 +11300,7 @@ export async function registerRoutes(
           contactIds.push(newUser.id);
         }
       } else if (contact?.type === "accelo") {
-        const { sourceCode, selections } = contact as { sourceCode: string; selections: any[] };
-        const firstSiteId = createdSiteIds[0] || null;
+        const { selections } = contact as { sourceCode: string; selections: any[] };
 
         for (const c of (selections || [])) {
           try {
@@ -11335,8 +11330,10 @@ export async function registerRoutes(
               preferredContactMethod: "email", notes: null, sources: null,
             });
 
-            if (c.addToSite && firstSiteId) {
-              try { await storage.assignClientToSite({ clientId: newUser.id, siteId: firstSiteId }); } catch { /* non-fatal */ }
+            if (c.addToSite && createdSiteIds.length > 0) {
+              for (const siteId of createdSiteIds) {
+                try { await storage.assignClientToSite({ clientId: newUser.id, siteId }); } catch { /* non-fatal: site assignment */ }
+              }
             }
             await storage.updateUser(newUser.id, { status: "invite_required" });
 
@@ -11346,12 +11343,16 @@ export async function registerRoutes(
             }
             if (c.setAsKeyContact && !c.setAsPrimary) {
               try { await storage.addKeyContact(newUser.id, "company", createdCompany.id); } catch { /* non-fatal */ }
-              if (c.addToSite && firstSiteId) {
-                try { await storage.addKeyContact(newUser.id, "site", firstSiteId); } catch { /* non-fatal */ }
+              if (c.addToSite && createdSiteIds.length > 0) {
+                for (const siteId of createdSiteIds) {
+                  try { await storage.addKeyContact(newUser.id, "site", siteId); } catch { /* non-fatal */ }
+                }
               }
             }
             contactIds.push(newUser.id);
-          } catch { /* skip failed contact, continue */ }
+          } catch (contactErr) {
+            console.warn("Wizard: failed to import Accelo contact", c?.email, contactErr);
+          }
         }
       }
 

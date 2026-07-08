@@ -11315,7 +11315,7 @@
         {
           "id": "f3c21b94-8e47-4d05-a910-7db56e02c8f1",
           "patch": 29,
-          "message": "Company wizard: all data collected locally then created in one go — no mid-wizard DB writes or step flicker",
+          "message": "Company wizard redesigned: collect all data locally, Review & Confirm step, then create everything in one go",
           "category": "enhancement",
           "createdAt": "2026-07-08T21:35:00.000Z"
         }

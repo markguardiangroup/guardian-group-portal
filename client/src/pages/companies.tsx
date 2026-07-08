@@ -2668,14 +2668,36 @@ export default function Companies() {
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {/* Company */}
-              <div className="rounded-md border p-4 space-y-1">
+              <div className="rounded-md border p-4 space-y-1.5">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Company</p>
                 <p className="text-sm font-medium">{pendingCompanyFull?.companyData.name}</p>
                 <p className="text-xs text-muted-foreground">{[pendingCompanyFull?.companyData.addressLine1, pendingCompanyFull?.companyData.city, pendingCompanyFull?.companyData.postalCode].filter(Boolean).join(", ")}</p>
+                {pendingCompanyFull?.companyData.industry && (
+                  <p className="text-xs text-muted-foreground">Industry: {pendingCompanyFull.companyData.industry}</p>
+                )}
+                {(() => {
+                  const ma = pendingCompanyFull?.moduleAccess;
+                  if (!ma) return null;
+                  const enabled = [
+                    ma.healthSafety && "Health & Safety",
+                    ma.humanResources && "Human Resources",
+                    ma.employmentLaw && "Employment Law",
+                    ma.training && "Training",
+                    ma.toolkit && "Toolkit",
+                    ma.support && "Support",
+                    ma.reports && "Reports",
+                  ].filter(Boolean) as string[];
+                  return enabled.length > 0 ? (
+                    <p className="text-xs text-muted-foreground">Modules: {enabled.join(", ")}</p>
+                  ) : null;
+                })()}
+                {pendingCompanyFull?.companyData.sources?.length ? (
+                  <p className="text-xs text-muted-foreground">Sources: {pendingCompanyFull.companyData.sources.join(", ")}</p>
+                ) : null}
                 {pendingCompanyFull?.acceloContext && (
                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    Linked to Accelo
+                    Linked to Accelo ({pendingCompanyFull.acceloContext.sourceCode})
                   </p>
                 )}
               </div>
