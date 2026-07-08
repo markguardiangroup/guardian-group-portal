@@ -120,6 +120,7 @@ import {
   LayoutList,
   EyeOff,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import {
   DndContext,
@@ -1722,6 +1723,7 @@ function CaseDetailView({ id }: { id: string }) {
         await apiRequest("PATCH", `/api/checklist/${linked.id}`, {
           isCompleted: false,
           linkedDocumentId: null,
+          respondedDate: null,
         });
         queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "checklist"] });
       }
@@ -1792,15 +1794,22 @@ function CaseDetailView({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ["/api/cases", id, "audit"] });
 
       if (checklistItemId) {
-        const checklistUpdateData: any = { isCompleted: true, linkedDocumentId: createdDoc?.id ?? null };
+        // If a Response Deadline is set (or is being set now), linking a document only puts
+        // the item in the "awaiting response" state — completion is driven by Date Responded.
+        const existingItem = checklistItems?.find(i => i.id === checklistItemId);
+        const willHaveDeadline = !!responseDeadline || !!existingItem?.submissionDate;
+        const checklistUpdateData: any = { linkedDocumentId: createdDoc?.id ?? null };
         if (responseDeadline) {
           checklistUpdateData.submissionDate = responseDeadline;
+        }
+        if (!willHaveDeadline) {
+          checklistUpdateData.isCompleted = true;
         }
         updateChecklistItemMutation.mutate(
           { itemId: checklistItemId, data: checklistUpdateData },
           {
             onSuccess: () => {
-              toast({ title: "Document uploaded & essential document marked complete" });
+              toast({ title: willHaveDeadline ? "Document uploaded and linked — awaiting response" : "Document uploaded & essential document marked complete" });
             },
           }
         );
@@ -2736,30 +2745,47 @@ function CaseDetailView({ id }: { id: string }) {
                       {items.length === 0 && (
                         <p className="text-center text-muted-foreground py-4">No essential documents listed yet</p>
                       )}
-                      {items.map(item => (
+                      {items.map(item => {
+                        const hasDeadline = !!item.submissionDate;
+                        const linked = !!item.linkedDocumentId;
+                        const isBlue = hasDeadline && linked && !item.isCompleted;
+                        const linkedDoc = linked ? documents?.find(d => d.id === item.linkedDocumentId) : undefined;
+                        const overdue = hasDeadline && !item.isCompleted && new Date(item.submissionDate as any) < new Date();
+                        return (
                         <SortableRow key={item.id} id={item.id} isStaff={user?.role !== "client"}>
                         <div
                           className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
-                            item.isCompleted ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" : "bg-card hover:bg-muted/30"
+                            item.isCompleted
+                              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                              : isBlue
+                              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                              : "bg-card hover:bg-muted/30"
                           }`}
                           data-testid={`checklist-item-${item.id}`}
                         >
                           <button
                             onClick={() => {
+                              if (hasDeadline) return; // completion is driven by the Date Responded tag below
                               if (!item.isCompleted) {
                                 // Marking complete — proceed directly
                                 updateChecklistItemMutation.mutate({ itemId: item.id, data: { isCompleted: true } });
                               } else if (item.linkedDocumentId) {
                                 // Locked — linked to a document, cannot manually uncheck
-                                const linkedDoc = documents?.find(d => d.id === item.linkedDocumentId);
                                 setChecklistReopenDialog({ item, linkedDoc: linkedDoc ? { title: linkedDoc.title, fileName: linkedDoc.fileName } : undefined });
                               } else {
                                 // Manual completion — ask for confirmation before reopening
                                 setChecklistReopenDialog({ item });
                               }
                             }}
+                            disabled={hasDeadline}
                             className={`mt-0.5 shrink-0 transition-colors ${
-                              item.isCompleted
+                              hasDeadline
+                                ? item.isCompleted
+                                  ? "text-green-600 cursor-default"
+                                  : isBlue
+                                  ? "text-blue-500 cursor-default"
+                                  : "text-muted-foreground cursor-default"
+                                : item.isCompleted
                                 ? item.linkedDocumentId
                                   ? "text-green-600 cursor-not-allowed"
                                   : "text-green-600 hover:text-amber-500"
@@ -2767,7 +2793,11 @@ function CaseDetailView({ id }: { id: string }) {
                             }`}
                             data-testid={`button-toggle-checklist-${item.id}`}
                             title={
-                              item.isCompleted
+                              hasDeadline
+                                ? item.isCompleted
+                                  ? "Clear the Date Responded tag below to reopen"
+                                  : "Enter a Date Responded below to mark complete"
+                                : item.isCompleted
                                 ? item.linkedDocumentId
                                   ? "Linked to a document — delete the document to mark incomplete"
                                   : "Click to mark incomplete"
@@ -2775,9 +2805,11 @@ function CaseDetailView({ id }: { id: string }) {
                             }
                           >
                             {item.isCompleted
-                              ? item.linkedDocumentId
+                              ? item.linkedDocumentId && !hasDeadline
                                 ? <Lock className="h-5 w-5 text-green-600" />
                                 : <CheckSquare className="h-5 w-5" />
+                              : isBlue
+                              ? <Clock className="h-5 w-5" />
                               : <Square className="h-5 w-5" />
                             }
                           </button>
@@ -2788,17 +2820,36 @@ function CaseDetailView({ id }: { id: string }) {
                             {item.description && (
                               <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                             )}
-                            {item.submissionDate && !item.isCompleted && (
-                              <p className={`text-xs mt-0.5 flex items-center gap-1 ${new Date(item.submissionDate) < new Date() ? "text-red-500" : "text-amber-600 dark:text-amber-400"}`}>
-                                <Calendar className="h-3 w-3" />
-                                Submit by {format(new Date(item.submissionDate), "d MMM yyyy")}
-                              </p>
-                            )}
-                            {item.isCompleted && item.completedAt && (
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                                Completed {format(new Date(item.completedAt), "d MMM yyyy")}
-                              </p>
-                            )}
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              <EssentialDocDateTag
+                                label="Document Date"
+                                icon={<FileText className="h-3 w-3" />}
+                                value={linkedDoc?.documentDate}
+                                disabled={!linkedDoc}
+                                disabledReason="Link a document first to set its date"
+                                activeClassName="bg-muted text-foreground border-transparent"
+                                onSave={(date) => { if (linkedDoc) updateDocumentMutation.mutate({ docId: linkedDoc.id, data: { documentDate: date } }); }}
+                                testId={`tag-document-date-${item.id}`}
+                              />
+                              <EssentialDocDateTag
+                                label="Response Deadline"
+                                icon={<Calendar className="h-3 w-3" />}
+                                value={item.submissionDate}
+                                activeClassName={overdue ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-transparent" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-transparent"}
+                                onSave={(date) => updateChecklistItemMutation.mutate({ itemId: item.id, data: { submissionDate: date } })}
+                                testId={`tag-response-deadline-${item.id}`}
+                              />
+                              <EssentialDocDateTag
+                                label="Date Responded"
+                                icon={<CheckCircle className="h-3 w-3" />}
+                                value={item.respondedDate}
+                                disabled={!hasDeadline}
+                                disabledReason="Set a Response Deadline first"
+                                activeClassName="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-transparent"
+                                onSave={(date) => updateChecklistItemMutation.mutate({ itemId: item.id, data: { respondedDate: date } })}
+                                testId={`tag-date-responded-${item.id}`}
+                              />
+                            </div>
                           </div>
                           {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
                             <DropdownMenu>
@@ -2823,7 +2874,7 @@ function CaseDetailView({ id }: { id: string }) {
                                   <Pencil className="mr-2 h-4 w-4" />
                                   Edit
                                 </DropdownMenuItem>
-                                {!item.isCompleted && (
+                                {!item.isCompleted && !item.linkedDocumentId && (
                                   <DropdownMenuItem
                                     onClick={() => { setLinkDocSelectedId(""); setLinkDocDialog(item); }}
                                     data-testid={`button-link-doc-checklist-${item.id}`}
@@ -2852,7 +2903,8 @@ function CaseDetailView({ id }: { id: string }) {
                           )}
                         </div>
                         </SortableRow>
-                      ))}
+                        );
+                      })}
                       </div>
                       </SortableContext>
                     </DndContext>
@@ -4074,11 +4126,14 @@ function CaseDetailView({ id }: { id: string }) {
               disabled={!linkDocSelectedId || updateChecklistItemMutation.isPending}
               onClick={() => {
                 if (!linkDocDialog || !linkDocSelectedId) return;
+                const willHaveDeadline = !!linkDocDialog.submissionDate;
+                const data: any = { linkedDocumentId: linkDocSelectedId };
+                if (!willHaveDeadline) data.isCompleted = true;
                 updateChecklistItemMutation.mutate(
-                  { itemId: linkDocDialog.id, data: { isCompleted: true, linkedDocumentId: linkDocSelectedId } },
+                  { itemId: linkDocDialog.id, data },
                   {
                     onSuccess: () => {
-                      toast({ title: "Document linked — essential document marked complete" });
+                      toast({ title: willHaveDeadline ? "Document linked — awaiting response" : "Document linked — essential document marked complete" });
                       setLinkDocDialog(null);
                       setLinkDocSelectedId("");
                     },
@@ -4859,6 +4914,99 @@ function getBundleFileTypeLabel(mimeType?: string | null, fileName?: string | nu
     if (ext) return ext;
   }
   return "";
+}
+
+// Small clickable date "tag" used on Essential Document checklist rows
+// (Document Date / Response Deadline / Date Responded)
+function EssentialDocDateTag({
+  label,
+  icon,
+  value,
+  onSave,
+  disabled,
+  disabledReason,
+  activeClassName,
+  canEdit = true,
+  testId,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  value?: string | Date | null;
+  onSave: (dateStr: string | null) => void;
+  disabled?: boolean;
+  disabledReason?: string;
+  activeClassName?: string;
+  canEdit?: boolean;
+  testId: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const displayValue = value ? format(new Date(value), "d MMM yy") : null;
+
+  const trigger = (
+    <button
+      type="button"
+      disabled={disabled || !canEdit}
+      title={disabled ? disabledReason : undefined}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
+        disabled
+          ? "opacity-50 cursor-not-allowed bg-muted text-muted-foreground border-transparent"
+          : !canEdit
+          ? "bg-muted text-muted-foreground border-transparent cursor-default"
+          : displayValue
+          ? `${activeClassName ?? "bg-muted text-foreground border-transparent"} hover:opacity-80`
+          : "border-dashed text-muted-foreground hover:border-pink-400 hover:text-pink-600"
+      }`}
+      data-testid={testId}
+    >
+      {icon}
+      {label}{displayValue ? `: ${displayValue}` : ""}
+    </button>
+  );
+
+  if (disabled || !canEdit) return trigger;
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) setDraft(value ? format(new Date(value), "yyyy-MM-dd") : "");
+      }}
+    >
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent className="w-56 space-y-2" align="start">
+        <p className="text-xs font-medium">{label}</p>
+        <Input
+          type="date"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          data-testid={`input-${testId}`}
+        />
+        <div className="flex justify-end gap-1.5 pt-1">
+          {value && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { onSave(null); setOpen(false); }}
+              data-testid={`button-clear-${testId}`}
+            >
+              Clear
+            </Button>
+          )}
+          <Button
+            size="sm"
+            disabled={!draft}
+            onClick={() => { onSave(draft); setOpen(false); }}
+            data-testid={`button-save-${testId}`}
+          >
+            Save
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 // Generic sortable row wrapper for main-view drag-and-drop reordering

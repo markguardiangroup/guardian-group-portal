@@ -437,6 +437,7 @@ export const caseDocumentChecklist = pgTable("case_document_checklist", {
   completedBy: varchar("completed_by"),
   linkedDocumentId: varchar("linked_document_id"),
   submissionDate: timestamp("submission_date"),
+  respondedDate: timestamp("responded_date"),
   linkedMilestoneId: varchar("linked_milestone_id"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdBy: varchar("created_by").notNull(),

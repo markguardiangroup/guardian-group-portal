@@ -30,3 +30,15 @@ sent in the same PATCH `/api/checklist/:id` call that marks the item complete
 The dialog only enables that date field once an essential-document checklist
 item is selected, and warns (via confirm dialog) that the entered date is
 discarded if the user instead uploads as a standalone case document.
+
+**Completion is now derived, not manually toggled, once a deadline exists.**
+`case_document_checklist.responded_date` (added later) is a third date
+alongside `submissionDate`/deadline: when the item has a deadline,
+`isCompleted` is derived server-side from whether `responded_date` is set
+(setting it completes + syncs/completes the milestone; clearing it reopens +
+reopens the milestone) instead of being set directly by the client checkbox or
+by linking a document. Items with no deadline keep the old manual
+checkbox/complete-on-link behavior. Linking a document to a checklist item
+with a deadline must NOT auto-complete it anymore — only `responded_date`
+does. Any new write path that can flip `isCompleted` or set `responded_date`
+on a checklist item must respect this derivation, not bypass it.

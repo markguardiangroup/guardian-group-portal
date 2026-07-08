@@ -14834,12 +14834,28 @@ export async function registerRoutes(
       }
 
       const updates: any = { ...req.body };
+      if ("submissionDate" in updates) {
+        updates.submissionDate = updates.submissionDate ? new Date(updates.submissionDate) : null;
+      }
+      if ("respondedDate" in updates) {
+        updates.respondedDate = updates.respondedDate ? new Date(updates.respondedDate) : null;
+      }
+
+      // When a Response Deadline exists, "Date Responded" is the sole driver of completion —
+      // linking a document only puts the item in the "awaiting response" (blue) state.
+      const effectiveSubmissionDate = "submissionDate" in updates ? updates.submissionDate : existing.submissionDate;
+      const hasDeadline = !!effectiveSubmissionDate;
+      if ("respondedDate" in updates && hasDeadline) {
+        updates.isCompleted = !!updates.respondedDate;
+      }
+
       if (typeof updates.isCompleted === "boolean") {
         updates.completedAt = updates.isCompleted ? new Date() : null;
         updates.completedBy = updates.isCompleted ? user.id : null;
-      }
-      if ("submissionDate" in updates) {
-        updates.submissionDate = updates.submissionDate ? new Date(updates.submissionDate) : null;
+        // Reopening a deadline-tracked item (e.g. via checkbox) should also clear any response date
+        if (!updates.isCompleted && hasDeadline && !("respondedDate" in updates)) {
+          updates.respondedDate = null;
+        }
       }
 
       const item = await storage.updateCaseDocumentChecklistItem(req.params.id, updates);
@@ -14876,24 +14892,31 @@ export async function registerRoutes(
         }
       }
 
-      if (typeof req.body.isCompleted === "boolean") {
+      if (typeof updates.isCompleted === "boolean" && updates.isCompleted !== existing.isCompleted) {
         // If completing an item that is bidirectionally linked to a Response Deadline milestone, auto-complete that milestone too
-        if (req.body.isCompleted === true && existing.linkedMilestoneId) {
+        if (updates.isCompleted === true && existing.linkedMilestoneId) {
           const linkedMilestone = await storage.getCaseMilestone(existing.linkedMilestoneId);
           if (linkedMilestone && linkedMilestone.isResponseDeadline && !linkedMilestone.isCompleted) {
-            await storage.updateCaseMilestone(linkedMilestone.id, { isCompleted: true, completedDate: new Date() });
+            await storage.updateCaseMilestone(linkedMilestone.id, { isCompleted: true, completedDate: updates.respondedDate ?? new Date() });
+          }
+        }
+        // Reopening a deadline-driven item (Date Responded cleared) should also reopen the linked milestone
+        if (updates.isCompleted === false && existing.linkedMilestoneId) {
+          const linkedMilestone = await storage.getCaseMilestone(existing.linkedMilestoneId);
+          if (linkedMilestone && linkedMilestone.isResponseDeadline && linkedMilestone.isCompleted) {
+            await storage.updateCaseMilestone(linkedMilestone.id, { isCompleted: false, completedDate: null });
           }
         }
 
         const caseData = await storage.getCase(existing.caseId);
         await storage.createAuditLog({
-          action: req.body.isCompleted ? "checklist_item_completed" : "checklist_item_reopened",
+          action: updates.isCompleted ? "checklist_item_completed" : "checklist_item_reopened",
           userId: user.id,
           userName: user.fullName,
           entityId: caseData?.siteId,
           caseId: existing.caseId,
           module: "employment_law",
-          details: `Document checklist item "${existing.title}" ${req.body.isCompleted ? "marked complete" : "reopened"}`,
+          details: `Document checklist item "${existing.title}" ${updates.isCompleted ? "marked complete" : "reopened"}`,
         });
       }
 
