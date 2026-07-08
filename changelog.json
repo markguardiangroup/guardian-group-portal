@@ -11108,6 +11108,13 @@
           "message": "Users Report can now be searched by name, email, reference or company",
           "category": "enhancement",
           "createdAt": "2026-07-08T10:49:51.463Z"
+        },
+        {
+          "id": "9c111465-314e-48a7-916a-da52a72bf76a",
+          "patch": 25,
+          "message": "Devs can now rename, deactivate or remove industries, and search the list",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T11:31:37.479Z"
         }
       ],
       "publishedPatch": 24,
