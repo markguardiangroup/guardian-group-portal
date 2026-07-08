@@ -2821,6 +2821,12 @@ function CaseDetailView({ id }: { id: string }) {
                             {item.description && (
                               <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                             )}
+                            {linkedDoc && (
+                              <p className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5" data-testid={`text-linked-doc-${item.id}`}>
+                                <LinkIcon className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{linkedDoc.title}</span>
+                              </p>
+                            )}
                             <div className="flex flex-wrap gap-1.5 mt-1.5">
                               <EssentialDocDateTag
                                 label="Document Date"

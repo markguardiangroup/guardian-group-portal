@@ -11178,6 +11178,13 @@
           "message": "Fixed: some case checklist items stayed marked incomplete after linking a document",
           "category": "bug",
           "createdAt": "2026-07-08T12:41:48.733Z"
+        },
+        {
+          "id": "37cdc974-5e91-4415-a49c-a3e436e293c7",
+          "patch": 25,
+          "message": "Essential documents now show the linked document's name",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T12:44:57.475Z"
         }
       ],
       "publishedPatch": 24,
