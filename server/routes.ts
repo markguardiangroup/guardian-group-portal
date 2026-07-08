@@ -11411,6 +11411,12 @@ export async function registerRoutes(
         }
       } else if (contact?.type === "accelo") {
         const { selections } = contact as { selections: any[] };
+        if (!Array.isArray(selections) || selections.length === 0) {
+          return res.status(400).json({ error: "At least one Accelo contact must be selected" });
+        }
+        if (!selections.some((s: any) => s.setAsPrimary)) {
+          return res.status(400).json({ error: "One Accelo contact must be marked as primary" });
+        }
 
         for (const c of (selections || [])) {
           const result = await importAcceloContactToCompany(
@@ -26157,13 +26163,17 @@ export async function registerRoutes(
       const results: Array<{ acceloId: string; userId?: string; success: boolean; error?: string }> = [];
 
       for (const contact of contacts) {
-        const result = await importAcceloContactToCompany(
-          contact,
-          companyId,
-          siteId ? [siteId] : [],
-          currentUser,
-        );
-        results.push(result);
+        try {
+          const result = await importAcceloContactToCompany(
+            contact,
+            companyId,
+            siteId ? [siteId] : [],
+            currentUser,
+          );
+          results.push(result);
+        } catch (err: any) {
+          results.push({ acceloId: contact.acceloId, success: false, error: err.message || "Unexpected error" });
+        }
       }
 
       res.json({ results });

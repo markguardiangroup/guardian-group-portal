@@ -1036,8 +1036,11 @@ export default function Companies() {
           addToSite: row.addToSite,
         };
       });
+    if (selections.length === 0) {
+      toast({ title: "Please select at least one contact", variant: "destructive" }); return;
+    }
     const hasPrimary = selections.some(s => s.setAsPrimary);
-    if (selections.length > 0 && !hasPrimary) {
+    if (!hasPrimary) {
       toast({ title: "Please mark one contact as Primary", variant: "destructive" }); return;
     }
     setPendingContact({
