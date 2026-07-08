@@ -1372,13 +1372,6 @@ function CreateCaseDialog({
               <SelectContent>
                 <SelectItem value="tribunal_claim">Tribunal Case</SelectItem>
                 <SelectItem value="acas_conciliation">ACAS Conciliation</SelectItem>
-                <SelectItem value="disciplinary">Disciplinary</SelectItem>
-                <SelectItem value="grievance">Grievance</SelectItem>
-                <SelectItem value="tupe">TUPE</SelectItem>
-                <SelectItem value="redundancy">Redundancy</SelectItem>
-                <SelectItem value="settlement">Settlement</SelectItem>
-                <SelectItem value="appeal">Appeal</SelectItem>
-                <SelectItem value="investigation">Investigation</SelectItem>
               </SelectContent>
             </Select>
           </div>

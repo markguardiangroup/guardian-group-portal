@@ -11227,6 +11227,13 @@
           "message": "Case Files now defaults the status filter to Open",
           "category": "enhancement",
           "createdAt": "2026-07-08T14:37:17.561Z"
+        },
+        {
+          "id": "e9f9335b-7cfa-4b9b-a39c-cb427d617df8",
+          "patch": 28,
+          "message": "Create Case now only offers Tribunal Case and ACAS Conciliation types",
+          "category": "bug",
+          "createdAt": "2026-07-08T14:42:46.086Z"
         }
       ],
       "publishedPatch": 27,
