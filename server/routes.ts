@@ -14902,17 +14902,17 @@ export async function registerRoutes(
       }
 
       if (typeof updates.isCompleted === "boolean" && updates.isCompleted !== existing.isCompleted) {
-        // If completing an item that is bidirectionally linked to a Response Deadline milestone, auto-complete that milestone too
+        // Completing an essential document item that is linked to a milestone should auto-fulfil that milestone too
         if (updates.isCompleted === true && existing.linkedMilestoneId) {
           const linkedMilestone = await storage.getCaseMilestone(existing.linkedMilestoneId);
-          if (linkedMilestone && linkedMilestone.isResponseDeadline && !linkedMilestone.isCompleted) {
+          if (linkedMilestone && !linkedMilestone.isCompleted) {
             await storage.updateCaseMilestone(linkedMilestone.id, { isCompleted: true, completedDate: updates.respondedDate ?? new Date() });
           }
         }
-        // Reopening a deadline-driven item (Date Responded cleared) should also reopen the linked milestone
+        // Reopening an essential document item should also reopen its linked milestone
         if (updates.isCompleted === false && existing.linkedMilestoneId) {
           const linkedMilestone = await storage.getCaseMilestone(existing.linkedMilestoneId);
-          if (linkedMilestone && linkedMilestone.isResponseDeadline && linkedMilestone.isCompleted) {
+          if (linkedMilestone && linkedMilestone.isCompleted) {
             await storage.updateCaseMilestone(linkedMilestone.id, { isCompleted: false, completedDate: null });
           }
         }

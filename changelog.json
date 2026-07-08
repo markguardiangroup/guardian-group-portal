@@ -11185,6 +11185,13 @@
           "message": "Essential documents now show the linked document's name",
           "category": "enhancement",
           "createdAt": "2026-07-08T12:44:57.475Z"
+        },
+        {
+          "id": "3ca6c950-e7d5-4c63-bd46-340077a7b3ee",
+          "patch": 25,
+          "message": "Fixed: case milestones now auto-complete when their essential document is responded to",
+          "category": "bug",
+          "createdAt": "2026-07-08T12:52:21.911Z"
         }
       ],
       "publishedPatch": 24,
