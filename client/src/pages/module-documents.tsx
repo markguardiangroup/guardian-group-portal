@@ -2106,7 +2106,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
 
                   // Build folder hierarchy from scoped folders for this module
                   const folders = (scopedFolders || []).filter((f: any) => f.module === module && (f.sortOrder ?? 0) >= 0);
-                  const parents = folders.filter((f: any) => !f.parentId).sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+                  const parents = folders.filter((f: any) => !f.parentId).sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 
                   // Group documents by folderId; collect those without folder for "Unfiled".
                   // When a doc's folderId points to a folder outside this scope (e.g. a
@@ -2133,6 +2133,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       unfiled.push(doc);
                     }
                   }
+
+                  // Sort docs within each folder/unfiled alphabetically by title
+                  for (const [fid, docs] of docsByFolder) {
+                    docsByFolder.set(fid, docs.sort((a: any, b: any) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" })));
+                  }
+                  unfiled.sort((a: any, b: any) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
                   // Group missing required slots by folder template id; dedupe by templateId
                   // (a slot can recur per-site under the entity).
@@ -2255,7 +2261,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                   const renderParentFolder = (folder: any) => {
                     const childFolders = folders
                       .filter((f: any) => f.parentId === folder.id)
-                      .sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+                      .sort((a: any, b: any) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
                     const folderDocs = docsByFolder.get(folder.id) || [];
                     const folderMissing = Array.from((missingByFolder.get(folder.id) ?? new Map()).values());
                     const childMissingTotal = childFolders.reduce(

@@ -11262,6 +11262,13 @@
           "message": "Templates within folders in the Template Library now sort alphabetically",
           "category": "enhancement",
           "createdAt": "2026-07-08T16:00:13.546Z"
+        },
+        {
+          "id": "b0195a0e-95cc-4250-8b38-1893fca052f0",
+          "patch": 29,
+          "message": "Folders and documents in site document views now sort alphabetically",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T19:13:08.734Z"
         }
       ],
       "publishedPatch": 28,
