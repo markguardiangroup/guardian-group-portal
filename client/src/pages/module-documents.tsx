@@ -123,6 +123,7 @@ import { setLastSection } from "@/lib/navigation-tracker";
 // Enriched document with server-computed shared-link metadata
 type EnrichedDocument = Document & {
   isSharedLink?: boolean;
+  isOrigin?: boolean;
   sharedScope?: "company" | "group";
   sharedFromEntityName?: string | null;
 };
@@ -427,10 +428,12 @@ function TransferScopeDialog({
 
         <div className="space-y-4 py-2">
           {/* Warning banner */}
-          <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>All existing sharing rules for this document will be permanently removed when it is moved.</span>
-          </div>
+          {doc.isSharedLink && (
+            <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>All existing sharing rules for this document will be permanently removed when it is moved.</span>
+            </div>
+          )}
 
           {isLoadingCandidates ? (
             <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">Loading destinations…</div>
@@ -649,7 +652,8 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   }, [urlScope, urlEntityId, module, scopedFolders.length]);
   const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
-  const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string} | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string, isSharedLink?: boolean} | null>(null);
+  const [docToArchive, setDocToArchive] = useState<{id: string, title: string, isSharedLink?: boolean} | null>(null);
   const [transferDoc, setTransferDoc] = useState<EnrichedDocument | null>(null);
   
   const { user } = useAuth();
@@ -3192,7 +3196,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                             <Download className="mr-2 h-4 w-4" />
                             Download
                           </DropdownMenuItem>
-                          {isPrivilegedUser && !doc.isSharedLink && (
+                          {isPrivilegedUser && (doc.isOrigin ?? true) && (
                             <>
                               <DropdownMenuSeparator />
                               {!doc.isArchived && (
@@ -3215,8 +3219,9 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               ) : (
                                 <DropdownMenuItem 
                                   className="text-destructive"
-                                  onClick={() => archiveMutationList.mutate(doc.id)}
+                                  onClick={() => setDocToArchive({ id: doc.id, title: doc.title, isSharedLink: !!doc.isSharedLink })}
                                   disabled={archiveMutationList.isPending}
+                                  data-testid={`button-archive-document-${doc.id}`}
                                 >
                                   <Archive className="mr-2 h-4 w-4" />
                                   Archive
@@ -3224,7 +3229,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                               )}
                               <DropdownMenuItem
                                 className="text-destructive"
-                                onClick={() => setDocumentToDelete({ id: doc.id, title: doc.title })}
+                                onClick={() => setDocumentToDelete({ id: doc.id, title: doc.title, isSharedLink: !!doc.isSharedLink })}
                                 disabled={deleteFromListMutation.isPending}
                                 data-testid={`button-delete-document-${doc.id}`}
                               >
@@ -3403,7 +3408,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => setDocumentToDelete({id: doc.id, title: doc.title})}
+                        onClick={() => setDocumentToDelete({id: doc.id, title: doc.title, isSharedLink: !!(doc as any).isSharedLink})}
                         disabled={deleteFromListMutation.isPending}
                         data-testid={`button-delete-archived-${doc.id}`}
                       >
@@ -3429,6 +3434,12 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               Are you sure you want to permanently delete "{documentToDelete?.title}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          {documentToDelete?.isSharedLink && (
+            <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>This document is currently shared with other sites/companies. Deleting it will also permanently remove that sharing.</span>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setDocumentToDelete(null)}>
               Cancel
@@ -3445,6 +3456,44 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!docToArchive} onOpenChange={(open) => !open && setDocToArchive(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Archive className="h-5 w-5" />
+              Archive Document
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to archive "{docToArchive?.title}"?
+            </DialogDescription>
+          </DialogHeader>
+          {docToArchive?.isSharedLink && (
+            <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>This document is currently shared with other sites/companies. Archiving it will also permanently remove that sharing.</span>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDocToArchive(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (docToArchive) {
+                  archiveMutationList.mutate(docToArchive.id);
+                  setDocToArchive(null);
+                }
+              }}
+              disabled={archiveMutationList.isPending}
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              Archive
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -5464,7 +5513,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       Upload New Version
                     </Button>
                   )}
-                  {isPrivilegedUser && (
+                  {isPrivilegedUser && ((document as any).isOrigin ?? true) && (
                     document.isArchived ? (
                       <Button
                         variant="outline"
@@ -6106,6 +6155,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {(document as any)?.hasActiveShares && (
+              <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>This document is currently shared with other sites/companies. Archiving it will also permanently remove that sharing.</span>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Reason for archiving (optional)</label>
               <Textarea

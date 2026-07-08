@@ -11248,6 +11248,13 @@
           "message": "Moved document delete to the row menu; removed it from the document page",
           "category": "enhancement",
           "createdAt": "2026-07-08T15:22:44.348Z"
+        },
+        {
+          "id": "ff99cfa2-ff3e-4323-8b91-9f96f3183db9",
+          "patch": 29,
+          "message": "Moving/archiving/deleting a shared document now warns that its sharing will be removed",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T15:54:19.368Z"
         }
       ],
       "publishedPatch": 28,

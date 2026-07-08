@@ -1930,6 +1930,7 @@ export class MemStorage implements IStorage {
       }
     }
 
+    await db.delete(documentSharesTable).where(eq(documentSharesTable.documentId, id));
     await db.delete(documentVersionsTable).where(eq(documentVersionsTable.documentId, id));
     const result = await db.delete(documentsTable).where(eq(documentsTable.id, id)).returning();
     return result.length > 0;

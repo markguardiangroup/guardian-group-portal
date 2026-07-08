@@ -4829,6 +4829,7 @@ export async function registerRoutes(
               folderTemplateId: doc.folderId ? (scopedFolderTemplateMap.get(doc.folderId) ?? null) : null,
               folderName: doc.folderId ? (scopedFolderNameMap.get(doc.folderId) ?? null) : null,
               isSharedLink,
+              isOrigin,
               sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
               sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
               sharedWithCompanyIds,
@@ -4926,6 +4927,7 @@ export async function registerRoutes(
             ...doc,
             isMandatory: doc.isMandatory || docTemplate?.isMandatory || isRequiredViaCompanyTemplate,
             isSharedLink,
+            isOrigin,
             sharedScope: isSharedLink ? (doc.scope as "company" | "group") : undefined,
             sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
             sharedWithSiteIds: isSharedLink ? sharedWithSiteIds : undefined,
@@ -4997,13 +4999,21 @@ export async function registerRoutes(
       }
       
       // Add shared-link metadata for destination users
-      const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !(await isDocumentOriginUser(user, document));
+      const isOriginForDoc = await isDocumentOriginUser(user, document);
+      const isSharedLink = !document.siteId && (document.scope === "company" || document.scope === "group") && !isOriginForDoc;
       let sharedFromEntityName: string | null = null;
       let companyName: string | null = null;
       if (!document.siteId && document.entityId && (document.scope === "company" || document.scope === "group")) {
         const entityCompany = await storage.getCompany(document.entityId);
         companyName = entityCompany?.name ?? null;
         if (isSharedLink) sharedFromEntityName = companyName;
+      }
+      // For origin users, surface whether the doc has any active outbound shares —
+      // used to warn before Move/Archive/Delete since those actions strip sharing.
+      let hasActiveShares = false;
+      if (!document.siteId && (document.scope === "company" || document.scope === "group")) {
+        const shareRecords = await storage.getDocumentShares(document.id);
+        hasActiveShares = shareRecords.length > 0;
       }
       
       // Add uploaderRole so the frontend can gate approval buttons correctly
@@ -5017,6 +5027,8 @@ export async function registerRoutes(
         ...document,
         uploaderRole,
         isSharedLink,
+        isOrigin: isOriginForDoc,
+        hasActiveShares,
         sharedScope: isSharedLink ? document.scope : undefined,
         sharedFromEntityName: isSharedLink ? sharedFromEntityName : undefined,
         companyName: companyName ?? (document as any).companyName ?? null,
@@ -7191,6 +7203,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only origin users can archive company or group scoped documents" });
       }
 
+      // Archiving a shared doc removes its sharing — an archived document should
+      // no longer be visible to the sites/companies it was shared with.
+      const existingShares = await storage.getDocumentShares(documentId);
+      const sharesRemoved = existingShares.length;
+      if (sharesRemoved > 0) {
+        await storage.deleteAllDocumentSharesForDocument(documentId);
+      }
+
       const document = await storage.updateDocument(documentId, {
         isArchived: true,
       });
@@ -7207,7 +7227,7 @@ export async function registerRoutes(
         documentId: document.id,
         supportRequestId: null,
         module: existingDoc.module,
-        details: reason || "Document archived",
+        details: sharesRemoved > 0 ? `${reason || "Document archived"} (${sharesRemoved} share${sharesRemoved === 1 ? "" : "s"} removed)` : (reason || "Document archived"),
         metadata: null,
       });
 
@@ -7216,7 +7236,7 @@ export async function registerRoutes(
         await emitDocumentUpdated(document, payload);
       } catch { /* non-fatal */ }
 
-      res.json({ message: "Document archived successfully", document });
+      res.json({ message: "Document archived successfully", document, sharesRemoved });
     } catch (error) {
       console.error("Document archive error:", error);
       res.status(500).json({ error: "Failed to archive document" });
@@ -7310,6 +7330,11 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only origin users can delete company or group scoped documents" });
       }
 
+      // Deleting a shared doc removes its sharing along with it (deleteDocument
+      // strips document_shares rows too) — note this in the audit trail.
+      const existingShares = await storage.getDocumentShares(documentId);
+      const sharesRemoved = existingShares.length;
+
       const success = await storage.deleteDocument(documentId);
       if (!success) return res.status(404).json({ error: "Document not found" });
 
@@ -7321,7 +7346,9 @@ export async function registerRoutes(
         documentId: null,
         supportRequestId: null,
         module: existingDoc.module,
-        details: `Document permanently deleted: "${existingDoc.title}"`,
+        details: sharesRemoved > 0
+          ? `Document permanently deleted: "${existingDoc.title}" (${sharesRemoved} share${sharesRemoved === 1 ? "" : "s"} removed)`
+          : `Document permanently deleted: "${existingDoc.title}"`,
         metadata: null,
       });
 
