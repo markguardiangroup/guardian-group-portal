@@ -13992,6 +13992,23 @@ export async function registerRoutes(
 
       const updatedCase = await storage.updateCase(req.params.id, updates);
 
+      // If the ET3 response deadline changed, keep the Response Deadline milestone
+      // and its linked ET3 Response Form essential-document checklist item in sync
+      if (updates.responseDeadline !== undefined) {
+        const caseMilestones = await storage.getCaseMilestones(req.params.id);
+        const responseDeadlineMilestone = caseMilestones.find(m => m.isResponseDeadline);
+        if (responseDeadlineMilestone) {
+          await storage.updateCaseMilestone(responseDeadlineMilestone.id, {
+            dueDate: updates.responseDeadline,
+          } as any);
+          if (responseDeadlineMilestone.checklistItemId) {
+            await storage.updateCaseDocumentChecklistItem(responseDeadlineMilestone.checklistItemId, {
+              submissionDate: updates.responseDeadline,
+            } as any);
+          }
+        }
+      }
+
       // Create audit log for status changes
       if (parseResult.data.status && parseResult.data.status !== existingCase.status) {
         await storage.createAuditLog({

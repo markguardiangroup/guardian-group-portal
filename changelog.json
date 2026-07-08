@@ -11059,6 +11059,13 @@
           "message": "Edit Case dialog is now wider with compact source badges",
           "category": "enhancement",
           "createdAt": "2026-07-08T08:58:24.355Z"
+        },
+        {
+          "id": "8c85fab3-2fa8-4cf5-8805-b07bb1ae8d20",
+          "patch": 25,
+          "message": "Editing the ET3 deadline now also updates the ET3 essential document date",
+          "category": "bug",
+          "createdAt": "2026-07-08T09:03:30.390Z"
         }
       ],
       "publishedPatch": 24,

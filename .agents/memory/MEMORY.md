@@ -30,3 +30,4 @@
 - [Auth rate limit ↔ lockout alignment](auth-rate-limit-lockout-alignment.md) — a per-identifier login rate limiter must derive its max/window from the permanent-lockout threshold, or it doesn't actually bound the attack.
 - [Identifier-only rate limiters are a DoS tool](identifier-only-rate-limiter-dos.md) — any public endpoint keyed solely on victim-known input (email/username) is weaponizable; key by identifier+IP plus an IP-only backstop.
 - [Private template visibility gate](private-template-visibility-gate.md) — "private" template filtering must be staff-vs-client, not developer-vs-everyone; keep it independent from source-scoping.
+- [EL case Response Deadline sync](case-milestone-checklist-sync.md) — every write path touching cases.responseDeadline must also sync the linked Response Deadline milestone + ET3 checklist submissionDate.
