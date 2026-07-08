@@ -2836,7 +2836,7 @@ function CaseDetailView({ id }: { id: string }) {
           )}
 
           {/* ── Case Notes (client view) ──────────────────────────────────── */}
-          {isClientUser && caseNotes.length > 0 && (
+          {user?.role === "client" && caseNotes.length > 0 && (
             <Card>
               <button
                 className="w-full text-left"

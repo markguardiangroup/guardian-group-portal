@@ -11031,6 +11031,13 @@
           "message": "Case Notes: per-note client visibility toggle and Show all to client switch added",
           "category": "feature",
           "createdAt": "2026-07-07T23:12:17.156Z"
+        },
+        {
+          "id": "6f29bd18-413c-416a-95db-3fc7ca44c5f9",
+          "patch": 25,
+          "message": "Fixed: case detail page crashed for developer/staff users viewing a case",
+          "category": "bug",
+          "createdAt": "2026-07-08T07:54:25.507Z"
         }
       ],
       "publishedPatch": 24,
