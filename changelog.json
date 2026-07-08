@@ -11283,6 +11283,13 @@
           "message": "Shared documents now sort alphabetically alongside regular documents",
           "category": "enhancement",
           "createdAt": "2026-07-08T19:25:06.803Z"
+        },
+        {
+          "id": "a8f3c2e1-9b4d-4f7a-8c6e-2d1a5b9f3e7c",
+          "patch": 29,
+          "message": "Company wizard now guides through site docs, extra sites, and primary contact in order",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T20:30:00.000Z"
         }
       ],
       "publishedPatch": 28,

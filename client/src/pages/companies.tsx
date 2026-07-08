@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { FetchingOverlay } from "@/components/ui/fetching-overlay";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -86,6 +86,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Info, Copy, Hash, ShieldAlert } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 import type { CompanyWithSiteCount, PaginatedCompaniesResponse, User, ComplianceSummary } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
@@ -528,10 +529,33 @@ export default function Companies() {
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<Set<string>>(new Set());
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
-  const [isRequiredDocsOpen, setIsRequiredDocsOpen] = useState(false);
+  // Wizard state
+  const [wizardCompanyId, setWizardCompanyId] = useState<string | null>(null);
+  const [wizardSiteIds, setWizardSiteIds] = useState<string[]>([]);
+  const [wizardCurrentSiteId, setWizardCurrentSiteId] = useState<string | null>(null);
+  const [wizardCurrentSiteName, setWizardCurrentSiteName] = useState<string>("");
+  const [wizardStep, setWizardStep] = useState<"site-docs" | "add-another-site" | "contact" | null>(null);
+  const [wizardSubsequentSite, setWizardSubsequentSite] = useState(false);
+  const [wizardIsAcceloFlow, setWizardIsAcceloFlow] = useState(false);
+  // Site-docs sub-state (reused per site within the wizard)
   const [reqDocsActiveModule, setReqDocsActiveModule] = useState<string>("");
-  const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
   const [selectedRequiredIds, setSelectedRequiredIds] = useState<Set<string>>(new Set());
+  // Primary contact sub-state
+  const [primaryContact, setPrimaryContact] = useState({
+    title: "",
+    firstName: "",
+    lastName: "",
+    username: "",
+    email: "",
+    jobTitle: "",
+    department: "",
+    phone: "",
+    mobile: "",
+    preferredContactMethod: "email" as "email" | "phone" | "mobile" | "any",
+    notes: "",
+  });
+  const [primaryContactEmailError, setPrimaryContactEmailError] = useState<string | null>(null);
+  const [primaryContactSubmitting, setPrimaryContactSubmitting] = useState(false);
 
   // Accelo import state
   const [isAcceloSearchOpen, setIsAcceloSearchOpen] = useState(false);
@@ -547,6 +571,8 @@ export default function Companies() {
   // Snapshot of the import context captured synchronously in handleSubmit, before the add-company
   // dialog closes (which calls resetForm → setAcceloImportContext(null) → clears the ref).
   const pendingAcceloContextRef = useRef<{ acceloCompanyId: string; acceloStanding?: string | null; acceloType?: string | null; acceloColor?: string | null } | null>(null);
+  // Holds the Accelo context throughout the wizard so the contact step can load contacts
+  const wizardAcceloCtxRef = useRef<{ acceloCompanyId: string } | null>(null);
   const [isAcceloContactsOpen, setIsAcceloContactsOpen] = useState(false);
   const [acceloContacts, setAcceloContacts] = useState<any[]>([]);
   const [acceloContactsLoading, setAcceloContactsLoading] = useState(false);
@@ -686,71 +712,56 @@ export default function Companies() {
             await apiRequest("POST", `/api/companies/${data.id}/module-access`, pendingModuleAccess);
             queryClient.invalidateQueries({ queryKey: ["/api/companies", data.id, "module-access"] });
           } catch {
-            // Non-fatal: company was created, module access can be set on the detail page
+            // Non-fatal
           }
         }
       }
       queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
-      toast({ title: "Company and site created successfully" });
       setIsSiteModalOpen(false);
       setPendingCompanyData(null);
       setPendingModuleAccess(null);
       const ctx = pendingAcceloContextRef.current;
       pendingAcceloContextRef.current = null;
+      const siteName = siteData.name;
       resetForm();
-      setSiteData({
-        name: "",
-        addressLine1: "",
-        addressLine2: "",
-        city: "",
-        county: "",
-        postalCode: "",
-        country: "",
-      });
-      if (data?.id) {
-        if (ctx) {
-          // Persist the Accelo link first, then invalidate so the badge appears immediately
-          try {
-            await fetch(`/api/companies/${data.id}/accelo-link`, {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ sourceCode: acceloActiveSource, acceloId: ctx.acceloCompanyId, acceloStanding: ctx.acceloStanding ?? null, acceloType: ctx.acceloType ?? null, acceloColor: ctx.acceloColor ?? null }),
-            });
-          } catch { /* non-fatal */ }
-          queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-          // Accelo import flow: show contacts dialog before required docs
-          setPendingCreatedCompanyId(data.id);
-          setAcceloContacts([]);
-          setContactRows({});
-          setAcceloImportResults(null);
-          setAcceloContactsLoading(true);
-          setIsAcceloContactsOpen(true);
-          try {
-            const res = await fetch(`/api/integrations/accelo/companies/${ctx.acceloCompanyId}/contacts?source=${encodeURIComponent(acceloActiveSource)}`, { credentials: "include" });
-            const contacts = await res.json();
-            const loaded = Array.isArray(contacts) ? contacts : [];
-            setAcceloContacts(loaded);
-            const initialRows: Record<string, ContactRowState> = {};
-            loaded.forEach((c: any) => {
-              initialRows[String(c.id)] = { selected: false, primary: false, keyContact: false, addToSite: false };
-            });
-            setContactRows(initialRows);
-            setAcceloImportResults(null);
-          } catch {
-            setAcceloContacts([]);
-            setContactRows({});
-          } finally {
-            setAcceloContactsLoading(false);
-          }
-        } else {
-          queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-          setCreatedCompanyId(data.id);
-          setSelectedRequiredIds(new Set());
-          setReqDocsActiveModule("");
-          setIsRequiredDocsOpen(true);
-        }
+      setSiteData({ name: "", addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "" });
+
+      if (!data?.id) return;
+
+      if (ctx) {
+        // Accelo flow: persist the Accelo link
+        try {
+          await fetch(`/api/companies/${data.id}/accelo-link`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sourceCode: acceloActiveSource, acceloId: ctx.acceloCompanyId, acceloStanding: ctx.acceloStanding ?? null, acceloType: ctx.acceloType ?? null, acceloColor: ctx.acceloColor ?? null }),
+          });
+        } catch { /* non-fatal */ }
+        wizardAcceloCtxRef.current = { acceloCompanyId: ctx.acceloCompanyId };
+        setWizardIsAcceloFlow(true);
+      } else {
+        setWizardIsAcceloFlow(false);
       }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+
+      // Fetch the first site ID that was created with the company
+      let firstSiteId: string | null = null;
+      try {
+        const sitesRes = await fetch(`/api/sites?companyId=${data.id}`, { credentials: "include" });
+        const sitesData = await sitesRes.json();
+        const sites = Array.isArray(sitesData) ? sitesData : (sitesData?.sites || []);
+        firstSiteId = sites[0]?.id || null;
+      } catch {}
+
+      setWizardCompanyId(data.id);
+      setWizardSiteIds(firstSiteId ? [firstSiteId] : []);
+      setWizardCurrentSiteId(firstSiteId);
+      setWizardCurrentSiteName(siteName);
+      setSelectedRequiredIds(new Set());
+      setReqDocsActiveModule("");
+      setWizardStep("site-docs");
     },
     onError: (error: Error) => {
       let message = "Failed to create company. Please try again.";
@@ -841,7 +852,7 @@ export default function Companies() {
 
   const { data: allTemplates = [] } = useQuery<DocumentTemplate[]>({
     queryKey: ["/api/document-templates"],
-    enabled: !!createdCompanyId,
+    enabled: !!wizardCompanyId,
   });
 
   interface AcceloIntegrationStatus { sourceCode: string; sourceLabel: string; deployment: string; connected: boolean; expiresAt?: string | null; isActive: boolean; }
@@ -860,54 +871,152 @@ export default function Companies() {
   const [acceloActiveSource, setAcceloActiveSource] = useState<string>("GS");
 
   const { data: newCompanyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
-    queryKey: ["/api/companies", createdCompanyId, "module-access"],
+    queryKey: ["/api/companies", wizardCompanyId, "module-access"],
     queryFn: async () => {
-      const response = await fetch(`/api/companies/${createdCompanyId}/module-access`, { credentials: "include" });
+      const response = await fetch(`/api/companies/${wizardCompanyId}/module-access`, { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch module access");
       return response.json();
     },
-    enabled: !!createdCompanyId,
+    enabled: !!wizardCompanyId,
   });
 
-  const saveRequiredDocsMutation = useMutation({
-    mutationFn: async ({ companyId, templateIds }: { companyId: string; templateIds: string[] }) => {
-      const response = await apiRequest("PUT", `/api/companies/${companyId}/required-templates`, { templateIds });
-      return response.json();
-    },
-    onSuccess: () => {
-      const companyId = createdCompanyId;
-      if (companyId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/companies", companyId, "required-templates"], refetchType: "all" });
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/missing-required-templates/by-company"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/effective-required-template-ids-by-site"], refetchType: "all" });
-      toast({ title: "Mandatory documents saved" });
-      setIsRequiredDocsOpen(false);
-      setCreatedCompanyId(null);
-      setSelectedRequiredIds(new Set());
-      if (companyId) navigate(`/companies/${companyId}`);
-    },
-    onError: () => {
-      toast({ title: "Failed to save required documents", variant: "destructive" });
-    },
-  });
+  // ── Wizard helpers ─────────────────────────────────────────────────────────
 
-  const handleSkipRequiredDocs = () => {
-    const companyId = createdCompanyId;
-    setIsRequiredDocsOpen(false);
-    setCreatedCompanyId(null);
+  const generateWizardUsername = (firstName: string, lastName: string): string => {
+    const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, "");
+    const cleanLast = lastName.toLowerCase().replace(/[^a-z]/g, "");
+    if (cleanFirst && cleanLast) return `${cleanFirst}.${cleanLast}`;
+    return cleanFirst || cleanLast;
+  };
+
+  const resetWizard = () => {
+    setWizardCompanyId(null);
+    setWizardSiteIds([]);
+    setWizardCurrentSiteId(null);
+    setWizardCurrentSiteName("");
+    setWizardStep(null);
+    setWizardSubsequentSite(false);
+    setWizardIsAcceloFlow(false);
+    wizardAcceloCtxRef.current = null;
     setSelectedRequiredIds(new Set());
+    setReqDocsActiveModule("");
+    setPrimaryContact({
+      title: "", firstName: "", lastName: "", username: "", email: "",
+      jobTitle: "", department: "", phone: "", mobile: "",
+      preferredContactMethod: "email", notes: "",
+    });
+    setPrimaryContactEmailError(null);
+  };
+
+  const handleWizardNavigateToCompany = () => {
+    const companyId = wizardCompanyId;
+    resetWizard();
     if (companyId) navigate(`/companies/${companyId}`);
   };
 
-  const handleSaveRequiredDocs = () => {
-    if (!createdCompanyId) return;
-    saveRequiredDocsMutation.mutate({
-      companyId: createdCompanyId,
-      templateIds: Array.from(selectedRequiredIds),
-    });
+  // ── Add another site (subsequent sites in the wizard) ─────────────────────
+
+  const addSiteToWizardMutation = useMutation({
+    mutationFn: async (payload: typeof siteData & { companyId: string }) => {
+      const response = await apiRequest("POST", "/api/sites", payload);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to create site");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const siteName = siteData.name;
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+      setIsSiteModalOpen(false);
+      setSiteData({ name: "", addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "" });
+      if (data?.id) {
+        setWizardSiteIds(prev => [...prev, data.id]);
+        setWizardCurrentSiteId(data.id);
+        setWizardCurrentSiteName(siteName);
+      }
+      setSelectedRequiredIds(new Set());
+      setReqDocsActiveModule("");
+      setWizardStep("site-docs");
+    },
+    onError: (error: Error) => {
+      let message = "Failed to create site. Please try again.";
+      try { message = JSON.parse(error.message.replace(/^\d+: /, "")).error || message; } catch {}
+      toast({ title: "Failed to create site", description: message, variant: "destructive" });
+    },
+  });
+
+  // ── Save site template overrides ──────────────────────────────────────────
+
+  const [sitDocsSaving, setSiteDocsSaving] = useState(false);
+
+  const handleSaveSiteDocs = async () => {
+    if (!wizardCurrentSiteId) { setWizardStep("add-another-site"); return; }
+    if (selectedRequiredIds.size === 0) { setWizardStep("add-another-site"); return; }
+    setSiteDocsSaving(true);
+    try {
+      await Promise.all(
+        Array.from(selectedRequiredIds).map(templateId =>
+          apiRequest("POST", `/api/sites/${wizardCurrentSiteId}/template-overrides`, { templateId, action: "include" })
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"] });
+    } catch {
+      toast({ title: "Some mandatory documents could not be saved", variant: "destructive" });
+    } finally {
+      setSiteDocsSaving(false);
+    }
+    setWizardStep("add-another-site");
+  };
+
+  const handleSkipSiteDocs = () => {
+    setWizardStep("add-another-site");
+  };
+
+  // ── Primary contact creation ───────────────────────────────────────────────
+
+  const handlePrimaryContactSubmit = async () => {
+    if (!wizardCompanyId) return;
+    if (!primaryContact.firstName.trim()) {
+      toast({ title: "First name is required", variant: "destructive" }); return;
+    }
+    if (!primaryContact.lastName.trim()) {
+      toast({ title: "Surname is required", variant: "destructive" }); return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!primaryContact.email.trim() || !emailRegex.test(primaryContact.email.trim())) {
+      setPrimaryContactEmailError("Please enter a valid email address"); return;
+    }
+    setPrimaryContactSubmitting(true);
+    try {
+      const res = await apiRequest("POST", "/api/users", {
+        ...primaryContact,
+        email: primaryContact.email.trim(),
+        role: "client",
+        companyId: wizardCompanyId,
+        consultantTier: null,
+        sources: [],
+        fullName: `${primaryContact.firstName} ${primaryContact.lastName}`.trim(),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to create user");
+      }
+      const createdUser = await res.json();
+      await Promise.all(
+        wizardSiteIds.map(siteId =>
+          apiRequest("POST", `/api/users/${createdUser.id}/site-assignments/${siteId}`, {})
+        )
+      );
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      toast({ title: "Primary contact created", description: `${primaryContact.firstName} ${primaryContact.lastName} has been added as a client user.` });
+      handleWizardNavigateToCompany();
+    } catch (err: any) {
+      toast({ title: "Failed to create contact", description: err.message, variant: "destructive" });
+    } finally {
+      setPrimaryContactSubmitting(false);
+    }
   };
 
   const MODULE_MAP: Record<string, { key: "healthSafety" | "humanResources" | "employmentLaw"; label: string }> = {
@@ -1011,30 +1120,51 @@ export default function Companies() {
     setAcceloImportContext(null);
   };
 
-  const proceedToRequiredDocs = (companyId: string) => {
-    setIsAcceloContactsOpen(false);
-    setAcceloContacts([]);
-    setContactRows({});
-    setAcceloImportResults(null);
-    setAcceloImportContext(null);
-    setPendingCreatedCompanyId(null);
-    setCreatedCompanyId(companyId);
-    setSelectedRequiredIds(new Set());
-    setReqDocsActiveModule("");
-    setIsRequiredDocsOpen(true);
-  };
+  // useEffect: when wizard reaches the contact step with Accelo flow, open the contacts dialog
+  useEffect(() => {
+    if (wizardStep === "contact" && wizardIsAcceloFlow && wizardCompanyId) {
+      const ctx = wizardAcceloCtxRef.current;
+      setPendingCreatedCompanyId(wizardCompanyId);
+      setAcceloContacts([]);
+      setContactRows({});
+      setAcceloImportResults(null);
+      setAcceloContactsLoading(true);
+      setIsAcceloContactsOpen(true);
+      if (ctx) {
+        fetch(`/api/integrations/accelo/companies/${ctx.acceloCompanyId}/contacts?source=${encodeURIComponent(acceloActiveSource)}`, { credentials: "include" })
+          .then(r => r.json())
+          .then(contacts => {
+            const loaded = Array.isArray(contacts) ? contacts : [];
+            setAcceloContacts(loaded);
+            const initialRows: Record<string, ContactRowState> = {};
+            loaded.forEach((c: any) => {
+              initialRows[String(c.id)] = { selected: false, primary: false, keyContact: false, addToSite: false };
+            });
+            setContactRows(initialRows);
+          })
+          .catch(() => { setAcceloContacts([]); setContactRows({}); })
+          .finally(() => setAcceloContactsLoading(false));
+      } else {
+        setAcceloContactsLoading(false);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardStep, wizardIsAcceloFlow, wizardCompanyId]);
 
   const handleImportAcceloContacts = async () => {
     if (!pendingCreatedCompanyId) return;
     setAcceloImportingContacts(true);
 
-    let firstSiteId: string | null = null;
-    try {
-      const sitesRes = await fetch(`/api/sites?companyId=${pendingCreatedCompanyId}`, { credentials: "include" });
-      const sitesData = await sitesRes.json();
-      const sites = Array.isArray(sitesData) ? sitesData : (sitesData?.sites || []);
-      firstSiteId = sites[0]?.id || null;
-    } catch {}
+    // Use wizardSiteIds if available (wizard flow), otherwise fetch
+    let firstSiteId: string | null = wizardSiteIds[0] || null;
+    if (!firstSiteId) {
+      try {
+        const sitesRes = await fetch(`/api/sites?companyId=${pendingCreatedCompanyId}`, { credentials: "include" });
+        const sitesData = await sitesRes.json();
+        const sites = Array.isArray(sitesData) ? sitesData : (sitesData?.sites || []);
+        firstSiteId = sites[0]?.id || null;
+      } catch {}
+    }
 
     const toImport = acceloContacts
       .filter(c => contactRows[String(c.id)]?.selected && c.email)
@@ -1305,11 +1435,17 @@ export default function Companies() {
       toast({ title: getPostcodeError(siteData.country), variant: "destructive" });
       return;
     }
-    if (!pendingCompanyData) return;
-    createCompanyWithSiteMutation.mutate({
-      companyData: pendingCompanyData,
-      siteData: siteData,
-    });
+    if (wizardCompanyId) {
+      // Subsequent site in wizard — create standalone site
+      addSiteToWizardMutation.mutate({ ...siteData, companyId: wizardCompanyId });
+    } else {
+      // First site — create company + site together
+      if (!pendingCompanyData) return;
+      createCompanyWithSiteMutation.mutate({
+        companyData: pendingCompanyData,
+        siteData: siteData,
+      });
+    }
   };
 
   const handleCancelSiteModal = () => {
@@ -2145,9 +2281,17 @@ export default function Companies() {
 
       <Dialog open={isSiteModalOpen} onOpenChange={(open) => {
         if (!open) {
-          // X button — just close everything without re-opening the company form
-          setIsSiteModalOpen(false);
-          setPendingCompanyData(null);
+          if (wizardCompanyId) {
+            // In wizard subsequent-site mode — X cancels adding another site, go back to wizard flow
+            setIsSiteModalOpen(false);
+            setWizardSubsequentSite(false);
+            setSiteData({ name: "", addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "" });
+            setWizardStep("add-another-site");
+          } else {
+            // First site — just close without re-opening the company form
+            setIsSiteModalOpen(false);
+            setPendingCompanyData(null);
+          }
           return;
         }
         setIsSiteModalOpen(open);
@@ -2156,10 +2300,12 @@ export default function Companies() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPinned className="h-5 w-5" />
-              Add First Site
+              {wizardSubsequentSite ? "Add Another Site" : "Add First Site"}
             </DialogTitle>
             <DialogDescription>
-              Every company needs at least one site. Fill in the details for this company's first site — you can add more sites later.
+              {wizardSubsequentSite
+                ? "Fill in the details for this additional site."
+                : "Every company needs at least one site. Fill in the details for this company's first site — you can add more sites later."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -2177,7 +2323,7 @@ export default function Companies() {
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-1">
                 <h4 className="text-sm font-medium">Site Address</h4>
-                {pendingCompanyData && (pendingCompanyData.addressLine1 || pendingCompanyData.city) && (
+                {!wizardSubsequentSite && pendingCompanyData && (pendingCompanyData.addressLine1 || pendingCompanyData.city) && (
                   <Button
                     type="button"
                     variant="outline"
@@ -2283,38 +2429,53 @@ export default function Companies() {
 
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={handleCancelSiteModal} data-testid="button-back-to-company">
-              Back
-            </Button>
+            {!wizardSubsequentSite && (
+              <Button variant="outline" onClick={handleCancelSiteModal} data-testid="button-back-to-company">
+                Back
+              </Button>
+            )}
+            {wizardSubsequentSite && (
+              <Button variant="outline" onClick={() => {
+                setIsSiteModalOpen(false);
+                setWizardSubsequentSite(false);
+                setSiteData({ name: "", addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "" });
+                setWizardStep("add-another-site");
+              }} data-testid="button-cancel-add-site">
+                Cancel
+              </Button>
+            )}
             <Button
               onClick={handleCreateSite}
-              disabled={createCompanyWithSiteMutation.isPending}
+              disabled={createCompanyWithSiteMutation.isPending || addSiteToWizardMutation.isPending}
               data-testid="button-create-first-site"
             >
-              {createCompanyWithSiteMutation.isPending ? "Creating..." : "Create Company & Site"}
+              {(createCompanyWithSiteMutation.isPending || addSiteToWizardMutation.isPending)
+                ? "Creating..."
+                : wizardSubsequentSite ? "Add Site" : "Create Company & Site"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isRequiredDocsOpen} onOpenChange={(open) => {
-        if (!open) handleSkipRequiredDocs();
+      {/* ── Wizard: Site Mandatory Docs ──────────────────────────────────────── */}
+      <Dialog open={wizardStep === "site-docs"} onOpenChange={(open) => {
+        if (!open) handleSkipSiteDocs();
       }}>
         <DialogContent className="sm:max-w-[500px] h-[680px] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
           <div className="px-6 pt-6 pb-4 shrink-0 border-b">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Set Mandatory Documents
+                Assign Mandatory Documents — {wizardCurrentSiteName}
               </DialogTitle>
               <DialogDescription>
-                Select which documents are required for compliance at this company's sites.
+                Select templates to mark as required for this site. These affect the site's compliance score.
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-md border bg-muted/50 p-3 flex gap-2 mt-4">
               <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-sm text-muted-foreground">
-                Any templates ticked here will affect the company's compliance score. You can change these at any time from the company details page.
+                You can adjust required documents per site at any time from the site details page.
               </p>
             </div>
           </div>
@@ -2322,54 +2483,46 @@ export default function Companies() {
             {(() => {
               const privateTemplates = allTemplates.filter(t => t.visibility === "private" && t.isActive);
               const allModulesDisabled = newCompanyModuleAccess && !newCompanyModuleAccess.healthSafety && !newCompanyModuleAccess.humanResources && !newCompanyModuleAccess.employmentLaw;
-              const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) => 
+              const enabledModules = Object.entries(MODULE_MAP).filter(([, { key }]) =>
                 !newCompanyModuleAccess || allModulesDisabled || newCompanyModuleAccess[key]
               );
               if (enabledModules.length === 0) {
-                return (
-                  <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>
-                );
+                return <p className="text-sm text-muted-foreground py-4">No modules are enabled for this company.</p>;
               }
               const isSingleModule = enabledModules.length === 1;
-              const activeModule = isSingleModule
-                ? enabledModules[0][0]
-                : reqDocsActiveModule;
+              const activeModule = isSingleModule ? enabledModules[0][0] : reqDocsActiveModule;
               return (
                 <Tabs value={activeModule} onValueChange={setReqDocsActiveModule}>
                   <TabsList className="mb-4">
                     {enabledModules.map(([mod, { label }]) => (
-                      <TabsTrigger key={mod} value={mod} data-testid={`tab-wizard-required-${mod}`}>{label}</TabsTrigger>
+                      <TabsTrigger key={mod} value={mod} data-testid={`tab-wizard-site-docs-${mod}`}>{label}</TabsTrigger>
                     ))}
                   </TabsList>
                   {!isSingleModule && !activeModule && (
-                    <p className="text-sm text-muted-foreground py-4 text-center" data-testid="text-req-docs-select-module">
-                      Please select a module above to view its templates.
-                    </p>
+                    <p className="text-sm text-muted-foreground py-4 text-center">Select a module above to view its templates.</p>
                   )}
                   {enabledModules.map(([mod, { label }]) => {
                     const moduleTemplates = privateTemplates.filter(t => t.module === mod);
                     return (
                       <TabsContent key={mod} value={mod}>
                         {moduleTemplates.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-4">
-                            No private templates available for {label}.
-                          </p>
+                          <p className="text-sm text-muted-foreground py-4">No private templates available for {label}.</p>
                         ) : (
                           <div className="space-y-3">
                             {moduleTemplates.map(template => (
                               <div key={template.id} className="flex items-center gap-3">
                                 <Checkbox
-                                  id={`wizard-req-${template.id}`}
+                                  id={`wizard-site-doc-${template.id}`}
                                   checked={selectedRequiredIds.has(template.id)}
                                   onCheckedChange={(checked) => {
                                     const newIds = new Set(selectedRequiredIds);
                                     if (checked) { newIds.add(template.id); } else { newIds.delete(template.id); }
                                     setSelectedRequiredIds(newIds);
                                   }}
-                                  data-testid={`checkbox-wizard-required-${template.id}`}
+                                  data-testid={`checkbox-wizard-site-doc-${template.id}`}
                                 />
                                 <label
-                                  htmlFor={`wizard-req-${template.id}`}
+                                  htmlFor={`wizard-site-doc-${template.id}`}
                                   className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
                                 >
                                   {template.name}
@@ -2390,15 +2543,289 @@ export default function Companies() {
           </div>
           <div className="px-6 py-4 shrink-0 border-t">
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={handleSkipRequiredDocs} data-testid="button-skip-required-docs">
+              <Button variant="outline" onClick={handleSkipSiteDocs} disabled={sitDocsSaving} data-testid="button-skip-site-docs">
                 Skip
               </Button>
               <Button
-                onClick={handleSaveRequiredDocs}
-                disabled={saveRequiredDocsMutation.isPending}
-                data-testid="button-save-required-docs"
+                onClick={handleSaveSiteDocs}
+                disabled={sitDocsSaving}
+                data-testid="button-save-site-docs"
               >
-                {saveRequiredDocsMutation.isPending ? "Saving..." : "Save & Finish"}
+                {sitDocsSaving ? "Saving..." : selectedRequiredIds.size > 0 ? "Save & Continue" : "Continue"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Wizard: Add Another Site? ─────────────────────────────────────────── */}
+      <Dialog open={wizardStep === "add-another-site"} onOpenChange={(open) => {
+        if (!open) setWizardStep("contact");
+      }}>
+        <DialogContent className="sm:max-w-[420px]" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPinned className="h-5 w-5" />
+              Add Another Site?
+            </DialogTitle>
+            <DialogDescription>
+              {wizardSiteIds.length === 1
+                ? "You've added 1 site so far. Would you like to add another site to this company?"
+                : `You've added ${wizardSiteIds.length} sites so far. Would you like to add another site to this company?`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border bg-muted/50 p-3 flex gap-2">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              You can also add more sites later from the company details page.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setWizardStep("contact")}
+              data-testid="button-no-more-sites"
+            >
+              No, continue
+            </Button>
+            <Button
+              onClick={() => {
+                setSiteData({ name: "", addressLine1: "", addressLine2: "", city: "", county: "", postalCode: "", country: "" });
+                setWizardSubsequentSite(true);
+                setWizardStep(null);
+                setIsSiteModalOpen(true);
+              }}
+              data-testid="button-yes-add-site"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Yes, add another site
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Wizard: Add Primary Contact (manual flow) ────────────────────────── */}
+      <Dialog open={wizardStep === "contact" && !wizardIsAcceloFlow} onOpenChange={(open) => {
+        if (!open) handleWizardNavigateToCompany();
+      }}>
+        <DialogContent className="sm:max-w-[560px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
+          <div className="px-6 pt-6 pb-4 shrink-0 border-b">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" />
+                Add Primary Contact
+              </DialogTitle>
+              <DialogDescription>
+                Optionally add a primary contact for this company. They will be created as a client user with access to all sites.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border bg-muted/50 p-3 flex gap-2 mt-4">
+              <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-sm text-muted-foreground">
+                This person will be the primary contact and will have access to all {wizardSiteIds.length} site{wizardSiteIds.length !== 1 ? "s" : ""} created in this wizard.
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Personal Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-title">Title</Label>
+                    <div className="relative flex items-center">
+                      <Select
+                        value={primaryContact.title}
+                        onValueChange={(value) => setPrimaryContact(p => ({ ...p, title: value }))}
+                      >
+                        <SelectTrigger id="pc-title" data-testid="select-pc-title">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mr">Mr</SelectItem>
+                          <SelectItem value="Mrs">Mrs</SelectItem>
+                          <SelectItem value="Ms">Ms</SelectItem>
+                          <SelectItem value="Miss">Miss</SelectItem>
+                          <SelectItem value="Dr">Dr</SelectItem>
+                          <SelectItem value="Prof">Prof</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {primaryContact.title && (
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryContact(p => ({ ...p, title: "" }))}
+                          className="absolute right-3 text-muted-foreground hover:text-foreground transition-colors"
+                          data-testid="button-clear-pc-title"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="col-span-3 grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="pc-firstname">First Name <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="pc-firstname"
+                        value={primaryContact.firstName}
+                        onChange={(e) => {
+                          const firstName = e.target.value;
+                          setPrimaryContact(p => ({ ...p, firstName, username: generateWizardUsername(firstName, p.lastName) }));
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            const cap = value.charAt(0).toUpperCase() + value.slice(1);
+                            setPrimaryContact(p => ({ ...p, firstName: cap, username: generateWizardUsername(cap, p.lastName) }));
+                          }
+                        }}
+                        placeholder="First name"
+                        data-testid="input-pc-firstname"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="pc-lastname">Surname <span className="text-destructive">*</span></Label>
+                      <Input
+                        id="pc-lastname"
+                        value={primaryContact.lastName}
+                        onChange={(e) => {
+                          const lastName = e.target.value;
+                          setPrimaryContact(p => ({ ...p, lastName, username: generateWizardUsername(p.firstName, lastName) }));
+                        }}
+                        onBlur={(e) => {
+                          const value = e.target.value.trim();
+                          if (value) {
+                            const cap = value.charAt(0).toUpperCase() + value.slice(1);
+                            setPrimaryContact(p => ({ ...p, lastName: cap, username: generateWizardUsername(p.firstName, cap) }));
+                          }
+                        }}
+                        placeholder="Surname"
+                        data-testid="input-pc-lastname"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-username" className="text-muted-foreground">
+                      Username <span className="text-xs">(auto-generated)</span>
+                    </Label>
+                    <Input
+                      id="pc-username"
+                      value={primaryContact.username}
+                      readOnly
+                      placeholder="firstname.surname"
+                      className="bg-muted"
+                      data-testid="input-pc-username"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-email">Email <span className="text-destructive">*</span></Label>
+                    <Input
+                      id="pc-email"
+                      type="email"
+                      value={primaryContact.email}
+                      className={primaryContactEmailError ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onChange={(e) => {
+                        setPrimaryContact(p => ({ ...p, email: e.target.value }));
+                        if (primaryContactEmailError) setPrimaryContactEmailError(null);
+                      }}
+                      placeholder="email@company.com"
+                      data-testid="input-pc-email"
+                    />
+                    {primaryContactEmailError && (
+                      <p className="text-xs font-medium text-destructive">{primaryContactEmailError}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-jobtitle">Job Title</Label>
+                    <Input
+                      id="pc-jobtitle"
+                      value={primaryContact.jobTitle}
+                      onChange={(e) => setPrimaryContact(p => ({ ...p, jobTitle: e.target.value }))}
+                      onBlur={(e) => { const v = e.target.value.trim(); if (v) setPrimaryContact(p => ({ ...p, jobTitle: toTitleCase(v) })); }}
+                      placeholder="e.g., Safety Manager"
+                      data-testid="input-pc-jobtitle"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-department">Department</Label>
+                    <Input
+                      id="pc-department"
+                      value={primaryContact.department}
+                      onChange={(e) => setPrimaryContact(p => ({ ...p, department: e.target.value }))}
+                      onBlur={(e) => { const v = e.target.value.trim(); if (v) setPrimaryContact(p => ({ ...p, department: toTitleCase(v) })); }}
+                      placeholder="e.g., Operations"
+                      data-testid="input-pc-department"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="border-b pb-4">
+              <h4 className="text-sm font-medium mb-3">Contact Details</h4>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-phone">Phone</Label>
+                    <Input
+                      id="pc-phone"
+                      value={primaryContact.phone}
+                      onChange={(e) => setPrimaryContact(p => ({ ...p, phone: e.target.value }))}
+                      placeholder="+44 123 456 7890"
+                      data-testid="input-pc-phone"
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="pc-mobile">Mobile</Label>
+                    <Input
+                      id="pc-mobile"
+                      value={primaryContact.mobile}
+                      onChange={(e) => setPrimaryContact(p => ({ ...p, mobile: e.target.value }))}
+                      placeholder="+44 7xx xxx xxxx"
+                      data-testid="input-pc-mobile"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="pc-preferred-contact">Preferred Contact Method</Label>
+                  <Select
+                    value={primaryContact.preferredContactMethod}
+                    onValueChange={(value: "email" | "phone" | "mobile" | "any") => setPrimaryContact(p => ({ ...p, preferredContactMethod: value }))}
+                  >
+                    <SelectTrigger id="pc-preferred-contact" data-testid="select-pc-preferred-contact">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Phone</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-3">Additional Notes</h4>
+              <Textarea
+                value={primaryContact.notes}
+                onChange={(e) => setPrimaryContact(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Any additional notes about this contact..."
+                className="min-h-[80px]"
+                data-testid="textarea-pc-notes"
+              />
+            </div>
+          </div>
+          <div className="px-6 py-4 shrink-0 border-t">
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={handleWizardNavigateToCompany} disabled={primaryContactSubmitting} data-testid="button-skip-primary-contact">
+                Skip
+              </Button>
+              <Button onClick={handlePrimaryContactSubmit} disabled={primaryContactSubmitting} data-testid="button-create-primary-contact">
+                {primaryContactSubmitting ? "Creating..." : "Create Contact & Finish"}
               </Button>
             </DialogFooter>
           </div>
@@ -2696,9 +3123,9 @@ export default function Companies() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Import Contacts Dialog (step between site creation and required docs) ── */}
+      {/* ── Import Contacts Dialog (Accelo wizard step: after sites, before navigation) ── */}
       <Dialog open={isAcceloContactsOpen} onOpenChange={(open) => {
-        if (!open && pendingCreatedCompanyId) proceedToRequiredDocs(pendingCreatedCompanyId);
+        if (!open) handleWizardNavigateToCompany();
       }}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden" onInteractOutside={(e) => e.preventDefault()}>
           <div className="px-6 pt-6 pb-4 shrink-0 border-b">
@@ -2948,7 +3375,7 @@ export default function Companies() {
             <DialogFooter className="gap-2">
               {acceloImportResults ? (
                 <Button
-                  onClick={() => pendingCreatedCompanyId && proceedToRequiredDocs(pendingCreatedCompanyId)}
+                  onClick={() => handleWizardNavigateToCompany()}
                   data-testid="button-import-done"
                 >
                   Done
@@ -2957,7 +3384,7 @@ export default function Companies() {
                 <>
                   <Button
                     variant="outline"
-                    onClick={() => pendingCreatedCompanyId && proceedToRequiredDocs(pendingCreatedCompanyId)}
+                    onClick={() => handleWizardNavigateToCompany()}
                     disabled={acceloImportingContacts}
                     data-testid="button-skip-contacts"
                   >
