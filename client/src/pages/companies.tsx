@@ -15,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAddressSync } from "@/hooks/use-address-sync";
 import { IndustrySelect } from "@/components/industry-select";
 import {
@@ -556,6 +566,9 @@ export default function Companies() {
     notes: "",
   });
   const [primaryContactEmailError, setPrimaryContactEmailError] = useState<string | null>(null);
+  const [wizardDomainMismatch, setWizardDomainMismatch] = useState<{ emailDomain: string; websiteDomain: string } | null>(null);
+  const [wizardShowDomainConfirm, setWizardShowDomainConfirm] = useState(false);
+  const [wizardDomainConfirmCallback, setWizardDomainConfirmCallback] = useState<(() => void) | null>(null);
 
   // Accelo import state
   const [isAcceloSearchOpen, setIsAcceloSearchOpen] = useState(false);
@@ -795,6 +808,21 @@ export default function Companies() {
     return cleanFirst || cleanLast;
   };
 
+  const extractEmailDomain = (email: string): string => {
+    const at = email.indexOf("@");
+    return at >= 0 ? email.slice(at + 1).toLowerCase().trim() : "";
+  };
+
+  const extractWebsiteDomain = (website: string): string => {
+    try {
+      const url = /^https?:\/\//i.test(website) ? website : `https://${website}`;
+      const host = new URL(url).hostname.toLowerCase();
+      return host.startsWith("www.") ? host.slice(4) : host;
+    } catch {
+      return website.toLowerCase().replace(/^www\./i, "").split("/")[0].trim();
+    }
+  };
+
   const resetWizard = () => {
     setWizardOpen(false);
     setWizardCurrentSiteName("");
@@ -890,9 +918,16 @@ export default function Companies() {
       setPrimaryContactEmailError("Please enter a valid email address"); return;
     }
     setPrimaryContactEmailError(null);
-    // Store locally; creation happens in confirmAndCreate
-    setPendingContact({ type: "manual", data: { ...primaryContact } });
-    setWizardStep("review");
+    const doSave = () => {
+      setPendingContact({ type: "manual", data: { ...primaryContact } });
+      setWizardStep("review");
+    };
+    if (wizardDomainMismatch) {
+      setWizardDomainConfirmCallback(() => doSave);
+      setWizardShowDomainConfirm(true);
+      return;
+    }
+    doSave();
   };
 
   const MODULE_MAP: Record<string, { key: "healthSafety" | "humanResources" | "employmentLaw"; label: string }> = {
@@ -1043,12 +1078,29 @@ export default function Companies() {
     if (!hasPrimary) {
       toast({ title: "Please mark one contact as Primary", variant: "destructive" }); return;
     }
-    setPendingContact({
-      type: "accelo",
-      sourceCode: pendingCompanyFull?.acceloContext?.sourceCode || acceloActiveSource,
-      selections,
-    });
-    setWizardStep("review");
+    const doSave = () => {
+      setPendingContact({
+        type: "accelo",
+        sourceCode: pendingCompanyFull?.acceloContext?.sourceCode || acceloActiveSource,
+        selections,
+      });
+      setWizardStep("review");
+    };
+    // Domain check: compare the primary contact's email domain against the company website
+    const primarySel = selections.find(s => s.setAsPrimary);
+    const companyWebsite = pendingCompanyFull?.companyData.website;
+    if (primarySel?.email && companyWebsite) {
+      const emailDomain = extractEmailDomain(primarySel.email);
+      const websiteDomain = extractWebsiteDomain(companyWebsite);
+      if (emailDomain && websiteDomain && emailDomain !== websiteDomain) {
+        setWizardDomainMismatch({ emailDomain, websiteDomain });
+        setWizardDomainConfirmCallback(() => doSave);
+        setWizardShowDomainConfirm(true);
+        return;
+      }
+    }
+    setWizardDomainMismatch(null);
+    doSave();
   };
 
   const handleEdit = (company: CompanyWithSiteCount) => {
@@ -2556,14 +2608,34 @@ export default function Companies() {
                       value={primaryContact.email}
                       className={primaryContactEmailError ? "border-destructive focus-visible:ring-destructive" : ""}
                       onChange={(e) => {
-                        setPrimaryContact(p => ({ ...p, email: e.target.value }));
+                        const val = e.target.value;
+                        setPrimaryContact(p => ({ ...p, email: val }));
                         if (primaryContactEmailError) setPrimaryContactEmailError(null);
+                        // Domain check against company website
+                        const companyWebsite = pendingCompanyFull?.companyData.website;
+                        const emailDomain = extractEmailDomain(val.trim());
+                        if (companyWebsite && emailDomain.includes(".")) {
+                          const websiteDomain = extractWebsiteDomain(companyWebsite);
+                          if (websiteDomain && emailDomain !== websiteDomain) {
+                            setWizardDomainMismatch({ emailDomain, websiteDomain });
+                          } else {
+                            setWizardDomainMismatch(null);
+                          }
+                        } else {
+                          setWizardDomainMismatch(null);
+                        }
                       }}
                       placeholder="email@company.com"
                       data-testid="input-pc-email"
                     />
                     {primaryContactEmailError && (
                       <p className="text-xs font-medium text-destructive">{primaryContactEmailError}</p>
+                    )}
+                    {!primaryContactEmailError && wizardDomainMismatch && (
+                      <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-400" data-testid="warning-wizard-domain-mismatch">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        <span>The email domain <strong>@{wizardDomainMismatch.emailDomain}</strong> doesn't match the company website domain <strong>{wizardDomainMismatch.websiteDomain}</strong>. You can still continue, but you'll need to confirm.</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3043,6 +3115,36 @@ export default function Companies() {
         </DialogContent>
       </Dialog>
 
+      {/* ── Wizard: email domain mismatch confirmation ── */}
+      <AlertDialog open={wizardShowDomainConfirm} onOpenChange={setWizardShowDomainConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Email domain mismatch</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  The email domain <strong className="text-foreground font-mono">@{wizardDomainMismatch?.emailDomain}</strong> doesn't match the company website domain <strong className="text-foreground font-mono">{wizardDomainMismatch?.websiteDomain}</strong>.
+                </p>
+                <p>Please check this is the correct email address before continuing.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-wizard-domain-mismatch-cancel">Go Back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setWizardShowDomainConfirm(false);
+                setWizardDomainMismatch(null);
+                wizardDomainConfirmCallback?.();
+                setWizardDomainConfirmCallback(null);
+              }}
+              data-testid="button-wizard-domain-mismatch-confirm"
+            >
+              Continue anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       </div>
     </div>

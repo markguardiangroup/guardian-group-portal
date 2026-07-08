@@ -11325,6 +11325,13 @@
           "message": "Fixed: \"Server restarting\" overlay no longer appears during heavy file uploads",
           "category": "bug",
           "createdAt": "2026-07-08T22:10:00.000Z"
+        },
+        {
+          "id": "e4a73f92-1c85-4b29-bd8e-9d0f62a17c34",
+          "patch": 29,
+          "message": "Wizard contact step now checks email domain against company website (both manual and Accelo)",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T22:20:00.000Z"
         }
       ],
       "publishedPatch": 28,
