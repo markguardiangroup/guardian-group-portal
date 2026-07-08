@@ -1015,7 +1015,7 @@ export default function TemplateLibraryPage() {
   const getTemplatesForFolder = (folderId: string) => {
     return filteredTemplates
       .filter(t => t.folderTemplateId === folderId)
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   };
 
   const getTotalTemplatesInFolderTree = (folderId: string): number => {
@@ -1043,7 +1043,7 @@ export default function TemplateLibraryPage() {
   const getUnassignedTemplates = (module: string) => {
     return filteredTemplates
       .filter(t => t.module === module && !t.folderTemplateId)
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   };
 
   const handleDragStart = useCallback((event: DragStartEvent) => {

@@ -11255,6 +11255,13 @@
           "message": "Moving/archiving/deleting a shared document now warns that its sharing will be removed",
           "category": "enhancement",
           "createdAt": "2026-07-08T15:54:19.368Z"
+        },
+        {
+          "id": "fd826293-01e2-4a91-b8f4-e8c6d8d801f3",
+          "patch": 29,
+          "message": "Templates within folders in the Template Library now sort alphabetically",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T16:00:13.546Z"
         }
       ],
       "publishedPatch": 28,
