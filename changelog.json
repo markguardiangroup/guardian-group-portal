@@ -11143,6 +11143,13 @@
           "message": "Document Date tag now turns green once a date is set",
           "category": "enhancement",
           "createdAt": "2026-07-08T12:16:16.403Z"
+        },
+        {
+          "id": "73a840b0-5e72-4358-8a2f-5871b5339c3d",
+          "patch": 25,
+          "message": "Date Responded tag is hidden until a Response Deadline is set",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T12:21:26.972Z"
         }
       ],
       "publishedPatch": 24,

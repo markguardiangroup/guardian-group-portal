@@ -2839,16 +2839,16 @@ function CaseDetailView({ id }: { id: string }) {
                                 onSave={(date) => updateChecklistItemMutation.mutate({ itemId: item.id, data: { submissionDate: date } })}
                                 testId={`tag-response-deadline-${item.id}`}
                               />
-                              <EssentialDocDateTag
-                                label="Date Responded"
-                                icon={<CheckCircle className="h-3 w-3" />}
-                                value={item.respondedDate}
-                                disabled={!hasDeadline}
-                                disabledReason="Set a Response Deadline first"
-                                activeClassName="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-transparent"
-                                onSave={(date) => updateChecklistItemMutation.mutate({ itemId: item.id, data: { respondedDate: date } })}
-                                testId={`tag-date-responded-${item.id}`}
-                              />
+                              {hasDeadline && (
+                                <EssentialDocDateTag
+                                  label="Date Responded"
+                                  icon={<CheckCircle className="h-3 w-3" />}
+                                  value={item.respondedDate}
+                                  activeClassName="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-transparent"
+                                  onSave={(date) => updateChecklistItemMutation.mutate({ itemId: item.id, data: { respondedDate: date } })}
+                                  testId={`tag-date-responded-${item.id}`}
+                                />
+                              )}
                             </div>
                           </div>
                           {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
