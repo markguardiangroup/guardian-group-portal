@@ -3909,7 +3909,7 @@ function CaseDetailView({ id }: { id: string }) {
             <div className="space-y-1.5">
               <label className="text-sm font-medium flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-pink-500" />
-                Submission date <span className="text-muted-foreground text-xs">(optional)</span>
+                Response Deadline <span className="text-muted-foreground text-xs">(optional)</span>
               </label>
               <Input
                 type="date"

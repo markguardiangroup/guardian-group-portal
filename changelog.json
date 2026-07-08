@@ -11080,6 +11080,13 @@
           "message": "Essential document uploads can now set a Response Deadline",
           "category": "feature",
           "createdAt": "2026-07-08T09:32:15.289Z"
+        },
+        {
+          "id": "a2cb05a3-6044-4ae2-90bd-6973e9362259",
+          "patch": 25,
+          "message": "Renamed 'Submission date' to 'Response Deadline' on essential documents",
+          "category": "other",
+          "createdAt": "2026-07-08T10:17:58.587Z"
         }
       ],
       "publishedPatch": 24,
