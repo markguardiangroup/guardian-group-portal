@@ -361,7 +361,7 @@ export type TrainingDocumentType =
 export type DocumentType = HSDocumentType | HRDocumentType | ELDocumentType | TrainingDocumentType;
 
 // Case status for Employment Law module
-export type CaseStatus = "open" | "under_investigation" | "hearing_scheduled" | "resolved" | "closed";
+export type CaseStatus = "open" | "closed_won" | "closed_settled" | "closed_lost";
 
 // Case type for Employment Law
 export type CaseType = "tribunal_claim" | "acas_conciliation" | "disciplinary" | "grievance" | "tupe" | "redundancy" | "settlement" | "appeal" | "investigation";

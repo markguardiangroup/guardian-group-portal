@@ -654,10 +654,9 @@ interface ElCasesDataExport {
 
 const EL_STATUS_LABELS: Record<string, string> = {
   open: "Open",
-  under_investigation: "Under Investigation",
-  hearing_scheduled: "Hearing Scheduled",
-  resolved: "Resolved",
-  closed: "Closed",
+  closed_won: "Closed - Won",
+  closed_settled: "Closed - Settled",
+  closed_lost: "Closed - Lost",
 };
 
 const EL_TYPE_LABELS: Record<string, string> = {

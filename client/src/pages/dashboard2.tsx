@@ -428,8 +428,8 @@ function CasesCard({ siteId, selectedCompany, sites = [], scopedSiteIds }: Activ
     return cases;
   }, [cases, siteId, selectedCompany, sites, scopedSiteIds]);
 
-  const openCount = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
-  const activeCases = filteredCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled");
+  const openCount = filteredCases.filter(c => c.status === "open").length;
+  const activeCases = filteredCases.filter(c => c.status === "open");
   const overdueCount = activeCases.filter(c => {
     if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
     if (c.hearingDate && isPast(new Date(c.hearingDate))) return true;

@@ -765,7 +765,7 @@ const createCaseSchema = z.object({
 const updateCaseSchema = z.object({
   caseNumber: z.string().min(1).optional(),
   caseName: z.string().min(1).optional(),
-  status: z.enum(["open", "under_investigation", "hearing_scheduled", "resolved", "closed"]).optional(),
+  status: z.enum(["open", "closed_won", "closed_settled", "closed_lost"]).optional(),
   description: z.string().optional(),
   isConfidential: z.boolean().optional(),
   sources: z.array(z.string()).optional(),
@@ -13262,8 +13262,7 @@ export async function registerRoutes(
       const openCases = canViewCases ? await storage.getCases({ includeArchived: false }) : [];
       const accessibleCases = openCases.filter((c: any) =>
         !c.isArchived &&
-        c.status !== "closed" &&
-        c.status !== "resolved" &&
+        c.status === "open" &&
         allowedSet.has(c.siteId) &&
         (!clientAllowedSiteIds || clientAllowedSiteIds.has(c.siteId)) &&
         canAccessConfidentialCase(c, user)
@@ -13378,8 +13377,7 @@ export async function registerRoutes(
       const liveCases = allCases.filter(
         (c: any) =>
           !c.isArchived &&
-          c.status !== "closed" &&
-          c.status !== "resolved" &&
+          c.status === "open" &&
           allowedSet.has(c.siteId)
       );
 

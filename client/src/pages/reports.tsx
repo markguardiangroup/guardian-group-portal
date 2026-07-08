@@ -578,18 +578,16 @@ interface ElCasesData {
 
 const STATUS_LABELS: Record<string, string> = {
   open: "Open",
-  under_investigation: "Under Investigation",
-  hearing_scheduled: "Hearing Scheduled",
-  resolved: "Resolved",
-  closed: "Closed",
+  closed_won: "Closed - Won",
+  closed_settled: "Closed - Settled",
+  closed_lost: "Closed - Lost",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   open: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  under_investigation: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  hearing_scheduled: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  resolved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-  closed: "bg-muted text-muted-foreground",
+  closed_won: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  closed_settled: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  closed_lost: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
 function ElCasesReport({ companyId, siteId }: { companyId: string; siteId: string }) {

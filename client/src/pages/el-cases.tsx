@@ -144,10 +144,9 @@ import { useAuth } from "@/hooks/use-auth";
 
 const caseStatusConfig: Record<CaseStatus, { label: string; color: string; bgColor: string }> = {
   open: { label: "Open", color: "text-blue-700 dark:text-blue-400", bgColor: "bg-blue-100 dark:bg-blue-900/40" },
-  under_investigation: { label: "Under Investigation", color: "text-amber-700 dark:text-amber-400", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
-  hearing_scheduled: { label: "Hearing Scheduled", color: "text-purple-700 dark:text-purple-400", bgColor: "bg-purple-100 dark:bg-purple-900/40" },
-  resolved: { label: "Resolved", color: "text-green-700 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/40" },
-  closed: { label: "Closed", color: "text-gray-700 dark:text-gray-400", bgColor: "bg-gray-100 dark:bg-gray-800" },
+  closed_won: { label: "Closed - Won", color: "text-green-700 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/40" },
+  closed_settled: { label: "Closed - Settled", color: "text-purple-700 dark:text-purple-400", bgColor: "bg-purple-100 dark:bg-purple-900/40" },
+  closed_lost: { label: "Closed - Lost", color: "text-red-700 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/40" },
 };
 
 const caseTypeConfig: Record<CaseType, { label: string; icon: typeof Briefcase }> = {
@@ -426,8 +425,8 @@ function CasesList() {
 
   // Always exclude archived cases from metrics
   const activeCases = cases?.filter(c => !c.isArchived) || [];
-  const openCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled").length;
-  const resolvedCases = activeCases.filter(c => c.status === "resolved" || c.status === "closed").length;
+  const openCases = activeCases.filter(c => c.status === "open").length;
+  const resolvedCases = activeCases.filter(c => c.status === "closed_won" || c.status === "closed_settled" || c.status === "closed_lost").length;
 
   // Returns deadline display info for the table column (nearest date, any type)
   const getCaseDisplayDeadline = (c: any): { date: Date; label: string } | null => {
@@ -662,8 +661,8 @@ function CasesList() {
                 {metricDialog === "upcoming" && <><Clock className="h-5 w-5 text-amber-500" /> Upcoming Deadlines</>}
               </DialogTitle>
               <DialogDescription>
-                {metricDialog === "cases_active" && "Cases currently open, under investigation, or with a hearing scheduled."}
-                {metricDialog === "cases_resolved" && "Cases that have been resolved or closed."}
+                {metricDialog === "cases_active" && "Cases currently open."}
+                {metricDialog === "cases_resolved" && "Cases that have been closed (won, settled, or lost)."}
                 {metricDialog === "overdue" && "Cases with a response deadline, hearing date, or milestone that has already passed."}
                 {metricDialog === "upcoming" && "Cases with a deadline due within the next 30 days."}
               </DialogDescription>
@@ -672,9 +671,9 @@ function CasesList() {
               {(() => {
                 let listCases: any[] = [];
                 if (metricDialog === "cases_active") {
-                  listCases = activeCases.filter(c => c.status === "open" || c.status === "under_investigation" || c.status === "hearing_scheduled");
+                  listCases = activeCases.filter(c => c.status === "open");
                 } else if (metricDialog === "cases_resolved") {
-                  listCases = activeCases.filter(c => c.status === "resolved" || c.status === "closed");
+                  listCases = activeCases.filter(c => c.status === "closed_won" || c.status === "closed_settled" || c.status === "closed_lost");
                 } else if (metricDialog === "overdue") {
                   listCases = activeCases.filter(c => {
                     if (c.responseDeadline && isPast(new Date(c.responseDeadline))) return true;
@@ -749,10 +748,9 @@ function CasesList() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="under_investigation">Under Investigation</SelectItem>
-                  <SelectItem value="hearing_scheduled">Hearing Scheduled</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="closed_won">Closed - Won</SelectItem>
+                  <SelectItem value="closed_settled">Closed - Settled</SelectItem>
+                  <SelectItem value="closed_lost">Closed - Lost</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -848,10 +846,9 @@ function CasesList() {
           {caseView === "kanban" && (() => {
             const KANBAN_COLS: { status: CaseStatus; label: string; color: string; headerCls: string; dotCls: string }[] = [
               { status: "open", label: "Open", color: "border-blue-300 dark:border-blue-700", headerCls: "text-blue-700 dark:text-blue-400", dotCls: "bg-blue-500" },
-              { status: "under_investigation", label: "Under Investigation", color: "border-amber-300 dark:border-amber-700", headerCls: "text-amber-700 dark:text-amber-400", dotCls: "bg-amber-500" },
-              { status: "hearing_scheduled", label: "Hearing Scheduled", color: "border-purple-300 dark:border-purple-700", headerCls: "text-purple-700 dark:text-purple-400", dotCls: "bg-purple-500" },
-              { status: "resolved", label: "Resolved", color: "border-emerald-300 dark:border-emerald-700", headerCls: "text-emerald-700 dark:text-emerald-400", dotCls: "bg-emerald-500" },
-              { status: "closed", label: "Closed", color: "border-gray-300 dark:border-gray-600", headerCls: "text-gray-600 dark:text-gray-400", dotCls: "bg-gray-400" },
+              { status: "closed_won", label: "Closed - Won", color: "border-green-300 dark:border-green-700", headerCls: "text-green-700 dark:text-green-400", dotCls: "bg-green-500" },
+              { status: "closed_settled", label: "Closed - Settled", color: "border-purple-300 dark:border-purple-700", headerCls: "text-purple-700 dark:text-purple-400", dotCls: "bg-purple-500" },
+              { status: "closed_lost", label: "Closed - Lost", color: "border-red-300 dark:border-red-700", headerCls: "text-red-700 dark:text-red-400", dotCls: "bg-red-500" },
             ];
 
             if (isLoading) {
@@ -3647,10 +3644,9 @@ function CaseDetailView({ id }: { id: string }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="under_investigation">Under Investigation</SelectItem>
-                <SelectItem value="hearing_scheduled">Hearing Scheduled</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
+                <SelectItem value="closed_won">Closed - Won</SelectItem>
+                <SelectItem value="closed_settled">Closed - Settled</SelectItem>
+                <SelectItem value="closed_lost">Closed - Lost</SelectItem>
               </SelectContent>
             </Select>
           </div>

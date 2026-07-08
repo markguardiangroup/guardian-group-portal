@@ -11150,6 +11150,13 @@
           "message": "Date Responded tag is hidden until a Response Deadline is set",
           "category": "enhancement",
           "createdAt": "2026-07-08T12:21:26.972Z"
+        },
+        {
+          "id": "fb96ea7e-4c5d-46e6-998c-823e325464ec",
+          "patch": 25,
+          "message": "Case status simplified to Open, Closed - Won/Settled/Lost",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T12:29:48.531Z"
         }
       ],
       "publishedPatch": 24,
