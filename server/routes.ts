@@ -162,6 +162,51 @@ async function autoAssignPrimaryContactToSites(
   }
 }
 
+// Creates a toolkit folder, mirrors it into the Template Library as a FolderTemplate
+// subfolder under the module's Toolkit root, and writes an audit log entry. Shared by
+// the single-folder create route and the bulk-create route so both stay in sync.
+async function createToolkitFolderAndMirror(
+  name: string,
+  module: "health_safety" | "human_resources" | "employment_law",
+  sources: string[],
+  sortOrder: number,
+  userId: string,
+  userName: string,
+) {
+  const folder = await storage.createToolkitFolder({
+    name,
+    module,
+    sortOrder,
+    sources,
+    createdBy: userId,
+  });
+
+  const rootLibraryFolder = await storage.getModuleToolkitRootFolder(module);
+  if (rootLibraryFolder) {
+    await storage.createFolderTemplate({
+      name,
+      module,
+      parentId: rootLibraryFolder.id,
+      toolkitFolderId: folder.id,
+      isMandatory: false,
+      sortOrder,
+      isActive: true,
+      createdBy: userId,
+    } as any);
+  }
+
+  await storage.createAuditLog({
+    action: "toolkit_folder_created",
+    userId,
+    userName,
+    module,
+    details: `Created toolkit folder "${name}"`,
+    metadata: JSON.stringify({ folderId: folder.id }),
+  });
+
+  return folder;
+}
+
 // Returns the *finalized* object path that the calling route must persist into its business
 // record. It will differ from the fileUrl the caller passed in — see finalizeClaimedObject()
 // for why the object is relocated as part of claiming it.
@@ -8679,43 +8724,76 @@ export async function registerRoutes(
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
 
-      const folder = await storage.createToolkitFolder({
-        name: parsed.data.name,
-        module: parsed.data.module,
-        sortOrder: parsed.data.sortOrder ?? 0,
-        sources: parsed.data.sources,
-        createdBy: user.id,
-      });
-
-      // Mirror: create a FolderTemplate subfolder linked to this toolkit folder
-      const rootLibraryFolder = await storage.getModuleToolkitRootFolder(parsed.data.module as any);
-      if (rootLibraryFolder) {
-        const mirrorData: any = {
-          name: parsed.data.name,
-          module: parsed.data.module,
-          parentId: rootLibraryFolder.id,
-          toolkitFolderId: folder.id,
-          isMandatory: false,
-          sortOrder: parsed.data.sortOrder ?? 0,
-          isActive: true,
-          createdBy: user.id,
-        };
-        await storage.createFolderTemplate(mirrorData);
-      }
-
-      await storage.createAuditLog({
-        action: "toolkit_folder_created",
-        userId: user.id,
-        userName: user.fullName,
-        module: parsed.data.module,
-        details: `Created toolkit folder "${parsed.data.name}"`,
-        metadata: JSON.stringify({ folderId: folder.id }),
-      });
+      const folder = await createToolkitFolderAndMirror(
+        parsed.data.name,
+        parsed.data.module,
+        parsed.data.sources,
+        parsed.data.sortOrder ?? 0,
+        user.id,
+        user.fullName,
+      );
 
       res.status(201).json(folder);
     } catch (error) {
       console.error("Create toolkit folder error:", error);
       res.status(500).json({ error: "Failed to create toolkit folder" });
+    }
+  });
+
+  // Bulk-create toolkit folders from a pasted list of names — same module/sources
+  // applied to every folder. Duplicate names (case-insensitive, against the pasted
+  // list itself and against existing folders in that module) are silently skipped.
+  app.post("/api/toolkit/folders/bulk", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (!canManageTemplateLibrary(user)) return res.status(403).json({ error: "Only developers or template library managers can create toolkit folders" });
+
+      const schema = z.object({
+        names: z.array(z.string()).min(1, "Provide at least one folder name"),
+        module: z.enum(["health_safety", "human_resources", "employment_law"]),
+        sources: z.array(z.string()).min(1, "At least one source is required"),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+
+      const existingFolders = await storage.getToolkitFolders(parsed.data.module as any);
+      const existingNamesLower = new Set(existingFolders.map(f => f.name.trim().toLowerCase()));
+
+      const seenLower = new Set<string>();
+      const toCreate: string[] = [];
+      const skipped: string[] = [];
+      for (const raw of parsed.data.names) {
+        const name = raw.trim();
+        if (!name) continue;
+        const lower = name.toLowerCase();
+        if (seenLower.has(lower) || existingNamesLower.has(lower)) {
+          skipped.push(name);
+          continue;
+        }
+        seenLower.add(lower);
+        toCreate.push(name);
+      }
+
+      const created: Array<{ id: string; name: string }> = [];
+      for (const name of toCreate) {
+        const folder = await createToolkitFolderAndMirror(name, parsed.data.module, parsed.data.sources, 0, user.id, user.fullName);
+        created.push({ id: folder.id, name: folder.name });
+      }
+
+      await storage.createAuditLog({
+        action: "toolkit_folder_bulk_created",
+        userId: user.id,
+        userName: user.fullName,
+        module: parsed.data.module,
+        details: `Bulk-created ${created.length} toolkit folder(s)${skipped.length ? `, skipped ${skipped.length} duplicate(s)` : ""}`,
+        metadata: JSON.stringify({ createdCount: created.length, skipped }),
+      });
+
+      res.status(201).json({ created, skipped });
+    } catch (error) {
+      console.error("Bulk create toolkit folders error:", error);
+      res.status(500).json({ error: "Failed to bulk create toolkit folders" });
     }
   });
 

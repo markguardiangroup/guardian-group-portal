@@ -11213,6 +11213,13 @@
           "message": "Fixed: primary contact from Accelo import wasn't auto-added to sites",
           "category": "bug",
           "createdAt": "2026-07-08T13:36:42.426Z"
+        },
+        {
+          "id": "63de43b5-7a56-4582-8855-7251024924f1",
+          "patch": 28,
+          "message": "Admins can bulk-create Toolkit folders from a pasted list of names",
+          "category": "feature",
+          "createdAt": "2026-07-08T14:03:24.979Z"
         }
       ],
       "publishedPatch": 27,

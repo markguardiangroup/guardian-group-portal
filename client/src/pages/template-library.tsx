@@ -496,6 +496,12 @@ export default function TemplateLibraryPage() {
   const [editingTkFolderId, setEditingTkFolderId] = useState<string | null>(null);
   const [editingTkFolderSources, setEditingTkFolderSources] = useState<string[]>([]);
 
+  // Bulk-create toolkit folders dialog state
+  const [showBulkTkFolders, setShowBulkTkFolders] = useState(false);
+  const [bulkTkFolderNames, setBulkTkFolderNames] = useState("");
+  const [bulkTkFolderSources, setBulkTkFolderSources] = useState<string[]>([]);
+  const [bulkTkFolderResult, setBulkTkFolderResult] = useState<{ created: Array<{ id: string; name: string }>; skipped: string[] } | null>(null);
+
   // Folder expansion state - starts collapsed by default
   const [openFolders, setOpenFolders] = useState<string[]>([]);
 
@@ -769,6 +775,27 @@ export default function TemplateLibraryPage() {
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message || "Failed to create folder", variant: "destructive" });
+    },
+  });
+
+  const bulkCreateTkFoldersMutation = useMutation({
+    mutationFn: async (data: { names: string[]; module: string; sources: string[] }) => {
+      const res = await apiRequest("POST", "/api/toolkit/folders/bulk", data);
+      return res.json() as Promise<{ created: Array<{ id: string; name: string }>; skipped: string[] }>;
+    },
+    onSuccess: (data) => {
+      queryClient.refetchQueries({ queryKey: ["/api/toolkit/folders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
+      setBulkTkFolderResult(data);
+      setBulkTkFolderNames("");
+      toast({
+        title: "Bulk create complete",
+        description: `Created ${data.created.length} folder(s)${data.skipped.length ? `, skipped ${data.skipped.length} duplicate(s)` : ""}.`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message || "Failed to bulk create folders", variant: "destructive" });
     },
   });
 
@@ -4024,7 +4051,23 @@ export default function TemplateLibraryPage() {
 
                 {/* Create new folder */}
                 <div className="space-y-3 p-3 rounded-md border bg-muted/30">
-                  <Label>Add a new folder</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Add a new folder</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 text-xs underline text-primary hover:no-underline"
+                      onClick={() => {
+                        setBulkTkFolderSources(newTkFolderSources);
+                        setBulkTkFolderResult(null);
+                        setShowBulkTkFolders(true);
+                      }}
+                      data-testid="button-open-bulk-create-folders"
+                    >
+                      Bulk create from list
+                    </Button>
+                  </div>
                   <Input
                     placeholder="Folder name"
                     value={newTkFolderName}
@@ -4182,6 +4225,135 @@ export default function TemplateLibraryPage() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShowManageTkFolders(false)} data-testid="button-close-manage-tk-folders">
                   Done
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Bulk create toolkit folders from a pasted list */}
+          <Dialog open={showBulkTkFolders} onOpenChange={(open) => {
+            setShowBulkTkFolders(open);
+            if (!open) { setBulkTkFolderNames(""); setBulkTkFolderResult(null); }
+          }}>
+            <DialogContent className="max-w-lg max-h-[85vh] flex flex-col" data-testid="dialog-bulk-create-tk-folders">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <FolderPlus className="h-5 w-5" />
+                  Bulk Create Toolkit Folders
+                </DialogTitle>
+                <DialogDescription>
+                  Paste a list of folder names (one per line, or separated by commas). The module and sources below apply to every folder created. Names that already exist in this module are skipped.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+                <div className="space-y-1.5">
+                  <Label>Module</Label>
+                  <Select
+                    value={manageTkModule}
+                    onValueChange={(v) => setManageTkModule(v as typeof manageTkModule)}
+                  >
+                    <SelectTrigger data-testid="select-bulk-tk-module">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="health_safety">Health &amp; Safety</SelectItem>
+                      <SelectItem value="human_resources">Human Resources</SelectItem>
+                      <SelectItem value="employment_law">Employment Law</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {allSources.filter(s => s.isActive).length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Sources <span className="text-destructive">*</span></Label>
+                    <p className="text-[11px] text-muted-foreground">Applied to every folder in this batch.</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allSources.filter(s => s.isActive).map(s => {
+                        const selected = bulkTkFolderSources.includes(s.code);
+                        return (
+                          <button
+                            key={s.code}
+                            type="button"
+                            onClick={() => setBulkTkFolderSources(prev =>
+                              selected ? prev.filter(x => x !== s.code) : [...prev, s.code]
+                            )}
+                            data-testid={`button-bulk-tk-folder-source-${s.code}`}
+                            className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                              selected
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {bulkTkFolderSources.length === 0 && (
+                      <p className="text-[11px] text-destructive">Select at least one source.</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Folder names</Label>
+                  <Textarea
+                    placeholder={"e.g.\nFire Safety\nManual Handling, First Aid\nRisk Assessments"}
+                    value={bulkTkFolderNames}
+                    onChange={(e) => setBulkTkFolderNames(e.target.value)}
+                    rows={6}
+                    data-testid="textarea-bulk-tk-folder-names"
+                  />
+                  {(() => {
+                    const parsedCount = bulkTkFolderNames
+                      .split(/[\n,]/)
+                      .map(n => n.trim())
+                      .filter(Boolean).length;
+                    return parsedCount > 0 ? (
+                      <p className="text-[11px] text-muted-foreground">{parsedCount} folder name{parsedCount === 1 ? "" : "s"} detected.</p>
+                    ) : null;
+                  })()}
+                </div>
+
+                {bulkTkFolderResult && (
+                  <div className="space-y-1.5 rounded-md border p-3 bg-muted/30" data-testid="text-bulk-tk-folder-result">
+                    <p className="text-sm font-medium">
+                      Created {bulkTkFolderResult.created.length} folder{bulkTkFolderResult.created.length === 1 ? "" : "s"}
+                      {bulkTkFolderResult.skipped.length > 0 && `, skipped ${bulkTkFolderResult.skipped.length} duplicate${bulkTkFolderResult.skipped.length === 1 ? "" : "s"}`}
+                    </p>
+                    {bulkTkFolderResult.skipped.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Skipped (already existed): {bulkTkFolderResult.skipped.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowBulkTkFolders(false)} data-testid="button-close-bulk-tk-folders">
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    const names = Array.from(new Set(
+                      bulkTkFolderNames
+                        .split(/[\n,]/)
+                        .map(n => n.trim())
+                        .filter(Boolean)
+                        .map(n => n)
+                    ));
+                    bulkCreateTkFoldersMutation.mutate({ names, module: manageTkModule, sources: bulkTkFolderSources });
+                  }}
+                  disabled={
+                    bulkTkFolderSources.length === 0 ||
+                    bulkTkFolderNames.split(/[\n,]/).map(n => n.trim()).filter(Boolean).length === 0 ||
+                    bulkCreateTkFoldersMutation.isPending
+                  }
+                  data-testid="button-submit-bulk-tk-folders"
+                >
+                  {bulkCreateTkFoldersMutation.isPending ? "Creating..." : "Create Folders"}
                 </Button>
               </DialogFooter>
             </DialogContent>
