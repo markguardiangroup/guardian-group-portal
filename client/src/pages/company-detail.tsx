@@ -98,6 +98,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { Company, SiteWithDetails, ComplianceSummary, User, CompanyRequiredTemplate } from "@shared/schema";
 import { CreateClientUserDialog } from "@/components/create-client-user-dialog";
+import { IndustrySelect } from "@/components/industry-select";
 
 interface DocumentTemplate {
   id: string;
@@ -1225,27 +1226,6 @@ export default function CompanyDetail() {
     staleTime: 0,
   });
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
-  const INDUSTRY_OPTIONS = [
-    "Agriculture & Forestry",
-    "Communication",
-    "Construction",
-    "Education",
-    "Financial Services",
-    "Government",
-    "Healthcare & Social Care",
-    "Hospitality",
-    "Leisure",
-    "Manufacturing",
-    "Mining & Quarrying",
-    "Office & Professional Services",
-    "Public Services",
-    "Real Estate",
-    "Retail",
-    "Technology",
-    "Transport & Logistics",
-    "Utilities",
-    "Wholesale & Distribution",
-  ];
 
   const [editForm, setEditForm] = useState({
     name: "",
@@ -3171,19 +3151,12 @@ export default function CompanyDetail() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-industry">Industry <span className="text-destructive">*</span></Label>
-              <Select
+              <IndustrySelect
+                id="edit-industry"
+                testId="select-edit-industry"
                 value={editForm.industry || undefined}
-                onValueChange={(v) => setEditForm(prev => ({ ...prev, industry: v }))}
-              >
-                <SelectTrigger id="edit-industry" data-testid="select-edit-industry">
-                  <SelectValue placeholder="Select an industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDUSTRY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => setEditForm(prev => ({ ...prev, industry: v }))}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-employee-range">Number of Employees</Label>

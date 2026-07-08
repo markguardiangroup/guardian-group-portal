@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ArrangeCoverDialog } from "@/pages/home";
 import { Link } from "wouter";
 import { useQuery, useQueries } from "@tanstack/react-query";
@@ -572,6 +572,7 @@ function EmailDeliveryLogDialog({
 export default function AdminReports() {
   const { user } = useAuth();
   const [showUsersReport, setShowUsersReport] = useState(false);
+  const [usersReportSearch, setUsersReportSearch] = useState("");
   const [showCountAudit, setShowCountAudit] = useState(false);
   const [showEmailLog, setShowEmailLog] = useState(false);
   const [showAcceloSyncLog, setShowAcceloSyncLog] = useState(false);
@@ -697,6 +698,21 @@ export default function AdminReports() {
     queryKey: ["/api/users"],
     enabled: showUsersReport,
   });
+
+  const filteredUsersData = useMemo(() => {
+    const q = usersReportSearch.trim().toLowerCase();
+    if (!q) return usersData;
+    return usersData.filter((u) => {
+      const companyName = u.companyId ? companies.find(c => c.id === u.companyId)?.name || "" : "";
+      return (
+        u.fullName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.referenceNumber?.toLowerCase().includes(q) ||
+        u.jobTitle?.toLowerCase().includes(q) ||
+        companyName.toLowerCase().includes(q)
+      );
+    });
+  }, [usersData, usersReportSearch, companies]);
 
   // ── Document Count Audit ────────────────────────────────────────────────
   // Reconciliation report: shows the canonical status-based document counts
@@ -953,7 +969,7 @@ export default function AdminReports() {
 
   const downloadUsersCSV = () => {
     const headers = ["Reference", "Full Name", "Email", "Role", "Status", "Company", "Job Title", "Assigned Sites", "Key Contact (Company)", "Key Contact (Site)"];
-    const rows = usersData.map(u => {
+    const rows = filteredUsersData.map(u => {
       const company = companies.find(c => c.id === u.companyId);
       const sites = u.siteAssignments?.map(s => s.siteName).join("; ") || "";
       const kcCompanies = u.keyContactCompanies?.join("; ") || "";
@@ -1419,7 +1435,7 @@ export default function AdminReports() {
       </Dialog>
 
       {/* Users Report Dialog */}
-      <Dialog open={showUsersReport} onOpenChange={setShowUsersReport}>
+      <Dialog open={showUsersReport} onOpenChange={(open) => { setShowUsersReport(open); if (!open) setUsersReportSearch(""); }}>
         <DialogContent className="max-w-5xl max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1432,7 +1448,7 @@ export default function AdminReports() {
           </DialogHeader>
 
           <div className="mt-4">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-muted-foreground">Roles:</span>
                 <Badge variant="outline" className={roleColors.developer}>Developer</Badge>
@@ -1444,6 +1460,16 @@ export default function AdminReports() {
                 <Download className="mr-2 h-4 w-4" />
                 Download CSV
               </Button>
+            </div>
+            <div className="relative mb-4 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search by name, email, reference or company…"
+                value={usersReportSearch}
+                onChange={(e) => setUsersReportSearch(e.target.value)}
+                className="pl-8"
+                data-testid="input-users-report-search"
+              />
             </div>
 
             {usersLoading ? (
@@ -1463,7 +1489,7 @@ export default function AdminReports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usersData.map((u) => (
+                    {filteredUsersData.map((u) => (
                       <TableRow key={u.id} data-testid={`report-row-user-${u.id}`}>
                         <TableCell>
                           <span className="font-mono text-sm">{u.referenceNumber || "-"}</span>
@@ -1518,9 +1544,9 @@ export default function AdminReports() {
                   </TableBody>
                 </Table>
 
-                {usersData.length === 0 && (
+                {filteredUsersData.length === 0 && (
                   <div className="py-8 text-center text-muted-foreground">
-                    No users found.
+                    {usersData.length === 0 ? "No users found." : "No users match your search."}
                   </div>
                 )}
 

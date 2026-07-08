@@ -22810,6 +22810,63 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== INDUSTRIES ====================
+
+  app.get("/api/industries", requireAuth, async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly === "true";
+      const list = await storage.getIndustries(activeOnly);
+      res.json(list);
+    } catch (error) {
+      console.error("Error fetching industries:", error);
+      res.status(500).json({ error: "Failed to fetch industries" });
+    }
+  });
+
+  app.post("/api/industries", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
+      const parsed = z.object({ label: z.string().min(1), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const row = await storage.createIndustry({ label: parsed.data.label, sortOrder: parsed.data.sortOrder ?? 0, isActive: parsed.data.isActive ?? true });
+      res.status(201).json(row);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "An industry with that name already exists" });
+      console.error("Error creating industry:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      res.status(500).json({ error: "Failed to create industry" });
+    }
+  });
+
+  app.patch("/api/industries/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
+      const parsed = z.object({ label: z.string().min(1).optional(), sortOrder: z.number().int().min(0).optional(), isActive: z.boolean().optional() }).safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: "Invalid data", details: parsed.error.issues });
+      const row = await storage.updateIndustry(req.params.id, parsed.data);
+      if (!row) return res.status(404).json({ error: "Industry not found" });
+      res.json(row);
+    } catch (error: any) {
+      if (error?.code === "23505") return res.status(409).json({ error: "An industry with that name already exists" });
+      console.error("Error updating industry:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      res.status(500).json({ error: "Failed to update industry" });
+    }
+  });
+
+  app.delete("/api/industries/:id", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user || user.role !== "developer") return res.status(403).json({ error: "Developer only" });
+      const deleted = await storage.deleteIndustry(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Industry not found" });
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting industry:", error);
+      res.status(500).json({ error: "Failed to delete industry" });
+    }
+  });
+
   // ==================== SERVICES ====================
 
   const createServiceSchema = z.object({

@@ -83,6 +83,8 @@ import {
   type Service, type InsertService, type ServiceModule,
   type CompanyService, type InsertCompanyService,
   type BadgeType, type InsertBadgeType,
+  type Industry, type InsertIndustry,
+  industries as industriesTable,
   type ServiceComponent, type InsertServiceComponent,
   services as servicesTable,
   companyServices as companyServicesTable,
@@ -651,6 +653,11 @@ export interface IStorage {
   createBadgeType(data: InsertBadgeType): Promise<BadgeType>;
   updateBadgeType(id: string, updates: Partial<InsertBadgeType>): Promise<BadgeType | undefined>;
   deleteBadgeType(id: string): Promise<boolean>;
+  getIndustries(activeOnly?: boolean): Promise<Industry[]>;
+  getIndustry(id: string): Promise<Industry | undefined>;
+  createIndustry(data: InsertIndustry): Promise<Industry>;
+  updateIndustry(id: string, updates: Partial<InsertIndustry>): Promise<Industry | undefined>;
+  deleteIndustry(id: string): Promise<boolean>;
 
   // Services
   getServices(opts?: { activeOnly?: boolean; module?: ServiceModule; companyId?: string }): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]>;
@@ -7089,6 +7096,34 @@ export class MemStorage implements IStorage {
 
   async deleteBadgeType(id: string): Promise<boolean> {
     const result = await db.delete(badgeTypesTable).where(eq(badgeTypesTable.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Industries
+  async getIndustries(activeOnly = false): Promise<Industry[]> {
+    const q = db.select().from(industriesTable);
+    return activeOnly
+      ? await q.where(eq(industriesTable.isActive, true)).orderBy(asc(industriesTable.sortOrder), asc(industriesTable.label))
+      : await q.orderBy(asc(industriesTable.sortOrder), asc(industriesTable.label));
+  }
+
+  async getIndustry(id: string): Promise<Industry | undefined> {
+    const [row] = await db.select().from(industriesTable).where(eq(industriesTable.id, id));
+    return row;
+  }
+
+  async createIndustry(data: InsertIndustry): Promise<Industry> {
+    const [row] = await db.insert(industriesTable).values(data).returning();
+    return row;
+  }
+
+  async updateIndustry(id: string, updates: Partial<InsertIndustry>): Promise<Industry | undefined> {
+    const [row] = await db.update(industriesTable).set(updates).where(eq(industriesTable.id, id)).returning();
+    return row;
+  }
+
+  async deleteIndustry(id: string): Promise<boolean> {
+    const result = await db.delete(industriesTable).where(eq(industriesTable.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 

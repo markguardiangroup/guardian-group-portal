@@ -1956,6 +1956,19 @@ export const insertBadgeTypeSchema = createInsertSchema(badgeTypes).omit({ id: t
 export type InsertBadgeType = z.infer<typeof insertBadgeTypeSchema>;
 export type BadgeType = typeof badgeTypes.$inferSelect;
 
+// ==================== INDUSTRIES ====================
+export const industries = pgTable("industries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  label: text("label").notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertIndustrySchema = createInsertSchema(industries).omit({ id: true, createdAt: true });
+export type InsertIndustry = z.infer<typeof insertIndustrySchema>;
+export type Industry = typeof industries.$inferSelect;
+
 // ==================== SERVICES ====================
 export type ServiceModule = "health_safety" | "human_resources" | "employment_law";
 export type ServiceType = "retained" | "recurring" | "pay_as_you_go" | "subscription" | "training";

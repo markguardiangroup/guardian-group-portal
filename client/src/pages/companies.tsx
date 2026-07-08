@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAddressSync } from "@/hooks/use-address-sync";
+import { IndustrySelect } from "@/components/industry-select";
 import {
   Select,
   SelectContent,
@@ -481,28 +482,6 @@ export default function Companies() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<CompanyWithSiteCount | null>(null);
   const EMPLOYEE_RANGES = ["1-4", "5-9", "10-24", "25-49", "50-99", "100-249", "250-999", "1000+"];
-
-  const INDUSTRY_OPTIONS = [
-    "Agriculture & Forestry",
-    "Communication",
-    "Construction",
-    "Education",
-    "Financial Services",
-    "Government",
-    "Healthcare & Social Care",
-    "Hospitality",
-    "Leisure",
-    "Manufacturing",
-    "Mining & Quarrying",
-    "Office & Professional Services",
-    "Public Services",
-    "Real Estate",
-    "Retail",
-    "Technology",
-    "Transport & Logistics",
-    "Utilities",
-    "Wholesale & Distribution",
-  ];
 
   const [formData, setFormData] = useState({
     name: "",
@@ -1910,19 +1889,12 @@ export default function Companies() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-industry">Industry <span className="text-destructive">*</span></Label>
-              <Select
+              <IndustrySelect
+                id="company-industry"
+                testId="select-company-industry"
                 value={formData.industry || undefined}
-                onValueChange={(v) => setFormData(prev => ({ ...prev, industry: v }))}
-              >
-                <SelectTrigger id="company-industry" data-testid="select-company-industry">
-                  <SelectValue placeholder="Select an industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDUSTRY_OPTIONS.map((opt) => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(v) => setFormData(prev => ({ ...prev, industry: v }))}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="company-employee-range">Number of Employees</Label>

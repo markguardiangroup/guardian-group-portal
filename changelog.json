@@ -11094,6 +11094,20 @@
           "message": "EL cases: essential documents now show Document Date, Response Deadline & Date Responded tags",
           "category": "enhancement",
           "createdAt": "2026-07-08T10:37:38.593Z"
+        },
+        {
+          "id": "7d6984b7-dad6-49ec-abdc-0d3f346db398",
+          "patch": 25,
+          "message": "Companies now use an editable industry list (devs can add options)",
+          "category": "feature",
+          "createdAt": "2026-07-08T10:49:51.463Z"
+        },
+        {
+          "id": "3da2f96c-6fee-485a-b7ed-c041dbd092e9",
+          "patch": 25,
+          "message": "Users Report can now be searched by name, email, reference or company",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T10:49:51.463Z"
         }
       ],
       "publishedPatch": 24,
