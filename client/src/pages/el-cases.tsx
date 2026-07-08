@@ -2321,9 +2321,23 @@ function CaseDetailView({ id }: { id: string }) {
                 ) : (
                   <div className="flex items-center gap-2">
                     <div>
-                      <h1 className="text-2xl font-bold">
-                        {caseData.caseNumber || caseData.caseReference}
-                      </h1>
+                      <div className="flex items-center gap-1">
+                        <h1 className="text-2xl font-bold">
+                          {caseData.caseNumber || caseData.caseReference}
+                        </h1>
+                        {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5 shrink-0"
+                            onClick={() => { setCaseNumberDraft(caseData.caseNumber || ""); setEditingCaseNumber(true); }}
+                            data-testid="button-edit-case-number"
+                            title="Edit case number"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
                       {editingCaseName ? (
                         <div className="flex items-center gap-2 mt-1">
                           <input
@@ -2380,18 +2394,6 @@ function CaseDetailView({ id }: { id: string }) {
                         </div>
                       )}
                     </div>
-                    {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        onClick={() => { setCaseNumberDraft(caseData.caseNumber || ""); setEditingCaseNumber(true); }}
-                        data-testid="button-edit-case-number"
-                        title="Edit case number"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    )}
                   </div>
                 )}
               </div>

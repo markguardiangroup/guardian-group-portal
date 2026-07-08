@@ -11038,6 +11038,13 @@
           "message": "Fixed: case detail page crashed for developer/staff users viewing a case",
           "category": "bug",
           "createdAt": "2026-07-08T07:54:25.507Z"
+        },
+        {
+          "id": "0cc74b7b-28b0-4d64-850e-17545a597350",
+          "patch": 25,
+          "message": "Fixed: edit pencil icons on case header now sized and aligned correctly",
+          "category": "bug",
+          "createdAt": "2026-07-08T08:02:41.078Z"
         }
       ],
       "publishedPatch": 24,
