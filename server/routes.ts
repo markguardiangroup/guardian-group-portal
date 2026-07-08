@@ -11252,8 +11252,8 @@ export async function registerRoutes(
     try {
       const user = await getSessionUser(req);
       if (!user) return res.status(401).json({ error: "User not found" });
-      if (user.role !== "developer" && !hasProPrivileges(user)) {
-        return res.status(403).json({ error: "Only developers and pro consultants can create companies" });
+      if (user.role !== "developer" && user.role !== "administrator" && user.role !== "consultant") {
+        return res.status(403).json({ error: "Only developers, administrators, and consultants can create companies" });
       }
 
       const { company, sites, contact } = req.body;
@@ -11269,7 +11269,7 @@ export async function registerRoutes(
       }
 
       // Source scope check for non-developers
-      if (hasProPrivileges(user) && user.role !== "developer") {
+      if (user.role !== "developer") {
         const allowedSources = Array.isArray(user.sources) ? user.sources : [];
         const forbidden = (company.sources as string[]).filter((s: string) => !allowedSources.includes(s));
         if (forbidden.length > 0) {
