@@ -11115,6 +11115,13 @@
           "message": "Devs can now rename, deactivate or remove industries, and search the list",
           "category": "enhancement",
           "createdAt": "2026-07-08T11:31:37.479Z"
+        },
+        {
+          "id": "f1a0f74c-ee45-47aa-abe9-258dd17378f5",
+          "patch": 25,
+          "message": "Industry list is now always sorted alphabetically",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T11:56:00.617Z"
         }
       ],
       "publishedPatch": 24,

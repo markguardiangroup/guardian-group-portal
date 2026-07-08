@@ -7103,8 +7103,8 @@ export class MemStorage implements IStorage {
   async getIndustries(activeOnly = false): Promise<Industry[]> {
     const q = db.select().from(industriesTable);
     return activeOnly
-      ? await q.where(eq(industriesTable.isActive, true)).orderBy(asc(industriesTable.sortOrder), asc(industriesTable.label))
-      : await q.orderBy(asc(industriesTable.sortOrder), asc(industriesTable.label));
+      ? await q.where(eq(industriesTable.isActive, true)).orderBy(asc(industriesTable.label))
+      : await q.orderBy(asc(industriesTable.label));
   }
 
   async getIndustry(id: string): Promise<Industry | undefined> {
