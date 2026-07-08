@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 26,
+      "patch": 28,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -11215,7 +11215,7 @@
           "createdAt": "2026-07-08T13:36:42.426Z"
         }
       ],
-      "publishedPatch": 25,
+      "publishedPatch": 27,
       "patchedEntryIds": [
         "d4e9f6b7-pdf-page-number-mask-2026",
         "c3d8e5a6-case-document-edit-2026",
@@ -12184,7 +12184,10 @@
         "3a94267e-b311-49e5-9e45-283cea7738e3",
         "877d508f-7c66-48cd-9ada-c132edfe80c7",
         "37cdc974-5e91-4415-a49c-a3e436e293c7",
-        "3ca6c950-e7d5-4c63-bd46-340077a7b3ee"
+        "3ca6c950-e7d5-4c63-bd46-340077a7b3ee",
+        "77a5b71e-fd56-4d4a-89b1-6ec9da8665d5",
+        "0c69ca72-d14b-4c80-a3cd-7c27a4b0a79c",
+        "0ac92b2d-971b-43ed-b599-b0758ad1cbd8"
       ]
     }
   ]
