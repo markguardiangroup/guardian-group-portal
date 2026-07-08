@@ -162,6 +162,116 @@ async function autoAssignPrimaryContactToSites(
   }
 }
 
+// Imports a single Accelo contact as a portal client user and performs all standard
+// side-effects: username generation, site assignment (to each provided siteId), status
+// promotion to invite_required, primary-contact / key-contact flags, and audit logging.
+// Shared by POST /api/integrations/accelo/import-contacts and POST /api/companies/wizard
+// so both paths get identical behavior.
+async function importAcceloContactToCompany(
+  contact: {
+    acceloId: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+    phone?: string;
+    mobile?: string;
+    setAsPrimary: boolean;
+    setAsKeyContact: boolean;
+    addToSite: boolean;
+  },
+  companyId: string,
+  siteIds: string[],
+  actor: { id: string; fullName: string | null; username: string },
+): Promise<{ acceloId: string; userId?: string; success: boolean; error?: string }> {
+  const firstName = contact.firstname.trim();
+  const lastName = contact.lastname.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(" ") || contact.email.split("@")[0];
+  const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
+    .replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || contact.email.split("@")[0];
+
+  // primary and key-contact are mutually exclusive; primary wins
+  const setAsPrimary = contact.setAsPrimary;
+  const setAsKeyContact = contact.setAsKeyContact && !setAsPrimary;
+
+  const existingByEmail = await storage.getUserByEmail(contact.email.trim());
+  if (existingByEmail) {
+    return { acceloId: contact.acceloId, success: false, error: "Email already registered" };
+  }
+
+  let username = baseUsername || "user";
+  let suffix = 1;
+  while (await storage.getUserByUsername(username)) {
+    username = `${baseUsername || "user"}${suffix++}`;
+  }
+
+  const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), BCRYPT_SALT_ROUNDS);
+
+  const newUser = await storage.createUser({
+    username,
+    email: contact.email.trim(),
+    fullName,
+    password: placeholderPassword,
+    role: "client",
+    companyId,
+    status: "site_required",
+    consultantTier: null,
+    consultantPermissions: null,
+    clientPermissionRole: "full",
+    title: null,
+    firstName: firstName || null,
+    lastName: lastName || null,
+    jobTitle: null,
+    department: null,
+    phone: contact.phone || null,
+    mobile: contact.mobile || null,
+    preferredContactMethod: "email",
+    notes: null,
+    sources: null,
+  });
+
+  if (contact.addToSite && siteIds.length > 0) {
+    for (const siteId of siteIds) {
+      try { await storage.assignClientToSite({ clientId: newUser.id, siteId }); } catch { /* non-fatal */ }
+    }
+  }
+
+  // Accelo-imported contacts are explicitly known; always move to invite_required
+  await storage.updateUser(newUser.id, { status: "invite_required" });
+
+  if (setAsPrimary) {
+    await storage.updateCompany(companyId, { contactUserId: newUser.id });
+    await autoAssignPrimaryContactToSites(companyId, newUser.id, actor.id, actor.fullName ?? actor.username);
+  }
+
+  if (setAsKeyContact) {
+    try { await storage.addKeyContact(newUser.id, "company", companyId); } catch { /* non-fatal */ }
+    if (contact.addToSite && siteIds.length > 0) {
+      for (const siteId of siteIds) {
+        try { await storage.addKeyContact(newUser.id, "site", siteId); } catch { /* non-fatal */ }
+      }
+    }
+  }
+
+  await storage.createAuditLog({
+    action: "accelo_contact_imported",
+    entityType: "user",
+    entityId: newUser.id,
+    userId: actor.id,
+    userName: actor.fullName ?? actor.username,
+    details: `Contact "${fullName}" imported from Accelo as portal user (Accelo ID: ${contact.acceloId})`,
+    metadata: {
+      acceloContactId: contact.acceloId,
+      portalUserId: newUser.id,
+      companyId,
+      siteIds: siteIds.length > 0 ? siteIds : null,
+      setAsPrimary,
+      setAsKeyContact,
+    },
+  });
+
+  return { acceloId: contact.acceloId, userId: newUser.id, success: true };
+}
+
 // Creates a toolkit folder, mirrors it into the Template Library as a FolderTemplate
 // subfolder under the module's Toolkit root, and writes an audit log entry. Shared by
 // the single-folder create route and the bulk-create route so both stay in sync.
@@ -11300,59 +11410,26 @@ export async function registerRoutes(
           contactIds.push(newUser.id);
         }
       } else if (contact?.type === "accelo") {
-        const { selections } = contact as { sourceCode: string; selections: any[] };
+        const { selections } = contact as { selections: any[] };
 
         for (const c of (selections || [])) {
-          try {
-            const firstName = (c.firstname || "").trim();
-            const lastName = (c.lastname || "").trim();
-            const fullName = [firstName, lastName].filter(Boolean).join(" ") || c.email.split("@")[0];
-            const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
-              .replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || c.email.split("@")[0];
-
-            const existingByEmail = await storage.getUserByEmail(c.email.trim());
-            if (existingByEmail) continue;
-
-            let username = baseUsername || "user";
-            let suffix = 1;
-            while (await storage.getUserByUsername(username)) {
-              username = `${baseUsername || "user"}${suffix++}`;
-            }
-
-            const password = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), BCRYPT_SALT_ROUNDS);
-            const newUser = await storage.createUser({
-              username, email: c.email.trim(), fullName, password,
-              role: "client", companyId: createdCompany.id, status: "invite_required",
-              consultantTier: null, consultantPermissions: null, clientPermissionRole: "full",
-              title: null, firstName: firstName || null, lastName: lastName || null,
-              jobTitle: null, department: null,
-              phone: c.phone || null, mobile: c.mobile || null,
-              preferredContactMethod: "email", notes: null, sources: null,
-            });
-
-            if (c.addToSite && createdSiteIds.length > 0) {
-              for (const siteId of createdSiteIds) {
-                try { await storage.assignClientToSite({ clientId: newUser.id, siteId }); } catch { /* non-fatal: site assignment */ }
-              }
-            }
-            await storage.updateUser(newUser.id, { status: "invite_required" });
-
-            if (c.setAsPrimary) {
-              await storage.updateCompany(createdCompany.id, { contactUserId: newUser.id });
-              try { await autoAssignPrimaryContactToSites(createdCompany.id, newUser.id, user.id, user.fullName); } catch { /* non-fatal */ }
-            }
-            if (c.setAsKeyContact && !c.setAsPrimary) {
-              try { await storage.addKeyContact(newUser.id, "company", createdCompany.id); } catch { /* non-fatal */ }
-              if (c.addToSite && createdSiteIds.length > 0) {
-                for (const siteId of createdSiteIds) {
-                  try { await storage.addKeyContact(newUser.id, "site", siteId); } catch { /* non-fatal */ }
-                }
-              }
-            }
-            contactIds.push(newUser.id);
-          } catch (contactErr) {
-            console.warn("Wizard: failed to import Accelo contact", c?.email, contactErr);
-          }
+          const result = await importAcceloContactToCompany(
+            {
+              acceloId: String(c.acceloId ?? c.id ?? ""),
+              firstname: String(c.firstname ?? ""),
+              lastname: String(c.lastname ?? ""),
+              email: String(c.email ?? ""),
+              phone: c.phone || undefined,
+              mobile: c.mobile || undefined,
+              setAsPrimary: Boolean(c.setAsPrimary),
+              setAsKeyContact: Boolean(c.setAsKeyContact),
+              addToSite: Boolean(c.addToSite),
+            },
+            createdCompany.id,
+            createdSiteIds,
+            user,
+          );
+          if (result.userId) contactIds.push(result.userId);
         }
       }
 
@@ -26080,102 +26157,13 @@ export async function registerRoutes(
       const results: Array<{ acceloId: string; userId?: string; success: boolean; error?: string }> = [];
 
       for (const contact of contacts) {
-        try {
-          const firstName = contact.firstname.trim();
-          const lastName = contact.lastname.trim();
-          const fullName = [firstName, lastName].filter(Boolean).join(" ") || contact.email.split("@")[0];
-          const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
-            .replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || contact.email.split("@")[0];
-
-          // Defense-in-depth: primary and key contact are mutually exclusive; primary wins
-          if (contact.setAsPrimary && contact.setAsKeyContact) {
-            contact.setAsKeyContact = false;
-          }
-
-          const existingByEmail = await storage.getUserByEmail(contact.email.trim());
-          if (existingByEmail) {
-            results.push({ acceloId: contact.acceloId, success: false, error: "Email already registered" });
-            continue;
-          }
-
-          let username = baseUsername || "user";
-          let suffix = 1;
-          while (await storage.getUserByUsername(username)) {
-            username = `${baseUsername || "user"}${suffix++}`;
-          }
-
-          const placeholderPassword = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), BCRYPT_SALT_ROUNDS);
-
-          const newUser = await storage.createUser({
-            username,
-            email: contact.email.trim(),
-            fullName,
-            password: placeholderPassword,
-            role: "client",
-            companyId,
-            status: "site_required",
-            consultantTier: null,
-            consultantPermissions: null,
-            clientPermissionRole: "full",
-            title: null,
-            firstName: firstName || null,
-            lastName: lastName || null,
-            jobTitle: null,
-            department: null,
-            phone: contact.phone || null,
-            mobile: contact.mobile || null,
-            preferredContactMethod: "email",
-            notes: null,
-            sources: null,
-          });
-
-          if (contact.addToSite && siteId) {
-            await storage.assignClientToSite({ clientId: newUser.id, siteId });
-          }
-          // Accelo-imported contacts are explicitly known; always move to invite_required
-          await storage.updateUser(newUser.id, { status: "invite_required" });
-
-          if (contact.setAsPrimary) {
-            await storage.updateCompany(companyId, { contactUserId: newUser.id });
-            await autoAssignPrimaryContactToSites(companyId, newUser.id, currentUser.id, currentUser.fullName);
-          }
-
-          if (contact.setAsKeyContact) {
-            try {
-              await storage.addKeyContact(newUser.id, "company", companyId);
-            } catch {
-              // non-fatal: key contact may already exist or conflict
-            }
-            if (contact.addToSite && siteId) {
-              try {
-                await storage.addKeyContact(newUser.id, "site", siteId);
-              } catch {
-                // non-fatal
-              }
-            }
-          }
-
-          await storage.createAuditLog({
-            action: "accelo_contact_imported",
-            entityType: "user",
-            entityId: newUser.id,
-            userId: currentUser.id,
-            userName: currentUser.fullName || currentUser.username,
-            details: `Contact "${fullName}" imported from Accelo as portal user (Accelo ID: ${contact.acceloId})`,
-            metadata: {
-              acceloContactId: contact.acceloId,
-              portalUserId: newUser.id,
-              companyId,
-              siteId: siteId || null,
-              setAsPrimary: contact.setAsPrimary,
-              setAsKeyContact: contact.setAsKeyContact,
-            },
-          });
-
-          results.push({ acceloId: contact.acceloId, userId: newUser.id, success: true });
-        } catch (err: any) {
-          results.push({ acceloId: contact.acceloId, success: false, error: err.message || "Unexpected error" });
-        }
+        const result = await importAcceloContactToCompany(
+          contact,
+          companyId,
+          siteId ? [siteId] : [],
+          currentUser,
+        );
+        results.push(result);
       }
 
       res.json({ results });
