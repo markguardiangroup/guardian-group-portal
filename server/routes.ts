@@ -14850,7 +14850,16 @@ export async function registerRoutes(
           const milestoneUpdates: any = {};
           if ("submissionDate" in req.body) milestoneUpdates.dueDate = updates.submissionDate ?? null;
           if (req.body.title) milestoneUpdates.title = `Submit: ${req.body.title}`;
+          const linkedMilestoneBefore = await storage.getCaseMilestone(existing.linkedMilestoneId);
           await storage.updateCaseMilestone(existing.linkedMilestoneId, milestoneUpdates);
+
+          // If this checklist item is linked to the mandatory Response Deadline
+          // milestone, keep the case's ET3 responseDeadline field in sync too
+          if ("submissionDate" in req.body && linkedMilestoneBefore?.isResponseDeadline) {
+            await storage.updateCase(existing.caseId, {
+              responseDeadline: updates.submissionDate ?? null,
+            } as any);
+          }
         } else if ("submissionDate" in req.body && updates.submissionDate) {
           // First time a submission date is being added — create the milestone
           const caseData2 = await storage.getCase(existing.caseId);

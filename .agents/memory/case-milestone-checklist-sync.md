@@ -4,10 +4,11 @@ description: Response Deadline milestone and ET3 checklist submission date must 
 ---
 
 The EL "Response Deadline" milestone (`isResponseDeadline: true`) and its linked
-"ET3 Response Form" essential-document checklist item (`checklistItemId`) are
-supposed to share one logical due date. The milestone-update route already
-synced both directions (milestone → case.responseDeadline, milestone →
-checklist.submissionDate).
+"ET3 Response Form" essential-document checklist item (`checklistItemId`/
+`linkedMilestoneId`) and the case's `responseDeadline` field are all supposed
+to share one logical date. Three write paths can change it: the milestone PATCH
+route, the checklist-item PATCH route (`/api/checklist/:id`), and the case PATCH
+route (`/api/cases/:id`) — all three now push the date to the other two.
 
 **Why:** when a new write path is added that can also change this date (e.g. a
 case-level "Edit Case" endpoint that lets staff edit `responseDeadline`

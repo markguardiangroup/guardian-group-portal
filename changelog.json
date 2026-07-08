@@ -11066,6 +11066,13 @@
           "message": "Editing the ET3 deadline now also updates the ET3 essential document date",
           "category": "bug",
           "createdAt": "2026-07-08T09:03:30.390Z"
+        },
+        {
+          "id": "5af32da5-5c5f-4d94-8111-880a595b91e6",
+          "patch": 25,
+          "message": "Editing the ET3 essential document date now also updates the case deadline",
+          "category": "bug",
+          "createdAt": "2026-07-08T09:07:48.857Z"
         }
       ],
       "publishedPatch": 24,
