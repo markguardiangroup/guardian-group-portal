@@ -11122,6 +11122,13 @@
           "message": "Industry list is now always sorted alphabetically",
           "category": "enhancement",
           "createdAt": "2026-07-08T11:56:00.617Z"
+        },
+        {
+          "id": "8bf8480e-2cc8-477b-b20c-464643c4f90e",
+          "patch": 25,
+          "message": "Fixed: essential documents no longer show complete before a response is logged",
+          "category": "bug",
+          "createdAt": "2026-07-08T11:58:10.686Z"
         }
       ],
       "publishedPatch": 24,

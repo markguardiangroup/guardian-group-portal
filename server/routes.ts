@@ -14845,8 +14845,12 @@ export async function registerRoutes(
       // linking a document only puts the item in the "awaiting response" (blue) state.
       const effectiveSubmissionDate = "submissionDate" in updates ? updates.submissionDate : existing.submissionDate;
       const hasDeadline = !!effectiveSubmissionDate;
-      if ("respondedDate" in updates && hasDeadline) {
-        updates.isCompleted = !!updates.respondedDate;
+      const effectiveRespondedDate = "respondedDate" in updates ? updates.respondedDate : existing.respondedDate;
+      if (hasDeadline && ("submissionDate" in updates || "respondedDate" in updates)) {
+        // Recompute completion whenever the deadline or the responded date changes — this also
+        // corrects items that were already marked complete (e.g. from a linked document) before
+        // a Response Deadline was added, since a deadline makes "Date Responded" the sole driver.
+        updates.isCompleted = !!effectiveRespondedDate;
       }
 
       if (typeof updates.isCompleted === "boolean") {
