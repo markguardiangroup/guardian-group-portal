@@ -1069,6 +1069,8 @@ export default function Companies() {
         return { acceloId: r.acceloId, name, success: r.success, error: r.error };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", pendingCreatedCompanyId] });
       setAcceloImportResults(results);
       const succeeded = results.filter(r => r.success).length;
       toast({

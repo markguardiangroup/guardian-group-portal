@@ -11199,6 +11199,13 @@
           "message": "Fixed: industry list was missing on the live site",
           "category": "bug",
           "createdAt": "2026-07-08T13:11:23.822Z"
+        },
+        {
+          "id": "0c69ca72-d14b-4c80-a3cd-7c27a4b0a79c",
+          "patch": 26,
+          "message": "Fixed: primary contact could show as unset right after Accelo import",
+          "category": "bug",
+          "createdAt": "2026-07-08T13:30:29.299Z"
         }
       ],
       "publishedPatch": 25,
