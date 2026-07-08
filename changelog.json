@@ -11171,6 +11171,13 @@
           "message": "Edit Case now lets you update the employee name and ID",
           "category": "enhancement",
           "createdAt": "2026-07-08T12:34:41.638Z"
+        },
+        {
+          "id": "877d508f-7c66-48cd-9ada-c132edfe80c7",
+          "patch": 25,
+          "message": "Fixed: some case checklist items stayed marked incomplete after linking a document",
+          "category": "bug",
+          "createdAt": "2026-07-08T12:41:48.733Z"
         }
       ],
       "publishedPatch": 24,
