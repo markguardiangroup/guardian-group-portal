@@ -11332,6 +11332,13 @@
           "message": "Wizard contact step now checks email domain against company website (both manual and Accelo)",
           "category": "enhancement",
           "createdAt": "2026-07-08T22:20:00.000Z"
+        },
+        {
+          "id": "f5b84e03-2d96-4c38-ae94-0e1b73b28d45",
+          "patch": 29,
+          "message": "Fixed: email domain check now fires on Continue (not just on typing) in manual contact step",
+          "category": "bug",
+          "createdAt": "2026-07-08T22:30:00.000Z"
         }
       ],
       "publishedPatch": 28,

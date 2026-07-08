@@ -922,11 +922,19 @@ export default function Companies() {
       setPendingContact({ type: "manual", data: { ...primaryContact } });
       setWizardStep("review");
     };
-    if (wizardDomainMismatch) {
-      setWizardDomainConfirmCallback(() => doSave);
-      setWizardShowDomainConfirm(true);
-      return;
+    // Always recompute mismatch at submit time (catches paste/autofill bypassing onChange)
+    const companyWebsite = pendingCompanyFull?.companyData.website;
+    if (companyWebsite) {
+      const emailDomain = extractEmailDomain(primaryContact.email.trim());
+      const websiteDomain = extractWebsiteDomain(companyWebsite);
+      if (emailDomain && websiteDomain && emailDomain !== websiteDomain) {
+        setWizardDomainMismatch({ emailDomain, websiteDomain });
+        setWizardDomainConfirmCallback(() => doSave);
+        setWizardShowDomainConfirm(true);
+        return;
+      }
     }
+    setWizardDomainMismatch(null);
     doSave();
   };
 
