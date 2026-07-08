@@ -3642,7 +3642,7 @@ function CaseDetailView({ id }: { id: string }) {
       </AlertDialog>
 
       <Dialog open={showEditCaseDialog} onOpenChange={setShowEditCaseDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Case</DialogTitle>
             <DialogDescription>Update the core details for this case</DialogDescription>
@@ -3677,9 +3677,9 @@ function CaseDetailView({ id }: { id: string }) {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Source <span className="text-destructive">*</span></label>
-              <div className="grid grid-cols-2 gap-1.5 rounded-md border p-3 bg-muted/30">
+              <div className="flex flex-wrap gap-1.5 rounded-md border p-2.5 bg-muted/30">
                 {allSources.length === 0 && (
-                  <p className="col-span-2 text-xs text-muted-foreground text-center py-2">No sources configured — add them in Developer → Sources</p>
+                  <p className="text-xs text-muted-foreground text-center py-2 w-full">No sources configured — add them in Developer → Sources</p>
                 )}
                 {allSources.map((src) => {
                   const checked = editCaseForm.sources.includes(src.code);
@@ -3687,6 +3687,7 @@ function CaseDetailView({ id }: { id: string }) {
                     <button
                       key={src.code}
                       type="button"
+                      title={src.label}
                       onClick={() =>
                         setEditCaseForm(f => ({
                           ...f,
@@ -3696,12 +3697,9 @@ function CaseDetailView({ id }: { id: string }) {
                         }))
                       }
                       data-testid={`toggle-edit-case-source-${src.code}`}
-                      className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-sm text-left transition-colors ${checked ? "bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${checked ? "bg-pink-600 text-white" : "bg-background border border-border hover:border-pink-300 dark:hover:border-pink-700 text-foreground"}`}
                     >
-                      <span className={`flex-shrink-0 w-4 h-4 rounded border flex items-center justify-center text-[10px] ${checked ? "bg-pink-600 border-pink-600 text-white" : "border-input"}`}>
-                        {checked && "✓"}
-                      </span>
-                      {src.label}
+                      {src.code}
                     </button>
                   );
                 })}

@@ -11052,6 +11052,13 @@
           "message": "Case header now has a single Edit Case button for all core fields",
           "category": "enhancement",
           "createdAt": "2026-07-08T08:19:59.349Z"
+        },
+        {
+          "id": "b6e0978d-50b3-416b-82a3-9ae8313a4af9",
+          "patch": 25,
+          "message": "Edit Case dialog is now wider with compact source badges",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T08:58:24.355Z"
         }
       ],
       "publishedPatch": 24,
