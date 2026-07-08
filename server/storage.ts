@@ -658,6 +658,7 @@ export interface IStorage {
   createIndustry(data: InsertIndustry): Promise<Industry>;
   updateIndustry(id: string, updates: Partial<InsertIndustry>): Promise<Industry | undefined>;
   deleteIndustry(id: string): Promise<boolean>;
+  seedDefaultIndustries(): Promise<void>;
 
   // Services
   getServices(opts?: { activeOnly?: boolean; module?: ServiceModule; companyId?: string }): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]>;
@@ -7125,6 +7126,22 @@ export class MemStorage implements IStorage {
   async deleteIndustry(id: string): Promise<boolean> {
     const result = await db.delete(industriesTable).where(eq(industriesTable.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async seedDefaultIndustries(): Promise<void> {
+    const existing = await db.select().from(industriesTable).limit(1);
+    if (existing.length > 0) return;
+    const defaults = [
+      "Agriculture & Forestry", "Communication", "Construction", "Education",
+      "Engineering", "Financial Services", "Government", "Healthcare & Social Care",
+      "Hospitality", "Leisure", "Manufacturing", "Mining & Quarrying",
+      "Office & Professional Services", "Public Services", "Real Estate", "Retail",
+      "Technology", "Transport & Logistics", "Utilities", "Wholesale & Distribution",
+    ];
+    for (const label of defaults) {
+      await this.createIndustry({ label, sortOrder: 0, isActive: true });
+    }
+    console.log(`[seed] Created ${defaults.length} default industries`);
   }
 
   async getServices(opts: { activeOnly?: boolean; module?: ServiceModule; companyId?: string; sourceCodes?: string[] } = {}): Promise<(Service & { badgeTypeLabel?: string | null; components?: Service[] })[]> {

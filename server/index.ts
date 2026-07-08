@@ -430,6 +430,14 @@ process.on("uncaughtException", (err) => {
     process.exit(1);
   }
 
+  // Seed the default industry picklist if none exist yet (idempotent — only
+  // runs when the table is empty, so custom edits are never overwritten).
+  try {
+    await storage.seedDefaultIndustries();
+  } catch (err) {
+    console.error("Startup industries seed warning (non-fatal):", err);
+  }
+
   // Repair any historical group→member required-template cascade gaps.
   // Idempotent: only inserts missing rows. Non-fatal — if it fails we still
   // serve, but the gap will persist until the next successful run.
