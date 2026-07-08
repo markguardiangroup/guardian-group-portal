@@ -1483,6 +1483,8 @@ function CaseDetailView({ id }: { id: string }) {
   const [editCaseForm, setEditCaseForm] = useState({
     caseNumber: "",
     caseName: "",
+    employeeName: "",
+    employeeId: "",
     description: "",
     sources: [] as string[],
     responseDeadline: "",
@@ -2340,6 +2342,8 @@ function CaseDetailView({ id }: { id: string }) {
                   setEditCaseForm({
                     caseNumber: caseData.caseNumber || "",
                     caseName: caseData.caseName || "",
+                    employeeName: caseData.employeeName || "",
+                    employeeId: caseData.employeeId || "",
                     description: caseData.description || "",
                     sources: (caseData as any).sources ?? [],
                     responseDeadline: caseData.responseDeadline ? format(new Date(caseData.responseDeadline), "yyyy-MM-dd") : "",
@@ -3721,6 +3725,24 @@ function CaseDetailView({ id }: { id: string }) {
                 data-testid="input-edit-case-name"
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Employee Name <span className="text-destructive">*</span></label>
+                <Input
+                  value={editCaseForm.employeeName}
+                  onChange={(e) => setEditCaseForm(f => ({ ...f, employeeName: e.target.value }))}
+                  data-testid="input-edit-case-employee-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Employee ID <span className="text-muted-foreground text-xs font-normal">(optional)</span></label>
+                <Input
+                  value={editCaseForm.employeeId}
+                  onChange={(e) => setEditCaseForm(f => ({ ...f, employeeId: e.target.value }))}
+                  data-testid="input-edit-case-employee-id"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description <span className="text-muted-foreground text-xs font-normal">(optional)</span></label>
               <Textarea
@@ -3782,6 +3804,7 @@ function CaseDetailView({ id }: { id: string }) {
                   if (
                     !editCaseForm.caseNumber.trim() ||
                     !editCaseForm.caseName.trim() ||
+                    !editCaseForm.employeeName.trim() ||
                     editCaseForm.sources.length === 0 ||
                     (isTribunal && !editCaseForm.responseDeadline)
                   ) {
@@ -3792,6 +3815,8 @@ function CaseDetailView({ id }: { id: string }) {
                     {
                       caseNumber: editCaseForm.caseNumber.trim(),
                       caseName: editCaseForm.caseName.trim(),
+                      employeeName: editCaseForm.employeeName.trim(),
+                      employeeId: editCaseForm.employeeId.trim(),
                       description: editCaseForm.description.trim(),
                       sources: editCaseForm.sources,
                       ...(isTribunal ? { responseDeadline: editCaseForm.responseDeadline } : {}),

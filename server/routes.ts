@@ -765,6 +765,8 @@ const createCaseSchema = z.object({
 const updateCaseSchema = z.object({
   caseNumber: z.string().min(1).optional(),
   caseName: z.string().min(1).optional(),
+  employeeName: z.string().min(1).optional(),
+  employeeId: z.string().optional(),
   status: z.enum(["open", "closed_won", "closed_settled", "closed_lost"]).optional(),
   description: z.string().optional(),
   isConfidential: z.boolean().optional(),

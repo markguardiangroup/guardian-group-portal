@@ -11164,6 +11164,13 @@
           "message": "Fixed: removing a Response Deadline now re-completes linked documents",
           "category": "bug",
           "createdAt": "2026-07-08T12:31:11.299Z"
+        },
+        {
+          "id": "3a94267e-b311-49e5-9e45-283cea7738e3",
+          "patch": 25,
+          "message": "Edit Case now lets you update the employee name and ID",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T12:34:41.638Z"
         }
       ],
       "publishedPatch": 24,
