@@ -2645,6 +2645,12 @@ export default function Companies() {
                         <span>The email domain <strong>@{wizardDomainMismatch.emailDomain}</strong> doesn't match the company website domain <strong>{wizardDomainMismatch.websiteDomain}</strong>. You can still continue, but you'll need to confirm.</span>
                       </div>
                     )}
+                    {!primaryContactEmailError && !wizardDomainMismatch && !pendingCompanyFull?.companyData.website && (
+                      <div className="flex items-start gap-2 rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground" data-testid="note-wizard-no-website">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        <span>No website on file for this company — email domain check unavailable.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

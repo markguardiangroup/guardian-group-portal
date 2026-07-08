@@ -11339,6 +11339,13 @@
           "message": "Fixed: email domain check now fires on Continue (not just on typing) in manual contact step",
           "category": "bug",
           "createdAt": "2026-07-08T22:30:00.000Z"
+        },
+        {
+          "id": "a6c95d14-3e07-4f51-b7a2-1d8e4f620c58",
+          "patch": 29,
+          "message": "Wizard contact: shows \"no website on file\" note when company has no website",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T22:35:00.000Z"
         }
       ],
       "publishedPatch": 28,
