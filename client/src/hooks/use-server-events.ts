@@ -300,12 +300,13 @@ export function useServerEvents() {
         es.close();
         esRef.current = null;
         if (!unmountedRef.current) {
-          // Show the overlay after 300ms — avoids a flash on very brief drops
+          // Show the overlay after 4 s — absorbs brief drops from heavy uploads/network blips
+          // while still catching genuine server outages (which last much longer)
           if (!downTimerRef.current) {
             downTimerRef.current = setTimeout(() => {
               downTimerRef.current = null;
               setServerDown(true);
-            }, 300);
+            }, 4_000);
           }
           reconnectTimer.current = setTimeout(() => {
             backoffMs = Math.min(backoffMs * 2, MAX_BACKOFF);

@@ -11318,6 +11318,13 @@
           "message": "Company wizard redesigned: collect all data locally, Review & Confirm step, then create everything in one go",
           "category": "enhancement",
           "createdAt": "2026-07-08T21:35:00.000Z"
+        },
+        {
+          "id": "b8d21c47-39fa-4f05-a8e3-6c92df510f83",
+          "patch": 29,
+          "message": "Fixed: \"Server restarting\" overlay no longer appears during heavy file uploads",
+          "category": "bug",
+          "createdAt": "2026-07-08T22:10:00.000Z"
         }
       ],
       "publishedPatch": 28,
