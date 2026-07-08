@@ -3385,32 +3385,41 @@ export default function Companies() {
                   Done
                 </Button>
               ) : (() => {
-                const hasImportable = acceloContacts.some(c => c.email);
-                if (!hasImportable) {
-                  return (
-                    <Button
-                      onClick={handleSwitchToManualContact}
-                      disabled={acceloContactsLoading}
-                      data-testid="button-create-contact-manually"
-                    >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Create Contact Manually
-                    </Button>
-                  );
-                }
+                const rows = Object.values(contactRows);
+                const anySelected = rows.some(r => r.selected);
+                const hasPrimary = rows.some(r => r.selected && r.primary);
+                const importDisabled = !anySelected || !hasPrimary || acceloImportingContacts || acceloContactsLoading;
+                const n = rows.filter(r => r.selected).length;
                 return (
-                  <Button
-                    onClick={handleImportAcceloContacts}
-                    disabled={!Object.values(contactRows).some(r => r.selected) || acceloImportingContacts || acceloContactsLoading}
-                    data-testid="button-import-contacts"
-                  >
-                    {acceloImportingContacts ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</>
-                    ) : (() => {
-                      const n = Object.values(contactRows).filter(r => r.selected).length;
-                      return <>Import {n > 0 ? `${n} ` : ""}Contact{n !== 1 ? "s" : ""}</>;
-                    })()}
-                  </Button>
+                  <div className="flex flex-col items-end gap-2 w-full">
+                    {anySelected && !hasPrimary && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400" data-testid="text-no-primary-warning">
+                        Mark one contact as Primary before importing.
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={handleSwitchToManualContact}
+                        disabled={acceloContactsLoading || acceloImportingContacts}
+                        data-testid="button-create-contact-manually"
+                      >
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        Create Contact Manually
+                      </Button>
+                      <Button
+                        onClick={handleImportAcceloContacts}
+                        disabled={importDisabled}
+                        data-testid="button-import-contacts"
+                      >
+                        {acceloImportingContacts ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importing…</>
+                        ) : (
+                          <>Import {n > 0 ? `${n} ` : ""}Contact{n !== 1 ? "s" : ""}</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 );
               })()}
             </DialogFooter>

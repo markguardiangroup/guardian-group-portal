@@ -11304,6 +11304,13 @@
           "message": "Accelo import: Skip removed; falls back to manual contact form when no contacts are importable",
           "category": "enhancement",
           "createdAt": "2026-07-08T20:56:23.105Z"
+        },
+        {
+          "id": "a7118035-d345-4ba5-b8f9-cbac3ca574b3",
+          "patch": 29,
+          "message": "Accelo import: Create Contact Manually always visible; Primary must be set before importing",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T20:59:32.655Z"
         }
       ],
       "publishedPatch": 28,
