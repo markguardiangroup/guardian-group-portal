@@ -11137,6 +11137,237 @@ export async function registerRoutes(
     }
   });
 
+  // POST /api/companies/wizard — create company + sites + contact in one deferred submission
+  app.post("/api/companies/wizard", requireAuth, async (req, res) => {
+    try {
+      const user = await getSessionUser(req);
+      if (!user) return res.status(401).json({ error: "User not found" });
+      if (user.role !== "developer" && !hasProPrivileges(user)) {
+        return res.status(403).json({ error: "Only developers and pro consultants can create companies" });
+      }
+
+      const { company, sites, contact } = req.body;
+
+      // ── Validate ──────────────────────────────────────────────────────────
+      if (!company?.name?.trim()) return res.status(400).json({ error: "Company name is required" });
+      if (!company?.industry?.trim()) return res.status(400).json({ error: "Industry is required" });
+      if (!Array.isArray(company.sources) || company.sources.length === 0) {
+        return res.status(400).json({ error: "At least one source is required" });
+      }
+      if (!Array.isArray(sites) || sites.length === 0) {
+        return res.status(400).json({ error: "At least one site is required" });
+      }
+
+      // Source scope check for non-developers
+      if (hasProPrivileges(user) && user.role !== "developer") {
+        const allowedSources = Array.isArray(user.sources) ? user.sources : [];
+        const forbidden = (company.sources as string[]).filter((s: string) => !allowedSources.includes(s));
+        if (forbidden.length > 0) {
+          return res.status(403).json({ error: `You can only assign sources within your own access: ${forbidden.join(", ")}` });
+        }
+      }
+
+      // Duplicate checks
+      const existing = await storage.getCompanies();
+      if (existing.some(c => c.name.trim().toLowerCase() === company.name.trim().toLowerCase())) {
+        return res.status(409).json({ error: "A company with this name already exists" });
+      }
+      if (company.companyNumber?.trim()) {
+        if (existing.some(c => c.companyNumber?.trim().toLowerCase() === company.companyNumber.trim().toLowerCase())) {
+          return res.status(409).json({ error: "A company with this Registered Company Number already exists" });
+        }
+      }
+      if (company.internalCompanyNumber?.trim()) {
+        if (existing.some(c => c.internalCompanyNumber?.trim().toLowerCase() === company.internalCompanyNumber.trim().toLowerCase())) {
+          return res.status(409).json({ error: "A company with this Internal Company Number already exists" });
+        }
+      }
+
+      // ── 1. Create company ─────────────────────────────────────────────────
+      const createdCompany = await storage.createCompany({
+        name: company.name.trim(),
+        companyNumber: company.companyNumber || null,
+        internalCompanyNumber: company.internalCompanyNumber || null,
+        website: company.website || null,
+        address: null,
+        contactEmail: null,
+        contactPhone: company.contactPhone || null,
+        addressLine1: company.addressLine1 || null,
+        addressLine2: company.addressLine2 || null,
+        city: company.city || null,
+        county: company.county || null,
+        postalCode: company.postalCode || null,
+        country: company.country || null,
+        employeeRange: company.employeeRange || null,
+        industry: company.industry.trim(),
+        sources: company.sources,
+      });
+
+      // ── 2. Module access ──────────────────────────────────────────────────
+      if (company.moduleAccess && typeof company.moduleAccess === "object") {
+        try {
+          await storage.setCompanyModuleAccess(createdCompany.id, company.moduleAccess);
+        } catch { /* non-fatal */ }
+      }
+
+      // ── 3. Accelo link ────────────────────────────────────────────────────
+      if (company.acceloContext?.acceloCompanyId && company.acceloContext?.sourceCode) {
+        try {
+          const ctx = company.acceloContext;
+          await storage.upsertAcceloLink(
+            createdCompany.id,
+            String(ctx.sourceCode).toUpperCase(),
+            String(ctx.acceloCompanyId),
+            ctx.acceloStanding ?? null,
+            ctx.acceloType ?? null,
+            ctx.acceloColor ?? null,
+          );
+        } catch { /* non-fatal */ }
+      }
+
+      // ── 4. Create sites ───────────────────────────────────────────────────
+      const createdSiteIds: string[] = [];
+      for (const site of (sites as any[])) {
+        const createdSite = await storage.createSite({
+          name: (site.name || "").trim(),
+          companyId: createdCompany.id,
+          addressLine1: site.addressLine1 || null,
+          addressLine2: site.addressLine2 || null,
+          city: site.city || null,
+          county: site.county || null,
+          postalCode: site.postalCode || null,
+          country: site.country || null,
+          contactName: null,
+          contactPosition: null,
+          contactPhone: null,
+          contactEmail: null,
+        });
+        createdSiteIds.push(createdSite.id);
+
+        for (const templateId of (site.mandatoryTemplateIds || [])) {
+          try {
+            await storage.setSiteTemplateOverride(createdSite.id, String(templateId), "include", user.id);
+          } catch { /* non-fatal */ }
+        }
+      }
+
+      // ── 5. Create contact ─────────────────────────────────────────────────
+      const contactIds: string[] = [];
+
+      if (contact?.type === "manual") {
+        const cd = contact.data as any;
+        if (cd?.firstName?.trim() && cd?.lastName?.trim() && cd?.email?.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(cd.email.trim())) {
+            return res.status(400).json({ error: "Invalid contact email address" });
+          }
+          const existingByEmail = await storage.getUserByEmail(cd.email.trim());
+          if (existingByEmail) return res.status(400).json({ error: "A user with this email already exists" });
+
+          let baseUsername = (cd.username || `${cd.firstName.toLowerCase()}.${cd.lastName.toLowerCase()}`)
+            .replace(/[^a-z0-9.]/g, "") || cd.email.split("@")[0].replace(/[^a-z0-9.]/g, "") || "user";
+          let username = baseUsername;
+          let suffix = 1;
+          while (await storage.getUserByUsername(username)) {
+            username = `${baseUsername}${suffix++}`;
+          }
+
+          const password = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), BCRYPT_SALT_ROUNDS);
+          const newUser = await storage.createUser({
+            username,
+            email: cd.email.trim(),
+            fullName: `${cd.firstName} ${cd.lastName}`.trim(),
+            password,
+            role: "client",
+            companyId: createdCompany.id,
+            status: "invite_required",
+            consultantTier: null,
+            consultantPermissions: null,
+            clientPermissionRole: "full",
+            title: cd.title || null,
+            firstName: cd.firstName.trim() || null,
+            lastName: cd.lastName.trim() || null,
+            jobTitle: cd.jobTitle || null,
+            department: cd.department || null,
+            phone: cd.phone || null,
+            mobile: cd.mobile || null,
+            preferredContactMethod: cd.preferredContactMethod || "email",
+            notes: cd.notes || null,
+            sources: null,
+          });
+
+          for (const siteId of createdSiteIds) {
+            try { await storage.assignClientToSite({ clientId: newUser.id, siteId }); } catch { /* non-fatal */ }
+          }
+          await storage.updateCompany(createdCompany.id, { contactUserId: newUser.id });
+          try { await autoAssignPrimaryContactToSites(createdCompany.id, newUser.id, user.id, user.fullName); } catch { /* non-fatal */ }
+          contactIds.push(newUser.id);
+        }
+      } else if (contact?.type === "accelo") {
+        const { sourceCode, selections } = contact as { sourceCode: string; selections: any[] };
+        const firstSiteId = createdSiteIds[0] || null;
+
+        for (const c of (selections || [])) {
+          try {
+            const firstName = (c.firstname || "").trim();
+            const lastName = (c.lastname || "").trim();
+            const fullName = [firstName, lastName].filter(Boolean).join(" ") || c.email.split("@")[0];
+            const baseUsername = `${firstName.toLowerCase()}.${lastName.toLowerCase()}`
+              .replace(/\s+/g, "").replace(/[^a-z0-9.]/g, "") || c.email.split("@")[0];
+
+            const existingByEmail = await storage.getUserByEmail(c.email.trim());
+            if (existingByEmail) continue;
+
+            let username = baseUsername || "user";
+            let suffix = 1;
+            while (await storage.getUserByUsername(username)) {
+              username = `${baseUsername || "user"}${suffix++}`;
+            }
+
+            const password = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), BCRYPT_SALT_ROUNDS);
+            const newUser = await storage.createUser({
+              username, email: c.email.trim(), fullName, password,
+              role: "client", companyId: createdCompany.id, status: "invite_required",
+              consultantTier: null, consultantPermissions: null, clientPermissionRole: "full",
+              title: null, firstName: firstName || null, lastName: lastName || null,
+              jobTitle: null, department: null,
+              phone: c.phone || null, mobile: c.mobile || null,
+              preferredContactMethod: "email", notes: null, sources: null,
+            });
+
+            if (c.addToSite && firstSiteId) {
+              try { await storage.assignClientToSite({ clientId: newUser.id, siteId: firstSiteId }); } catch { /* non-fatal */ }
+            }
+            await storage.updateUser(newUser.id, { status: "invite_required" });
+
+            if (c.setAsPrimary) {
+              await storage.updateCompany(createdCompany.id, { contactUserId: newUser.id });
+              try { await autoAssignPrimaryContactToSites(createdCompany.id, newUser.id, user.id, user.fullName); } catch { /* non-fatal */ }
+            }
+            if (c.setAsKeyContact && !c.setAsPrimary) {
+              try { await storage.addKeyContact(newUser.id, "company", createdCompany.id); } catch { /* non-fatal */ }
+              if (c.addToSite && firstSiteId) {
+                try { await storage.addKeyContact(newUser.id, "site", firstSiteId); } catch { /* non-fatal */ }
+              }
+            }
+            contactIds.push(newUser.id);
+          } catch { /* skip failed contact, continue */ }
+        }
+      }
+
+      // ── Emit ─────────────────────────────────────────────────────────────
+      try {
+        emitToRole("developer", "company-updated", { companyId: createdCompany.id });
+        emitToRole("consultant", "company-updated", { companyId: createdCompany.id });
+      } catch { /* non-fatal */ }
+
+      res.status(201).json({ companyId: createdCompany.id, siteIds: createdSiteIds, contactIds });
+    } catch (error) {
+      console.error("Wizard company create error:", error);
+      res.status(500).json({ error: "Failed to create company" });
+    }
+  });
+
   // Update company
   app.patch("/api/companies/:id", requireAuth, async (req, res) => {
     try {

@@ -11311,6 +11311,13 @@
           "message": "Accelo import: Create Contact Manually always visible; Primary must be set before importing",
           "category": "enhancement",
           "createdAt": "2026-07-08T20:59:32.655Z"
+        },
+        {
+          "id": "f3c21b94-8e47-4d05-a910-7db56e02c8f1",
+          "patch": 29,
+          "message": "Company wizard: all data collected locally then created in one go — no mid-wizard DB writes or step flicker",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T21:35:00.000Z"
         }
       ],
       "publishedPatch": 28,
