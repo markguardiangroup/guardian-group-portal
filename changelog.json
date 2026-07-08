@@ -11241,6 +11241,13 @@
           "message": "All staff (consultants and admins) can now delete documents",
           "category": "enhancement",
           "createdAt": "2026-07-08T14:49:41.802Z"
+        },
+        {
+          "id": "b6ccbd6b-7b9b-441b-afdc-14a133ea989e",
+          "patch": 28,
+          "message": "Moved document delete to the row menu; removed it from the document page",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T15:22:44.348Z"
         }
       ],
       "publishedPatch": 27,

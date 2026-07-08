@@ -3222,6 +3222,15 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                                   Archive
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setDocumentToDelete({ id: doc.id, title: doc.title })}
+                                disabled={deleteFromListMutation.isPending}
+                                data-testid={`button-delete-document-${doc.id}`}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -3645,7 +3654,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [reissueNote, setReissueNote] = useState("");
   const [reissueBase, setReissueBase] = useState<"today" | "last_approval">("today");
   const [reissueRenewalMonths, setReissueRenewalMonths] = useState<number | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedNewApprover, setSelectedNewApprover] = useState("");
   const [newVersionApprover, setNewVersionApprover] = useState("");
   const [showNotificationHistory, setShowNotificationHistory] = useState(false);
@@ -4147,24 +4155,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         description: error.message || "Failed to restore document",
         variant: "destructive",
       });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("DELETE", `/api/documents/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
-      toast({ title: "Document deleted", description: "The document has been permanently deleted." });
-      navigate(`${basePath}/documents`);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to delete document", variant: "destructive" });
     },
   });
 
@@ -5498,18 +5488,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       </Button>
                     )
                   )}
-                  {isPrivilegedUser && (
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-destructive hover:text-destructive"
-                      data-testid="button-delete-document"
-                      onClick={() => setShowDeleteDialog(true)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Document
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
             );
@@ -6157,37 +6135,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               data-testid="button-confirm-archive"
             >
               {archiveMutation.isPending ? "Archiving..." : "Archive Document"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Delete Document
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to permanently delete "{document?.title}"? This action cannot be undone and will remove all versions of this document.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} data-testid="button-cancel-delete">
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                deleteMutation.mutate();
-                setShowDeleteDialog(false);
-              }}
-              disabled={deleteMutation.isPending}
-              data-testid="button-confirm-delete"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>
