@@ -2616,7 +2616,7 @@ export default function Companies() {
                 Add Primary Contact
               </DialogTitle>
               <DialogDescription>
-                Optionally add a primary contact for this company. They will be created as a client user with access to all sites.
+                Add a primary contact for this company. They will be created as a client user with access to all sites.
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-md border bg-muted/50 p-3 flex gap-2 mt-4">
@@ -2821,9 +2821,6 @@ export default function Companies() {
           </div>
           <div className="px-6 py-4 shrink-0 border-t">
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={handleWizardNavigateToCompany} disabled={primaryContactSubmitting} data-testid="button-skip-primary-contact">
-                Skip
-              </Button>
               <Button onClick={handlePrimaryContactSubmit} disabled={primaryContactSubmitting} data-testid="button-create-primary-contact">
                 {primaryContactSubmitting ? "Creating..." : "Create Contact & Finish"}
               </Button>

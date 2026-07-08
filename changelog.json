@@ -11290,6 +11290,13 @@
           "message": "Company wizard now guides through site docs, extra sites, and primary contact in order",
           "category": "enhancement",
           "createdAt": "2026-07-08T20:30:00.000Z"
+        },
+        {
+          "id": "4db5e3bd-613b-4e26-9d58-612dc40de278",
+          "patch": 29,
+          "message": "Primary contact is now required when creating a company — Skip removed",
+          "category": "enhancement",
+          "createdAt": "2026-07-08T20:49:15.520Z"
         }
       ],
       "publishedPatch": 28,
