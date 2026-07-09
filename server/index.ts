@@ -142,7 +142,7 @@ const acceloPushLimiter = rateLimit({
 // Keyed by session user id (falls back to IP pre-auth, which will just 401 downstream).
 const uploadLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 60,
+  max: 200,
   message: { error: "Too many upload requests, please try again later" },
   standardHeaders: true,
   legacyHeaders: false,

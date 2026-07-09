@@ -11486,6 +11486,13 @@
           "message": "Manage Toolkit Folders now opens on your current module",
           "category": "enhancement",
           "createdAt": "2026-07-09T15:40:12.057Z"
+        },
+        {
+          "id": "b2c3d4e5-upload-rate-limit-raise-200-2026",
+          "patch": 33,
+          "message": "Raised bulk upload limit so large template batches go through",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T15:57:08.606Z"
         }
       ],
       "publishedPatch": 32,
