@@ -2884,7 +2884,7 @@ export default function TemplateLibraryPage() {
                 </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {bulkFileItems.map((item) => (
-                    <div key={item.id} className="border rounded-md p-3 space-y-2 bg-muted/10" data-testid={`bulk-file-item-${item.id}`}>
+                    <div key={item.id} className="border-2 border-border rounded-md p-3 space-y-2 bg-muted/10 shadow-sm" data-testid={`bulk-file-item-${item.id}`}>
                       <div className="flex items-center gap-2">
                         {item.status === "uploading" && (
                           <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />

@@ -11402,6 +11402,13 @@
           "message": "Bulk template upload: compliance fields now arranged 2x2",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:38:55.710Z"
+        },
+        {
+          "id": "b3d4e5f6-bulk-upload-file-border-2026",
+          "patch": 31,
+          "message": "Bulk template upload: added stronger border around each file card",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:39:57.654Z"
         }
       ],
       "publishedPatch": 30,
