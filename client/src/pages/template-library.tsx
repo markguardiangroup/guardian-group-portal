@@ -2628,7 +2628,7 @@ export default function TemplateLibraryPage() {
         }
         setIsTemplateDialogOpen(open);
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Add Document Templates</DialogTitle>
             <DialogDescription>Set shared settings, then select one or more files. Each file gets its own name and description.</DialogDescription>
@@ -2770,10 +2770,10 @@ export default function TemplateLibraryPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Files ({bulkFileItems.filter(i => i.status === "ready" || i.status === "done").length} of {bulkFileItems.length} ready)</p>
                 </div>
-                <div className="space-y-4 max-h-64 overflow-y-auto overflow-x-visible pr-1 pb-1">
+                <div className="space-y-4 max-h-64 overflow-y-auto overflow-x-hidden pr-1 pb-1">
                   {bulkFileItems.map((item) => (
-                    <div key={item.id} className="border-2 border-foreground/30 rounded-md p-3 space-y-2 bg-muted/10 shadow-lg shadow-black/20" data-testid={`bulk-file-item-${item.id}`}>
-                      <div className="flex items-center gap-2">
+                    <div key={item.id} className="border-2 border-foreground/30 rounded-md p-3 space-y-2 bg-muted/10 shadow-lg shadow-black/20 min-w-0" data-testid={`bulk-file-item-${item.id}`}>
+                      <div className="flex items-center gap-2 min-w-0">
                         {item.status === "uploading" && (
                           <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
                         )}
@@ -2783,7 +2783,7 @@ export default function TemplateLibraryPage() {
                         )}
                         {item.status === "done" && <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />}
                         {item.status === "error" && <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />}
-                        <span className="text-xs text-muted-foreground truncate flex-1">
+                        <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">
                           {item.relativePath ? `${item.relativePath}/${item.fileName}` : item.fileName}
                         </span>
                         {item.status !== "creating" && item.status !== "done" && (
