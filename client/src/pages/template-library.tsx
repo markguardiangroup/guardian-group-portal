@@ -173,7 +173,11 @@ const formatFileSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const downloadFile = async (fileUrl: string, fileName: string) => {
+const downloadFile = async (fileUrl: string | null | undefined, fileName: string | null | undefined) => {
+  if (!fileUrl || !fileName) {
+    console.error('Download error: missing file URL or file name');
+    return;
+  }
   try {
     const response = await fetch(`${fileUrl}?download=${encodeURIComponent(fileName)}`);
     if (!response.ok) throw new Error('Download failed');
@@ -227,6 +231,7 @@ type BulkSharedSettings = {
   createNewToolkitFolder: boolean;
   newToolkitFolderName: string;
   sources: string[];
+  isMandatory: boolean;
 };
 
 type BulkFileItem = {
@@ -263,6 +268,7 @@ const defaultBulkSharedSettings: BulkSharedSettings = {
   createNewToolkitFolder: false,
   newToolkitFolderName: "",
   sources: [],
+  isMandatory: false,
 };
 
 type FolderFormData = {
@@ -1118,7 +1124,7 @@ export default function TemplateLibraryPage() {
   
   const allFoldersExpanded = openFolders.length === getAllFolderIds().length && openFolders.length > 0;
   
-  const getFolderName = (folderId: string) => {
+  const getFolderName = (folderId: string | null | undefined) => {
     return folderTemplates.find(f => f.id === folderId)?.name || "Unknown";
   };
   
@@ -1388,7 +1394,7 @@ export default function TemplateLibraryPage() {
           fileSize: item.fileSize,
           mimeType: item.mimeType,
           sortOrder: 0,
-          isMandatory: false,
+          isMandatory: bulkShared.isMandatory,
           renewalPeriodMonths: bulkShared.renewalPeriodMonths,
           requiresApproval: bulkShared.requiresApproval,
           visibility: bulkShared.visibility,
@@ -1440,7 +1446,7 @@ export default function TemplateLibraryPage() {
       description: template.description || "",
       synopsis: (template as any).synopsis || "",
       module: template.module,
-      folderTemplateId: template.folderTemplateId,
+      folderTemplateId: template.folderTemplateId || "",
       isMandatory: template.isMandatory || false,
       renewalPeriodMonths: template.renewalPeriodMonths || null,
       requiresApproval: template.requiresApproval !== false,
@@ -1891,7 +1897,9 @@ export default function TemplateLibraryPage() {
             )}
             <span className={`font-medium ${isRootLevel ? moduleColors[folderModule] : ""}`}>{folder.name}</span>
             {(folder as any).isLocked && (
-              <Lock className="h-3 w-3 text-muted-foreground ml-1" title="System-managed folder" />
+              <span title="System-managed folder" className="inline-flex ml-1">
+                <Lock className="h-3 w-3 text-muted-foreground" />
+              </span>
             )}
             {showToolkitBadge && (
               <Badge variant="outline" className="ml-1 text-[10px] px-1 py-0 h-4 text-muted-foreground">Toolkit</Badge>
@@ -2108,9 +2116,10 @@ export default function TemplateLibraryPage() {
               </Select>
               
               {(() => {
+                const currentUser = user;
                 const visibleSources = isDeveloper
                   ? allSources.filter(s => s.isActive)
-                  : allSources.filter(s => s.isActive && (user?.sources ?? []).includes(s.code));
+                  : allSources.filter(s => s.isActive && (currentUser?.sources ?? []).includes(s.code));
                 return visibleSources.length > 0 ? (
                   <Select value={sourceFilter} onValueChange={setSourceFilter}>
                     <SelectTrigger className="w-44" data-testid="select-source-filter">
@@ -3601,7 +3610,7 @@ export default function TemplateLibraryPage() {
               variant={bulkSourcesMode === "clear" ? "destructive" : "default"}
               disabled={(bulkSourcesMode === "merge" && bulkSourcesPick.length === 0) || bulkUpdateSourcesMutation.isPending}
               onClick={() => bulkUpdateSourcesMutation.mutate({
-                templateIds: [...selectedTemplateIds],
+                templateIds: Array.from(selectedTemplateIds),
                 sources: bulkSourcesPick,
                 mode: bulkSourcesMode,
               })}

@@ -11374,6 +11374,13 @@
           "message": "Toolkit bulk upload: can now select an entire folder (with subfolders)",
           "category": "enhancement",
           "createdAt": "2026-07-09T13:42:21.079Z"
+        },
+        {
+          "id": "984bddd8-07d1-429d-9e8e-e009e219a4a0",
+          "patch": 31,
+          "message": "Fixed: bulk template upload now saves the mandatory-document flag",
+          "category": "bug",
+          "createdAt": "2026-07-09T13:55:30.740Z"
         }
       ],
       "publishedPatch": 30,
