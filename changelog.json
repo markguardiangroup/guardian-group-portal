@@ -11367,6 +11367,13 @@
           "message": "Left navigation menu now opens expanded by default",
           "category": "enhancement",
           "createdAt": "2026-07-09T12:27:37.210Z"
+        },
+        {
+          "id": "e6g05i48-7d41-5h95-f1c6-5h2d8j064g92",
+          "patch": 31,
+          "message": "Toolkit bulk upload: can now select an entire folder (with subfolders)",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T13:42:21.079Z"
         }
       ],
       "publishedPatch": 30,

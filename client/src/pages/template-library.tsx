@@ -239,7 +239,17 @@ type BulkFileItem = {
   description: string;
   status: "uploading" | "ready" | "creating" | "done" | "error";
   error?: string;
+  relativePath?: string;
 };
+
+const JUNK_FILE_NAMES = new Set([".ds_store", "thumbs.db", "desktop.ini"]);
+
+function filterJunkFiles(files: FileList): File[] {
+  return Array.from(files).filter((file) => {
+    const baseName = file.name.split("/").pop()?.toLowerCase() ?? "";
+    return !JUNK_FILE_NAMES.has(baseName) && !baseName.startsWith("._");
+  });
+}
 
 const defaultBulkSharedSettings: BulkSharedSettings = {
   module: "health_safety",
@@ -441,6 +451,7 @@ export default function TemplateLibraryPage() {
   const [bulkFileItems, setBulkFileItems] = useState<BulkFileItem[]>([]);
   const [isBulkCreating, setIsBulkCreating] = useState(false);
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
+  const bulkFolderInputRef = useRef<HTMLInputElement>(null);
   
   // Folder dialogs
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
@@ -1217,22 +1228,28 @@ export default function TemplateLibraryPage() {
   };
   
   // Bulk file select handler — uploads files immediately
-  const handleBulkFileSelect = async (files: FileList) => {
-    const newItems: BulkFileItem[] = Array.from(files).map((file) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      fileName: file.name,
-      fileSize: file.size,
-      mimeType: file.type || "application/octet-stream",
-      objectPath: "",
-      name: file.name.replace(/\.[^/.]+$/, ""),
-      description: "",
-      status: "uploading" as const,
-    }));
+  const handleBulkFileSelect = async (fileList: FileList) => {
+    const files = filterJunkFiles(fileList);
+    const newItems: BulkFileItem[] = files.map((file) => {
+      const relPath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || "";
+      const relDir = relPath.includes("/") ? relPath.slice(0, relPath.lastIndexOf("/")) : "";
+      return {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type || "application/octet-stream",
+        objectPath: "",
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        description: "",
+        status: "uploading" as const,
+        relativePath: relDir || undefined,
+      };
+    });
 
     setBulkFileItems((prev) => [...prev, ...newItems]);
 
     await Promise.all(
-      Array.from(files).map(async (file, idx) => {
+      files.map(async (file, idx) => {
         const item = newItems[idx];
         try {
           const uploadRes = await fetch("/api/uploads/file", {
@@ -2884,16 +2901,43 @@ export default function TemplateLibraryPage() {
                   }
                 }}
               />
-              <button
-                type="button"
-                onClick={() => bulkFileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-muted-foreground/30 rounded-md p-6 text-center hover:border-primary/50 hover:bg-muted/20 transition-colors cursor-pointer"
-                data-testid="button-bulk-file-picker"
-              >
-                <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm font-medium">Click to select files</p>
-                <p className="text-xs text-muted-foreground mt-1">Word, PDF, Excel — up to 50 MB each. Select multiple files at once.</p>
-              </button>
+              <input
+                ref={bulkFolderInputRef}
+                type="file"
+                multiple
+                // @ts-ignore — non-standard but broadly supported attribute for folder selection
+                webkitdirectory=""
+                directory=""
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    handleBulkFileSelect(e.target.files);
+                    e.target.value = "";
+                  }
+                }}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => bulkFileInputRef.current?.click()}
+                  className="border-2 border-dashed border-muted-foreground/30 rounded-md p-6 text-center hover:border-primary/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                  data-testid="button-bulk-file-picker"
+                >
+                  <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm font-medium">Click to select files</p>
+                  <p className="text-xs text-muted-foreground mt-1">Word, PDF, Excel — up to 50 MB each. Select multiple files at once.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => bulkFolderInputRef.current?.click()}
+                  className="border-2 border-dashed border-muted-foreground/30 rounded-md p-6 text-center hover:border-primary/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                  data-testid="button-bulk-folder-picker"
+                >
+                  <FolderOpen className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm font-medium">Click to select a folder</p>
+                  <p className="text-xs text-muted-foreground mt-1">Uploads every file in the folder, including subfolders.</p>
+                </button>
+              </div>
             </div>
 
             {/* ── Per-file list ── */}
@@ -2915,7 +2959,9 @@ export default function TemplateLibraryPage() {
                         )}
                         {item.status === "done" && <CheckCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />}
                         {item.status === "error" && <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />}
-                        <span className="text-xs text-muted-foreground truncate flex-1">{item.fileName}</span>
+                        <span className="text-xs text-muted-foreground truncate flex-1">
+                          {item.relativePath ? `${item.relativePath}/${item.fileName}` : item.fileName}
+                        </span>
                         {item.status !== "creating" && item.status !== "done" && (
                           <Button
                             type="button"
