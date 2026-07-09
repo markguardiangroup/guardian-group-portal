@@ -11444,6 +11444,13 @@
           "message": "Bulk template upload: widened folder and renewal fields",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:47:54.509Z"
+        },
+        {
+          "id": "b2c3d4e5-toolkit-folder-per-file-2026",
+          "patch": 31,
+          "message": "Public toolkit uploads: folder now set per file, no folder creation step",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:55:13.194Z"
         }
       ],
       "publishedPatch": 30,

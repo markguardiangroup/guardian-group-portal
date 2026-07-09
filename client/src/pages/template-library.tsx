@@ -222,9 +222,6 @@ type TemplateFormData = {
 type BulkSharedSettings = {
   module: ModuleType;
   visibility: "public" | "private";
-  toolkitFolderId: string;
-  createNewToolkitFolder: boolean;
-  newToolkitFolderName: string;
   sources: string[];
 };
 
@@ -240,6 +237,7 @@ type BulkFileItem = {
   error?: string;
   relativePath?: string;
   folderTemplateId?: string;
+  toolkitFolderId?: string;
   isMandatory?: boolean;
   requiresApproval?: boolean;
   renewalPeriodMonths?: number | null;
@@ -257,9 +255,6 @@ function filterJunkFiles(files: FileList): File[] {
 const defaultBulkSharedSettings: BulkSharedSettings = {
   module: "health_safety",
   visibility: "private",
-  toolkitFolderId: "",
-  createNewToolkitFolder: false,
-  newToolkitFolderName: "",
   sources: [],
 };
 
@@ -1306,7 +1301,7 @@ export default function TemplateLibraryPage() {
     // For public templates, library folder is auto-assigned by the server from the toolkit folder
     const isBulkPublic = bulkShared.visibility === "public";
 
-    // Folder + compliance settings are now set per-file for private templates
+    // Folder + compliance settings are now set per-file
     if (!isBulkPublic) {
       const missingFolder = readyItems.find((i) => !i.folderTemplateId);
       if (missingFolder) {
@@ -1328,38 +1323,10 @@ export default function TemplateLibraryPage() {
         toast({ title: "Validation error", description: "Please set Renewal Period for every file", variant: "destructive" });
         return;
       }
-    }
-
-    // Resolve Toolkit folder (only if public)
-    let toolkitFolderId: string | undefined = bulkShared.toolkitFolderId || undefined;
-    if (bulkShared.visibility === "public") {
-      if (bulkShared.createNewToolkitFolder) {
-        if (!bulkShared.newToolkitFolderName.trim()) {
-          toast({ title: "Validation error", description: "Please enter a Toolkit folder name", variant: "destructive" });
-          return;
-        }
-        try {
-          const bulkSources: string[] = (bulkShared as any).sources ?? [];
-          if (bulkSources.length === 0) {
-            toast({ title: "Validation error", description: "Set at least one source before creating a new Toolkit folder", variant: "destructive" });
-            return;
-          }
-          const res = await apiRequest("POST", "/api/toolkit/folders", {
-            name: bulkShared.newToolkitFolderName,
-            module: bulkShared.module,
-            sortOrder: 0,
-            sources: bulkSources,
-          });
-          const newTkFolder = await res.json();
-          toolkitFolderId = newTkFolder.id;
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit/folders"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/toolkit"] });
-        } catch {
-          toast({ title: "Error", description: "Failed to create Toolkit folder", variant: "destructive" });
-          return;
-        }
-      } else if (!toolkitFolderId) {
-        toast({ title: "Validation error", description: "Please select or create a Toolkit folder", variant: "destructive" });
+    } else {
+      const missingToolkitFolder = readyItems.find((i) => !i.toolkitFolderId);
+      if (missingToolkitFolder) {
+        toast({ title: "Validation error", description: "Please select a Toolkit folder for every file", variant: "destructive" });
         return;
       }
     }
@@ -1386,7 +1353,7 @@ export default function TemplateLibraryPage() {
           requiresApproval: isBulkPublic ? false : item.requiresApproval,
           visibility: bulkShared.visibility,
           sources: bulkShared.sources,
-          toolkitFolderId: isBulkPublic ? (toolkitFolderId || null) : null,
+          toolkitFolderId: isBulkPublic ? (item.toolkitFolderId || null) : null,
         });
         setBulkFileItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: "done" } : i)));
         successCount++;
@@ -2672,7 +2639,7 @@ export default function TemplateLibraryPage() {
               <Label htmlFor="bulk-module">Module</Label>
               <Select
                 value={bulkShared.module}
-                onValueChange={(v) => setBulkShared({ ...bulkShared, module: v as ModuleType, toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                onValueChange={(v) => setBulkShared({ ...bulkShared, module: v as ModuleType })}
               >
                 <SelectTrigger id="bulk-module" data-testid="select-bulk-module">
                   <SelectValue />
@@ -2695,115 +2662,40 @@ export default function TemplateLibraryPage() {
                 <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
                   checked={bulkShared.visibility === "public"}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", sources: checked ? [] : bulkShared.sources })}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", sources: checked ? [] : bulkShared.sources })}
                   data-testid="switch-bulk-visibility"
                 />
               </div>
             </div>
 
-            {/* Toolkit Folder (public only) */}
             {bulkShared.visibility === "public" && (
-              <div className="space-y-2">
-                <Label>Toolkit Folder <span className="text-destructive">*</span></Label>
-                <div className="flex gap-2 mb-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={!bulkShared.createNewToolkitFolder ? "default" : "outline"}
-                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: false, newToolkitFolderName: "" })}
-                    data-testid="button-bulk-select-existing-toolkit-folder"
-                  >
-                    Select Existing
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={bulkShared.createNewToolkitFolder ? "default" : "outline"}
-                    onClick={() => setBulkShared({ ...bulkShared, createNewToolkitFolder: true, toolkitFolderId: "" })}
-                    data-testid="button-bulk-create-new-toolkit-folder"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Create New
-                  </Button>
-                </div>
-                {!bulkShared.createNewToolkitFolder ? (
-                  <>
-                    <Select value={bulkShared.toolkitFolderId} onValueChange={(v) => {
-                      const folder = toolkitFolders.find(f => f.id === v);
-                      const allowed = folder?.sources ?? [];
-                      setBulkShared({ ...bulkShared, toolkitFolderId: v, createNewToolkitFolder: false, sources: bulkShared.sources.filter(c => allowed.includes(c)) });
-                    }}>
-                      <SelectTrigger data-testid="select-bulk-toolkit-folder"><SelectValue placeholder="Select a Toolkit folder" /></SelectTrigger>
-                      <SelectContent>
-                        {toolkitFolders.filter(f => f.module === bulkShared.module).sort((a, b) => a.name.localeCompare(b.name)).map(f => (
-                          <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
-                      <p className="text-xs text-muted-foreground">No Toolkit folders yet. Click "Create New" to add one.</p>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-1 p-3 border rounded-md bg-muted/30">
-                    <Label htmlFor="bulk-new-toolkit-folder-name" className="text-sm">Toolkit Folder Name</Label>
-                    <Input
-                      id="bulk-new-toolkit-folder-name"
-                      value={bulkShared.newToolkitFolderName}
-                      onChange={(e) => setBulkShared({ ...bulkShared, newToolkitFolderName: e.target.value })}
-                      placeholder="e.g., Fire Safety"
-                      data-testid="input-bulk-new-toolkit-folder-name"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {bulkShared.visibility === "public" && bulkShared.toolkitFolderId && (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs text-muted-foreground">
-                <Lock className="h-3 w-3 shrink-0" />
-                <span>Template Library folder will be automatically set to <strong>Toolkit → {toolkitFolders.find(f => f.id === bulkShared.toolkitFolderId)?.name}</strong></span>
-              </div>
+              <p className="text-xs text-muted-foreground">Toolkit Folder is set individually for each file below.</p>
             )}
             {bulkShared.visibility !== "public" && (
               <p className="text-xs text-muted-foreground">Folder, Mandatory Document, Client Approval and Renewal Period are set individually for each file below.</p>
             )}
 
             {/* Source */}
-            {allSources.filter(s => s.isActive).length > 0 && (() => {
-              const restrictToFolder = bulkShared.visibility === "public" && !bulkShared.createNewToolkitFolder;
-              const selectedTkFolder = restrictToFolder
-                ? toolkitFolders.find(f => f.id === bulkShared.toolkitFolderId)
-                : undefined;
-              const folderSources = selectedTkFolder?.sources ?? [];
-              const noFolderSelected = restrictToFolder && !bulkShared.toolkitFolderId;
-              return (
+            {allSources.filter(s => s.isActive).length > 0 && (
               <div className="space-y-2">
                 <div>
                   <Label className="text-sm font-medium">Source <span className="text-destructive">*</span></Label>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {noFolderSelected
-                      ? "Select a Toolkit Folder first to choose sources."
-                      : "Select at least one source. This controls which source users can see this template."}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Select at least one source. This controls which source users can see this template.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {allSources.filter(s => s.isActive).map(s => {
                     const checked = bulkShared.sources.includes(s.code);
-                    const allowed = !restrictToFolder || folderSources.includes(s.code);
-                    const disabled = noFolderSelected || !allowed;
                     return (
                       <button
                         key={s.code}
                         type="button"
-                        disabled={disabled}
                         onClick={() => {
                           const next = checked
                             ? bulkShared.sources.filter(c => c !== s.code)
                             : [...bulkShared.sources, s.code];
                           setBulkShared({ ...bulkShared, sources: next });
                         }}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"} ${disabled ? "opacity-40 cursor-not-allowed hover:border-border" : ""}`}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${checked ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"}`}
                         data-testid={`button-bulk-source-${s.code}`}
                       >
                         {s.label}
@@ -2811,15 +2703,11 @@ export default function TemplateLibraryPage() {
                     );
                   })}
                 </div>
-                {restrictToFolder && bulkShared.toolkitFolderId && folderSources.length === 0 && (
-                  <p className="text-xs text-amber-600">The selected folder has no sources configured. Add sources to the folder first.</p>
-                )}
-                {!noFolderSelected && bulkShared.sources.length === 0 && (
+                {bulkShared.sources.length === 0 && (
                   <p className="text-xs text-destructive">At least one source is required.</p>
                 )}
               </div>
-              );
-            })()}
+            )}
 
             {/* ── File picker ── */}
             <div className="space-y-2">
@@ -2939,6 +2827,30 @@ export default function TemplateLibraryPage() {
                               data-testid={`input-bulk-description-${item.id}`}
                             />
                           </div>
+                          {bulkShared.visibility === "public" && (
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <Label className="text-xs shrink-0">Toolkit Folder <span className="text-destructive">*</span></Label>
+                                <Select
+                                  value={item.toolkitFolderId ?? ""}
+                                  onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, toolkitFolderId: v } : i))}
+                                  disabled={item.status === "creating" || item.status === "done"}
+                                >
+                                  <SelectTrigger className="h-7 text-xs w-48" data-testid={`select-bulk-toolkit-folder-${item.id}`}>
+                                    <SelectValue placeholder="Select a folder" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {toolkitFolders.filter(f => f.module === bulkShared.module).sort((a, b) => a.name.localeCompare(b.name)).map(f => (
+                                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {toolkitFolders.filter(f => f.module === bulkShared.module).length === 0 && (
+                                <p className="text-xs text-muted-foreground text-right">No Toolkit folders available.</p>
+                              )}
+                            </div>
+                          )}
                           {bulkShared.visibility !== "public" && (
                             <>
                               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -3054,7 +2966,8 @@ export default function TemplateLibraryPage() {
                 bulkFileItems.filter(i => i.status === "ready").some(i => !i.name.trim()) ||
                 (bulkShared.visibility !== "public" && bulkFileItems.filter(i => i.status === "ready").some(i =>
                   !i.folderTemplateId || i.isMandatory === undefined || i.requiresApproval === undefined || i.renewalPeriodMonths === undefined
-                ))
+                )) ||
+                (bulkShared.visibility === "public" && bulkFileItems.filter(i => i.status === "ready").some(i => !i.toolkitFolderId))
               }
               data-testid="button-bulk-create-templates"
             >
