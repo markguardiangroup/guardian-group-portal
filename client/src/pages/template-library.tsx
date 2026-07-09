@@ -442,6 +442,7 @@ export default function TemplateLibraryPage() {
   // Bulk add template state
   const [bulkShared, setBulkShared] = useState<BulkSharedSettings>(defaultBulkSharedSettings);
   const [bulkFileItems, setBulkFileItems] = useState<BulkFileItem[]>([]);
+  const [bulkApplyFolderId, setBulkApplyFolderId] = useState<string>("");
   const [isBulkCreating, setIsBulkCreating] = useState(false);
   const bulkFileInputRef = useRef<HTMLInputElement>(null);
   const bulkFolderInputRef = useRef<HTMLInputElement>(null);
@@ -1382,6 +1383,7 @@ export default function TemplateLibraryPage() {
       setIsTemplateDialogOpen(false);
       setBulkFileItems([]);
       setBulkShared(defaultBulkSharedSettings);
+      setBulkApplyFolderId("");
     } else {
       toast({ title: "Partial success", description: `${successCount} created, ${errorCount} failed. Fix errors and retry.`, variant: "destructive" });
     }
@@ -2625,6 +2627,7 @@ export default function TemplateLibraryPage() {
         if (!open) {
           setBulkFileItems([]);
           setBulkShared(defaultBulkSharedSettings);
+          setBulkApplyFolderId("");
         }
         setIsTemplateDialogOpen(open);
       }}>
@@ -2639,7 +2642,7 @@ export default function TemplateLibraryPage() {
               <Label htmlFor="bulk-module">Module</Label>
               <Select
                 value={bulkShared.module}
-                onValueChange={(v) => setBulkShared({ ...bulkShared, module: v as ModuleType })}
+                onValueChange={(v) => { setBulkShared({ ...bulkShared, module: v as ModuleType }); setBulkApplyFolderId(""); }}
               >
                 <SelectTrigger id="bulk-module" data-testid="select-bulk-module">
                   <SelectValue />
@@ -2662,7 +2665,7 @@ export default function TemplateLibraryPage() {
                 <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
                   checked={bulkShared.visibility === "public"}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", sources: checked ? [] : bulkShared.sources })}
+                  onCheckedChange={(checked) => { setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", sources: checked ? [] : bulkShared.sources }); setBulkApplyFolderId(""); }}
                   data-testid="switch-bulk-visibility"
                 />
               </div>
@@ -2769,6 +2772,36 @@ export default function TemplateLibraryPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Files ({bulkFileItems.filter(i => i.status === "ready" || i.status === "done").length} of {bulkFileItems.length} ready)</p>
+                </div>
+                <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/20">
+                  <Label className="text-xs shrink-0">Apply {bulkShared.visibility === "public" ? "Toolkit Folder" : "Folder"} to all</Label>
+                  <Select value={bulkApplyFolderId} onValueChange={setBulkApplyFolderId}>
+                    <SelectTrigger className="h-7 text-xs flex-1 min-w-0" data-testid="select-bulk-apply-folder">
+                      <SelectValue placeholder="Select a folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bulkShared.visibility === "public"
+                        ? toolkitFolders.filter(f => f.module === bulkShared.module).sort((a, b) => a.name.localeCompare(b.name)).map(f => (
+                            <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                          ))
+                        : sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
+                            <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
+                          ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-7 text-xs shrink-0"
+                    disabled={!bulkApplyFolderId}
+                    onClick={() => {
+                      const key = bulkShared.visibility === "public" ? "toolkitFolderId" : "folderTemplateId";
+                      setBulkFileItems(prev => prev.map(i => (i.status === "creating" || i.status === "done") ? i : { ...i, [key]: bulkApplyFolderId }));
+                    }}
+                    data-testid="button-bulk-apply-folder"
+                  >
+                    Apply to All
+                  </Button>
                 </div>
                 <div className="space-y-4 max-h-64 overflow-y-auto overflow-x-hidden pr-1 pb-1">
                   {bulkFileItems.map((item) => (
@@ -2954,6 +2987,7 @@ export default function TemplateLibraryPage() {
               setIsTemplateDialogOpen(false);
               setBulkFileItems([]);
               setBulkShared(defaultBulkSharedSettings);
+              setBulkApplyFolderId("");
             }}>
               Cancel
             </Button>

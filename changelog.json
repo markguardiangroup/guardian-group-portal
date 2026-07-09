@@ -11472,6 +11472,13 @@
           "message": "Fixed: upload dialog still overflowed with long file paths",
           "category": "bug",
           "createdAt": "2026-07-09T15:36:04.536Z"
+        },
+        {
+          "id": "f6a7b8c9-bulk-upload-apply-folder-to-all-2026",
+          "patch": 33,
+          "message": "Bulk template upload: apply a folder to all files at once",
+          "category": "feature",
+          "createdAt": "2026-07-09T15:37:30.085Z"
         }
       ],
       "publishedPatch": 32,
