@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 29,
+      "patch": 30,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -11369,7 +11369,7 @@
           "createdAt": "2026-07-09T12:27:37.210Z"
         }
       ],
-      "publishedPatch": 28,
+      "publishedPatch": 29,
       "patchedEntryIds": [
         "d4e9f6b7-pdf-page-number-mask-2026",
         "c3d8e5a6-case-document-edit-2026",
@@ -12346,7 +12346,24 @@
         "f41a935f-80b2-428f-9d99-0bd5ede795da",
         "e9f9335b-7cfa-4b9b-a39c-cb427d617df8",
         "a2abd62a-302a-4552-983a-4ccdf3238c3d",
-        "b6ccbd6b-7b9b-441b-afdc-14a133ea989e"
+        "b6ccbd6b-7b9b-441b-afdc-14a133ea989e",
+        "ff99cfa2-ff3e-4323-8b91-9f96f3183db9",
+        "fd826293-01e2-4a91-b8f4-e8c6d8d801f3",
+        "b0195a0e-95cc-4250-8b38-1893fca052f0",
+        "fa23a815-84f7-4206-834f-25d4b90a8071",
+        "1c4de270-6b45-4537-890a-9dc7ed340afa",
+        "a8f3c2e1-9b4d-4f7a-8c6e-2d1a5b9f3e7c",
+        "4db5e3bd-613b-4e26-9d58-612dc40de278",
+        "30cbd9b1-7958-4496-81c2-0b09264e125a",
+        "a7118035-d345-4ba5-b8f9-cbac3ca574b3",
+        "f3c21b94-8e47-4d05-a910-7db56e02c8f1",
+        "b8d21c47-39fa-4f05-a8e3-6c92df510f83",
+        "e4a73f92-1c85-4b29-bd8e-9d0f62a17c34",
+        "f5b84e03-2d96-4c38-ae94-0e1b73b28d45",
+        "a6c95d14-3e07-4f51-b7a2-1d8e4f620c58",
+        "b3d72f15-4a18-4e62-c8f3-2e9a5g731d69",
+        "c4e83g26-5b29-4f73-d9a4-3f0b6h842e70",
+        "d5f94h37-6c30-4g84-e0b5-4g1c7i953f81"
       ]
     }
   ]
