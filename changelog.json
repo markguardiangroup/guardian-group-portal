@@ -11381,6 +11381,13 @@
           "message": "Fixed: bulk template upload now saves the mandatory-document flag",
           "category": "bug",
           "createdAt": "2026-07-09T13:55:30.740Z"
+        },
+        {
+          "id": "e1a2b3c4-bulk-upload-per-file-settings-2026",
+          "patch": 31,
+          "message": "Bulk template upload: folder & compliance settings now set per file",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:05:14.820Z"
         }
       ],
       "publishedPatch": 30,

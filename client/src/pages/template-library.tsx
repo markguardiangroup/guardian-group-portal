@@ -221,17 +221,11 @@ type TemplateFormData = {
 
 type BulkSharedSettings = {
   module: ModuleType;
-  folderTemplateId: string;
-  createNewFolder: boolean;
-  newFolderName: string;
-  requiresApproval: boolean;
-  renewalPeriodMonths: number | null;
   visibility: "public" | "private";
   toolkitFolderId: string;
   createNewToolkitFolder: boolean;
   newToolkitFolderName: string;
   sources: string[];
-  isMandatory: boolean;
 };
 
 type BulkFileItem = {
@@ -245,6 +239,10 @@ type BulkFileItem = {
   status: "uploading" | "ready" | "creating" | "done" | "error";
   error?: string;
   relativePath?: string;
+  folderTemplateId?: string;
+  isMandatory?: boolean;
+  requiresApproval?: boolean;
+  renewalPeriodMonths?: number | null;
 };
 
 const JUNK_FILE_NAMES = new Set([".ds_store", "thumbs.db", "desktop.ini"]);
@@ -258,17 +256,11 @@ function filterJunkFiles(files: FileList): File[] {
 
 const defaultBulkSharedSettings: BulkSharedSettings = {
   module: "health_safety",
-  folderTemplateId: "",
-  createNewFolder: false,
-  newFolderName: "",
-  requiresApproval: true,
-  renewalPeriodMonths: null,
   visibility: "private",
   toolkitFolderId: "",
   createNewToolkitFolder: false,
   newToolkitFolderName: "",
   sources: [],
-  isMandatory: false,
 };
 
 type FolderFormData = {
@@ -1314,33 +1306,28 @@ export default function TemplateLibraryPage() {
     // For public templates, library folder is auto-assigned by the server from the toolkit folder
     const isBulkPublic = bulkShared.visibility === "public";
 
-    // Resolve Template Library folder (private only)
-    let folderId = isBulkPublic ? undefined : bulkShared.folderTemplateId;
-    if (!isBulkPublic && bulkShared.createNewFolder) {
-      if (!bulkShared.newFolderName.trim()) {
-        toast({ title: "Validation error", description: "Please enter a folder name", variant: "destructive" });
+    // Folder + compliance settings are now set per-file for private templates
+    if (!isBulkPublic) {
+      const missingFolder = readyItems.find((i) => !i.folderTemplateId);
+      if (missingFolder) {
+        toast({ title: "Validation error", description: "Please select a folder for every file", variant: "destructive" });
         return;
       }
-      try {
-        const res = await apiRequest("POST", "/api/folder-templates", {
-          name: bulkShared.newFolderName,
-          module: bulkShared.module,
-          description: "",
-          parentId: null,
-          sortOrder: 0,
-          isActive: true,
-        });
-        const newFolder = await res.json();
-        folderId = newFolder.id;
-        queryClient.invalidateQueries({ queryKey: ["/api/folder-templates"] });
-      } catch {
-        toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
+      const missingMandatory = readyItems.find((i) => i.isMandatory === undefined);
+      if (missingMandatory) {
+        toast({ title: "Validation error", description: "Please set Mandatory Document for every file", variant: "destructive" });
         return;
       }
-    }
-    if (!isBulkPublic && !folderId) {
-      toast({ title: "Validation error", description: "Please select or create a folder", variant: "destructive" });
-      return;
+      const missingApproval = readyItems.find((i) => i.requiresApproval === undefined);
+      if (missingApproval) {
+        toast({ title: "Validation error", description: "Please set Client Approval for every file", variant: "destructive" });
+        return;
+      }
+      const missingRenewal = readyItems.find((i) => i.renewalPeriodMonths === undefined);
+      if (missingRenewal) {
+        toast({ title: "Validation error", description: "Please set Renewal Period for every file", variant: "destructive" });
+        return;
+      }
     }
 
     // Resolve Toolkit folder (only if public)
@@ -1388,15 +1375,15 @@ export default function TemplateLibraryPage() {
           name: item.name.trim(),
           description: item.description.trim() || undefined,
           module: bulkShared.module,
-          ...(folderId ? { folderTemplateId: folderId } : {}),
+          ...(isBulkPublic ? {} : { folderTemplateId: item.folderTemplateId }),
           fileName: item.fileName,
           fileUrl: item.objectPath,
           fileSize: item.fileSize,
           mimeType: item.mimeType,
           sortOrder: 0,
-          isMandatory: bulkShared.isMandatory,
-          renewalPeriodMonths: bulkShared.renewalPeriodMonths,
-          requiresApproval: bulkShared.requiresApproval,
+          isMandatory: isBulkPublic ? false : item.isMandatory,
+          renewalPeriodMonths: isBulkPublic ? null : item.renewalPeriodMonths,
+          requiresApproval: isBulkPublic ? false : item.requiresApproval,
           visibility: bulkShared.visibility,
           sources: bulkShared.sources,
           toolkitFolderId: isBulkPublic ? (toolkitFolderId || null) : null,
@@ -1417,7 +1404,10 @@ export default function TemplateLibraryPage() {
 
     queryClient.invalidateQueries({ queryKey: ["/api/document-templates"] });
     invalidateDocumentsHierarchy();
-    if (folderId) setOpenFolders(prev => prev.includes(folderId) ? prev : [...prev, folderId]);
+    const usedFolderIds = Array.from(new Set(readyItems.map(i => i.folderTemplateId).filter((id): id is string => !!id)));
+    if (usedFolderIds.length > 0) {
+      setOpenFolders(prev => Array.from(new Set([...prev, ...usedFolderIds])));
+    }
     setIsBulkCreating(false);
 
     if (errorCount === 0) {
@@ -2682,7 +2672,7 @@ export default function TemplateLibraryPage() {
               <Label htmlFor="bulk-module">Module</Label>
               <Select
                 value={bulkShared.module}
-                onValueChange={(v) => setBulkShared({ ...bulkShared, module: v as ModuleType, folderTemplateId: "", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
+                onValueChange={(v) => setBulkShared({ ...bulkShared, module: v as ModuleType, toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "" })}
               >
                 <SelectTrigger id="bulk-module" data-testid="select-bulk-module">
                   <SelectValue />
@@ -2705,7 +2695,7 @@ export default function TemplateLibraryPage() {
                 <span className="text-sm font-medium">{bulkShared.visibility === "public" ? "Public" : "Private"}</span>
                 <Switch
                   checked={bulkShared.visibility === "public"}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", sources: checked ? [] : bulkShared.sources, requiresApproval: checked ? false : bulkShared.requiresApproval, renewalPeriodMonths: checked ? null : bulkShared.renewalPeriodMonths })}
+                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, visibility: checked ? "public" : "private", toolkitFolderId: "", createNewToolkitFolder: false, newToolkitFolderName: "", sources: checked ? [] : bulkShared.sources })}
                   data-testid="switch-bulk-visibility"
                 />
               </div>
@@ -2769,77 +2759,14 @@ export default function TemplateLibraryPage() {
               </div>
             )}
 
-            {/* Template Library Folder — hidden for public (auto-assigned from toolkit folder) */}
-            {bulkShared.visibility !== "public" && (
-            <div className="space-y-2">
-              <Label>Template Library Folder <span className="text-destructive">*</span></Label>
-              <Select value={bulkShared.folderTemplateId} onValueChange={(v) => setBulkShared({ ...bulkShared, folderTemplateId: v, createNewFolder: false })}>
-                <SelectTrigger data-testid="select-bulk-template-folder"><SelectValue placeholder="Select a folder" /></SelectTrigger>
-                <SelectContent>
-                  {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
-                    <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId).length === 0 && (
-                <p className="text-xs text-muted-foreground">No folders available for this module.</p>
-              )}
-            </div>
-            )}
             {bulkShared.visibility === "public" && bulkShared.toolkitFolderId && (
               <div className="flex items-center gap-2 p-2 rounded-md bg-muted/40 border text-xs text-muted-foreground">
                 <Lock className="h-3 w-3 shrink-0" />
                 <span>Template Library folder will be automatically set to <strong>Toolkit → {toolkitFolders.find(f => f.id === bulkShared.toolkitFolderId)?.name}</strong></span>
               </div>
             )}
-
-            {/* Compliance Settings */}
             {bulkShared.visibility !== "public" && (
-            <div className="space-y-4 p-3 border rounded-md bg-muted/30">
-              <p className="text-sm font-medium">Compliance Settings</p>
-              <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-                <div className="space-y-0.5">
-                  <Label className="font-medium text-sm">Mandatory Document</Label>
-                  <p className="text-xs text-muted-foreground">Must be completed for compliance</p>
-                </div>
-                <Switch
-                  checked={bulkShared.isMandatory}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, isMandatory: checked })}
-                  data-testid="switch-bulk-is-required"
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-background rounded-md border">
-                <div className="space-y-0.5">
-                  <Label className="font-medium text-sm">Client Approval</Label>
-                  <p className="text-xs text-muted-foreground">Needs client sign-off</p>
-                </div>
-                <Switch
-                  checked={bulkShared.requiresApproval}
-                  onCheckedChange={(checked) => setBulkShared({ ...bulkShared, requiresApproval: checked })}
-                  data-testid="switch-bulk-requires-approval"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="bulk-renewal" className="text-sm">Renewal Period</Label>
-                <Select
-                  value={bulkShared.renewalPeriodMonths != null ? String(bulkShared.renewalPeriodMonths) : "none"}
-                  onValueChange={(val) => setBulkShared({ ...bulkShared, renewalPeriodMonths: val === "none" ? null : parseInt(val) })}
-                >
-                  <SelectTrigger data-testid="select-bulk-renewal">
-                    <SelectValue placeholder="No renewal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No renewal</SelectItem>
-                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
-                      <SelectItem key={m} value={String(m)}>
-                        {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">How often documents from this template need renewal</p>
-              </div>
-            </div>
+              <p className="text-xs text-muted-foreground">Folder, Mandatory Document, Client Approval and Renewal Period are set individually for each file below.</p>
             )}
 
             {/* Source */}
@@ -3012,6 +2939,84 @@ export default function TemplateLibraryPage() {
                               data-testid={`input-bulk-description-${item.id}`}
                             />
                           </div>
+                          {bulkShared.visibility !== "public" && (
+                            <>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Template Library Folder <span className="text-destructive">*</span></Label>
+                                <Select
+                                  value={item.folderTemplateId ?? ""}
+                                  onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
+                                  disabled={item.status === "creating" || item.status === "done"}
+                                >
+                                  <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-folder-${item.id}`}>
+                                    <SelectValue placeholder="Select a folder" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
+                                      <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId).length === 0 && (
+                                  <p className="text-xs text-muted-foreground">No folders available for this module.</p>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Mandatory Document <span className="text-destructive">*</span></Label>
+                                  <Select
+                                    value={item.isMandatory === undefined ? "" : (item.isMandatory ? "yes" : "no")}
+                                    onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, isMandatory: v === "yes" } : i))}
+                                    disabled={item.status === "creating" || item.status === "done"}
+                                  >
+                                    <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-mandatory-${item.id}`}>
+                                      <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="yes">Yes</SelectItem>
+                                      <SelectItem value="no">No</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Client Approval <span className="text-destructive">*</span></Label>
+                                  <Select
+                                    value={item.requiresApproval === undefined ? "" : (item.requiresApproval ? "yes" : "no")}
+                                    onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, requiresApproval: v === "yes" } : i))}
+                                    disabled={item.status === "creating" || item.status === "done"}
+                                  >
+                                    <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-approval-${item.id}`}>
+                                      <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="yes">Yes</SelectItem>
+                                      <SelectItem value="no">No</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Renewal Period <span className="text-destructive">*</span></Label>
+                                <Select
+                                  value={item.renewalPeriodMonths === undefined ? "" : (item.renewalPeriodMonths === null ? "none" : String(item.renewalPeriodMonths))}
+                                  onValueChange={(val) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, renewalPeriodMonths: val === "none" ? null : parseInt(val) } : i))}
+                                  disabled={item.status === "creating" || item.status === "done"}
+                                >
+                                  <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-renewal-${item.id}`}>
+                                    <SelectValue placeholder="Select..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">No renewal</SelectItem>
+                                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
+                                      <SelectItem key={m} value={String(m)}>
+                                        {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -3034,7 +3039,10 @@ export default function TemplateLibraryPage() {
                 isBulkCreating ||
                 bulkFileItems.filter(i => i.status === "ready").length === 0 ||
                 bulkFileItems.some(i => i.status === "uploading") ||
-                bulkFileItems.filter(i => i.status === "ready").some(i => !i.name.trim())
+                bulkFileItems.filter(i => i.status === "ready").some(i => !i.name.trim()) ||
+                (bulkShared.visibility !== "public" && bulkFileItems.filter(i => i.status === "ready").some(i =>
+                  !i.folderTemplateId || i.isMandatory === undefined || i.requiresApproval === undefined || i.renewalPeriodMonths === undefined
+                ))
               }
               data-testid="button-bulk-create-templates"
             >
