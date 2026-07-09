@@ -11360,6 +11360,13 @@
           "message": "Fixed: sign-in check no longer retries needlessly after a failed auth attempt",
           "category": "bug",
           "createdAt": "2026-07-09T10:35:49.164Z"
+        },
+        {
+          "id": "d5f94h37-6c30-4g84-e0b5-4g1c7i953f81",
+          "patch": 29,
+          "message": "Left navigation menu now opens expanded by default",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T12:27:37.210Z"
         }
       ],
       "publishedPatch": 28,

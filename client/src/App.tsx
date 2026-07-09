@@ -1015,7 +1015,7 @@ function AuthenticatedApp() {
             />
             <SseConnector onServerDown={setServerDown} />
             <ServerRestartOverlay visible={serverDown} />
-            <SidebarProvider defaultOpen={false} style={sidebarStyle as React.CSSProperties}>
+            <SidebarProvider defaultOpen={true} style={sidebarStyle as React.CSSProperties}>
               <div className="flex h-screen w-full">
                 <AppSidebar user={user} />
                 <SidebarInset className="flex flex-1 flex-col overflow-hidden">
