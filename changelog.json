@@ -11423,6 +11423,13 @@
           "message": "Bulk template upload: field labels and controls now sit side by side",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:43:32.539Z"
+        },
+        {
+          "id": "e6f7a8b9-bulk-upload-file-shadow-darker-2026",
+          "patch": 31,
+          "message": "Bulk template upload: darker shadow around each file card",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:44:09.134Z"
         }
       ],
       "publishedPatch": 30,
