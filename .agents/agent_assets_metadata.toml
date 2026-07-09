@@ -72,3 +72,9 @@ id = "OmMjSCOActxnEVi6MxzwH"
 uri = "file://templates_and_toolkit_export.xlsx"
 type = "table"
 title = "Templates & Toolkit Export (Production)"
+
+[[outputs]]
+id = "7FSeYjKeCzH2ZKZIRLTvS"
+uri = "file://.local/outputs/hr_pathway.json"
+type = "unspecified"
+title = "HR Toolkit Pathway JSON"
