@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 32,
+      "patch": 33,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -11465,9 +11465,16 @@
           "message": "Fixed: bulk upload dialog widened off-screen with long folder paths",
           "category": "bug",
           "createdAt": "2026-07-09T15:26:08.477Z"
+        },
+        {
+          "id": "e5f6a7b8-bulk-upload-grid-blowout-fix-2026",
+          "patch": 33,
+          "message": "Fixed: upload dialog still overflowed with long file paths",
+          "category": "bug",
+          "createdAt": "2026-07-09T15:36:04.536Z"
         }
       ],
-      "publishedPatch": 31,
+      "publishedPatch": 32,
       "patchedEntryIds": [
         "d4e9f6b7-pdf-page-number-mask-2026",
         "c3d8e5a6-case-document-edit-2026",
@@ -12474,7 +12481,8 @@
         "f7a8b9c0-bulk-upload-shadow-spacing-fix-2026",
         "a1b2c3d5-bulk-upload-widen-selects-2026",
         "b2c3d4e5-toolkit-folder-per-file-2026",
-        "c3d4e5f6-bulk-upload-toolkit-field-layout-2026"
+        "c3d4e5f6-bulk-upload-toolkit-field-layout-2026",
+        "d4e5f6a7-bulk-upload-folder-overflow-fix-2026"
       ]
     }
   ]

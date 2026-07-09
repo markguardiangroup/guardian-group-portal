@@ -2633,7 +2633,7 @@ export default function TemplateLibraryPage() {
             <DialogTitle>Add Document Templates</DialogTitle>
             <DialogDescription>Set shared settings, then select one or more files. Each file gets its own name and description.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0">
             {/* ── Shared settings ── */}
             <div className="space-y-2">
               <Label htmlFor="bulk-module">Module</Label>
