@@ -2950,7 +2950,7 @@ export default function TemplateLibraryPage() {
                                       onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
                                       disabled={item.status === "creating" || item.status === "done"}
                                     >
-                                      <SelectTrigger className="h-7 text-xs w-36" data-testid={`select-bulk-folder-${item.id}`}>
+                                      <SelectTrigger className="h-7 text-xs w-48" data-testid={`select-bulk-folder-${item.id}`}>
                                         <SelectValue placeholder="Select a folder" />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -2971,7 +2971,7 @@ export default function TemplateLibraryPage() {
                                     onValueChange={(val) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, renewalPeriodMonths: val === "none" ? null : parseInt(val) } : i))}
                                     disabled={item.status === "creating" || item.status === "done"}
                                   >
-                                    <SelectTrigger className="h-7 text-xs w-36" data-testid={`select-bulk-renewal-${item.id}`}>
+                                    <SelectTrigger className="h-7 text-xs w-48" data-testid={`select-bulk-renewal-${item.id}`}>
                                       <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>

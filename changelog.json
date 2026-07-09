@@ -11437,6 +11437,13 @@
           "message": "Fixed: file card shadows were hidden by overlapping adjacent cards",
           "category": "bug",
           "createdAt": "2026-07-09T14:45:35.340Z"
+        },
+        {
+          "id": "a1b2c3d5-bulk-upload-widen-selects-2026",
+          "patch": 31,
+          "message": "Bulk template upload: widened folder and renewal fields",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:47:54.509Z"
         }
       ],
       "publishedPatch": 30,
