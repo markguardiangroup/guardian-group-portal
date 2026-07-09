@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 33,
+      "patch": 34,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -11493,9 +11493,16 @@
           "message": "Raised bulk upload limit so large template batches go through",
           "category": "enhancement",
           "createdAt": "2026-07-09T15:57:08.606Z"
+        },
+        {
+          "id": "c3d4e5f6-fix-accelo-sync-type-errors-2026",
+          "patch": 34,
+          "message": "Fixed underlying type issues in the daily Accelo sync job",
+          "category": "bug",
+          "createdAt": "2026-07-09T16:03:39.844Z"
         }
       ],
-      "publishedPatch": 32,
+      "publishedPatch": 33,
       "patchedEntryIds": [
         "d4e9f6b7-pdf-page-number-mask-2026",
         "c3d8e5a6-case-document-edit-2026",
@@ -12503,7 +12510,11 @@
         "a1b2c3d5-bulk-upload-widen-selects-2026",
         "b2c3d4e5-toolkit-folder-per-file-2026",
         "c3d4e5f6-bulk-upload-toolkit-field-layout-2026",
-        "d4e5f6a7-bulk-upload-folder-overflow-fix-2026"
+        "d4e5f6a7-bulk-upload-folder-overflow-fix-2026",
+        "e5f6a7b8-bulk-upload-grid-blowout-fix-2026",
+        "f6a7b8c9-bulk-upload-apply-folder-to-all-2026",
+        "a1b2c3d4-manage-toolkit-folders-default-module-2026",
+        "b2c3d4e5-upload-rate-limit-raise-200-2026"
       ]
     }
   ]

@@ -698,7 +698,7 @@ process.on("uncaughtException", (err) => {
         arr.push(link);
         bySource.set(link.sourceCode, arr);
       }
-      for (const [sourceCode, sourceLinks] of bySource) {
+      for (const [sourceCode, sourceLinks] of Array.from(bySource)) {
         try {
           const { connected } = await getConnectionStatus(sourceCode);
           if (!connected) {
@@ -706,15 +706,15 @@ process.on("uncaughtException", (err) => {
             continue;
           }
           const BATCH_SIZE = 50;
-          const updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null }> = [];
+          const updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }> = [];
           for (let i = 0; i < sourceLinks.length; i += BATCH_SIZE) {
             const batch = sourceLinks.slice(i, i + BATCH_SIZE);
-            const ids = batch.map(l => l.acceloId).join("|");
+            const ids = batch.map((l: typeof sourceLinks[number]) => l.acceloId).join("|");
             try {
               const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing,company_status(id,title,color)&_limit=${BATCH_SIZE}`);
               const results = Array.isArray(data?.response) ? data.response : [];
               for (const r of results) {
-                const link = batch.find(l => String(l.acceloId) === String(r.id));
+                const link = batch.find((l: typeof sourceLinks[number]) => String(l.acceloId) === String(r.id));
                 const rawStatus = r.company_status;
                 const acceloType = rawStatus
                   ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
