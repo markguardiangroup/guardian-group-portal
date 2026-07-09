@@ -11395,6 +11395,13 @@
           "message": "Bulk template upload: smaller, toggle-based compliance settings",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:35:25.116Z"
+        },
+        {
+          "id": "a9c1d2e3-bulk-upload-2x2-grid-2026",
+          "patch": 31,
+          "message": "Bulk template upload: compliance fields now arranged 2x2",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:38:55.710Z"
         }
       ],
       "publishedPatch": 30,

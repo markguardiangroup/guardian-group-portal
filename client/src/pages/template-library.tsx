@@ -2941,87 +2941,89 @@ export default function TemplateLibraryPage() {
                           </div>
                           {bulkShared.visibility !== "public" && (
                             <>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Folder <span className="text-destructive">*</span></Label>
-                                <Select
-                                  value={item.folderTemplateId ?? ""}
-                                  onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
-                                  disabled={item.status === "creating" || item.status === "done"}
-                                >
-                                  <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-folder-${item.id}`}>
-                                    <SelectValue placeholder="Select a folder" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
-                                      <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId).length === 0 && (
-                                  <p className="text-xs text-muted-foreground">No folders available for this module.</p>
-                                )}
-                              </div>
-                              <div className="flex items-center justify-between gap-2 py-0.5">
-                                <Label className="text-xs shrink-0">Mandatory <span className="text-destructive">*</span></Label>
-                                <div className="flex rounded-md border overflow-hidden h-6 shrink-0">
-                                  {(["yes", "no"] as const).map((opt) => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      disabled={item.status === "creating" || item.status === "done"}
-                                      className={`px-2.5 text-[11px] font-medium leading-none transition-colors ${
-                                        (opt === "yes" ? item.isMandatory === true : item.isMandatory === false)
-                                          ? "bg-primary text-primary-foreground"
-                                          : "bg-background text-muted-foreground hover:bg-muted"
-                                      } ${opt === "yes" ? "border-r" : ""}`}
-                                      onClick={() => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, isMandatory: opt === "yes" } : i))}
-                                      data-testid={`toggle-bulk-mandatory-${opt}-${item.id}`}
-                                    >
-                                      {opt === "yes" ? "Yes" : "No"}
-                                    </button>
-                                  ))}
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Folder <span className="text-destructive">*</span></Label>
+                                  <Select
+                                    value={item.folderTemplateId ?? ""}
+                                    onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
+                                    disabled={item.status === "creating" || item.status === "done"}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-folder-${item.id}`}>
+                                      <SelectValue placeholder="Select a folder" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
+                                        <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId).length === 0 && (
+                                    <p className="text-xs text-muted-foreground">No folders available.</p>
+                                  )}
                                 </div>
-                              </div>
-                              <div className="flex items-center justify-between gap-2 py-0.5">
-                                <Label className="text-xs shrink-0">Client Approval <span className="text-destructive">*</span></Label>
-                                <div className="flex rounded-md border overflow-hidden h-6 shrink-0">
-                                  {(["yes", "no"] as const).map((opt) => (
-                                    <button
-                                      key={opt}
-                                      type="button"
-                                      disabled={item.status === "creating" || item.status === "done"}
-                                      className={`px-2.5 text-[11px] font-medium leading-none transition-colors ${
-                                        (opt === "yes" ? item.requiresApproval === true : item.requiresApproval === false)
-                                          ? "bg-primary text-primary-foreground"
-                                          : "bg-background text-muted-foreground hover:bg-muted"
-                                      } ${opt === "yes" ? "border-r" : ""}`}
-                                      onClick={() => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, requiresApproval: opt === "yes" } : i))}
-                                      data-testid={`toggle-bulk-approval-${opt}-${item.id}`}
-                                    >
-                                      {opt === "yes" ? "Yes" : "No"}
-                                    </button>
-                                  ))}
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Renewal Period <span className="text-destructive">*</span></Label>
+                                  <Select
+                                    value={item.renewalPeriodMonths === undefined ? "" : (item.renewalPeriodMonths === null ? "none" : String(item.renewalPeriodMonths))}
+                                    onValueChange={(val) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, renewalPeriodMonths: val === "none" ? null : parseInt(val) } : i))}
+                                    disabled={item.status === "creating" || item.status === "done"}
+                                  >
+                                    <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-renewal-${item.id}`}>
+                                      <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">No renewal</SelectItem>
+                                      {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
+                                        <SelectItem key={m} value={String(m)}>
+                                          {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </div>
-                              </div>
-                              <div className="space-y-1">
-                                <Label className="text-xs">Renewal Period <span className="text-destructive">*</span></Label>
-                                <Select
-                                  value={item.renewalPeriodMonths === undefined ? "" : (item.renewalPeriodMonths === null ? "none" : String(item.renewalPeriodMonths))}
-                                  onValueChange={(val) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, renewalPeriodMonths: val === "none" ? null : parseInt(val) } : i))}
-                                  disabled={item.status === "creating" || item.status === "done"}
-                                >
-                                  <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-renewal-${item.id}`}>
-                                    <SelectValue placeholder="Select..." />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">No renewal</SelectItem>
-                                    {[1,2,3,4,5,6,7,8,9,10,11,12,18,24,36,48,60].map(m => (
-                                      <SelectItem key={m} value={String(m)}>
-                                        {m} {m === 1 ? "month" : "months"}{m === 24 ? " (2 years)" : m === 36 ? " (3 years)" : m === 48 ? " (4 years)" : m === 60 ? " (5 years)" : ""}
-                                      </SelectItem>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Mandatory <span className="text-destructive">*</span></Label>
+                                  <div className="flex rounded-md border overflow-hidden h-7 w-fit">
+                                    {(["yes", "no"] as const).map((opt) => (
+                                      <button
+                                        key={opt}
+                                        type="button"
+                                        disabled={item.status === "creating" || item.status === "done"}
+                                        className={`px-3 text-xs font-medium leading-none transition-colors ${
+                                          (opt === "yes" ? item.isMandatory === true : item.isMandatory === false)
+                                            ? "bg-primary text-primary-foreground"
+                                            : "bg-background text-muted-foreground hover:bg-muted"
+                                        } ${opt === "yes" ? "border-r" : ""}`}
+                                        onClick={() => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, isMandatory: opt === "yes" } : i))}
+                                        data-testid={`toggle-bulk-mandatory-${opt}-${item.id}`}
+                                      >
+                                        {opt === "yes" ? "Yes" : "No"}
+                                      </button>
                                     ))}
-                                  </SelectContent>
-                                </Select>
+                                  </div>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Client Approval <span className="text-destructive">*</span></Label>
+                                  <div className="flex rounded-md border overflow-hidden h-7 w-fit">
+                                    {(["yes", "no"] as const).map((opt) => (
+                                      <button
+                                        key={opt}
+                                        type="button"
+                                        disabled={item.status === "creating" || item.status === "done"}
+                                        className={`px-3 text-xs font-medium leading-none transition-colors ${
+                                          (opt === "yes" ? item.requiresApproval === true : item.requiresApproval === false)
+                                            ? "bg-primary text-primary-foreground"
+                                            : "bg-background text-muted-foreground hover:bg-muted"
+                                        } ${opt === "yes" ? "border-r" : ""}`}
+                                        onClick={() => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, requiresApproval: opt === "yes" } : i))}
+                                        data-testid={`toggle-bulk-approval-${opt}-${item.id}`}
+                                      >
+                                        {opt === "yes" ? "Yes" : "No"}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             </>
                           )}
