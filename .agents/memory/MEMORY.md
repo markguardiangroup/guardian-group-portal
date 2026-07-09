@@ -32,3 +32,4 @@
 - [Private template visibility gate](private-template-visibility-gate.md) — "private" template filtering must be staff-vs-client, not developer-vs-everyone; keep it independent from source-scoping.
 - [isSharedLink is a badge flag, not an origin gate](shared-link-badge-vs-origin.md) — backend sets isSharedLink=true for ALL viewers (incl. origin) whenever a doc has shares, for badge display; UI action-gating must use a separate isOrigin field instead.
 - [EL case Response Deadline sync](case-milestone-checklist-sync.md) — every write path touching cases.responseDeadline must also sync the linked Response Deadline milestone + ET3 checklist submissionDate.
+- [Retry predicate must check status, not message string](retry-predicate-status-vs-message.md) — TanStack Query retry() checking error.message.startsWith("401") fails silently since server errors don't include status in message text.

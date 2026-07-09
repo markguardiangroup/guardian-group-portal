@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, Clock } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, ApiError } from "@/lib/queryClient";
 import type { UserRole } from "@shared/schema";
 import { useIdleTimeout } from "./use-idle-timeout";
 
@@ -294,8 +294,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initialData: cached?.user,
     initialDataUpdatedAt: cached?.ts ?? 0,
     retry: (failureCount, error) => {
-      const msg = (error as Error)?.message ?? "";
-      if (msg.startsWith("401") || msg.startsWith("403")) return false;
+      const status = (error as ApiError)?.status;
+      if (status === 401 || status === 403) return false;
       return failureCount < 3;
     },
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),

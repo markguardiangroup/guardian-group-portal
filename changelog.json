@@ -11353,6 +11353,13 @@
           "message": "Improved: app loads instantly for returning users — no more loading spinner on page refresh",
           "category": "enhancement",
           "createdAt": "2026-07-08T22:46:35.292Z"
+        },
+        {
+          "id": "c4e83g26-5b29-4f73-d9a4-3f0b6h842e70",
+          "patch": 29,
+          "message": "Fixed: sign-in check no longer retries needlessly after a failed auth attempt",
+          "category": "bug",
+          "createdAt": "2026-07-09T10:35:49.164Z"
         }
       ],
       "publishedPatch": 28,
