@@ -2628,7 +2628,7 @@ export default function TemplateLibraryPage() {
         }
         setIsTemplateDialogOpen(open);
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Add Document Templates</DialogTitle>
             <DialogDescription>Set shared settings, then select one or more files. Each file gets its own name and description.</DialogDescription>
@@ -2829,14 +2829,14 @@ export default function TemplateLibraryPage() {
                           </div>
                           {bulkShared.visibility === "public" && (
                             <div className="space-y-1">
-                              <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
                                 <Label className="text-xs shrink-0">Toolkit Folder <span className="text-destructive">*</span></Label>
                                 <Select
                                   value={item.toolkitFolderId ?? ""}
                                   onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, toolkitFolderId: v } : i))}
                                   disabled={item.status === "creating" || item.status === "done"}
                                 >
-                                  <SelectTrigger className="h-7 text-xs w-48" data-testid={`select-bulk-toolkit-folder-${item.id}`}>
+                                  <SelectTrigger className="h-7 text-xs flex-1 min-w-0" data-testid={`select-bulk-toolkit-folder-${item.id}`}>
                                     <SelectValue placeholder="Select a folder" />
                                   </SelectTrigger>
                                   <SelectContent>
