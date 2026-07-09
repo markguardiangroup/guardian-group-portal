@@ -11388,6 +11388,13 @@
           "message": "Bulk template upload: folder & compliance settings now set per file",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:05:14.820Z"
+        },
+        {
+          "id": "f2b3c4d5-bulk-upload-compact-toggles-2026",
+          "patch": 31,
+          "message": "Bulk template upload: smaller, toggle-based compliance settings",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:35:25.116Z"
         }
       ],
       "publishedPatch": 30,

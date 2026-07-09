@@ -2942,13 +2942,13 @@ export default function TemplateLibraryPage() {
                           {bulkShared.visibility !== "public" && (
                             <>
                               <div className="space-y-1">
-                                <Label className="text-xs">Template Library Folder <span className="text-destructive">*</span></Label>
+                                <Label className="text-xs">Folder <span className="text-destructive">*</span></Label>
                                 <Select
                                   value={item.folderTemplateId ?? ""}
                                   onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
                                   disabled={item.status === "creating" || item.status === "done"}
                                 >
-                                  <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-folder-${item.id}`}>
+                                  <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-folder-${item.id}`}>
                                     <SelectValue placeholder="Select a folder" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -2961,38 +2961,46 @@ export default function TemplateLibraryPage() {
                                   <p className="text-xs text-muted-foreground">No folders available for this module.</p>
                                 )}
                               </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Mandatory Document <span className="text-destructive">*</span></Label>
-                                  <Select
-                                    value={item.isMandatory === undefined ? "" : (item.isMandatory ? "yes" : "no")}
-                                    onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, isMandatory: v === "yes" } : i))}
-                                    disabled={item.status === "creating" || item.status === "done"}
-                                  >
-                                    <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-mandatory-${item.id}`}>
-                                      <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="yes">Yes</SelectItem>
-                                      <SelectItem value="no">No</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                              <div className="flex items-center justify-between gap-2 py-0.5">
+                                <Label className="text-xs shrink-0">Mandatory <span className="text-destructive">*</span></Label>
+                                <div className="flex rounded-md border overflow-hidden h-6 shrink-0">
+                                  {(["yes", "no"] as const).map((opt) => (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      disabled={item.status === "creating" || item.status === "done"}
+                                      className={`px-2.5 text-[11px] font-medium leading-none transition-colors ${
+                                        (opt === "yes" ? item.isMandatory === true : item.isMandatory === false)
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-background text-muted-foreground hover:bg-muted"
+                                      } ${opt === "yes" ? "border-r" : ""}`}
+                                      onClick={() => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, isMandatory: opt === "yes" } : i))}
+                                      data-testid={`toggle-bulk-mandatory-${opt}-${item.id}`}
+                                    >
+                                      {opt === "yes" ? "Yes" : "No"}
+                                    </button>
+                                  ))}
                                 </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Client Approval <span className="text-destructive">*</span></Label>
-                                  <Select
-                                    value={item.requiresApproval === undefined ? "" : (item.requiresApproval ? "yes" : "no")}
-                                    onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, requiresApproval: v === "yes" } : i))}
-                                    disabled={item.status === "creating" || item.status === "done"}
-                                  >
-                                    <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-approval-${item.id}`}>
-                                      <SelectValue placeholder="Select..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="yes">Yes</SelectItem>
-                                      <SelectItem value="no">No</SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                              </div>
+                              <div className="flex items-center justify-between gap-2 py-0.5">
+                                <Label className="text-xs shrink-0">Client Approval <span className="text-destructive">*</span></Label>
+                                <div className="flex rounded-md border overflow-hidden h-6 shrink-0">
+                                  {(["yes", "no"] as const).map((opt) => (
+                                    <button
+                                      key={opt}
+                                      type="button"
+                                      disabled={item.status === "creating" || item.status === "done"}
+                                      className={`px-2.5 text-[11px] font-medium leading-none transition-colors ${
+                                        (opt === "yes" ? item.requiresApproval === true : item.requiresApproval === false)
+                                          ? "bg-primary text-primary-foreground"
+                                          : "bg-background text-muted-foreground hover:bg-muted"
+                                      } ${opt === "yes" ? "border-r" : ""}`}
+                                      onClick={() => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, requiresApproval: opt === "yes" } : i))}
+                                      data-testid={`toggle-bulk-approval-${opt}-${item.id}`}
+                                    >
+                                      {opt === "yes" ? "Yes" : "No"}
+                                    </button>
+                                  ))}
                                 </div>
                               </div>
                               <div className="space-y-1">
@@ -3002,7 +3010,7 @@ export default function TemplateLibraryPage() {
                                   onValueChange={(val) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, renewalPeriodMonths: val === "none" ? null : parseInt(val) } : i))}
                                   disabled={item.status === "creating" || item.status === "done"}
                                 >
-                                  <SelectTrigger className="h-8 text-sm" data-testid={`select-bulk-renewal-${item.id}`}>
+                                  <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-renewal-${item.id}`}>
                                     <SelectValue placeholder="Select..." />
                                   </SelectTrigger>
                                   <SelectContent>
