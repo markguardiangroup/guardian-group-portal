@@ -11409,6 +11409,13 @@
           "message": "Bulk template upload: added stronger border around each file card",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:39:57.654Z"
+        },
+        {
+          "id": "c4e5f6a7-bulk-upload-file-border-darker-2026",
+          "patch": 31,
+          "message": "Bulk template upload: made file card borders even more visible",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:42:19.496Z"
         }
       ],
       "publishedPatch": 30,
