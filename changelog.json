@@ -11430,6 +11430,13 @@
           "message": "Bulk template upload: darker shadow around each file card",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:44:09.134Z"
+        },
+        {
+          "id": "f7a8b9c0-bulk-upload-shadow-spacing-fix-2026",
+          "patch": 31,
+          "message": "Fixed: file card shadows were hidden by overlapping adjacent cards",
+          "category": "bug",
+          "createdAt": "2026-07-09T14:45:35.340Z"
         }
       ],
       "publishedPatch": 30,

@@ -2882,7 +2882,7 @@ export default function TemplateLibraryPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium">Files ({bulkFileItems.filter(i => i.status === "ready" || i.status === "done").length} of {bulkFileItems.length} ready)</p>
                 </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <div className="space-y-4 max-h-64 overflow-y-auto overflow-x-visible pr-1 pb-1">
                   {bulkFileItems.map((item) => (
                     <div key={item.id} className="border-2 border-foreground/30 rounded-md p-3 space-y-2 bg-muted/10 shadow-lg shadow-black/20" data-testid={`bulk-file-item-${item.id}`}>
                       <div className="flex items-center gap-2">
