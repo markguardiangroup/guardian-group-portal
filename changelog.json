@@ -4412,7 +4412,7 @@
       "id": "7f2a96eb-924a-48b8-90ce-bdd065eeee6e",
       "major": 1,
       "minor": 1,
-      "patch": 30,
+      "patch": 31,
       "label": "Stable Modules and Documents",
       "isActive": true,
       "createdAt": "2026-05-14T18:51:27.375Z",
@@ -11369,7 +11369,7 @@
           "createdAt": "2026-07-09T12:27:37.210Z"
         }
       ],
-      "publishedPatch": 29,
+      "publishedPatch": 30,
       "patchedEntryIds": [
         "d4e9f6b7-pdf-page-number-mask-2026",
         "c3d8e5a6-case-document-edit-2026",
