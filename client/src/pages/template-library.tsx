@@ -1946,7 +1946,11 @@ export default function TemplateLibraryPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setManageTkModule("health_safety");
+                setManageTkModule(
+                  selectedModule === "health_safety" || selectedModule === "human_resources" || selectedModule === "employment_law"
+                    ? selectedModule
+                    : "health_safety"
+                );
                 setNewTkFolderName("");
                 setNewTkFolderSources([]);
                 setEditingTkFolderId(null);

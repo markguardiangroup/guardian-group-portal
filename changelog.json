@@ -11479,6 +11479,13 @@
           "message": "Bulk template upload: apply a folder to all files at once",
           "category": "feature",
           "createdAt": "2026-07-09T15:37:30.085Z"
+        },
+        {
+          "id": "a1b2c3d4-manage-toolkit-folders-default-module-2026",
+          "patch": 33,
+          "message": "Manage Toolkit Folders now opens on your current module",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T15:40:12.057Z"
         }
       ],
       "publishedPatch": 32,
