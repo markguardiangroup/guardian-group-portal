@@ -2943,33 +2943,35 @@ export default function TemplateLibraryPage() {
                             <>
                               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                                 <div className="space-y-1">
-                                  <Label className="text-xs">Folder <span className="text-destructive">*</span></Label>
-                                  <Select
-                                    value={item.folderTemplateId ?? ""}
-                                    onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
-                                    disabled={item.status === "creating" || item.status === "done"}
-                                  >
-                                    <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-folder-${item.id}`}>
-                                      <SelectValue placeholder="Select a folder" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
-                                        <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <Label className="text-xs shrink-0">Folder <span className="text-destructive">*</span></Label>
+                                    <Select
+                                      value={item.folderTemplateId ?? ""}
+                                      onValueChange={(v) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, folderTemplateId: v } : i))}
+                                      disabled={item.status === "creating" || item.status === "done"}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs w-36" data-testid={`select-bulk-folder-${item.id}`}>
+                                        <SelectValue placeholder="Select a folder" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {sortFoldersHierarchically(folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId)).map(f => (
+                                          <SelectItem key={f.id} value={f.id}>{f.parentId ? "└ " : ""}{f.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                   {folderTemplates.filter(f => f.module === bulkShared.module && f.isActive && !f.isLocked && !f.toolkitFolderId).length === 0 && (
-                                    <p className="text-xs text-muted-foreground">No folders available.</p>
+                                    <p className="text-xs text-muted-foreground text-right">No folders available.</p>
                                   )}
                                 </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Renewal Period <span className="text-destructive">*</span></Label>
+                                <div className="flex items-center justify-between gap-2">
+                                  <Label className="text-xs shrink-0">Renewal Period <span className="text-destructive">*</span></Label>
                                   <Select
                                     value={item.renewalPeriodMonths === undefined ? "" : (item.renewalPeriodMonths === null ? "none" : String(item.renewalPeriodMonths))}
                                     onValueChange={(val) => setBulkFileItems(prev => prev.map(i => i.id === item.id ? { ...i, renewalPeriodMonths: val === "none" ? null : parseInt(val) } : i))}
                                     disabled={item.status === "creating" || item.status === "done"}
                                   >
-                                    <SelectTrigger className="h-7 text-xs" data-testid={`select-bulk-renewal-${item.id}`}>
+                                    <SelectTrigger className="h-7 text-xs w-36" data-testid={`select-bulk-renewal-${item.id}`}>
                                       <SelectValue placeholder="Select..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -2982,9 +2984,9 @@ export default function TemplateLibraryPage() {
                                     </SelectContent>
                                   </Select>
                                 </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Mandatory <span className="text-destructive">*</span></Label>
-                                  <div className="flex rounded-md border overflow-hidden h-7 w-fit">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Label className="text-xs shrink-0">Mandatory <span className="text-destructive">*</span></Label>
+                                  <div className="flex rounded-md border overflow-hidden h-7 shrink-0">
                                     {(["yes", "no"] as const).map((opt) => (
                                       <button
                                         key={opt}
@@ -3003,9 +3005,9 @@ export default function TemplateLibraryPage() {
                                     ))}
                                   </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Client Approval <span className="text-destructive">*</span></Label>
-                                  <div className="flex rounded-md border overflow-hidden h-7 w-fit">
+                                <div className="flex items-center justify-between gap-2">
+                                  <Label className="text-xs shrink-0">Client Approval <span className="text-destructive">*</span></Label>
+                                  <div className="flex rounded-md border overflow-hidden h-7 shrink-0">
                                     {(["yes", "no"] as const).map((opt) => (
                                       <button
                                         key={opt}

@@ -11416,6 +11416,13 @@
           "message": "Bulk template upload: made file card borders even more visible",
           "category": "enhancement",
           "createdAt": "2026-07-09T14:42:19.496Z"
+        },
+        {
+          "id": "d5e6f7a8-bulk-upload-inline-labels-2026",
+          "patch": 31,
+          "message": "Bulk template upload: field labels and controls now sit side by side",
+          "category": "enhancement",
+          "createdAt": "2026-07-09T14:43:32.539Z"
         }
       ],
       "publishedPatch": 30,
