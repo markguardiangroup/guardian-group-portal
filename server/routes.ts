@@ -26105,13 +26105,15 @@ export async function registerRoutes(
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const { acceloId } = req.params;
       // Contact records carry personal PII (name/email/phone) for real people, unlike the
-      // company-level search/detail endpoints. The only legitimate caller (companies.tsx)
-      // always fetches contacts immediately after creating the accelo-link, so require an
-      // existing link to a portal company the caller can access before returning any PII —
-      // this prevents a source-scoped consultant from harvesting another tenant's (or an
-      // unlinked prospect's) contact details just by guessing/enumerating Accelo IDs.
+      // company-level search/detail endpoints. The legitimate callers are companies.tsx
+      // fetching contacts either (a) mid-wizard for a brand-new company that hasn't been
+      // created/linked yet, or (b) immediately after creating the accelo-link for an
+      // already-imported company. Case (a) has no link to check yet, so we only enforce the
+      // access check when a link already exists — this still prevents a source-scoped
+      // consultant from harvesting another tenant's already-imported contact details, while
+      // allowing the normal import flow for not-yet-linked prospect companies.
       const existingLink = await storage.getAcceloLinkBySourceAndAcceloId(sourceCode, acceloId).catch(() => null);
-      if (!existingLink || !(await canUserAccessCompany(user, existingLink.companyId))) {
+      if (existingLink && !(await canUserAccessCompany(user, existingLink.companyId))) {
         return res.status(403).json({ error: "Access denied" });
       }
       const data = await acceloGet(
