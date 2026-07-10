@@ -11507,6 +11507,13 @@
           "message": "Accelo import search now shows each company's Accelo status",
           "category": "enhancement",
           "createdAt": "2026-07-10T08:35:00.000Z"
+        },
+        {
+          "id": "f5a6b7c8-accelo-import-hide-cancelled-2026",
+          "patch": 34,
+          "message": "Accelo import search no longer shows cancelled companies",
+          "category": "enhancement",
+          "createdAt": "2026-07-10T08:45:00.000Z"
         }
       ],
       "publishedPatch": 33,
