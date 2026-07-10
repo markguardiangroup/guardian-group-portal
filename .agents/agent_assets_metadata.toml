@@ -90,3 +90,9 @@ id = "IijFCHNiKA_trNbSSh4xJ"
 uri = "file://.local/outputs/hr_pathway_v2_tree.json"
 type = "unspecified"
 title = "HR Toolkit Pathway v2 — 5 categories, up to 5 levels deep"
+
+[[outputs]]
+id = "7TS9Wh7LnwFhFc8dZf4C-"
+uri = "file://.local/outputs/hs_pathway_tree.json"
+type = "unspecified"
+title = "H&S Toolkit Pathway — 5 categories, same method as HR"
