@@ -11542,6 +11542,13 @@
           "message": "Companies, sites and users filters are now remembered during your session",
           "category": "enhancement",
           "createdAt": "2026-07-10T14:41:00.000Z"
+        },
+        {
+          "id": "e0f1a2b3-accelo-contact-no-email-disabled-2026",
+          "patch": 34,
+          "message": "Accelo contacts without an email can no longer be selected for import",
+          "category": "enhancement",
+          "createdAt": "2026-07-10T14:42:00.000Z"
         }
       ],
       "publishedPatch": 33,

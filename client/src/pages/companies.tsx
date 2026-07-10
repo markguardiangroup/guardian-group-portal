@@ -2427,18 +2427,20 @@ export default function Companies() {
                 <div className="space-y-3" data-testid="list-accelo-contacts">
                   {acceloContacts.map((contact: any) => {
                     const row = contactRows[String(contact.id)] ?? { selected: false, primary: false, keyContact: false, addToSite: false };
+                    const hasEmail = !!contact.email;
                     return (
-                      <div key={contact.id} className={`rounded-md border p-3 transition-colors ${row.selected ? "border-primary/40 bg-primary/5" : ""}`} data-testid={`card-accelo-contact-${contact.id}`}>
+                      <div key={contact.id} className={`rounded-md border p-3 transition-colors ${row.selected ? "border-primary/40 bg-primary/5" : ""} ${!hasEmail ? "opacity-60" : ""}`} data-testid={`card-accelo-contact-${contact.id}`}>
                         <div className="flex items-start gap-3">
                           <Checkbox
                             id={`accelo-contact-${contact.id}`}
                             checked={row.selected}
+                            disabled={!hasEmail}
                             onCheckedChange={(checked) => setContactRows(prev => ({ ...prev, [String(contact.id)]: { ...row, selected: !!checked, primary: !!checked ? row.primary : false } }))}
                             data-testid={`checkbox-accelo-contact-${contact.id}`}
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <label htmlFor={`accelo-contact-${contact.id}`} className="text-sm font-medium cursor-pointer">
+                              <label htmlFor={`accelo-contact-${contact.id}`} className={`text-sm font-medium ${hasEmail ? "cursor-pointer" : "cursor-not-allowed"}`}>
                                 {[contact.firstname, contact.lastname].filter(Boolean).join(" ") || contact.email}
                               </label>
                               {contact.status?.title && (
@@ -2452,7 +2454,11 @@ export default function Companies() {
                                 </Badge>
                               )}
                             </div>
-                            {contact.email && <p className="text-xs text-muted-foreground">{contact.email}</p>}
+                            {contact.email ? (
+                              <p className="text-xs text-muted-foreground">{contact.email}</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground italic">No email on file — cannot be imported</p>
+                            )}
                           </div>
                         </div>
                         {row.selected && (
