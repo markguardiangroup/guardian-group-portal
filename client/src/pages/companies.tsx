@@ -3108,7 +3108,19 @@ export default function Companies() {
                           : <Building2 className="h-4 w-4 text-primary" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{result.name}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium truncate">{result.name}</p>
+                          {result.company_status?.title && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs py-0 shrink-0"
+                              style={acceloBadgeStyle(result.company_status?.color)}
+                              data-testid={`badge-accelo-result-status-${result.id}`}
+                            >
+                              {result.company_status.title}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {result.custom_id ? `#${result.custom_id}` : ""}
                         </p>

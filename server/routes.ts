@@ -26015,7 +26015,7 @@ export async function registerRoutes(
       if (!canAccessAcceloSource(user, sourceCode)) return res.status(403).json({ error: "Forbidden" });
       const q = ((req.query.q as string) ?? "").trim();
       if (!q) return res.json([]);
-      const data = await acceloGet(sourceCode, `/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id&_limit=20`);
+      const data = await acceloGet(sourceCode, `/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id,company_status(id,title,color)&_limit=20`);
       const rawResults = Array.isArray(data?.response) ? data.response : [];
       // Results already linked to a portal company outside this user's tenant scope must be
       // dropped here — otherwise a source-scoped consultant could use search to discover/browse

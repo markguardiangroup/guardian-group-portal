@@ -11500,6 +11500,13 @@
           "message": "Fixed underlying type issues in the daily Accelo sync job",
           "category": "bug",
           "createdAt": "2026-07-09T16:03:39.844Z"
+        },
+        {
+          "id": "e4f5a6b7-accelo-import-search-status-badge-2026",
+          "patch": 34,
+          "message": "Accelo import search now shows each company's Accelo status",
+          "category": "enhancement",
+          "createdAt": "2026-07-10T08:35:00.000Z"
         }
       ],
       "publishedPatch": 33,
