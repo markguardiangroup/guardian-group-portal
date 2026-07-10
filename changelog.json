@@ -11514,6 +11514,13 @@
           "message": "Accelo import search no longer shows cancelled companies",
           "category": "enhancement",
           "createdAt": "2026-07-10T08:45:00.000Z"
+        },
+        {
+          "id": "a6b7c8d9-accelo-import-hide-liquidation-2026",
+          "patch": 34,
+          "message": "Accelo import search no longer shows companies in liquidation",
+          "category": "enhancement",
+          "createdAt": "2026-07-10T08:50:00.000Z"
         }
       ],
       "publishedPatch": 33,

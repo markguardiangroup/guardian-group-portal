@@ -26017,8 +26017,9 @@ export async function registerRoutes(
       if (!q) return res.json([]);
       const data = await acceloGet(sourceCode, `/companies?_search=${encodeURIComponent(q)}&_fields=id,name,phone,website,custom_id,company_status(id,title,color)&_limit=20`);
       const allRawResults = Array.isArray(data?.response) ? data.response : [];
-      // Cancelled companies in Accelo aren't useful import candidates — hide them from search.
-      const rawResults = allRawResults.filter((r: any) => r.company_status?.title?.toLowerCase() !== "cancelled");
+      // Cancelled/liquidated companies in Accelo aren't useful import candidates — hide them from search.
+      const excludedStatuses = new Set(["cancelled", "liquidation"]);
+      const rawResults = allRawResults.filter((r: any) => !excludedStatuses.has(r.company_status?.title?.toLowerCase()));
       // Results already linked to a portal company outside this user's tenant scope must be
       // dropped here — otherwise a source-scoped consultant could use search to discover/browse
       // other tenants' linked Accelo records even though they can't manage those companies.
