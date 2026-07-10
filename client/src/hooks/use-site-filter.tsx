@@ -26,18 +26,39 @@ interface SiteFilterContextType {
 
 const SiteFilterContext = createContext<SiteFilterContextType | null>(null);
 
+function readSessionValue<T>(key: string, fallback: T): T {
+  try {
+    const stored = sessionStorage.getItem(key);
+    if (stored !== null) return JSON.parse(stored) as T;
+  } catch {
+    // ignore malformed/inaccessible storage and fall back to default
+  }
+  return fallback;
+}
+
+function useSessionBackedState<T>(key: string, defaultValue: T): [T, (value: T) => void] {
+  const [value, setValue] = useState<T>(() => readSessionValue(key, defaultValue));
+  const setPersisted = useCallback((next: T) => {
+    setValue(next);
+    try {
+      sessionStorage.setItem(key, JSON.stringify(next));
+    } catch {
+      // storage may be unavailable (e.g. private browsing quota) — safe to ignore
+    }
+  }, [key]);
+  return [value, setPersisted];
+}
+
 export function SiteFilterProvider({ children }: { children: ReactNode }) {
-  const [scopes, setScopes] = useState<Record<string, ScopeState>>({});
-  const [coverageConsultantId, setCoverageConsultantId] = useState<string | null>(null);
-  const [proStaffFilter, setProStaffFilter] = useState<string>("my");
-  const [sitesCompanyId, setSitesCompanyId] = useState<string | null>(null);
+  const [scopes, setScopes] = useSessionBackedState<Record<string, ScopeState>>("siteFilter.scopes", {});
+  const [coverageConsultantId, setCoverageConsultantId] = useSessionBackedState<string | null>("siteFilter.coverageConsultantId", null);
+  const [proStaffFilter, setProStaffFilter] = useSessionBackedState<string>("siteFilter.proStaffFilter", "my");
+  const [sitesCompanyId, setSitesCompanyId] = useSessionBackedState<string | null>("siteFilter.sitesCompanyId", null);
 
   const updateScope = useCallback((scope: string, patch: Partial<ScopeState>) => {
-    setScopes((prev) => {
-      const current = prev[scope] ?? DEFAULT_SCOPE;
-      return { ...prev, [scope]: { ...current, ...patch } };
-    });
-  }, []);
+    const current = scopes[scope] ?? DEFAULT_SCOPE;
+    setScopes({ ...scopes, [scope]: { ...current, ...patch } });
+  }, [scopes, setScopes]);
 
   return (
     <SiteFilterContext.Provider

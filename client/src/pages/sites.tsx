@@ -71,6 +71,7 @@ import type { SiteWithDetails, ComplianceSummary, Company, User } from "@shared/
 import { TablePagination, type PageSize } from "@/components/table-pagination";
 import { Users } from "lucide-react";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useSessionState } from "@/hooks/use-session-state";
 import {
   Popover,
   PopoverContent,
@@ -250,10 +251,10 @@ let _sitesShown = false;
 
 export default function Sites() {
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useSessionState("sites.searchQuery", "");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(20);
-  const [complianceFilter, setComplianceFilter] = useState<string>("all");
+  const [complianceFilter, setComplianceFilter] = useSessionState<string>("sites.complianceFilter", "all");
   const { sitesCompanyId, setSitesCompanyId, proStaffFilter: staffFilter, setProStaffFilter: setStaffFilter } = useSiteFilter();
   const companyFilter = sitesCompanyId || "all";
   const setCompanyFilter = (val: string) => setSitesCompanyId(val === "all" ? null : val);
@@ -511,8 +512,8 @@ export default function Sites() {
     createSiteMutation.mutate(newSite);
   };
 
-  const [sortBy, setSortBy] = useState<"name" | "company" | "compliance">("company");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useSessionState<"name" | "company" | "compliance">("sites.sortBy", "company");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("sites.sortDir", "asc");
   const handleSortSites = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortBy(col); setSortDir("asc"); }

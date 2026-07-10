@@ -11535,6 +11535,13 @@
           "message": "Accelo import contacts list now shows each contact's Accelo status",
           "category": "enhancement",
           "createdAt": "2026-07-10T14:36:00.000Z"
+        },
+        {
+          "id": "d9e0f1a2-remember-list-filters-session-2026",
+          "patch": 34,
+          "message": "Companies, sites and users filters are now remembered during your session",
+          "category": "enhancement",
+          "createdAt": "2026-07-10T14:41:00.000Z"
         }
       ],
       "publishedPatch": 33,

@@ -92,6 +92,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useCoverageFilter } from "@/hooks/use-coverage-filter";
 import { useSiteFilter } from "@/hooks/use-site-filter";
+import { useSessionState } from "@/hooks/use-session-state";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -484,10 +485,10 @@ function acceloBadgeStyle(color: string | null | undefined): React.CSSProperties
 let _companiesShown = false;
 
 export default function Companies() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useSessionState("companies.searchQuery", "");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useSessionState<string>("companies.statusFilter", "all");
+  const [groupFilter, setGroupFilter] = useSessionState<string>("companies.groupFilter", "all");
   const [page, setPage] = useState(1);
   const [, navigate] = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -585,9 +586,9 @@ export default function Companies() {
   const [acceloContactsLoading, setAcceloContactsLoading] = useState(false);
   interface ContactRowState { selected: boolean; primary: boolean; keyContact: boolean; addToSite: boolean; }
   const [contactRows, setContactRows] = useState<Record<string, ContactRowState>>({});
-  const [staffFilter, setStaffFilter] = useState<string>("my");
-  const [sortBy, setSortBy] = useState<"name" | "city" | "industry" | "siteCount" | "status" | "compliance">("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [staffFilter, setStaffFilter] = useSessionState<string>("companies.staffFilter", "my");
+  const [sortBy, setSortBy] = useSessionState<"name" | "city" | "industry" | "siteCount" | "status" | "compliance">("companies.sortBy", "name");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("companies.sortDir", "asc");
   const handleSortCompanies = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortBy(col); setSortDir("asc"); }

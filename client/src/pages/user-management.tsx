@@ -103,6 +103,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useSessionState } from "@/hooks/use-session-state";
 import type { UserRole, ClientPermissionRole, ConsultantTier } from "@shared/schema";
 import { TablePagination, type PageSize } from "@/components/table-pagination";
 
@@ -447,18 +448,19 @@ export default function UserManagement() {
   const isStandardConsultant = isConsultant && !isPro;
   const canAddUser = isDeveloper || isPro || isAdmin;
   const { toast } = useToast();
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useSessionState<string | null>("users.selectedCompany", null);
   const companyFilter = selectedCompany || "all";
   const setCompanyFilter = (val: string) => setSelectedCompany(val === "all" ? null : val);
   const handleCompanyChange = (val: string | null) => setSelectedCompany(val);
-  const [userTypeTab, setUserTypeTab] = useState<"staff" | "client">(isStandardConsultant ? "client" : "staff");
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<UserRole | "all" | "pro_consultant" | "my_staff">(() => {
+  const [userTypeTab, setUserTypeTab] = useSessionState<"staff" | "client">("users.userTypeTab", isStandardConsultant ? "client" : "staff");
+  const [search, setSearch] = useSessionState("users.search", "");
+  const initialRoleFilter = (() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("staffFilter") === "my_staff" ? "my_staff" : "all";
-  });
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("all");
-  const [onlineFilter, setOnlineFilter] = useState(false);
+  })();
+  const [roleFilter, setRoleFilter] = useSessionState<UserRole | "all" | "pro_consultant" | "my_staff">("users.roleFilter", initialRoleFilter);
+  const [statusFilter, setStatusFilter] = useSessionState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("users.statusFilter", "all");
+  const [onlineFilter, setOnlineFilter] = useSessionState("users.onlineFilter", false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
   const [editingUser, setEditingUser] = useState<UserWithAssignments | null>(null);
@@ -751,7 +753,7 @@ export default function UserManagement() {
   });
   const keyContactUserIdSet = useMemo(() => new Set(keyContactUserIds), [keyContactUserIds]);
 
-  const [clientStaffFilter, setClientStaffFilter] = useState<string>(isAdmin ? "all" : "my");
+  const [clientStaffFilter, setClientStaffFilter] = useSessionState<string>("users.clientStaffFilter", isAdmin ? "all" : "my");
 
   const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants/my-staff"],
@@ -928,8 +930,8 @@ export default function UserManagement() {
 
   const roleOrder: Record<string, number> = { admin: 0, administrator: 1, consultant: 2, client: 3 };
 
-  const [sortBy, setSortBy] = useState<"username" | "role" | "status" | "lastSeen">("username");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortBy, setSortBy] = useSessionState<"username" | "role" | "status" | "lastSeen">("users.sortBy", "username");
+  const [sortDir, setSortDir] = useSessionState<"asc" | "desc">("users.sortDir", "asc");
   const handleSortUsers = (col: typeof sortBy) => {
     if (sortBy === col) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortBy(col); setSortDir("asc"); }
