@@ -26118,7 +26118,7 @@ export async function registerRoutes(
       }
       const data = await acceloGet(
         sourceCode,
-        `/companies/${encodeURIComponent(acceloId)}/contacts?_fields=id,firstname,surname,email,phone,mobile&_limit=100`
+        `/companies/${encodeURIComponent(acceloId)}/contacts?_fields=id,firstname,surname,email,phone,mobile,status(id,title,color)&_limit=100`
       );
       const contacts = Array.isArray(data?.response) ? data.response : [];
       console.log(`[Accelo contacts] source=${sourceCode} acceloId=${acceloId} count=${contacts.length}`);

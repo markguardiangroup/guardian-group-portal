@@ -11528,6 +11528,13 @@
           "message": "Fixed: Accelo contacts list appeared empty when creating a new company",
           "category": "bug",
           "createdAt": "2026-07-10T09:00:00.000Z"
+        },
+        {
+          "id": "c8d9e0f1-accelo-import-contact-status-badge-2026",
+          "patch": 34,
+          "message": "Accelo import contacts list now shows each contact's Accelo status",
+          "category": "enhancement",
+          "createdAt": "2026-07-10T14:36:00.000Z"
         }
       ],
       "publishedPatch": 33,

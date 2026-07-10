@@ -2436,9 +2436,21 @@ export default function Companies() {
                             data-testid={`checkbox-accelo-contact-${contact.id}`}
                           />
                           <div className="flex-1 min-w-0">
-                            <label htmlFor={`accelo-contact-${contact.id}`} className="text-sm font-medium cursor-pointer">
-                              {[contact.firstname, contact.lastname].filter(Boolean).join(" ") || contact.email}
-                            </label>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <label htmlFor={`accelo-contact-${contact.id}`} className="text-sm font-medium cursor-pointer">
+                                {[contact.firstname, contact.lastname].filter(Boolean).join(" ") || contact.email}
+                              </label>
+                              {contact.status?.title && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs py-0 shrink-0"
+                                  style={acceloBadgeStyle(contact.status?.color)}
+                                  data-testid={`badge-accelo-contact-status-${contact.id}`}
+                                >
+                                  {contact.status.title}
+                                </Badge>
+                              )}
+                            </div>
                             {contact.email && <p className="text-xs text-muted-foreground">{contact.email}</p>}
                           </div>
                         </div>
