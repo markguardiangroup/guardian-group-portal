@@ -84,3 +84,9 @@ id = "js43Ex6hQtjqnKGunEIoT"
 uri = "file://.local/outputs/hr_pathway_tree_only.json"
 type = "unspecified"
 title = "HR Toolkit Pathway (tree only, ready to paste)"
+
+[[outputs]]
+id = "IijFCHNiKA_trNbSSh4xJ"
+uri = "file://.local/outputs/hr_pathway_v2_tree.json"
+type = "unspecified"
+title = "HR Toolkit Pathway v2 — 5 categories, up to 5 levels deep"
