@@ -165,10 +165,30 @@ async function autoAssignPrimaryContactToSites(
 // Imports a single Accelo contact as a portal client user and performs all standard
 // side-effects: username generation, site assignment (to each provided siteId), status
 // promotion to invite_required, primary-contact / key-contact flags, and audit logging.
-// In-memory set tracking which users currently have a locked (idle) session.
-// Updated by POST /api/auth/lock-session and POST /api/auth/verify-password.
-// Used by GET /api/users/online (to exclude locked) and GET /api/users/session-locked.
-const lockedUserIds = new Set<string>();
+// Per-session lock tracking. Maps userId → Set<sessionId> so that locking one
+// browser session doesn't affect the idle-presence status of other sessions
+// belonging to the same user (different browsers / devices).
+const lockedSessions = new Map<string, Set<string>>();
+
+function addLockedSession(userId: string, sessionId: string): void {
+  if (!lockedSessions.has(userId)) lockedSessions.set(userId, new Set());
+  lockedSessions.get(userId)!.add(sessionId);
+}
+
+function removeLockedSession(userId: string, sessionId: string): void {
+  const set = lockedSessions.get(userId);
+  if (!set) return;
+  set.delete(sessionId);
+  if (set.size === 0) lockedSessions.delete(userId);
+}
+
+function getLockedUserIds(): string[] {
+  return Array.from(lockedSessions.keys());
+}
+
+function isSessionLocked(userId: string): boolean {
+  return (lockedSessions.get(userId)?.size ?? 0) > 0;
+}
 
 // Shared by POST /api/integrations/accelo/import-contacts and POST /api/companies/wizard
 // so both paths get identical behavior.
@@ -1096,6 +1116,19 @@ export async function registerRoutes(
     },
   });
 
+  // Global session-lock guard: all /api/* requests return 403 while the session is
+  // locked, except the two endpoints the lock screen itself depends on.
+  app.use((req: any, res: any, next: any) => {
+    if (!req.path.startsWith("/api/")) return next();
+    const exempt =
+      (req.path === "/api/auth/verify-password" && req.method === "POST") ||
+      (req.path === "/api/auth/logout" && req.method === "POST");
+    if (!exempt && req.session?.locked === true) {
+      return res.status(403).json({ error: "Session locked" });
+    }
+    next();
+  });
+
   // Health check endpoint — no auth, no DB queries, responds immediately.
   // Used by uptime monitors and load balancers to confirm the process is alive.
   app.get("/api/health", (_req, res) => {
@@ -1618,12 +1651,6 @@ export async function registerRoutes(
         req.session.destroy(() => {});
         return res.status(401).json({ error: "Authentication required" });
       }
-      // Session-lock check: block all API requests while session is locked.
-      // POST /api/auth/verify-password and POST /api/auth/logout are exempt
-      // (they don't use requireAuth so they always work when locked).
-      if (req.session?.locked === true) {
-        return res.status(403).json({ error: "Session locked" });
-      }
       req.activeUser = dbUser;
       next();
     } catch (err) {
@@ -2078,7 +2105,7 @@ export async function registerRoutes(
       
       // Clear any session lock so the user doesn't linger in the idle-users list
       const sessionUserId = (req.session as any)?.userId;
-      if (sessionUserId) lockedUserIds.delete(sessionUserId);
+      if (sessionUserId) removeLockedSession(sessionUserId, req.sessionID);
 
       // Set headers to prevent caching of auth state
       res.set({
@@ -2111,7 +2138,7 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       (req.session as any).locked = true;
       (req.session as any).lockedAt = Date.now();
-      lockedUserIds.add(userId);
+      addLockedSession(userId, req.sessionID);
       await new Promise<void>((resolve, reject) =>
         req.session.save((err: any) => (err ? reject(err) : resolve()))
       );
@@ -2143,7 +2170,7 @@ export async function registerRoutes(
       // Unlock: clear the lock flags from the session
       delete (req.session as any).locked;
       delete (req.session as any).lockedAt;
-      lockedUserIds.delete(userId);
+      removeLockedSession(userId, req.sessionID);
       await new Promise<void>((resolve, reject) =>
         req.session.save((err: any) => (err ? reject(err) : resolve()))
       );
@@ -3130,7 +3157,7 @@ export async function registerRoutes(
     }
 
     // Exclude users with a locked (idle) session — they appear in /api/users/session-locked instead.
-    const onlineIds = getOnlineUserIds().filter(id => !lockedUserIds.has(id));
+    const onlineIds = getOnlineUserIds().filter(id => !isSessionLocked(id));
 
     // SECURITY: developers see everyone; consultants/administrators must only learn about
     // presence for users within their own tenant/source scope — reuse the same scoping
@@ -3163,7 +3190,7 @@ export async function registerRoutes(
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const lockedIds = Array.from(lockedUserIds);
+    const lockedIds = getLockedUserIds();
 
     if (caller.role === "developer") {
       return res.json({ userIds: lockedIds });

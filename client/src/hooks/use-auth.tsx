@@ -505,13 +505,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const lockedAtRef = useRef(0);
   const autoSignoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const logoutRef = useRef<() => void>(() => {});
+
   const startAutoSignout = (lockedAt: number) => {
     if (autoSignoutTimerRef.current) clearTimeout(autoSignoutTimerRef.current);
     const remaining = Math.max(0, AUTO_SIGNOUT_MS - (Date.now() - lockedAt));
     autoSignoutTimerRef.current = setTimeout(() => {
-      clearAuthCache();
-      localStorage.removeItem(LOCK_KEY);
-      window.location.replace("/");
+      // Auto sign-out: call the real logout flow so the server session is terminated.
+      logoutRef.current();
     }, remaining);
   };
 
@@ -557,6 +558,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     initialData: cached?.user,
     initialDataUpdatedAt: cached?.ts ?? 0,
+    // Suspend polling while locked: the lock screen doesn't need fresh user data,
+    // and a 403 response from the global session-lock middleware would clear the
+    // query cache and make the app think the user is logged out.
+    enabled: !isLocked,
     retry: (failureCount, error) => {
       const status = (error as ApiError)?.status;
       if (status === 401 || status === 403) return false;
@@ -564,7 +569,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     retryDelay: (attempt) => Math.min(500 * 2 ** attempt, 5000),
     staleTime: AUTH_CACHE_TTL,
-    refetchOnWindowFocus: () => hasAuthenticatedRef.current,
+    refetchOnWindowFocus: () => hasAuthenticatedRef.current && !isLocked,
   });
 
   useEffect(() => {
@@ -602,10 +607,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsSigningOut(true);
     logoutMutation.mutate();
   };
+  // Keep logoutRef always pointing at the latest logout so the auto-signout
+  // timer (set inside doLock/startAutoSignout) can call it without stale closure.
+  logoutRef.current = logout;
 
   const lock = async () => {
     const ts = Date.now();
-    try { await apiRequest("POST", "/api/auth/lock-session"); } catch {}
+    // Fail-closed: only lock locally if the server successfully marks the session as
+    // locked. Without this guarantee, the lock screen could appear while the server
+    // session is still active, letting DevTools bypass the lock via direct API calls.
+    try {
+      await apiRequest("POST", "/api/auth/lock-session");
+    } catch {
+      return; // Server unreachable or call failed — stay unlocked
+    }
     try { localStorage.setItem(LOCK_KEY, String(ts)); } catch {}
     doLock(ts);
   };
