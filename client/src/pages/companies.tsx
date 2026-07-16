@@ -1057,7 +1057,11 @@ export default function Companies() {
           });
           setContactRows(initialRows);
         })
-        .catch(() => { setAcceloContacts([]); setContactRows({}); })
+        .catch(() => {
+          setAcceloContacts([]);
+          setContactRows({});
+          toast({ title: "Could not load contacts", description: "Failed to fetch contacts from Accelo. Please try again.", variant: "destructive" });
+        })
         .finally(() => setAcceloContactsLoading(false));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

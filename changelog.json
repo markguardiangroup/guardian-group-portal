@@ -11549,6 +11549,13 @@
           "message": "Accelo contacts without an email can no longer be selected for import",
           "category": "enhancement",
           "createdAt": "2026-07-10T14:42:00.000Z"
+        },
+        {
+          "id": "f1a2b3c4-accelo-import-error-handling-2026",
+          "patch": 34,
+          "message": "Accelo contact import now shows clear errors if something goes wrong",
+          "category": "enhancement",
+          "createdAt": "2026-07-16T10:32:00.000Z"
         }
       ],
       "publishedPatch": 33,

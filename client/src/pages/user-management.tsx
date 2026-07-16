@@ -604,11 +604,23 @@ export default function UserManagement() {
         contacts: contactsToImport,
       });
       const data = await res.json();
-      const successCount = Array.isArray(data?.results) ? data.results.filter((r: any) => r.success).length : 0;
-      const failCount = Array.isArray(data?.results) ? data.results.filter((r: any) => !r.success).length : 0;
+      if (!res.ok) {
+        throw new Error(data?.error || `Server error (${res.status})`);
+      }
+      const results: Array<{ acceloId: string; success: boolean; error?: string }> = Array.isArray(data?.results) ? data.results : [];
+      const successCount = results.filter(r => r.success).length;
+      const failures = results.filter(r => !r.success);
+      if (successCount === 0 && failures.length > 0) {
+        const reasons = [...new Set(failures.map(r => r.error).filter(Boolean))];
+        throw new Error(reasons.length > 0 ? reasons.join("; ") : "No contacts could be imported");
+      }
+      const failDescription = failures.length > 0
+        ? ` — ${failures.length} skipped: ${[...new Set(failures.map(r => r.error).filter(Boolean))].join("; ")}`
+        : "";
       toast({
         title: "Import complete",
-        description: `${successCount} user${successCount === 1 ? "" : "s"} imported${failCount > 0 ? `, ${failCount} skipped` : ""}.`,
+        description: `${successCount} user${successCount === 1 ? "" : "s"} imported${failDescription}.`,
+        variant: failures.length > 0 ? "default" : "default",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       setIsAcceloContactsOpen(false);
