@@ -165,29 +165,37 @@ async function autoAssignPrimaryContactToSites(
 // Imports a single Accelo contact as a portal client user and performs all standard
 // side-effects: username generation, site assignment (to each provided siteId), status
 // promotion to invite_required, primary-contact / key-contact flags, and audit logging.
-// Per-session lock tracking. Maps userId → Set<sessionId> so that locking one
-// browser session doesn't affect the idle-presence status of other sessions
-// belonging to the same user (different browsers / devices).
-const lockedSessions = new Map<string, Set<string>>();
-
-function addLockedSession(userId: string, sessionId: string): void {
-  if (!lockedSessions.has(userId)) lockedSessions.set(userId, new Set());
-  lockedSessions.get(userId)!.add(sessionId);
-}
-
-function removeLockedSession(userId: string, sessionId: string): void {
-  const set = lockedSessions.get(userId);
-  if (!set) return;
-  set.delete(sessionId);
-  if (set.size === 0) lockedSessions.delete(userId);
-}
-
-function getLockedUserIds(): string[] {
-  return Array.from(lockedSessions.keys());
-}
-
-function isSessionLocked(userId: string): boolean {
-  return (lockedSessions.get(userId)?.size ?? 0) > 0;
+/**
+ * Returns the set of user IDs that have at least one locked, non-expired session
+ * AND at least one active SSE connection. Queries the session store directly so the
+ * result is always authoritative — stale in-memory caches are never involved.
+ *
+ * A user is "idle" only when they are SSE-connected (i.e. their browser is open) but
+ * every active session for that browser is locked. Users who closed the browser simply
+ * drop from the SSE registry and show as offline, regardless of session-lock state.
+ */
+async function getLockedActiveUserIds(): Promise<Set<string>> {
+  try {
+    const { rows } = await pool.query<{ uid: string }>(
+      `SELECT DISTINCT sess::jsonb->>'userId' AS uid
+       FROM session
+       WHERE sess::jsonb->>'locked' = 'true'
+         AND sess::jsonb->>'userId' IS NOT NULL
+         AND expire > NOW()`
+    );
+    const lockedInStore = new Set(rows.map(r => r.uid).filter(Boolean));
+    // Intersect with the live SSE registry so we only report users whose browser
+    // is open. A closed tab/browser removes the SSE entry, which is the correct
+    // "offline" signal even if the session row hasn't expired yet.
+    const connected = new Set(getOnlineUserIds());
+    const result = new Set<string>();
+    for (const uid of lockedInStore) {
+      if (connected.has(uid)) result.add(uid);
+    }
+    return result;
+  } catch {
+    return new Set();
+  }
 }
 
 // Shared by POST /api/integrations/accelo/import-contacts and POST /api/companies/wizard
@@ -2109,9 +2117,8 @@ export async function registerRoutes(
         }
       }
       
-      // Clear any session lock so the user doesn't linger in the idle-users list
-      const sessionUserId = (req.session as any)?.userId;
-      if (sessionUserId) removeLockedSession(sessionUserId, req.sessionID);
+      // The session is about to be destroyed; express-session will remove it from
+      // the session store, so it naturally disappears from getLockedActiveUserIds().
 
       // Set headers to prevent caching of auth state
       res.set({
@@ -2144,7 +2151,6 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
       (req.session as any).locked = true;
       (req.session as any).lockedAt = Date.now();
-      addLockedSession(userId, req.sessionID);
       await new Promise<void>((resolve, reject) =>
         req.session.save((err: any) => (err ? reject(err) : resolve()))
       );
@@ -2176,7 +2182,6 @@ export async function registerRoutes(
       // Unlock: clear the lock flags from the session
       delete (req.session as any).locked;
       delete (req.session as any).lockedAt;
-      removeLockedSession(userId, req.sessionID);
       await new Promise<void>((resolve, reject) =>
         req.session.save((err: any) => (err ? reject(err) : resolve()))
       );
@@ -3162,8 +3167,10 @@ export async function registerRoutes(
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    // Exclude users with a locked (idle) session — they appear in /api/users/session-locked instead.
-    const onlineIds = getOnlineUserIds().filter(id => !isSessionLocked(id));
+    // Exclude users whose browser is open but their session is locked (they appear
+    // in /api/users/session-locked as idle instead). Source of truth: session store.
+    const lockedActive = await getLockedActiveUserIds();
+    const onlineIds = getOnlineUserIds().filter(id => !lockedActive.has(id));
 
     // SECURITY: developers see everyone; consultants/administrators must only learn about
     // presence for users within their own tenant/source scope — reuse the same scoping
@@ -3196,7 +3203,9 @@ export async function registerRoutes(
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const lockedIds = getLockedUserIds();
+    // Source of truth: session store intersected with live SSE connections.
+    const lockedActive = await getLockedActiveUserIds();
+    const lockedIds = Array.from(lockedActive);
 
     if (caller.role === "developer") {
       return res.json({ userIds: lockedIds });
