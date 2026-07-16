@@ -165,6 +165,11 @@ async function autoAssignPrimaryContactToSites(
 // Imports a single Accelo contact as a portal client user and performs all standard
 // side-effects: username generation, site assignment (to each provided siteId), status
 // promotion to invite_required, primary-contact / key-contact flags, and audit logging.
+// In-memory set tracking which users currently have a locked (idle) session.
+// Updated by POST /api/auth/lock-session and POST /api/auth/verify-password.
+// Used by GET /api/users/online (to exclude locked) and GET /api/users/session-locked.
+const lockedUserIds = new Set<string>();
+
 // Shared by POST /api/integrations/accelo/import-contacts and POST /api/companies/wizard
 // so both paths get identical behavior.
 async function importAcceloContactToCompany(
@@ -1613,6 +1618,12 @@ export async function registerRoutes(
         req.session.destroy(() => {});
         return res.status(401).json({ error: "Authentication required" });
       }
+      // Session-lock check: block all API requests while session is locked.
+      // POST /api/auth/verify-password and POST /api/auth/logout are exempt
+      // (they don't use requireAuth so they always work when locked).
+      if (req.session?.locked === true) {
+        return res.status(403).json({ error: "Session locked" });
+      }
       req.activeUser = dbUser;
       next();
     } catch (err) {
@@ -2065,6 +2076,10 @@ export async function registerRoutes(
         }
       }
       
+      // Clear any session lock so the user doesn't linger in the idle-users list
+      const sessionUserId = (req.session as any)?.userId;
+      if (sessionUserId) lockedUserIds.delete(sessionUserId);
+
       // Set headers to prevent caching of auth state
       res.set({
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
@@ -2085,6 +2100,57 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Logout error:", err);
       res.status(500).json({ error: "Logout failed" });
+    }
+  });
+
+  // Lock the current session (idle lock screen). Uses requireAuth so only callable
+  // when not already locked. Sets session.locked = true and records the lock timestamp.
+  app.post("/api/auth/lock-session", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      (req.session as any).locked = true;
+      (req.session as any).lockedAt = Date.now();
+      lockedUserIds.add(userId);
+      await new Promise<void>((resolve, reject) =>
+        req.session.save((err: any) => (err ? reject(err) : resolve()))
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("lock-session error:", err);
+      res.status(500).json({ error: "Failed to lock session" });
+    }
+  });
+
+  // Verify password to unlock a locked session. Deliberately does NOT use requireAuth
+  // so it remains callable while req.session.locked === true.
+  app.post("/api/auth/verify-password", async (req: any, res) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ error: "Not authenticated" });
+      const { password } = req.body ?? {};
+      if (!password || typeof password !== "string") {
+        return res.status(400).json({ error: "Password required" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || user.status === "inactive" || user.status === "locked") {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.json({ ok: false, error: "Incorrect password" });
+      }
+      // Unlock: clear the lock flags from the session
+      delete (req.session as any).locked;
+      delete (req.session as any).lockedAt;
+      lockedUserIds.delete(userId);
+      await new Promise<void>((resolve, reject) =>
+        req.session.save((err: any) => (err ? reject(err) : resolve()))
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("verify-password error:", err);
+      res.status(500).json({ error: "Failed to verify password" });
     }
   });
 
@@ -3063,7 +3129,8 @@ export async function registerRoutes(
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    const onlineIds = getOnlineUserIds();
+    // Exclude users with a locked (idle) session — they appear in /api/users/session-locked instead.
+    const onlineIds = getOnlineUserIds().filter(id => !lockedUserIds.has(id));
 
     // SECURITY: developers see everyone; consultants/administrators must only learn about
     // presence for users within their own tenant/source scope — reuse the same scoping
@@ -3075,6 +3142,35 @@ export async function registerRoutes(
 
     const scopedIds: string[] = [];
     for (const id of onlineIds) {
+      if (id === caller.id) {
+        scopedIds.push(id);
+        continue;
+      }
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) continue;
+      if (await canStaffManageUser(caller, targetUser)) {
+        scopedIds.push(id);
+      }
+    }
+    res.json({ userIds: scopedIds });
+  });
+
+  // GET /api/users/session-locked — returns IDs of users with a locked (idle) session.
+  // Mirrors the same tenant-scoping as /api/users/online.
+  app.get("/api/users/session-locked", requireAuth, async (req: any, res) => {
+    const caller = await getSessionUser(req);
+    if (!caller || (caller.role !== "developer" && caller.role !== "consultant" && caller.role !== "administrator")) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const lockedIds = Array.from(lockedUserIds);
+
+    if (caller.role === "developer") {
+      return res.json({ userIds: lockedIds });
+    }
+
+    const scopedIds: string[] = [];
+    for (const id of lockedIds) {
       if (id === caller.id) {
         scopedIds.push(id);
         continue;

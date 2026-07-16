@@ -748,6 +748,15 @@ export default function UserManagement() {
   });
   const onlineUserIds = useMemo(() => new Set(onlineData?.userIds ?? []), [onlineData]);
 
+  const { data: lockedData } = useQuery<{ userIds: string[] }>({
+    queryKey: ["/api/users/session-locked"],
+    enabled: isDeveloper || isConsultant || isAdmin,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    staleTime: 20_000,
+  });
+  const idleUserIds = useMemo(() => new Set(lockedData?.userIds ?? []), [lockedData]);
+
   const { data: consultantsWithAssignments = [] } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants"],
     enabled: isDeveloper,
@@ -2089,7 +2098,13 @@ export default function UserManagement() {
                     >
                       <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-muted text-sm font-medium shrink-0">
                         {u.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                        {onlineUserIds.has(u.id) ? (
+                        {idleUserIds.has(u.id) ? (
+                          <span
+                            className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-background"
+                            title="Idle (session locked)"
+                            data-testid={`dot-idle-${u.id}`}
+                          />
+                        ) : onlineUserIds.has(u.id) ? (
                           <span
                             className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
                             title="Online now"

@@ -1,12 +1,14 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Clock } from "lucide-react";
+import { Loader2, Clock, Lock } from "lucide-react";
 import { apiRequest, queryClient, ApiError } from "@/lib/queryClient";
 import type { UserRole } from "@shared/schema";
 import { useIdleTimeout } from "./use-idle-timeout";
 
 export const AUTH_CACHE_KEY = "gg_auth_v1";
-const AUTH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const AUTH_CACHE_TTL = 5 * 60 * 1000;
+const LOCK_KEY = "guardian_session_lock";
+const AUTO_SIGNOUT_MS = 30 * 60 * 1000;
 
 function readAuthCache(): { user: AuthUser; ts: number } | undefined {
   try {
@@ -65,6 +67,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isLocked: boolean;
   logout: () => void;
   isLoggingOut: boolean;
 }
@@ -268,23 +271,284 @@ function IdleWarningModal({
   );
 }
 
+function LockScreen({
+  user,
+  lockedAt,
+  onUnlock,
+  onSignOut,
+}: {
+  user: AuthUser;
+  lockedAt: number;
+  onUnlock: (password: string) => Promise<{ ok: boolean; error?: string }>;
+  onSignOut: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 80);
+    const update = () => {
+      const remaining = Math.max(0, AUTO_SIGNOUT_MS - (Date.now() - lockedAt));
+      setSecondsLeft(Math.floor(remaining / 1000));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [lockedAt]);
+
+  const mins = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  const countdownDisplay = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  const initials = (user.fullName || user.username)
+    .split(" ").map((n: string) => n[0] ?? "").join("").slice(0, 2).toUpperCase();
+
+  const handleSubmit = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    if (!password.trim() || isPending) return;
+    setIsPending(true);
+    setError(null);
+    try {
+      const result = await onUnlock(password);
+      if (!result.ok) {
+        setError(result.error || "Incorrect password");
+        setPassword("");
+        setTimeout(() => inputRef.current?.focus(), 30);
+      }
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        background: "linear-gradient(160deg, #1d3057 0%, #1a2a4a 50%, #172240 100%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "28px",
+        padding: "16px",
+        animation: "fadeInOverlay 0.22s ease-out forwards",
+      }}
+    >
+      <style>{`
+        @keyframes fadeInOverlay {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .lock-input:focus {
+          outline: none;
+          border-color: #4f8ef7 !important;
+          box-shadow: 0 0 0 3px rgba(79,142,247,0.25);
+        }
+        .lock-btn:hover:not(:disabled) {
+          opacity: 0.88;
+        }
+        .lock-btn:active:not(:disabled) {
+          transform: scale(0.98);
+        }
+        .lock-signout:hover {
+          opacity: 0.7;
+        }
+      `}</style>
+
+      <div style={{ textAlign: "center" }}>
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 14,
+            background: "linear-gradient(135deg, #0ea5e9, #818cf8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 14px",
+          }}
+        >
+          <Lock style={{ width: 26, height: 26, color: "white" }} />
+        </div>
+        <p style={{ color: "white", fontSize: 20, fontWeight: 700, margin: 0 }}>
+          Session locked
+        </p>
+        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, marginTop: 4 }}>
+          Enter your password to continue
+        </p>
+      </div>
+
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #334155, #475569)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 16,
+          fontWeight: 700,
+          color: "white",
+          letterSpacing: "0.04em",
+          border: "2px solid rgba(255,255,255,0.15)",
+        }}
+      >
+        {initials}
+      </div>
+
+      <div style={{ textAlign: "center", marginTop: -12 }}>
+        <p style={{ color: "rgba(255,255,255,0.9)", fontSize: 15, fontWeight: 600, margin: 0 }}>
+          {user.fullName || user.username}
+        </p>
+        <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginTop: 2 }}>
+          {user.email}
+        </p>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        style={{ width: "100%", maxWidth: 340, display: "flex", flexDirection: "column", gap: 10 }}
+      >
+        <input
+          ref={inputRef}
+          className="lock-input"
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => { setPassword(e.target.value); setError(null); }}
+          disabled={isPending}
+          data-testid="input-lock-password"
+          style={{
+            width: "100%",
+            padding: "11px 14px",
+            borderRadius: 10,
+            border: error ? "1.5px solid #f87171" : "1.5px solid rgba(255,255,255,0.18)",
+            background: "rgba(255,255,255,0.08)",
+            color: "white",
+            fontSize: 15,
+            boxSizing: "border-box",
+            transition: "border-color 0.15s, box-shadow 0.15s",
+          }}
+        />
+        {error && (
+          <p
+            style={{ color: "#f87171", fontSize: 13, margin: 0, textAlign: "center" }}
+            data-testid="text-lock-error"
+          >
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          className="lock-btn"
+          disabled={isPending || !password.trim()}
+          data-testid="button-lock-unlock"
+          style={{
+            padding: "11px 0",
+            borderRadius: 10,
+            border: "none",
+            background: "linear-gradient(135deg, #2563eb, #4f8ef7)",
+            color: "white",
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: isPending || !password.trim() ? "not-allowed" : "pointer",
+            opacity: isPending || !password.trim() ? 0.6 : 1,
+            transition: "opacity 0.15s, transform 0.1s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          {isPending && <Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} />}
+          {isPending ? "Verifying…" : "Unlock"}
+        </button>
+      </form>
+
+      <div style={{ textAlign: "center" }}>
+        <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 12, margin: "0 0 8px" }}>
+          Auto sign-out in{" "}
+          <span style={{ fontVariantNumeric: "tabular-nums", color: "rgba(255,255,255,0.55)" }}>
+            {countdownDisplay}
+          </span>
+        </p>
+        <button
+          className="lock-signout"
+          onClick={onSignOut}
+          data-testid="button-lock-signout"
+          style={{
+            background: "none",
+            border: "none",
+            color: "rgba(255,255,255,0.45)",
+            fontSize: 13,
+            cursor: "pointer",
+            textDecoration: "underline",
+            transition: "opacity 0.15s",
+          }}
+        >
+          Sign out instead
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [devUser, setDevUser] = useState<AuthUser | null>(getDevUser);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const lockedAtRef = useRef(0);
+  const autoSignoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const startAutoSignout = (lockedAt: number) => {
+    if (autoSignoutTimerRef.current) clearTimeout(autoSignoutTimerRef.current);
+    const remaining = Math.max(0, AUTO_SIGNOUT_MS - (Date.now() - lockedAt));
+    autoSignoutTimerRef.current = setTimeout(() => {
+      clearAuthCache();
+      localStorage.removeItem(LOCK_KEY);
+      window.location.replace("/");
+    }, remaining);
+  };
+
+  const doLock = (ts: number) => {
+    lockedAtRef.current = ts;
+    setIsLocked(true);
+    startAutoSignout(ts);
+  };
+
+  const doUnlock = () => {
+    setIsLocked(false);
+    lockedAtRef.current = 0;
+    if (autoSignoutTimerRef.current) {
+      clearTimeout(autoSignoutTimerRef.current);
+      autoSignoutTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
-    const handleStorage = () => setDevUser(getDevUser());
+    const handleStorage = (e: StorageEvent) => {
+      setDevUser(getDevUser());
+      if (e.key === LOCK_KEY) {
+        if (e.newValue) {
+          doLock(Number(e.newValue));
+        } else {
+          doUnlock();
+        }
+      }
+    };
     window.addEventListener("storage", handleStorage);
-    const interval = setInterval(handleStorage, 500);
+    const interval = setInterval(() => setDevUser(getDevUser()), 500);
     return () => {
       window.removeEventListener("storage", handleStorage);
       clearInterval(interval);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Only refetch on window focus once we've actually seen an authenticated
-  // session — otherwise switching tabs back and forth on the login screen
-  // fires a pointless "am I logged in?" check every time.
   const hasAuthenticatedRef = useRef(false);
 
   const cached = readAuthCache();
@@ -332,20 +596,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const logout = () => {
+    doUnlock();
+    try { localStorage.removeItem(LOCK_KEY); } catch {}
     clearAuthCache();
     setIsSigningOut(true);
     logoutMutation.mutate();
   };
 
+  const lock = async () => {
+    const ts = Date.now();
+    try { await apiRequest("POST", "/api/auth/lock-session"); } catch {}
+    try { localStorage.setItem(LOCK_KEY, String(ts)); } catch {}
+    doLock(ts);
+  };
+
+  const unlock = async (password: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const res = await apiRequest("POST", "/api/auth/verify-password", { password });
+      const result = await res.json() as { ok: boolean; error?: string };
+      if (result.ok) {
+        doUnlock();
+        try { localStorage.removeItem(LOCK_KEY); } catch {}
+      }
+      return result;
+    } catch {
+      return { ok: false, error: "Failed to verify password" };
+    }
+  };
+
   const { showWarning, secondsRemaining, resetTimer } = useIdleTimeout({
-    enabled: isAuthenticated,
-    onTimeout: logout,
+    enabled: isAuthenticated && !isLocked,
+    onTimeout: () => { lock(); },
   });
 
   const value: AuthContextType = {
     user: effectiveUser ?? null,
     isLoading: isLoading && !devUser,
     isAuthenticated,
+    isLocked,
     logout,
     isLoggingOut: logoutMutation.isPending,
   };
@@ -353,7 +641,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {isSigningOut && <SigningOutOverlay />}
-      {showWarning && !isSigningOut && (
+      {isLocked && effectiveUser && !isSigningOut && (
+        <LockScreen
+          user={effectiveUser}
+          lockedAt={lockedAtRef.current}
+          onUnlock={unlock}
+          onSignOut={logout}
+        />
+      )}
+      {showWarning && !isSigningOut && !isLocked && (
         <IdleWarningModal
           secondsRemaining={secondsRemaining}
           onStay={resetTimer}
