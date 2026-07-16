@@ -1116,14 +1116,20 @@ export async function registerRoutes(
     },
   });
 
-  // Global session-lock guard: all /api/* requests return 403 while the session is
-  // locked, except the two endpoints the lock screen itself depends on.
+  // Global session-lock guard: all /api/* requests from an authenticated, locked
+  // session return 403, except the three endpoints the lock screen depends on.
+  // Unauthenticated requests (no session userId) are always allowed through so that
+  // the login endpoint and other pre-auth routes are never accidentally blocked.
   app.use((req: any, res: any, next: any) => {
     if (!req.path.startsWith("/api/")) return next();
+    // No userId → not an authenticated session; skip lock check entirely.
+    if (!req.session?.userId) return next();
+    if (req.session?.locked !== true) return next();
     const exempt =
+      (req.path === "/api/auth/me" && req.method === "GET") ||
       (req.path === "/api/auth/verify-password" && req.method === "POST") ||
       (req.path === "/api/auth/logout" && req.method === "POST");
-    if (!exempt && req.session?.locked === true) {
+    if (!exempt) {
       return res.status(403).json({ error: "Session locked" });
     }
     next();

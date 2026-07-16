@@ -501,8 +501,13 @@ function LockScreen({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [devUser, setDevUser] = useState<AuthUser | null>(getDevUser);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const lockedAtRef = useRef(0);
+  // Initialize lock state from localStorage so a page refresh preserves the lock.
+  const [isLocked, setIsLocked] = useState<boolean>(() => {
+    try { return Number(localStorage.getItem(LOCK_KEY) ?? "0") > 0; } catch { return false; }
+  });
+  const lockedAtRef = useRef<number>((() => {
+    try { return Number(localStorage.getItem(LOCK_KEY) ?? "0") || 0; } catch { return 0; }
+  })());
   const autoSignoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const logoutRef = useRef<() => void>(() => {});
@@ -550,6 +555,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // On mount: if already locked (from localStorage, e.g. after page refresh),
+  // start the auto-signout timer so the countdown and eventual logout still fire.
+  useEffect(() => {
+    if (isLocked && lockedAtRef.current > 0) {
+      startAutoSignout(lockedAtRef.current);
+    }
+    return () => {
+      if (autoSignoutTimerRef.current) clearTimeout(autoSignoutTimerRef.current);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const hasAuthenticatedRef = useRef(false);
 
   const cached = readAuthCache();
@@ -558,10 +574,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/me"],
     initialData: cached?.user,
     initialDataUpdatedAt: cached?.ts ?? 0,
-    // Suspend polling while locked: the lock screen doesn't need fresh user data,
-    // and a 403 response from the global session-lock middleware would clear the
-    // query cache and make the app think the user is logged out.
-    enabled: !isLocked,
+    // /api/auth/me is exempt from the session-lock middleware, so polling always works.
+    // Disable refetch on window focus while locked to avoid unnecessary requests.
     retry: (failureCount, error) => {
       const status = (error as ApiError)?.status;
       if (status === 401 || status === 403) return false;
