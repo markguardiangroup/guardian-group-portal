@@ -6,13 +6,28 @@ let backoffMs = 1_000;
 const MAX_BACKOFF = 5_000;
 
 export function useServerEvents() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, isLocked } = useAuth();
   const esRef = useRef<EventSource | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unmountedRef = useRef(false);
   const isFirstConnectRef = useRef(true);
   const [serverDown, setServerDown] = useState(false);
   const downTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isLockedRef = useRef(isLocked);
+  isLockedRef.current = isLocked;
+
+  // While the session is locked the SSE stream stays alive (server exempts /api/events),
+  // but if it does briefly drop, we must not show "Server restarting…" on top of the
+  // lock screen. Clear any pending down-timer when the lock state changes.
+  useEffect(() => {
+    if (isLocked) {
+      if (downTimerRef.current) {
+        clearTimeout(downTimerRef.current);
+        downTimerRef.current = null;
+      }
+      setServerDown(false);
+    }
+  }, [isLocked]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -313,11 +328,13 @@ export function useServerEvents() {
         esRef.current = null;
         if (!unmountedRef.current) {
           // Show the overlay after 4 s — absorbs brief drops from heavy uploads/network blips
-          // while still catching genuine server outages (which last much longer)
-          if (!downTimerRef.current) {
+          // while still catching genuine server outages (which last much longer).
+          // Never show while locked: the lock screen covers the UI and the SSE
+          // endpoint is exempt from the lock middleware so it should reconnect cleanly.
+          if (!downTimerRef.current && !isLockedRef.current) {
             downTimerRef.current = setTimeout(() => {
               downTimerRef.current = null;
-              setServerDown(true);
+              if (!isLockedRef.current) setServerDown(true);
             }, 4_000);
           }
           reconnectTimer.current = setTimeout(() => {

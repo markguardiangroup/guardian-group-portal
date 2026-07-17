@@ -544,6 +544,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           doLock(Number(e.newValue));
         } else {
           doUnlock();
+          // Flush stale data on all tabs after unlock so the UI is immediately
+          // up-to-date without waiting for the next polling interval.
+          queryClient.invalidateQueries();
         }
       }
     };

@@ -1136,7 +1136,11 @@ export async function registerRoutes(
     const exempt =
       (req.path === "/api/auth/me" && req.method === "GET") ||
       (req.path === "/api/auth/verify-password" && req.method === "POST") ||
-      (req.path === "/api/auth/logout" && req.method === "POST");
+      (req.path === "/api/auth/logout" && req.method === "POST") ||
+      // Keep the SSE stream alive while locked so other tabs don't see
+      // "Server restarting…" — the lock screen itself is shown via
+      // the cross-tab localStorage broadcast, not the SSE connection.
+      (req.path === "/api/events" && req.method === "GET");
     if (!exempt) {
       return res.status(403).json({ error: "Session locked" });
     }
