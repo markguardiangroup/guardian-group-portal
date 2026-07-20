@@ -841,7 +841,7 @@ process.on("uncaughtException", (err) => {
       return false;
     }
     const user = await storage.getUser(userId);
-    if (!user || user.status === "inactive" || user.status === "locked") {
+    if (!user || user.status === "inactive" || user.status === "blocked" || user.status === "locked") {
       res.status(401).json({ error: "Authentication required" });
       return false;
     }

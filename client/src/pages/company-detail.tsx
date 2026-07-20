@@ -154,7 +154,7 @@ interface UserWithAssignments {
   fullName: string;
   role: "developer" | "consultant" | "client";
   companyId: string | null;
-  status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
+  status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "blocked";
 
   consultantTier?: string | null;
   clientPermissionRole?: string | null;
@@ -1501,7 +1501,7 @@ export default function CompanyDetail() {
 
   // Filter to get only client users from this company (used for contact dropdowns)
   const companyUsers = allUsers.filter(
-    (u) => u.role === "client" && u.companyId === companyId && u.status !== "inactive"
+    (u) => u.role === "client" && u.companyId === companyId && u.status !== "inactive" && u.status !== "blocked"
   );
 
   // All users tab: clients in this company + all consultants explicitly assigned to any of this company's sites

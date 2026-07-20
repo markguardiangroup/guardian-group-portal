@@ -338,7 +338,7 @@ export default function Sites() {
   // Filter to get only client users from the selected company
   const companyUsers = newSite.companyId 
     ? allUsers.filter(
-        (u) => u.role === "client" && u.companyId === newSite.companyId && u.status !== "inactive"
+        (u) => u.role === "client" && u.companyId === newSite.companyId && u.status !== "inactive" && u.status !== "blocked"
       )
     : [];
 

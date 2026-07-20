@@ -122,7 +122,7 @@ interface UserWithAssignments {
   fullName: string;
   role: UserRole;
   companyId: string | null;
-  status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
+  status: "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "blocked";
 
   consultantTier?: ConsultantTier | null;
   managerId?: string | null;
@@ -268,7 +268,8 @@ function ClientUsersView() {
           s === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400" :
           s === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400" :
           s === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400" :
-          s === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : ""
+          s === "locked" ? "border-red-500 text-red-600 dark:text-red-400" :
+          s === "blocked" ? "bg-destructive/10 text-destructive border-destructive/30" : ""
         }
         data-testid={`badge-client-user-status-${s}`}
       >
@@ -277,6 +278,7 @@ function ClientUsersView() {
          s === "invite_required" ? (<><Mail className="h-3 w-3 mr-1" />Invite Required</>) :
          s === "site_required" ? (<><MapPin className="h-3 w-3 mr-1" />Site Required</>) :
          s === "locked" ? (<><LockKeyhole className="h-3 w-3 mr-1" />Locked</>) :
+         s === "blocked" ? (<><UserX className="h-3 w-3 mr-1" />Blocked</>) :
          (<><UserX className="h-3 w-3 mr-1" />Inactive</>)}
       </Badge>
     );
@@ -316,6 +318,7 @@ function ClientUsersView() {
               <SelectItem value="invite_required">Invite Required</SelectItem>
               <SelectItem value="site_required">Site Required</SelectItem>
               <SelectItem value="locked">Locked</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
@@ -459,7 +462,7 @@ export default function UserManagement() {
     return params.get("staffFilter") === "my_staff" ? "my_staff" : "all";
   })();
   const [roleFilter, setRoleFilter] = useSessionState<UserRole | "all" | "pro_consultant" | "my_staff">("users.roleFilter", initialRoleFilter);
-  const [statusFilter, setStatusFilter] = useSessionState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "all">("users.statusFilter", "all");
+  const [statusFilter, setStatusFilter] = useSessionState<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "blocked" | "all">("users.statusFilter", "all");
   const [onlineFilter, setOnlineFilter] = useSessionState("users.onlineFilter", false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<PageSize>(DEFAULT_PAGE_SIZE);
@@ -477,7 +480,7 @@ export default function UserManagement() {
     enabled: !!viewingUser?.id,
     staleTime: 0,
   });
-  const [statusConfirm, setStatusConfirm] = useState<{ user: UserWithAssignments; newStatus: "active" | "inactive" } | null>(null);
+  const [statusConfirm, setStatusConfirm] = useState<{ user: UserWithAssignments; newStatus: "active" | "blocked" } | null>(null);
   const [editFormData, setEditFormData] = useState<{
     email: string;
     title: string;
@@ -1694,7 +1697,7 @@ export default function UserManagement() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "active" | "inactive" }) => {
+    mutationFn: async ({ id, status }: { id: string; status: "active" | "blocked" }) => {
       return apiRequest("PATCH", `/api/users/${id}`, { status });
     },
     onSuccess: (_, variables) => {
@@ -1760,7 +1763,7 @@ export default function UserManagement() {
   });
 
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
-    const newStatus = targetUser.status === "active" ? "inactive" : "active";
+    const newStatus = targetUser.status === "active" ? "blocked" : "active";
     setStatusConfirm({ user: targetUser, newStatus });
   };
 
@@ -2005,6 +2008,7 @@ export default function UserManagement() {
             <SelectItem value="site_required">Site Required</SelectItem>
             <SelectItem value="invite_required">Invite Required</SelectItem>
             <SelectItem value="invited">Invited</SelectItem>
+            <SelectItem value="blocked">Blocked</SelectItem>
             <SelectItem value="inactive">Inactive</SelectItem>
             <SelectItem value="locked">Locked</SelectItem>
           </SelectContent>
@@ -4583,14 +4587,14 @@ export default function UserManagement() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {statusConfirm?.newStatus === "inactive" ? "Deactivate User" : "Activate User"}
+              {statusConfirm?.newStatus === "blocked" ? "Block User" : "Activate User"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {statusConfirm?.newStatus === "inactive" ? (
+              {statusConfirm?.newStatus === "blocked" ? (
                 <>
-                  Are you sure you want to deactivate <strong>{statusConfirm?.user.fullName}</strong>?
+                  Are you sure you want to block <strong>{statusConfirm?.user.fullName}</strong>?
                   <span className="block mt-2 text-foreground">
-                    This will prevent them from logging in and accessing the portal.
+                    This will prevent them from logging in, accessing the portal, or receiving any emails.
                   </span>
                   {statusConfirm?.user.id && onlineUserIds.has(statusConfirm.user.id) && (
                     <span className="flex items-center gap-1.5 mt-2 text-amber-600 dark:text-amber-400 font-medium">
@@ -4614,12 +4618,12 @@ export default function UserManagement() {
             <AlertDialogAction 
               onClick={handleConfirmStatusChange}
               disabled={updateStatusMutation.isPending}
-              className={statusConfirm?.newStatus === "inactive" ? "bg-destructive text-destructive-foreground" : ""}
+              className={statusConfirm?.newStatus === "blocked" ? "bg-destructive text-destructive-foreground" : ""}
               data-testid="button-confirm-status-change"
             >
               {updateStatusMutation.isPending 
                 ? "Processing..." 
-                : statusConfirm?.newStatus === "inactive" ? "Yes, Deactivate" : "Yes, Activate"
+                : statusConfirm?.newStatus === "blocked" ? "Yes, Block" : "Yes, Activate"
               }
             </AlertDialogAction>
           </AlertDialogFooter>

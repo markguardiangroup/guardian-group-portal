@@ -1107,7 +1107,7 @@ export async function registerRoutes(
     checkObjectAccess: (objectPath, user) => resolveObjectPathAccess(objectPath, user),
     getUserForSession: async (sessionUserId) => {
       const user = await storage.getUser(sessionUserId);
-      if (!user || user.status === "inactive" || user.status === "locked") return undefined;
+      if (!user || user.status === "inactive" || user.status === "blocked" || user.status === "locked") return undefined;
       return {
         id: user.id,
         role: user.role,
@@ -1325,9 +1325,9 @@ export async function registerRoutes(
         return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
-      // Inactive users are blocked by an administrator — only an admin/consultant can re-activate them.
+      // Inactive/blocked users cannot log in — only an admin/consultant can re-activate them.
       // Return a generic 401 so the reason isn't revealed; do not count this toward lockout.
-      if (user.status === "inactive") {
+      if (user.status === "inactive" || user.status === "blocked") {
         return res.status(401).json(GENERIC_AUTH_FAILURE);
       }
 
@@ -1524,7 +1524,7 @@ export async function registerRoutes(
 
       const user = await storage.getUser(pendingUserId);
       if (!user) return res.status(404).json({ error: "User not found" });
-      if (user.status === "inactive" || user.status === "locked") {
+      if (user.status === "inactive" || user.status === "blocked" || user.status === "locked") {
         delete req.session.pendingMfaUserId;
         mfaLoginAttempts.delete(pendingUserId);
         return res.status(401).json({ error: "Account is not active" });
@@ -1665,7 +1665,7 @@ export async function registerRoutes(
     }
     try {
       const dbUser = await storage.getUser(userId);
-      if (!dbUser || dbUser.status === "inactive" || dbUser.status === "locked") {
+      if (!dbUser || dbUser.status === "inactive" || dbUser.status === "blocked" || dbUser.status === "locked") {
         req.session.destroy(() => {});
         return res.status(401).json({ error: "Authentication required" });
       }
@@ -1692,7 +1692,7 @@ export async function registerRoutes(
     const userId = req.session?.userId;
     if (!userId) return null;
     const user = await storage.getUser(userId);
-    if (!user || user.status === "inactive" || user.status === "locked") return null;
+    if (!user || user.status === "inactive" || user.status === "blocked" || user.status === "locked") return null;
     return user;
   };
 
@@ -1740,7 +1740,7 @@ export async function registerRoutes(
     const userId = req.session?.userId;
     if (!userId) return null;
     const dbUser = await storage.getUser(userId);
-    if (!dbUser || dbUser.status === "inactive" || dbUser.status === "locked") {
+    if (!dbUser || dbUser.status === "inactive" || dbUser.status === "blocked" || dbUser.status === "locked") {
       return null;
     }
     return {
@@ -1767,7 +1767,7 @@ export async function registerRoutes(
       if (!userId) return res.status(401).json({ error: "Authentication required" });
       const user = await storage.getUser(userId);
       if (!user) return res.status(404).json({ error: "User not found" });
-      if (user.status === "inactive" || user.status === "locked") {
+      if (user.status === "inactive" || user.status === "blocked" || user.status === "locked") {
         delete req.session.pendingMfaUserId;
         return res.status(401).json({ error: "Account is not active" });
       }
@@ -1802,7 +1802,7 @@ export async function registerRoutes(
       // account locked/deactivated mid-flow could still be used to enroll
       // a brand-new TOTP secret and finish the mandatory-setup login.
       const preCheckUser = await storage.getUser(userId);
-      if (!preCheckUser || preCheckUser.status === "inactive" || preCheckUser.status === "locked") {
+      if (!preCheckUser || preCheckUser.status === "inactive" || preCheckUser.status === "blocked" || preCheckUser.status === "locked") {
         delete req.session.pendingMfaUserId;
         delete req.session.pendingTotpSecret;
         return res.status(401).json({ error: "Account is not active" });
@@ -2176,7 +2176,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Password required" });
       }
       const user = await storage.getUser(userId);
-      if (!user || user.status === "inactive" || user.status === "locked") {
+      if (!user || user.status === "inactive" || user.status === "blocked" || user.status === "locked") {
         return res.status(401).json({ error: "Not authenticated" });
       }
       const valid = await bcrypt.compare(password, user.password);
@@ -2206,7 +2206,7 @@ export async function registerRoutes(
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    if (user.status === "inactive" || user.status === "locked") {
+    if (user.status === "inactive" || user.status === "blocked" || user.status === "locked") {
       req.session.destroy(() => {});
       return res.status(401).json({ error: "Your account is no longer active. Please contact your administrator." });
     }
@@ -2367,10 +2367,10 @@ export async function registerRoutes(
       // Locked accounts are intentionally still allowed through the
       // password_reset path below, since resetting the password is the
       // account's normal recovery route out of a lock.
-      if (invitation.purpose === "invite" && (invitedUser.status === "inactive" || invitedUser.status === "locked")) {
+      if (invitation.purpose === "invite" && (invitedUser.status === "inactive" || invitedUser.status === "blocked" || invitedUser.status === "locked")) {
         return res.status(403).json({ error: "This account has been disabled. Please contact an administrator." });
       }
-      if (invitation.purpose === "password_reset" && invitedUser.status === "inactive") {
+      if (invitation.purpose === "password_reset" && (invitedUser.status === "inactive" || invitedUser.status === "blocked")) {
         return res.status(403).json({ error: "This account has been disabled. Please contact an administrator." });
       }
 
@@ -6160,7 +6160,7 @@ export async function registerRoutes(
         for (const notifyUserId of effectiveNotifyIds) {
           try {
             const notifyUser = await storage.getUser(notifyUserId);
-            if (notifyUser && notifyUser.email && notifyUser.status !== "inactive") {
+            if (notifyUser && notifyUser.email && notifyUser.status !== "inactive" && notifyUser.status !== "blocked") {
               const modulePath = body.module === "health_safety" ? "health-safety" 
                 : body.module === "human_resources" ? "human-resources" 
                 : body.module === "employment_law" ? "employment-law" 
@@ -7179,8 +7179,8 @@ export async function registerRoutes(
       if (!targetUser || !targetUser.email) {
         return res.status(404).json({ error: "User not found or has no email" });
       }
-      if (targetUser.status === "inactive") {
-        return res.status(400).json({ error: "Cannot send approval email to an inactive user" });
+      if (targetUser.status === "inactive" || targetUser.status === "blocked") {
+        return res.status(400).json({ error: "Cannot send approval email to an inactive or blocked user" });
       }
 
       const site = await storage.getSite(existingDoc.siteId);
@@ -19263,7 +19263,7 @@ export async function registerRoutes(
       // links. Without invalidating tokens, a still-valid "invite" or
       // "password_reset" link sent before this change could later be used to
       // silently set the account back to "active" and bypass this decision.
-      if (allowFullFieldEdit && (status === "inactive" || status === "locked")) {
+      if (allowFullFieldEdit && (status === "inactive" || status === "blocked" || status === "locked")) {
         try {
           emitToUser(req.params.id, "session-revoked", { reason: "account_deactivated" });
         } catch { /* non-fatal */ }
@@ -25827,7 +25827,7 @@ export async function registerRoutes(
         return res.redirect("/admin/integrations/accelo?error=invalid_state");
       }
       const caller = await storage.getUser(callerId);
-      if (!caller || caller.role !== "developer" || caller.status === "inactive" || caller.status === "locked") {
+      if (!caller || caller.role !== "developer" || caller.status === "inactive" || caller.status === "blocked" || caller.status === "locked") {
         return res.redirect("/admin/integrations/accelo?error=invalid_state");
       }
       const { code, state, error } = req.query as Record<string, string>;

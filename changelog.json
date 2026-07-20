@@ -11682,6 +11682,13 @@
           "message": "Approval emails now sent to all non-inactive users (invited, active, etc.)",
           "category": "enhancement",
           "createdAt": "2026-07-20T20:22:34.631Z"
+        },
+        {
+          "id": "fedfd8b6-720c-46cf-9c10-624361e6b5b7",
+          "patch": 34,
+          "message": "Added Blocked user status: deactivating now blocks login, portal access, and all emails",
+          "category": "feature",
+          "createdAt": "2026-07-20T20:48:08.571Z"
         }
       ],
       "publishedPatch": 33,

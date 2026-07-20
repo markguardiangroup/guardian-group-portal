@@ -1510,7 +1510,7 @@ export default function SiteDetail() {
 
   // Filter to get only client users from this company
   const companyUsers = allUsers.filter(
-    (u) => u.role === "client" && u.companyId === entity?.companyId && u.status !== "inactive"
+    (u) => u.role === "client" && u.companyId === entity?.companyId && u.status !== "inactive" && u.status !== "blocked"
   );
 
   // Handler to select a user as site contact in edit mode

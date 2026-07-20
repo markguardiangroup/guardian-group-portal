@@ -142,7 +142,7 @@ export const users = pgTable("users", {
   // Client-specific: permission role within their site/company
   clientPermissionRole: text("client_permission_role").$type<ClientPermissionRole>(),
   sources: text("sources").array(),
-  status: text("status").$type<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked">().notNull().default("invited"),
+  status: text("status").$type<"active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "blocked">().notNull().default("invited"),
   lastLoginAt: timestamp("last_login_at"),
   lastSeenAt: timestamp("last_seen_at"),
   legalAcceptedAt: timestamp("legal_accepted_at"),
@@ -157,7 +157,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 // User status type for type safety
-export type UserStatus = "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked";
+export type UserStatus = "active" | "inactive" | "invited" | "site_required" | "invite_required" | "locked" | "blocked";
 
 // Invitation token purpose
 export type InvitationPurpose = "invite" | "password_reset";
