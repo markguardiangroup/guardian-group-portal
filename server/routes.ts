@@ -7182,8 +7182,8 @@ export async function registerRoutes(
       if (!targetUser || !targetUser.email) {
         return res.status(404).json({ error: "User not found or has no email" });
       }
-      if (targetUser.status === "inactive" || targetUser.status === "blocked") {
-        return res.status(400).json({ error: "Cannot send approval email to an inactive or blocked user" });
+      if (targetUser.status !== "active") {
+        return res.status(400).json({ error: "Cannot send approval email to a user who is not active" });
       }
 
       const site = await storage.getSite(existingDoc.siteId);

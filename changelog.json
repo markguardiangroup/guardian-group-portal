@@ -11780,6 +11780,13 @@
           "message": "Fixed: blocked users now show a red \"Blocked\" badge instead of \"Inactive\"",
           "category": "bug",
           "createdAt": "2026-07-20T22:36:53.665Z"
+        },
+        {
+          "id": "28cd1127-916d-4288-b380-a4e41b9a995e",
+          "patch": 34,
+          "message": "Fixed: approval re-notify emails are no longer sent to non-active users",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:43:29.877Z"
         }
       ],
       "publishedPatch": 33,
