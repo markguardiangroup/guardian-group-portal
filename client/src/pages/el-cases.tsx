@@ -119,6 +119,8 @@ import {
   LayoutGrid,
   LayoutList,
   EyeOff,
+  GitCommitHorizontal,
+  Printer,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
@@ -1464,6 +1466,430 @@ function CreateCaseDialog({
   );
 }
 
+// ─── Milestone Timeline ────────────────────────────────────────────────────
+
+type MilestoneWithDate = CaseMilestone & { effectiveDate: Date };
+
+function getMilestoneStatus(m: CaseMilestone): "completed" | "overdue" | "pending" {
+  if (m.isCompleted) return "completed";
+  if (m.dueDate && isPast(new Date(m.dueDate))) return "overdue";
+  return "pending";
+}
+
+const TIMELINE_STATUS_STYLE: Record<string, { color: string; label: string }> = {
+  completed: { color: "#16a34a", label: "Completed" },
+  overdue: { color: "#dc2626", label: "Overdue" },
+  pending: { color: "#2563eb", label: "Pending" },
+};
+
+function generateMilestoneTimelineHtml(
+  caseData: Case,
+  sorted: MilestoneWithDate[],
+  undated: CaseMilestone[],
+): string {
+  const today = new Date();
+  const dates = sorted.map(m => m.effectiveDate).concat([today]);
+  const minRaw = new Date(Math.min(...dates.map(d => d.getTime())));
+  const maxRaw = new Date(Math.max(...dates.map(d => d.getTime())));
+  const rawRange = maxRaw.getTime() - minRaw.getTime();
+  const pad = Math.max(rawRange * 0.12, 7 * 86_400_000);
+  const minDate = new Date(minRaw.getTime() - pad);
+  const maxDate = new Date(maxRaw.getTime() + pad);
+  const totalRange = maxDate.getTime() - minDate.getTime();
+  const getX = (d: Date) => ((d.getTime() - minDate.getTime()) / totalRange) * 820 + 40;
+  const todayX = getX(today);
+  const lineY = 160;
+  const stemLen = 70;
+  const circleR = 7;
+
+  const milestonesSvg = sorted.map((m, idx) => {
+    const x = getX(m.effectiveDate);
+    const above = idx % 2 === 0;
+    const status = getMilestoneStatus(m);
+    const { color, label } = TIMELINE_STATUS_STYLE[status];
+    const dateStr = format(m.effectiveDate, "d MMM yyyy");
+    const stemY1 = above ? lineY - circleR : lineY + circleR;
+    const stemY2 = above ? lineY - stemLen : lineY + stemLen;
+    const labelY = above ? lineY - stemLen - 56 : lineY + stemLen + 2;
+    const title = m.title.length > 28 ? m.title.slice(0, 26) + "…" : m.title;
+    return `<line x1="${x}" y1="${stemY1}" x2="${x}" y2="${stemY2}" stroke="${color}" stroke-width="1.5"/>
+<circle cx="${x}" cy="${lineY}" r="${circleR}" fill="${color}" stroke="white" stroke-width="2"/>
+<text x="${x}" y="${labelY}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" font-weight="600" fill="#1e293b">${title}</text>
+<text x="${x}" y="${labelY + 12}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#64748b">${dateStr}</text>
+<rect x="${x - 22}" y="${labelY + 15}" width="44" height="13" rx="6" fill="${color}22"/>
+<text x="${x}" y="${labelY + 24}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="7" fill="${color}">${label}</text>`;
+  }).join("\n");
+
+  const allRows = [...sorted, ...undated].map((m, i) => {
+    const status = getMilestoneStatus(m);
+    const { color, label } = TIMELINE_STATUS_STYLE[status];
+    return `<tr style="background:${i % 2 === 0 ? "#fff" : "#f8fafc"}">
+  <td style="padding:5px 10px;border:1px solid #e2e8f0;font-weight:500">${m.title}</td>
+  <td style="padding:5px 10px;border:1px solid #e2e8f0;color:#64748b">${m.dueDate ? format(new Date(m.dueDate), "d MMM yyyy") : "—"}</td>
+  <td style="padding:5px 10px;border:1px solid #e2e8f0;color:#64748b">${m.completedDate ? format(new Date(m.completedDate), "d MMM yyyy") : "—"}</td>
+  <td style="padding:5px 10px;border:1px solid #e2e8f0"><span style="background:${color}22;color:${color};padding:1px 7px;border-radius:10px;font-size:10px">${label}</span></td>
+  <td style="padding:5px 10px;border:1px solid #e2e8f0;color:#64748b;max-width:180px">${m.completionNotes || "—"}</td>
+</tr>`;
+  }).join("\n");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Milestone Timeline — ${caseData.caseNumber}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm 15mm; }
+    body { font-family: system-ui, Arial, sans-serif; color: #1e293b; margin: 0; padding: 0; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } }
+    table { border-collapse: collapse; width: 100%; font-size: 11px; }
+    th { background: #f1f5f9; text-align: left; padding: 6px 10px; border: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;border-bottom:2px solid #e2e8f0;padding-bottom:10px">
+    <div>
+      <h1 style="font-size:18px;font-weight:700;margin:0 0 2px">${caseData.caseName}</h1>
+      <p style="font-size:11px;color:#64748b;margin:0">${caseData.caseNumber} · Milestone Timeline Report · Generated ${format(today, "d MMMM yyyy")}</p>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;text-align:right">
+      ${sorted.length} milestone${sorted.length !== 1 ? "s" : ""} on timeline<br/>
+      ${undated.length > 0 ? `${undated.length} undated` : ""}
+    </div>
+  </div>
+
+  <div style="display:flex;gap:20px;margin-bottom:10px;font-size:10px">
+    <span>&#9679; <span style="color:#16a34a">Completed</span></span>
+    <span>&#9679; <span style="color:#dc2626">Overdue</span></span>
+    <span>&#9679; <span style="color:#2563eb">Pending</span></span>
+    <span style="color:#f97316">-- Today (${format(today, "d MMM yyyy")})</span>
+  </div>
+
+  ${sorted.length > 0 ? `
+  <svg viewBox="0 0 900 ${lineY * 2 + 10}" width="100%" style="display:block;overflow:visible;margin-bottom:16px">
+    <rect x="0" y="0" width="900" height="${lineY * 2 + 10}" fill="white"/>
+    <line x1="40" y1="${lineY}" x2="860" y2="${lineY}" stroke="#cbd5e1" stroke-width="2"/>
+    <line x1="${todayX}" y1="10" x2="${todayX}" y2="${lineY * 2}" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="${todayX}" y="8" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#f97316">Today</text>
+    <text x="40" y="${lineY * 2 + 8}" font-family="system-ui,sans-serif" font-size="8" fill="#94a3b8">${format(minDate, "d MMM yyyy")}</text>
+    <text x="860" y="${lineY * 2 + 8}" text-anchor="end" font-family="system-ui,sans-serif" font-size="8" fill="#94a3b8">${format(maxDate, "d MMM yyyy")}</text>
+    ${milestonesSvg}
+  </svg>` : '<p style="color:#94a3b8;text-align:center;margin:20px 0">No milestones with dates to display on timeline.</p>'}
+
+  <h3 style="font-size:13px;color:#475569;margin:8px 0 6px">Milestone Details</h3>
+  <table>
+    <thead><tr>
+      <th>Milestone</th><th>Due Date</th><th>Completed</th><th>Status</th><th>Notes</th>
+    </tr></thead>
+    <tbody>${allRows}</tbody>
+  </table>
+
+  <p style="font-size:9px;color:#94a3b8;margin-top:12px;text-align:center">
+    Guardian Group Employment Law · ${caseData.caseNumber} · ${format(today, "d MMMM yyyy HH:mm")}
+  </p>
+  <script class="no-print">window.onload=function(){window.print();}</script>
+</body>
+</html>`;
+}
+
+function MilestoneTimelineDialog({
+  open,
+  onClose,
+  caseData,
+  milestones,
+}: {
+  open: boolean;
+  onClose: () => void;
+  caseData: Case;
+  milestones: CaseMilestone[];
+}) {
+  const today = new Date();
+
+  const sorted = useMemo<MilestoneWithDate[]>(() => {
+    return [...milestones]
+      .filter(m => m.dueDate || m.completedDate)
+      .map(m => ({
+        ...m,
+        effectiveDate: m.completedDate ? new Date(m.completedDate) : new Date(m.dueDate!),
+      }))
+      .sort((a, b) => a.effectiveDate.getTime() - b.effectiveDate.getTime());
+  }, [milestones]);
+
+  const undated = useMemo(() => milestones.filter(m => !m.dueDate && !m.completedDate), [milestones]);
+
+  const { minDate, maxDate } = useMemo(() => {
+    const dates = sorted.map(m => m.effectiveDate).concat([today]);
+    const minRaw = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxRaw = new Date(Math.max(...dates.map(d => d.getTime())));
+    const rawRange = maxRaw.getTime() - minRaw.getTime();
+    const pad = Math.max(rawRange * 0.12, 7 * 86_400_000);
+    return {
+      minDate: new Date(minRaw.getTime() - pad),
+      maxDate: new Date(maxRaw.getTime() + pad),
+    };
+  }, [sorted]);
+
+  const totalRange = maxDate.getTime() - minDate.getTime();
+  const getPos = (d: Date) => ((d.getTime() - minDate.getTime()) / totalRange) * 100;
+  const todayPos = getPos(today);
+
+  const handleExport = () => {
+    const html = generateMilestoneTimelineHtml(caseData, sorted, undated);
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <GitCommitHorizontal className="h-5 w-5 text-pink-600" />
+            Milestone Timeline
+          </DialogTitle>
+          <DialogDescription>
+            {caseData.caseName} — {caseData.caseNumber}
+            {sorted.length > 0 && ` · ${sorted.length} milestone${sorted.length !== 1 ? "s" : ""} plotted`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-auto px-6 py-6">
+          {milestones.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+              <GitCommitHorizontal className="h-12 w-12 opacity-20" />
+              <p className="font-medium">No milestones yet</p>
+              <p className="text-sm">Add milestones with due dates to see them on the timeline.</p>
+            </div>
+          ) : (
+            <>
+              {/* Legend */}
+              <div className="flex flex-wrap items-center gap-5 mb-6 text-xs text-muted-foreground">
+                {Object.entries(TIMELINE_STATUS_STYLE).map(([k, v]) => (
+                  <span key={k} className="flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full inline-block" style={{ background: v.color }} />
+                    {v.label}
+                  </span>
+                ))}
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-3 border-l-2 border-dashed border-orange-400" />
+                  Today ({format(today, "d MMM yyyy")})
+                </span>
+              </div>
+
+              {sorted.length > 0 ? (
+                <div className="relative select-none" style={{ height: 320 }}>
+                  {/* Horizontal line */}
+                  <div
+                    className="absolute bg-border"
+                    style={{ top: "50%", left: 0, right: 0, height: 2, transform: "translateY(-50%)" }}
+                  />
+
+                  {/* Today marker */}
+                  <div
+                    className="absolute"
+                    style={{
+                      left: `${todayPos}%`,
+                      top: "8%",
+                      bottom: "8%",
+                      borderLeft: "2px dashed #fb923c",
+                    }}
+                  >
+                    <span
+                      className="absolute text-[10px] font-semibold text-orange-500 whitespace-nowrap"
+                      style={{ top: -18, left: "50%", transform: "translateX(-50%)" }}
+                    >
+                      Today
+                    </span>
+                  </div>
+
+                  {/* Milestones */}
+                  {sorted.map((m, idx) => {
+                    const pos = getPos(m.effectiveDate);
+                    const above = idx % 2 === 0;
+                    const status = getMilestoneStatus(m);
+                    const { color, label } = TIMELINE_STATUS_STYLE[status];
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="absolute"
+                        style={{
+                          left: `${pos}%`,
+                          top: "50%",
+                          transform: "translateX(-50%) translateY(-50%)",
+                          zIndex: 1,
+                        }}
+                      >
+                        {/* Stem */}
+                        <div
+                          className="absolute"
+                          style={{
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: 2,
+                            background: color,
+                            opacity: 0.6,
+                            ...(above
+                              ? { bottom: 11, height: 64 }
+                              : { top: 11, height: 64 }),
+                          }}
+                        />
+                        {/* Circle */}
+                        <div
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
+                            background: color,
+                            border: "3px solid white",
+                            boxShadow: `0 0 0 2px ${color}`,
+                            position: "relative",
+                          }}
+                        />
+                        {/* Label */}
+                        <div
+                          className="absolute text-center pointer-events-none"
+                          style={{
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            width: 110,
+                            ...(above ? { bottom: 82 } : { top: 82 }),
+                          }}
+                        >
+                          <p className="text-[10px] font-semibold leading-tight text-foreground line-clamp-2 mb-0.5">
+                            {m.title}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground mb-0.5">
+                            {format(m.effectiveDate, "d MMM yyyy")}
+                          </p>
+                          <span
+                            className="inline-block text-[9px] font-medium px-1.5 py-px rounded-full"
+                            style={{
+                              background: color + "22",
+                              color,
+                            }}
+                          >
+                            {label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Axis date labels */}
+                  <span
+                    className="absolute bottom-1 text-[9px] text-muted-foreground"
+                    style={{ left: 0 }}
+                  >
+                    {format(minDate, "d MMM yyyy")}
+                  </span>
+                  <span
+                    className="absolute bottom-1 text-[9px] text-muted-foreground"
+                    style={{ right: 0 }}
+                  >
+                    {format(maxDate, "d MMM yyyy")}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2 border rounded-lg">
+                  <GitCommitHorizontal className="h-8 w-8 opacity-20" />
+                  <p className="text-sm">No milestones have dates — add due dates to see them on the timeline.</p>
+                </div>
+              )}
+
+              {/* Undated milestones pill list */}
+              {undated.length > 0 && (
+                <div className="mt-6 pt-4 border-t">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Milestones without dates ({undated.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {undated.map(m => (
+                      <span
+                        key={m.id}
+                        className="text-xs border px-2 py-0.5 rounded-full bg-muted/40"
+                      >
+                        {m.title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Milestone details table */}
+              <div className="mt-6 pt-4 border-t">
+                <p className="text-xs font-medium text-muted-foreground mb-3">All Milestones</p>
+                <div className="rounded-md border overflow-hidden text-xs">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-muted/50 border-b">
+                        <th className="text-left px-3 py-2 font-medium">Milestone</th>
+                        <th className="text-left px-3 py-2 font-medium">Due Date</th>
+                        <th className="text-left px-3 py-2 font-medium">Completed</th>
+                        <th className="text-left px-3 py-2 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...sorted, ...undated].map((m, i) => {
+                        const status = getMilestoneStatus(m);
+                        const { color, label } = TIMELINE_STATUS_STYLE[status];
+                        return (
+                          <tr key={m.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                            <td className="px-3 py-2 font-medium max-w-[200px] truncate">{m.title}</td>
+                            <td className="px-3 py-2 text-muted-foreground">
+                              {m.dueDate ? format(new Date(m.dueDate), "d MMM yyyy") : "—"}
+                            </td>
+                            <td className="px-3 py-2 text-muted-foreground">
+                              {m.completedDate ? format(new Date(m.completedDate), "d MMM yyyy") : "—"}
+                            </td>
+                            <td className="px-3 py-2">
+                              <span
+                                className="px-2 py-0.5 rounded-full text-[10px] font-medium"
+                                style={{ background: color + "22", color }}
+                              >
+                                {label}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/20">
+          <p className="text-xs text-muted-foreground">
+            {sorted.length} milestone{sorted.length !== 1 ? "s" : ""} on timeline
+            {undated.length > 0 && `, ${undated.length} undated`}
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExport}
+              className="gap-1.5 bg-pink-600 hover:bg-pink-700"
+              data-testid="button-export-milestone-timeline"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Export / Print
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── End Milestone Timeline ────────────────────────────────────────────────
+
 function CaseDetailView({ id }: { id: string }) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -1484,6 +1910,7 @@ function CaseDetailView({ id }: { id: string }) {
   });
   const [caseNotesExpanded, setCaseNotesExpanded] = useState(false);
   const [showMilestoneDialog, setShowMilestoneDialog] = useState(false);
+  const [showMilestoneTimeline, setShowMilestoneTimeline] = useState(false);
   const [showChecklistDialog, setShowChecklistDialog] = useState(false);
   const [checklistForm, setChecklistForm] = useState({ title: "", description: "", submissionDate: "" });
   const [editingChecklistItem, setEditingChecklistItem] = useState<CaseDocumentChecklist | null>(null);
@@ -3040,17 +3467,28 @@ function CaseDetailView({ id }: { id: string }) {
                 <CardTitle className="text-lg">Milestones</CardTitle>
                 <CardDescription>Track key dates and tasks for this case</CardDescription>
               </div>
-              {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
-                <Button 
-                  size="sm" 
-                  onClick={() => setShowMilestoneDialog(true)}
-                  className="bg-pink-600 hover:bg-pink-700"
-                  data-testid="button-add-milestone"
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowMilestoneTimeline(true)}
+                  data-testid="button-milestone-timeline"
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Milestone
+                  <GitCommitHorizontal className="mr-1.5 h-4 w-4" />
+                  Timeline
                 </Button>
-              )}
+                {(user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator") && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowMilestoneDialog(true)}
+                    className="bg-pink-600 hover:bg-pink-700"
+                    data-testid="button-add-milestone"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Milestone
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="pt-4">
               {totalMilestones > 0 && (
@@ -3833,6 +4271,15 @@ function CaseDetailView({ id }: { id: string }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {showMilestoneTimeline && caseData && (
+        <MilestoneTimelineDialog
+          open={showMilestoneTimeline}
+          onClose={() => setShowMilestoneTimeline(false)}
+          caseData={caseData}
+          milestones={milestones ?? []}
+        />
+      )}
 
       <Dialog open={showMilestoneDialog} onOpenChange={setShowMilestoneDialog}>
         <DialogContent>

@@ -11570,6 +11570,13 @@
           "message": "Fixed: lock screen now shows on all tabs; other tabs no longer show server reconnect overlay",
           "category": "bug",
           "createdAt": "2026-07-17T13:41:45.990Z"
+        },
+        {
+          "id": "1a93ad81-68d6-41e6-81c3-670eb3c54784",
+          "patch": 34,
+          "message": "Case details: Milestone Timeline button shows horizontal progress report with export",
+          "category": "feature",
+          "createdAt": "2026-07-20T10:49:10.086Z"
         }
       ],
       "publishedPatch": 33,
