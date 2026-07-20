@@ -4697,7 +4697,22 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           )}
                         </div>
                       ) : (
-                        <p className="text-xs text-muted-foreground">No approval notifications have been sent yet.</p>
+                        (() => {
+                          const assignedId = (document as any).approvalRequestedFrom;
+                          const assignedUser = assignedId ? siteClientUsers.find(u => u.id === assignedId) : null;
+                          if (assignedUser && assignedUser.status !== "active") {
+                            return (
+                              <div className="space-y-2">
+                                <div className="rounded-md border p-2 space-y-0.5">
+                                  <p className="text-sm font-medium">{assignedUser.fullName}</p>
+                                  <p className="text-xs text-muted-foreground">{assignedUser.email}</p>
+                                  <p className="text-xs text-amber-600 font-medium mt-1">Account not yet active — no email sent. They will see this document when they first log in.</p>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return <p className="text-xs text-muted-foreground">No approval notifications have been sent yet.</p>;
+                        })()
                       )}
 
                       <div className="border-t pt-3">

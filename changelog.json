@@ -11696,6 +11696,13 @@
           "message": "Fixed: Block action now works for inactive users; menu label updated to Block/Activate",
           "category": "bug",
           "createdAt": "2026-07-20T20:54:02.191Z"
+        },
+        {
+          "id": "2f03af5a-aad2-4fe5-84f5-ede93ceb697e",
+          "patch": 34,
+          "message": "Inactive approvers now shown in document sign-off panel with a status note",
+          "category": "bug",
+          "createdAt": "2026-07-20T20:58:22.728Z"
         }
       ],
       "publishedPatch": 33,
