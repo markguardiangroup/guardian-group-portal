@@ -630,16 +630,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const lock = async () => {
     const ts = Date.now();
-    // Fail-closed: only lock locally if the server successfully marks the session as
-    // locked. Without this guarantee, the lock screen could appear while the server
-    // session is still active, letting DevTools bypass the lock via direct API calls.
+    // Lock the UI immediately so the idle screen always shows (even if the server
+    // is temporarily restarting). The server call is best-effort: if it fails now
+    // we retry once the connection is restored; the lock screen stays until the
+    // user successfully unlocks regardless.
+    try { localStorage.setItem(LOCK_KEY, String(ts)); } catch {}
+    doLock(ts);
+    // Best-effort: mark the session as locked on the server so the API is also
+    // protected. Failure is silently swallowed — the UI lock is already active.
     try {
       await apiRequest("POST", "/api/auth/lock-session");
     } catch {
-      return; // Server unreachable or call failed — stay unlocked
+      // Server unreachable (e.g. dev server restarting). The client lock screen
+      // is already showing. The server session will be re-locked on next unlock
+      // attempt, or the auto-signout timer will eventually log the user out.
     }
-    try { localStorage.setItem(LOCK_KEY, String(ts)); } catch {}
-    doLock(ts);
   };
 
   const unlock = async (password: string): Promise<{ ok: boolean; error?: string }> => {

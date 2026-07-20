@@ -11598,6 +11598,13 @@
           "message": "Fixed: Groups filter on Site Documents page now correctly narrows the site list",
           "category": "bug",
           "createdAt": "2026-07-20T11:10:07.405Z"
+        },
+        {
+          "id": "d1d93252-c9c1-4345-a519-57fba2b67023",
+          "patch": 34,
+          "message": "Fixed: idle lock screen now shows reliably even when the server briefly restarts",
+          "category": "bug",
+          "createdAt": "2026-07-20T13:16:23.969Z"
         }
       ],
       "publishedPatch": 33,
