@@ -622,7 +622,7 @@ export default function Companies() {
   const { coveringFor } = useCoverageFilter();
 
   type StaffConsultant = { id: string; fullName: string; consultantTier?: string | null };
-  const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
+  const { data: myStaff = [], isSuccess: myStaffLoaded } = useQuery<StaffConsultant[]>({
     queryKey: ["/api/consultants/my-staff"],
     queryFn: async () => {
       const res = await fetch("/api/consultants/my-staff", { credentials: "include" });
@@ -631,6 +631,12 @@ export default function Companies() {
     },
     enabled: isProConsultant,
   });
+
+  useEffect(() => {
+    if (isProConsultant && myStaffLoaded && myStaff.length === 0 && staffFilter === "my") {
+      setStaffFilter("all");
+    }
+  }, [isProConsultant, myStaffLoaded, myStaff.length]);
 
   type Source = { id: string; code: string; label: string; isActive: boolean };
   const { data: availableSources = [] } = useQuery<Source[]>({

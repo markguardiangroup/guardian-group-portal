@@ -11654,6 +11654,13 @@
           "message": "Delete document button added to document detail page; both delete flows now require typing DELETE to confirm",
           "category": "feature",
           "createdAt": "2026-07-20T17:38:46.615Z"
+        },
+        {
+          "id": "adaab95b-784b-43d4-a436-16412643f00c",
+          "patch": 34,
+          "message": "My clients filter now defaults to All when user has no assigned clients",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T17:48:46.074Z"
         }
       ],
       "publishedPatch": 33,

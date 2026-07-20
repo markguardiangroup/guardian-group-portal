@@ -776,7 +776,7 @@ export default function UserManagement() {
 
   const [clientStaffFilter, setClientStaffFilter] = useSessionState<string>("users.clientStaffFilter", isAdmin ? "all" : "my");
 
-  const { data: myStaff = [] } = useQuery<UserWithAssignments[]>({
+  const { data: myStaff = [], isSuccess: myStaffLoaded } = useQuery<UserWithAssignments[]>({
     queryKey: ["/api/consultants/my-staff"],
     enabled: isPro,
   });
@@ -788,6 +788,15 @@ export default function UserManagement() {
       setRoleFilter("my_staff");
     }
   }, [isPro, myStaff.length]);
+
+  // Default to "all" when admin (in case session has a stale "my"), or pro consultant with no assigned staff
+  useEffect(() => {
+    if (isAdmin && clientStaffFilter === "my") {
+      setClientStaffFilter("all");
+    } else if (isPro && myStaffLoaded && myStaff.length === 0 && clientStaffFilter === "my") {
+      setClientStaffFilter("all");
+    }
+  }, [isAdmin, isPro, myStaffLoaded, myStaff.length]);
 
   // Auto-open "Create Client User" when arriving from a company page
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSiteFilter } from "@/hooks/use-site-filter";
 
@@ -31,7 +32,7 @@ export function useCoverageFilter() {
     staleTime: 30000,
   });
 
-  const { data: myStaff = [] } = useQuery<StaffConsultant[]>({
+  const { data: myStaff = [], isSuccess: myStaffLoaded } = useQuery<StaffConsultant[]>({
     queryKey: ["/api/consultants/my-staff"],
     queryFn: async () => {
       const res = await fetch("/api/consultants/my-staff", { credentials: "include" });
@@ -40,6 +41,12 @@ export function useCoverageFilter() {
     },
     enabled: isProConsultant,
   });
+
+  useEffect(() => {
+    if (isProConsultant && myStaffLoaded && myStaff.length === 0 && proStaffFilter === "my") {
+      setProStaffFilter("all");
+    }
+  }, [isProConsultant, myStaffLoaded, myStaff.length]);
 
   const coveringFor: CoveringForEntry[] = data?.coveringFor ?? [];
   const hasCoverage = showCoverageFilter && !isProConsultant && coveringFor.length > 0;
