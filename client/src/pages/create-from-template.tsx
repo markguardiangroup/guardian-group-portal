@@ -1579,18 +1579,16 @@ export default function CreateFromTemplate() {
                       </div>
                     );
                   })()}
-                  {selectedApproverId && (
-                    <div className="space-y-1 pt-1">
-                      <label className="text-sm font-medium text-muted-foreground">Message to approver <span className="font-normal">(optional)</span></label>
-                      <Textarea
-                        placeholder="Add a message or instructions for the approver…"
-                        rows={2}
-                        value={approvalMessage}
-                        onChange={(e) => setApprovalMessage(e.target.value)}
-                        data-testid="textarea-approval-message"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-1 pt-2">
+                    <label className="text-sm font-medium text-muted-foreground">Message to approver <span className="font-normal">(optional)</span></label>
+                    <Textarea
+                      placeholder="Add a message or instructions for the approver…"
+                      rows={2}
+                      value={approvalMessage}
+                      onChange={(e) => setApprovalMessage(e.target.value)}
+                      data-testid="textarea-approval-message"
+                    />
+                  </div>
                 </div>
               )}
             </div>

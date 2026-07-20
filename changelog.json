@@ -11717,6 +11717,13 @@
           "message": "Fixed: approval message box now appears in the create-from-template flow",
           "category": "bug",
           "createdAt": "2026-07-20T21:10:07.379Z"
+        },
+        {
+          "id": "7269ec0a-f862-4d68-ad4b-375d560fed30",
+          "patch": 34,
+          "message": "Fixed: approval message box now always visible when approval is enabled",
+          "category": "bug",
+          "createdAt": "2026-07-20T21:14:44.926Z"
         }
       ],
       "publishedPatch": 33,
