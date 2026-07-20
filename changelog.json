@@ -11584,6 +11584,13 @@
           "message": "Fixed: Milestones card buttons now sit below the title instead of squeezing it",
           "category": "bug",
           "createdAt": "2026-07-20T10:54:40.908Z"
+        },
+        {
+          "id": "f0c0c98b-8ace-426a-bf7e-42a060734204",
+          "patch": 34,
+          "message": "Roadmap: Hide Completed toggle collapses the completed column on the board",
+          "category": "feature",
+          "createdAt": "2026-07-20T10:57:18.908Z"
         }
       ],
       "publishedPatch": 33,

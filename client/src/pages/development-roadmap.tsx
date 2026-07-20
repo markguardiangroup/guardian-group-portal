@@ -56,7 +56,9 @@ import {
   Wrench,
   BarChart2,
   UserCircle,
+  EyeOff,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import logoIcon from "@assets/IFRA_and_Guardian_Group_A4_1767695098725.jpg";
 
@@ -168,6 +170,7 @@ export default function DevelopmentRoadmap() {
     } catch {}
   }, []);
 
+  const [hideCompleted, setHideCompleted] = useState(false);
   const [filterStatus, setFilterStatusRaw] = useState<string>(savedFilters.filterStatus ?? "all");
   const [filterType, setFilterTypeRaw] = useState<string>(savedFilters.filterType ?? "all");
   const [filterModule, setFilterModuleRaw] = useState<string>(savedFilters.filterModule ?? "all");
@@ -399,8 +402,19 @@ export default function DevelopmentRoadmap() {
               </DialogContent>
             </Dialog>
           </div>
-          {hasActiveFilters && (
-            <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 cursor-pointer select-none" data-testid="toggle-hide-completed">
+              <Switch
+                checked={hideCompleted}
+                onCheckedChange={setHideCompleted}
+                id="hide-completed-switch"
+              />
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <EyeOff className="h-3.5 w-3.5" />
+                Hide completed
+              </span>
+            </label>
+            {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -411,8 +425,8 @@ export default function DevelopmentRoadmap() {
                 <X className="h-3 w-3" />
                 Clear filters
               </Button>
-            </div>
-          )}
+            )}
+          </div>
           </div>
         </div>
 
@@ -433,8 +447,8 @@ export default function DevelopmentRoadmap() {
             </CardContent>
           </Card>
         ) : filterStatus === "all" ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {(Object.entries(groupedItems) as [RoadmapStatus, RoadmapItem[]][]).map(([status, items]) => {
+          <div className={`grid gap-6 md:grid-cols-2 ${hideCompleted ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
+            {(Object.entries(groupedItems) as [RoadmapStatus, RoadmapItem[]][]).filter(([status]) => !(hideCompleted && status === "completed")).map(([status, items]) => {
               const config = statusConfig[status];
               const StatusIcon = config.icon;
               return (
