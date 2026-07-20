@@ -509,11 +509,19 @@ export default function CreateFromTemplate() {
 
   const siteClientUsers = useMemo(() => {
     if (selectedSiteIds.length === 0) return [];
+    const goIds = new Set<string>();
+    for (const site of selectedSiteObjects) {
+      if (!site.companyId) continue;
+      const co = allCompanies.find(c => c.id === site.companyId);
+      if (co?.groupOwnerId) goIds.add(co.groupOwnerId);
+    }
     return allUsers.filter(u =>
-      u.role === "client" &&
-      selectedSiteIds.every(siteId => u.siteAssignments?.some(a => a.siteId === siteId))
+      u.role === "client" && (
+        selectedSiteIds.every(siteId => u.siteAssignments?.some(a => a.siteId === siteId)) ||
+        (goIds.size > 0 && u.companyId != null && goIds.has(u.companyId))
+      )
     );
-  }, [allUsers, selectedSiteIds]);
+  }, [allUsers, selectedSiteIds, selectedSiteObjects, allCompanies]);
 
   // For company/group scope: clients from the entity company, plus any group-owner company clients
   const entityClientUsers = useMemo(() => {

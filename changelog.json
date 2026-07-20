@@ -11752,6 +11752,13 @@
           "message": "Added Auto Final Approval toggle to the from-scratch document upload form",
           "category": "feature",
           "createdAt": "2026-07-20T21:36:07.590Z"
+        },
+        {
+          "id": "ea8727cf-f59e-43b8-a3e9-5a76070ffe6f",
+          "patch": 34,
+          "message": "Fixed: approver list now consistent between from-scratch and template upload forms",
+          "category": "bug",
+          "createdAt": "2026-07-20T21:40:24.413Z"
         }
       ],
       "publishedPatch": 33,
