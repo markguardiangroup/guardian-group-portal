@@ -11738,6 +11738,13 @@
           "message": "Upload forms now use consistent bordered card layout for the approval section",
           "category": "enhancement",
           "createdAt": "2026-07-20T21:27:55.167Z"
+        },
+        {
+          "id": "2b0ce145-f3f5-4890-969b-54b3ed54c3a7",
+          "patch": 34,
+          "message": "Approval fields now in consistent order across all upload forms; orange inactive badge on all flows",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T21:34:33.358Z"
         }
       ],
       "publishedPatch": 33,

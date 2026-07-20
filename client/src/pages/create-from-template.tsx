@@ -1565,7 +1565,7 @@ export default function CreateFromTemplate() {
                               <span className="flex items-center gap-2">
                                 {u.fullName}
                                 {u.status !== "active" && (
-                                  <span className="text-xs text-muted-foreground">(not active)</span>
+                                  <span className="text-xs text-amber-600 font-medium">(inactive)</span>
                                 )}
                               </span>
                             </SelectItem>

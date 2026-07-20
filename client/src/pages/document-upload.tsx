@@ -1287,6 +1287,50 @@ export default function DocumentUpload() {
                         )}
                       />
 
+                    {isAdministrator && requiresApproval && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium flex items-center gap-1">
+                          Approval On Behalf Of
+                          <span className="text-destructive">*</span>
+                        </label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          As an Admin you cannot personally sign off. Select the consultant who will own sign-off for this document.
+                        </p>
+                        {onBehalfConsultants.length > 0 ? (
+                          <Select value={selectedOnBehalfId} onValueChange={setSelectedOnBehalfId}>
+                            <SelectTrigger
+                              className={!selectedOnBehalfId ? "border-destructive" : ""}
+                              data-testid="select-on-behalf-consultant"
+                            >
+                              <SelectValue placeholder="Select a consultant…" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {onBehalfConsultants.map((u) => (
+                                <SelectItem
+                                  key={u.id}
+                                  value={u.id}
+                                  disabled={u.status !== "active"}
+                                  data-testid={`option-on-behalf-${u.id}`}
+                                >
+                                  <span className="flex items-center gap-2">
+                                    {u.fullName}
+                                    {u.status !== "active" && (
+                                      <span className="text-xs text-muted-foreground">(not active)</span>
+                                    )}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                            <Users className="h-4 w-4 shrink-0" />
+                            No consultants are available to own sign-off. Create a consultant in User Management first.
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {requiresApproval && selectedSiteIds.length > 0 && (
                       <div className="space-y-1">
                         <label className="text-sm font-medium flex items-center gap-1">
@@ -1414,50 +1458,6 @@ export default function DocumentUpload() {
                           />
                           <p className="text-xs text-muted-foreground">This message will be included in the approval request email if one is sent.</p>
                         </div>
-                      </div>
-                    )}
-
-                    {isAdministrator && requiresApproval && (
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium flex items-center gap-1">
-                          Approval On Behalf Of
-                          <span className="text-destructive">*</span>
-                        </label>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          As an Admin you cannot personally sign off. Select the consultant who will own sign-off for this document.
-                        </p>
-                        {onBehalfConsultants.length > 0 ? (
-                          <Select value={selectedOnBehalfId} onValueChange={setSelectedOnBehalfId}>
-                            <SelectTrigger
-                              className={!selectedOnBehalfId ? "border-destructive" : ""}
-                              data-testid="select-on-behalf-consultant"
-                            >
-                              <SelectValue placeholder="Select a consultant…" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {onBehalfConsultants.map((u) => (
-                                <SelectItem
-                                  key={u.id}
-                                  value={u.id}
-                                  disabled={u.status !== "active"}
-                                  data-testid={`option-on-behalf-${u.id}`}
-                                >
-                                  <span className="flex items-center gap-2">
-                                    {u.fullName}
-                                    {u.status !== "active" && (
-                                      <span className="text-xs text-muted-foreground">(not active)</span>
-                                    )}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4 shrink-0" />
-                            No consultants are available to own sign-off. Create a consultant in User Management first.
-                          </div>
-                        )}
                       </div>
                     )}
                     </div>{/* end Client Approval card */}
