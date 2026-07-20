@@ -11794,6 +11794,13 @@
           "message": "Improved: from-scratch upload success screen buttons now match template upload",
           "category": "enhancement",
           "createdAt": "2026-07-20T22:53:46.387Z"
+        },
+        {
+          "id": "6675d960-f916-4c06-8a48-9afbfc696143",
+          "patch": 34,
+          "message": "Improved: approver list updates in real time when a client user activates or logs in",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T23:01:42.694Z"
         }
       ],
       "publishedPatch": 33,

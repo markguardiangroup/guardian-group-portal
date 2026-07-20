@@ -2470,9 +2470,10 @@ export async function registerRoutes(
           : "User reset their password") + legalDetails,
       });
 
-      // Notify admins/consultants so they see the status change without refreshing
+      // Notify staff so they see the status change without refreshing
       if (invitation.purpose === "invite") {
         emitToRole("developer", "user-updated", { userId: updatedUser.id });
+        emitToRole("administrator", "user-updated", { userId: updatedUser.id });
         emitToRole("consultant", "user-updated", { userId: updatedUser.id });
       }
       
@@ -3079,10 +3080,11 @@ export async function registerRoutes(
     }
   };
 
-  // Emit a user-updated event to admins, consultants, and the user themselves.
+  // Emit a user-updated event to all staff roles and the user themselves.
   const emitUserUpdated = (userId: string, extra: object = {}): void => {
     const payload = { userId, ...extra };
     emitToRole("developer", "user-updated", payload);
+    emitToRole("administrator", "user-updated", payload);
     emitToRole("consultant", "user-updated", payload);
     emitToUser(userId, "user-updated", payload);
   };
@@ -3146,6 +3148,7 @@ export async function registerRoutes(
     // Record when the user connected and notify presence watchers
     storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
     emitToRole("developer", "presence-changed", { userId, online: true });
+    emitToRole("administrator", "presence-changed", { userId, online: true });
     emitToRole("consultant", "presence-changed", { userId, online: true });
 
     // Confirm connection
@@ -3162,6 +3165,7 @@ export async function registerRoutes(
       // Record when the user disconnected and notify presence watchers
       storage.updateUser(userId, { lastSeenAt: new Date() }).catch(() => {});
       emitToRole("developer", "presence-changed", { userId, online: false });
+      emitToRole("administrator", "presence-changed", { userId, online: false });
       emitToRole("consultant", "presence-changed", { userId, online: false });
     });
   });
