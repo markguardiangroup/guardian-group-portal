@@ -653,6 +653,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
   const [explicitViewMode, setExplicitViewMode] = useState<ViewMode | null>(null);
   const [archivedDialogOpen, setArchivedDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<{id: string, title: string, isSharedLink?: boolean} | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [docToArchive, setDocToArchive] = useState<{id: string, title: string, isSharedLink?: boolean} | null>(null);
   const [transferDoc, setTransferDoc] = useState<EnrichedDocument | null>(null);
   
@@ -3416,7 +3417,7 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!documentToDelete} onOpenChange={(open) => !open && setDocumentToDelete(null)}>
+      <Dialog open={!!documentToDelete} onOpenChange={(open) => { if (!open) { setDocumentToDelete(null); setDeleteConfirmText(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
@@ -3424,17 +3425,28 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
               Delete Document
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to permanently delete "{documentToDelete?.title}"? This action cannot be undone.
+              This will permanently delete "{documentToDelete?.title}". This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          {documentToDelete?.isSharedLink && (
-            <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>This document is currently shared with other sites/companies. Deleting it will also permanently remove that sharing.</span>
+          <div className="space-y-3">
+            {documentToDelete?.isSharedLink && (
+              <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>This document is currently shared with other sites/companies. Deleting it will also permanently remove that sharing.</span>
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Type <span className="font-mono font-bold">DELETE</span> to confirm</label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                data-testid="input-delete-confirm"
+              />
             </div>
-          )}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDocumentToDelete(null)}>
+            <Button variant="outline" onClick={() => { setDocumentToDelete(null); setDeleteConfirmText(""); }}>
               Cancel
             </Button>
             <Button
@@ -3443,9 +3455,11 @@ function ModuleDocumentsListView({ module }: { module: ModuleType }) {
                 if (documentToDelete) {
                   deleteFromListMutation.mutate(documentToDelete.id);
                   setDocumentToDelete(null);
+                  setDeleteConfirmText("");
                 }
               }}
-              disabled={deleteFromListMutation.isPending}
+              disabled={deleteFromListMutation.isPending || deleteConfirmText !== "DELETE"}
+              data-testid="button-confirm-delete"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Permanently
@@ -3692,6 +3706,8 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [changeNote, setChangeNote] = useState("");
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [archiveReason, setArchiveReason] = useState("");
+  const [showDetailDeleteDialog, setShowDetailDeleteDialog] = useState(false);
+  const [detailDeleteConfirmText, setDetailDeleteConfirmText] = useState("");
   const [showReissueDialog, setShowReissueDialog] = useState(false);
   const [reissueNote, setReissueNote] = useState("");
   const [reissueBase, setReissueBase] = useState<"today" | "last_approval">("today");
@@ -4197,6 +4213,25 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
         description: error.message || "Failed to restore document",
         variant: "destructive",
       });
+    },
+  });
+
+  const detailDeleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/documents/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents/module", module, "archived"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/sites"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard", module], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["/api/modules/summary"], refetchType: "all" });
+      toast({ title: "Document deleted", description: "The document has been permanently deleted." });
+      navigate(basePath + "/documents");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to delete document", variant: "destructive" });
     },
   });
 
@@ -5548,6 +5583,18 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                       </Button>
                     )
                   )}
+                  {isPrivilegedUser && ((document as any).isOrigin ?? true) && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-destructive hover:text-destructive"
+                      data-testid="button-delete-document-detail"
+                      onClick={() => { setDetailDeleteConfirmText(""); setShowDetailDeleteDialog(true); }}
+                      disabled={detailDeleteMutation.isPending}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Document
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -6201,6 +6248,55 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               data-testid="button-confirm-archive"
             >
               {archiveMutation.isPending ? "Archiving..." : "Archive Document"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailDeleteDialog} onOpenChange={(open) => { if (!open) { setShowDetailDeleteDialog(false); setDetailDeleteConfirmText(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Document
+            </DialogTitle>
+            <DialogDescription>
+              This will permanently delete "{document?.title}". This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {(document as any)?.hasActiveShares && (
+              <div className="flex gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>This document is currently shared with other sites/companies. Deleting it will also permanently remove that sharing.</span>
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Type <span className="font-mono font-bold">DELETE</span> to confirm</label>
+              <Input
+                value={detailDeleteConfirmText}
+                onChange={(e) => setDetailDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                data-testid="input-detail-delete-confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowDetailDeleteDialog(false); setDetailDeleteConfirmText(""); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowDetailDeleteDialog(false);
+                setDetailDeleteConfirmText("");
+                detailDeleteMutation.mutate();
+              }}
+              disabled={detailDeleteMutation.isPending || detailDeleteConfirmText !== "DELETE"}
+              data-testid="button-confirm-delete-detail"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Permanently
             </Button>
           </DialogFooter>
         </DialogContent>

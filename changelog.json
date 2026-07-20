@@ -11647,6 +11647,13 @@
           "message": "Mandatory document picker now groups templates by folder with alphabetical order",
           "category": "enhancement",
           "createdAt": "2026-07-20T17:15:32.495Z"
+        },
+        {
+          "id": "0293fe5f-4878-4d6a-9da3-5348b2965117",
+          "patch": 34,
+          "message": "Delete document button added to document detail page; both delete flows now require typing DELETE to confirm",
+          "category": "feature",
+          "createdAt": "2026-07-20T17:38:46.615Z"
         }
       ],
       "publishedPatch": 33,
