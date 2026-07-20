@@ -4601,19 +4601,37 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                                 Sent {new Date(approvalNotifications[0].sentAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })} by {approvalNotifications[0].sentBy}
                               </p>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={resendNotifyMutation.isPending}
-                              onClick={() => {
-                                const matchingUser = siteClientUsers.find(u => u.email === approvalNotifications[0].email);
-                                if (matchingUser) resendNotifyMutation.mutate(matchingUser.id);
-                              }}
-                              data-testid={`button-resend-${approvalNotifications[0].id}`}
-                            >
-                              <RefreshCw className="mr-1 h-3 w-3" />
-                              Resend
-                            </Button>
+                            {(() => {
+                              const matchingUser = siteClientUsers.find(u => u.email === approvalNotifications[0].email);
+                              const isInactive = matchingUser && matchingUser.status !== "active";
+                              return (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={resendNotifyMutation.isPending || !!isInactive}
+                                          onClick={() => {
+                                            if (matchingUser) resendNotifyMutation.mutate(matchingUser.id);
+                                          }}
+                                          data-testid={`button-resend-${approvalNotifications[0].id}`}
+                                        >
+                                          <RefreshCw className="mr-1 h-3 w-3" />
+                                          Resend
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    {isInactive && (
+                                      <TooltipContent>
+                                        User is inactive — they cannot receive emails until active
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
+                              );
+                            })()}
                           </div>
 
                           {/* History toggle */}

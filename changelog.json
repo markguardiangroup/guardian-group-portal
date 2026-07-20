@@ -11619,6 +11619,27 @@
           "message": "Fixed: Milestone Timeline weekly notches now visible in the dialog view",
           "category": "bug",
           "createdAt": "2026-07-20T16:01:54.223Z"
+        },
+        {
+          "id": "872a6d14-65c4-4536-bc24-2321b955b154",
+          "patch": 34,
+          "message": "Inactive client users can now be selected as document approvers",
+          "category": "feature",
+          "createdAt": "2026-07-20T16:10:36.676Z"
+        },
+        {
+          "id": "b6921ad8-3367-434f-a752-2defc4b8e5dc",
+          "patch": 34,
+          "message": "Warning shown when selecting an inactive approver (no email will be sent)",
+          "category": "feature",
+          "createdAt": "2026-07-20T16:10:36.678Z"
+        },
+        {
+          "id": "d5fa1214-914c-4877-9a84-b4ba37c317d6",
+          "patch": 34,
+          "message": "Resend approval button disabled with tooltip for inactive users",
+          "category": "feature",
+          "createdAt": "2026-07-20T16:10:36.678Z"
         }
       ],
       "publishedPatch": 33,

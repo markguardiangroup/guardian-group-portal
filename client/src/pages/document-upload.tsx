@@ -61,6 +61,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const documentUploadSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -154,6 +163,7 @@ export default function DocumentUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState<string>("");
+  const [showInactiveApproverWarning, setShowInactiveApproverWarning] = useState(false);
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
 
   const isDeveloperOrConsultant = user?.role === "developer" || user?.role === "consultant" || user?.role === "administrator";
@@ -1305,7 +1315,14 @@ export default function DocumentUpload() {
                             : "Select the client user who will review and approve this document"}
                         </p>
                         {siteClientUsers.length > 0 ? (
-                          <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                          <Select
+                            value={selectedApproverId}
+                            onValueChange={(id) => {
+                              setSelectedApproverId(id);
+                              const picked = siteClientUsers.find(u => u.id === id);
+                              if (picked && picked.status !== "active") setShowInactiveApproverWarning(true);
+                            }}
+                          >
                             <SelectTrigger
                               className={!selectedApproverId ? "border-destructive" : ""}
                               data-testid="select-client-approver"
@@ -1317,13 +1334,12 @@ export default function DocumentUpload() {
                                 <SelectItem
                                   key={u.id}
                                   value={u.id}
-                                  disabled={u.status !== "active"}
                                   data-testid={`option-approver-${u.id}`}
                                 >
                                   <span className="flex items-center gap-2">
                                     {u.fullName}
                                     {u.status !== "active" && (
-                                      <span className="text-xs text-muted-foreground">(not active)</span>
+                                      <span className="text-xs text-amber-600 font-medium">(inactive)</span>
                                     )}
                                   </span>
                                 </SelectItem>
@@ -1353,7 +1369,14 @@ export default function DocumentUpload() {
                             : "Client users from the group owner company can approve group-level documents."}
                         </p>
                         {entityClientUsers.length > 0 ? (
-                          <Select value={selectedApproverId} onValueChange={setSelectedApproverId}>
+                          <Select
+                            value={selectedApproverId}
+                            onValueChange={(id) => {
+                              setSelectedApproverId(id);
+                              const picked = entityClientUsers.find(u => u.id === id);
+                              if (picked && picked.status !== "active") setShowInactiveApproverWarning(true);
+                            }}
+                          >
                             <SelectTrigger
                               className={!selectedApproverId ? "border-destructive" : ""}
                               data-testid="select-entity-approver"
@@ -1365,13 +1388,12 @@ export default function DocumentUpload() {
                                 <SelectItem
                                   key={u.id}
                                   value={u.id}
-                                  disabled={u.status !== "active"}
                                   data-testid={`option-approver-${u.id}`}
                                 >
                                   <span className="flex items-center gap-2">
                                     {u.fullName}
                                     {u.status !== "active" && (
-                                      <span className="text-xs text-muted-foreground">(not active)</span>
+                                      <span className="text-xs text-amber-600 font-medium">(inactive)</span>
                                     )}
                                   </span>
                                 </SelectItem>
@@ -1853,6 +1875,25 @@ export default function DocumentUpload() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showInactiveApproverWarning} onOpenChange={setShowInactiveApproverWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              User is inactive
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This user is currently inactive and will <strong>not receive any email notifications</strong> until their account becomes active. The document will still be assigned to them for approval — they will see it as an action to complete when they first log in.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction data-testid="button-inactive-approver-ok">
+              OK, understood
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

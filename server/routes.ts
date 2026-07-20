@@ -6160,7 +6160,7 @@ export async function registerRoutes(
         for (const notifyUserId of effectiveNotifyIds) {
           try {
             const notifyUser = await storage.getUser(notifyUserId);
-            if (notifyUser && notifyUser.email) {
+            if (notifyUser && notifyUser.email && notifyUser.status === "active") {
               const modulePath = body.module === "health_safety" ? "health-safety" 
                 : body.module === "human_resources" ? "human-resources" 
                 : body.module === "employment_law" ? "employment-law" 
@@ -7178,6 +7178,9 @@ export async function registerRoutes(
       const targetUser = await storage.getUser(targetUserId);
       if (!targetUser || !targetUser.email) {
         return res.status(404).json({ error: "User not found or has no email" });
+      }
+      if (targetUser.status !== "active") {
+        return res.status(400).json({ error: "Cannot send approval email to an inactive user" });
       }
 
       const site = await storage.getSite(existingDoc.siteId);
