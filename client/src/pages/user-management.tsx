@@ -2290,13 +2290,14 @@ export default function UserManagement() {
                   )}
                   <TableCell>
                     <Badge 
-                      variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" || u.status === "site_required" || u.status === "locked" ? "outline" : "secondary"}
+                      variant={u.status === "active" ? "default" : u.status === "invited" || u.status === "invite_required" || u.status === "site_required" || u.status === "locked" ? "outline" : u.status === "blocked" ? "outline" : "secondary"}
                       className={
                         "whitespace-nowrap " + (
                         u.status === "invited" ? "border-amber-500 text-amber-600 dark:text-amber-400 cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors" :
                         u.status === "invite_required" ? "border-blue-500 text-blue-600 dark:text-blue-400 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" :
                         u.status === "site_required" ? "border-orange-500 text-orange-600 dark:text-orange-400 cursor-pointer" :
-                        u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" : "")
+                        u.status === "locked" ? "border-red-500 text-red-600 dark:text-red-400" :
+                        u.status === "blocked" ? "border-destructive text-destructive dark:text-red-400" : "")
                       }
                       onClick={u.status === "site_required" ? () => {
                         setUserNeedingSiteAssignment(u);
@@ -2314,6 +2315,8 @@ export default function UserManagement() {
                         <><MapPin className="h-3 w-3 mr-1" />Site Required</>
                       ) : u.status === "locked" ? (
                         <><LockKeyhole className="h-3 w-3 mr-1" />Locked</>
+                      ) : u.status === "blocked" ? (
+                        <><UserX className="h-3 w-3 mr-1" />Blocked</>
                       ) : (
                         <><UserX className="h-3 w-3 mr-1" />Inactive</>
                       )}

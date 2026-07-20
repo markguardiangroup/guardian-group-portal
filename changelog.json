@@ -11773,6 +11773,13 @@
           "message": "Fixed: approval emails are no longer sent to inactive or uninvited users",
           "category": "bug",
           "createdAt": "2026-07-20T22:34:26.555Z"
+        },
+        {
+          "id": "54d2b8e8-6768-40f3-bff8-a690a965f2d1",
+          "patch": 34,
+          "message": "Fixed: blocked users now show a red \"Blocked\" badge instead of \"Inactive\"",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:36:53.665Z"
         }
       ],
       "publishedPatch": 33,
