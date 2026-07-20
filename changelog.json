@@ -11745,6 +11745,13 @@
           "message": "Approval fields now in consistent order across all upload forms; orange inactive badge on all flows",
           "category": "enhancement",
           "createdAt": "2026-07-20T21:34:33.358Z"
+        },
+        {
+          "id": "69bdddd2-eb88-42ee-bec1-791087511c13",
+          "patch": 34,
+          "message": "Added Auto Final Approval toggle to the from-scratch document upload form",
+          "category": "feature",
+          "createdAt": "2026-07-20T21:36:07.590Z"
         }
       ],
       "publishedPatch": 33,

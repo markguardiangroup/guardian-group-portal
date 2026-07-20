@@ -77,6 +77,7 @@ const documentUploadSchema = z.object({
   module: z.enum(["health_safety", "human_resources", "employment_law", "training", "support"]),
   folderId: z.string().optional(),
   requiresApproval: z.boolean().default(true),
+  autoFinalApproval: z.boolean().default(true),
   isMandatory: z.boolean().default(false),
   expiryDate: z.string().optional(),
   complianceMode: z.enum(["none", "renewal", "expiry"]).default("none"),
@@ -328,6 +329,7 @@ export default function DocumentUpload() {
       module: initialModule,
       folderId: "",
       requiresApproval: true,
+      autoFinalApproval: true,
       isMandatory: false,
       expiryDate: "",
       complianceMode: "none",
@@ -337,6 +339,7 @@ export default function DocumentUpload() {
 
   const selectedModule = form.watch("module");
   const requiresApproval = form.watch("requiresApproval");
+  const autoFinalApproval = form.watch("autoFinalApproval");
   const complianceMode = form.watch("complianceMode");
   const renewalPeriodMonths = form.watch("renewalPeriodMonths");
 
@@ -702,6 +705,7 @@ export default function DocumentUpload() {
           shareDestinations: resolvedShareDestinations,
           folderId: data.folderId || undefined,
           requiresApproval: data.requiresApproval,
+          autoFinalApproval: data.requiresApproval ? data.autoFinalApproval : false,
           isMandatory: data.isMandatory,
           expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
           renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
@@ -757,6 +761,7 @@ export default function DocumentUpload() {
           siteId,
           folderId: siteFolderId || undefined,
           requiresApproval: data.requiresApproval,
+          autoFinalApproval: data.requiresApproval ? data.autoFinalApproval : false,
           isMandatory: data.isMandatory,
           expiryDate: data.complianceMode === "expiry" && data.expiryDate ? data.expiryDate : undefined,
           renewalPeriodMonths: data.complianceMode === "renewal" ? data.renewalPeriodMonths : undefined,
@@ -1286,6 +1291,34 @@ export default function DocumentUpload() {
                           </FormItem>
                         )}
                       />
+
+                      {requiresApproval && (
+                        <FormField
+                          control={form.control}
+                          name="autoFinalApproval"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="ml-1 flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">Auto Final Approval</FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    {field.value
+                                      ? "Approved automatically once the client approves"
+                                      : "A consultant will need to provide final sign-off after the client approves."}
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    data-testid="toggle-auto-final-approval"
+                                  />
+                                </FormControl>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      )}
 
                     {isAdministrator && requiresApproval && (
                       <div className="space-y-1">
