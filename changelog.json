@@ -11759,6 +11759,13 @@
           "message": "Fixed: approver list now consistent between from-scratch and template upload forms",
           "category": "bug",
           "createdAt": "2026-07-20T21:40:24.413Z"
+        },
+        {
+          "id": "d5136550-53de-4bfb-8308-7fc3a49940bc",
+          "patch": 34,
+          "message": "Staff can now enable client approval on documents that don't require it",
+          "category": "feature",
+          "createdAt": "2026-07-20T21:52:48.627Z"
         }
       ],
       "publishedPatch": 33,
