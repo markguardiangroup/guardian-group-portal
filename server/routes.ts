@@ -992,6 +992,8 @@ const createDocumentSchema = z.object({
   // nominate a consultant to own the sign-off. The document is stored as owned by that
   // consultant (uploadedBy), with the admin recorded as the initiator (initiatedByUserId).
   onBehalfOfUserId: z.string().optional(),
+  // Optional message from the uploader to include in the approval request email and audit trail.
+  approvalMessage: z.string().optional(),
 });
 
 const createCaseSchema = z.object({

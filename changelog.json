@@ -11759,6 +11759,13 @@
           "message": "Fixed: approver list now consistent between from-scratch and template upload forms",
           "category": "bug",
           "createdAt": "2026-07-20T21:40:24.413Z"
+        },
+        {
+          "id": "e51289b3-bcdd-480b-bd73-91620e04b874",
+          "patch": 34,
+          "message": "Fixed: message to approver now appears in approval emails and audit trail",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:19:14.791Z"
         }
       ],
       "publishedPatch": 33,
