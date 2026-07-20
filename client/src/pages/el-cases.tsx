@@ -1502,6 +1502,30 @@ function generateMilestoneTimelineHtml(
   const stemLen = 70;
   const circleR = 7;
 
+  // Build weekly notch marks along the baseline
+  const weekMs = 7 * 86_400_000;
+  // Find the first Monday on or after minDate
+  const firstMonday = new Date(minDate);
+  const dow = firstMonday.getDay(); // 0=Sun,1=Mon…
+  firstMonday.setDate(firstMonday.getDate() + (dow === 0 ? 1 : (8 - dow) % 7 || 7));
+  const weekNotchesSvg = (() => {
+    let svg = "";
+    let d = new Date(firstMonday);
+    while (d <= maxDate) {
+      const x = Math.round(getX(d));
+      if (x >= 42 && x <= 858) {
+        const isMonthBoundary = d.getDate() <= 7; // first Monday in a new month
+        const nh = isMonthBoundary ? 7 : 3;
+        svg += `<line x1="${x}" y1="${lineY - nh}" x2="${x}" y2="${lineY + nh}" stroke="#cbd5e1" stroke-width="${isMonthBoundary ? 1.2 : 0.8}"/>`;
+        if (isMonthBoundary) {
+          svg += `<text x="${x}" y="${lineY - nh - 3}" text-anchor="middle" font-family="system-ui,sans-serif" font-size="7.5" fill="#94a3b8">${format(d, "MMM yyyy")}</text>`;
+        }
+      }
+      d = new Date(d.getTime() + weekMs);
+    }
+    return svg;
+  })();
+
   const milestonesSvg = sorted.map((m, idx) => {
     const x = getX(m.effectiveDate);
     const above = idx % 2 === 0;
@@ -1568,6 +1592,7 @@ function generateMilestoneTimelineHtml(
   <svg viewBox="0 0 900 ${lineY * 2 + 10}" width="100%" style="display:block;overflow:visible;margin-bottom:16px">
     <rect x="0" y="0" width="900" height="${lineY * 2 + 10}" fill="white"/>
     <line x1="40" y1="${lineY}" x2="860" y2="${lineY}" stroke="#cbd5e1" stroke-width="2"/>
+    ${weekNotchesSvg}
     <line x1="${todayX}" y1="10" x2="${todayX}" y2="${lineY * 2}" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3"/>
     <text x="${todayX}" y="8" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#f97316">Today</text>
     <text x="40" y="${lineY * 2 + 8}" font-family="system-ui,sans-serif" font-size="8" fill="#94a3b8">${format(minDate, "d MMM yyyy")}</text>

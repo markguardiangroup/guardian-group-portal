@@ -11605,6 +11605,13 @@
           "message": "Fixed: idle lock screen now shows reliably even when the server briefly restarts",
           "category": "bug",
           "createdAt": "2026-07-20T13:16:23.969Z"
+        },
+        {
+          "id": "d9651c35-b256-4afa-b6d5-42f7ec63e81f",
+          "patch": 34,
+          "message": "Milestone Timeline: weekly notches and month labels added to the timeline axis",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T15:21:24.176Z"
         }
       ],
       "publishedPatch": 33,
