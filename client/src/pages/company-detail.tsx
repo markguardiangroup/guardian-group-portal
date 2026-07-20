@@ -819,6 +819,10 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
     queryKey: ["/api/document-templates"],
   });
 
+  const { data: allFolderTemplates = [] } = useQuery<{ id: string; name: string; sortOrder: number }[]>({
+    queryKey: ["/api/folder-templates"],
+  });
+
   const { data: requiredTemplates = [], isLoading: requiredLoading } = useQuery<CompanyRequiredTemplate[]>({
     queryKey: ["/api/companies", companyId, "required-templates"],
     queryFn: async () => {
@@ -958,6 +962,24 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                   </TabsList>
                   {enabledModules.map(mod => {
                     const moduleTemplates = allPrivateActive.filter(t => t.module === mod);
+                    // Group by folder, sort templates alphabetically within each group
+                    const folderNameMap = new Map(allFolderTemplates.map(f => [f.id, f.name]));
+                    const folderSortMap = new Map(allFolderTemplates.map(f => [f.id, f.sortOrder]));
+                    const grouped = Object.entries(
+                      moduleTemplates.reduce((acc, t) => {
+                        const key = t.folderTemplateId ?? "__none__";
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(t);
+                        return acc;
+                      }, {} as Record<string, DocumentTemplate[]>)
+                    )
+                      .map(([folderId, templates]) => ({
+                        folderId,
+                        folderName: folderId === "__none__" ? "Uncategorised" : (folderNameMap.get(folderId) ?? "Other"),
+                        sortOrder: folderId === "__none__" ? 99999 : (folderSortMap.get(folderId) ?? 99998),
+                        templates: [...templates].sort((a, b) => a.name.localeCompare(b.name)),
+                      }))
+                      .sort((a, b) => a.sortOrder - b.sortOrder || a.folderName.localeCompare(b.folderName));
                     return (
                       <TabsContent key={mod} value={mod}>
                         {moduleTemplates.length === 0 ? (
@@ -965,46 +987,52 @@ function RequiredDocumentsCard({ companyId }: { companyId: string }) {
                             No templates available for {MODULE_LABELS[mod] || mod}.
                           </p>
                         ) : (
-                          <div className="space-y-3">
-                            {moduleTemplates.map(t => {
-                              // Inherited rows are tickable: unticking them
-                              // soft-removes (struck-through) at this member
-                              // company. Re-ticking reactivates the row.
-                              const isInheritedRow = inheritedTemplateIdSet.has(t.id);
-                              return (
-                                <div key={t.id} className="flex items-center gap-3">
-                                  <Checkbox
-                                    id={`req-${t.id}`}
-                                    checked={addSelectedIds.has(t.id)}
-                                    onCheckedChange={(checked) => {
-                                      const newIds = new Set(addSelectedIds);
-                                      if (checked) newIds.add(t.id); else newIds.delete(t.id);
-                                      setAddSelectedIds(newIds);
-                                    }}
-                                    data-testid={`checkbox-req-${t.id}`}
-                                  />
-                                  <label
-                                    htmlFor={`req-${t.id}`}
-                                    className="text-sm font-medium leading-none flex items-center gap-2 cursor-pointer"
-                                  >
-                                    {t.name}
-                                    {isInheritedRow && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
-                                        data-testid={`badge-inherited-checkbox-${t.id}`}
-                                      >
-                                        <Building2 className="h-3 w-3" />
-                                        Inherited
-                                      </Badge>
-                                    )}
-                                    {t.requiresApproval && (
-                                      <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                                    )}
-                                  </label>
+                          <div className="space-y-4">
+                            {grouped.map(({ folderId, folderName, templates }) => (
+                              <div key={folderId}>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 pb-1 border-b">
+                                  {folderName}
+                                </p>
+                                <div className="space-y-3">
+                                  {templates.map(t => {
+                                    const isInheritedRow = inheritedTemplateIdSet.has(t.id);
+                                    return (
+                                      <div key={t.id} className="flex items-center gap-3">
+                                        <Checkbox
+                                          id={`req-${t.id}`}
+                                          checked={addSelectedIds.has(t.id)}
+                                          onCheckedChange={(checked) => {
+                                            const newIds = new Set(addSelectedIds);
+                                            if (checked) newIds.add(t.id); else newIds.delete(t.id);
+                                            setAddSelectedIds(newIds);
+                                          }}
+                                          data-testid={`checkbox-req-${t.id}`}
+                                        />
+                                        <label
+                                          htmlFor={`req-${t.id}`}
+                                          className="text-sm font-medium leading-none flex items-center gap-2 cursor-pointer"
+                                        >
+                                          {t.name}
+                                          {isInheritedRow && (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs flex items-center gap-1 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30"
+                                              data-testid={`badge-inherited-checkbox-${t.id}`}
+                                            >
+                                              <Building2 className="h-3 w-3" />
+                                              Inherited
+                                            </Badge>
+                                          )}
+                                          {t.requiresApproval && (
+                                            <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                          )}
+                                        </label>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              );
-                            })}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </TabsContent>

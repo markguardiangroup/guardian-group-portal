@@ -1024,6 +1024,10 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
     queryKey: ["/api/document-templates"],
   });
 
+  const { data: allFolderTemplates = [] } = useQuery<{ id: string; name: string; sortOrder: number }[]>({
+    queryKey: ["/api/folder-templates"],
+  });
+
   const { data: companyModuleAccess } = useQuery<{ healthSafety: boolean; humanResources: boolean; employmentLaw: boolean }>({
     queryKey: ["/api/companies", companyId, "module-access"],
     queryFn: async () => {
@@ -1231,6 +1235,24 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                   </TabsList>
                   {enabledModules.map(mod => {
                     const moduleTemplates = allPrivateActiveForSite.filter(t => t.module === mod);
+                    // Group by folder, sort templates alphabetically within each group
+                    const folderNameMap = new Map(allFolderTemplates.map(f => [f.id, f.name]));
+                    const folderSortMap = new Map(allFolderTemplates.map(f => [f.id, f.sortOrder]));
+                    const grouped = Object.entries(
+                      moduleTemplates.reduce((acc, t) => {
+                        const key = t.folderTemplateId ?? "__none__";
+                        if (!acc[key]) acc[key] = [];
+                        acc[key].push(t);
+                        return acc;
+                      }, {} as Record<string, typeof moduleTemplates[0][]>)
+                    )
+                      .map(([folderId, templates]) => ({
+                        folderId,
+                        folderName: folderId === "__none__" ? "Uncategorised" : (folderNameMap.get(folderId) ?? "Other"),
+                        sortOrder: folderId === "__none__" ? 99999 : (folderSortMap.get(folderId) ?? 99998),
+                        templates: [...templates].sort((a, b) => a.name.localeCompare(b.name)),
+                      }))
+                      .sort((a, b) => a.sortOrder - b.sortOrder || a.folderName.localeCompare(b.folderName));
                     return (
                       <TabsContent key={mod} value={mod}>
                         {moduleTemplates.length === 0 ? (
@@ -1238,36 +1260,45 @@ function ComplianceTab({ siteId, companyId }: { siteId: string; companyId?: stri
                             No templates available for {MODULE_LABELS[mod] || mod}.
                           </p>
                         ) : (
-                          <div className="space-y-3">
-                            {moduleTemplates.map(t => {
-                              const source = effectiveSourceMap.get(t.id);
-                              return (
-                                <div key={t.id} className="flex items-center gap-3">
-                                  <Checkbox
-                                    id={`req-${t.id}`}
-                                    checked={addSelectedIds.has(t.id)}
-                                    onCheckedChange={(checked) => {
-                                      const newIds = new Set(addSelectedIds);
-                                      if (checked) newIds.add(t.id); else newIds.delete(t.id);
-                                      setAddSelectedIds(newIds);
-                                    }}
-                                    data-testid={`checkbox-req-${t.id}`}
-                                  />
-                                  <label
-                                    htmlFor={`req-${t.id}`}
-                                    className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
-                                  >
-                                    {t.name}
-                                    {(source === "company" || source === "company-excluded") && (
-                                      <Badge variant="outline" className="text-xs">Company</Badge>
-                                    )}
-                                    {t.requiresApproval && (
-                                      <Badge variant="outline" className="text-xs">Approval Required</Badge>
-                                    )}
-                                  </label>
+                          <div className="space-y-4">
+                            {grouped.map(({ folderId, folderName, templates }) => (
+                              <div key={folderId}>
+                                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 pb-1 border-b">
+                                  {folderName}
+                                </p>
+                                <div className="space-y-3">
+                                  {templates.map(t => {
+                                    const source = effectiveSourceMap.get(t.id);
+                                    return (
+                                      <div key={t.id} className="flex items-center gap-3">
+                                        <Checkbox
+                                          id={`req-${t.id}`}
+                                          checked={addSelectedIds.has(t.id)}
+                                          onCheckedChange={(checked) => {
+                                            const newIds = new Set(addSelectedIds);
+                                            if (checked) newIds.add(t.id); else newIds.delete(t.id);
+                                            setAddSelectedIds(newIds);
+                                          }}
+                                          data-testid={`checkbox-req-${t.id}`}
+                                        />
+                                        <label
+                                          htmlFor={`req-${t.id}`}
+                                          className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                                        >
+                                          {t.name}
+                                          {(source === "company" || source === "company-excluded") && (
+                                            <Badge variant="outline" className="text-xs">Company</Badge>
+                                          )}
+                                          {t.requiresApproval && (
+                                            <Badge variant="outline" className="text-xs">Approval Required</Badge>
+                                          )}
+                                        </label>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
-                              );
-                            })}
+                              </div>
+                            ))}
                           </div>
                         )}
                       </TabsContent>

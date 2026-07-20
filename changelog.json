@@ -11640,6 +11640,13 @@
           "message": "Resend approval button disabled with tooltip for inactive users",
           "category": "feature",
           "createdAt": "2026-07-20T16:10:36.678Z"
+        },
+        {
+          "id": "07c4eeaf-8494-4680-aa01-177114035a7f",
+          "patch": 34,
+          "message": "Mandatory document picker now groups templates by folder with alphabetical order",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T17:15:32.495Z"
         }
       ],
       "publishedPatch": 33,
