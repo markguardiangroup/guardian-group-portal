@@ -11766,6 +11766,13 @@
           "message": "Fixed: message to approver now appears in approval emails and audit trail",
           "category": "bug",
           "createdAt": "2026-07-20T22:19:14.791Z"
+        },
+        {
+          "id": "e5d4a529-f29b-4f83-ad60-7973764c5675",
+          "patch": 34,
+          "message": "Fixed: approval emails are no longer sent to inactive or uninvited users",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:34:26.555Z"
         }
       ],
       "publishedPatch": 33,
