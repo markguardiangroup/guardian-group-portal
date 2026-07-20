@@ -11675,6 +11675,13 @@
           "message": "Fixed: inactive users can now be selected as document approvers",
           "category": "bug",
           "createdAt": "2026-07-20T20:11:34.238Z"
+        },
+        {
+          "id": "b37bf943-3622-40d9-9278-97b87f2052e2",
+          "patch": 34,
+          "message": "Approval emails now sent to all non-inactive users (invited, active, etc.)",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T20:22:34.631Z"
         }
       ],
       "publishedPatch": 33,
