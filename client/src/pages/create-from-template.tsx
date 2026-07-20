@@ -1557,7 +1557,6 @@ export default function CreateFromTemplate() {
                             <SelectItem
                               key={u.id}
                               value={u.id}
-                              disabled={u.status !== "active"}
                               data-testid={`option-approver-${u.id}`}
                             >
                               <span className="flex items-center gap-2">

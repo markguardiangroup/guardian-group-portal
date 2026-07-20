@@ -548,7 +548,7 @@ export function UploadDocumentDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {siteClientUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id} disabled={u.status !== "active"}>
+                        <SelectItem key={u.id} value={u.id}>
                           {u.fullName}{u.status !== "active" ? " (inactive)" : ""}
                         </SelectItem>
                       ))}

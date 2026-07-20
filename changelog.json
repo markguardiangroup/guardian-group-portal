@@ -11668,6 +11668,13 @@
           "message": "My clients option is greyed out in filters when user has no assigned clients",
           "category": "enhancement",
           "createdAt": "2026-07-20T17:52:24.689Z"
+        },
+        {
+          "id": "88f069ee-192c-45c8-bf9e-ccb286ccc570",
+          "patch": 34,
+          "message": "Fixed: inactive users can now be selected as document approvers",
+          "category": "bug",
+          "createdAt": "2026-07-20T20:11:34.238Z"
         }
       ],
       "publishedPatch": 33,
