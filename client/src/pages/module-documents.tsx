@@ -3819,7 +3819,7 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const approvalInProgress = document?.approvalStatus === "pending" || document?.approvalStatus === "client_signed_off" || document?.approvalStatus === "changes_requested";
 
-  const docAlreadyRequiresApproval = !!(document as any)?.requiresApproval && !approvalInProgress && !document?.isArchived;
+  const docAlreadyRequiresApproval = !!(document as any)?.requiresApproval && !approvalInProgress && !document?.isArchived && document?.approvalStatus !== "approved";
 
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
@@ -4481,13 +4481,16 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
             </CardContent>
           </Card>
 
-          {/* ── Approval card: enable (toggle) or send (already required but not in workflow) ── */}
+          {/* ── Approval card: enable (toggle) or send (required but never formally approved) ── */}
           {(() => {
             const docRequiresApproval = (document as any).requiresApproval === true;
+            const alreadyApproved = document.approvalStatus === "approved";
             // Show for staff when no active workflow is running and the doc isn't archived
             if (!isPrivilegedUser || approvalInProgress || document.isArchived) return null;
             // Case A: approval not yet required → show toggle
-            // Case B: approval already required but not in active workflow → show form directly
+            // Case B: approval required but never formally approved (no approved status yet) → show form directly
+            // Do NOT show when already approved — no need to re-send
+            if (docRequiresApproval && alreadyApproved) return null;
             const alreadyRequired = docRequiresApproval;
             const showFields = alreadyRequired || enableApprovalOn;
             return (

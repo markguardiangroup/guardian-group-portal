@@ -11773,6 +11773,13 @@
           "message": "Fixed: approval card now shows on docs that require approval but have no active workflow",
           "category": "bug",
           "createdAt": "2026-07-20T22:01:49.921Z"
+        },
+        {
+          "id": "0587a5a5-7a11-4977-83fd-a7ba3727cf05",
+          "patch": 34,
+          "message": "Fixed: approval card no longer shown on documents that are already approved",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:05:01.665Z"
         }
       ],
       "publishedPatch": 33,
