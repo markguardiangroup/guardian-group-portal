@@ -11724,6 +11724,13 @@
           "message": "Fixed: approval message box now always visible when approval is enabled",
           "category": "bug",
           "createdAt": "2026-07-20T21:14:44.926Z"
+        },
+        {
+          "id": "481fa729-f78d-467c-b4cd-b4e2451e4c52",
+          "patch": 34,
+          "message": "Approval message box now notes it will appear in the approval email",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T21:16:12.315Z"
         }
       ],
       "publishedPatch": 33,

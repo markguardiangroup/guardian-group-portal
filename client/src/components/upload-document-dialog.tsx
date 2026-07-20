@@ -571,6 +571,7 @@ export function UploadDocumentDialog({
                     onChange={(e) => setApprovalMessage(e.target.value)}
                     data-testid="textarea-approval-message"
                   />
+                  <p className="text-xs text-muted-foreground">This message will be included in the approval request email if one is sent.</p>
                 </div>
               </div>
             )}
