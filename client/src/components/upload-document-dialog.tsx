@@ -441,77 +441,66 @@ export function UploadDocumentDialog({
             />
 
             {/* Approval */}
-            <FormField
-              control={form.control}
-              name="requiresApproval"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Approval Process</FormLabel>
-                  <div className="grid grid-cols-2 gap-2 mt-1">
-                    <button
-                      type="button"
-                      onClick={() => field.onChange(true)}
-                      data-testid="upload-dialog-approval-required"
-                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
-                        field.value ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20" : "border-muted bg-muted/30 hover:bg-muted/50"
-                      }`}
-                    >
-                      <span className="flex items-center gap-1.5 font-medium">
-                        <XCircle className={`h-3.5 w-3.5 ${field.value ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
-                        Client approval
-                      </span>
-                      <span className="text-xs text-muted-foreground leading-tight">Needs review before compliant</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => field.onChange(false)}
-                      data-testid="upload-dialog-no-approval"
-                      className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
-                        !field.value ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20" : "border-muted bg-muted/30 hover:bg-muted/50"
-                      }`}
-                    >
-                      <span className="flex items-center gap-1.5 font-medium">
-                        <CheckCircle2 className={`h-3.5 w-3.5 ${!field.value ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
-                        Auto-approve
-                      </span>
-                      <span className="text-xs text-muted-foreground leading-tight">Marked compliant immediately</span>
-                    </button>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            {/* Auto Final Approval toggle — only visible when Client Approval is on */}
-            {requiresApproval && (
+            <div className="rounded-lg border-2 border-muted-foreground/30 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-sm font-semibold">Client Approval</h3>
+              </div>
               <FormField
                 control={form.control}
-                name="autoFinalApproval"
+                name="requiresApproval"
                 render={({ field }) => (
                   <FormItem>
-                    <div className="ml-1 flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
+                    <div className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-sm font-medium">Auto Final Approval</FormLabel>
+                        <FormLabel className="text-sm font-medium">Client Approval Required?</FormLabel>
                         <p className="text-xs text-muted-foreground">
-                          {field.value
-                            ? "This document will be approved automatically once the client approves it"
-                            : "A consultant will need to provide final sign-off after the client approves."}
+                          {field.value ? "Needs review before becoming compliant" : "Marked compliant immediately on upload"}
                         </p>
                       </div>
                       <FormControl>
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          data-testid="toggle-upload-dialog-auto-final-approval"
+                          data-testid="upload-dialog-approval-required"
                         />
                       </FormControl>
                     </div>
                   </FormItem>
                 )}
               />
-            )}
 
-            {/* Admin: Approval on behalf of consultant */}
-            {requiresApproval && isAdmin && (
+              {/* Auto Final Approval toggle — only visible when Client Approval is on */}
+              {requiresApproval && (
+                <FormField
+                  control={form.control}
+                  name="autoFinalApproval"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="ml-1 flex items-center justify-between gap-4 rounded-md border border-dashed px-4 py-3">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-medium">Auto Final Approval</FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            {field.value
+                              ? "Approved automatically once the client approves"
+                              : "A consultant will need to provide final sign-off after the client approves."}
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="toggle-upload-dialog-auto-final-approval"
+                          />
+                        </FormControl>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Admin: Approval on behalf of consultant */}
+              {requiresApproval && isAdmin && (
               <div className="space-y-1">
                 <label className="text-sm font-medium flex items-center gap-1">
                   Approval on behalf of <span className="text-destructive">*</span>
@@ -537,8 +526,8 @@ export function UploadDocumentDialog({
               </div>
             )}
 
-            {/* Client approver */}
-            {requiresApproval && siteId && (
+              {/* Client approver */}
+              {requiresApproval && siteId && (
               <div className="space-y-1">
                 <label className="text-sm font-medium flex items-center gap-1">
                   Client Approver <span className="text-destructive">*</span>
@@ -551,7 +540,12 @@ export function UploadDocumentDialog({
                     <SelectContent>
                       {siteClientUsers.map((u) => (
                         <SelectItem key={u.id} value={u.id}>
-                          {u.fullName}{u.status !== "active" ? " (inactive)" : ""}
+                          <span className="flex items-center gap-2">
+                            {u.fullName}
+                            {u.status !== "active" && (
+                              <span className="text-xs text-amber-600 font-medium">(inactive)</span>
+                            )}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -575,6 +569,7 @@ export function UploadDocumentDialog({
                 </div>
               </div>
             )}
+            </div>{/* end Client Approval card */}
 
             {/* Compliance section */}
             <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4 space-y-3">

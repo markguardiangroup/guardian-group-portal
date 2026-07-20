@@ -11731,6 +11731,13 @@
           "message": "Approval message box now notes it will appear in the approval email",
           "category": "enhancement",
           "createdAt": "2026-07-20T21:16:12.315Z"
+        },
+        {
+          "id": "bd2da468-63a3-40cd-b48e-1e36cda342a3",
+          "patch": 34,
+          "message": "Upload forms now use consistent bordered card layout for the approval section",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T21:27:55.167Z"
         }
       ],
       "publishedPatch": 33,

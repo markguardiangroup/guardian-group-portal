@@ -1258,53 +1258,34 @@ export default function DocumentUpload() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="requiresApproval"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Approval Process</FormLabel>
-                          <div className="grid grid-cols-2 gap-2 mt-1">
-                            <button
-                              type="button"
-                              onClick={() => field.onChange(true)}
-                              data-testid="approval-required-button"
-                              className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
-                                field.value
-                                  ? "border-amber-400 bg-amber-50 dark:bg-amber-900/20"
-                                  : "border-muted bg-muted/30 hover:bg-muted/50"
-                              }`}
-                            >
-                              <span className="flex items-center gap-1.5 font-medium">
-                                <XCircle className={`h-3.5 w-3.5 ${field.value ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`} />
-                                Client approval
-                              </span>
-                              <span className="text-xs text-muted-foreground leading-tight">
-                                Needs review before becoming compliant
-                              </span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => field.onChange(false)}
-                              data-testid="no-approval-button"
-                              className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left text-sm transition-colors ${
-                                !field.value
-                                  ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20"
-                                  : "border-muted bg-muted/30 hover:bg-muted/50"
-                              }`}
-                            >
-                              <span className="flex items-center gap-1.5 font-medium">
-                                <CheckCircle2 className={`h-3.5 w-3.5 ${!field.value ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
-                                Auto-approve
-                              </span>
-                              <span className="text-xs text-muted-foreground leading-tight">
-                                Marked compliant immediately on upload
-                              </span>
-                            </button>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
+                    <div className="rounded-lg border-2 border-muted-foreground/30 p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <h3 className="text-sm font-semibold">Client Approval</h3>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="requiresApproval"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center justify-between gap-4 rounded-md border px-4 py-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm font-medium">Client Approval Required?</FormLabel>
+                                <p className="text-xs text-muted-foreground">
+                                  {field.value ? "Needs review before becoming compliant" : "Marked compliant immediately on upload"}
+                                </p>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  data-testid="approval-required-button"
+                                />
+                              </FormControl>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
 
                     {requiresApproval && selectedSiteIds.length > 0 && (
                       <div className="space-y-1">
@@ -1479,6 +1460,7 @@ export default function DocumentUpload() {
                         )}
                       </div>
                     )}
+                    </div>{/* end Client Approval card */}
 
                     <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 p-4 space-y-3">
                       <div className="flex items-center gap-2">
