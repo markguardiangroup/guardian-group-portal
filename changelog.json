@@ -11591,6 +11591,13 @@
           "message": "Roadmap: Hide Completed toggle collapses the completed column on the board",
           "category": "feature",
           "createdAt": "2026-07-20T10:57:18.908Z"
+        },
+        {
+          "id": "d627bb37-f32b-4c13-a5d3-b6820d5b2f61",
+          "patch": 34,
+          "message": "Fixed: Groups filter on Site Documents page now correctly narrows the site list",
+          "category": "bug",
+          "createdAt": "2026-07-20T11:10:07.405Z"
         }
       ],
       "publishedPatch": 33,

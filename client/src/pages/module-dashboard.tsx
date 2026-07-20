@@ -204,7 +204,7 @@ export default function ModuleDashboard({ module }: ModuleDashboardProps) {
 
   // Fetch companies for group scope filtering (only when a group is selected)
   const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies", { limit: 1000 }],
     queryFn: async () => {
       const res = await fetch(`/api/companies?limit=1000`, { credentials: "include" });
       return res.json();

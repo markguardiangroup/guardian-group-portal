@@ -226,7 +226,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
   });
 
   const { data: companiesResp } = useQuery<{ companies: CompanyListItem[] }>({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies", { limit: 1000 }],
     queryFn: async () => {
       const res = await fetch(`/api/companies?limit=1000`, { credentials: "include" });
       return res.json();
