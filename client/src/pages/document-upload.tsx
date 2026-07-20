@@ -1779,20 +1779,6 @@ export default function DocumentUpload() {
               )}
             </p>
             <div className="flex gap-4 flex-wrap justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  goToUploadStep("choice");
-                  setSelectedSiteIds([]);
-                  setSelectedFile(null);
-                  setSelectedApproverId("");
-                  setUploadedDocId(null);
-                  form.reset();
-                }}
-                data-testid="button-upload-another"
-              >
-                Upload Another
-              </Button>
               {uploadedDocId && selectedSiteIds.length <= 1 && (() => {
                 const slugs: Record<string, string> = { health_safety: "health-safety", human_resources: "human-resources", employment_law: "employment-law" };
                 const slug = slugs[selectedModule];
@@ -1811,7 +1797,7 @@ export default function DocumentUpload() {
                 onClick={() => navigate(buildReturnUrl(selectedModule))}
                 data-testid="button-view-documents"
               >
-                View Documents
+                Back
               </Button>
             </div>
           </CardContent>

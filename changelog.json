@@ -11787,6 +11787,13 @@
           "message": "Fixed: approval re-notify emails are no longer sent to non-active users",
           "category": "bug",
           "createdAt": "2026-07-20T22:43:29.877Z"
+        },
+        {
+          "id": "e0ae1a5d-da50-418f-89b3-ff4c2e0b24ab",
+          "patch": 34,
+          "message": "Improved: from-scratch upload success screen buttons now match template upload",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T22:53:46.387Z"
         }
       ],
       "publishedPatch": 33,
