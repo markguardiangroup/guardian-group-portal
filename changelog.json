@@ -11766,6 +11766,13 @@
           "message": "Staff can now enable client approval on documents that don't require it",
           "category": "feature",
           "createdAt": "2026-07-20T21:52:48.627Z"
+        },
+        {
+          "id": "1e283dc5-613c-4933-b1ca-eafa96f090e4",
+          "patch": 34,
+          "message": "Fixed: approval card now shows on docs that require approval but have no active workflow",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:01:49.921Z"
         }
       ],
       "publishedPatch": 33,

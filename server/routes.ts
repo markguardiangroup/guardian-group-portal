@@ -7309,15 +7309,19 @@ export async function registerRoutes(
       // Enabling approval workflow on a doc that previously didn't require it —
       // put it straight into pending so the approval card shows immediately.
       const enablingApproval = body.requiresApproval === true && doc.requiresApproval === false;
-      if (enablingApproval) {
+      // Re-initiating approval on a doc that already requires it but isn't in an active workflow
+      const reinitiatingApproval = body.reinitiateApproval === true && doc.requiresApproval === true &&
+        doc.approvalStatus !== "pending" && doc.approvalStatus !== "client_signed_off";
+      delete body.reinitiateApproval; // don't persist this flag
+      if (enablingApproval || reinitiatingApproval) {
         body.approvalStatus = "pending";
         body.status = "approval_required";
       }
 
       const updated = await storage.updateDocument(id, body);
 
-      // If approval was just enabled, send notification email to the selected approver
-      if (enablingApproval && body.approvalRequestedFrom) {
+      // If approval was just enabled or re-initiated, send notification email to the selected approver
+      if ((enablingApproval || reinitiatingApproval) && body.approvalRequestedFrom) {
         try {
           const notifyUser = await storage.getUser(body.approvalRequestedFrom);
           if (notifyUser && notifyUser.email && notifyUser.status !== "inactive" && notifyUser.status !== "blocked") {
