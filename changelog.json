@@ -11689,6 +11689,13 @@
           "message": "Added Blocked user status: deactivating now blocks login, portal access, and all emails",
           "category": "feature",
           "createdAt": "2026-07-20T20:48:08.571Z"
+        },
+        {
+          "id": "1bc0643a-84b4-4bcb-aff3-52dd2c01a19f",
+          "patch": 34,
+          "message": "Fixed: Block action now works for inactive users; menu label updated to Block/Activate",
+          "category": "bug",
+          "createdAt": "2026-07-20T20:54:02.191Z"
         }
       ],
       "publishedPatch": 33,

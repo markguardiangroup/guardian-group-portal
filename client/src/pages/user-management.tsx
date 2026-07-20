@@ -1763,7 +1763,7 @@ export default function UserManagement() {
   });
 
   const handleToggleStatus = (targetUser: UserWithAssignments) => {
-    const newStatus = targetUser.status === "active" ? "blocked" : "active";
+    const newStatus = (targetUser.status === "active" || targetUser.status === "inactive") ? "blocked" : "active";
     setStatusConfirm({ user: targetUser, newStatus });
   };
 
@@ -2434,10 +2434,10 @@ export default function UserManagement() {
                             )}
                             {u.status !== "invited" && u.status !== "site_required" && u.status !== "invite_required" && u.status !== "locked" && (
                               <DropdownMenuItem onClick={() => handleToggleStatus(u)}>
-                                {u.status === "active" ? (
-                                  <><UserX className="h-4 w-4 mr-2" />Deactivate</>
-                                ) : (
+                                {u.status === "blocked" ? (
                                   <><UserCheck className="h-4 w-4 mr-2" />Activate</>
+                                ) : (
+                                  <><UserX className="h-4 w-4 mr-2" />Block</>
                                 )}
                               </DropdownMenuItem>
                             )}
