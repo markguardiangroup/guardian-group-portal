@@ -11703,6 +11703,13 @@
           "message": "Inactive approvers now shown in document sign-off panel with a status note",
           "category": "bug",
           "createdAt": "2026-07-20T20:58:22.728Z"
+        },
+        {
+          "id": "2404946f-13b9-43cd-8ea8-84d6684c25f1",
+          "patch": 34,
+          "message": "Optional message to approver added to document upload — sent in email and shown in audit trail",
+          "category": "feature",
+          "createdAt": "2026-07-20T21:07:08.978Z"
         }
       ],
       "publishedPatch": 33,

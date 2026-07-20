@@ -5265,11 +5265,12 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                           document_approved_notification: 'Approval confirmed',
                           invitation: 'User invited',
                         };
-                        let emailMeta: { emailType?: string } = {};
+                        let emailMeta: { emailType?: string; message?: string } = {};
                         if (log.action === 'email_sent' && log.metadata) {
                           try { emailMeta = JSON.parse(log.metadata); } catch { /* ignore */ }
                         }
                         const emailTypeLabel = emailMeta.emailType ? EMAIL_TYPE_LABELS[emailMeta.emailType] ?? null : null;
+                        const emailApprovalMessage = (log.action === 'email_sent' && emailMeta.message) ? emailMeta.message : '';
 
                         // For rename entries, parse from/to out of metadata
                         let renameMeta: { from?: string; to?: string } = {};
@@ -5353,9 +5354,10 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
                             ? (uploadMeta.changeNote ?? '').trim()
                             : '';
                         const hasVersionComment = !!versionChangeNote;
-                        // The text shown when the entry is expanded (manual comment or version note).
-                        const commentText = hasManualComment ? details : (hasVersionComment ? versionChangeNote : '');
-                        const showCommentExpand = hasManualComment || hasVersionComment;
+                        const hasEmailMessage = !!emailApprovalMessage;
+                        // The text shown when the entry is expanded (manual comment, version note, or approval message).
+                        const commentText = hasManualComment ? details : (hasVersionComment ? versionChangeNote : (hasEmailMessage ? emailApprovalMessage : ''));
+                        const showCommentExpand = hasManualComment || hasVersionComment || hasEmailMessage;
 
                         // On-behalf name for the byline: prefer metadata (upload entries), fall back to
                         // document-level fields for all other admin-initiated entries.

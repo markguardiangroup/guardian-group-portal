@@ -6175,6 +6175,7 @@ export async function registerRoutes(
                 portalUrl: baseUrl,
                 documentUrl,
                 role: notifyUser.role,
+                changeNote: body.approvalMessage || undefined,
               });
               await storage.createAuditLog({
                 action: "email_sent",
@@ -6185,7 +6186,7 @@ export async function registerRoutes(
                 supportRequestId: null,
                 module: body.module,
                 details: `Approval notification email sent to ${notifyUser.fullName} (${notifyUser.email})`,
-                metadata: JSON.stringify({ targetUserId: notifyUser.id, emailType: "approval_notification" }),
+                metadata: JSON.stringify({ targetUserId: notifyUser.id, emailType: "approval_notification", ...(body.approvalMessage ? { message: body.approvalMessage } : {}) }),
               });
             }
           } catch (emailError) {

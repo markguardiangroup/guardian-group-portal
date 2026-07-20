@@ -163,6 +163,7 @@ export default function DocumentUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState<string>("");
+  const [approvalMessage, setApprovalMessage] = useState<string>("");
   const [showInactiveApproverWarning, setShowInactiveApproverWarning] = useState(false);
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
 
@@ -712,6 +713,7 @@ export default function DocumentUpload() {
           approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: data.requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           onBehalfOfUserId: isAdministrator && data.requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
+          approvalMessage: data.requiresApproval && selectedApproverId && approvalMessage.trim() ? approvalMessage.trim() : undefined,
           templateId: selectedTemplateId || undefined,
         };
         const result = await (await apiRequest("POST", "/api/documents", formData)).json();
@@ -766,6 +768,7 @@ export default function DocumentUpload() {
           approvalRequestedFrom: data.requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: data.requiresApproval && selectedApproverId && isFirstSite ? [selectedApproverId] : [],
           onBehalfOfUserId: isAdministrator && data.requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
+          approvalMessage: data.requiresApproval && selectedApproverId && approvalMessage.trim() ? approvalMessage.trim() : undefined,
         };
         const result = await (await apiRequest("POST", "/api/documents", formData)).json();
         results.push(result);
@@ -1354,6 +1357,18 @@ export default function DocumentUpload() {
                               : "No client users are assigned to this site. Assign users in User Management first."}
                           </div>
                         )}
+                        {selectedApproverId && (
+                          <div className="space-y-1 pt-1">
+                            <label className="text-sm font-medium text-muted-foreground">Message to approver <span className="font-normal">(optional)</span></label>
+                            <Textarea
+                              placeholder="Add a message or instructions for the approver…"
+                              rows={2}
+                              value={approvalMessage}
+                              onChange={(e) => setApprovalMessage(e.target.value)}
+                              data-testid="textarea-approval-message"
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1406,6 +1421,18 @@ export default function DocumentUpload() {
                             {docScope === "company"
                               ? "No client users found for this company. Assign users in User Management first."
                               : "No client users found for the group owner company. Assign users in User Management first."}
+                          </div>
+                        )}
+                        {selectedApproverId && (
+                          <div className="space-y-1 pt-1">
+                            <label className="text-sm font-medium text-muted-foreground">Message to approver <span className="font-normal">(optional)</span></label>
+                            <Textarea
+                              placeholder="Add a message or instructions for the approver…"
+                              rows={2}
+                              value={approvalMessage}
+                              onChange={(e) => setApprovalMessage(e.target.value)}
+                              data-testid="textarea-approval-message-entity"
+                            />
                           </div>
                         )}
                       </div>
