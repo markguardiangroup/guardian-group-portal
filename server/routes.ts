@@ -7306,61 +7306,8 @@ export async function registerRoutes(
         }
       }
 
-      // Enabling approval workflow on a doc that previously didn't require it —
-      // put it straight into pending so the approval card shows immediately.
-      const enablingApproval = body.requiresApproval === true && doc.requiresApproval === false;
-      // Re-initiating approval on a doc that already requires it but isn't in an active workflow
-      const reinitiatingApproval = body.reinitiateApproval === true && doc.requiresApproval === true &&
-        doc.approvalStatus !== "pending" && doc.approvalStatus !== "client_signed_off";
-      delete body.reinitiateApproval; // don't persist this flag
-      if (enablingApproval || reinitiatingApproval) {
-        body.approvalStatus = "pending";
-        body.status = "approval_required";
-      }
-
       const updated = await storage.updateDocument(id, body);
-
-      // If approval was just enabled or re-initiated, send notification email to the selected approver
-      if ((enablingApproval || reinitiatingApproval) && body.approvalRequestedFrom) {
-        try {
-          const notifyUser = await storage.getUser(body.approvalRequestedFrom);
-          if (notifyUser && notifyUser.email && notifyUser.status !== "inactive" && notifyUser.status !== "blocked") {
-            const site = doc.siteId ? await storage.getSite(doc.siteId) : null;
-            const baseUrl = req.headers.origin || `${req.protocol}://${req.get("host")}`;
-            const modulePath = doc.module === "health_safety" ? "health-safety"
-              : doc.module === "human_resources" ? "human-resources"
-              : doc.module === "employment_law" ? "employment-law"
-              : "documents";
-            const documentUrl = `${baseUrl}/${modulePath}/documents/${doc.id}`;
-            await sendDocumentApprovalEmail({
-              to: notifyUser.email,
-              fullName: notifyUser.fullName,
-              documentTitle: doc.title,
-              siteName: site?.name || "Unknown Site",
-              uploadedBy: user.fullName,
-              portalUrl: baseUrl,
-              documentUrl,
-              role: notifyUser.role,
-              changeNote: body.approvalMessage || undefined,
-            });
-            await storage.createAuditLog({
-              action: "email_sent",
-              userId: user.id,
-              userName: user.fullName,
-              entityId: doc.entityId,
-              documentId: doc.id,
-              supportRequestId: null,
-              module: doc.module as any,
-              details: `Approval notification email sent to ${notifyUser.fullName} (${notifyUser.email})`,
-              metadata: JSON.stringify({ targetUserId: notifyUser.id, emailType: "approval_notification", ...(body.approvalMessage ? { message: body.approvalMessage } : {}) }),
-              ipAddress: req.ip,
-            });
-          }
-        } catch (emailError) {
-          console.error("Failed to send approval notification:", emailError);
-        }
-      }
-
+      
       // Log the change — use a dedicated rename action when the title changed
       const titleChanged = "title" in req.body && req.body.title !== doc.title;
       if (titleChanged) {

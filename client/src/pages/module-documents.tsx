@@ -3730,9 +3730,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
   const [titleDraft, setTitleDraft] = useState("");
   const [editingComments, setEditingComments] = useState(false);
   const [commentsDraft, setCommentsDraft] = useState("");
-  const [enableApprovalOn, setEnableApprovalOn] = useState(false);
-  const [enableApprovalApproverId, setEnableApprovalApproverId] = useState("");
-  const [enableApprovalMessage, setEnableApprovalMessage] = useState("");
 
   const config = moduleConfig[module];
   const basePath = module === "health_safety" ? "/health-safety" : module === "human_resources" ? "/human-resources" : module === "employment_law" ? "/employment-law" : "/training";
@@ -3819,16 +3816,14 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
 
   const approvalInProgress = document?.approvalStatus === "pending" || document?.approvalStatus === "client_signed_off" || document?.approvalStatus === "changes_requested";
 
-  const docAlreadyRequiresApproval = !!(document as any)?.requiresApproval && !approvalInProgress && !document?.isArchived && !(document?.approvalStatus === "approved" && !!document?.lastApprovedAt);
-
   const { data: siteUsers } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/sites", document?.siteId, "users"],
-    enabled: !!document?.siteId && isPrivilegedUser && (approvalInProgress || showUploadVersionDialog || enableApprovalOn || docAlreadyRequiresApproval),
+    enabled: !!document?.siteId && isPrivilegedUser && (approvalInProgress || showUploadVersionDialog),
   });
 
   const { data: allUsersForApproval } = useQuery<Array<{ id: string; fullName: string; email: string; role: string; status: string; companyId?: string }>>({
     queryKey: ["/api/users"],
-    enabled: isDocumentScoped && isPrivilegedUser && (approvalInProgress || showUploadVersionDialog || enableApprovalOn || docAlreadyRequiresApproval),
+    enabled: isDocumentScoped && isPrivilegedUser && (approvalInProgress || showUploadVersionDialog),
   });
 
   const siteClientUsers = useMemo(() => {
@@ -3980,28 +3975,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message || "Failed to update compliance tracking", variant: "destructive" });
-    },
-  });
-
-  const enableApprovalMutation = useMutation({
-    mutationFn: async ({ approverId, message, alreadyRequired }: { approverId: string; message: string; alreadyRequired?: boolean }) => {
-      return apiRequest("PATCH", `/api/documents/${id}`, {
-        requiresApproval: true,
-        approvalRequestedFrom: approverId || undefined,
-        approvalMessage: message || undefined,
-        ...(alreadyRequired ? { reinitiateApproval: true } : {}),
-      });
-    },
-    onSuccess: () => {
-      invalidateComplianceCaches();
-      queryClient.invalidateQueries({ queryKey: ["/api/documents", id, "audit"], refetchType: "all" });
-      setEnableApprovalOn(false);
-      setEnableApprovalApproverId("");
-      setEnableApprovalMessage("");
-      toast({ title: "Approval enabled", description: "This document now requires client approval." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to enable approval", variant: "destructive" });
     },
   });
 
@@ -4480,100 +4453,6 @@ function ModuleDocumentDetailView({ id, module }: { id: string; module: ModuleTy
               </dl>
             </CardContent>
           </Card>
-
-          {/* ── Approval card: enable (toggle) or send (required but never formally approved) ── */}
-          {(() => {
-            const docRequiresApproval = (document as any).requiresApproval === true;
-            // A "real" approval means lastApprovedAt is set (went through the workflow).
-            // approvalStatus="approved" with no lastApprovedAt means it was passively bypassed.
-            const formallyApproved = document.approvalStatus === "approved" && !!document.lastApprovedAt;
-            // Show for staff when no active workflow is running and the doc isn't archived
-            if (!isPrivilegedUser || approvalInProgress || document.isArchived) return null;
-            // Hide only if approval was genuinely completed through the workflow
-            if (docRequiresApproval && formallyApproved) return null;
-            const alreadyRequired = docRequiresApproval;
-            const showFields = alreadyRequired || enableApprovalOn;
-            return (
-              <Card className="rounded-lg border-2 border-muted-foreground/30" data-testid="card-enable-approval">
-                <CardContent className="p-4 space-y-4">
-                  {!alreadyRequired && (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold">Require Client Approval</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Start an approval workflow for this document</p>
-                      </div>
-                      <Switch
-                        checked={enableApprovalOn}
-                        onCheckedChange={(v) => {
-                          setEnableApprovalOn(v);
-                          if (!v) { setEnableApprovalApproverId(""); setEnableApprovalMessage(""); }
-                        }}
-                        data-testid="switch-enable-approval"
-                      />
-                    </div>
-                  )}
-                  {alreadyRequired && (
-                    <div>
-                      <p className="text-sm font-semibold">Send for Client Approval</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">This document requires approval — select an approver to begin the review</p>
-                    </div>
-                  )}
-                  {showFields && (
-                    <div className={`space-y-4${!alreadyRequired ? " pt-2 border-t border-muted-foreground/20" : ""}`}>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Client Approver <span className="text-destructive">*</span></label>
-                        <p className="text-xs text-muted-foreground">Select the client user who will review and approve this document</p>
-                        <Select value={enableApprovalApproverId} onValueChange={setEnableApprovalApproverId}>
-                          <SelectTrigger data-testid="select-enable-approver">
-                            <SelectValue placeholder="Select a client approver..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {siteClientUsers.map(u => (
-                              <SelectItem key={u.id} value={u.id} data-testid={`option-enable-approver-${u.id}`}>
-                                <span>{u.fullName}</span>
-                                {u.status !== "active" && <span className="ml-1.5 text-xs text-orange-500">(inactive)</span>}
-                              </SelectItem>
-                            ))}
-                            {siteClientUsers.length === 0 && (
-                              <div className="px-2 py-1.5 text-sm text-muted-foreground">No client users found</div>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Message to approver <span className="text-muted-foreground font-normal">(optional)</span></label>
-                        <Textarea
-                          value={enableApprovalMessage}
-                          onChange={e => setEnableApprovalMessage(e.target.value)}
-                          placeholder="Add a message or instructions for the approver..."
-                          rows={3}
-                          data-testid="textarea-enable-approval-message"
-                        />
-                        <p className="text-xs text-muted-foreground">This message will be included in the approval request email if one is sent.</p>
-                      </div>
-                      <Button
-                        onClick={() => {
-                          if (!enableApprovalApproverId) {
-                            toast({ title: "Approver required", description: "Please select a client approver.", variant: "destructive" });
-                            return;
-                          }
-                          enableApprovalMutation.mutate({
-                            approverId: enableApprovalApproverId,
-                            message: enableApprovalMessage,
-                            alreadyRequired,
-                          });
-                        }}
-                        disabled={enableApprovalMutation.isPending || !enableApprovalApproverId}
-                        data-testid="button-save-enable-approval"
-                      >
-                        {enableApprovalMutation.isPending ? "Saving..." : alreadyRequired ? "Send for Approval" : "Enable Approval"}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })()}
 
           {(document.approvalStatus === "pending" || document.approvalStatus === "client_signed_off") && !document.isArchived && (() => {
             const isClient = user?.role === "client";

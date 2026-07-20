@@ -11759,34 +11759,6 @@
           "message": "Fixed: approver list now consistent between from-scratch and template upload forms",
           "category": "bug",
           "createdAt": "2026-07-20T21:40:24.413Z"
-        },
-        {
-          "id": "d5136550-53de-4bfb-8308-7fc3a49940bc",
-          "patch": 34,
-          "message": "Staff can now enable client approval on documents that don't require it",
-          "category": "feature",
-          "createdAt": "2026-07-20T21:52:48.627Z"
-        },
-        {
-          "id": "1e283dc5-613c-4933-b1ca-eafa96f090e4",
-          "patch": 34,
-          "message": "Fixed: approval card now shows on docs that require approval but have no active workflow",
-          "category": "bug",
-          "createdAt": "2026-07-20T22:01:49.921Z"
-        },
-        {
-          "id": "0587a5a5-7a11-4977-83fd-a7ba3727cf05",
-          "patch": 34,
-          "message": "Fixed: approval card no longer shown on documents that are already approved",
-          "category": "bug",
-          "createdAt": "2026-07-20T22:05:01.665Z"
-        },
-        {
-          "id": "01e750bb-0962-4a41-b210-4d13de660a25",
-          "patch": 34,
-          "message": "Fixed: Send for Approval now shows on docs approved without a formal workflow",
-          "category": "bug",
-          "createdAt": "2026-07-20T22:08:14.167Z"
         }
       ],
       "publishedPatch": 33,
