@@ -698,7 +698,7 @@ export interface IStorage {
   getAcceloLinksByCompany(companyId: string): Promise<CompanyAcceloLink[]>;
   getAcceloLinksForSync(): Promise<CompanyAcceloLink[]>;
   getAcceloLinkBySourceAndAcceloId(sourceCode: string, acceloId: string): Promise<CompanyAcceloLink | null>;
-  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void>;
+  bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null; internalCompanyNumber?: string | null }>): Promise<void>;
 
   // Accelo Sync Logs
   createAcceloSyncLog(log: { syncType: string; sourceCode: string; triggeredBy: string; triggeredByName: string; companyId?: string | null; companyName?: string | null; companiesTotal: number; companiesUpdated: number; success: boolean; errorMessage?: string | null }): Promise<void>;
@@ -7505,13 +7505,19 @@ export class MemStorage implements IStorage {
     return r.rows[0] ?? null;
   }
 
-  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null }>): Promise<void> {
+  async bulkUpdateAcceloStandings(updates: Array<{ companyId: string; sourceCode: string; acceloStanding: string | null; acceloType?: string | null; acceloColor?: string | null; internalCompanyNumber?: string | null }>): Promise<void> {
     if (updates.length === 0) return;
     for (const u of updates) {
       await pool.query(
         `UPDATE company_accelo_links SET accelo_standing = $1, accelo_type = $2, accelo_color = $3, last_checked_at = now() WHERE company_id = $4 AND source_code = $5`,
         [u.acceloStanding, u.acceloType ?? null, u.acceloColor ?? null, u.companyId, u.sourceCode]
       );
+      if (u.internalCompanyNumber != null && u.internalCompanyNumber !== "") {
+        await pool.query(
+          `UPDATE companies SET internal_company_number = $1 WHERE id = $2 AND (internal_company_number IS NULL OR internal_company_number = '')`,
+          [u.internalCompanyNumber, u.companyId]
+        );
+      }
     }
   }
 

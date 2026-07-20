@@ -11087,7 +11087,7 @@ export async function registerRoutes(
       for (const link of links) {
         try {
           if (!canAccessAcceloSource(user, link.sourceCode)) continue;
-          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,company_status(id,title,color)`);
+          const data = await acceloGet(link.sourceCode, `/companies/${link.acceloId}?_fields=id,standing,custom_id,company_status(id,title,color)`);
           const r = data?.response;
           const rawStatus = r?.company_status;
           const acceloType = rawStatus
@@ -11096,6 +11096,16 @@ export async function registerRoutes(
           const acceloColor = rawStatus && typeof rawStatus === "object" ? (rawStatus?.color ?? null) : null;
           if (r) {
             await storage.upsertAcceloLink(req.params.companyId, link.sourceCode, link.acceloId, r.standing ?? null, acceloType || null, acceloColor);
+            if (r.custom_id) {
+              await storage.bulkUpdateAcceloStandings([{
+                companyId: req.params.companyId,
+                sourceCode: link.sourceCode,
+                acceloStanding: r.standing ?? null,
+                acceloType: acceloType || null,
+                acceloColor,
+                internalCompanyNumber: r.custom_id,
+              }]);
+            }
             updated++;
             sourcesSynced.add(link.sourceCode);
           }
@@ -11190,7 +11200,7 @@ export async function registerRoutes(
         {
           id: "accelo-status-sync",
           name: "Accelo Status Sync",
-          description: "Fetches the latest standing and company status from Accelo for all linked companies",
+          description: "Fetches the latest standing, company status, and internal company number from Accelo for all linked companies",
           schedule: "Daily at 07:00 UK",
           runsIn: "production" as const,
           lastRunAt: acceloLastScheduled?.syncedAt ? new Date(acceloLastScheduled.syncedAt).toISOString() : null,

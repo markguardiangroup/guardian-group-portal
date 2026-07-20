@@ -711,7 +711,7 @@ process.on("uncaughtException", (err) => {
             const batch = sourceLinks.slice(i, i + BATCH_SIZE);
             const ids = batch.map((l: typeof sourceLinks[number]) => l.acceloId).join("|");
             try {
-              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing,company_status(id,title,color)&_limit=${BATCH_SIZE}`);
+              const data = await acceloGet(sourceCode, `/companies?_filters=id_in(${ids})&_fields=id,standing,custom_id,company_status(id,title,color)&_limit=${BATCH_SIZE}`);
               const results = Array.isArray(data?.response) ? data.response : [];
               for (const r of results) {
                 const link = batch.find((l: typeof sourceLinks[number]) => String(l.acceloId) === String(r.id));
@@ -720,7 +720,8 @@ process.on("uncaughtException", (err) => {
                   ? (typeof rawStatus === "string" ? rawStatus : (rawStatus?.title ?? null))
                   : null;
                 const acceloColor = rawStatus && typeof rawStatus === "object" ? (rawStatus?.color ?? null) : null;
-                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null, acceloType, acceloColor });
+                const internalCompanyNumber = r.custom_id || null;
+                if (link) updates.push({ companyId: link.companyId, sourceCode, acceloStanding: r.standing ?? null, acceloType, acceloColor, internalCompanyNumber });
               }
             } catch (batchErr: any) {
               console.error(`[scheduler] Accelo sync batch error (source=${sourceCode}):`, batchErr.message);
