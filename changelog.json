@@ -11710,6 +11710,13 @@
           "message": "Optional message to approver added to document upload — sent in email and shown in audit trail",
           "category": "feature",
           "createdAt": "2026-07-20T21:07:08.978Z"
+        },
+        {
+          "id": "806aabc6-226c-418e-8706-9b7a2417a95e",
+          "patch": 34,
+          "message": "Fixed: approval message box now appears in the create-from-template flow",
+          "category": "bug",
+          "createdAt": "2026-07-20T21:10:07.379Z"
         }
       ],
       "publishedPatch": 33,

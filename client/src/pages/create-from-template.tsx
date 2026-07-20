@@ -228,6 +228,7 @@ export default function CreateFromTemplate() {
   const [autoFinalApproval, setAutoFinalApproval] = useState<boolean>(true);
   const [selectedApproverId, setSelectedApproverId] = useState<string>("");
   const [selectedOnBehalfId, setSelectedOnBehalfId] = useState<string>("");
+  const [approvalMessage, setApprovalMessage] = useState<string>("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [expiryDate, setExpiryDate] = useState<string>("");
   const [complianceMode, setComplianceMode] = useState<"none" | "renewal" | "expiry">("none");
@@ -823,6 +824,7 @@ export default function CreateFromTemplate() {
           approvalRequestedFrom: requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           onBehalfOfUserId: isAdministrator && requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
+          approvalMessage: requiresApproval && selectedApproverId && approvalMessage.trim() ? approvalMessage.trim() : undefined,
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
@@ -886,6 +888,7 @@ export default function CreateFromTemplate() {
           approvalRequestedFrom: requiresApproval && selectedApproverId ? selectedApproverId : undefined,
           notifyUserIds: requiresApproval && selectedApproverId ? [selectedApproverId] : [],
           onBehalfOfUserId: isAdministrator && requiresApproval && selectedOnBehalfId ? selectedOnBehalfId : undefined,
+          approvalMessage: requiresApproval && selectedApproverId && approvalMessage.trim() ? approvalMessage.trim() : undefined,
           expiryDate: complianceMode === "expiry" && expiryDate ? expiryDate : undefined,
           renewalPeriodMonths: complianceMode === "renewal" ? renewalPeriodMonths : undefined,
         };
@@ -1576,6 +1579,18 @@ export default function CreateFromTemplate() {
                       </div>
                     );
                   })()}
+                  {selectedApproverId && (
+                    <div className="space-y-1 pt-1">
+                      <label className="text-sm font-medium text-muted-foreground">Message to approver <span className="font-normal">(optional)</span></label>
+                      <Textarea
+                        placeholder="Add a message or instructions for the approver…"
+                        rows={2}
+                        value={approvalMessage}
+                        onChange={(e) => setApprovalMessage(e.target.value)}
+                        data-testid="textarea-approval-message"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
