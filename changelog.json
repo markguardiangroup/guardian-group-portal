@@ -11612,6 +11612,13 @@
           "message": "Milestone Timeline: weekly notches and month labels added to the timeline axis",
           "category": "enhancement",
           "createdAt": "2026-07-20T15:21:24.176Z"
+        },
+        {
+          "id": "063612ce-f9d1-43b2-851a-f0538022a990",
+          "patch": 34,
+          "message": "Fixed: Milestone Timeline weekly notches now visible in the dialog view",
+          "category": "bug",
+          "createdAt": "2026-07-20T16:01:54.223Z"
         }
       ],
       "publishedPatch": 33,

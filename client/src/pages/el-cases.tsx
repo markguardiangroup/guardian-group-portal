@@ -1657,6 +1657,25 @@ function MilestoneTimelineDialog({
   const getPos = (d: Date) => ((d.getTime() - minDate.getTime()) / totalRange) * 100;
   const todayPos = getPos(today);
 
+  // Weekly notches for the dialog view
+  const weekNotches = useMemo(() => {
+    const notches: { pos: number; isMonth: boolean; label: string }[] = [];
+    const weekMs = 7 * 86_400_000;
+    const first = new Date(minDate);
+    const dow = first.getDay();
+    first.setDate(first.getDate() + (dow === 0 ? 1 : (8 - dow) % 7 || 7));
+    let d = new Date(first);
+    while (d <= maxDate) {
+      const pos = getPos(d);
+      if (pos >= 0.5 && pos <= 99.5) {
+        const isMonth = d.getDate() <= 7;
+        notches.push({ pos, isMonth, label: isMonth ? format(d, "MMM yyyy") : "" });
+      }
+      d = new Date(d.getTime() + weekMs);
+    }
+    return notches;
+  }, [minDate, maxDate, totalRange]);
+
   const handleExport = () => {
     const html = generateMilestoneTimelineHtml(caseData, sorted, undated);
     const win = window.open("", "_blank");
@@ -1710,6 +1729,36 @@ function MilestoneTimelineDialog({
                     className="absolute bg-border"
                     style={{ top: "50%", left: 0, right: 0, height: 2, transform: "translateY(-50%)" }}
                   />
+
+                  {/* Weekly / monthly notches */}
+                  {weekNotches.map((n, i) => (
+                    <div
+                      key={i}
+                      className="absolute"
+                      style={{
+                        left: `${n.pos}%`,
+                        top: "50%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: n.isMonth ? 1.5 : 1,
+                          height: n.isMonth ? 16 : 8,
+                          background: n.isMonth ? "#94a3b8" : "#cbd5e1",
+                          margin: "0 auto",
+                        }}
+                      />
+                      {n.isMonth && (
+                        <span
+                          className="absolute whitespace-nowrap text-[9px] text-slate-400"
+                          style={{ top: "100%", left: "50%", transform: "translateX(-50%)", marginTop: 3 }}
+                        >
+                          {n.label}
+                        </span>
+                      )}
+                    </div>
+                  ))}
 
                   {/* Today marker */}
                   <div
