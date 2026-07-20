@@ -11577,6 +11577,13 @@
           "message": "Case details: Milestone Timeline button shows horizontal progress report with export",
           "category": "feature",
           "createdAt": "2026-07-20T10:49:10.086Z"
+        },
+        {
+          "id": "42c2a714-2c22-4c50-97f5-62388aea4cc4",
+          "patch": 34,
+          "message": "Fixed: Milestones card buttons now sit below the title instead of squeezing it",
+          "category": "bug",
+          "createdAt": "2026-07-20T10:54:40.908Z"
         }
       ],
       "publishedPatch": 33,

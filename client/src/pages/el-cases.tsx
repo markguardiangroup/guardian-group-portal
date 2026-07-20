@@ -3462,12 +3462,10 @@ function CaseDetailView({ id }: { id: string }) {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-4 border-b">
-              <div>
-                <CardTitle className="text-lg">Milestones</CardTitle>
-                <CardDescription>Track key dates and tasks for this case</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
+            <CardHeader className="border-b">
+              <CardTitle className="text-lg">Milestones</CardTitle>
+              <CardDescription>Track key dates and tasks for this case</CardDescription>
+              <div className="flex items-center gap-2 pt-1">
                 <Button
                   size="sm"
                   variant="outline"
