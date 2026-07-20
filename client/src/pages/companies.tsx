@@ -1474,7 +1474,7 @@ export default function Companies() {
               } />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="my">My clients</SelectItem>
+              <SelectItem value="my" disabled={myStaff.length === 0}>My clients</SelectItem>
               {myStaff.map(s => (
                 <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-${s.id}`}>{s.fullName}'s clients</SelectItem>
               ))}

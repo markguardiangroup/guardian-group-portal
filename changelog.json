@@ -11661,6 +11661,13 @@
           "message": "My clients filter now defaults to All when user has no assigned clients",
           "category": "enhancement",
           "createdAt": "2026-07-20T17:48:46.074Z"
+        },
+        {
+          "id": "8a691682-8ae0-454a-87ae-2930bcc41284",
+          "patch": 34,
+          "message": "My clients option is greyed out in filters when user has no assigned clients",
+          "category": "enhancement",
+          "createdAt": "2026-07-20T17:52:24.689Z"
         }
       ],
       "publishedPatch": 33,

@@ -525,7 +525,7 @@ function ModuleSitesView({ module }: { module: ModuleType }) {
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="my">My client sites</SelectItem>
+                  <SelectItem value="my" disabled={myStaff.length === 0}>My client sites</SelectItem>
                   {myStaff.map(s => (
                     <SelectItem key={s.id} value={s.id} data-testid={`staff-filter-docs-${s.id}`}>
                       {s.fullName}'s client sites
