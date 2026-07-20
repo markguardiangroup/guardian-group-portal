@@ -11780,6 +11780,13 @@
           "message": "Fixed: approval card no longer shown on documents that are already approved",
           "category": "bug",
           "createdAt": "2026-07-20T22:05:01.665Z"
+        },
+        {
+          "id": "01e750bb-0962-4a41-b210-4d13de660a25",
+          "patch": 34,
+          "message": "Fixed: Send for Approval now shows on docs approved without a formal workflow",
+          "category": "bug",
+          "createdAt": "2026-07-20T22:08:14.167Z"
         }
       ],
       "publishedPatch": 33,
